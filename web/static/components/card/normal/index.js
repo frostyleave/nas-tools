@@ -56,9 +56,16 @@ export class NormalCard extends observeState(CustomElement) {
   }
 
   _render_right_up() {
+
+     var has_vote = this.vote && this.vote != "0.0" && this.vote != "0";
+     var vote_html = html`
+                      <div class="badge badge-pill bg-purple" style="position: absolute; top: 10px; right: 10px">
+                        ${this.vote}
+                      </div>`;
+
      if (this.fav == "2") {
-      return html`
-        <div class="badge badge-pill bg-green" style="position:absolute;top:10px;right:10px;padding:0;">
+        var fav_html = html`
+        <div class="badge badge-pill bg-green" style="position:absolute;bottom:10px;right:10px;padding:0;">
           <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-check" width="24" height="24"
                viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round"
                stroke-linejoin="round">
@@ -66,15 +73,15 @@ export class NormalCard extends observeState(CustomElement) {
             <path d="M5 12l5 5l10 -10"></path>
           </svg>
         </div>`;
-    } else if (this.vote && this.vote != "0.0" && this.vote != "0") {
-      return html`
-      <div class="badge badge-pill bg-purple"
-           style="position: absolute; top: 10px; right: 10px">
-        ${this.vote}
-      </div>`;
-    } else {
-      return nothing;
+        if (has_vote) {
+            return html`${fav_html}${vote_html}`;
+        }
+        return fav_html;
     }
+    if (has_vote) {
+      return vote_html;
+    }
+    return nothing;
   }
 
   _render_bottom() {

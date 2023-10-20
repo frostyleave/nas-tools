@@ -94,7 +94,7 @@ class RequestUtils:
                                  proxies=self._proxies,
                                  timeout=self._timeout,
                                  params=params)
-            return str(r.content, 'utf-8')
+            return str(r.content, 'utf-8').replace('\u200b', '')
         except requests.exceptions.RequestException:
             return None
 

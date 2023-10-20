@@ -144,6 +144,22 @@ class Torrent:
         return file_path, file_content, ""
 
     @staticmethod
+    def convert_hash_to_magnet(hash_text, title):
+        """
+        根据hash值，转换为磁力链，自动添加tracker
+        :param hash_text: 种子Hash值
+        :param title: 种子标题
+        """
+        if not hash_text or not title:
+            return None
+        hash_text = re.search(r'[0-9a-z]+', hash_text, re.IGNORECASE)
+        if not hash_text:
+            return None
+        hash_text = hash_text.group(0)
+        ret_magnet = f'magnet:?xt=urn:btih:{hash_text}'
+        return ret_magnet
+
+    @staticmethod
     def get_torrent_files(path):
         """
         解析Torrent文件，获取文件清单

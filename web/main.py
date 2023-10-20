@@ -21,6 +21,7 @@ from flask_compress import Compress
 from flask_login import LoginManager, login_user, login_required, current_user
 from flask_sock import Sock
 from icalendar import Calendar, Event, Alarm
+from simple_websocket import ConnectionClosed
 from werkzeug.middleware.proxy_fix import ProxyFix
 
 import log
@@ -215,7 +216,7 @@ def web():
     Indexers = Indexer().get_indexers()
     SearchSource = "douban" if Config().get_config("laboratory").get("use_douban_titles") else "tmdb"
     CustomScriptCfg = SystemConfig().get(SystemConfigKey.CustomScript)
-    CooperationSites = current_user.get_authsites()
+    # CooperationSites = current_user.get_authsites()
     Menus = WebAction().get_user_menus().get("menus") or []
     Commands = WebAction().get_commands()
     return render_template('navigation.html',
@@ -232,7 +233,7 @@ def web():
                            Indexers=Indexers,
                            SearchSource=SearchSource,
                            CustomScriptCfg=CustomScriptCfg,
-                           CooperationSites=CooperationSites,
+                           # CooperationSites=CooperationSites,
                            DefaultPath=DefaultPath,
                            Menus=Menus,
                            Commands=Commands)
@@ -484,7 +485,7 @@ def douban_tv():
     return render_template("discovery/recommend.html",
                            Type="DOUBANTAG",
                            SubType="TV",
-                           Title="豆瓣电视剧",
+                           Title="豆瓣剧集",
                            Filter="douban_tv",
                            FilterConf=ModuleConf.DISCOVER_FILTER_CONF.get('douban_tv'))
 
@@ -506,7 +507,7 @@ def tmdb_tv():
     return render_template("discovery/recommend.html",
                            Type="DISCOVER",
                            SubType="TV",
-                           Title="TMDB电视剧",
+                           Title="TMDB剧集",
                            Filter="tmdb_tv",
                            FilterConf=ModuleConf.DISCOVER_FILTER_CONF.get('tmdb_tv'))
 
@@ -727,8 +728,8 @@ def service():
             Services['sync'].update({
                 'state': 'ON'
             })
-        else:
-            Services.pop('sync')
+        # else:
+        #     Services.pop('sync')
 
     # 系统进程
     if "processes" in Services:
@@ -880,29 +881,6 @@ def directorysync():
                            SyncCount=len(SyncPaths),
                            RmtModeDict=RmtModeDict)
 
-
-# 下载器页面
-@App.route('/downloader', methods=['POST', 'GET'])
-@login_required
-def downloader():
-    DefaultDownloader = Downloader().default_downloader_id
-    Downloaders = Downloader().get_downloader_conf()
-    DownloadersCount = len(Downloaders)
-    Categories = {
-        x: WebAction().get_categories({
-            "type": x
-        }).get("category") for x in ["电影", "电视剧", "动漫"]
-    }
-    RmtModeDict = WebAction().get_rmt_modes()
-    return render_template("setting/downloader.html",
-                           Downloaders=Downloaders,
-                           DefaultDownloader=DefaultDownloader,
-                           DownloadersCount=DownloadersCount,
-                           Categories=Categories,
-                           RmtModeDict=RmtModeDict,
-                           DownloaderConf=ModuleConf.DOWNLOADER_CONF)
-
-
 # 下载设置页面
 @App.route('/download_setting', methods=['POST', 'GET'])
 @login_required
@@ -917,37 +895,11 @@ def download_setting():
                            Count=len(DownloadSetting))
 
 
-# 索引器页面
-@App.route('/indexer', methods=['POST', 'GET'])
-@login_required
-def indexer():
-    # 只有选中的索引器才搜索
-    indexers = Indexer().get_indexers(check=False)
-    private_count = len([item.id for item in indexers if not item.public])
-    public_count = len([item.id for item in indexers if item.public])
-    indexer_sites = SystemConfig().get(SystemConfigKey.UserIndexerSites)
-    return render_template("setting/indexer.html",
-                           Config=Config().get_config(),
-                           PrivateCount=private_count,
-                           PublicCount=public_count,
-                           Indexers=indexers,
-                           IndexerConf=ModuleConf.INDEXER_CONF,
-                           IndexerSites=indexer_sites)
-
-
 # 媒体库页面
 @App.route('/library', methods=['POST', 'GET'])
 @login_required
 def library():
     return render_template("setting/library.html",
-                           Config=Config().get_config())
-
-
-# 媒体服务器页面
-@App.route('/mediaserver', methods=['POST', 'GET'])
-@login_required
-def mediaserver():
-    return render_template("setting/mediaserver.html",
                            Config=Config().get_config(),
                            MediaServerConf=ModuleConf.MEDIASERVER_CONF)
 
@@ -1023,8 +975,36 @@ def rss_parser():
 @App.route('/plugin', methods=['POST', 'GET'])
 @login_required
 def plugin():
+    # 只有选中的索引器才搜索
+    indexers = Indexer().get_indexers(check=False)
+    private_count = len([item.id for item in indexers if not item.public])
+    public_count = len([item.id for item in indexers if item.public])
+    indexer_sites = SystemConfig().get(SystemConfigKey.UserIndexerSites)
+    # 下载器
+    DefaultDownloader = Downloader().default_downloader_id
+    Downloaders = Downloader().get_downloader_conf()
+    DownloadersCount = len(Downloaders)
+    Categories = {
+        x: WebAction().get_categories({
+            "type": x
+        }).get("category") for x in ["电影", "电视剧", "动漫"]
+    }
+    RmtModeDict = WebAction().get_rmt_modes()
+    # 插件
     Plugins = WebAction().get_plugins_conf().get("result")
     return render_template("setting/plugin.html",
+                           Config=Config().get_config(),
+                           PrivateCount=private_count,
+                           PublicCount=public_count,
+                           Indexers=indexers,
+                           IndexerSites=indexer_sites,
+                           IndexerConf=ModuleConf.INDEXER_CONF,
+                           Downloaders=Downloaders,
+                           DefaultDownloader=DefaultDownloader,
+                           DownloadersCount=DownloadersCount,
+                           Categories=Categories,
+                           RmtModeDict=RmtModeDict,
+                           DownloaderConf=ModuleConf.DOWNLOADER_CONF,
                            Plugins=Plugins,
                            Count=len(Plugins))
 
@@ -1734,7 +1714,11 @@ def message_handler(ws):
     消息中心WebSocket
     """
     while True:
-        data = ws.receive()
+        try:
+            data = ws.receive(timeout=10)
+        except ConnectionClosed:
+            print("WebSocket连接已关闭！")
+            break
         if not data:
             continue
         try:

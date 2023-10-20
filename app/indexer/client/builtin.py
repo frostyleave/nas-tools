@@ -91,17 +91,18 @@ class BuiltinIndexer(_IIndexClient):
                     indexer.name = site.get("name")
                     ret_indexers.append(indexer)
         # 公开站点
-        if public and self._show_more_sites:
-            for indexer in IndexerHelper().get_all_indexers():
-                if not indexer.get("public"):
-                    continue
-                if indexer_id and indexer.get("id") == indexer_id:
-                    return IndexerConf(datas=indexer)
-                if check and (not indexer_sites or indexer.get("id") not in indexer_sites):
-                    continue
-                if indexer.get("domain") not in _indexer_domains:
-                    _indexer_domains.append(indexer.get("domain"))
-                    ret_indexers.append(IndexerConf(datas=indexer))
+        # if public and self._show_more_sites:
+        for indexer in IndexerHelper().get_all_indexers():
+            if not indexer.get("public"):
+                continue
+            if indexer_id and indexer.get("id") == indexer_id:
+                return IndexerConf(datas=indexer)
+            if check and (not indexer_sites or indexer.get("id") not in indexer_sites):
+                continue
+            if indexer.get("domain") not in _indexer_domains:
+                _indexer_domains.append(indexer.get("domain"))
+                ret_indexers.append(IndexerConf(datas=indexer))
+        
         return None if indexer_id else ret_indexers
 
     def search(self, order_seq,
@@ -135,13 +136,25 @@ class BuiltinIndexer(_IIndexClient):
 
         log.info(f"【{self.client_name}】开始搜索Indexer：{indexer.name} ...")
         # 特殊符号处理
-        search_word = StringUtils.handler_special_chars(text=key_word,
-                                                        replace_word=" ",
-                                                        allow_space=True)
+        search_word = StringUtils.handler_special_chars(text=key_word, replace_word=" ", allow_space=True)
+
+        # 仅支持豆瓣搜索
+        if indexer.search_type == "douban":
+            if len(match_media.douban_id) > 0:
+                search_word = match_media.douban_id
+            else:
+                log.warn(f"【{self.client_name}】{indexer.name} 仅支持按豆瓣id搜索, 当前媒体信息的豆瓣id为空")
+                return []
+
         # 避免对英文站搜索中文
         if indexer.language == "en" and StringUtils.is_chinese(search_word):
-            log.warn(f"【{self.client_name}】{indexer.name} 无法使用中文名搜索")
-            return []
+            # 如果当前网站支持按imdb_id搜索，则改为按IMDB搜索
+            if indexer.imdb and match_media and match_media.imdb_id:
+                search_word = match_media.imdb_id
+                log.info(f"【{self.client_name}】{indexer.name} 改用imdb_id搜索")
+            else:
+                log.warn(f"【{self.client_name}】{indexer.name} 无法使用中文名搜索")
+                return []
         # 开始索引
         result_array = []
         try:

@@ -102,7 +102,14 @@ def search_medias_for_web(content, ident_flag=True, filters=None, tmdbid=None, m
                 if search_en_name:
                     second_search_name = search_en_name
 
+            season_name = None
+            if season_num and 1 < season_num <= len(media_info.tmdb_info.seasons):
+                match_season = next(filter(lambda x: x.season_number == season_num, media_info.tmdb_info.seasons), None)
+                if match_season and match_season.name:
+                    season_name = match_season.name
+
             filter_args = {"season": search_season,
+                           "season_name": season_name,
                            "episode": search_episode,
                            "year": media_info.year,
                            "type": media_info.type}

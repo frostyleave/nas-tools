@@ -217,6 +217,9 @@ class DoubanApi(object):
     def movie_detail(self, subject_id):
         return self.__invoke(self._urls["movie_detail"] + subject_id)
 
+    def search_agg(self, key_word):
+        return self.__invoke(self._urls["search_agg"], q=key_word)
+
     def movie_celebrities(self, subject_id):
         return self.__invoke(self._urls["movie_celebrities"] % subject_id)
 

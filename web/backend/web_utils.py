@@ -2,6 +2,7 @@ from functools import lru_cache
 from urllib.parse import quote
 
 import cn2an
+import re
 
 from app.media import Media, Bangumi, DouBan
 from app.media.meta import MetaInfo
@@ -10,6 +11,7 @@ from app.utils.types import MediaType
 from config import Config
 from version import APP_VERSION
 
+DB_SEASON_SUFFIX = '[第\s共]+[0-9一二三四五六七八九十\-\s]+季'
 
 class WebUtils:
 
@@ -83,20 +85,25 @@ class WebUtils:
                 return None
             title = info.get("title")
             original_title = info.get("original_title")
-            year = info.get("year")
             # 支持自动识别类型
             if not mtype:
                 mtype = MediaType.TV if info.get("episodes_count") else MediaType.MOVIE
+
+            # 剧集类型，去掉季信息
+            if mtype == MediaType.TV:
+                title = re.sub(r'%s' % DB_SEASON_SUFFIX, '', title, flags=re.IGNORECASE).strip()
+
             if original_title:
-                media_info = Media().get_media_info(title=f"{original_title} {year}",
-                                                    mtype=mtype,
-                                                    append_to_response="all")
+                media_info = Media().get_media_info(title=original_title, mtype=mtype, append_to_response="all")
+
             if not media_info or not media_info.tmdb_info:
-                media_info = Media().get_media_info(title=f"{title} {year}",
-                                                    mtype=mtype,
-                                                    append_to_response="all")
-            media_info.douban_id = doubanid
-        elif str(mediaid).startswith("BG:"):
+                media_info = Media().get_media_info(title=title, mtype=mtype, append_to_response="all")
+
+            if media_info:
+                media_info.douban_id = doubanid
+
+            return media_info
+        if str(mediaid).startswith("BG:"):
             # BANGUMI
             bangumiid = str(mediaid)[3:]
             info = Bangumi().detail(bid=bangumiid)
@@ -106,21 +113,27 @@ class WebUtils:
             title_cn = info.get("name_cn")
             year = info.get("date")[:4] if info.get("date") else ""
             media_info = Media().get_media_info(title=f"{title} {year}",
-                                                mtype=MediaType.TV,
+                                                mtype=MediaType.ANIME,
                                                 append_to_response="all")
             if not media_info or not media_info.tmdb_info:
                 media_info = Media().get_media_info(title=f"{title_cn} {year}",
-                                                    mtype=MediaType.TV,
+                                                    mtype=MediaType.ANIME,
                                                     append_to_response="all")
         else:
             # TMDB
-            info = Media().get_tmdb_info(tmdbid=mediaid,
-                                         mtype=mtype,
-                                         append_to_response="all")
+            info = Media().get_tmdb_info(tmdbid=mediaid, mtype=mtype, append_to_response="all")
             if not info:
                 return None
+            title = info.get("title") if mtype == MediaType.MOVIE else info.get("name")
             media_info = MetaInfo(title=info.get("title") if mtype == MediaType.MOVIE else info.get("name"))
             media_info.set_tmdb_info(info)
+
+        # 豆瓣信息补全
+        if media_info and info:
+            keyword = info.imdb_id if hasattr(info, 'imdb_id') else title
+            douban_info = DouBan().search_detail_by_keyword(keyword)
+            if douban_info:
+                media_info.douban_id = douban_info.get("id")
 
         return media_info
 

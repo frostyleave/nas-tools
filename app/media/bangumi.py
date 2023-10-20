@@ -46,7 +46,7 @@ class Bangumi(object):
         return self.__invoke(self._urls["detail"] % bid, _ts=datetime.strftime(datetime.now(), '%Y%m%d'))
 
     @staticmethod
-    def __dict_item(item, weekday):
+    def __dict_item(item, weekday, media_type=MediaType.ANIME):
         """
         转换为字典
         """
@@ -70,8 +70,8 @@ class Bangumi(object):
             'orgid': bid,
             'title': title,
             'year': air_date[:4] if air_date else "",
-            'type': 'TV',
-            'media_type': MediaType.TV.value,
+            'type': str(media_type),
+            'media_type': media_type.value,
             'vote': score,
             'image': image,
             'overview': summary,

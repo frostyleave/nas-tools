@@ -3,6 +3,7 @@ from threading import Lock
 from time import sleep
 
 import zhconv
+from bs4 import BeautifulSoup
 
 import log
 from app.media.doubanapi import DoubanApi, DoubanWeb
@@ -38,6 +39,109 @@ class DouBan:
             ExceptionUtils.exception_traceback(err)
             log.warn(f"【Douban】获取cookie失败：{format(err)}")
 
+    # 根据关键字查询豆瓣数据
+    def search_detail_by_keyword(self, key_word):
+        log.info("【Douban】正在通过关键字查询豆瓣详情：%s" % key_word)
+        douban_info = self.doubanapi.search_agg(key_word)
+        if not douban_info:
+            log.warn("【Douban】%s 未找到豆瓣详细信息" % key_word)
+            return None
+        if douban_info.get("localized_message"):
+            log.warn("【Douban】查询豆瓣详情错误：%s" % douban_info.get("localized_message"))
+            return None
+
+        subject = douban_info.get("subjects")
+        if not subject:
+            log.warn("【Douban】%s 查询结果为空" % key_word)
+            return None
+
+        subject_items = subject.get("items")
+        if len(subject_items) == 0:
+            log.warn("【Douban】%s 查询结果为空" % key_word)
+            return None
+
+        match_item = subject_items[0]
+        detail = match_item.get("target")
+        if not detail.get("title"):
+            return None
+
+        return detail
+
+    # 从豆瓣网页抓取演职人员信息
+    def scraper_media_celebrities(self, douban_id):
+        # GET请求
+        url = "https://movie.douban.com/subject/{}/celebrities".format(douban_id)
+        html = RequestUtils().get(url)
+        soup = BeautifulSoup(html, 'lxml')
+        data = soup.select('div#celebrities > div.list-wrapper')
+
+        crews = []
+        actors = []
+
+        for unit in data:
+            if len(crews) == 6 and len(actors) > 0:
+                break
+
+            title = unit.select('h2')
+            if len(title) == 0 or not title[0].text:
+                continue
+            name = StringUtils.cut_from_spance(title[0].text)
+            if name == '演员':
+                actors = self.build_actors(unit)
+                continue
+
+            rep = unit.select('li.celebrity > a')
+            if len(rep) == 0:
+                continue
+            crews_name = StringUtils.cut_from_spance(rep[0].attrs['title'])
+            crews.append({crews_name: name})
+
+        return crews, actors
+
+    # 解析演员信息
+    def build_actors(self, div):
+        actors = []
+
+        info_unit = div.select('li.celebrity')
+        for one_unit in info_unit:
+
+            profile_tag = one_unit.select('a')
+            if len(profile_tag) == 0:
+                continue
+
+            raw_title = profile_tag[0].attrs['title']
+            actor_name = StringUtils.cut_from_spance(raw_title)
+            actor_en_name = raw_title.replace(actor_name, '').strip()
+            actor_link = profile_tag[0].attrs['href']
+            actor_id = actor_link.strip('/')
+            actor_id = actor_id[actor_id.rfind('/') + 1:]
+
+            role_tag = one_unit.select('span.role')
+            if len(role_tag) == 0:
+                continue
+            role_name = role_tag[0].text
+            role_name = role_name[role_name.rfind(' ') + 1:role_name.rfind(')')]
+
+            image_tag = one_unit.select('div.avatar')
+            if len(image_tag) == 0:
+                continue
+            style = image_tag[0].attrs['style']
+            role_image = style[style.rfind('(') + 1:style.rfind(')')]
+
+            actor = {
+                'id': actor_id,
+                'name': actor_en_name,
+                'original_name': actor_name,
+                'en_name': StringUtils.adjust_en_name(actor_en_name),
+                'image': role_image,
+                'role': role_name,
+                'profile': actor_link
+            }
+
+            actors.append(actor)
+
+        return actors
+
     def get_douban_detail(self, doubanid, mtype=None, wait=False):
         """
         根据豆瓣ID返回豆瓣详情，带休眠
@@ -67,6 +171,12 @@ class DouBan:
         if douban_info.get("title") == "未知电影" or douban_info.get("title") == "未知电视剧":
             return None
         log.info("【Douban】查询到数据：%s" % douban_info.get("title"))
+
+        if douban_info.get('title') and not StringUtils.is_all_chinese_and_mark(douban_info.get('title')) and len(douban_info.get('aka')):
+            match_cn = next(filter(lambda x: StringUtils.is_all_chinese_and_mark(x), douban_info.get('aka')), None)
+            if match_cn:
+                douban_info['title'] = match_cn
+
         return douban_info
 
     def __search_douban_id(self, metainfo):
@@ -146,7 +256,6 @@ class DouBan:
         for web_info in web_infos:
             web_info["id"] = web_info.get("url").split("/")[-2]
         return web_infos
-
 
     def get_douban_wish(self, dtype, userid, start, wait=False):
         """
@@ -321,7 +430,7 @@ class DouBan:
                                             count=self._tv_num)
         if not infos:
             return []
-        return self.__dict_items(infos.get("subject_collection_items"))
+        return self.__dict_items(infos.get("subject_collection_items"), MediaType.ANIME)
 
     def get_douban_hot_tv(self, page=1):
         if not self.doubanapi:
@@ -418,6 +527,8 @@ class DouBan:
                 if info.get("type") not in ("movie", "tv"):
                     continue
                 mtype = MediaType.MOVIE if info.get("type") == "movie" else MediaType.TV
+                if mtype == MediaType.TV and len(info.get("tags")) > 0 and next(filter(lambda x: x.get("name") == '动画', info.get("tags")), None) is not None:
+                    mtype = MediaType.ANIME
             else:
                 mtype = media_type
 

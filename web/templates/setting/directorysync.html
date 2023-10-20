@@ -1,3 +1,23 @@
+<style>
+  .sync-card {
+    flex-direction: row;
+    padding: 10px;
+  }
+  .sync-dir {
+    flex:1;
+  }
+  .sync-opt {
+    width:320px;
+  }
+   .sync-opt-grid {
+    display:flex;
+  }
+     .sync-opt-way {
+      width:65px;
+      text-align:center;
+  }
+</style>
+
 {% import 'macro/svg.html' as SVG %}
 <div class="container-xl">
   <!-- Page title -->
@@ -22,48 +42,23 @@
     </div>
   </div>
 </div>
+
 <!-- 业务页面代码 -->
 <div class="page-body">
   <div class="container-xl">
     <div class="row row-cards">
         {% for Id, Attr in SyncPaths.items() %}
-          <div class="card">
-            <div class="card-header">
-              <div>
-                {% if Attr.enabled %}
-                <span class="badge bg-green"></span>
-                {% else %}
-                <span class="badge bg-red"></span>
-                {% endif %}
-              </div>
-              <h3 class="card-title ms-3">{{ Attr.from }}</h3>
-              <a href="#" class="link-secondary ms-auto d-sm-none" data-bs-toggle="dropdown" aria-expanded="false">
-                {{ SVG.dots() }}
-              </a>
-              <div class="dropdown-menu dropdown-menu-end">
-                <button class="dropdown-item" onclick="show_edit_sync_path_modal('{{ Id }}')">
-                  编辑
-                </button>
-                <button class="dropdown-item text-danger" onclick="delete_sync_path('{{ Id }}')">
-                  删除
-                </button>
-              </div>
-              <div class="card-actions btn-actions d-none d-sm-block">
-                <a href="javascript:show_edit_sync_path_modal('{{ Id }}')" class="btn-action"
-                  title="编辑" data-bs-toggle="tooltip">
-                  {{ SVG.edit() }}
-                </a>
-                <a href="javascript:delete_sync_path('{{ Id }}')" class="btn-action"
-                   title="删除" data-bs-toggle="tooltip">
-                  {{ SVG.x() }}
-                </a>
-              </div>
-            </div>
-            <div class="card-body">
-              <div class="datagrid">
+          <div class="card sync-card">
+            <div class="sync-dir">
+              <div class="datagrid" >
                 <div class="datagrid-item">
                   <div class="datagrid-title">源目录</div>
                   <div class="datagrid-content">
+                    {% if Attr.enabled %}
+                    <span class="badge bg-green">启用</span>
+                    {% else %}
+                    <span class="badge bg-red">停用</span>
+                    {% endif %}
                     {{ Attr.from or '' }}
                   </div>
                 </div>
@@ -79,7 +74,11 @@
                     {{ Attr.unknown or '未设置' }}
                   </div>
                 </div>
-                <div class="datagrid-item">
+              </div>
+            </div>
+            <div>
+              <div class="datagrid sync-opt-grid">
+                <div class="datagrid-item sync-opt-way">
                   <div class="datagrid-title">同步方式</div>
                   <div class="datagrid-content">
                     <span class="badge">{{ Attr.syncmod_name }}</span>
@@ -89,9 +88,9 @@
                   <div class="datagrid-title">兼容模式</div>
                   <div class="datagrid-content">
                     {% if Attr.compatibility %}
-                      <span class="badge bg-cyan">开</span>
+                    <span class="badge bg-cyan">开</span>
                     {% else %}
-                      <span class="badge bg-orange">关</span>
+                    <span class="badge bg-orange">关</span>
                     {% endif %}
                   </div>
                 </div>
@@ -99,20 +98,21 @@
                   <div class="datagrid-title">识别重命名</div>
                   <div class="datagrid-content">
                     {% if Attr.rename %}
-                      <span class="badge bg-cyan">开</span>
+                    <span class="badge bg-cyan">开</span>
                     {% else %}
-                      <span class="badge bg-orange">关</span>
+                    <span class="badge bg-orange">关</span>
                     {% endif %}
                   </div>
                 </div>
                 <div class="datagrid-item">
-                  <div class="datagrid-title">状态</div>
+                  <div class="datagrid-title">操作</div>
                   <div class="datagrid-content">
-                    {% if Attr.enabled %}
-                      <span class="badge bg-green">正常</span>
-                    {% else %}
-                      <span class="badge bg-red">停用</span>
-                    {% endif %}
+                    <a href="javascript:show_edit_sync_path_modal('{{ Id }}')" title="编辑" data-bs-toggle="tooltip">
+                      {{ SVG.edit() }}
+                    </a>
+                    <a href="javascript:delete_sync_path('{{ Id }}')" title="删除" data-bs-toggle="tooltip">
+                      {{ SVG.x() }}
+                    </a>
                   </div>
                 </div>
               </div>

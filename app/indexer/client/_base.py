@@ -6,6 +6,7 @@ from app.filter import Filter
 from app.helper import ProgressHelper
 from app.media import Media
 from app.media.meta import MetaInfo
+from app.utils import StringUtils
 from app.utils.types import MediaType, SearchType, ProgressKey
 
 
@@ -83,29 +84,34 @@ class _IIndexClient(metaclass=ABCMeta):
         for item in result_array:
             # 名称
             torrent_name = item.get('title')
-            # 描述
-            description = item.get('description')
             if not torrent_name:
                 index_error += 1
                 continue
+
+            seeders = item.get('seeders')
+            # 全匹配模式下，非公开站点，过滤掉做种数为0的
+            if filter_args.get("seeders") and not indexer.public and str(seeders) == "0":
+                log.info(f"【{self.client_name}】{torrent_name} 做种数为0")
+                index_rule_fail += 1
+                continue
+
             enclosure = item.get('enclosure')
             size = item.get('size')
-            seeders = item.get('seeders')
+
             peers = item.get('peers')
             page_url = item.get('page_url')
             uploadvolumefactor = round(float(item.get('uploadvolumefactor')), 1) if item.get(
                 'uploadvolumefactor') is not None else 1.0
             downloadvolumefactor = round(float(item.get('downloadvolumefactor')), 1) if item.get(
                 'downloadvolumefactor') is not None else 1.0
+
             imdbid = item.get("imdbid")
-            labels = item.get("labels")
-            # 全匹配模式下，非公开站点，过滤掉做种数为0的
-            if filter_args.get("seeders") and not indexer.public and str(seeders) == "0":
-                log.info(f"【{self.client_name}】{torrent_name} 做种数为0")
-                index_rule_fail += 1
-                continue
+            labels = item.get("labels") if item.get("labels") else ''
+            # 描述
+            description = item.get('description') if item.get('description') else ''
+
             # 识别种子名称
-            meta_info = MetaInfo(title=torrent_name, subtitle=f"{labels} {description}")
+            meta_info = MetaInfo(title=torrent_name, subtitle=f"{labels} {description}".strip(), mtype=match_media.type)
             if not meta_info.get_name():
                 log.info(f"【{self.client_name}】{torrent_name} 无法识别到名称")
                 index_match_fail += 1
@@ -154,20 +160,23 @@ class _IIndexClient(metaclass=ABCMeta):
                         media_info = self.media.merge_media_info(meta_info, match_media)
                     else:
                         # 重新识别
-                        media_info = self.media.get_media_info(title=torrent_name, subtitle=description, chinese=False)
+                        kw = meta_info.cn_name if meta_info.cn_name else torrent_name
+                        media_info = self.media.get_media_info(title=kw, subtitle=description,
+                                                               mtype=meta_info.type,
+                                                               chinese=StringUtils.is_chinese(kw), meta_info=meta_info)
                         if not media_info:
-                            log.warn(f"【{self.client_name}】{torrent_name} 识别媒体信息出错！")
+                            log.warn(f"【{self.client_name}】{kw} 识别媒体信息出错！")
                             index_error += 1
                             continue
                         elif not media_info.tmdb_info:
                             log.info(
-                                f"【{self.client_name}】{torrent_name} 识别为 {media_info.get_name()} 未匹配到媒体信息")
+                                f"【{self.client_name}】{kw} 识别为 {media_info.get_name()} 未匹配到媒体信息")
                             index_match_fail += 1
                             continue
                         # TMDBID是否匹配
                         if str(media_info.tmdb_id) != str(match_media.tmdb_id):
                             log.info(
-                                f"【{self.client_name}】{torrent_name} 识别为 "
+                                f"【{self.client_name}】{kw} 识别为 "
                                 f"{media_info.type.value}/{media_info.get_title_string()}/{media_info.tmdb_id} "
                                 f"与 {match_media.type.value}/{match_media.get_title_string()}/{match_media.tmdb_id} 不匹配")
                             index_match_fail += 1
@@ -203,9 +212,14 @@ class _IIndexClient(metaclass=ABCMeta):
                             f"跳过低优先级或同优先级资源：{torrent_name}"
                         )
                         continue
+
+            # 如果集数大于当前季，则把集数减去当前季的总集数，季数+1
+            self.try_adjust_season_info(media_info, meta_info)
+
             # 检查标题是否匹配季、集、年
             if not self.filter.is_torrent_match_sey(media_info,
                                                     filter_args.get("season"),
+                                                    filter_args.get("season_name"),
                                                     filter_args.get("episode"),
                                                     filter_args.get("year")):
                 log.info(
@@ -253,3 +267,26 @@ class _IIndexClient(metaclass=ABCMeta):
                                   f"有效 {index_sucess}，"
                                   f"耗时 {(end_time - start_time).seconds} 秒")
         return ret_array
+
+    # 如果集数大于当前季，则把集数减去当前季的总集数，季数+1
+    def try_adjust_season_info(self, media_info, meta_info):
+        if meta_info.type == MediaType.MOVIE or not media_info:
+            return
+        if not media_info.begin_season:
+            media_info.begin_season = 1
+        if not media_info.begin_episode or not media_info.tmdb_info or len(media_info.tmdb_info.seasons) <= 0:
+            return
+        while True:
+            match_season = next(filter(lambda x: x.season_number == media_info.begin_season,
+                                       media_info.tmdb_info.seasons), None)
+            if not match_season or media_info.begin_episode <= match_season.episode_count:
+                break
+            # 是否有下一季
+            if not next(filter(lambda x: x.season_number == media_info.begin_season + 1,
+                               media_info.tmdb_info.seasons), None):
+                break
+            # 如果有下一季则下推
+            media_info.begin_season = media_info.begin_season + 1
+            media_info.begin_episode -= match_season.episode_count
+            if media_info.end_season:
+                media_info.end_season -= match_season.episode_count

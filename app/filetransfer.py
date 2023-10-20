@@ -699,6 +699,7 @@ class FileTransfer:
                     dist_path = target_dir
                 else:
                     dist_path = self.get_best_target_path(mtype=media.type, in_path=in_path, size=media.size)
+                    log.info("【Rmt】查询最佳路径结果：{}".format(dist_path))
                 if not dist_path:
                     log.error("【Rmt】文件转移失败，目的路径不存在！")
                     success_flag = False
@@ -1241,8 +1242,8 @@ class FileTransfer:
             "audioCodec": media.audio_encode,
             "tmdbid": media.tmdb_id,
             "imdbid": media.imdb_id,
-            "season": media.get_season_seq(),
-            "episode": media.get_episode_seqs(),
+            "season": int(media.get_season_seq()) if media.get_season_seq() else 0,
+            "episode": int(media.get_episode_seqs()) if media.get_episode_seqs() else 0,
             "episode_title": StringUtils.clear_file_name(episode_title),
             "season_episode": "%s%s" % (media.get_season_item(), media.get_episode_items()),
             "part": media.part
@@ -1259,7 +1260,7 @@ class FileTransfer:
         """
         format_dict = self.get_format_dict(media_info)
         dir_name = re.sub(r"[-_\s.]*\t", "", self._movie_dir_rmt_format.format(**format_dict))
-        file_name = re.sub(r"[-_\s.]*\t", "", self._movie_file_rmt_format.format(**format_dict))
+        file_name = re.sub(r"[-_\s.]*\t", "", self._movie_file_rmt_format.format(**format_dict)).replace(' ', '.')
         return dir_name, file_name
 
     def get_tv_dest_path(self, media_info):
@@ -1270,7 +1271,7 @@ class FileTransfer:
         format_dict = self.get_format_dict(media_info)
         dir_name = re.sub(r"[-_\s.]*\t", "", self._tv_dir_rmt_format.format(**format_dict))
         season_name = re.sub(r"[-_\s.]*\t", "", self._tv_season_rmt_format.format(**format_dict))
-        file_name = re.sub(r"[-_\s.]*\t", "", self._tv_file_rmt_format.format(**format_dict))
+        file_name = re.sub(r"[-_\s.]*\t", "", self._tv_file_rmt_format.format(**format_dict)).replace(' ', '.')
         return dir_name, season_name, file_name
 
     def check_ignore(self, file_list):

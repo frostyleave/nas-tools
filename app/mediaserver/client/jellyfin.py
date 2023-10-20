@@ -650,7 +650,7 @@ class Jellyfin(_IMediaClient):
                 for item in result:
                     if item.get("Type") not in ["Movie", "Series"]:
                         continue
-                    item_type = MediaType.MOVIE.value if item.get("Type") == "Movie" else MediaType.TV.value
+                    item_type = MediaType.MOVIE.value if item.get("Type") == "Movie" else '剧集'
                     link = self.get_play_url(item.get("Id"))
                     image = self.get_local_image_by_id(item_id=item.get("Id"), remote=False, inner=True)
                     ret_latest.append({
