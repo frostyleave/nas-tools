@@ -85,7 +85,7 @@ regex==2023.10.3
 requests==2.31.0
 ruamel.yaml==0.17.35
 ruamel.yaml.clib==0.2.8
-selenium==4.14.0
+selenium==4.9.1
 six==1.16.0
 slack-sdk==3.23.0
 sniffio==1.2.0
