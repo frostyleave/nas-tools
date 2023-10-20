@@ -363,17 +363,31 @@ class TorrentSpider(feapder.AirSpider):
         if 'download' not in self.fields:
             return
         selector = self.fields.get('download', {})
-        download = torrent(selector.get('selector', '')).clone()
-        self.__remove(download, selector)
-        items = self.__attribute_or_text(download, selector)
-        item = self.__index(items, selector)
-        download_link = self.__filter_text(item, selector.get('filters'))
-        if download_link:
-            if not download_link.startswith("http") and not download_link.startswith("magnet"):
-                self.torrents_info['enclosure'] = self.domain + download_link[1:] if download_link.startswith(
-                    "/") else self.domain + download_link
-            else:
-                self.torrents_info['enclosure'] = download_link
+
+        if "detail" in selector:
+            detail = selector.get("detail", {})
+            if "xpath" in detail:
+                self.torrents_info['enclosure'] = f'[{detail.get("xpath", "")}' \
+                                                  f'|{self.cookie or ""}' \
+                                                  f'|{self.ua or ""}' \
+                                                  f'|{self.referer or ""}]'
+            elif "hash" in detail:
+                self.torrents_info['enclosure'] = f'#{detail.get("hash", "")}' \
+                                                  f'|{self.cookie or ""}' \
+                                                  f'|{self.ua or ""}' \
+                                                  f'|{self.referer or ""}#'
+        else:
+            download = torrent(selector.get('selector', '')).clone()
+            self.__remove(download, selector)
+            items = self.__attribute_or_text(download, selector)
+            item = self.__index(items, selector)
+            download_link = self.__filter_text(item, selector.get('filters'))
+            if download_link:
+                if not download_link.startswith("http") and not download_link.startswith("magnet"):
+                    self.torrents_info['enclosure'] = self.domain + download_link[1:] if download_link.startswith(
+                        "/") else self.domain + download_link
+                else:
+                    self.torrents_info['enclosure'] = download_link
 
     def Getimdbid(self, torrent):
         # imdbid
@@ -632,7 +646,7 @@ class TorrentSpider(feapder.AirSpider):
         """
         try:
             # 获取站点文本
-            html_text = response.extract()
+            html_text = response.extract().replace('\u200b', '')
             if not html_text:
                 self.is_error = True
                 self.is_complete = True
@@ -642,7 +656,8 @@ class TorrentSpider(feapder.AirSpider):
             # 种子筛选器
             torrents_selector = self.list.get('selector', '')
             # 遍历种子html列表
-            for torn in html_doc(torrents_selector):
+            list = html_doc(torrents_selector)
+            for torn in list:
                 self.torrents_info_array.append(copy.deepcopy(self.Getinfo(PyQuery(torn))))
                 if len(self.torrents_info_array) >= int(self.result_num):
                     break

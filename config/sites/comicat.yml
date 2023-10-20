@@ -1,0 +1,40 @@
+id: comicat
+name: 漫猫
+domain: https://www.comicat.org/
+encoding: UTF-8
+public: true
+search:
+  paths:
+  - path: search.php?keyword={keyword}
+    method: get
+category:
+  - ANIME
+torrents:
+  list:
+    selector: table#listTable > tbody > tr
+  fields:
+    title:
+      selector: td:nth-child(3) > a
+    details:
+      selector: td:nth-child(3) > a
+      attribute: href
+    download:
+      detail:
+        hash: //span[@id="text_hash_id"]/text()
+    date_added:
+      selector: td:nth-child(1)
+      optional: true
+    size:
+      selector: td:nth-child(4)
+    seeders:
+      selector: td:nth-child(5) > span
+    leechers:
+      selector: td:nth-child(6) > span
+    grabs:
+      selector: td:nth-child(7) > span
+    downloadvolumefactor:
+      case:
+        '*': 0
+    uploadvolumefactor:
+      case:
+        '*': 1

@@ -109,6 +109,24 @@ class StringUtils:
         return True
 
     @staticmethod
+    def is_all_chinese_and_mark(word):
+        """
+        判断是否全是中文(包括中文标点)
+        """
+        for ch in word:
+            if ch == ' ':
+                continue
+            if '\u4e00' <= ch <= '\u9fff':
+                continue
+            if '\u3000' <= ch <= '\u303f':
+                continue
+            if '\uFF00' <= ch <= '\uFFEF':
+                continue
+            else:
+                return False
+        return True
+
+    @staticmethod
     def xstr(s):
         """
         字符串None输出为空
@@ -150,7 +168,11 @@ class StringUtils:
         if not text:
             return 0.0
         try:
-            float_val = float(text.strip().replace(',', ''))
+            text = text.strip().replace(',', '')
+            if text:
+                float_val = float(text)
+            else:
+                float_val = 0.0
         except Exception as e:
             ExceptionUtils.exception_traceback(e)
         return float_val
@@ -545,3 +567,34 @@ class StringUtils:
             return True
         else:
             return False
+
+    @staticmethod
+    def adjust_en_name(en_name):
+        lst = en_name.split(' ')
+        lst.reverse()
+        return ' '.join(lst)
+
+    @staticmethod
+    def cut_from_spance(raw_text):
+        index = raw_text.find(' ')
+        if index > 0:
+            return raw_text[:index]
+        return raw_text
+
+    @staticmethod
+    def season_name_to_en(title):
+        # 所有【】换成[]
+        title = title.replace("【", "[").replace("】", "]").strip()
+        # 季、期 统一：改为英文，方便三方插件识别
+        match_list = re.findall(r"(第.*[季|期])", title, flags=re.IGNORECASE)
+        if match_list:
+            # 只处理第一个
+            raw = match_list[0]
+            raw_num = raw[1:-1]
+            if not raw_num.isdigit():
+                try:
+                    raw_num = cn2an.cn2an(raw_num, "smart")
+                except Exception as err:
+                    ExceptionUtils.exception_traceback(err)
+            title = title.replace(raw, 'Season ' + str(raw_num))
+        return title

@@ -214,10 +214,10 @@ export class PageMediainfo extends CustomElement {
                 lazy=1
                 person-id=${item.id}
                 person-image=${item.image}
-                person-name=${item.name}
+                person-name=${item.original_name}
                 person-role=${item.role}
                 @click=${() => {
-                  navmenu("recommend?type="+this.media_type+"&subtype=person&personid="+item.id+"&title=参演作品&subtitle="+item.name)
+                  navmenu("recommend?type="+this.media_type+"&subtype=person&personid="+item.id+"&title=参演作品&subtitle="+item.original_name)
                 }}
               ></person-card>`))
             }

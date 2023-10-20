@@ -22,7 +22,7 @@ export class LayoutNavbar extends CustomElement {
     this.layout_appversion = "v3.0.0";
     this._active_name = "";
     this._update_appversion = "";
-    this._update_url = "https://github.com/NAStool/nas-tools";
+    this._update_url = "https://github.com/frostyleave/nas-tools";
     this._is_update = false;
     this._is_expand = false;
     this.classList.add("navbar","navbar-vertical","navbar-expand-lg","lit-navbar-fixed","lit-navbar","lit-navbar-hide-scrollbar");
@@ -74,9 +74,9 @@ export class LayoutNavbar extends CustomElement {
     }, 200);
 
     // 检查更新
-    if (this.layout_userlevel > 1 && this.layout_useradmin === "1") {
-      this._check_new_version();
-    }
+    //if (this.layout_userlevel > 1 && this.layout_useradmin === "1") {
+    //  this._check_new_version();
+    //}
   }
 
   _check_new_version() {
@@ -88,7 +88,7 @@ export class LayoutNavbar extends CustomElement {
             url = ret.url;
             break;
           case 2:
-            url = "https://github.com/NAStool/nas-tools/commits/master"
+            url = "https://github.com/frostyleave/nas-tools/commits/master"
             break;
         }
         if (url) {
@@ -148,6 +148,9 @@ export class LayoutNavbar extends CustomElement {
                   ${item.list?.length > 0
                   ? html`
                     <button class="accordion-button lit-navbar-accordion-button collapsed ps-2 pe-1 py-2" style="font-size:1.1rem;" data-bs-toggle="collapse" data-bs-target="#lit-navbar-collapse-${index}" aria-expanded="false">
+                        <span class="nav-link-icon" style="color:var(--tblr-body-color);">
+                        ${item.icon ? unsafeHTML(item.icon) : nothing}
+                      </span>
                       ${item.also??item.name}
                     </button>
                     <div class="accordion-collapse collapse" id="lit-navbar-collapse-${index}">
@@ -222,7 +225,7 @@ export class LayoutNavbar extends CustomElement {
         this._add_page_to_url(item.page);
         navmenu(item.page);
       }}>
-      <span class="nav-link-icon" ?hidden=${!child} style="color:var(--tblr-body-color);">
+      <span class="nav-link-icon" style="color:var(--tblr-body-color);">
         ${item.icon ? unsafeHTML(item.icon) : nothing}
       </span>
       <span class="nav-link-title">

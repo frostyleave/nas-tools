@@ -216,22 +216,24 @@ class Filter:
         return False
 
     @staticmethod
-    def is_torrent_match_sey(media_info, s_num, e_num, year_str):
+    def is_torrent_match_sey(media_info, s_num, s_name, e_num, year_str):
         """
         种子名称关键字匹配
         :param media_info: 已识别的种子信息
         :param s_num: 要匹配的季号，为空则不匹配
+        :param s_name: 要匹配的季名，为空则不匹配
         :param e_num: 要匹配的集号，为空则不匹配
         :param year_str: 要匹配的年份，为空则不匹配
         :return: 是否命中
         """
-        if s_num:
-            if not media_info.get_season_list():
-                return False
-            if not isinstance(s_num, list):
-                s_num = [s_num]
-            if not set(s_num).issuperset(set(media_info.get_season_list())):
-                return False
+        if not s_name or media_info.get_name() not in s_name:
+            if s_num:
+                if not media_info.get_season_list():
+                    return False
+                if not isinstance(s_num, list):
+                    s_num = [s_num]
+                if not set(s_num).issuperset(set(media_info.get_season_list())):
+                    return False
         if e_num:
             if not isinstance(e_num, list):
                 e_num = [e_num]

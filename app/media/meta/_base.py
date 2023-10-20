@@ -159,7 +159,7 @@ class MetaBase(object):
         self.fileflag = fileflag
 
     def get_name(self):
-        if self.cn_name and StringUtils.is_all_chinese(self.cn_name):
+        if self.cn_name and StringUtils.is_all_chinese_and_mark(self.cn_name):
             return self.cn_name
         elif self.en_name:
             return self.en_name
@@ -530,7 +530,9 @@ class MetaBase(object):
         if info.get("external_ids"):
             self.tvdb_id = info.get("external_ids", {}).get("tvdb_id", 0)
             self.imdb_id = info.get("external_ids", {}).get("imdb_id", "")
+        
         self.tmdb_info = info
+        self.douban_id = ''
         self.vote_average = round(float(info.get('vote_average')), 1) if info.get('vote_average') else 0
         self.overview = info.get('overview')
         self.original_language = info.get('original_language')
@@ -686,14 +688,13 @@ class MetaBase(object):
                 else:
                     return
                 try:
+                    begin_episode = None
                     end_episode = None
-                    if episodes.find('-') != -1:
-                        episodes = episodes.split('-')
+                    episodes = list(filter(None, episodes.split('-')))
+                    if len(episodes) > 0:
                         begin_episode = int(cn2an.cn2an(episodes[0].strip(), mode='smart'))
                         if len(episodes) > 1:
                             end_episode = int(cn2an.cn2an(episodes[1].strip(), mode='smart'))
-                    else:
-                        begin_episode = int(cn2an.cn2an(episodes, mode='smart'))
                 except Exception as err:
                     ExceptionUtils.exception_traceback(err)
                     return

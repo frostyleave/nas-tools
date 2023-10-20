@@ -3,9 +3,10 @@ import shutil
 import sys
 from threading import Lock
 import ruamel.yaml
+import pickle
 
 # 种子名/文件名要素分隔字符
-SPLIT_CHARS = r"\.|\s+|\(|\)|\[|]|-|\+|【|】|/|～|;|&|\||#|_|「|」|~"
+SPLIT_CHARS = r"\.|\s+|\(|\)|\[|]|-|\+|【|】|/|;|&|\||#|_|「|」"
 # 默认User-Agent
 DEFAULT_UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/98.0.4758.102 Safari/537.36"
 # 收藏了的媒体的目录名，名字可以改，在Emby中点击红星则会自动将电影转移到此分类下，需要在Emby Webhook中配置用户行为通知
@@ -22,6 +23,8 @@ RMT_SUBEXT = ['.srt', '.ass', '.ssa']
 RMT_AUDIO_TRACK_EXT = ['.mka']
 # 电视剧动漫的分类genre_ids
 ANIME_GENREIDS = ['16']
+# 索引器默认分类
+INDEXER_CATEGORY = ['MOVIE', 'TV', 'ANIME']
 # 默认过滤的文件大小，150M
 RMT_MIN_FILESIZE = 150 * 1024 * 1024
 # 删种检查时间间隔
@@ -103,7 +106,15 @@ class Config(object):
     _user = None
 
     def __init__(self):
+        self.menu = None
+        self.services = None
         self._config_path = os.environ.get('NASTOOL_CONFIG')
+        if not self._config_path:
+            print("【Config】NASTOOL_CONFIG 环境变量未设置，使用config文件夹下默认配置文件")
+            separator = '\\' if os.name == "nt" else '/'
+            this_path = sys.argv[0]
+            dir_path = this_path[:this_path.rfind(separator)]
+            self._config_path = os.path.join(dir_path, "config", "config.yaml")
         if not os.environ.get('TZ'):
             os.environ['TZ'] = 'Asia/Shanghai'
         self.init_syspath()
@@ -111,9 +122,6 @@ class Config(object):
 
     def init_config(self):
         try:
-            if not self._config_path:
-                print("【Config】NASTOOL_CONFIG 环境变量未设置，程序无法工作，正在退出...")
-                quit()
             if not os.path.exists(self._config_path):
                 os.makedirs(os.path.dirname(self._config_path), exist_ok=True)
                 cfg_tp_path = os.path.join(self.get_inner_config_path(), "config.yaml")
@@ -128,17 +136,23 @@ class Config(object):
                 except Exception as e:
                     print("【Config】配置文件 config.yaml 格式出现严重错误！请检查：%s" % str(e))
                     self._config = {}
+
+            with open(os.path.join(self.get_inner_config_path(), "sites.dat"), "rb") as f:
+                try:
+                    cfg_obj = pickle.load(f)
+                    self.menu = cfg_obj.get("menu")
+                    self.services = cfg_obj.get("services")
+                except Exception as e:
+                    print("菜单配置解析出现严重错误！请检查：%s" % str(e))
+
         except Exception as err:
             print("【Config】加载 config.yaml 配置出错：%s" % str(err))
             return False
 
     def init_syspath(self):
-        with open(os.path.join(self.get_root_path(),
-                               "third_party.txt"), "r") as f:
+        with open(os.path.join(self.get_root_path(), "third_party.txt"), "r") as f:
             for third_party_lib in f.readlines():
-                module_path = os.path.join(self.get_root_path(),
-                                           "third_party",
-                                           third_party_lib.strip()).replace("\\", "/")
+                module_path = os.path.join(self.get_root_path(), "third_party", third_party_lib.strip()).replace("\\", "/")
                 if module_path not in sys.path:
                     sys.path.append(module_path)
 

@@ -191,14 +191,7 @@ class Sync(object):
                         if os.path.normpath(mon_path) == os.path.normpath(from_dir):
                             is_root_path = True
                         sync_id = sid
-                    # 目的目录下不处理
-                    if PathUtils.is_path_in_path(target_path, event_path):
-                        log.error(f"【Sync】{event_path} -> {target_path} 目的目录存在嵌套，无法同步！")
-                        return
-                    # 未识别目录下不处理
-                    if PathUtils.is_path_in_path(unknown_path, event_path):
-                        log.error(f"【Sync】{event_path} -> {unknown_path} 未识别目录存在嵌套，无法同步！")
-                        return
+
                 # 不在监控目录下，不处理
                 if not sync_id:
                     log.debug(f"【Sync】{event_path} 不在监控目录下，不处理 ...")
@@ -225,6 +218,14 @@ class Sync(object):
                     self.__link(event_path, mon_path, target_path, sync_mode)
                 # 识别转移
                 else:
+                    # 目的目录下不处理
+                    if PathUtils.is_path_in_path(target_path, event_path):
+                        log.error(f"【Sync】{event_path} -> {target_path} 目的目录存在嵌套，无法同步！")
+                        return
+                    # 未识别目录下不处理
+                    if PathUtils.is_path_in_path(unknown_path, event_path):
+                        log.error(f"【Sync】{event_path} -> {unknown_path} 未识别目录存在嵌套，无法同步！")
+                        return
                     # 不是媒体文件不处理
                     name = os.path.basename(event_path)
                     if not name:

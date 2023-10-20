@@ -1,8 +1,8 @@
 import re
-
 import zhconv
 
 import anitopy
+from app.helper.openai_helper import OpenAiHelper
 from app.media.meta._base import MetaBase
 from app.media.meta.release_groups import ReleaseGroupsMatcher
 from app.media.meta.customization import CustomizationMatcher
@@ -24,23 +24,30 @@ class MetaAnime(MetaBase):
         # 调用第三方模块识别动漫
         try:
             original_title = title
-            # 字幕组信息会被预处理掉
-            anitopy_info_origin = anitopy.parse(title)
+            # 字幕组预识别
+            anitopy_info_origin = anitopy.parse(original_title)
+            release_group = anitopy_info_origin.get("release_group") if anitopy_info_origin.get('release_group') else ''
+            # 标题信息预处理
             title = self.__prepare_title(title)
-            anitopy_info = anitopy.parse(title)
+            anitopy_info = self.prepare_anime_from_title(title)
             if anitopy_info:
+                # 字幕组
+                if anitopy_info.get('release_group'):
+                    release_group = anitopy_info.get('release_group')
                 # 名称
                 name = anitopy_info.get("anime_title")
-                if name and name.find("/") != -1:
-                    name = name.split("/")[-1].strip()
+                if name:
+                    name = self.pick_chinese_name(name)
                 if not name or name in self._anime_no_words or (len(name) < 5 and not StringUtils.is_chinese(name)):
                     anitopy_info = anitopy.parse("[ANIME]" + title)
                     if anitopy_info:
                         name = anitopy_info.get("anime_title")
-                if not name or name in self._anime_no_words or (len(name) < 5 and not StringUtils.is_chinese(name)):
-                    name_match = re.search(r'\[(.+?)]', title)
-                    if name_match and name_match.group(1):
-                        name = name_match.group(1).strip()
+                        if name:
+                            name = self.pick_chinese_name(name)
+                    if not name or name in self._anime_no_words or (len(name) < 5 and not StringUtils.is_chinese(name)):
+                        name_match = re.search(r'\[(.+?)]', title)
+                        if name_match and name_match.group(1):
+                            name = name_match.group(1).strip()
                 # 拆份中英文名称
                 if name:
                     lastword_type = ""
@@ -63,10 +70,12 @@ class MetaAnime(MetaBase):
                 if self.cn_name:
                     _, self.cn_name, _, _, _, _ = StringUtils.get_keyword_from_string(self.cn_name)
                     if self.cn_name:
-                        self.cn_name = re.sub(r'%s' % self._name_nostring_re, '', self.cn_name, flags=re.IGNORECASE).strip()
+                        self.cn_name = re.sub(r'%s' % self._name_nostring_re, '', self.cn_name,
+                                              flags=re.IGNORECASE).strip()
                         self.cn_name = zhconv.convert(self.cn_name, "zh-hans")
                 if self.en_name:
-                    self.en_name = re.sub(r'%s' % self._name_nostring_re, '', self.en_name, flags=re.IGNORECASE).strip().title()
+                    self.en_name = re.sub(r'%s' % self._name_nostring_re, '', self.en_name,
+                                          flags=re.IGNORECASE).strip().title()
                     self._name = StringUtils.str_title(self.en_name)
                 # 年份
                 year = anitopy_info.get("anime_year")
@@ -144,9 +153,7 @@ class MetaAnime(MetaBase):
                     if str(self.resource_pix).isdigit():
                         self.resource_pix = str(self.resource_pix) + "p"
                 # 制作组/字幕组
-                self.resource_team = \
-                    ReleaseGroupsMatcher().match(title=original_title) or \
-                    anitopy_info_origin.get("release_group") or None
+                self.resource_team = ReleaseGroupsMatcher().match(title=original_title) or release_group
                 # 自定义占位符
                 self.customization = CustomizationMatcher().match(title=original_title) or None
                 # 视频编码
@@ -166,6 +173,30 @@ class MetaAnime(MetaBase):
         except Exception as e:
             ExceptionUtils.exception_traceback(e)
 
+    def pick_chinese_name(self, name):
+        if name and name.find("/") != -1:
+            name_list = list(filter(None, name.split("/")))
+            name = next(filter(lambda x: StringUtils.is_chinese(x), name_list), name_list[-1].strip())
+        return name
+
+    def prepare_anime_from_title(self, title):
+        # 尝试openAi解析
+        file_info = OpenAiHelper().get_media_name(title)
+        anitopy_info = anitopy.parse(title)
+        if not file_info or not anitopy_info:
+            return anitopy_info
+        if file_info.get('title'):
+            anitopy_info['anime_title'] = file_info.get('title')
+        if file_info.get('release_group'):
+            anitopy_info['release_group'] = file_info.get('release_group')
+        if file_info.get('year'):
+            anitopy_info['anime_year'] = file_info.get('year')
+        if file_info.get('episode'):
+            anitopy_info['episode_number'] = file_info.get('episode')
+        if file_info.get('resolution'):
+            anitopy_info['video_resolution'] = file_info.get('resolution')
+        return anitopy_info
+
     @staticmethod
     def __prepare_title(title):
         """
@@ -173,8 +204,9 @@ class MetaAnime(MetaBase):
         """
         if not title:
             return title
-        # 所有【】换成[]
-        title = title.replace("【", "[").replace("】", "]").strip()
+        # 所有【】换成[]、季名转英文
+        title = StringUtils.season_name_to_en(title)
+
         # 截掉xx番剧漫
         match = re.search(r"新番|月?番|[日美国][漫剧]", title)
         if match and match.span()[1] < len(title) - 1:
@@ -183,9 +215,10 @@ class MetaAnime(MetaBase):
             title = title[:title.rfind('[')]
         # 截掉分类
         first_item = title.split(']')[0]
-        if first_item and re.search(r"[动漫画纪录片电影视连续剧集日美韩中港台海外亚洲华语大陆综艺原盘高清]{2,}|TV|Animation|Movie|Documentar|Anime",
-                                    zhconv.convert(first_item, "zh-hans"),
-                                    re.IGNORECASE):
+        if first_item and re.search(
+                r"[动漫画纪录片电影视连续剧集日美韩中港台海外亚洲华语大陆综艺原盘高清]{2,}|TV|Animation|Movie|Documentar|Anime",
+                zhconv.convert(first_item, "zh-hans"),
+                re.IGNORECASE):
             title = re.sub(r"^[^]]*]", "", title).strip()
         # 去掉大小
         title = re.sub(r'[0-9.]+\s*[MGT]i?B(?![A-Z]+)', "", title, flags=re.IGNORECASE)
@@ -204,20 +237,20 @@ class MetaAnime(MetaBase):
                 if name.startswith('['):
                     left_char = '['
                     name = name[1:]
-                if name and name.find("/") != -1:
-                    if name.split("/")[-1].strip():
-                        titles.append("%s%s" % (left_char, name.split("/")[-1].strip()))
-                    else:
-                        titles.append("%s%s" % (left_char, name.split("/")[0].strip()))
-                elif name:
-                    if StringUtils.is_chinese(name) and not StringUtils.is_all_chinese(name):
-                        if not re.search(r"\[\d+", name, re.IGNORECASE):
-                            name = re.sub(r'[\d|#:：\-()（）\u4e00-\u9fff]', '', name).strip()
-                        if not name or name.strip().isdigit():
-                            continue
+                if name and name.find("/") > 0:
+                    name_list = list(filter(None, name.split("/")))
+                    # 名称超过2个时，取一个中文和一个非中文
+                    if len(name_list) > 2:
+                        name_cn = next(filter(lambda x: StringUtils.is_chinese(x), name_list), None)
+                        name_other = next(filter(lambda x: not StringUtils.is_chinese(x), name_list), None)
+                        name_list = [name_cn, name_other]
+                        name_list = list(filter(lambda x: x is not None, name_list))
+                        name = "/".join(name_list)
+                if name:
                     if name == '[':
                         titles.append("")
                     else:
                         titles.append("%s%s" % (left_char, name.strip()))
             return "]".join(titles)
         return title
+

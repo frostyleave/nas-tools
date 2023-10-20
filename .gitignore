@@ -4,7 +4,8 @@
 /test.py
 /setup.py
 /build_sites.py
-/web/backend/user.py
 /build/**
 /venv/**
 /cloudflarespeedtest/**
+/config/services.json
+/web/backend/user.7z

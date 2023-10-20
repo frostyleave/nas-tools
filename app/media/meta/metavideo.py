@@ -32,6 +32,7 @@ class MetaVideo(MetaBase):
     _effect_re = r"^REMUX$|^UHD$|^SDR$|^HDR\d*$|^DOLBY$|^DOVI$|^DV$|^3D$|^REPACK$"
     _resources_type_re = r"%s|%s" % (_source_re, _effect_re)
     _name_no_begin_re = r"^\[.+?]"
+    _name_no_url = r"((https?|ftp|file)://)?(www\.)?[-A-Z0-9+&@#/%?=~_|!:,.;]*[-A-Z0-9+&@#/%=~_|](.com|.cn|.org)"
     _name_no_chinese_re = r".*版|.*字幕"
     _name_se_words = ['共', '第', '季', '集', '话', '話', '期']
     _name_nostring_re = r"^PTS|^JADE|^AOD|^CHC|^[A-Z]{1,4}TV[\-0-9UVHDK]*" \
@@ -64,8 +65,10 @@ class MetaVideo(MetaBase):
             self.begin_episode = int(os.path.splitext(title)[0])
             self.type = MediaType.TV
             return
-        # 去掉名称中第1个[]的内容
-        title = re.sub(r'%s' % self._name_no_begin_re, "", title, count=1)
+        # 所有【】换成[]、季名转英文
+        title = StringUtils.season_name_to_en(title)
+        # 去除网址部分
+        title = re.sub(r'%s' % self._name_no_url, "", title, count=1)
         # 把xxxx-xxxx年份换成前一个年份，常出现在季集上
         title = re.sub(r'([\s.]+)(\d{4})-(\d{4})', r'\1\2', title)
         # 把大小去掉
@@ -456,14 +459,8 @@ class MetaVideo(MetaBase):
             self._continue_flag = False
             self._stop_name_flag = True
             if not self._source:
-                self._source = source_res.group(1)
+                self._source = source_res.group(1).replace('RIP','')
                 self._last_token = self._source.upper()
-            return
-        elif token.upper() == "DL" \
-                and self._last_token_type == "source" \
-                and self._last_token == "WEB":
-            self._source = "WEB-DL"
-            self._continue_flag = False
             return
         elif token.upper() == "RAY" \
                 and self._last_token_type == "source" \
@@ -471,8 +468,12 @@ class MetaVideo(MetaBase):
             self._source = "BluRay"
             self._continue_flag = False
             return
-        elif token.upper() == "WEBDL":
-            self._source = "WEB-DL"
+        elif token.upper().startswith('WEB'):
+            self._source = "WEB"
+            self._continue_flag = False
+            return
+        elif token.upper() == "TC" or token.upper() == "TS" or token.upper() == "HDCAM":
+            self._source = "枪版"
             self._continue_flag = False
             return
         effect_res = re.search(r"(%s)" % self._effect_re, token, re.IGNORECASE)

@@ -1,0 +1,33 @@
+id: btsow
+name: BTSOW
+domain: https://btsow.com/
+encoding: UTF-8
+public: true
+proxy: true
+search:
+  paths:
+  - path: search/{keyword}
+    method: get
+torrents:
+  list:
+    selector: div.data-list > div.row
+  fields:
+    title:
+      selector: div.row > a
+      attribute: title
+    details:
+      selector: div.row > a
+      attribute: href
+    download:
+      detail:
+        xpath: //textarea[@id="magnetLink"]/text()
+    date_added:
+      selector: div.date
+    size:
+      selector: div.size
+    downloadvolumefactor:
+      case:
+        '*': 0
+    uploadvolumefactor:
+      case:
+        '*': 1

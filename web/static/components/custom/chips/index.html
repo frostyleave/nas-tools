@@ -19,7 +19,9 @@
       // 完全体应该 清空组件内容
       // this.innerHTML == ""
       // 开始遍历排序列表生成chips
-      let custom_words_flag = data_dict.ignored_words.length + data_dict.replaced_words.length + data_dict.offset_words.length;
+      let custom_words_flag = (data_dict.ignored_words ? data_dict.ignored_words.length : 0)
+                              + (data_dict.replaced_words ? data_dict.replaced_words.length : 0)
+                              + (data_dict.offset_words ? data_dict.offset_words.length : 0);
       for (let key of sort_array) {
         let href = "";
         let flag = null;

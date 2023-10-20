@@ -6,7 +6,7 @@ from app.helper import ProgressHelper, SubmoduleHelper, DbHelper
 from app.utils import ExceptionUtils, StringUtils
 from app.utils.commons import singleton
 from app.utils.types import SearchType, IndexerType, ProgressKey
-from config import Config
+from config import Config, INDEXER_CATEGORY
 
 
 @singleton
@@ -127,6 +127,13 @@ class Indexer(object):
         if not indexers:
             log.error("没有配置索引器，无法搜索！")
             return []
+
+        if match_media and match_media.type and match_media.type.name in INDEXER_CATEGORY:
+            indexers = list(filter(lambda x: not x.category or match_media.type.name in x.category, indexers))
+            if not indexers:
+                log.error("没有配置符合条件的索引器，无法搜索！")
+                return []
+
         # 计算耗时
         start_time = datetime.datetime.now()
         if filter_args and filter_args.get("site"):

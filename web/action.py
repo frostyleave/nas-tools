@@ -4514,6 +4514,18 @@ class WebAction:
                         tmdbid=media_info.tmdb_id,
                         season=season.get("season_number")) else False
                 })
+
+        crews = []
+        actors = []
+        if media_info.douban_id:
+            crews, actors = DouBan().scraper_media_celebrities(media_info.douban_id)
+            self.set_actor_id_from_tmdb(actors, media_info.tmdb_info)
+
+        if len(crews) == 0:
+            crews = MediaHandler.get_tmdb_crews(tmdbinfo=media_info.tmdb_info, nums=6)
+        if len(actors) == 0:
+            actors = MediaHandler.get_tmdb_cats(mtype=mtype, tmdbid=media_info.tmdb_id)
+
         return {
             "code": 0,
             "data": {
@@ -4528,8 +4540,8 @@ class WebAction:
                 "overview": media_info.overview,
                 "runtime": StringUtils.str_timehours(media_info.runtime),
                 "fact": MediaHandler.get_tmdb_factinfo(media_info),
-                "crews": MediaHandler.get_tmdb_crews(tmdbinfo=media_info.tmdb_info, nums=6),
-                "actors": MediaHandler.get_tmdb_cats(mtype=mtype, tmdbid=media_info.tmdb_id),
+                "crews": crews,
+                "actors": actors,
                 "link": media_info.get_detail_url(),
                 "douban_link": media_info.get_douban_detail_url(),
                 "fav": fav,
@@ -4538,6 +4550,29 @@ class WebAction:
                 "seasons": seasons
             }
         }
+
+    # 把豆瓣演员ID替换为tmdb演员ID
+    def set_actor_id_from_tmdb(self, actors, tmdb_info):
+        # 豆瓣演员信息匹配tmdb演员信息
+        if not tmdb_info or not tmdb_info.credits or not tmdb_info.credits.cast:
+            return
+        tmdb_info_cast = tmdb_info.credits.cast
+        for actor in actors[:]:
+            match = next(filter(lambda x: self.is_actor_match(actor, x), tmdb_info_cast), None)
+            if not match:
+                actors.remove(actor)
+            else:
+                actor['id'] = match.id
+
+    # 豆瓣演员信息是否和tmdb演员信息匹配
+    @staticmethod
+    def is_actor_match(actor, tmdb_actor):
+        en_name = actor.get("en_name")
+        name = actor.get("name")
+
+        if tmdb_actor.name == en_name or tmdb_actor == name:
+            return True
+        return tmdb_actor.name.startswith(en_name) or tmdb_actor.name.startswith(name)
 
     @staticmethod
     def __media_similar(data):
@@ -4730,8 +4765,9 @@ class WebAction:
         first_pt_site = SiteUserInfo().get_pt_site_min_join_date()
         if not first_pt_site or not StringUtils.is_one_month_ago(first_pt_site):
             ignore.append('brushtask')
+
         # 获取可用菜单
-        menus = current_user.get_usermenus(ignore=ignore)
+        menus = current_user.get_usermenus()
         return {
             "code": 0,
             "menus": menus,

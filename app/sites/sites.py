@@ -2,12 +2,13 @@ import json
 from datetime import datetime
 
 import log
-from app.helper import ChromeHelper, SiteHelper, DbHelper
+from app.helper import ChromeHelper, SiteHelper, DbHelper, IndexerHelper
 from app.message import Message
 from app.sites.site_limiter import SiteRateLimiter
-from app.utils import RequestUtils, StringUtils
+from app.utils import RequestUtils, StringUtils, ExceptionUtils
 from app.utils.commons import singleton
 from config import Config
+from lxml import etree
 
 
 @singleton
@@ -302,6 +303,63 @@ class Sites:
                 return False, f"连接失败，状态码：{res.status_code}", seconds
             else:
                 return False, "无法打开网站", seconds
+
+    # 解析网站下载链接
+    def parse_site_download_url(self, page_url, xpath):
+        """
+        从站点详情页面中解析中下载链接
+        :param page_url: 详情页面地址
+        :param xpath: 解析XPATH，同时还包括Cookie、UA和Referer
+        """
+        if not page_url or not xpath:
+            return ""
+        cookie, ua, referer, page_source = None, None, None, None
+        xpaths = xpath.split("|")
+        xpath = xpaths[0]
+        if len(xpaths) > 1:
+            cookie = xpaths[1]
+        if len(xpaths) > 2:
+            ua = xpaths[2]
+        if len(xpaths) > 3:
+            referer = xpaths[3]
+        try:
+            site_info = self.get_public_sites(url=page_url)
+            if not site_info.get("referer"):
+                referer = None
+            req = RequestUtils(
+                headers=ua,
+                cookies=cookie,
+                referer=referer,
+                proxies=Config().get_proxies() if site_info.get("proxy") else None
+            ).get_res(url=page_url)
+            if req and req.status_code == 200:
+                if req.text:
+                    page_source = req.text
+            # xpath解析
+            if page_source:
+                html = etree.HTML(page_source)
+                urls = html.xpath(xpath)
+                if urls:
+                    return str(urls[0])
+        except Exception as err:
+            ExceptionUtils.exception_traceback(err)
+        return None
+
+    # 根据url查询站点信息
+    def get_public_sites(self, url):
+        if url:
+            base_url = StringUtils.get_base_url(url)
+            indexers = IndexerHelper().get_all_indexers()
+            sites_info = next(filter(lambda x: x.get("domain").startswith(base_url), indexers), None)
+            if not sites_info:
+                url_sld = StringUtils.get_url_sld(url)
+                sites_info = next(filter(lambda x: url_sld.startswith(x.get("id")), indexers), None)
+                # 网址动态变更型站点，更新domain
+                if sites_info:
+                    sites_info["domain"] = base_url
+            return sites_info
+        else:
+            return None
 
     @staticmethod
     def __get_site_note_items(note):

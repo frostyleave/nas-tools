@@ -15,10 +15,9 @@ class IndexerHelper:
 
     def init_config(self):
         try:
-            with open(os.path.join(Config().get_inner_config_path(),
-                                   "sites.dat"),
-                      "rb") as f:
+            with open(os.path.join(Config().get_inner_config_path(), "sites.dat"), "rb") as f:
                 self._indexers = pickle.load(f).get("indexer")
+
         except Exception as err:
             ExceptionUtils.exception_traceback(err)
 
@@ -76,7 +75,7 @@ class IndexerConf(object):
                  cookie=None,
                  name=None,
                  rule=None,
-                 public=None,
+                 public=True,
                  proxy=False,
                  parser=None,
                  ua=None,
@@ -101,13 +100,17 @@ class IndexerConf(object):
         # 解析器
         self.parser = parser if parser is not None else datas.get('parser')
         # 是否启用渲染
-        self.render = render and datas.get("render")
+        self.render = render if render is not None else datas.get("render", False)
         # 浏览
         self.browse = datas.get('browse', {})
         # 种子过滤
         self.torrents = datas.get('torrents', {})
         # 分类
-        self.category = datas.get('category', {})
+        self.category = datas.get('category', ['MOVIE', 'TV', 'ANIME'])
+        # 是否支持IMDB ID搜索
+        self.imdb = datas.get('imdb', False)
+        # 特殊搜索类型指定, 为空默认为关键字搜索
+        self.search_type = datas.get('search_type', '')
         # 站点ID
         self.siteid = siteid
         # Cookie
@@ -117,9 +120,9 @@ class IndexerConf(object):
         # 过滤规则
         self.rule = rule
         # 是否公开站点
-        self.public = public if public is not None else datas.get('public')
+        self.public = datas.get('public', public)
         # 是否使用代理
-        self.proxy = proxy if proxy is not None else datas.get('proxy')
+        self.proxy = proxy if proxy is not None else datas.get('proxy', False)
         # 仅支持的特定语种
         self.language = language if language else datas.get('language')
         # 索引器优先级
