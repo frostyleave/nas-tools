@@ -19,8 +19,11 @@ torrents:
       selector: div.row > a
       attribute: href
     download:
-      detail:
-        xpath: //textarea[@id="magnetLink"]/text()
+      selector: div.row > a
+      attribute: href
+      filters:
+        - name: re_sub
+          args: [ '(http.*)(hash/){1}', 'magnet:?xt=urn:btih:' ]
     date_added:
       selector: div.date
     size:

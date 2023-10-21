@@ -19,6 +19,11 @@ RMT_MEDIAEXT = ['.mp4', '.mkv', '.ts', '.iso',
                 '.tp']
 # 支持的字幕文件后缀格式
 RMT_SUBEXT = ['.srt', '.ass', '.ssa']
+# 繁体字幕正则
+ZHTW_SUB_RE = r"([.\[(](((zh[-_])?(hk|tw|cht|tc))" \
+               r"|繁[体中]?)[.\])])" \
+               r"|繁体中[文字]|中[文字]繁体|繁[体體日]" \
+               r"|(?<![a-z0-9])big5(?![a-z0-9])"
 # 支持的音轨文件后缀格式
 RMT_AUDIO_TRACK_EXT = ['.mka']
 # 电视剧动漫的分类genre_ids

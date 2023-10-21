@@ -233,6 +233,10 @@ class WebAction:
             "get_category_config": self.get_category_config,
             "get_system_processes": self.get_system_processes,
             "run_plugin_method": self.run_plugin_method,
+            "get_external_plugin_apps": self.get_external_plugin_apps,
+            "save_external_source_settings": self.save_external_source_settings,
+            "install_external_plugin": self.install_external_plugin,
+            "uninstall_external_plugin": self.uninstall_external_plugin
         }
         # 远程命令响应
         self._commands = {
@@ -1185,11 +1189,71 @@ class WebAction:
         """
         更新
         """
+        third_version = Config().get_config("app").get("third_version")
+        log.info(f'【UpdateSystem】检查是否开启第三方更新源: {third_version}')
+        if third_version:
+            log.info("【UpdateSystem】开始第三方源更新流程")
+            # 获取当前系统根目录
+            root_path = Config().get_root_path()
+            log.info(f'【UpdateSystem】获取系统根目录: {root_path}')
+
+            # 下载文件临时目录
+            tmp_path = "/tmp/nas-tools"
+            # 文件不存在则创建
+            if not os.path.exists(tmp_path):
+                log.info(f'【UpdateSystem】创建临时目录: {tmp_path}')
+                os.makedirs(tmp_path)
+
+            tmp_path_file = os.path.join(tmp_path, "nas-tools.zip")
+            # 获取版本下载地址
+            version, download_url = WebUtils.get_latest_version()
+            log.info(f'【UpdateSystem】获取最新系统版本: {version}')
+            log.info(f'【UpdateSystem】获取最新系统下载地址: {download_url}')
+
+            # 开始下载文件
+            log.info("【UpdateSystem】正在下载最新系统")
+            result = RequestUtils(timeout=5, proxies=Config().get_proxies()).get_res(download_url)
+            if result.status_code != 200:
+                log.error("【UpdateSystem】系统下载失败，停止更新")
+                return {"code": 1, "msg": "系统下载失败"}
+            log.info(f'【UpdateSystem】保存系统文件：{tmp_path_file}')
+            open(tmp_path_file, "wb").write(result.content)
+
+            # 解压文件
+            log.info(f'【UpdateSystem】正在解压文件...')
+            shutil.unpack_archive(tmp_path_file, tmp_path, format='zip')
+            tmp_path_root = os.path.join(tmp_path, f"nas-tools-{version.split()[0]}")
+            log.info(f'【UpdateSystem】文件解压成功：{tmp_path_root}')
+
+            # 删除不需要的文件
+            PathUtils.del_files(os.path.join(tmp_path_root, ".github"))
+            PathUtils.del_files(os.path.join(tmp_path_root, "config"))
+
+            # 拷贝文件
+            log.info(f'【UpdateSystem】正在升级系统版本...')
+            os.system(f"cp -R {tmp_path_root}/* {root_path}/")
+
+            # 安装依赖
+            log.info(f'【UpdateSystem】正在安装系统依赖...')
+            os.system(f'sudo pip install -r {root_path}/requirements.txt')
+            # 修复权限
+            user_auth = os.stat(root_path)
+            os.chown(f"{root_path}", user_auth.st_uid, user_auth.st_gid)
+
+            # 清理临时目录
+            PathUtils.del_files(tmp_path)
+            log.info(f'【UpdateSystem】清理临时目录...')
+
+            # 重启
+            log.info(f'【UpdateSystem】系统升级完成，正在重启...')
+            log.info("【UpdateSystem】请手动刷新页面！")
+            time.sleep(3)
+            self.restart_server()
         # 升级
-        if SystemUtils.is_synology():
+        elif SystemUtils.is_synology():
             if SystemUtils.execute('/bin/ps -w -x | grep -v grep | grep -w "nastool update" | wc -l') == '0':
                 # 调用群晖套件内置命令升级
-                os.system('nastool update')
+                os.system('【UpdateSystem】nastool update')
                 # 重启
                 self.restart_server()
         else:
@@ -5179,6 +5243,111 @@ class WebAction:
         data.pop("method")
         result = PluginManager().run_plugin_method(pid=plugin_id, method=method, **data)
         return {"code": 0, "result": result}
+
+    @staticmethod
+    def get_external_plugin_apps():
+        """
+        获取第三方插件列表
+        """
+        plugins = PluginManager().get_external_plugin_apps(current_user.level)
+        statistic = PluginHelper.statistic()
+        return {"code": 0, "result": plugins, "statistic": statistic}
+
+    @staticmethod
+    def save_external_source_settings(data):
+
+        content = data.get("value").split("\n")
+        SystemConfig().set(SystemConfigKey.ExternalPluginsSource, content)
+
+        return {"code": 0, "msg": "保存成功"}
+
+    @staticmethod
+    def install_external_plugin(data, reload=True):
+        """
+        安装第三方插件（先下载到本地后再进行本地安装）
+        """
+        module_id = data.get("id")
+        file_md5 = data.get("file_md5")
+        download_url = data.get("download_url")
+        if not module_id or not download_url:
+            return {"code": -1, "msg": "参数错误"}
+
+        # 用户已安装插件列表
+        user_plugins = SystemConfig().get(SystemConfigKey.UserInstalledPlugins) or []
+        external_plugins = SystemConfig().get(SystemConfigKey.ExternalInstalledPlugins) or []
+
+        # 获取插件安装路径
+        plugin_path = Path(importlib.import_module("app.plugins.modules").__path__[0])
+        user_plugin_path = Config().get_user_plugin_path()
+        # windows 将插件下载致用户插件目录
+        if not os.path.exists(plugin_path):
+            plugin_path = Config().get_user_plugin_path()
+        plugin_file = os.path.join(plugin_path, f"{module_id.lower()}.py")
+        user_plugin_file = os.path.join(user_plugin_path, f"{module_id.lower()}.py")
+
+        # 获取插件内容
+        result = RequestUtils(timeout=5, proxies=Config().get_proxies()).get_res(download_url)
+
+        # 将插件存入本地插件库
+        if not result or not result.content:
+            return {"code": 1, "msg": "插件下载失败，请检查三方源是否可以正常访问！"}
+
+        open(user_plugin_file, "wb").write(result.content)
+        SystemUtils.copy(user_plugin_file, plugin_file)
+
+        if file_md5:
+            log.info(file_md5)
+
+        if module_id not in user_plugins:
+            user_plugins.append(module_id)
+            PluginHelper.install(module_id)
+
+        if module_id not in external_plugins:
+            external_plugins.append(module_id)
+
+        # 保存配置
+        SystemConfig().set(SystemConfigKey.UserInstalledPlugins, user_plugins)
+        SystemConfig().set(SystemConfigKey.ExternalInstalledPlugins, external_plugins)
+        # 重新加载插件
+        if reload:
+            PluginManager().init_config()
+        return {"code": 0, "msg": "插件安装成功"}
+
+    @staticmethod
+    def uninstall_external_plugin(data):
+        """
+        卸载第三方插件（从库中卸载完成后还需要删除插件）
+        """
+        module_id = data.get("id")
+        if not module_id:
+            return {"code": -1, "msg": "参数错误"}
+
+        # 获取插件安装路径
+        user_plugin_path = Config().get_user_plugin_path()
+        system_plugin_path = Path(importlib.import_module("app.plugins.modules").__path__[0])
+
+        user_plugin_file = os.path.join(user_plugin_path, f"{module_id.lower()}.py")
+        system_plugin_file = os.path.join(system_plugin_path, f"{module_id.lower()}.py")
+
+        # 用户已安装插件列表
+        user_plugins = SystemConfig().get(SystemConfigKey.UserInstalledPlugins) or []
+        external_plugins = SystemConfig().get(SystemConfigKey.ExternalInstalledPlugins) or []
+        if module_id in user_plugins:
+            user_plugins.remove(module_id)
+
+        if module_id in external_plugins:
+            external_plugins.remove(module_id)
+            # 删除本地的第三方插件文件
+            os.remove(user_plugin_file)
+            os.remove(system_plugin_file)
+
+        # 保存配置
+        SystemConfig().set(SystemConfigKey.UserInstalledPlugins, user_plugins)
+        SystemConfig().set(SystemConfigKey.ExternalInstalledPlugins, external_plugins)
+
+        # 重新加载插件
+        PluginManager().init_config()
+        return {"code": 0, "msg": "插件卸载功"}
 
     def get_commands(self):
         """

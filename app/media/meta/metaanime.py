@@ -1,10 +1,12 @@
 import re
+
+import PTN
 import zhconv
 
 import anitopy
 from app.helper.openai_helper import OpenAiHelper
 from app.media.meta._base import MetaBase
-from app.media.meta.release_groups import ReleaseGroupsMatcher
+from app.utils.release_groups import ReleaseGroupsMatcher
 from app.media.meta.customization import CustomizationMatcher
 from app.utils import StringUtils, ExceptionUtils
 from app.utils.types import MediaType
@@ -32,19 +34,26 @@ class MetaAnime(MetaBase):
             anitopy_info = self.prepare_anime_from_title(title)
             if anitopy_info:
                 # 字幕组
-                if anitopy_info.get('release_group'):
-                    release_group = anitopy_info.get('release_group')
+                release_group = anitopy_info.get('release_group') if anitopy_info.get('release_group') else release_group
                 # 名称
                 name = anitopy_info.get("anime_title")
+                if not name or not StringUtils.contain_chinese(name):
+                    t = PTN.parse(original_title.replace('[', '.').replace(']', '.').replace(release_group, '').strip('.'))
+                    t_title = t.get('title')
+                    if t_title and StringUtils.contain_chinese(t_title):
+                        name = t_title
+                        if not StringUtils.is_all_chinese_and_mark(t_title):
+                            anitopy_obj = anitopy.parse(t_title)
+                            name = anitopy_obj.get("anime_title") if anitopy_obj.get("anime_title") else t_title
                 if name:
                     name = self.pick_chinese_name(name)
-                if not name or name in self._anime_no_words or (len(name) < 5 and not StringUtils.is_chinese(name)):
+                if not name or name in self._anime_no_words or (len(name) < 5 and not StringUtils.contain_chinese(name)):
                     anitopy_info = anitopy.parse("[ANIME]" + title)
                     if anitopy_info:
                         name = anitopy_info.get("anime_title")
                         if name:
                             name = self.pick_chinese_name(name)
-                    if not name or name in self._anime_no_words or (len(name) < 5 and not StringUtils.is_chinese(name)):
+                    if not name or name in self._anime_no_words or (len(name) < 5 and not StringUtils.contain_chinese(name)):
                         name_match = re.search(r'\[(.+?)]', title)
                         if name_match and name_match.group(1):
                             name = name_match.group(1).strip()
@@ -61,7 +70,7 @@ class MetaAnime(MetaBase):
                                 self.cn_name = "%s %s" % (self.cn_name or "", word)
                             elif lastword_type == "en":
                                 self.en_name = "%s %s" % (self.en_name or "", word)
-                        elif StringUtils.is_chinese(word):
+                        elif StringUtils.contain_chinese(word):
                             self.cn_name = "%s %s" % (self.cn_name or "", word)
                             lastword_type = "cn"
                         else:
@@ -176,7 +185,7 @@ class MetaAnime(MetaBase):
     def pick_chinese_name(self, name):
         if name and name.find("/") != -1:
             name_list = list(filter(None, name.split("/")))
-            name = next(filter(lambda x: StringUtils.is_chinese(x), name_list), name_list[-1].strip())
+            name = next(filter(lambda x: StringUtils.contain_chinese(x), name_list), name_list[-1].strip())
         return name
 
     def prepare_anime_from_title(self, title):
@@ -204,9 +213,6 @@ class MetaAnime(MetaBase):
         """
         if not title:
             return title
-        # 所有【】换成[]、季名转英文
-        title = StringUtils.season_name_to_en(title)
-
         # 截掉xx番剧漫
         match = re.search(r"新番|月?番|[日美国][漫剧]", title)
         if match and match.span()[1] < len(title) - 1:
@@ -241,8 +247,8 @@ class MetaAnime(MetaBase):
                     name_list = list(filter(None, name.split("/")))
                     # 名称超过2个时，取一个中文和一个非中文
                     if len(name_list) > 2:
-                        name_cn = next(filter(lambda x: StringUtils.is_chinese(x), name_list), None)
-                        name_other = next(filter(lambda x: not StringUtils.is_chinese(x), name_list), None)
+                        name_cn = next(filter(lambda x: StringUtils.contain_chinese(x), name_list), None)
+                        name_other = next(filter(lambda x: not StringUtils.contain_chinese(x), name_list), None)
                         name_list = [name_cn, name_other]
                         name_list = list(filter(lambda x: x is not None, name_list))
                         name = "/".join(name_list)

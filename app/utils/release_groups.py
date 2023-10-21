@@ -70,7 +70,8 @@ class ReleaseGroupsMatcher(object):
         "ultrahd": [],
         "others": ['B(?:MDru|eyondHD|TN)', 'C(?:fandora|trlhd|MRG)', 'DON', 'EVO', 'FLUX', 'HONE(?:|yG)',
                    'N(?:oGroup|T(?:b|G))', 'PandaMoon', 'SMURF', 'T(?:EPES|aengoo|rollHD )'],
-        "anime": ['ANi', 'HYSUB', 'KTXP', 'LoliHouse', 'MCE', 'Nekomoe kissaten', '(?:Lilith|NC)-Raws', '织梦字幕组']
+        "anime": ['ANi', 'HYSUB', 'KTXP', 'LoliHouse', 'MCE', 'Nekomoe kissaten', '(\d|\w|[\u4e00-\u9fa5])+-Raws',
+                  '织梦字幕组']
     }
 
     def __init__(self):
@@ -88,6 +89,18 @@ class ReleaseGroupsMatcher(object):
         """
         if not title:
             return ""
+        unique_groups = self.match_list(title, groups)
+        separator = self.get_separator()
+        return separator.join(unique_groups)
+
+    def match_list(self, title=None, groups=None):
+        """
+        :param title: 资源标题或文件名
+        :param groups: 制作组/字幕组
+        :return: 匹配结果
+        """
+        if not title:
+            return ""
         if not groups:
             if self.custom_release_groups:
                 groups = f"{self.__release_groups}|{self.custom_release_groups}"
@@ -97,11 +110,12 @@ class ReleaseGroupsMatcher(object):
         groups_re = re.compile(r"(?<=[-@\[￡【&])(?:%s)(?=[@.\s\]\[】&])" % groups, re.I)
         # 处理一个制作组识别多次的情况，保留顺序
         unique_groups = []
-        for item in re.findall(groups_re, title):
-            if item not in unique_groups:
-                unique_groups.append(item)
-        separator = self.custom_separator or "@"
-        return separator.join(unique_groups)
+        for match in re.finditer(groups_re, title):
+            unique_groups.append(match.group())
+        return unique_groups
+
+    def get_separator(self):
+        return self.custom_separator or "@"
 
     def update_custom(self, release_groups=None, separator=None):
         """

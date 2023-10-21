@@ -11,6 +11,7 @@ from app.indexer.client._render_spider import RenderSpider
 from app.indexer.client._spider import TorrentSpider
 from app.indexer.client._tnode import TNodeSpider
 from app.indexer.client._torrentleech import TorrentLeech
+from app.indexer.client._plugins import PluginsSpider
 from app.sites import Sites
 from app.utils import StringUtils
 from app.utils.types import SearchType, IndexerType, ProgressKey, SystemConfigKey
@@ -147,7 +148,7 @@ class BuiltinIndexer(_IIndexClient):
                 return []
 
         # 避免对英文站搜索中文
-        if indexer.language == "en" and StringUtils.is_chinese(search_word):
+        if indexer.language == "en" and StringUtils.contain_chinese(search_word):
             # 如果当前网站支持按imdb_id搜索，则改为按IMDB搜索
             if indexer.imdb and match_media and match_media.imdb_id:
                 search_word = match_media.imdb_id
@@ -230,7 +231,11 @@ class BuiltinIndexer(_IIndexClient):
             error_flag, result_array = TorrentLeech(indexer).search(keyword=keyword,
                                                                     page=page)
         else:
-            error_flag, result_array = self.__spider_search(indexer=indexer,
+            if PluginsSpider().status(indexer=indexer):
+                error_flag, result_array = PluginsSpider().search(keyword=keyword, indexer=indexer, page=page)
+
+            else:
+                error_flag, result_array = self.__spider_search(indexer=indexer,
                                                             page=page,
                                                             keyword=keyword)
         # 索引花费的时间

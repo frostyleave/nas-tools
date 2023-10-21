@@ -19,6 +19,7 @@ from feapder.utils.tools import urlencode
 class TorrentSpider(feapder.AirSpider):
     _webdriver_path = SystemUtils.get_webdriver_path()
     _redis_valid = RedisHelper.is_valid()
+    _redis_addr = Config().get_config().get('app').get('redis_addr') if _redis_valid else '127.0.0.1:6379'
     __custom_setting__ = dict(
         SPIDER_THREAD_COUNT=1,
         SPIDER_MAX_RETRY_TIMES=0,
@@ -26,7 +27,7 @@ class TorrentSpider(feapder.AirSpider):
         RETRY_FAILED_REQUESTS=False,
         LOG_LEVEL="ERROR",
         RANDOM_HEADERS=False,
-        REDISDB_IP_PORTS="127.0.0.1:6379",
+        REDISDB_IP_PORTS=_redis_addr,
         REDISDB_USER_PASS="",
         REDISDB_DB=0,
         RESPONSE_CACHED_ENABLE=_redis_valid,
@@ -588,6 +589,8 @@ class TorrentSpider(feapder.AirSpider):
                 args = filter_item.get("args")
                 if method_name == "re_search" and isinstance(args, list):
                     text = re.search(r"%s" % args[0], text).group(args[-1])
+                if method_name == "re_sub" and isinstance(args, list):
+                    text = re.sub(r"%s" % args[0], args[1], text)
                 elif method_name == "split" and isinstance(args, list):
                     text = text.split(r"%s" % args[0])[args[-1]]
                 elif method_name == "replace" and isinstance(args, list):

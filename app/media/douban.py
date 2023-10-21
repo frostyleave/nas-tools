@@ -348,7 +348,7 @@ class DouBan:
                 if metainfo.cn_name:
                     title = metainfo.cn_name
                     # 有中文的去掉日文和韩文
-                    if title and StringUtils.is_chinese(title) and " " in title:
+                    if title and StringUtils.contain_chinese(title) and " " in title:
                         titles = title.split()
                         title = titles[0]
                         for _title in titles[1:]:

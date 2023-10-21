@@ -419,6 +419,7 @@ class Jellyfin(_IMediaClient):
         try:
             res = RequestUtils().post_res(req_url)
             if res:
+                log.info(f"【{self.client_name}】刷新媒体库成功！")
                 return True
             else:
                 log.info(f"【{self.client_name}】刷新媒体库失败，无法连接Jellyfin！")

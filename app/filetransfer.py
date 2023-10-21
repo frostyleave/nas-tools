@@ -14,13 +14,14 @@ from app.helper import DbHelper, ProgressHelper
 from app.helper import ThreadHelper
 from app.media import Media, Category, Scraper
 from app.media.meta import MetaInfo
+from app.mediaserver import MediaServer
 from app.message import Message
 from app.plugins import EventManager
 from app.utils import EpisodeFormat, PathUtils, StringUtils, SystemUtils, ExceptionUtils, NumberUtils
 from app.utils.commons import singleton
 from app.utils.types import MediaType, SyncType, RmtMode, EventType, ProgressKey, MovieTypes
 from config import RMT_AUDIO_TRACK_EXT, RMT_SUBEXT, RMT_MEDIAEXT, RMT_FAVTYPE, RMT_MIN_FILESIZE, DEFAULT_MOVIE_FORMAT, \
-    DEFAULT_TV_FORMAT, Config
+    DEFAULT_TV_FORMAT, ZHTW_SUB_RE, Config
 
 lock = Lock()
 
@@ -213,10 +214,6 @@ class FileTransfer:
                        r"|([\u4e00-\u9fa5]{0,3}[中双][\u4e00-\u9fa5]{0,2}[字文语][\u4e00-\u9fa5]{0,3})" \
                        r"|简体|简中" \
                        r"|(?<![a-z0-9])gb(?![a-z0-9])"
-        _zhtw_sub_re = r"([.\[(](((zh[-_])?(hk|tw|cht|tc))" \
-                       r"|繁[体中]?)[.\])])" \
-                       r"|繁体中[文字]|中[文字]繁体|繁体" \
-                       r"|(?<![a-z0-9])big5(?![a-z0-9])"
         _eng_sub_re = r"[.\[(]eng[.\])]"
 
         # 比对文件名并转移字幕
@@ -229,7 +226,7 @@ class FileTransfer:
             log.debug("【Rmt】字幕文件清单：" + str(file_list))
             metainfo = MetaInfo(title=file_name)
             for file_item in file_list:
-                sub_file_name = re.sub(_zhtw_sub_re,
+                sub_file_name = re.sub(ZHTW_SUB_RE,
                                        ".",
                                        re.sub(_zhcn_sub_re,
                                               ".",
@@ -251,8 +248,7 @@ class FileTransfer:
                     # 兼容jellyfin字幕识别(多重识别), emby则会识别最后一个后缀
                     if re.search(_zhcn_sub_re, file_item, re.I):
                         new_file_type = ".chi.zh-cn"
-                    elif re.search(_zhtw_sub_re, file_item,
-                                   re.I):
+                    elif re.search(ZHTW_SUB_RE, file_item, re.I):
                         new_file_type = ".zh-tw"
                     elif re.search(_eng_sub_re, file_item, re.I):
                         new_file_type = ".eng"
@@ -637,6 +633,7 @@ class FileTransfer:
         alert_messages = []
         total_count = 0
 
+        target_in_media_lib = False
         # 电视剧可能有多集，如果在循环里发消息就太多了，要在外面发消息
         message_medias = {}
 
@@ -711,6 +708,11 @@ class FileTransfer:
                     continue
                 if dist_path and not os.path.exists(dist_path) and rmt_mode not in ModuleConf.REMOTE_RMT_MODES:
                     return __finish_transfer(False, "目录不存在：%s" % dist_path)
+
+                if not target_in_media_lib and self.is_target_dir_path(dist_path):
+                    target_in_media_lib = True
+
+                log.info('目录{}是否在媒体库中：{}'.format(dist_path, self.is_target_dir_path(dist_path)))
 
                 # 判断文件是否已存在，返回：目录存在标志、目录名、文件存在标志、文件名
                 dir_exist_flag, ret_dir_path, file_exist_flag, ret_file_path = self.__is_media_exists(dist_path, media)
@@ -932,6 +934,9 @@ class FileTransfer:
             })
             # 发送消息
             self.message.send_transfer_fail_message(in_path, alert_count, reason)
+            # 如果本次同步的文件包含在媒体库中，将触发一次媒体库刷新
+            if target_in_media_lib:
+                MediaServer().refresh_root_library()
         elif failed_count == 0:
             # 删除空目录
             if rmt_mode == RmtMode.MOVE \

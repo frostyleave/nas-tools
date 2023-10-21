@@ -19,8 +19,13 @@ torrents:
       selector: td:nth-child(3) > a
       attribute: href
     download:
-      detail:
-        hash: //span[@id="text_hash_id"]/text()
+      selector: td:nth-child(3) > a
+      attribute: href
+      filters:
+        - name: re_sub
+          args: [ '(http.*)(show-){1}', 'magnet:?xt=urn:btih:' ]
+        - name: replace
+          args: [ '.html', '' ]
     date_added:
       selector: td:nth-child(1)
       optional: true
