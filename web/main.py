@@ -992,13 +992,13 @@ def plugin():
     RmtModeDict = WebAction().get_rmt_modes()
     # 插件
     Plugins = WebAction().get_plugins_conf().get("result")
+    Settings = '\n'.join(SystemConfig().get(SystemConfigKey.ExternalPluginsSource) or [])
     return render_template("setting/plugin.html",
                            Config=Config().get_config(),
                            PrivateCount=private_count,
                            PublicCount=public_count,
                            Indexers=indexers,
                            IndexerSites=indexer_sites,
-                           IndexerConf=ModuleConf.INDEXER_CONF,
                            Downloaders=Downloaders,
                            DefaultDownloader=DefaultDownloader,
                            DownloadersCount=DownloadersCount,
@@ -1006,6 +1006,7 @@ def plugin():
                            RmtModeDict=RmtModeDict,
                            DownloaderConf=ModuleConf.DOWNLOADER_CONF,
                            Plugins=Plugins,
+                           Settings=Settings,
                            Count=len(Plugins))
 
 

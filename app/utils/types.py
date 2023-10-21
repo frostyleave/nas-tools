@@ -139,6 +139,10 @@ class EventType(Enum):
     RefreshMediaServer = "refresh.mediaserver"
     # 站点签到
     SiteSignin = "site.signin"
+    # 新增变更
+    SiteEdit = "site.edit"
+    # 同步站点数据
+    CookieCloud = "cookiecloud.sync"
 
 
 # 系统配置Key字典
@@ -169,6 +173,10 @@ class SystemConfigKey(Enum):
     UserScraperConf = "UserScraperConf"
     # 索引站点
     UserIndexerSites = "UserIndexerSites"
+    # 第三方插件源配置
+    ExternalPluginsSource = "ExternalPluginsSource"
+    # 已安装的第三方插件
+    ExternalInstalledPlugins = "ExternalInstalledPlugins"
 
 # 处理进度Key字典
 class ProgressKey(Enum):

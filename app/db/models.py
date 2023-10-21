@@ -529,6 +529,15 @@ class INDEXERSTATISTICS(Base):
         return {c.name: getattr(self, c.name) for c in self.__table__.columns}
 
 
+class INDEXERCUSTOMSITE(Base):
+    __tablename__ = 'INDEXER_CUSTOM_SITE'
+
+    ID = Column(Integer, Sequence('ID'), primary_key=True)
+    SITE = Column(Text, index=True)
+    INDEXER = Column(Text)
+    DATE = Column(Text)
+
+
 class TRANSFERUNKNOWN(Base):
     __tablename__ = 'TRANSFER_UNKNOWN'
 

@@ -196,10 +196,6 @@ class Sync(object):
                 if not sync_id:
                     log.debug(f"【Sync】{event_path} 不在监控目录下，不处理 ...")
                     return
-                # 媒体库目录及子目录不处理
-                if self.filetransfer.is_target_dir_path(event_path):
-                    log.error(f"【Sync】{event_path} 是媒体库子目录，无法同步！")
-                    return
                 # 回收站及隐藏的文件不处理
                 if PathUtils.is_invalid_path(event_path):
                     log.debug(f"【Sync】{event_path} 是回收站或隐藏的文件，不处理 ...")
@@ -218,6 +214,10 @@ class Sync(object):
                     self.__link(event_path, mon_path, target_path, sync_mode)
                 # 识别转移
                 else:
+                    # 媒体库目录及子目录不处理
+                    if self.filetransfer.is_target_dir_path(event_path):
+                        log.error(f"【Sync】{event_path} 是媒体库子目录，无法同步！")
+                        return
                     # 目的目录下不处理
                     if PathUtils.is_path_in_path(target_path, event_path):
                         log.error(f"【Sync】{event_path} -> {target_path} 目的目录存在嵌套，无法同步！")

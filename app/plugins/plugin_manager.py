@@ -1,12 +1,16 @@
+import json
 import os.path
 import traceback
+import importlib
+from pathlib import Path
 from threading import Thread
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 import log
 from app.conf import SystemConfig
 from app.helper import SubmoduleHelper
 from app.plugins.event_manager import EventManager
-from app.utils import SystemUtils, PathUtils, ImageUtils
+from app.utils import SystemUtils, PathUtils, ImageUtils, RequestUtils, ExceptionUtils
 from app.utils.commons import singleton
 from app.utils.types import SystemConfigKey
 from config import Config
@@ -42,6 +46,9 @@ class PluginManager:
         if not os.path.exists(self.user_plugin_path):
             os.makedirs(self.user_plugin_path)
         self.system_plugin_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "modules")
+        # windows 可能不存在插件目录，需要进行创建
+        if not os.path.exists(self.system_plugin_path):
+            os.makedirs(self.system_plugin_path)
         if os.path.exists(self.user_plugin_path):
             for plugin_file in PathUtils.get_dir_level1_files(self.user_plugin_path, [".py"]):
                 SystemUtils.copy(plugin_file, self.system_plugin_path)
@@ -305,6 +312,117 @@ class PluginManager:
                 conf.update({"author_url": plugin.author_url})
             # 汇总
             all_confs[pid] = conf
+        return all_confs
+
+    def get_external_plugin_list(self, url):
+        """
+        请求第三方插件仓库地址
+        """
+        images_path = Path(importlib.import_module("web.static.img.plugins").__path__[0])
+
+        result = {}
+        try:
+            result = RequestUtils(timeout=5).get(url)
+            result = json.loads(result)
+
+            for pid in result:
+                image_name = images_path / result[pid]["icon"].split("/").pop()
+
+                if not image_name.exists():
+                    result_images = RequestUtils(timeout=5).get_res(result[pid]["icon"])
+                    if not result_images or not result_images.content:
+                        continue
+                    open(image_name, "wb").write(result_images.content)
+        except Exception as e:
+            ExceptionUtils.exception_traceback(e)
+            return {}
+
+        return result
+
+    def get_external_plugin_apps(self, auth_level):
+        """
+        获取第三方插件
+        """
+        all_confs = {}
+
+        # 获取已安装的插件
+        installed_apps = self.systemconfig.get(SystemConfigKey.UserInstalledPlugins) or []
+        external_installed_apps = self.systemconfig.get(SystemConfigKey.ExternalInstalledPlugins) or []
+
+        # 获取第三方仓库
+        try:
+            # 获取第三方数据源
+            url = "https://gitee.com/Mattoid/nas-tools-plugin/raw/master/source.json"
+            source_url = SystemConfig().get(SystemConfigKey.ExternalPluginsSource) or []
+
+            # 判断是否有空值在列表中
+            while "" in source_url:
+                source_url.remove("")
+            # 添加默认源
+            if url not in source_url:
+                source_url.append(url)
+
+            # 创建线程池
+            executor = ThreadPoolExecutor(max_workers=len(source_url) or 1)
+            for url in source_url:
+                # 如果url为空则不处理
+                if not url:
+                    continue
+
+                try:
+                    all_task = []
+                    # 执行获取第三方仓库列表
+                    task = executor.submit(self.get_external_plugin_list, url)
+                    all_task.append(task)
+
+                    finish_count = 0
+                    # 处理线程结果
+                    for future in as_completed(all_task):
+                        try:
+                            result_json = future.result()
+                            finish_count += 1
+
+                            # 处理第三方仓库的数据是否已安装或者已下载
+                            if result_json:
+                                for pid in result_json:
+                                    if not pid:
+                                        continue
+
+                                    conf = result_json[pid]
+
+                                    # 开始下载第三方插件的图片
+                                    # self.download_external_plugin_images(pid, conf.icon)
+
+                                    if pid in installed_apps and pid in self._plugins:
+                                        conf.update({"installed": True})
+                                    else:
+                                        conf.update({"installed": False})
+
+                                    if pid in external_installed_apps and pid in self._plugins:
+                                        conf.update({"download": True})
+                                        if conf["version"] > self._plugins[pid].module_version:
+                                            conf.update({"update": True})
+                                        else:
+                                            conf.update({"update": False})
+                                    else:
+                                        conf.update({"download": False})
+                                        conf.update({"update": False})
+
+                                    # 组装数据
+                                    all_confs[pid] = conf
+
+                        except Exception as e:
+                            ExceptionUtils.exception_traceback(e)
+                            continue
+
+                except Exception as e:
+                    ExceptionUtils.exception_traceback(e)
+                    continue
+
+        except Exception as e:
+            ExceptionUtils.exception_traceback(e)
+            return all_confs
+
         return all_confs
 
     def get_plugin_commands(self):

@@ -66,7 +66,7 @@ class StringUtils:
         return str(round(time_sec / (b + 1))) + u
 
     @staticmethod
-    def is_chinese(word):
+    def contain_chinese(word):
         """
         判断是否含有中文
         """
@@ -103,6 +103,20 @@ class StringUtils:
             if ch == ' ':
                 continue
             if '\u4e00' <= ch <= '\u9fff':
+                continue
+            else:
+                return False
+        return True
+
+    @staticmethod
+    def is_all_number(word):
+        """
+        判断是否全是数字
+        """
+        for ch in word:
+            if ch == ' ':
+                continue
+            if ch.isdigit():
                 continue
             else:
                 return False
@@ -582,19 +596,39 @@ class StringUtils:
         return raw_text
 
     @staticmethod
-    def season_name_to_en(title):
+    def season_ep_name_to_en(title):
         # 所有【】换成[]
         title = title.replace("【", "[").replace("】", "]").strip()
         # 季、期 统一：改为英文，方便三方插件识别
-        match_list = re.findall(r"(第.*[季|期])", title, flags=re.IGNORECASE)
-        if match_list:
-            # 只处理第一个
-            raw = match_list[0]
-            raw_num = raw[1:-1]
-            if not raw_num.isdigit():
+        title = StringUtils.name_ch_to_number(title, r"(第[^第]+[季|期])", '.S{}.')
+        # 集数 统一：改为英文，方便三方插件识别
+        title = StringUtils.name_ch_to_number(title, r"(第[^第]+[集|话|話])", '.E{}.')
+        return title
+
+    @staticmethod
+    def name_ch_to_number(title, reg_pattern, format_str):
+        offset = 0
+        new_list = set()
+        for raw in list(re.finditer(reg_pattern, title, flags=re.IGNORECASE))[::-1]:
+            info = raw.group()
+            # 截掉这部分内容
+            title = title[0:raw.regs[0][0] - offset] + title[raw.regs[0][1] - offset:]
+            # 偏移量
+            if offset == 0:
+                offset = raw.regs[0][1]
+            else:
+                offset -= raw.regs[0][1] - raw.regs[0][0]
+            # 去掉头尾取中间需要转换的部分
+            info = info[1:-1]
+            # 正则取中文，转化为数字
+            for ep in list(re.finditer(r'[\u4e00-\u9fa5]+', info))[::-1]:
                 try:
-                    raw_num = cn2an.cn2an(raw_num, "smart")
+                    x = cn2an.cn2an(ep.group(), "smart")
+                    info = info[0: ep.regs[0][0]] + str(x) + info[ep.regs[0][1]:]
                 except Exception as err:
                     ExceptionUtils.exception_traceback(err)
-            title = title.replace(raw, 'Season ' + str(raw_num))
+            new_list.add(format_str.format(info))
+
+        new_info = ' '.join(new_list)
+        title = title[0: offset] + new_info + title[offset:]
         return title

@@ -3,6 +3,7 @@ from urllib.parse import quote
 
 import cn2an
 import re
+import PTN
 
 from app.media import Media, Bangumi, DouBan
 from app.media.meta import MetaInfo
@@ -11,7 +12,8 @@ from app.utils.types import MediaType
 from config import Config
 from version import APP_VERSION
 
-DB_SEASON_SUFFIX = '[第\s共]+[0-9一二三四五六七八九十\-\s]+季'
+DB_SEASON_SUFFIX = '[第]+[0-9一二三四五六七八九十\-\s]+季'
+
 
 class WebUtils:
 
@@ -85,22 +87,37 @@ class WebUtils:
                 return None
             title = info.get("title")
             original_title = info.get("original_title")
-            # 支持自动识别类型
+            year = info.get("year")
+            begin_season = None
+            # 有集数的识别为剧集，否则为电影
             if not mtype:
                 mtype = MediaType.TV if info.get("episodes_count") else MediaType.MOVIE
 
             # 剧集类型，去掉季信息
-            if mtype == MediaType.TV:
-                title = re.sub(r'%s' % DB_SEASON_SUFFIX, '', title, flags=re.IGNORECASE).strip()
+            if mtype == MediaType.TV and re.search(r'%s' % DB_SEASON_SUFFIX, title, flags=re.IGNORECASE):
+                new_title = StringUtils.season_ep_name_to_en(title)
+                t = PTN.parse(new_title)
+                if t.get('title') and t.get('season'):
+                    title = t.get('title')
+                    season = t.get('season')
+                    if isinstance(season, list):
+                        begin_season = season[0]
+                    elif isinstance(season, int):
+                        begin_season = season
+                    if begin_season and begin_season > 1:
+                        year = None
 
-            if original_title:
-                media_info = Media().get_media_info(title=original_title, mtype=mtype, append_to_response="all")
+            tmdb_info = Media().query_tmdb_info(title, mtype, year, begin_season, append_to_response="all")
+            if not tmdb_info and original_title:
+                tmdb_info = Media().query_tmdb_info(original_title, mtype, year, begin_season, append_to_response="all")
 
-            if not media_info or not media_info.tmdb_info:
-                media_info = Media().get_media_info(title=title, mtype=mtype, append_to_response="all")
+            if not tmdb_info:
+                return None
 
-            if media_info:
-                media_info.douban_id = doubanid
+            media_info = MetaInfo(title=tmdb_info.get("title") if mtype == MediaType.MOVIE else tmdb_info.get("name"))
+            media_info.set_tmdb_info(tmdb_info)
+            media_info.begin_season = begin_season
+            media_info.douban_id = doubanid
 
             return media_info
         if str(mediaid).startswith("BG:"):

@@ -3,13 +3,14 @@ import os.path
 import re
 from urllib.parse import unquote
 
+import zhconv
 from bencode import bdecode
 
 import log
 from app.utils import StringUtils
 from app.utils.http_utils import RequestUtils
 from app.utils.types import MediaType
-from config import Config
+from config import ZHTW_SUB_RE, Config
 
 
 class Torrent:
@@ -265,15 +266,19 @@ class Torrent:
         def get_sort_str(x):
             season_len = str(len(x.get_season_list())).rjust(2, '0')
             episode_len = str(len(x.get_episode_list())).rjust(4, '0')
+            # 繁体资源标记
+            t_tag = "1" if re.match(ZHTW_SUB_RE, x.title) else "0"
+            # 标题统一处理为简体中文
+            zh_hant_title = t_tag + zhconv.convert(x.title, 'zh-hant')
             # 排序：标题、资源类型、站点、做种、季集
             if download_order == "seeder":
-                return "%s%s%s%s%s" % (str(x.title).ljust(100, ' '),
+                return "%s%s%s%s%s" % (str(zh_hant_title).ljust(100, ' '),
                                        str(x.res_order).rjust(3, '0'),
                                        str(x.seeders).rjust(10, '0'),
                                        str(x.site_order).rjust(3, '0'),
                                        "%s%s" % (season_len, episode_len))
             else:
-                return "%s%s%s%s%s" % (str(x.title).ljust(100, ' '),
+                return "%s%s%s%s%s" % (str(zh_hant_title).ljust(100, ' '),
                                        str(x.res_order).rjust(3, '0'),
                                        str(x.site_order).rjust(3, '0'),
                                        str(x.seeders).rjust(10, '0'),

@@ -3,8 +3,7 @@ import re
 import log
 from app.conf import ModuleConf
 from app.helper import DbHelper
-from app.media.meta import ReleaseGroupsMatcher
-from app.utils import StringUtils
+from app.utils import StringUtils, ReleaseGroupsMatcher
 from app.utils.commons import singleton
 from app.utils.types import MediaType
 

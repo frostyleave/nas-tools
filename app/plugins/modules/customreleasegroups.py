@@ -1,4 +1,4 @@
-from app.media.meta.release_groups import ReleaseGroupsMatcher
+from app.utils.release_groups import ReleaseGroupsMatcher
 from app.plugins.modules._base import _IPluginModule
 
 

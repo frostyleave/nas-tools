@@ -163,7 +163,7 @@ class _IIndexClient(metaclass=ABCMeta):
                         kw = meta_info.cn_name if meta_info.cn_name else torrent_name
                         media_info = self.media.get_media_info(title=kw, subtitle=description,
                                                                mtype=meta_info.type,
-                                                               chinese=StringUtils.is_chinese(kw), meta_info=meta_info)
+                                                               chinese=StringUtils.contain_chinese(kw), meta_info=meta_info)
                         if not media_info:
                             log.warn(f"【{self.client_name}】{kw} 识别媒体信息出错！")
                             index_error += 1

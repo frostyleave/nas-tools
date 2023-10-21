@@ -6,7 +6,7 @@ from app.media.meta._base import MetaBase
 from app.utils import StringUtils
 from app.utils.tokens import Tokens
 from app.utils.types import MediaType
-from app.media.meta.release_groups import ReleaseGroupsMatcher
+from app.utils.release_groups import ReleaseGroupsMatcher
 from app.media.meta.customization import CustomizationMatcher
 
 
@@ -29,6 +29,7 @@ class MetaVideo(MetaBase):
     _part_re = r"(^PART[0-9ABI]{0,2}$|^CD[0-9]{0,2}$|^DVD[0-9]{0,2}$|^DISK[0-9]{0,2}$|^DISC[0-9]{0,2}$)"
     _roman_numerals = r"^(?=[MDCLXVI])M*(C[MD]|D?C{0,3})(X[CL]|L?X{0,3})(I[XV]|V?I{0,3})$"
     _source_re = r"^BLURAY$|^HDTV$|^UHDTV$|^HDDVD$|^WEBRIP$|^DVDRIP$|^BDRIP$|^BLU$|^WEB$|^BD$|^HDRip$"
+    _source_tc_re = r"^TS|HDTS|TC|CAM"
     _effect_re = r"^REMUX$|^UHD$|^SDR$|^HDR\d*$|^DOLBY$|^DOVI$|^DV$|^3D$|^REPACK$"
     _resources_type_re = r"%s|%s" % (_source_re, _effect_re)
     _name_no_begin_re = r"^\[.+?]"
@@ -39,7 +40,7 @@ class MetaVideo(MetaBase):
                         r"|HBO$|\s+HBO|\d{1,2}th|\d{1,2}bit|NETFLIX|AMAZON|IMAX|^3D|\s+3D|^BBC\s+|\s+BBC|BBC$|DISNEY\+?|XXX|\s+DC$" \
                         r"|[第\s共]+[0-9一二三四五六七八九十\-\s]+季" \
                         r"|[第\s共]+[0-9一二三四五六七八九十百零\-\s]+[集话話]" \
-                        r"|连载|日剧|美剧|电视剧|动画片|动漫|欧美|西德|日韩|超高清|高清|蓝光|翡翠台|梦幻天堂·龙网|★?\d*月?新番" \
+                        r"|连载|日剧|美剧|电视剧|动画片|动漫|欧美|西德|日韩|超高清|高清|蓝光|翡翠台|梦幻天堂·龙网|★?\d?\+?\d*月?新番" \
                         r"|最终季|合集|[多中国英葡法俄日韩德意西印泰台港粤双文语简繁体特效内封官译外挂]+字幕|版本|出品|台版|港版|\w+字幕组" \
                         r"|未删减版|UNCUT$|UNRATE$|WITH EXTRAS$|RERIP$|SUBBED$|PROPER$|REPACK$|SEASON$|EPISODE$|Complete$|Extended$|Extended Version$" \
                         r"|S\d{2}\s*-\s*S\d{2}|S\d{2}|\s+S\d{1,2}|EP?\d{2,4}\s*-\s*EP?\d{2,4}|EP?\d{2,4}|\s+EP?\d{1,4}" \
@@ -66,9 +67,9 @@ class MetaVideo(MetaBase):
             self.type = MediaType.TV
             return
         # 所有【】换成[]、季名转英文
-        title = StringUtils.season_name_to_en(title)
+        title = StringUtils.season_ep_name_to_en(title)
         # 去除网址部分
-        title = re.sub(r'%s' % self._name_no_url, "", title, count=1)
+        title = re.sub(r'%s' % self._name_no_url, "", title, count=1, flags=re.IGNORECASE)
         # 把xxxx-xxxx年份换成前一个年份，常出现在季集上
         title = re.sub(r'([\s.]+)(\d{4})-(\d{4})', r'\1\2', title)
         # 把大小去掉
@@ -134,8 +135,6 @@ class MetaVideo(MetaBase):
         # 处理part
         if self.part and self.part.upper() == "PART":
             self.part = None
-        # 制作组/字幕组
-        self.resource_team = ReleaseGroupsMatcher().match(title=original_title) or None
         # 自定义占位符
         self.customization = CustomizationMatcher().match(title=original_title) or None
 
@@ -181,7 +180,7 @@ class MetaVideo(MetaBase):
         if token in self._name_se_words:
             self._last_token_type = 'name_se_words'
             return
-        if StringUtils.is_chinese(token):
+        if StringUtils.contain_chinese(token):
             # 含有中文，直接做为标题（连着的数字或者英文会保留），且不再取用后面出现的中文
             self._last_token_type = "cnname"
             if not self.cn_name:
@@ -328,8 +327,9 @@ class MetaVideo(MetaBase):
             re_res = re.search(r"%s" % self._resources_pix_re2, token, re.IGNORECASE)
             if re_res:
                 self._last_token_type = "pix"
+                if self.en_name:
+                    self.en_name = self.en_name.replace(token, '').strip()
                 self._continue_flag = False
-                self._stop_name_flag = True
                 if not self.resource_pix:
                     self.resource_pix = re_res.group(1).lower()
 
@@ -457,10 +457,11 @@ class MetaVideo(MetaBase):
         if source_res:
             self._last_token_type = "source"
             self._continue_flag = False
-            self._stop_name_flag = True
             if not self._source:
-                self._source = source_res.group(1).replace('RIP','')
+                self._source = source_res.group(1)
                 self._last_token = self._source.upper()
+                if self._source.upper().startswith('WEB'):
+                    self._source = "WEB-DL"
             return
         elif token.upper() == "RAY" \
                 and self._last_token_type == "source" \
@@ -469,10 +470,10 @@ class MetaVideo(MetaBase):
             self._continue_flag = False
             return
         elif token.upper().startswith('WEB'):
-            self._source = "WEB"
+            self._source = "WEB-DL"
             self._continue_flag = False
             return
-        elif token.upper() == "TC" or token.upper() == "TS" or token.upper() == "HDCAM":
+        elif re.search(r"(%s)" % self._source_tc_re, token, re.IGNORECASE):
             self._source = "枪版"
             self._continue_flag = False
             return
@@ -480,7 +481,6 @@ class MetaVideo(MetaBase):
         if effect_res:
             self._last_token_type = "effect"
             self._continue_flag = False
-            self._stop_name_flag = True
             effect = effect_res.group(1)
             if effect not in self._effect:
                 self._effect.append(effect)

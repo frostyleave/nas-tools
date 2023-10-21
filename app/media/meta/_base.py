@@ -301,14 +301,24 @@ class MetaBase(object):
     # 返回集字符串
     def get_episode_string(self):
         if self.begin_episode is not None:
-            return "E%s" % str(self.begin_episode).rjust(2, "0") \
+            padding_val = self.get_format_padding_val()
+            return "E%s" % str(self.begin_episode).rjust(padding_val, "0") \
                 if self.end_episode is None \
                 else "E%s-E%s" % \
                      (
-                         str(self.begin_episode).rjust(2, "0"),
-                         str(self.end_episode).rjust(2, "0"))
+                         str(self.begin_episode).rjust(padding_val, "0"),
+                         str(self.end_episode).rjust(padding_val, "0"))
         else:
             return ""
+
+    # 返回集数格式化长度
+    def get_format_padding_val(self):
+        if not self.begin_season or not self.tmdb_info or len(self.tmdb_info.seasons) <= 0:
+            return 2
+        match_season = next(filter(lambda x: x.season_number == self.begin_season, self.tmdb_info.seasons), None)
+        if not match_season or match_season.episode_count < 10:
+            return 2
+        return len(str(match_season.episode_count))
 
     # 返回集的数组
     def get_episode_list(self):
@@ -377,7 +387,7 @@ class MetaBase(object):
         if self.resource_effect:
             ret_string = f"{ret_string} {self.resource_effect}"
         return ret_string.strip()
-    
+
     # 返回发布组/字幕组字符串
     def get_resource_team_string(self):
         if self.resource_team:
@@ -530,7 +540,7 @@ class MetaBase(object):
         if info.get("external_ids"):
             self.tvdb_id = info.get("external_ids", {}).get("tvdb_id", 0)
             self.imdb_id = info.get("external_ids", {}).get("imdb_id", "")
-        
+
         self.tmdb_info = info
         self.douban_id = ''
         self.vote_average = round(float(info.get('vote_average')), 1) if info.get('vote_average') else 0

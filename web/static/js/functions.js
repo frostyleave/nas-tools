@@ -357,6 +357,21 @@ function show_user_auth_modal() {
   $("#modal-user-auth").modal("show");
 }
 
+function update_system() {
+  show_confirm_modal("更新系统版本，是否确认？", function () {
+    show_wait_modal(true);
+    hide_confirm_modal();
+    // 显示实时日志
+    logger_select("UpdateSystem");
+    show_logging_modal();
+    ajax_post("update_system", {}, function (ret) {
+      // 关闭浮层
+      hide_wait_modal();
+      return ret;
+    });
+  })
+}
+
 // 用户认证
 function user_auth() {
   $("#user_auth_btn").text("认证中...").prop("disabled", true);

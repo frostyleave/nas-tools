@@ -52,6 +52,7 @@ msgpack==1.0.4
 openai==0.27.2
 outcome==1.2.0
 parse==1.19.0
+parse-torrent-title==2.5
 parsel==1.8.1
 parso==0.8.3
 pexpect==4.8.0
