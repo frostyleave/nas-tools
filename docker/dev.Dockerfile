@@ -1,4 +1,4 @@
-FROM alpine:3.17 AS Builder
+FROM alpine:3.18 AS Builder
 RUN apk add --no-cache --virtual .build-deps \
         libffi-dev \
         gcc \

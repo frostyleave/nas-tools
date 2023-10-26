@@ -111,7 +111,7 @@ class DouBan:
 
             raw_title = profile_tag[0].attrs['title']
             actor_name = StringUtils.cut_from_spance(raw_title)
-            actor_en_name = raw_title.replace(actor_name, '').strip()
+            actor_en_name = raw_title.replace(actor_name, '').replace('-','').strip()
             actor_link = profile_tag[0].attrs['href']
             actor_id = actor_link.strip('/')
             actor_id = actor_id[actor_id.rfind('/') + 1:]
@@ -120,7 +120,8 @@ class DouBan:
             if len(role_tag) == 0:
                 continue
             role_name = role_tag[0].text
-            role_name = role_name[role_name.rfind(' ') + 1:role_name.rfind(')')]
+            if role_name and ' ' in role_name and ')' in role_name:
+                role_name = role_name[role_name.rfind(' ') + 1:role_name.rfind(')')]
 
             image_tag = one_unit.select('div.avatar')
             if len(image_tag) == 0:

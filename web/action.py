@@ -4627,16 +4627,20 @@ class WebAction:
                 actors.remove(actor)
             else:
                 actor['id'] = match.id
+                if actor['role'] and actor['role'].startswith('演员 Act'):
+                    actor['role'] = match.character
 
     # 豆瓣演员信息是否和tmdb演员信息匹配
     @staticmethod
     def is_actor_match(actor, tmdb_actor):
-        en_name = actor.get("en_name")
-        name = actor.get("name")
+        en_name = actor.get("en_name").lower()
+        name = actor.get("name").lower()
 
-        if tmdb_actor.name == en_name or tmdb_actor == name:
+        tmdb_actor_name = tmdb_actor.name.replace('-', '').lower()
+
+        if tmdb_actor_name == en_name or tmdb_actor_name == name:
             return True
-        return tmdb_actor.name.startswith(en_name) or tmdb_actor.name.startswith(name)
+        return tmdb_actor_name.startswith(en_name) or tmdb_actor_name.startswith(name)
 
     @staticmethod
     def __media_similar(data):

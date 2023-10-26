@@ -326,6 +326,8 @@ class Downloader:
             if url.startswith("magnet:"):
                 content = url
             else:
+                _xpath = ''
+                _hash = ''
                 # [XPATH]为需从详情页面解析磁力链
                 if url.startswith("["):
                     _xpath = url[1:-1]

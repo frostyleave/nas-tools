@@ -37,7 +37,6 @@ jobs:
         copy .\package\rely\hook-cn2an.py c:\hostedtoolcache\windows\python\3.11.6\x64\lib\site-packages\pyinstaller\hooks
         copy .\package\rely\hook-zhconv.py c:\hostedtoolcache\windows\python\3.11.6\x64\lib\site-packages\pyinstaller\hooks
         copy .\package\rely\hook-iso639.py c:\hostedtoolcache\windows\python\3.11.6\x64\lib\site-packages\pyinstaller\hooks
-        copy .\third_party.txt .\package
         copy .\package\rely\template.jinja2 c:\hostedtoolcache\windows\Python\3.11.6\x64\lib\site-packages\setuptools\_vendor\pyparsing\diagram
         xcopy .\web c:\hostedtoolcache\windows\python\3.11.6\x64\lib\site-packages\web\ /e
         xcopy .\config c:\hostedtoolcache\windows\python\3.11.6\x64\lib\site-packages\config\ /e
@@ -80,7 +79,6 @@ jobs:
           cp ./package/rely/hook-cn2an.py /opt/hostedtoolcache/Python/3.11.6/x64/lib/python3.10/site-packages/PyInstaller/hooks/
           cp ./package/rely/hook-zhconv.py /opt/hostedtoolcache/Python/3.11.6/x64/lib/python3.10/site-packages/PyInstaller/hooks/
           cp ./package/rely/hook-iso639.py /opt/hostedtoolcache/Python/3.11.6/x64/lib/python3.10/site-packages/PyInstaller/hooks/
-          cp ./third_party.txt ./package/
           cp ./package/rely/template.jinja2 /opt/hostedtoolcache/Python/3.11.6/x64/lib/python3.10/site-packages/setuptools/_vendor/pyparsing/diagram/
           cp -r ./web/. /opt/hostedtoolcache/Python/3.11.6/x64/lib/python3.10/site-packages/web/
           cp -r ./config/. /opt/hostedtoolcache/Python/3.11.6/x64/lib/python3.10/site-packages/config/
@@ -205,7 +203,6 @@ jobs:
           cp ./package/rely/hook-cn2an.py $Python_ROOT_DIR/lib/python3.10/site-packages/PyInstaller/hooks/
           cp ./package/rely/hook-zhconv.py $Python_ROOT_DIR/lib/python3.10/site-packages/PyInstaller/hooks/
           cp ./package/rely/hook-iso639.py $Python_ROOT_DIR/lib/python3.10/site-packages/PyInstaller/hooks/
-          cp ./third_party.txt ./package/
           cp ./package/rely/template.jinja2 $Python_ROOT_DIR/lib/python3.10/site-packages/setuptools/_vendor/pyparsing/diagram/
           cp -r ./web/. $Python_ROOT_DIR/lib/python3.10/site-packages/web/
           cp -r ./config/. $Python_ROOT_DIR/lib/python3.10/site-packages/config/

@@ -34,16 +34,6 @@ pkg_data2 = collect_pkg_data('config')
 pkg_data3 = collect_pkg_data('scripts', include_py_files=True)  # <<< Put the name of your package here
 # <<< END ADDED PART
 
-
-# <<< START PATHEX PART
-pathex_tp = []
-with open("third_party.txt") as third_party:
-    for third_party_lib in third_party:
-        pathex_tp.append(('./../third_party/' + third_party_lib).replace("\n", ""))
-
-
-# <<< END PATHEX PART
-
 # <<< START HIDDENIMPORTS PART
 def collect_local_submodules(package):
     import os
@@ -100,7 +90,6 @@ a = Analysis(
 )
 pyz = PYZ(a.pure, a.zipped_data, cipher=block_cipher)
 a.datas += [('./nas-tools.ico', './nas-tools.ico', 'DATA')]
-a.datas += [('./third_party.txt', './third_party.txt', 'DATA')]
 exe = EXE(
     pyz,
     a.scripts,

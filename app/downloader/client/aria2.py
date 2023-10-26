@@ -9,7 +9,6 @@ from app.downloader.client._pyaria2 import PyAria2
 
 
 class Aria2(_IDownloadClient):
-
     schema = "aria2"
     # 下载器ID
     client_id = "aria2"
@@ -22,6 +21,8 @@ class Aria2(_IDownloadClient):
     port = None
     secret = None
     download_dir = []
+    name = "aria2"
+
     def __init__(self, config=None):
         if config:
             self._client_config = config
@@ -39,6 +40,7 @@ class Aria2(_IDownloadClient):
             self.port = self._client_config.get("port")
             self.secret = self._client_config.get("secret")
             self.download_dir = self._client_config.get('download_dir') or []
+            self.name = self._client_config.get('name') or ""
             if self.host and self.port:
                 self._client = PyAria2(secret=self.secret, host=self.host, port=self.port)
 
@@ -96,7 +98,7 @@ class Aria2(_IDownloadClient):
             true_path, replace_flag = self.get_replace_path(path, self.download_dir)
             # 开启目录隔离，未进行目录替换的不处理
             if match_path and not replace_flag:
-                log.debug(f"【{self.client_name}】{self.name} 开启目录隔离，但 {torrent.name} 未匹配下载目录范围")
+                log.debug(f"【{self.client_name}】{self.name} 开启目录隔离，但 {torrent.get('name')} 未匹配下载目录范围")
                 continue
             trans_tasks.append({'path': os.path.join(true_path, name).replace("\\", "/"), 'id': torrent.get("gid")})
         return trans_tasks
@@ -169,7 +171,7 @@ class Aria2(_IDownloadClient):
                 'state': state,
                 'progress': progress
             })
-            
+
         return DispTorrents
 
     def set_speed_limit(self, download_limit=None, upload_limit=None):

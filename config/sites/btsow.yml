@@ -1,6 +1,6 @@
 id: btsow
 name: BTSOW
-domain: https://btsow.com/
+domain: https://btsow.motorcycles/
 encoding: UTF-8
 public: true
 proxy: true
@@ -23,7 +23,7 @@ torrents:
       attribute: href
       filters:
         - name: re_sub
-          args: [ '(http.*)(hash/){1}', 'magnet:?xt=urn:btih:' ]
+          args: [ '.*(magnet/detail/hash/){1}', 'magnet:?xt=urn:btih:' ]
     date_added:
       selector: div.date
     size:

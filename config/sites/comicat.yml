@@ -23,7 +23,7 @@ torrents:
       attribute: href
       filters:
         - name: re_sub
-          args: [ '(http.*)(show-){1}', 'magnet:?xt=urn:btih:' ]
+          args: [ '.*(show-){1}', 'magnet:?xt=urn:btih:' ]
         - name: replace
           args: [ '.html', '' ]
     date_added:

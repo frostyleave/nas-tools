@@ -1,6 +1,0 @@
-feapder
-qbittorrent-api/src
-anitopy
-plexapi
-transmission-rpc
-slack_bolt
