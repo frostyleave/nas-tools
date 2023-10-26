@@ -101,7 +101,7 @@ export class LayoutSearchbar extends CustomElement {
                 ${search_source_icon[this._search_source]}
               </a>
             </span>
-            <input type="text" class="home_search_bar form-control form-control-rounded" placeholder=${this._search_source === "person" ? "搜索人物" : "搜索电影、电视剧"} autocomplete="new-password" ?readonly=${this.layout_search == 0}
+            <input type="text" class="home_search_bar form-control form-control-rounded" placeholder=${this._search_source === "person" ? "搜索人物" : "搜索电影、电视剧"} autocomplete="new-password" 
               @keypress=${ (e) => {
                 if(e.which === 13 && this.input.value){
                   if (this._search_source === "person") {

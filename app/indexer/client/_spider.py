@@ -412,6 +412,7 @@ class TorrentSpider(feapder.AirSpider):
         self.__remove(size, selector)
         items = self.__attribute_or_text(size, selector)
         item = self.__index(items, selector)
+        item = self.__filter_text(item, selector.get('filters'))
         if item:
             self.torrents_info['size'] = StringUtils.num_filesize(item.replace("\n", "").strip())
             self.torrents_info['size'] = self.__filter_text(self.torrents_info.get('size'),
@@ -588,7 +589,9 @@ class TorrentSpider(feapder.AirSpider):
                 method_name = filter_item.get("name")
                 args = filter_item.get("args")
                 if method_name == "re_search" and isinstance(args, list):
-                    text = re.search(r"%s" % args[0], text).group(args[-1])
+                    re_search = re.search(r"%s" % args[0], text)
+                    if re_search:
+                        text = re_search.group(args[-1])
                 if method_name == "re_sub" and isinstance(args, list):
                     text = re.sub(r"%s" % args[0], args[1], text)
                 elif method_name == "split" and isinstance(args, list):

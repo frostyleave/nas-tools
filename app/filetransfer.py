@@ -712,8 +712,6 @@ class FileTransfer:
                 if not target_in_media_lib and self.is_target_dir_path(dist_path):
                     target_in_media_lib = True
 
-                log.info('目录{}是否在媒体库中：{}'.format(dist_path, self.is_target_dir_path(dist_path)))
-
                 # 判断文件是否已存在，返回：目录存在标志、目录名、文件存在标志、文件名
                 dir_exist_flag, ret_dir_path, file_exist_flag, ret_file_path = self.__is_media_exists(dist_path, media)
                 # 新文件后缀
@@ -924,6 +922,11 @@ class FileTransfer:
             self.message.send_transfer_tv_message(message_medias, in_from)
         # 总结
         log.info("【Rmt】%s 处理完成，总数：%s，失败：%s" % (in_path, total_count, failed_count))
+
+        # 如果本次同步的文件包含在媒体库中，将触发一次媒体库刷新
+        if total_count > 0 and target_in_media_lib:
+            MediaServer().refresh_root_library()
+
         if alert_count > 0:
             reason = "、".join(alert_messages)
             # 解发事件
@@ -934,9 +937,6 @@ class FileTransfer:
             })
             # 发送消息
             self.message.send_transfer_fail_message(in_path, alert_count, reason)
-            # 如果本次同步的文件包含在媒体库中，将触发一次媒体库刷新
-            if target_in_media_lib:
-                MediaServer().refresh_root_library()
         elif failed_count == 0:
             # 删除空目录
             if rmt_mode == RmtMode.MOVE \

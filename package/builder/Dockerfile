@@ -14,7 +14,6 @@ RUN pip install pyparsing
 RUN cp ./package/rely/hook-cn2an.py ${py_site_packages}/PyInstaller/hooks/ && \
     cp ./package/rely/hook-zhconv.py ${py_site_packages}/PyInstaller/hooks/ && \
     cp ./package/rely/hook-iso639.py ${py_site_packages}/PyInstaller/hooks/ && \
-    cp ./third_party.txt ./package/ && \
     mkdir -p ${py_site_packages}/setuptools/_vendor/pyparsing/diagram/ && \
     cp ./package/rely/template.jinja2 ${py_site_packages}/setuptools/_vendor/pyparsing/diagram/ && \
     cp -r ./web/. ${py_site_packages}/web/ && \

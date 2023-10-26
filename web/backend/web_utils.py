@@ -147,7 +147,7 @@ class WebUtils:
 
         # 豆瓣信息补全
         if media_info and info:
-            keyword = info.imdb_id if hasattr(info, 'imdb_id') else title
+            keyword = info.imdb_id if hasattr(info, 'imdb_id') and info.imdb_id else title
             douban_info = DouBan().search_detail_by_keyword(keyword)
             if douban_info:
                 media_info.douban_id = douban_info.get("id")
@@ -185,9 +185,9 @@ class WebUtils:
                                                mtype=mtype,
                                                page=page)
             medias = []
-            for tmdbinfo in tmdbinfos:
+            for info in tmdbinfos:
                 tmp_info = MetaInfo(title=keyword)
-                tmp_info.set_tmdb_info(tmdbinfo)
+                tmp_info.set_tmdb_info(info)
                 if meta_info.type != MediaType.MOVIE and tmp_info.type == MediaType.MOVIE:
                     continue
                 if tmp_info.begin_season:

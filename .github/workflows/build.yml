@@ -29,15 +29,15 @@ jobs:
 
       -
         name: Set Up QEMU
-        uses: docker/setup-qemu-action@v1
+        uses: docker/setup-qemu-action@v2
 
       -
         name: Set Up Buildx
-        uses: docker/setup-buildx-action@v1
+        uses: docker/setup-buildx-action@v2
 
       -
         name: Login DockerHub
-        uses: docker/login-action@v1
+        uses: docker/login-action@v2
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
@@ -53,5 +53,5 @@ jobs:
             linux/arm64
           push: true
           tags: |
-            ${{ secrets.DOCKER_USERNAME }}/nas-tools:unstable
+            ${{ secrets.DOCKER_USERNAME }}/nas-tools:latest
             ${{ secrets.DOCKER_USERNAME }}/nas-tools:${{ env.app_version }}

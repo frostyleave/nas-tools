@@ -133,25 +133,6 @@ function requirements_update {
 
 }
 
-# third_party更新
-function third_party_update {
-
-    hash_old=$(cat /tmp/third_party.txt.sha256sum)
-    hash_new=$(sha256sum third_party.txt)
-    if [ "${hash_old}" != "${hash_new}" ]; then
-        echo "检测到third_party.txt有变化，更新第三方组件..."
-        git submodule update --init --recursive
-        if [ $? -ne 0 ]; then
-            echo "无法更新第三方组件，请更新镜像！"
-            exit 1
-        else
-            echo "第三方组件安装成功"
-            sha256sum third_party.txt > /tmp/third_party.txt.sha256sum
-        fi
-    fi
-
-}
-
 function __main {
 
     cd ${WORKDIR}
@@ -160,9 +141,6 @@ function __main {
     if [ "${NASTOOL_AUTO_UPDATE}" = "true" ]; then
         if [ ! -s /tmp/requirements.txt.sha256sum ]; then
             sha256sum requirements.txt > /tmp/requirements.txt.sha256sum
-        fi
-        if [ ! -s /tmp/third_party.txt.sha256sum ]; then
-            sha256sum third_party.txt > /tmp/third_party.txt.sha256sum
         fi
         if [ ! -s /tmp/package_list.txt.sha256sum ]; then
             sha256sum package_list.txt > /tmp/package_list.txt.sha256sum
@@ -192,8 +170,6 @@ function __main {
             package_update
             # Python依赖包更新
             requirements_update
-            # third_party 更新
-            third_party_update
         else
             echo "更新失败，继续使用旧的程序来启动..."
         fi

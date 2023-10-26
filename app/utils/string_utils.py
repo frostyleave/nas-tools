@@ -9,6 +9,7 @@ import cn2an
 import dateparser
 import dateutil.parser
 
+import log
 from app.utils.exception_utils import ExceptionUtils
 from app.utils.types import MediaType
 
@@ -612,7 +613,7 @@ class StringUtils:
         for raw in list(re.finditer(reg_pattern, title, flags=re.IGNORECASE))[::-1]:
             info = raw.group()
             # 截掉这部分内容
-            title = title[0:raw.regs[0][0] - offset] + title[raw.regs[0][1] - offset:]
+            title = title[0:raw.regs[0][0]] + title[raw.regs[0][1]:]
             # 偏移量
             if offset == 0:
                 offset = raw.regs[0][1]
@@ -626,9 +627,12 @@ class StringUtils:
                     x = cn2an.cn2an(ep.group(), "smart")
                     info = info[0: ep.regs[0][0]] + str(x) + info[ep.regs[0][1]:]
                 except Exception as err:
-                    ExceptionUtils.exception_traceback(err)
+                    log.error(f"季集信息转换出错出错：{str(err)}")
             new_list.add(format_str.format(info))
+
+        if len(new_list) == 0:
+            return title
 
         new_info = ' '.join(new_list)
         title = title[0: offset] + new_info + title[offset:]
-        return title
+        return title.strip()
