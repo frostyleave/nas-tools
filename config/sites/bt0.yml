@@ -4,7 +4,8 @@ domain: https://www.8bt0.com/
 encoding: UTF-8
 public: true
 render: true
-search_type: douban
+search_type:
+    - douban_id
 search:
   paths:
   - path: mv/{keyword}.html
@@ -14,12 +15,12 @@ browse:
   start: 1
 torrents:
   list:
-    selector: div.container
+    selector: .picture-container > div.container
   fields:
     title:
       selector: a.torrent-title
     download:
-      selector: div.col-md-3  > a
+      selector: div.col-md-3:nth-child(4)  > a
       attribute: href
     date_added:
       selector: div.tag-download

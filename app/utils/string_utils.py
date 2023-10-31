@@ -124,6 +124,17 @@ class StringUtils:
         return True
 
     @staticmethod
+    def is_english_or_number(word):
+        """
+        判断是否全是英文和数字
+        """
+        eng = re.compile(r'^[a-zA-Z0-9\s]+$')
+        if eng.search(word):
+            return True
+        else:
+            return False
+
+    @staticmethod
     def is_all_chinese_and_mark(word):
         """
         判断是否全是中文(包括中文标点)
@@ -604,6 +615,8 @@ class StringUtils:
         title = StringUtils.name_ch_to_number(title, r"(第[^第]+[季|期])", '.S{}.')
         # 集数 统一：改为英文，方便三方插件识别
         title = StringUtils.name_ch_to_number(title, r"(第[^第]+[集|话|話])", '.E{}.')
+        # 空格替换为'.'，并把多个连续'.'合并为一个
+        title = re.sub("\.+", ".", title.replace(' ', '.')).strip('.')
         return title
 
     @staticmethod
@@ -616,16 +629,16 @@ class StringUtils:
             title = title[0:raw.regs[0][0]] + title[raw.regs[0][1]:]
             # 偏移量
             if offset == 0:
-                offset = raw.regs[0][1]
+                offset = raw.regs[0][0]
             else:
-                offset -= raw.regs[0][1] - raw.regs[0][0]
+                offset -= (raw.regs[0][1] - raw.regs[0][0] + 1)
             # 去掉头尾取中间需要转换的部分
             info = info[1:-1]
             # 正则取中文，转化为数字
-            for ep in list(re.finditer(r'[\u4e00-\u9fa5]+', info))[::-1]:
+            for ep in list(re.finditer(r'[\d\u4e00-\u9fa5]+', info))[::-1]:
                 try:
                     x = cn2an.cn2an(ep.group(), "smart")
-                    info = info[0: ep.regs[0][0]] + str(x) + info[ep.regs[0][1]:]
+                    info = info[0: ep.regs[0][0]] + str(int(x)).rjust(2, '0') + info[ep.regs[0][1]:]
                 except Exception as err:
                     log.error(f"季集信息转换出错出错：{str(err)}")
             new_list.add(format_str.format(info))

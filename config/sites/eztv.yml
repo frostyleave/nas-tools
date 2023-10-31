@@ -4,7 +4,6 @@ domain: https://eztv.re/
 encoding: UTF-8
 public: true
 proxy: true
-language: en
 search:
   paths:
   - path: search/{keyword}
@@ -13,6 +12,8 @@ browse:
   path: page_{page}
 category:
   - TV
+search_type:
+  - en_name
 torrents:
   list:
     selector: table.forum_header_border > tr[name]

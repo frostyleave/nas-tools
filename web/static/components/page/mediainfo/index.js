@@ -71,6 +71,18 @@ export class PageMediainfo extends CustomElement {
     `);
   }
 
+  _render_html(douban_id) {
+    var content = html``
+    if (!douban_id){
+        return content
+    }
+    var id_arr = douban_id.split(',')
+    for (var id of id_arr) {
+        content = html`${content}<a href="https://movie.douban.com/subject/${id}" target="_blank">${id}</a>  `;
+    }
+    return content
+  }
+
   render() {
     return html`
       <div class="container-xl placeholder-glow page-wrapper-top-off lit-media-info-page-bg">
@@ -105,7 +117,7 @@ export class PageMediainfo extends CustomElement {
                     <span class="h3" ?hidden=${!this.media_info.genres}>| ${this.media_info.genres}</span>
                     <span class="h3" ?hidden=${!this.seasons_data.length}>| 共 ${this.seasons_data.length} 季</span>
                     <span class="h3" ?hidden=${!this.media_info.link}>| TMDB: <a href="${this.media_info.link}" target="_blank">${this.media_info.tmdbid}</a></span>
-                    <span class="h3" ?hidden=${!this.media_info.douban_link}>| 豆瓣: <a href="${this.media_info.douban_link}" target="_blank">${this.media_info.douban_id}</a>
+                    <span class="h3" ?hidden=${!this.media_info.douban_id}>| 豆瓣: ${this._render_html(this.media_info.douban_id)}
                     ${Object.keys(this.media_info).length === 0 ? this._render_placeholder("205px") : nothing }
                   </div>
                   <div class="align-self-center align-self-md-start text-center mt-1">

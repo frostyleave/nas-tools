@@ -81,7 +81,7 @@ class WebUtils:
         media_info = None
         if str(mediaid).startswith("DB:"):
             # 豆瓣
-            doubanid = mediaid[3:]
+            doubanid = mediaid[3:].split(',')[0]
             info = DouBan().get_douban_detail(doubanid=doubanid, mtype=mtype, wait=wait)
             if not info:
                 return None
@@ -150,7 +150,11 @@ class WebUtils:
             keyword = info.imdb_id if hasattr(info, 'imdb_id') and info.imdb_id else title
             douban_info = DouBan().search_detail_by_keyword(keyword)
             if douban_info:
-                media_info.douban_id = douban_info.get("id")
+                douban_id_list = list(map(lambda x: x.get("id"), douban_info))
+                # douban_id_list.sort(reverse=True)
+                media_info.douban_id = ",".join(douban_id_list)
+            else:
+                media_info.douban_id = ''
 
         return media_info
 

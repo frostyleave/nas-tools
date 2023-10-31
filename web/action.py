@@ -4582,7 +4582,7 @@ class WebAction:
         crews = []
         actors = []
         if media_info.douban_id:
-            crews, actors = DouBan().scraper_media_celebrities(media_info.douban_id)
+            crews, actors = DouBan().scraper_media_celebrities(media_info.douban_id.split(',')[0])
             self.set_actor_id_from_tmdb(actors, media_info.tmdb_info)
 
         if len(crews) == 0:
@@ -4607,7 +4607,6 @@ class WebAction:
                 "crews": crews,
                 "actors": actors,
                 "link": media_info.get_detail_url(),
-                "douban_link": media_info.get_douban_detail_url(),
                 "fav": fav,
                 "item_url": item_url,
                 "rssid": rssid,

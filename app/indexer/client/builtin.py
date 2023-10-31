@@ -139,23 +139,6 @@ class BuiltinIndexer(_IIndexClient):
         # 特殊符号处理
         search_word = StringUtils.handler_special_chars(text=key_word, replace_word=" ", allow_space=True)
 
-        # 仅支持豆瓣搜索
-        if indexer.search_type == "douban":
-            if len(match_media.douban_id) > 0:
-                search_word = match_media.douban_id
-            else:
-                log.warn(f"【{self.client_name}】{indexer.name} 仅支持按豆瓣id搜索, 当前媒体信息的豆瓣id为空")
-                return []
-
-        # 避免对英文站搜索中文
-        if indexer.language == "en" and StringUtils.contain_chinese(search_word):
-            # 如果当前网站支持按imdb_id搜索，则改为按IMDB搜索
-            if indexer.imdb and match_media and match_media.imdb_id:
-                search_word = match_media.imdb_id
-                log.info(f"【{self.client_name}】{indexer.name} 改用imdb_id搜索")
-            else:
-                log.warn(f"【{self.client_name}】{indexer.name} 无法使用中文名搜索")
-                return []
         # 开始索引
         result_array = []
         try:

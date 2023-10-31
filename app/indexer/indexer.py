@@ -3,6 +3,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 
 import log
 from app.helper import ProgressHelper, SubmoduleHelper, DbHelper
+from app.media import Media
 from app.utils import ExceptionUtils, StringUtils
 from app.utils.commons import singleton
 from app.utils.types import SearchType, IndexerType, ProgressKey
@@ -149,14 +150,34 @@ class Indexer(object):
         all_task = []
         for index in indexers:
             order_seq = 100 - int(index.pri)
-            task = executor.submit(self._client.search,
-                                   order_seq,
-                                   index,
-                                   key_word,
-                                   filter_args,
-                                   match_media,
-                                   in_from)
-            all_task.append(task)
+
+            # 原始标题检索
+            if 'title' in index.search_type and key_word:
+                task = executor.submit(self._client.search, order_seq, index, key_word, filter_args, match_media, in_from)
+                all_task.append(task)
+
+            # 其他搜索类型都需要 match_media 不为空
+            if not match_media:
+                continue
+
+            # 豆瓣id检索
+            if 'douban_id' in index.search_type and match_media.douban_id:
+                for db_id in match_media.douban_id.split(","):
+                    if db_id:
+                        task = executor.submit(self._client.search, order_seq, index, db_id, filter_args, match_media, in_from)
+                        all_task.append(task)
+
+            # imdb id 检索
+            if 'imdb' in index.search_type and match_media.imdb_id:
+                task = executor.submit(self._client.search, order_seq, index, match_media.imdb_id, filter_args, match_media, in_from)
+                all_task.append(task)
+
+            # 英文名检索
+            en_name = self.get_en_name(match_media)
+            if en_name and 'en_name' in index.search_type and Config().get_config("laboratory").get("search_en_title"):
+                task = executor.submit(self._client.search, order_seq, index, en_name, filter_args, match_media, in_from)
+                all_task.append(task)
+
         ret_array = []
         finish_count = 0
         for future in as_completed(all_task):
@@ -175,6 +196,15 @@ class Indexer(object):
                                   % (len(ret_array), (end_time - start_time).seconds),
                              value=100)
         return ret_array
+
+    def get_en_name(self, media_info):
+        """
+        获取媒体数据的英文名称
+        """
+        if media_info.original_language == "en":
+            return media_info.original_title
+        # 获取英文标题
+        return Media().get_tmdb_en_title(media_info)
 
     def get_indexer_statistics(self):
         """
