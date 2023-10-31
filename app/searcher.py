@@ -60,10 +60,7 @@ class Searcher:
             "filter_args": filter_args,
             "search_type": in_from.value if in_from else None
         })
-        return self.indexer.search_by_keyword(key_word=key_word,
-                                              filter_args=filter_args,
-                                              match_media=match_media,
-                                              in_from=in_from)
+        return self.indexer.search_by_keyword(key_word, filter_args, match_media, in_from)
 
     def search_one_media(self, media_info,
                          in_from: SearchType,
@@ -108,56 +105,20 @@ class Searcher:
             filter_args.update(filters)
         if media_info.keyword:
             # 直接使用搜索词搜索
-            first_search_name = media_info.keyword
-            second_search_name = None
+            search_name = media_info.keyword
         else:
             # 中文名
             if media_info.cn_name:
-                search_cn_name = media_info.cn_name
+                search_name = media_info.cn_name
             else:
-                search_cn_name = media_info.title
-            # 英文名
-            search_en_name = None
-            if media_info.en_name:
-                search_en_name = media_info.en_name
-            else:
-                if media_info.original_language == "en":
-                    search_en_name = media_info.original_title
-                else:
-                    # 获取英文标题
-                    en_title = self.media.get_tmdb_en_title(media_info)
-                    if en_title:
-                        search_en_name = en_title
-            # 两次搜索名称
-            second_search_name = None
-            if Config().get_config("laboratory").get("search_en_title"):
-                if search_en_name:
-                    first_search_name = search_en_name
-                    second_search_name = search_cn_name
-                else:
-                    first_search_name = search_cn_name
-            else:
-                first_search_name = search_cn_name
-                if search_en_name:
-                    second_search_name = search_en_name
+                search_name = media_info.title
+
         # 开始搜索
-        log.info("【Searcher】开始搜索 %s ..." % first_search_name)
-        media_list = self.search_medias(key_word=first_search_name,
-                                        filter_args=filter_args,
-                                        match_media=media_info,
-                                        in_from=in_from)
-        # 使用名称重新搜索
-        if len(media_list) == 0 \
-                and second_search_name \
-                and second_search_name != first_search_name:
-            log.info("【Searcher】%s 未搜索到资源,尝试通过 %s 重新搜索 ..." % (first_search_name, second_search_name))
-            media_list = self.search_medias(key_word=second_search_name,
-                                            filter_args=filter_args,
-                                            match_media=media_info,
-                                            in_from=in_from)
+        log.info("【Searcher】开始搜索 %s ..." % search_name)
+        media_list = self.search_medias(search_name, filter_args, media_info, in_from)
 
         if len(media_list) == 0:
-            log.info("【Searcher】%s 未搜索到任何资源" % second_search_name)
+            log.info("【Searcher】 未搜索到任何资源")
             return None, no_exists, 0, 0
         else:
             if in_from in self.message.get_search_types():

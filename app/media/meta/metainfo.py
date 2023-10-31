@@ -13,6 +13,8 @@ from config import RMT_MEDIAEXT
 
 NAME_NOSTRING_RE = r"高清影视之家发布|连载|日剧|美剧|电视剧|动画片|动漫|欧美|西德|日韩|超高清|高清|蓝光|翡翠台|梦幻天堂·龙网|★?\d?\+?\d*月?新?番★?|[日美国][漫剧]" \
                    r"|高码版|最终季|全集|合集|[多中国英葡法俄日韩德意西印泰台港粤双文语简繁体特效内封官译外挂]+[字|幕|配|音|轨]+|版本|出品|台版|港版|\w+字幕组|未删减版"
+
+
 def MetaInfo(title, subtitle=None, mtype=None):
     """
     媒体整理入口，根据名称和副标题，判断是哪种类型的识别，返回对应对象
@@ -51,13 +53,8 @@ def MetaInfo(title, subtitle=None, mtype=None):
         if resource_team:
             meta_info.resource_team = resource_team
 
-    # 如果没有解析出中文名，或解析出的中文名中不包含中文，则尝试调用第三方组件进行解析
-    if not meta_info.cn_name or not StringUtils.contain_chinese(meta_info.cn_name):
-        resource_team = meta_info.resource_team if meta_info.resource_team else ''
-        t = PTN.parse(rev_title.replace('[', '.').replace(']', '.').replace(resource_team, '').strip('.'))
-        t_title = t.get('title')
-        if t_title and StringUtils.contain_chinese(t_title):
-            meta_info.cn_name = t_title
+    # 信息修正
+    info_fix(meta_info, rev_title)
 
     # 设置原始名称
     meta_info.org_string = org_title
@@ -70,6 +67,41 @@ def MetaInfo(title, subtitle=None, mtype=None):
     meta_info.offset_words = used_info.get("offset")
 
     return meta_info
+
+
+def info_fix(meta_info, rev_title):
+    # 移除字幕组信息
+    resource_team = meta_info.resource_team if meta_info.resource_team else ''
+    t = PTN.parse(rev_title.replace('[', '.').replace(']', '.').replace(resource_team, '').strip('.'))
+    t_title = t.get('title')
+
+    if t_title:
+        # 如果没有解析出中文名，或解析出的中文名中不包含中文，则尝试进行修正
+        if (not meta_info.cn_name or not StringUtils.contain_chinese(meta_info.cn_name)) \
+                and StringUtils.contain_chinese(t_title):
+            meta_info.cn_name = t_title
+        if StringUtils.is_english_or_number(t_title):
+            meta_info.en_name = t_title
+
+    # 季信息修正
+    t_season = t.get('season')
+    if t_season:
+        meta_info.type = MediaType.TV
+        if isinstance(t_season, list):
+            meta_info.begin_season = t_season[0]
+            meta_info.end_season = t_season[len(t_season) - 1]
+        else:
+            meta_info.begin_season = t_season
+
+    t_episode = t.get('episode')
+    if t_episode:
+        meta_info.type = MediaType.TV
+        if isinstance(t_episode, list):
+            meta_info.begin_episode = t_episode[0]
+            meta_info.end_episode = t_episode[len(t_episode) - 1]
+        else:
+            meta_info.begin_episode = t_episode
+
 
 # 标题信息预处理
 def preprocess_title(rev_title):
@@ -105,7 +137,8 @@ def is_anime(name):
         return True
     if re.search(r'\s+-\s+[\dv]{1,4}\s+', check_name, re.IGNORECASE):
         return True
-    if re.search(r"S\d{2}\s*-\s*S\d{2}|S\d{2}|\s+S\d{1,2}|EP?\d{2,4}\s*-\s*EP?\d{2,4}|EP?\d{2,4}|\s+EP?\d{1,4}", check_name,
+    if re.search(r"S\d{2}\s*-\s*S\d{2}|S\d{2}|\s+S\d{1,2}|EP?\d{2,4}\s*-\s*EP?\d{2,4}|EP?\d{2,4}|\s+EP?\d{1,4}",
+                 check_name,
                  re.IGNORECASE):
         return False
     if re.search(r'\[[+0-9XVPI-]+]\s*\[', check_name, re.IGNORECASE):

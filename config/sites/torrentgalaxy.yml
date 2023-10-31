@@ -4,7 +4,6 @@ domain: https://torrentgalaxy.to/
 encoding: UTF-8
 public: true
 proxy: true
-imdb: true
 language: en
 search:
   paths:
@@ -12,6 +11,9 @@ search:
     method: get
   params:
     search: '{keyword}'
+search_type:
+  - imdb
+  - en_name
 browser:
   path: torrents.php?sort=id&order=desc&page={page}
 torrents:

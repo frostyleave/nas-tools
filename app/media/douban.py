@@ -60,12 +60,13 @@ class DouBan:
             log.warn("【Douban】%s 查询结果为空" % key_word)
             return None
 
-        match_item = subject_items[0]
-        detail = match_item.get("target")
-        if not detail.get("title"):
-            return None
+        detail_list = []
+        for match_item in subject_items:
+            detail = match_item.get("target")
+            if detail.get("title"):
+                detail_list.append(detail)
 
-        return detail
+        return detail_list
 
     # 从豆瓣网页抓取演职人员信息
     def scraper_media_celebrities(self, douban_id):
@@ -336,7 +337,7 @@ class DouBan:
         :return: {title, year, intro, cover_url, rating{value}, episodes_count}
         """
         log.info("【Douban】正在通过网页查询豆瓣详情：%s" % doubanid)
-        web_info = self.doubanweb.detail(cookie=self.cookie, doubanid=doubanid)
+        web_info = self.doubanweb.detail(cookie=self.cookie, doubanid=doubanid.split(',')[0])
         if not web_info:
             return {}
         ret_media = {}

@@ -313,7 +313,10 @@ class MetaBase(object):
 
     # 返回集数格式化长度
     def get_format_padding_val(self):
-        if not self.begin_season or not self.tmdb_info or len(self.tmdb_info.seasons) <= 0:
+        if (not self.begin_season
+                or not self.tmdb_info
+                or not hasattr(self.tmdb_info, 'seasons')
+                or len(self.tmdb_info.seasons) <= 0):
             return 2
         match_season = next(filter(lambda x: x.season_number == self.begin_season, self.tmdb_info.seasons), None)
         if not match_season or match_season.episode_count < 10:
@@ -458,12 +461,7 @@ class MetaBase(object):
             else:
                 return "https://www.themoviedb.org/tv/%s" % self.tmdb_id
         elif self.douban_id:
-            return "https://movie.douban.com/subject/%s" % self.douban_id
-        return ""
-
-    def get_douban_detail_url(self):
-        if self.douban_id:
-            return "https://movie.douban.com/subject/%s" % self.douban_id
+            return "https://movie.douban.com/subject/%s" % self.douban_id.split(",")[0]
         return ""
 
     # 返回评分星星个数

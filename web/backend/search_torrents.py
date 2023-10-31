@@ -78,29 +78,8 @@ def search_medias_for_web(content, ident_flag=True, filters=None, tmdbid=None, m
                 search_cn_name = media_info.cn_name
             else:
                 search_cn_name = media_info.title
-            # 英文名
-            search_en_name = None
-            if media_info.en_name:
-                search_en_name = media_info.en_name
-            else:
-                if media_info.original_language == "en":
-                    search_en_name = media_info.original_title
-                else:
-                    en_title = _media.get_tmdb_en_title(media_info)
-                    if en_title:
-                        search_en_name = en_title
-            # 两次搜索名称
-            second_search_name = None
-            if Config().get_config("laboratory").get("search_en_title"):
-                if search_en_name:
-                    first_search_name = search_en_name
-                    second_search_name = search_cn_name
-                else:
-                    first_search_name = search_cn_name
-            else:
-                first_search_name = search_cn_name
-                if search_en_name:
-                    second_search_name = search_en_name
+
+            first_search_name = search_cn_name
 
             season_name = None
             if season_num and 1 < season_num <= len(media_info.tmdb_info.seasons):
@@ -119,7 +98,6 @@ def search_medias_for_web(content, ident_flag=True, filters=None, tmdbid=None, m
             ident_flag = False
             media_info = None
             first_search_name = key_word
-            second_search_name = None
             filter_args = {
                 "season": season_num,
                 "episode": episode_num,
@@ -128,7 +106,6 @@ def search_medias_for_web(content, ident_flag=True, filters=None, tmdbid=None, m
     # 快速搜索
     else:
         first_search_name = key_word
-        second_search_name = None
         filter_args = {
             "season": season_num,
             "episode": episode_num,
@@ -143,20 +120,7 @@ def search_medias_for_web(content, ident_flag=True, filters=None, tmdbid=None, m
                                          filter_args=filter_args,
                                          match_media=media_info,
                                          in_from=SearchType.WEB)
-    # 使用第二名称重新搜索
-    if ident_flag \
-            and len(media_list) == 0 \
-            and second_search_name \
-            and second_search_name != first_search_name:
-        _process.start(ProgressKey.Search)
-        _process.update(ptype=ProgressKey.Search,
-                        text="%s 未搜索到资源,尝试通过 %s 重新搜索 ..." % (
-                            first_search_name, second_search_name))
-        log.info("【Searcher】%s 未搜索到资源,尝试通过 %s 重新搜索 ..." % (first_search_name, second_search_name))
-        media_list = _searcher.search_medias(key_word=second_search_name,
-                                             filter_args=filter_args,
-                                             match_media=media_info,
-                                             in_from=SearchType.WEB)
+
     # 清空缓存结果
     _searcher.delete_all_search_torrents()
     # 结束进度

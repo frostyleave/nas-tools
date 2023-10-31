@@ -9,3 +9,6 @@
 /cloudflarespeedtest/**
 /config/services.json
 /web/backend/user.7z
+/config/sites
+/config/*.db
+/config/tmdb.dat

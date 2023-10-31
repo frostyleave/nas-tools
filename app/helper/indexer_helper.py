@@ -109,8 +109,8 @@ class IndexerConf(object):
         self.category = datas.get('category', ['MOVIE', 'TV', 'ANIME'])
         # 是否支持IMDB ID搜索
         self.imdb = datas.get('imdb', False)
-        # 特殊搜索类型指定, 为空默认为关键字搜索
-        self.search_type = datas.get('search_type', '')
+        # 支持的搜索类型, 为空默认为标题、英文名
+        self.search_type = datas.get('search_type', ['title', 'en_name'])
         # 站点ID
         self.siteid = siteid
         # Cookie

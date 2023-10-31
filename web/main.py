@@ -44,7 +44,7 @@ from app.utils import DomUtils, SystemUtils, ExceptionUtils, StringUtils
 from app.utils.types import *
 from config import PT_TRANSFER_INTERVAL, Config, TMDB_API_DOMAINS
 from web.action import WebAction
-from web.apiv1 import apiv1_bp
+# from web.apiv1 import apiv1_bp
 from web.backend.WXBizMsgCrypt3 import WXBizMsgCrypt
 from web.backend.user import User
 from web.backend.wallpaper import get_login_wallpaper
@@ -79,7 +79,7 @@ LoggingSource = ""
 LoggingLock = Lock()
 
 # 路由注册
-App.register_blueprint(apiv1_bp, url_prefix="/api/v1")
+# App.register_blueprint(apiv1_bp, url_prefix="/api/v1")
 
 # fix Windows registry stuff
 mimetypes.add_type('application/javascript', '.js')
