@@ -72,7 +72,13 @@ def MetaInfo(title, subtitle=None, mtype=None):
 def info_fix(meta_info, rev_title):
     # 移除字幕组信息
     resource_team = meta_info.resource_team if meta_info.resource_team else ''
-    t = PTN.parse(rev_title.replace('[', '.').replace(']', '.').replace(resource_team, '').strip('.'))
+    # 移除部分副标题
+    title = re.sub(meta_info._subtitle_season_all_re, '', rev_title, flags=re.IGNORECASE)
+    title = re.sub(meta_info._subtitle_episode_all_re, '', title, flags=re.IGNORECASE)
+    title = title.replace('[]','')
+    title = title.replace('[', '.').replace(']', '.').replace(resource_team, '').strip('.')
+    title = re.sub("\.+", ".", title).strip('.')
+    t = PTN.parse(title)
     t_title = t.get('title')
 
     if t_title:
@@ -99,7 +105,7 @@ def info_fix(meta_info, rev_title):
         if isinstance(t_episode, list):
             meta_info.begin_episode = t_episode[0]
             meta_info.end_episode = t_episode[len(t_episode) - 1]
-        else:
+        elif not meta_info.begin_episode:
             meta_info.begin_episode = t_episode
 
 
@@ -114,6 +120,8 @@ def preprocess_title(rev_title):
         resource_team = ReleaseGroupsMatcher().get_separator().join(resource_team)
     # []换成.
     rev_title = rev_title.replace('[', '.').replace(']', '.').strip('.')
+    # 把多个连续'.'合并为一个
+    rev_title = re.sub("\.+", ".", rev_title).strip('.')
     return resource_team, rev_title
 
 

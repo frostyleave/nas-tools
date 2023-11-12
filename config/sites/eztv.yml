@@ -10,7 +10,7 @@ search:
     method: get
 browse:
   path: page_{page}
-category:
+source_type:
   - TV
 search_type:
   - en_name

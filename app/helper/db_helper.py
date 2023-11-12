@@ -2581,6 +2581,12 @@ class DbHelper:
                 }
             )
 
+    def get_indexers(self):
+        """
+        查询内置索引站点
+        """
+        return self._db.query(INDEXERSITE).all()
+
     def get_downloaders(self):
         """
         查询下载器

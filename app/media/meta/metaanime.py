@@ -206,8 +206,7 @@ class MetaAnime(MetaBase):
             anitopy_info['video_resolution'] = file_info.get('resolution')
         return anitopy_info
 
-    @staticmethod
-    def __prepare_title(title):
+    def __prepare_title(self, title):
         """
         对命名进行预处理
         """
@@ -232,6 +231,10 @@ class MetaAnime(MetaBase):
         title = re.sub(r"\[TV\s+(\d{1,4})", r"[\1", title, flags=re.IGNORECASE)
         # 将4K转为2160p
         title = re.sub(r'\[4k]', '2160p', title, flags=re.IGNORECASE)
+        # 移除部分副标题
+        title = re.sub(self._subtitle_season_all_re, '', title, flags=re.IGNORECASE)
+        title = re.sub(self._subtitle_episode_all_re, '', title, flags=re.IGNORECASE)
+        title = title.replace('[]','')
         # 处理/分隔的中英文标题
         names = title.split("]")
         if len(names) > 1 and title.find("- ") == -1:

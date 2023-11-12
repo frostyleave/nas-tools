@@ -1,5 +1,5 @@
 # coding: utf-8
-from sqlalchemy import Column, Float, Index, Integer, Text, text, Sequence
+from sqlalchemy import Column, Float, Index, Integer, String, Text, text, Sequence, Boolean
 from sqlalchemy.ext.declarative import declarative_base
 
 Base = declarative_base()
@@ -528,6 +528,24 @@ class INDEXERSTATISTICS(Base):
     def as_dict(self):
         return {c.name: getattr(self, c.name) for c in self.__table__.columns}
 
+
+class INDEXERSITE(Base):
+    __tablename__ = 'INDEXER_SITE'
+
+    ID = Column(String(length=10), primary_key=True)
+    NAME = Column(String(length=50), index=True)
+    DOMAIN = Column(String(length=50))
+    SEARCH = Column(Text)
+    PARSER = Column(Text)
+    RENDER = Column(Boolean)
+    PUBLIC = Column(Boolean)
+    PROXY = Column(Boolean)
+    SOURCE_TYPE = Column(String(length=50))
+    SEARCH_TYPE = Column(String(length=50))
+    BROWSE = Column(Text)
+    TORRENTS = Column(Text)
+    DOWNLOADER = Column(Integer)
+    CATEGORY = Column(Text)
 
 class INDEXERCUSTOMSITE(Base):
     __tablename__ = 'INDEXER_CUSTOM_SITE'

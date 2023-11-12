@@ -24,9 +24,10 @@ from app.downloader import Downloader
 from app.filetransfer import FileTransfer
 from app.filter import Filter
 from app.helper import DbHelper, ProgressHelper, ThreadHelper, \
-    MetaHelper, DisplayHelper, WordsHelper, IndexerHelper
+    MetaHelper, DisplayHelper, WordsHelper
 from app.helper import RssHelper, PluginHelper
 from app.indexer import Indexer
+from app.indexer.manager import IndexerManager
 from app.media import Category, Media, Bangumi, DouBan, Scraper
 from app.media.meta import MetaInfo, MetaBase
 from app.mediaserver import MediaServer
@@ -41,7 +42,7 @@ from app.subscribe import Subscribe
 from app.sync import Sync
 from app.torrentremover import TorrentRemover
 from app.utils import StringUtils, EpisodeFormat, RequestUtils, PathUtils, \
-    SystemUtils, ExceptionUtils, Torrent
+    SystemUtils, ExceptionUtils
 from app.utils.types import RmtMode, OsType, SearchType, SyncType, MediaType, MovieTypes, TvTypes, \
     EventType, SystemConfigKey, RssType
 from config import RMT_MEDIAEXT, RMT_SUBEXT, RMT_AUDIO_TRACK_EXT, Config
@@ -217,6 +218,7 @@ class WebAction:
             "check_downloader": self.__check_downloader,
             "get_downloaders": self.__get_downloaders,
             "test_downloader": self.__test_downloader,
+            "get_indexer": self.__get_indexer,
             "get_indexer_statistics": self.__get_indexer_statistics,
             "media_path_scrap": self.__media_path_scrap,
             "get_default_rss_setting": self.get_default_rss_setting,
@@ -316,7 +318,7 @@ class WebAction:
     @staticmethod
     def start_service():
         # 加载索引器配置
-        IndexerHelper()
+        IndexerManager()
         # 加载站点配置
         SiteConf()
         # 启动虚拟显示
@@ -651,7 +653,7 @@ class WebAction:
             if not site_info:
                 return {"code": -1, "msg": "根据链接地址未匹配到站点"}
             # 下载种子文件，并读取信息
-            file_path, _, _, _, retmsg = Torrent().get_torrent_info(
+            file_path, _, _, _, retmsg = Downloader().get_torrent_info(
                 url=url,
                 cookie=site_info.get("cookie"),
                 ua=site_info.get("ua"),
@@ -4963,6 +4965,39 @@ class WebAction:
             return {"code": 0}
         else:
             return {"code": 1}
+
+    @staticmethod
+    def __get_indexer(data):
+        """
+        查询索引站点数据
+        """
+        url = data.get('url')
+        if not url:
+            return {"code": 1, "msg": "站点url为空"}
+
+        site = IndexerManager().get_indexer(url=url)
+        if not site:
+            return {"code": 1, "msg": "索引站点查询失败"}
+
+        return {
+            "code": 0,
+            "data": {
+                "id": site.id,
+                "name": site.name,
+                "domain": site.domain,
+                "search": json.dumps(site.search),
+                "parser": json.dumps(site.parser),
+                "render": site.render,
+                "browse": json.dumps(site.browse),
+                "torrents": json.dumps(site.torrents),
+                "category": json.dumps(site.category),
+                "source_type": site.source_type,
+                "search_type": site.search_type,
+                "downloader": site.downloader,
+                "public": site.public,
+                "proxy": site.proxy
+            }
+        }
 
     @staticmethod
     def __get_indexer_statistics():

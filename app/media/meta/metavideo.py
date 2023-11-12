@@ -66,8 +66,7 @@ class MetaVideo(MetaBase):
             self.begin_episode = int(os.path.splitext(title)[0])
             self.type = MediaType.TV
             return
-        # 所有【】换成[]、季名转英文
-        title = StringUtils.season_ep_name_to_en(title)
+
         # 去除网址部分
         title = re.sub(r'%s' % self._name_no_url, "", title, count=1, flags=re.IGNORECASE)
         # 把xxxx-xxxx年份换成前一个年份，常出现在季集上

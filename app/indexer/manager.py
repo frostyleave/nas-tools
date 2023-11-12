@@ -1,13 +1,13 @@
-import os.path
-import pickle
+import base64
 
-from app.utils import StringUtils, ExceptionUtils
+import log
+from app.helper import DbHelper
+from app.helper.json_helper import JsonHelper
+from app.utils import StringUtils
 from app.utils.commons import singleton
-from config import Config
-
 
 @singleton
-class IndexerHelper:
+class IndexerManager:
     _indexers = []
 
     def __init__(self):
@@ -15,11 +15,27 @@ class IndexerHelper:
 
     def init_config(self):
         try:
-            with open(os.path.join(Config().get_inner_config_path(), "sites.dat"), "rb") as f:
-                self._indexers = pickle.load(f).get("indexer")
-
+            db_indexers = DbHelper().get_indexers()
+            for db_item in db_indexers:
+                indexer = {
+                    'id': db_item.ID,
+                    'name': db_item.NAME,
+                    'domain': db_item.DOMAIN,
+                    'search': JsonHelper.base64_de_json(db_item.SEARCH) if db_item.SEARCH else {},
+                    'parser': JsonHelper.base64_de_json(db_item.PARSER) if db_item.PARSER else {},
+                    'render': db_item.RENDER,
+                    'browse': JsonHelper.base64_de_json(db_item.BROWSE) if db_item.BROWSE else {},
+                    'torrents': JsonHelper.base64_de_json(db_item.TORRENTS) if db_item.TORRENTS else {},
+                    'category': JsonHelper.base64_de_json(db_item.CATEGORY) if db_item.CATEGORY else {},
+                    'source_type': db_item.SOURCE_TYPE.split(',') if db_item.SOURCE_TYPE else [],
+                    'search_type': db_item.SEARCH_TYPE.split(',') if db_item.SEARCH_TYPE else [],
+                    'downloader': db_item.DOWNLOADER,
+                    'public': db_item.PUBLIC,
+                    'proxy': db_item.PROXY
+                }
+                self._indexers.append(indexer)
         except Exception as err:
-            ExceptionUtils.exception_traceback(err)
+            log.error("【索引器】初始化出错：" + str(err))
 
     def get_all_indexers(self):
         return self._indexers
@@ -39,11 +55,10 @@ class IndexerHelper:
                     name=None,
                     rule=None,
                     public=None,
-                    proxy=False,
+                    proxy=None,
                     parser=None,
                     ua=None,
                     render=None,
-                    language=None,
                     pri=None):
         if not url:
             return None
@@ -62,7 +77,6 @@ class IndexerHelper:
                                    ua=ua,
                                    render=render,
                                    builtin=True,
-                                   language=language,
                                    pri=pri)
         return None
 
@@ -71,17 +85,16 @@ class IndexerConf(object):
 
     def __init__(self,
                  datas=None,
-                 siteid=None,
-                 cookie=None,
                  name=None,
-                 rule=None,
                  public=True,
-                 proxy=False,
+                 proxy=None,
                  parser=None,
-                 ua=None,
                  render=None,
                  builtin=True,
-                 language=None,
+                 ua=None,
+                 siteid=None,
+                 cookie=None,
+                 rule=None,
                  pri=None):
         if not datas:
             return
@@ -89,8 +102,6 @@ class IndexerConf(object):
         self.id = datas.get('id')
         # 名称
         self.name = name if name else datas.get('name')
-        # 是否内置站点
-        self.builtin = builtin
         # 域名
         self.domain = datas.get('domain')
         # 搜索
@@ -106,11 +117,19 @@ class IndexerConf(object):
         # 种子过滤
         self.torrents = datas.get('torrents', {})
         # 分类
-        self.category = datas.get('category', ['MOVIE', 'TV', 'ANIME'])
-        # 是否支持IMDB ID搜索
-        self.imdb = datas.get('imdb', False)
+        self.category = datas.get('category')
+        # 网站资源类型
+        self.source_type = datas.get('source_type', ['MOVIE', 'TV', 'ANIME'])
         # 支持的搜索类型, 为空默认为标题、英文名
         self.search_type = datas.get('search_type', ['title', 'en_name'])
+        # 是否公开站点
+        self.public = datas.get('public', public)
+        # 是否使用代理
+        self.proxy = proxy if proxy is not None else datas.get('proxy', False)
+        # 指定下载器
+        self.downloader = datas.get('downloader')
+        # 是否内置站点
+        self.builtin = builtin
         # 站点ID
         self.siteid = siteid
         # Cookie
@@ -119,11 +138,5 @@ class IndexerConf(object):
         self.ua = ua
         # 过滤规则
         self.rule = rule
-        # 是否公开站点
-        self.public = datas.get('public', public)
-        # 是否使用代理
-        self.proxy = proxy if proxy is not None else datas.get('proxy', False)
-        # 仅支持的特定语种
-        self.language = language if language else datas.get('language')
         # 索引器优先级
         self.pri = pri if pri else 0

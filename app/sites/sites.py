@@ -2,7 +2,8 @@ import json
 from datetime import datetime
 
 import log
-from app.helper import ChromeHelper, SiteHelper, DbHelper, IndexerHelper
+from app.helper import ChromeHelper, SiteHelper, DbHelper
+from app.indexer.manager import IndexerManager
 from app.message import Message
 from app.sites.site_limiter import SiteRateLimiter
 from app.utils import RequestUtils, StringUtils, ExceptionUtils
@@ -345,11 +346,13 @@ class Sites:
             ExceptionUtils.exception_traceback(err)
         return None
 
-    # 根据url查询站点信息
     def get_public_sites(self, url):
+        """
+        根据url查询站点信息
+        """
         if url:
             base_url = StringUtils.get_base_url(url)
-            indexers = IndexerHelper().get_all_indexers()
+            indexers = IndexerManager().get_all_indexers()
             sites_info = next(filter(lambda x: x.get("domain").startswith(base_url), indexers), None)
             if not sites_info:
                 url_sld = StringUtils.get_url_sld(url)
