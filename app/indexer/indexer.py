@@ -29,8 +29,7 @@ class Indexer(object):
     def init_config(self):
         self.progress = ProgressHelper()
         self.dbhelper = DbHelper()
-        indexer = Config().get_config("pt").get('search_indexer') or 'builtin'
-        self._client = self.__get_client(indexer)
+        self._client = self.__get_client('builtin')
         if self._client:
             self._client_type = self._client.get_type()
 
@@ -130,7 +129,7 @@ class Indexer(object):
             return []
 
         if match_media and match_media.type and match_media.type.name in INDEXER_CATEGORY:
-            indexers = list(filter(lambda x: not x.category or match_media.type.name in x.category, indexers))
+            indexers = list(filter(lambda x: not x.source_type or match_media.type.name in x.source_type, indexers))
             if not indexers:
                 log.error("没有配置符合条件的索引器，无法搜索！")
                 return []

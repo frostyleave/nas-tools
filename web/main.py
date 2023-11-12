@@ -367,6 +367,43 @@ def rss_calendar():
                            RssMovieItems=RssMovieItems,
                            RssTvItems=RssTvItems)
 
+# 索引站点页面
+@App.route('/indexer', methods=['POST', 'GET'])
+@login_required
+def indexer():
+    indexers = Indexer().get_indexers(check=False)
+    indexer_sites = SystemConfig().get(SystemConfigKey.UserIndexerSites)
+
+    public_indexers = []
+    private_indexers = []
+    for site in indexers:
+        site_info = {
+            "id": site.id,
+            "name": site.name,
+            "domain": site.domain,
+            "render": site.render,
+            "source_type": site.source_type,
+            "search_type": site.search_type,
+            "downloader": site.downloader,
+            "public": site.public,
+            "proxy": site.proxy,
+            "checked": site.id in indexer_sites
+        }
+        if site.public:
+            public_indexers.append(site_info)
+        else:
+            private_indexers.append(site_info)
+   
+    DownloadSettings = {did: attr["name"] for did, attr in Downloader().get_download_setting().items()}
+    SourceTypes = { "MOVIE":'电影', "TV":'剧集', "ANIME":'动漫' }
+    SearchTypes = { "title":'关键字', "en_name":'英文名', "douban_id":'豆瓣id', "imdb":'imdb id' }
+    return render_template("site/indexer.html",
+                           Config=Config().get_config(),
+                           PrivateIndexers=private_indexers,
+                           PublicIndexers=public_indexers,
+                           DownloadSettings=DownloadSettings,
+                           SourceTypes=SourceTypes,
+                           SearchTypes=SearchTypes)
 
 # 站点维护页面
 @App.route('/site', methods=['POST', 'GET'])
@@ -387,7 +424,7 @@ def sites():
                            CookieUserInfoCfg=CookieUserInfoCfg)
 
 
-# 站点列表页面
+# 站点资源页面
 @App.route('/sitelist', methods=['POST', 'GET'])
 @login_required
 def sitelist():

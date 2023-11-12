@@ -3,6 +3,7 @@ import os
 import random
 import re
 import traceback
+import cn2an
 from functools import lru_cache
 
 import zhconv
@@ -748,6 +749,10 @@ class Media:
         # 查询tmdb数据
         file_media_info = self.query_tmdb_info(meta_info.get_name(), meta_info.type, meta_info.year,
                                                meta_info.begin_season, append_to_response, chinese, strict, cache)
+
+        # 根据查询结果进行季集修正
+        self.fix_file_season_by_tmdb_info(meta_info, file_media_info)
+
         # 通过ChatGPT查询
         if not file_media_info and self._chatgpt_enable:
             mtype, seasons, episodes, file_media_info = self.__search_chatgpt(file_name=meta_info.get_name(),
@@ -832,6 +837,47 @@ class Media:
             self.__insert_media_cache(media_key=media_key,
                                       file_media_info=file_media_info)
         return file_media_info
+
+        
+    # 根据tmdb_info查询结果进行季集修正
+    def fix_file_season_by_tmdb_info(self, meta_info, tmdb_info):
+        if not tmdb_info or not meta_info or meta_info.type == MediaType.MOVIE:
+            return
+        # 已识别出季集信息，或当前剧集的只有1季
+        if meta_info.begin_season or tmdb_info.number_of_seasons <= 1:
+            return
+        # 名称中没有可以用于进行季集修正的数据
+        if not meta_info.cn_name or tmdb_info.name == meta_info.cn_name:
+            return
+
+        # 移除元文件名中的中文名和英文名
+        cn_name = meta_info.cn_name.replace(tmdb_info.name,'')
+        if meta_info.en_name:
+            cn_name = cn_name.replace(meta_info.en_name, '')
+        
+        # 如果没有剩余部分，则不用修正
+        if not cn_name:
+            return
+
+        try:
+            x = cn2an.cn2an(cn_name, "smart")
+            if x <= 1 or x > tmdb_info.number_of_seasons:
+                return
+            x = int(x)
+            # 找到对应季集信息，检查年份是否匹配
+            if meta_info.year:
+                match_season = next(filter(lambda t: t.season_number == x and t.air_date.startswith(meta_info.year), tmdb_info.seasons), None)
+                if match_season:
+                    meta_info.begin_season = match_season.season_number
+                    return
+                match_season = next(filter(lambda t: t.air_date.startswith(meta_info.year), tmdb_info.seasons), None)
+                if match_season:
+                    meta_info.begin_season = match_season.season_number
+                    return
+            else:
+                meta_info.begin_season = x
+        except:
+            return
 
     def __insert_media_cache(self, media_key, file_media_info):
         """

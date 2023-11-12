@@ -6,7 +6,7 @@ import pytz
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
 
-from app.helper import IndexerHelper
+from app.indexer.manager import IndexerManager
 from app.plugins.modules._base import _IPluginModule
 from app.sites import Sites
 from app.utils import RequestUtils
@@ -150,7 +150,7 @@ class CookieCloud(_IPluginModule):
 
     def init_config(self, config=None):
         self.sites = Sites()
-        self._index_helper = IndexerHelper()
+        self._index_helper = IndexerManager()
 
         # 读取配置
         if config:
