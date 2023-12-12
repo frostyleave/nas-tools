@@ -733,8 +733,8 @@ def service():
     if "subscribe_search_all" in Services:
         search_rss_interval = pt.get('search_rss_interval')
         if str(search_rss_interval).isdigit():
-            if int(search_rss_interval) < 6:
-                search_rss_interval = 6
+            if int(search_rss_interval) < 1:
+                search_rss_interval = 1
             tim_rsssearch = str(int(search_rss_interval)) + " 小时"
             rss_search_state = 'ON'
         else:
@@ -1044,7 +1044,7 @@ def plugin():
                            DownloaderConf=ModuleConf.DOWNLOADER_CONF,
                            Plugins=Plugins,
                            Settings=Settings,
-                           Count=len(Plugins))
+                           PluginCount=len(Plugins))
 
 
 # 事件响应
