@@ -702,6 +702,36 @@ class ModuleConf(object):
                     "placeholder": ""
                 }
             }
+        },
+        "gopeed": {
+            "name": "Gopeed",
+            "img_url": "../static/img/downloader/gopeed.png",
+            "color": "#B30100",
+            "monitor_enable": True,
+            "config": {
+                "host": {
+                    "id": "gopeed_host",
+                    "required": True,
+                    "title": "IP地址",
+                    "tooltip": "配置IP地址，如为https则需要增加https://前缀",
+                    "type": "text",
+                    "placeholder": "127.0.0.1"
+                },
+                "port": {
+                    "id": "gopeed_port",
+                    "required": True,
+                    "title": "端口",
+                    "type": "text",
+                    "placeholder": "9999"
+                },
+                "secret": {
+                    "id": "gopeed_secret",
+                    "required": True,
+                    "title": "令牌",
+                    "type": "text",
+                    "placeholder": ""
+                }
+            }
         }
     }
 

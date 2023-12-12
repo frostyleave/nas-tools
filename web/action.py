@@ -219,6 +219,8 @@ class WebAction:
             "get_downloaders": self.__get_downloaders,
             "test_downloader": self.__test_downloader,
             "get_indexer": self.__get_indexer,
+            "add_indexer": self.__add_indexer,
+            "update_indexer": self.__update_indexer,
             "get_indexer_statistics": self.__get_indexer_statistics,
             "media_path_scrap": self.__media_path_scrap,
             "get_default_rss_setting": self.get_default_rss_setting,
@@ -4986,11 +4988,11 @@ class WebAction:
                 "name": site.name,
                 "domain": site.domain,
                 "search": json.dumps(site.search),
-                "parser": json.dumps(site.parser),
-                "render": site.render,
-                "browse": json.dumps(site.browse),
                 "torrents": json.dumps(site.torrents),
-                "category": json.dumps(site.category),
+                "parser": site.parser,
+                "render": site.render,
+                "browse": json.dumps(site.browse) if site.browse else '',
+                "category": json.dumps(site.category) if site.category else '',
                 "source_type": site.source_type,
                 "search_type": site.search_type,
                 "downloader": site.downloader,
@@ -4998,6 +5000,46 @@ class WebAction:
                 "proxy": site.proxy
             }
         }
+
+    @staticmethod
+    def __add_indexer(data):
+        DbHelper().add_indexer(
+            data.get('id'),
+            data.get('name'),
+            data.get('domain'),
+            data.get('proxy'),
+            data.get('render'),
+            data.get('downloader'),
+            data.get('source_type'),
+            data.get('search_type'),
+            data.get('search'),
+            data.get('torrents'),
+            data.get('browse'),
+            data.get('parse'),
+            data.get('category')
+        )
+        IndexerManager().init_config()
+        return {"code": 0, "msg": "已插入"}
+
+    @staticmethod
+    def __update_indexer(data):
+        success = DbHelper().update_indexer(
+            data.get('id'),
+            data.get('proxy'),
+            data.get('render'),
+            data.get('downloader'),
+            data.get('source_type'),
+            data.get('search_type'),
+            data.get('search'),
+            data.get('torrents'),
+            data.get('browse'),
+            data.get('parse'),
+            data.get('category')
+        )
+        if success:
+            IndexerManager().init_config()
+            return {"code": 0, "msg": "更新成功"}
+        return {"code": 1, "msg": "更新失败，请检查"}
 
     @staticmethod
     def __get_indexer_statistics():
