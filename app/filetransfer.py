@@ -1265,7 +1265,7 @@ class FileTransfer:
         """
         format_dict = self.get_format_dict(media_info)
         dir_name = re.sub(r"[-_\s.]*\t", "", self._movie_dir_rmt_format.format(**format_dict))
-        file_name = re.sub(r"[-_\s.]*\t", "", self._movie_file_rmt_format.format(**format_dict)).replace(' ', '.')
+        file_name = re.sub(r"[-_\s.]*\t", "", self._movie_file_rmt_format.format(**format_dict)).replace(' ', '.').strip('.')
         return dir_name, file_name
 
     def get_tv_dest_path(self, media_info):
@@ -1276,7 +1276,7 @@ class FileTransfer:
         format_dict = self.get_format_dict(media_info)
         dir_name = re.sub(r"[-_\s.]*\t", "", self._tv_dir_rmt_format.format(**format_dict))
         season_name = re.sub(r"[-_\s.]*\t", "", self._tv_season_rmt_format.format(**format_dict))
-        file_name = re.sub(r"[-_\s.]*\t", "", self._tv_file_rmt_format.format(**format_dict)).replace(' ', '.')
+        file_name = re.sub(r"[-_\s.]*\t", "", self._tv_file_rmt_format.format(**format_dict)).replace(' ', '.').strip('.')
         return dir_name, season_name, file_name
 
     def check_ignore(self, file_list):

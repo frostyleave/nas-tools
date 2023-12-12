@@ -85,8 +85,8 @@ class Scheduler:
                         log.error("订阅定时搜索周期 配置格式错误：%s" % str(e))
                         search_rss_interval = 0
                 if search_rss_interval:
-                    if search_rss_interval < 6:
-                        search_rss_interval = 6
+                    if search_rss_interval < 1:
+                        search_rss_interval = 1
                     self.SCHEDULER.add_job(Subscribe().subscribe_search_all, 'interval', hours=search_rss_interval)
                     log.info("订阅定时搜索服务启动")
 

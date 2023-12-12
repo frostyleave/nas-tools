@@ -15,18 +15,19 @@ class IndexerManager:
 
     def init_config(self):
         try:
+            self._indexers = []
             db_indexers = DbHelper().get_indexers()
             for db_item in db_indexers:
                 indexer = {
                     'id': db_item.ID,
                     'name': db_item.NAME,
                     'domain': db_item.DOMAIN,
-                    'search': JsonHelper.base64_de_json(db_item.SEARCH) if db_item.SEARCH else {},
-                    'parser': JsonHelper.base64_de_json(db_item.PARSER) if db_item.PARSER else {},
+                    'search': JsonHelper.de_json(db_item.SEARCH) if db_item.SEARCH else None,
+                    'parser': db_item.PARSER,
                     'render': db_item.RENDER,
-                    'browse': JsonHelper.base64_de_json(db_item.BROWSE) if db_item.BROWSE else {},
-                    'torrents': JsonHelper.base64_de_json(db_item.TORRENTS) if db_item.TORRENTS else {},
-                    'category': JsonHelper.base64_de_json(db_item.CATEGORY) if db_item.CATEGORY else {},
+                    'browse': JsonHelper.de_json(db_item.BROWSE) if db_item.BROWSE else None,
+                    'torrents': JsonHelper.de_json(db_item.TORRENTS) if db_item.TORRENTS else None,
+                    'category': JsonHelper.de_json(db_item.CATEGORY) if db_item.CATEGORY else None,
                     'source_type': db_item.SOURCE_TYPE.split(',') if db_item.SOURCE_TYPE else [],
                     'search_type': db_item.SEARCH_TYPE.split(',') if db_item.SEARCH_TYPE else [],
                     'downloader': db_item.DOWNLOADER,
