@@ -10,7 +10,7 @@ from app.utils.release_groups import ReleaseGroupsMatcher
 from app.media.meta.customization import CustomizationMatcher
 from app.utils import StringUtils, ExceptionUtils
 from app.utils.types import MediaType
-
+from config import SPLIT_CHARS
 
 class MetaAnime(MetaBase):
     """
@@ -37,26 +37,16 @@ class MetaAnime(MetaBase):
                 release_group = anitopy_info.get('release_group') if anitopy_info.get('release_group') else release_group
                 # 名称
                 name = anitopy_info.get("anime_title")
-                if not name or not StringUtils.contain_chinese(name):
-                    t = PTN.parse(original_title.replace('[', '.').replace(']', '.').replace(release_group, '').strip('.'))
-                    t_title = t.get('title')
-                    if t_title and StringUtils.contain_chinese(t_title):
-                        name = t_title
-                        if not StringUtils.is_all_chinese_and_mark(t_title):
-                            anitopy_obj = anitopy.parse(t_title)
-                            name = anitopy_obj.get("anime_title") if anitopy_obj.get("anime_title") else t_title
-                if name:
-                    name = self.pick_chinese_name(name)
+                if name and name.find("/") != -1:
+                    name = name.split("/")[-1].strip()
                 if not name or name in self._anime_no_words or (len(name) < 5 and not StringUtils.contain_chinese(name)):
                     anitopy_info = anitopy.parse("[ANIME]" + title)
                     if anitopy_info:
                         name = anitopy_info.get("anime_title")
-                        if name:
-                            name = self.pick_chinese_name(name)
-                    if not name or name in self._anime_no_words or (len(name) < 5 and not StringUtils.contain_chinese(name)):
-                        name_match = re.search(r'\[(.+?)]', title)
-                        if name_match and name_match.group(1):
-                            name = name_match.group(1).strip()
+                if not name or name in self._anime_no_words or (len(name) < 5 and not StringUtils.contain_chinese(name)):
+                    name_match = re.search(r'\[(.+?)]', title)
+                    if name_match and name_match.group(1):
+                        name = name_match.group(1).strip()
                 # 拆份中英文名称
                 if name:
                     lastword_type = ""
@@ -181,12 +171,6 @@ class MetaAnime(MetaBase):
                 self.type = MediaType.TV
         except Exception as e:
             ExceptionUtils.exception_traceback(e)
-
-    def pick_chinese_name(self, name):
-        if name and name.find("/") != -1:
-            name_list = list(filter(None, name.split("/")))
-            name = next(filter(lambda x: StringUtils.contain_chinese(x), name_list), name_list[-1].strip())
-        return name
 
     def prepare_anime_from_title(self, title):
         # 尝试openAi解析
