@@ -27,9 +27,7 @@
 
 </style>
 
-<script type="text/javascript" src="../../static/js/bignumber.min.js"></script>
 <script type="text/javascript" src="../../static/js/jquery.json.js"></script>
-<script type="text/javascript" src="../../static/js/jsonlint.js"></script>
 
 <div class="container-xl">
   <!-- Page title -->
@@ -49,6 +47,13 @@
           </a>
           <a href="javascript:show_indexer_statistics_modal()" class="btn d-sm-none btn-icon" title="索引统计">
             {{ SVG.pie() }}
+          </a>
+          <a href="javascript:add_indexer()" class="btn btn-primary d-none d-sm-inline-block">
+            {{ SVG.plus() }}
+            新增站点
+          </a>
+          <a href="javascript:add_indexer()" class="btn btn-primary d-sm-none btn-icon">
+            {{ SVG.plus() }}
           </a>
         </div>
       </div>
@@ -262,35 +267,55 @@
   </div>
 </div>
 
-<div class="modal modal-blur fade" id="modal-site" tabindex="-1" role="dialog" aria-hidden="true"
-  data-bs-backdrop="static" data-bs-keyboard="false">
+<div class="modal modal-blur fade" id="modal-manual-indexer" tabindex="-1" role="dialog" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
   <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable" role="document">
     <div class="modal-content">
       <div class="modal-header">
-        <h5 class="modal-title" id="modal-site-title">新增站点</h5>
+        <h5 class="modal-title" id="indexer_modal_title">新增索引站点</h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
       <div class="modal-body">
         <div class="row">
-          <div class="col-lg-4">
+          <div class="col-lg-3">
             <div class="mb-3">
               <label class="form-label required">ID</label>
-              <input type="text" class="form-control" id="site_id" placeholder="站点Id" disabled="true">
+              <input type="text" value="" id="indexer_id" class="form-control" placeholder="ID">
             </div>
           </div>
-          <div class="col-lg-4">
+          <div class="col-lg-3">
             <div class="mb-3">
               <label class="form-label required">名称</label>
-              <input type="hidden" id="site_id" />
-              <input type="text" class="form-control" id="site_name" placeholder="站点名称">
+              <input type="text" value="" id="indexer_name" class="form-control" placeholder="名称">
             </div>
           </div>
-          <div class="col-lg-4">
+          <div class="col-lg-6">
             <div class="mb-3">
-              <label class="form-label required">站点地址 <span class="form-help"
-                  title="站点访问地址，站点签到、数据统计、刷流、内置索引器等将使用"
-                  data-bs-toggle="tooltip">?</span></label>
-              <input type="text" class="form-control" id="site_url" value="" placeholder="站点http地址">
+              <label class="form-label required">站点地址 <span class="form-help" title="站点访问地址，站点签到、数据统计、刷流、内置索引器等将使用"  data-bs-toggle="tooltip">?</span>
+              </label>
+              <input type="text" class="form-control" id="indexer_url" value="" placeholder="站点http地址">
+            </div>
+          </div>
+        </div>
+        <div class="row">
+          <div class="col-xl-4">
+            <div class="mb-3">
+              <label class="form-check form-switch">
+                <input class="form-check-input" type="checkbox" id="indexer_proxy">
+                <span class="form-check-label">使用代理服务器 <span class="form-help"
+                                                              title="开启后该站点的访问将使用代理服务器，代理需在基础设置->系统->代理服务器中设置"
+                                                              data-bs-toggle="tooltip">?</span>
+                </span>
+              </label>
+            </div>
+          </div>
+          <div class="col-xl-4">
+            <div class="mb-3">
+              <label class="form-check form-switch">
+                <input class="form-check-input" type="checkbox" id="indexer_render" >
+                <span class="form-check-label">开启浏览器仿真 <span class="form-help"
+                                                          title="开启后可以兼容更多站点，但获取数据耗时会大幅增加；需要拉取含浏览器内核的镜像才能使用"
+                                                          data-bs-toggle="tooltip">?</span></span>
+              </label>
             </div>
           </div>
         </div>
@@ -307,6 +332,8 @@
                 {% endfor %}
               </div>
             </div>
+          </div>
+          <div class="col-lg-6">
             <div class="mb-3">
               <label class="form-label required">检索方式 <span class="form-help" title="站点支持根据哪些参数进行资源检索" data-bs-toggle="tooltip">?</span></label>
               <div class="form-selectgroup">
@@ -323,39 +350,19 @@
         <div class="row">
           <div class="col-lg-4">
             <div class="mb-3">
-              <label class="form-label required">使用代理服务器 <span class="form-help"
-                  title="开启后该站点的访问将使用代理服务器，代理需在基础设置->系统->代理服务器中设置" data-bs-toggle="tooltip">?</span></label>
-              <select class="form-select" id="site_proxy">
-                <option value="Y" selected>是</option>
-                <option value="N">否</option>
-              </select>
-            </div>
-          </div>
-          <div class="col-lg-4">
-            <div class="mb-3">
-              <label class="form-label required">开启浏览器仿真 <span class="form-help"
-                  title="开启后站点签到、数据统计可以兼容更多站点，但获取数据耗时会大幅增加；需要拉取含浏览器内核的镜像才能使用" data-bs-toggle="tooltip">?</span></label>
-              <select class="form-select" id="site_chrome">
-                <option value="Y">是</option>
-                <option value="N" selected>否</option>
-              </select>
-            </div>
-          </div>
-          <div class="col-lg-4">
-            <div class="mb-3">
               <label class="form-label">下载器</label>
-              <select class="form-select" id="site_download_setting">
-                <option value="">默认</option>
+              <select class="form-select" id="indexer_download_setting">
+                <option value="0">默认</option>
                 {% for Id, Attr in DownloadSettings.items() %}
                 <option value="{{ Id }}">{{ Attr }}</option>
                 {% endfor %}
               </select>
             </div>
           </div>
-          <div class="col-lg-12">
+          <div class="col-lg-8">
             <div class="mb-3">
-            <label class="form-label">User-Agent <span class="form-help"
-                  title="站点签到/数据获取/搜索请求时使用的User-Agent，为空则使用基础配置中User-Agent设置" data-bs-toggle="tooltip">?</span></label>
+              <label class="form-label">User-Agent <span class="form-help"
+                title="站点签到/数据获取/搜索请求时使用的User-Agent，为空则使用基础配置中User-Agent设置" data-bs-toggle="tooltip">?</span></label>
               <div class="input-group input-group-flat">
                 <input type="text" class="form-control" id="site_ua" value="" placeholder="站点访问User-Agent">
                 <span class="input-group-text">
@@ -409,9 +416,10 @@
         </details>
       </div>
       <div class="modal-footer">
-        <button id="add_or_edit_site_btn" class="btn btn-primary ms-auto">
-          新增
-        </button>
+        <div class="btn-list">
+          <a href="javascript:do_add_indexer()" name="indexer_add_btn" class="btn btn-primary">添加</a>
+          <a href="javascript:do_update_indexer()" name="indexer_edit_btn" class="btn btn-primary">确定</a>
+        </div>
       </div>
     </div>
   </div>
@@ -419,10 +427,9 @@
 
 <script type="text/javascript">
 
-  // 当前处理的类型
-  var currType = "";
+  var current_indexer = NaN;
 
-  // 保存配置
+  // 保存索引选择配置
   function save_config_index(type, func, test) {
     let sites = select_GetSelectedVAL("indexer_sites");
       let params = {
@@ -432,26 +439,110 @@
       ajax_post("set_system_config", params, func);
   }
 
-  //保存配置、关闭和刷新页面
+  // 保存配置、关闭和刷新页面
   function save_indexer_config(type) {
     save_config_index(type, function (ret) {
       window_history_refresh();
     });
   }
 
+  // 新增站点
+  function add_indexer(site_url) {
+    $("#indexer_id").val("").attr("readonly", false);
+    $("#indexer_name").val("").attr("readonly", false);
+    $("#indexer_url").val("").attr("readonly", false);
 
-  //编辑站点
+    $("#indexer_download_setting").val(0);
+    $('#search_cfg').val("");
+    $('#torrent_cfg').val("");
+    $('browse_cfg').val("");
+    $('parse_cfg').val("");
+    $('category_cfg').val("");
+
+    $("#indexer_modal_title").text("新增索引站点");
+    $("[name='indexer_add_btn']").show();
+    $("[name='indexer_edit_btn']").hide();
+
+    $("#modal-manual-indexer").modal("show");
+  }
+
+  function do_add_indexer() {
+
+    var search_cfg = $('#search_cfg').val();
+    if (!object_json_valid(search_cfg, false)) {
+      show_fail_modal('搜索配置不合法，请检查后重试');
+      return
+    }
+
+    var torrent_cfg = $('#torrent_cfg').val();
+    if (!object_json_valid(torrent_cfg, false)) {
+      show_fail_modal('种子过滤配置不合法，请检查后重试');
+      return
+    }
+
+    var browse_cfg = $('#browse_cfg').val();
+    if (!object_json_valid(browse_cfg, true)) {
+      show_fail_modal('资源浏览配置不合法，请检查后重试');
+      return
+    }
+
+    var parse_cfg = $('#parse_cfg').val();
+
+    var category_cfg = $('#category_cfg').val();
+    if (!object_json_valid(category_cfg, true)) {
+      show_fail_modal('目录配置不合法，请检查后重试');
+      return
+    }
+
+    const data = {
+      "id": $("#indexer_id").val(),
+      "name": $("#indexer_name").val(),
+      "domain": $("#indexer_url").val(),
+      "proxy": $('#indexer_proxy').prop('checked'),
+      "render": $('#indexer_render').prop('checked'),
+      "downloader": $("#indexer_download_setting").val(),
+      "source_type": select_GetSelectedVAL("source_type").join(','),
+      "search_type": select_GetSelectedVAL('search_type').join(','),
+      "search": search_cfg,
+      "torrents": torrent_cfg,
+      "browse": browse_cfg,
+      "parse": parse_cfg,
+      "category": category_cfg
+    };
+
+    ajax_post("add_indexer", data, function (ret) {
+      if (ret.code === 0) {
+        $("#modal-manual-indexer").modal("hide");
+        show_success_modal("添加索引站点成功!");
+        window_history_refresh();
+      } else {
+        show_fail_modal(`添加索引站点失败：${ret.msg}！`);
+      }
+    });
+
+  };
+
+
+  // 编辑站点
   function edit_site(site_url) {
-      // 根据ID查询详细信息
-      ajax_post("get_indexer", { "url": site_url }, function (ret) {
-      if (ret.data) {
-        $("#site_id").val(ret.data.id);
-        $("#site_name").val(ret.data.name);
-        $("#site_url").val(ret.data.domain);
-        $("#site_download_setting").val(ret.data.downloader);
+  
+    current_indexer = NaN
 
+    // 根据ID查询详细信息
+    ajax_post("get_indexer", { "url": site_url }, function (ret) {
+      if (ret.data) {
+        current_indexer = ret.data
+
+        $("#indexer_id").val(ret.data.id).attr("readonly", true);
+        $("#indexer_name").val(ret.data.name).attr("readonly", true);
+        $("#indexer_url").val(ret.data.domain).attr("readonly", true);
+
+        $("#indexer_download_setting").val(ret.data.downloader ?? 0);
         select_SelectPart(ret.data.source_type, "source_type")
         select_SelectPart(ret.data.search_type, "search_type")
+
+        $("#indexer_proxy").prop("checked", ret.data.proxy);
+        $("#indexer_render").prop("checked", ret.data.render);
 
         if (ret.data.search) {
           append_json_to_textarea('search_cfg', ret.data.search)
@@ -466,25 +557,181 @@
         }
 
         if (ret.data.parse) {
-          append_json_to_textarea('parse_cfg', ret.data.parse)
+          $("#parse_cfg").val(ret.data.parse);
         }
 
         if (ret.data.category) {
           append_json_to_textarea('category_cfg', ret.data.category)
         }
 
-        $("#modal-site-title").text("编辑站点");
-        $("#add_or_edit_site_btn").text("修改");
+        $("#indexer_modal_title").text("编辑站点");
+        $("[name='indexer_add_btn']").hide();
+        $("[name='indexer_edit_btn']").show();
 
-        $("#modal-site").modal("show");
+        $("#modal-manual-indexer").modal("show");
       }
     });
   }
 
+  function do_update_indexer() {
+
+    if (current_indexer == NaN) {
+      show_fail_modal('系统异常, 请重新编辑');
+      return
+    }
+
+    var indexer_id = $("#indexer_id").val();
+    if (current_indexer.id != indexer_id) {
+      show_fail_modal('站点ID不一致, 请重新编辑');
+      return
+    }
+
+    var search_cfg = $('#search_cfg').val();
+    if (!object_json_valid(search_cfg, false)) {
+      show_fail_modal('搜索配置不合法，请检查后重试');
+      return
+    }
+    search_cfg = zip_json(search_cfg)
+    if (search_cfg == zip_json(current_indexer.search)) {
+      search_cfg = NaN
+    }
+
+    var torrent_cfg = $('#torrent_cfg').val();
+    if (!object_json_valid(torrent_cfg, false)) {
+      show_fail_modal('种子过滤配置不合法，请检查后重试');
+      return
+    }
+    torrent_cfg = zip_json(torrent_cfg)
+    if (torrent_cfg == zip_json(current_indexer.torrents)) {
+      torrent_cfg = NaN
+    }
+
+    var browse_cfg = $('#browse_cfg').val();
+    if (!object_json_valid(browse_cfg, true)) {
+      show_fail_modal('资源浏览配置不合法，请检查后重试');
+      return
+    }
+    browse_cfg = zip_json(browse_cfg)
+    if (browse_cfg == zip_json(current_indexer.browse)) {
+      browse_cfg = NaN
+    }
+
+    var category_cfg = $('#category_cfg').val();
+    if (!object_json_valid(category_cfg, true)) {
+      show_fail_modal('目录配置不合法，请检查后重试');
+      return
+    }
+    if (zip_json(category_cfg) == zip_json(current_indexer.category)) {
+      category_cfg = NaN
+    }
+
+    var proxy = $('#indexer_proxy').prop('checked');
+    if (proxy == current_indexer.proxy) {
+      proxy = NaN
+    }
+
+    var render = $('#indexer_render').prop('checked');
+    if (render == current_indexer.render) {
+      render = NaN
+    }
+
+    var downloader = $("#indexer_download_setting").val();
+    if (downloader == current_indexer.downloader) {
+      downloader = NaN
+    }
+    var source_type = select_GetSelectedVAL("source_type").join(',');
+    if (source_type == current_indexer.source_type) {
+      source_type = NaN
+    }
+    var search_type = select_GetSelectedVAL('search_type').join(',');
+    if (search_type == current_indexer.search_type) {
+      search_type = NaN
+    }
+    var parse_cfg = $('#parse_cfg').val();
+    if (parse_cfg == current_indexer.parse){
+      parse_cfg = NaN
+    }
+
+    const data = {
+      "id": $("#indexer_id").val(),
+      "proxy": proxy,
+      "render": render,
+      "downloader": downloader,
+      "source_type": source_type,
+      "search_type": search_type,
+      "search": zip_json(search_cfg),
+      "torrents": zip_json(torrent_cfg),
+      "browse": zip_json(browse_cfg),
+      "parse": parse_cfg,
+      "category": zip_json(category_cfg)
+    };
+
+    ajax_post("update_indexer", data, function (ret) {
+      if (ret.code === 0) {
+        $("#modal-manual-indexer").modal("hide");
+        show_success_modal("更新索引站点成功!");
+        window_history_refresh();
+      } else {
+        show_fail_modal(`更新索引站点失败：${ret.msg}！`);
+      }
+    });
+
+};
+
+  // json合法性检查
+  function object_json_valid(json_str, allow_empty) {
+
+    if (!json_str || json_str == '') {
+      console.log(json_str)
+      return allow_empty;
+    }
+
+    try {
+
+      json_obj = JSON.parse(json_str);
+
+      if (typeof json_obj == 'object' && json_obj) {
+        if (Object.prototype.toString.call(json_obj) === '[object Array]') {
+          console.log('对象为数组')
+          return false;
+        }
+        return true;
+      } else {
+        console.log('对象为不是object')
+        return false;
+      }
+    } catch (e) {
+      console.log('对象解析失败：'+ e)
+      return false;
+    }
+  }
+
+  // 压缩json字符串
+  function zip_json(raw_json) {
+
+    if (!raw_json || raw_json == '') {
+      return raw_json;
+    }
+
+    // 压缩
+    var t = raw_json.replace(/[\r\n]/g, "")
+    for (var n = [], o = !1, i = 0, r = t.length; r > i; i++) {
+      var a = t.charAt(i);
+      o && a === o ? "\\" !== t.charAt(i - 1) && (o = !1) : o || '"' !== a && "'" !== a ? o || " " !== a && "	" !== a || (a = "") : o = a, n.push(a)
+    }
+    return n.join("");
+
+  }
+
+  // 格式化json文本内容并填充到textarea
   function append_json_to_textarea(elem_id, json_str) {
 
+    if (!json_str) {
+      return
+    }
+
     // 格式化
-    var lint_json = jsonlint.parse(json_str);
+    var lint_json = JSON.parse(json_str);
     // 格式化显示
     var json = JSON.stringify(lint_json, undefined, 4);
 

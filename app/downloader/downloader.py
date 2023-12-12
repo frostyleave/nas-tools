@@ -513,6 +513,14 @@ class Downloader:
                                              download_dir=download_dir,
                                              category=category)
                 download_id = ret
+            elif downloader_type == DownloaderType.Gopeed:
+                if media_info.cn_name:
+                    title = media_info.cn_name
+                elif media_info.en_name:
+                    title = media_info.en_name
+                elif media_info.title:
+                    title = media_info.title
+                download_id = downloader.add_torrent(content, name=title, tag=tags)
             else:
                 # 其它下载器，添加下载后需返回下载ID或添加状态
                 ret = downloader.add_torrent(content,
