@@ -1,7 +1,7 @@
 import os.path
 import regex as re
 import PTN
-
+import anitopy
 import log
 from app.conf import ModuleConf
 from app.helper import WordsHelper
@@ -113,6 +113,16 @@ def info_fix(meta_info, rev_title):
 def preprocess_title(rev_title):
     # 提取制作组/字幕组
     resource_team = ReleaseGroupsMatcher().match_list(title=rev_title)
+    # anitopy 辅助提取
+    anitopy_info_origin = anitopy.parse(rev_title)
+    if anitopy_info_origin.get("release_group"):
+        release_group = anitopy_info_origin.get("release_group")
+        if not resource_team:
+            resource_team = []
+            resource_team.append(release_group)
+        elif release_group not in resource_team:
+            resource_team.append(release_group)
+
     # 把标题中的制作组/字幕组去掉
     if resource_team:
         for item in resource_team:

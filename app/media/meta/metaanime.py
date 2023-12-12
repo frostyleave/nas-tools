@@ -10,7 +10,7 @@ from app.utils.release_groups import ReleaseGroupsMatcher
 from app.media.meta.customization import CustomizationMatcher
 from app.utils import StringUtils, ExceptionUtils
 from app.utils.types import MediaType
-
+from config import SPLIT_CHARS
 
 class MetaAnime(MetaBase):
     """
@@ -183,9 +183,9 @@ class MetaAnime(MetaBase):
             ExceptionUtils.exception_traceback(e)
 
     def pick_chinese_name(self, name):
-        if name and name.find("/") != -1:
-            name_list = list(filter(None, name.split("/")))
-            name = next(filter(lambda x: StringUtils.contain_chinese(x), name_list), name_list[-1].strip())
+        name_list = re.split(r'%s' % SPLIT_CHARS, name)
+        if len(name_list) > 1:
+            name = next(filter(lambda x: StringUtils.contain_chinese(x), name_list[::-1]), name_list[0].strip())
         return name
 
     def prepare_anime_from_title(self, title):

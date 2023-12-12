@@ -184,6 +184,7 @@ class MetaVideo(MetaBase):
             self._last_token_type = "cnname"
             if not self.cn_name:
                 self.cn_name = token
+                self._stop_cnname_flag = True
             elif not self._stop_cnname_flag:
                 if not re.search("%s" % self._name_no_chinese_re, token, flags=re.IGNORECASE) \
                         and not re.search("%s" % self._name_se_words, token, flags=re.IGNORECASE):
