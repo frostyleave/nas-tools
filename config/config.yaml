@@ -94,7 +94,7 @@ media:
   # 【媒体库管理软件】：emby、jellyfin、plex，需要在emby或jellyfin或plex区配置详细信息，用于下载检查控重、媒体库展示等，建议配置
   media_server: jellyfin
   # 【媒体库数据同步周期】：定时同步媒体服务器数据到本地，单位小时
-  mediasync_interval: 12
+  mediasync_interval: '3'
   # 【转移到媒体库的最小文件大小】：避免预告片/MV等影响识别，单位M
   min_filesize: 150
   # 【文件名转移忽略词】：文件名包含忽略词，忽略转移
@@ -115,7 +115,7 @@ media:
   # 文件管理、自定义识别等默认路径
   media_default_path:
   # 默认文件转移方式
-  default_rmt_mode: copy
+  default_rmt_mode: move
   # 默认TMDB信息语种
   tmdb_language: zh
 
@@ -152,8 +152,6 @@ plex:
 
 # 【配置站点搜索信息】
 pt:
-  #【聚合搜索使用的检索器】：builtin
-  search_indexer: builtin
   # 【远程搜索自动择优下载开关】：如开启则微信等渠道搜索后会自动择优选择一项下载，如不开启则需要手工点击进入WEB页面选择下载
   # 如没有配置app.domain或无公网环境建议开启，否则无法跳转WEB页面手工选择
   search_auto: true
@@ -162,12 +160,14 @@ pt:
   # 【RSS订阅开关】：此处配置RSS订阅检查时间间隔，即每隔多长时间检查一下各站点是否有资源更新，建议不要少于30分钟，单位时间为秒
   # 配置为空或者0则不启用RSS订阅功能
   pt_check_interval: 1800
-  # 【定量搜索RSS开关】：打开后，每隔设置时间会通过站点资源检索的方式查询和下载订阅，单位：小时，配置小于6小时时强制为6小时，不配置则为关
-  search_rss_interval: 6
+  # 【定量搜索开关】：打开后，每隔设置时间会通过站点资源检索的方式查询和下载订阅，单位：小时，配置小于1小时时强制为1小时，不配置则为关
+  search_rss_interval: '1'
   # 【下载优先规则】：订阅及远程搜索下载将按此优先规则选择下载资源，字典：site 站点优先、seeder做种数优先
   download_order: site
   # 【搜索结果数量限制】：每个站点返回搜索结果的最大数量
   site_search_result_num: 100
+  # 站点数据刷新时间
+  ptrefresh_date_cron: ''
 
 # 【openai】
 openai:
