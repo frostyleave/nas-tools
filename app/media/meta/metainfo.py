@@ -115,7 +115,7 @@ def preprocess_title(rev_title):
     resource_team = ReleaseGroupsMatcher().match_list(title=rev_title)
     # anitopy 辅助提取
     anitopy_info_origin = anitopy.parse(rev_title)
-    if anitopy_info_origin.get("release_group"):
+    if anitopy_info_origin and anitopy_info_origin.get("release_group"):
         release_group = anitopy_info_origin.get("release_group")
         if not resource_team:
             resource_team = []
