@@ -73,7 +73,11 @@ class Gopeed(_IDownloadClient):
         torrents = self.get_completed_torrents()
         trans_tasks = []
         for torrent in torrents:
-            opts_info = torrent.get('opts')
+            res_meta = torrent.get('meta')
+            opts_info = res_meta.get('opts')
+            if not opts_info:
+                log.warn(f"【{self.client_name}】id={self.id} 文件信息解析失败")
+                continue
             name = opts_info.get("name")
             if not name:
                 log.warn(f"【{self.client_name}】id={self.id} 文件信息解析失败：无法获取文件名称")
@@ -91,7 +95,7 @@ class Gopeed(_IDownloadClient):
             trans_tasks.append({'path': os.path.join(true_path, name).replace("\\", "/"), 'id': torrent.get("id")})
         return trans_tasks
 
-    def add_torrent(self, content, download_dir=None, **kwargs):
+    def add_torrent(self, content, name=name, download_dir=None, **kwargs):
         if not self._client:
             return None
         if isinstance(content, str):
@@ -100,9 +104,9 @@ class Gopeed(_IDownloadClient):
                 file = open(content, 'r', encoding='ISO-8859-1')
                 file_content = file.read()
                 base64_str = base64.b64encode(file_content.encode()).decode('ascii')
-                return self._client.addTask(url=base64_str, path=download_dir)
+                return self._client.addTask(url=base64_str, name=name, path=download_dir)
             
-            return self._client.addTask(url=content, path=download_dir)
+            return self._client.addTask(url=content, name=name, path=download_dir)
         else:
             return "无法提交下载任务"
 
@@ -152,11 +156,10 @@ class Gopeed(_IDownloadClient):
                 res_info = res_meta.get('res')
                 if res_info:
                     name = res_info.get("name")
-            
-            if not name:
-                opts_info = torrent.get('opts')
-                if opts_info:
-                    name = opts_info.get("name")
+                if not name:
+                    opts_info = res_meta.get('opts')
+                    if opts_info:
+                        name = opts_info.get("name")
             
             if not name:
                 continue
