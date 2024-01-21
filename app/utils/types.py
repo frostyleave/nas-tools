@@ -15,7 +15,7 @@ class DownloaderType(Enum):
     PAN115 = '115网盘'
     ARIA2 = 'Aria2'
     PIKPAK = 'PikPak'
-
+    Gopeed = 'Gopeed'
 
 class SyncType(Enum):
     MAN = "手动整理"

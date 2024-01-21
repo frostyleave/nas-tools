@@ -3,6 +3,13 @@
 {% import 'macro/oops.html' as OOPS %}
 
 <style>
+  .components-div {
+    border-radius: 5px;
+    border: var(--tblr-card-border-width) solid var(--tblr-card-border-color);
+    background-color: var(--tblr-card-bg);
+    background-clip: border-box;
+    margin: 10px;
+  }
   .tag-span {
     position: absolute;
     margin-left: -55px;
@@ -81,98 +88,108 @@
       animation-delay: 0.7s;
   }
 </style>
-<div class="container-xl">
-  <!-- Page title -->
-  <div class="page-header d-print-none">
-    <div class="row align-items-center">
-      <div class="col">
-        <h2 class="page-title">
-          服务组件
-        </h2>
+
+<div id="downloaders-div" class="card components-div">
+  <div class="card-header">
+    <h2 class="page-title">下载器</h2>
+    <div class="col-auto ms-auto d-print-none">
+      <div class="btn-list">
+        <a href="javascript:show_add_downloader_modal()" class="btn btn-primary d-none d-sm-inline-block">
+          {{ SVG.plus() }}
+          新增下载器
+        </a>
+        <a href="javascript:show_add_downloader_modal()" class="btn btn-primary d-sm-none btn-icon" title="下载目录">
+          {{ SVG.plus() }}
+        </a>
+        <a href="javascript:goto_download_setting()" class="btn d-none d-sm-inline-block">
+          {{ SVG.settings() }}
+          下载设置
+        </a>
+        <a href="javascript:goto_download_setting()" class="btn d-sm-none btn-icon" title="下载设置">
+          {{ SVG.settings() }}
+        </a>
       </div>
-      <div class="col-auto ms-auto d-print-none">
-        <div class="btn-list">
-          <a href="javascript:show_add_downloader_modal()" class="btn btn-primary d-none d-sm-inline-block">
-            {{ SVG.plus() }}
-            新增下载器
-          </a>
-          <a href="javascript:show_add_downloader_modal()" class="btn btn-primary d-sm-none btn-icon" title="下载目录">
-            {{ SVG.plus() }}
-          </a>
-          <a href="javascript:goto_download_setting()" class="btn d-none d-sm-inline-block">
-            {{ SVG.settings() }}
-            下载设置
-          </a>
-          <a href="javascript:goto_download_setting()" class="btn d-sm-none btn-icon" title="下载设置">
-            {{ SVG.settings() }}
-          </a>
-          <a href="javascript:show_plugin_apps_modal()" class="btn btn-primary d-none d-sm-inline-block">
-            {{ SVG.apps() }}
-            插件市场
-          </a>
-          <a href="javascript:show_plugin_apps_modal()" class="btn btn-primary d-sm-none btn-icon">
-            {{ SVG.apps() }}
-          </a>
-        </div>
+    </div>
+  </div>
+  <div class="page-body">
+    <!-- 组件展示 -->
+    <div class="container-xl">
+      <div class="d-grid gap-3 grid-normal-card">
+        <!-- 下载器 -->
+        {% if Downloaders %}
+        {% for Id, Attr in Downloaders.items() %}
+        <a class="card card-link-pop p-0 overflow-hidden rounded-3" href="javascript:void(0)" onclick="show_edit_downloader_modal('{{ Id }}')">
+          <div class="card-cover card-cover-blurred text-center"
+               {% if DownloaderConf[Attr.type].color %}style="background-color: {{ DownloaderConf[Attr.type].color }}"{% endif %}>
+              <span class="badge bg-cyan tag-span" title="下载器">下载器</span>
+              <span onclick="event.stopPropagation();set_default_downloader('{{ Attr.id }}')"
+                    class="btn-action p-1"
+                    title="设置默认" style="position:absolute;top:5px;right:5px;z-index:1;"
+                    data-bs-toggle="tooltip"
+              >
+                {% if DefaultDownloader == Id %}
+                  {{ SVG.star('icon-filled w-100 h-100 text-purple') }}
+                {% else %}
+                  {{ SVG.star('w-100 h-100 text-muted') }}
+                {% endif %}
+              </span>
+            <span class="avatar avatar-xl avatar-thumb avatar-rounded" style="background-image: url('{{ DownloaderConf[Attr.type].img_url }}')"></span>
+          </div>
+          <div class="card-body text-center">
+            <div class="card-title mb-1">{% if Attr.enabled == 1 %}<span class="badge bg-green" title="已启用" data-bs-toggle="tooltip"></span>{% endif %} {{ Attr.name }}</div>
+            <div class="text-muted">
+              {% if Attr.config.get("host")  %}
+              {{ Attr.config.get("host") }}:{{ Attr.config.get("port") }}
+              {% endif %}
+            </div>
+            <div class="text-muted mt-2">
+              <small>
+                {% if Attr.transfer == 1 %}
+                <span class="badge bg-green me-1 mb-1" title="转移方式">
+                      {{ Attr.rmt_mode_name }}
+                    </span>
+                {% endif %}
+                {% if Attr.only_nastool == 1 %}
+                <span class="badge badge-outline text-orange me-1 mb-1" title="标签隔离">
+                      标签隔离
+                    </span>
+                {% endif %}
+                {% if Attr.match_path == 1 %}
+                <span class="badge badge-outline text-yellow me-1 mb-1" title="目录隔离">
+                      目录隔离
+                    </span>
+                {% endif %}
+              </small>
+            </div>
+          </div>
+        </a>
+        {% endfor %}
+        {% endif %}
       </div>
     </div>
   </div>
 </div>
 
-<div class="page-body">
-  <!-- 组件展示 -->
-  <div class="container-xl">
-    <div class="d-grid gap-3 grid-normal-card">
-      <!-- 下载器 -->
-      {% if Downloaders %}
-      {% for Id, Attr in Downloaders.items() %}
-      <a class="card card-link-pop p-0 overflow-hidden rounded-3" href="javascript:void(0)" onclick="show_edit_downloader_modal('{{ Id }}')">
-        <div class="card-cover card-cover-blurred text-center"
-             {% if DownloaderConf[Attr.type].color %}style="background-color: {{ DownloaderConf[Attr.type].color }}"{% endif %}>
-            <span class="badge bg-cyan tag-span" title="下载器">下载器</span>
-            <span onclick="event.stopPropagation();set_default_downloader('{{ Attr.id }}')"
-                  class="btn-action p-1"
-                  title="设置默认" style="position:absolute;top:5px;right:5px;z-index:1;"
-                  data-bs-toggle="tooltip"
-            >
-              {% if DefaultDownloader == Id %}
-                {{ SVG.star('icon-filled w-100 h-100 text-purple') }}
-              {% else %}
-                {{ SVG.star('w-100 h-100 text-muted') }}
-              {% endif %}
-            </span>
-          <span class="avatar avatar-xl avatar-thumb avatar-rounded" style="background-image: url('{{ DownloaderConf[Attr.type].img_url }}')"></span>
-        </div>
-        <div class="card-body text-center">
-          <div class="card-title mb-1">{% if Attr.enabled == 1 %}<span class="badge bg-green" title="已启用" data-bs-toggle="tooltip"></span>{% endif %} {{ Attr.name }}</div>
-          <div class="text-muted">
-            {% if Attr.config.get("host")  %}
-            {{ Attr.config.get("host") }}:{{ Attr.config.get("port") }}
-            {% endif %}
-          </div>
-          <div class="text-muted mt-2">
-            <small>
-              {% if Attr.transfer == 1 %}
-              <span class="badge bg-green me-1 mb-1" title="转移方式">
-                    {{ Attr.rmt_mode_name }}
-                  </span>
-              {% endif %}
-              {% if Attr.only_nastool == 1 %}
-              <span class="badge badge-outline text-orange me-1 mb-1" title="标签隔离">
-                    标签隔离
-                  </span>
-              {% endif %}
-              {% if Attr.match_path == 1 %}
-              <span class="badge badge-outline text-yellow me-1 mb-1" title="目录隔离">
-                    目录隔离
-                  </span>
-              {% endif %}
-            </small>
-          </div>
-        </div>
-      </a>
-      {% endfor %}
-      {% endif %}
+<div id="plugin-div" class="card components-div">
+  <div class="card-header">
+    <h2 class="page-title">插件</h2>
+    <div class="col-auto ms-auto d-print-none">
+      <div class="btn-list">
+        <a href="javascript:show_plugin_apps_modal()" class="btn btn-primary d-none d-sm-inline-block">
+          {{ SVG.apps() }}
+          插件市场
+        </a>
+        <a href="javascript:show_plugin_apps_modal()" class="btn btn-primary d-sm-none btn-icon">
+          {{ SVG.apps() }}
+        </a>
+      </div>
+    </div>
+  </div>
+  {% if PluginCount > 0 %}
+  <div class="page-body">
+    <!-- 组件展示 -->
+    <div class="container-xl">
+      <div class="d-grid gap-3 grid-normal-card">
       <!-- 插件 -->
       {% for Id, Plugin in Plugins.items() %}
       <a class="card card-link-pop p-0 rounded-3 overflow-hidden" href="#" data-bs-toggle="modal" data-bs-target="#modal-plugin-{{ Id }}">
@@ -195,9 +212,15 @@
         </div>
       </a>
       {% endfor %}
+      </div>
     </div>
   </div>
+  {% else %}
+  {{ OOPS.empty('没有插件', '没有安装任何插件，请前往插件市场选择安装。') }}
+  {% endif %}
+</div>
 
+<div class="page-body">
   <!-- 弹窗 -->
   <!-- 下载器部分 -->
   <div class="modal modal-blur fade" id="modal-downloader" tabindex="-1" role="dialog" aria-hidden="true"
@@ -236,8 +259,8 @@
                   <label class="form-selectgroup-item" for="type_{{ Id }}">
                     <input type="radio" name="downloader_type" id="type_{{ Id }}" value="{{ Id }}"
                            class="form-selectgroup-input" checked>
-                    <span class="form-selectgroup-label d-flex align-items-center p-3">
-                    <span class="me-3">
+                    <span class="form-selectgroup-label d-flex align-items-center p-2">
+                    <span class="me-2">
                       <span class="form-selectgroup-check"></span>
                     </span>
                     <span class="form-selectgroup-label-content d-flex align-items-center">

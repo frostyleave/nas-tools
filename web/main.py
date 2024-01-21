@@ -1044,7 +1044,7 @@ def plugin():
                            DownloaderConf=ModuleConf.DOWNLOADER_CONF,
                            Plugins=Plugins,
                            Settings=Settings,
-                           Count=len(Plugins))
+                           PluginCount=len(Plugins))
 
 
 # 事件响应
