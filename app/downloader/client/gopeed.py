@@ -86,8 +86,7 @@ class Gopeed(_IDownloadClient):
             if not path:
                 log.warn(f"【{self.client_name}】id={self.id} 文件信息解析失败：无法获取文件下载路径")
                 continue
-            path = path + '\\' + name
-            true_path, replace_flag = self.get_replace_path(path, self.download_dir)
+            true_path, replace_flag = self.get_replace_path(path.replace("\\", "/"), self.download_dir)
             # 开启目录隔离，未进行目录替换的不处理
             if match_path and not replace_flag:
                 log.debug(f"【{self.client_name}】{self.name} 开启目录隔离，但 {name} 未匹配下载目录范围")
