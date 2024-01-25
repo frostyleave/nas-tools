@@ -39,11 +39,11 @@ class MetaAnime(MetaBase):
                 name = anitopy_info.get("anime_title")
                 if name and name.find("/") != -1:
                     name = name.split("/")[-1].strip()
-                if not name or name in self._anime_no_words or (len(name) < 5 and not StringUtils.is_chinese(name)):
+                if not name or name in self._anime_no_words or (len(name) < 5 and not StringUtils.contain_chinese(name)):
                     anitopy_info = anitopy.parse("[ANIME]" + title)
                     if anitopy_info:
                         name = anitopy_info.get("anime_title")
-                if not name or name in self._anime_no_words or (len(name) < 5 and not StringUtils.is_chinese(name)):
+                if not name or name in self._anime_no_words or (len(name) < 5 and not StringUtils.contain_chinese(name)):
                     name_match = re.search(r'\[(.+?)]', title)
                     if name_match and name_match.group(1):
                         name = name_match.group(1).strip()
