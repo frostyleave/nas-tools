@@ -24,19 +24,19 @@ export class PageDiscovery extends CustomElement {
           subtype :"dbnm",
         },
         {
-          type: "TRENDING",
-          title:"TMDB流行趋势",
-          subtype :"tmdb",
-        },
-        {
           type: "MOV",
           title:"豆瓣热门电影",
           subtype :"dbhm",
         },
         {
           type: "MOV",
-          title:"豆瓣电影TOP250",
-          subtype :"dbtop",
+          title:"TMDB热门电影",
+          subtype :"nm",
+        },
+        {
+          type: "TV",
+          title:"TMDB热门剧集",
+          subtype :"nt",
         },
         {
           type: "TV",
@@ -52,6 +52,11 @@ export class PageDiscovery extends CustomElement {
           type: "TV",
           title:"豆瓣热门综艺",
           subtype :"dbzy",
+        },
+        {
+          type: "MOV",
+          title:"豆瓣电影TOP250",
+          subtype :"dbtop",
         },
         {
           type: "TV",
