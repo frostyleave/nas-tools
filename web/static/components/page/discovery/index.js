@@ -31,12 +31,7 @@ export class PageDiscovery extends CustomElement {
         {
           type: "MOV",
           title:"TMDB热门电影",
-          subtype :"nm",
-        },
-        {
-          type: "TV",
-          title:"TMDB热门剧集",
-          subtype :"nt",
+          subtype :"hm",
         },
         {
           type: "TV",
@@ -53,6 +48,11 @@ export class PageDiscovery extends CustomElement {
           title:"豆瓣热门综艺",
           subtype :"dbzy",
         },
+        {
+          type: "TRENDING",
+          title:"TMDB流行趋势",
+          subtype :"tmdb",
+        },        
         {
           type: "MOV",
           title:"豆瓣电影TOP250",
