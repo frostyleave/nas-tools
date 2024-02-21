@@ -86,7 +86,7 @@ class ChromeHelper(object):
         prefs = {
             "useAutomationExtension": False,
             "profile.managed_default_content_settings.images": 2 if self._headless else 1,
-            "excludeSwitches": ["enable-automation"]
+            "excludeSwitches": ["enable-logging"]
         }
         options.add_argument('−−lang=zh-CN')
         options.add_experimental_option("prefs", prefs)
