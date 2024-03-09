@@ -39,10 +39,10 @@ class TorrentSpider(feapder.AirSpider):
             proxy=None,
             headless=True,
             driver_type="CHROME",
-            timeout=20,
+            timeout=120,
             window_size=(1024, 800),
             executable_path=_webdriver_path,
-            render_time=10,
+            render_time=60,
             custom_argument=["--ignore-certificate-errors"],
         )
     )
@@ -248,7 +248,7 @@ class TorrentSpider(feapder.AirSpider):
             # 搜索Url
             searchurl = self.domain + str(torrentspath).format(**inputs_dict)
 
-        log.info(f"【Spider】开始请求：{searchurl}")
+        log.info(f"【Spider】开始请求：{searchurl}, render={str(self.render)}")
         yield feapder.Request(url=searchurl,
                               use_session=True,
                               render=self.render)

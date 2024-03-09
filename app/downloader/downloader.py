@@ -523,7 +523,6 @@ class Downloader:
                 ret = downloader.add_torrent(content,
                                              name=title,
                                              tag=tags,
-                                             download_dir=download_dir,
                                              category=category)
                 download_id = ret
             else:

@@ -72,7 +72,7 @@ class PyGopeed(object):
             "req": { "url": url },
             "opt": {
                 "name": name if name else '',
-                "path": path if path else ''
+                "path": path.replace(' ', '').replace('.', '') if path else ''
             }
         }
         response = requests.post(
