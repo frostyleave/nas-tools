@@ -55,22 +55,49 @@ class Gopeed(_IDownloadClient):
         ready_data = self._client.getAllTask('ready')
         return True if ready_data is not None else False
 
-    def get_torrents(self, ids=None, status=None, **kwargs):
+    def get_torrents(self, ids=None, status=None, tag=None):
         if not self._client:
             return []
-        ret_torrents = self._client.getAllTask(status)
+        ret_torrents = self._client.getAllTask(status, tag)
+        if ret_torrents and tag:
+            tag_ret = []
+            for torrent_item in ret_torrents:
+                file_tag = self.get_tag_in_torrent_label(torrent_item)
+                if file_tag and file_tag == tag:
+                    tag_ret.append(torrent_item)
+
         return ret_torrents
+    
+    def get_tag_in_torrent_label(self, torrent_item):
+        if not torrent_item:
+            return None
+        res_meta = torrent_item.get('meta')
+        if not res_meta:
+            return None
+        req_info = res_meta.get('req')
+        if not req_info:
+            return None
+        labels = req_info.get('labels')
+        if not labels:
+            return None
+        file_tag = labels.get('tag')
+        if file_tag:
+            return file_tag
+        file_tag = labels.get('TAG')
+        if file_tag:
+            return file_tag
+        return None
 
-    def get_downloading_torrents(self, **kwargs):
-        return self.get_torrents(status=["running","pause","wait","ready"])
+    def get_downloading_torrents(self, tag=None):
+        return self.get_torrents(status=["running","pause","wait","ready"], tag=tag)
 
-    def get_completed_torrents(self, **kwargs):
-        return self.get_torrents(status="done")
+    def get_completed_torrents(self, tag=None):
+        return self.get_torrents(status="done", tag=tag)
 
     def get_transfer_task(self, tag=None, match_path=False):
         if not self._client:
             return []
-        torrents = self.get_completed_torrents()
+        torrents = self.get_completed_torrents(tag)
         trans_tasks = []
         for torrent in torrents:
             res_meta = torrent.get('meta')
@@ -128,11 +155,11 @@ class Gopeed(_IDownloadClient):
 
         return self._client.remove(gid=ids)
 
-    def get_downloading_progress(self, **kwargs):
+    def get_downloading_progress(self, tag=None, **kwargs):
         """
         获取正在下载的种子进度
         """
-        Torrents = self.get_downloading_torrents()
+        Torrents = self.get_downloading_torrents(tag)
         DispTorrents = []
         for torrent in Torrents:
             # 进度

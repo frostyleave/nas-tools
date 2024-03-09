@@ -69,7 +69,7 @@ class PyGopeed(object):
 
     def addTask(self, url, name=None, path=None):
         payload = {
-            "req": { "url": url },
+            "req": { "url": url, "labels": { "tag": "NASTOOL" } },
             "opt": {
                 "name": name if name else '',
                 "path": path.replace(' ', '').replace('.', '') if path else ''
