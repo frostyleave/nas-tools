@@ -58,13 +58,14 @@ class Gopeed(_IDownloadClient):
     def get_torrents(self, ids=None, status=None, tag=None):
         if not self._client:
             return []
-        ret_torrents = self._client.getAllTask(status, tag)
+        ret_torrents = self._client.getAllTask(status)
         if ret_torrents and tag:
             tag_ret = []
             for torrent_item in ret_torrents:
                 file_tag = self.get_tag_in_torrent_label(torrent_item)
                 if file_tag and file_tag == tag:
                     tag_ret.append(torrent_item)
+            return tag_ret
 
         return ret_torrents
     
