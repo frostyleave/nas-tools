@@ -612,11 +612,11 @@ class StringUtils:
         # 所有【】换成[]
         title = title.replace("【", "[").replace("】", "]").strip()
         # 季、期 统一：改为英文，方便三方插件识别
-        title = StringUtils.name_ch_to_number(title, r"(第[^第]+[季|期])", '.S{}.')
+        title = StringUtils.name_ch_to_number(title, r"([第|全|共][^第|全|共]+[季|期])", 'S')
         # 集数 统一：改为英文，方便三方插件识别
-        title = StringUtils.name_ch_to_number(title, r"(第[^第]+[集|话|話])", '.E{}.')
+        title = StringUtils.name_ch_to_number(title, r"([第|全|共][^第|全|共]+[集|话|話])", 'E')
         # 空格替换为'.'，并把多个连续'.'合并为一个
-        title = re.sub("\.+", ".", title.replace(' ', '.')).strip('.')
+        title = re.sub("\.+", ".", title).strip('.')
         return title
 
     @staticmethod
@@ -632,20 +632,30 @@ class StringUtils:
                 offset = raw.regs[0][0]
             else:
                 offset -= (raw.regs[0][1] - raw.regs[0][0] + 1)
+            tag = info[0]
             # 去掉头尾取中间需要转换的部分
             info = info[1:-1]
             # 正则取中文，转化为数字
-            for ep in list(re.finditer(r'[\d\u4e00-\u9fa5]+', info))[::-1]:
+            numbers = list(re.finditer(r'[\d\u4e00-\u9fa5]+', info))[::-1]
+            for ep in numbers:
                 try:
                     x = cn2an.cn2an(ep.group(), "smart")
                     info = info[0: ep.regs[0][0]] + str(int(x)).rjust(2, '0') + info[ep.regs[0][1]:]
                 except Exception as err:
                     log.error(f"季集信息转换出错出错：{str(err)}")
-            new_list.add(format_str.format(info))
+            
+            if len(numbers) == 1 and (tag =='全' or tag =='共'):
+                info = '01-' + info
+
+            new_list.add(format_str + info)
 
         if len(new_list) == 0:
             return title
 
-        new_info = ' '.join(new_list)
-        title = title[0: offset] + new_info + title[offset:]
+        new_info = '.{}.'.format(' '.join(new_list))
+        if offset == 0:
+            cn_char = re.search('[A-Za-z]+', title, flags=re.IGNORECASE)
+            if cn_char:
+                offset = cn_char.regs[0][0]
+        title = title[0: offset].strip() + new_info + title[offset:].strip()
         return title.strip()

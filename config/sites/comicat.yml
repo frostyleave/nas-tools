@@ -7,7 +7,7 @@ search:
   paths:
   - path: search.php?keyword={keyword}
     method: get
-category:
+source_type:
   - ANIME
 torrents:
   list:

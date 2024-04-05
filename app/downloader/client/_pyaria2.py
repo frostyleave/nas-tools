@@ -2,10 +2,7 @@
 
 import json
 import requests
-import xmlrpc.client
-from base64 import b64encode
 
-import log
 from app.utils import Torrent
 
 DEFAULT_HOST = 'localhost'
@@ -84,6 +81,19 @@ class PyAria2(object):
         """
         magnet_link = Torrent.binary_data_to_magnet_link(torrent)
         return self._send_request("aria2.addUri", [[magnet_link], options or {}])
+
+    def addTorrentFile(self, torrent, uris=None, options=None, position=None):
+        """
+        This method adds BitTorrent download by uploading ".torrent" file.
+
+        torrent: bin, torrent file bin
+        uris: list, list of webseed URIs
+        options: dict, additional options
+        position: integer, position in download queue
+
+        return: This method returns GID of registered download.
+        """
+        return self._send_request("aria2.addTorrent", [torrent])
 
     def addMetalink(self, metalink, options=None, position=None):
         """

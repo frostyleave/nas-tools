@@ -228,8 +228,13 @@ class MediaServer:
             # 获取需同步的媒体库
             librarys = self.systemconfig.get(SystemConfigKey.SyncLibrary) or []
             # 汇总统计
+            total_media_count = 0
             medias_count = self.get_medias_count()
-            total_media_count = medias_count.get("MovieCount") + medias_count.get("SeriesCount")
+            if medias_count:
+                if medias_count.get("MovieCount"):
+                    total_media_count += medias_count.get("MovieCount")
+                if medias_count.get("SeriesCount"):
+                    total_media_count += medias_count.get("SeriesCount")
             total_count = 0
             movie_count = 0
             tv_count = 0
