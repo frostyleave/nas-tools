@@ -2581,6 +2581,70 @@ class DbHelper:
                 }
             )
 
+    def get_indexers(self):
+        """
+        查询内置索引站点
+        """
+        return self._db.query(INDEXERSITE).all()
+    
+    @DbPersist(_db)
+    def add_indexer(self, id,name,domain,proxy,render,downloader,source_type,search_type,search,torrents,browse=None,parse=None,category=None):
+        """
+        新增索引站点
+        """
+        self._db.insert(INDEXERSITE(
+            ID=id,
+            NAME=name,
+            DOMAIN=domain,
+            PUBLIC=1,
+            PROXY=proxy,
+            RENDER=render,
+            DOWNLOADER=downloader,
+            SOURCE_TYPE=source_type,
+            SEARCH_TYPE=search_type,
+            SEARCH=search,
+            TORRENTS=torrents,
+            BROWSE=browse,
+            PARSER=parse,
+            CATEGORY=category
+        ))
+    
+    @DbPersist(_db)
+    def update_indexer(self, id,proxy,render,downloader,source_type,search_type,search,torrents,browse=None,parse=None,category=None):
+        """
+        更新索引站点
+        """
+        if not id:
+            return
+
+        update_dic = {}
+        if proxy is not None:
+            update_dic['PROXY'] = proxy
+        if render is not None:
+            update_dic['RENDER'] = render
+        if downloader is not None:
+            update_dic['DOWNLOADER'] = downloader
+        if source_type is not None:
+            update_dic['SOURCE_TYPE'] = source_type
+        if search_type is not None:
+            update_dic['SEARCH_TYPE'] = search_type
+        if search is not None:
+            update_dic['SEARCH'] = search
+        if torrents is not None:
+            update_dic['TORRENTS'] = torrents
+        if browse is not None:
+            update_dic['BROWSE'] = browse
+        if parse is not None:
+            update_dic['PARSER'] = parse
+        if category is not None:
+            update_dic['CATEGORY'] = category
+        
+        if not update_dic:
+            return
+        
+        return self._db.query(INDEXERSITE).filter(INDEXERSITE.ID == id).update(update_dic) > 0
+
+
     def get_downloaders(self):
         """
         查询下载器

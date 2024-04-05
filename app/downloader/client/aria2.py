@@ -1,5 +1,6 @@
 import os
 import re
+import base64
 
 import log
 from app.utils import RequestUtils, ExceptionUtils, StringUtils
@@ -110,6 +111,12 @@ class Aria2(_IDownloadClient):
         if not self._client:
             return None
         if isinstance(content, str):
+            # 已读取的磁力文件内容
+            if content.endswith('.torrent'):
+                file = open(content, 'r', encoding='ISO-8859-1')
+                file_content = file.read()
+                base64_str = base64.b64encode(file_content.encode()).decode('ascii')
+                return self._client.addTorrentFile(torrent=base64_str, uris=[], options=dict(dir=download_dir))
             # 转换为磁力链
             if re.match("^https*://", content):
                 try:
@@ -120,7 +127,7 @@ class Aria2(_IDownloadClient):
                     ExceptionUtils.exception_traceback(result)
             return self._client.addUri(uris=[content], options=dict(dir=download_dir))
         else:
-            return self._client.addTorrent(torrent=content, uris=[], options=dict(dir=download_dir))
+            return "无法识别"
 
     def start_torrents(self, ids):
         if not self._client:

@@ -3,6 +3,13 @@
 {% import 'macro/oops.html' as OOPS %}
 
 <style>
+  .components-div {
+    border-radius: 5px;
+    border: var(--tblr-card-border-width) solid var(--tblr-card-border-color);
+    background-color: var(--tblr-card-bg);
+    background-clip: border-box;
+    margin: 10px;
+  }
   .tag-span {
     position: absolute;
     margin-left: -55px;
@@ -81,119 +88,108 @@
       animation-delay: 0.7s;
   }
 </style>
-<div class="container-xl">
-  <!-- Page title -->
-  <div class="page-header d-print-none">
-    <div class="row align-items-center">
-      <div class="col">
-        <h2 class="page-title">
-          服务组件
-        </h2>
+
+<div id="downloaders-div" class="card components-div">
+  <div class="card-header">
+    <h2 class="page-title">下载器</h2>
+    <div class="col-auto ms-auto d-print-none">
+      <div class="btn-list">
+        <a href="javascript:show_add_downloader_modal()" class="btn btn-primary d-none d-sm-inline-block">
+          {{ SVG.plus() }}
+          新增下载器
+        </a>
+        <a href="javascript:show_add_downloader_modal()" class="btn btn-primary d-sm-none btn-icon" title="下载目录">
+          {{ SVG.plus() }}
+        </a>
+        <a href="javascript:goto_download_setting()" class="btn d-none d-sm-inline-block">
+          {{ SVG.settings() }}
+          下载设置
+        </a>
+        <a href="javascript:goto_download_setting()" class="btn d-sm-none btn-icon" title="下载设置">
+          {{ SVG.settings() }}
+        </a>
       </div>
-      <div class="col-auto ms-auto d-print-none">
-        <div class="btn-list">
-          <a href="javascript:show_indexer_statistics_modal()" class="btn d-none d-sm-inline-block">
-            {{ SVG.pie() }}
-            索引统计
-          </a>
-          <a href="javascript:show_indexer_statistics_modal()" class="btn d-sm-none btn-icon" title="索引统计">
-            {{ SVG.pie() }}
-          </a>
-          <a href="javascript:show_add_downloader_modal()" class="btn btn-primary d-none d-sm-inline-block">
-            {{ SVG.plus() }}
-            新增下载器
-          </a>
-          <a href="javascript:show_add_downloader_modal()" class="btn btn-primary d-sm-none btn-icon" title="下载目录">
-            {{ SVG.plus() }}
-          </a>
-          <a href="javascript:goto_download_setting()" class="btn d-none d-sm-inline-block">
-            {{ SVG.settings() }}
-            下载设置
-          </a>
-          <a href="javascript:goto_download_setting()" class="btn d-sm-none btn-icon" title="下载设置">
-            {{ SVG.settings() }}
-          </a>
-          <a href="javascript:show_plugin_apps_modal()" class="btn btn-primary d-none d-sm-inline-block">
-            {{ SVG.apps() }}
-            插件市场
-          </a>
-          <a href="javascript:show_plugin_apps_modal()" class="btn btn-primary d-sm-none btn-icon">
-            {{ SVG.apps() }}
-          </a>
-        </div>
+    </div>
+  </div>
+  <div class="page-body">
+    <!-- 组件展示 -->
+    <div class="container-xl">
+      <div class="d-grid gap-3 grid-normal-card">
+        <!-- 下载器 -->
+        {% if Downloaders %}
+        {% for Id, Attr in Downloaders.items() %}
+        <a class="card card-link-pop p-0 overflow-hidden rounded-3" href="javascript:void(0)" onclick="show_edit_downloader_modal('{{ Id }}')">
+          <div class="card-cover card-cover-blurred text-center"
+               {% if DownloaderConf[Attr.type].color %}style="background-color: {{ DownloaderConf[Attr.type].color }}"{% endif %}>
+              <span class="badge bg-cyan tag-span" title="下载器">下载器</span>
+              <span onclick="event.stopPropagation();set_default_downloader('{{ Attr.id }}')"
+                    class="btn-action p-1"
+                    title="设置默认" style="position:absolute;top:5px;right:5px;z-index:1;"
+                    data-bs-toggle="tooltip"
+              >
+                {% if DefaultDownloader == Id %}
+                  {{ SVG.star('icon-filled w-100 h-100 text-purple') }}
+                {% else %}
+                  {{ SVG.star('w-100 h-100 text-muted') }}
+                {% endif %}
+              </span>
+            <span class="avatar avatar-xl avatar-thumb avatar-rounded" style="background-image: url('{{ DownloaderConf[Attr.type].img_url }}')"></span>
+          </div>
+          <div class="card-body text-center">
+            <div class="card-title mb-1">{% if Attr.enabled == 1 %}<span class="badge bg-green" title="已启用" data-bs-toggle="tooltip"></span>{% endif %} {{ Attr.name }}</div>
+            <div class="text-muted">
+              {% if Attr.config.get("host")  %}
+              {{ Attr.config.get("host") }}:{{ Attr.config.get("port") }}
+              {% endif %}
+            </div>
+            <div class="text-muted mt-2">
+              <small>
+                {% if Attr.transfer == 1 %}
+                <span class="badge bg-green me-1 mb-1" title="转移方式">
+                      {{ Attr.rmt_mode_name }}
+                    </span>
+                {% endif %}
+                {% if Attr.only_nastool == 1 %}
+                <span class="badge badge-outline text-orange me-1 mb-1" title="标签隔离">
+                      标签隔离
+                    </span>
+                {% endif %}
+                {% if Attr.match_path == 1 %}
+                <span class="badge badge-outline text-yellow me-1 mb-1" title="目录隔离">
+                      目录隔离
+                    </span>
+                {% endif %}
+              </small>
+            </div>
+          </div>
+        </a>
+        {% endfor %}
+        {% endif %}
       </div>
     </div>
   </div>
 </div>
 
-<div class="page-body">
-  <!-- 组件展示 -->
-  <div class="container-xl">
-    <div class="d-grid gap-3 grid-normal-card">
-      <!-- 内建索引 -->
-      <a class="card card-link-pop p-0 rounded-3 overflow-hidden" href="#" data-bs-toggle="modal" data-bs-target="#modal-builtin">
-        <div class="card-cover card-cover-blurred text-center" style="background-color: #2E72B9">
-          <span class="avatar avatar-xl avatar-thumb avatar-rounded" style="background-image: url('../static/img/indexer/indexer.jpg')"></span>
-        </div>
-        <div class="card-body text-center">
-          <div class="card-title mb-1">内建索引器</div>
-          <div class="text-muted">
-            {% if Config.pt.search_indexer == "builtin" %}
-            <span class="badge bg-green" title="已开启"></span>
-            正在使用{% endif %}
-          </div>
-        </div>
-      </a>
-      <!-- 下载器 -->
-      {% if Downloaders %}
-      {% for Id, Attr in Downloaders.items() %}
-      <a class="card card-link-pop p-0 overflow-hidden rounded-3" href="javascript:void(0)" onclick="show_edit_downloader_modal('{{ Id }}')">
-        <div class="card-cover card-cover-blurred text-center"
-             {% if DownloaderConf[Attr.type].color %}style="background-color: {{ DownloaderConf[Attr.type].color }}"{% endif %}>
-            <span class="badge bg-cyan tag-span" title="下载器">下载器</span>
-            <span onclick="event.stopPropagation();set_default_downloader('{{ Attr.id }}')"
-                  class="btn-action p-1"
-                  title="设置默认" style="position:absolute;top:5px;right:5px;z-index:1;"
-                  data-bs-toggle="tooltip"
-            >
-              {% if DefaultDownloader == Id %}
-                {{ SVG.star('icon-filled w-100 h-100 text-purple') }}
-              {% else %}
-                {{ SVG.star('w-100 h-100 text-muted') }}
-              {% endif %}
-            </span>
-          <span class="avatar avatar-xl avatar-thumb avatar-rounded" style="background-image: url('{{ DownloaderConf[Attr.type].img_url }}')"></span>
-        </div>
-        <div class="card-body text-center">
-          <div class="card-title mb-1">{% if Attr.enabled == 1 %}<span class="badge bg-green" title="已启用" data-bs-toggle="tooltip"></span>{% endif %} {{ Attr.name }}</div>
-          <div class="text-muted">
-            {% if Attr.config.get("host")  %}
-            {{ Attr.config.get("host") }}:{{ Attr.config.get("port") }}
-            {% endif %}
-          </div>
-          <div class="text-muted mt-2">
-            <small>
-              {% if Attr.transfer == 1 %}
-              <span class="badge bg-green me-1 mb-1" title="转移方式">
-                    {{ Attr.rmt_mode_name }}
-                  </span>
-              {% endif %}
-              {% if Attr.only_nastool == 1 %}
-              <span class="badge badge-outline text-orange me-1 mb-1" title="标签隔离">
-                    标签隔离
-                  </span>
-              {% endif %}
-              {% if Attr.match_path == 1 %}
-              <span class="badge badge-outline text-yellow me-1 mb-1" title="目录隔离">
-                    目录隔离
-                  </span>
-              {% endif %}
-            </small>
-          </div>
-        </div>
-      </a>
-      {% endfor %}
-      {% endif %}
+<div id="plugin-div" class="card components-div">
+  <div class="card-header">
+    <h2 class="page-title">插件</h2>
+    <div class="col-auto ms-auto d-print-none">
+      <div class="btn-list">
+        <a href="javascript:show_plugin_apps_modal()" class="btn btn-primary d-none d-sm-inline-block">
+          {{ SVG.apps() }}
+          插件市场
+        </a>
+        <a href="javascript:show_plugin_apps_modal()" class="btn btn-primary d-sm-none btn-icon">
+          {{ SVG.apps() }}
+        </a>
+      </div>
+    </div>
+  </div>
+  {% if PluginCount > 0 %}
+  <div class="page-body">
+    <!-- 组件展示 -->
+    <div class="container-xl">
+      <div class="d-grid gap-3 grid-normal-card">
       <!-- 插件 -->
       {% for Id, Plugin in Plugins.items() %}
       <a class="card card-link-pop p-0 rounded-3 overflow-hidden" href="#" data-bs-toggle="modal" data-bs-target="#modal-plugin-{{ Id }}">
@@ -216,127 +212,16 @@
         </div>
       </a>
       {% endfor %}
+      </div>
     </div>
   </div>
+  {% else %}
+  {{ OOPS.empty('没有插件', '没有安装任何插件，请前往插件市场选择安装。') }}
+  {% endif %}
+</div>
 
+<div class="page-body">
   <!-- 弹窗 -->
-  <!-- 索引器部分 -->
-  <div class="modal modal-blur fade" id="modal-builtin" tabindex="-1" role="dialog" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
-    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable" role="document">
-      <div class="modal-content card">
-        <div class="modal-header">
-          <h5 class="modal-title">内建索引器</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-        </div>
-        <div class="modal-body">
-          <div class="row">
-            <div class="col">
-              <div class="mb-3">
-                <div class="btn-list">
-                  <label class="form-label">公开站点 <span class="form-help"
-                                                           title="只有选中的公开站点才会在搜索中使用。公开站点只要被内建索引器支持了就会在这里显示，大部分公开站点都需要网络代理才能访问"
-                                                           data-bs-toggle="tooltip">?</span></label>
-                  <a href="javascript:void(0)" class="ms-auto" onclick="select_btn_SelectALL(this, 'indexer_sites_public')">全选</a>
-                </div>
-                <div class="form-selectgroup">
-                  {% for Indexer in Indexers %}
-                  {% if Indexer.public %}
-                  <label class="form-selectgroup-item">
-                    <input type="checkbox" name="indexer_sites_public" value="{{ Indexer.id }}"
-                           class="form-selectgroup-input"
-                           {% if IndexerSites and Indexer.id in IndexerSites %}checked{% endif %}>
-                    <span class="form-selectgroup-label">{{ Indexer.name }}</span>
-                  </label>
-                  {% endif %}
-                  {% endfor %}
-                </div>
-              </div>
-              <div class="mb-3">
-                <div class="btn-list">
-                  <label class="form-label required">私有站点 <span class="form-help"
-                                                                    title="只有选中的私有站点才会在搜索中使用。内建索引器支持私有站点的先决条件：1、在站点维护中正确配置站点地址和Cookie；2、站点己被支持"
-                                                                    data-bs-toggle="tooltip">?</span></label>
-                  <a href="javascript:void(0)" class="ms-auto" onclick="select_btn_SelectALL(this, 'indexer_sites_private')">全选</a>
-                </div>
-                <div class="form-selectgroup">
-                  {% if PrivateCount > 0 %}
-                  {% for Indexer in Indexers %}
-                  {% if not Indexer.public %}
-                  <label class="form-selectgroup-item">
-                    <input type="checkbox" name="indexer_sites_private" value="{{ Indexer.id }}"
-                           class="form-selectgroup-input"
-                           {% if IndexerSites and Indexer.id in IndexerSites %}checked{% endif %}>
-                    <span class="form-selectgroup-label">{{ Indexer.name }}</span>
-                  </label>
-                  {% endif %}
-                  {% endfor %}
-                  {% else %}
-                  <label class="form-selectgroup-item">
-                    <span class="form-selectgroup-label">无</span>
-                  </label>
-                  {% endif %}
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-        <div class="card-footer">
-          <div class="col-auto">
-            <button onclick="save_indexer_config('builtin')" id="builtin_save_btn" class="btn btn-primary" style="float: right;">确定</button>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-  <div class="modal modal-blur fade" id="modal-indexer-statistics" tabindex="-1" role="dialog" aria-hidden="true">
-    <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
-      <div class="card modal-content" style="border-top-left-radius:var(--tblr-modal-inner-border-radius) !important; border-top-right-radius:var(--tblr-modal-inner-border-radius) !important">
-        <div class="card-header" style="border-top-left-radius:var(--tblr-modal-inner-border-radius) !important; border-top-right-radius:var(--tblr-modal-inner-border-radius) !important">
-          <ul class="nav nav-fill card-header-tabs nav-tabs rounded-3" data-bs-toggle="tabs"
-              role="tablist">
-            <li class="nav-item" role="presentation">
-              <a href="#tabs-indexer-chart" class="nav-link active" style="justify-content: center" data-bs-toggle="tab"
-                 aria-selected="true" role="tab">
-                图表
-              </a>
-            </li>
-            <li class="nav-item" role="presentation">
-              <a href="#tabs-indexer-list" class="nav-link" style="justify-content: center" data-bs-toggle="tab"
-                 aria-selected="false" role="tab" tabindex="-1">
-                详情
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div class="card-body p-0 mb-3">
-          <div class="tab-content">
-            <div class="tab-pane fade active show" id="tabs-indexer-chart" role="tabpanel">
-              <div id="indexer_chart_content"></div>
-            </div>
-            <div class="tab-pane fade" id="tabs-indexer-list" role="tabpanel">
-              <div id="table-indexer-list" class="table-responsive table-modal-body">
-                <table class="table table-vcenter card-table table-hover table-striped">
-                  <thead>
-                    <tr>
-                      <th class="flex-fill"><button class="table-sort" data-sort="sort-name">索引</button></th>
-                      <th><button class="table-sort" data-sort="sort-total">请求数</button></th>
-                      <th><button class="table-sort" data-sort="sort-fail">失败数</button></th>
-                      <th><button class="table-sort" data-sort="sort-avg">平均耗时（秒）</button></th>
-                    </tr>
-                  </thead>
-                  <tbody id="indexer_list_content" class="table-tbody">
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </div>
-        </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-primary" data-bs-dismiss="modal">确定</button>
-        </div>
-      </div>
-    </div>
-  </div>
   <!-- 下载器部分 -->
   <div class="modal modal-blur fade" id="modal-downloader" tabindex="-1" role="dialog" aria-hidden="true"
        data-bs-backdrop="static" data-bs-keyboard="false">
@@ -374,8 +259,8 @@
                   <label class="form-selectgroup-item" for="type_{{ Id }}">
                     <input type="radio" name="downloader_type" id="type_{{ Id }}" value="{{ Id }}"
                            class="form-selectgroup-input" checked>
-                    <span class="form-selectgroup-label d-flex align-items-center p-3">
-                    <span class="me-3">
+                    <span class="form-selectgroup-label d-flex align-items-center p-2">
+                    <span class="me-2">
                       <span class="form-selectgroup-check"></span>
                     </span>
                     <span class="form-selectgroup-label-content d-flex align-items-center">
@@ -593,121 +478,6 @@
 </script>
 
 <script type="text/javascript">
-  // 当前处理的类型
-  var currType = "";
-
-  // 保存配置
-  function save_config_index(type, func, test) {
-    currType = type;
-    let params = {};
-    if (type !== "builtin") {
-      params = input_select_GetVal(`modal-${type}`);
-      params['test'] = test || false;
-      params['pt.search_indexer'] = type;
-      ajax_post("update_config", params, func);
-    } else {
-      let sites = select_GetSelectedVAL("^indexer_sites");
-      let params = {
-        key: "UserIndexerSites",
-        value: sites
-      }
-      ajax_post("set_system_config", params, func);
-    }
-  }
-
-  //保存配置、关闭和刷新页面
-  function save_indexer_config(type) {
-    $(`#modal-${type}`).modal('hide');
-    save_config_index(type, function (ret) {
-      window_history_refresh();
-    });
-  }
-
-  // 显示索引统计
-  function show_indexer_statistics_modal(){
-    $("#modal-indexer-statistics").modal("show");
-  }
-
-  var indexer_chat = undefined;
-
-  function init_indexer_chart() {
-    // 请求数据
-    ajax_post("get_indexer_statistics", {}, function(ret){
-      // 饼图
-      if (typeof (indexer_chat) != 'undefined')
-        indexer_chat.dispose();
-        indexer_chat = echarts.init($('#indexer_chart_content')[0], null, {
-        height: 300
-      });
-      let options = {
-        tooltip: {
-          trigger: 'item', valueFormatter: value => value + " 秒"
-        },
-        dataset: {
-          source: ret.dataset.filter(item => {
-            return (item[1] > 0 || item[1] === 'avg')
-          })
-        },
-        series: [
-          {
-            type: 'pie',
-            encode: {
-              itemName: 'indexer',
-              value: 'avg'
-            },
-            label: {
-              formatter: function (params) {
-                return params.name + ': ' + params.value[params.encode.value[0]] + " 秒";
-              }
-            }, emptyCircleStyle: {
-              color: 'transparent',
-              borderColor: '#ddd',
-              borderWidth: 1
-            }
-          }
-        ]
-      };
-      indexer_chat.setOption(options);
-
-      // 列表
-      let html = "";
-      for (let item of ret.data) {
-        html = `${html}
-                <tr>
-                  <td class="sort-name" data-name="${item.name}">${item.name}</td>
-                  <td class="sort-total" data-total="${item.total}">${item.total}</td>
-                  <td class="sort-fail" data-fail="${item.fail}">${item.fail}</td>
-                  <td class="sort-avg" data-avg="${item.avg}">${item.avg}</td>
-                </tr>
-                `
-      }
-      if (html) {
-        $("#indexer_list_content").html(html);
-      } else {
-        $("#indexer_list_content").html(`<tr><td colspan="4"></td></tr>`);
-      }
-
-      let tableDataList = new List('table-indexer-list', {
-        sortClass: 'table-sort',
-        listClass: 'table-tbody',
-        valueNames: ['sort-name', 'sort-total', 'sort-fail', 'sort-avg',
-          {attr: 'data-name', name: 'sort-name'},
-          {attr: 'data-total', name: 'sort-total'},
-          {attr: 'data-fail', name: 'sort-fail'},
-          {attr: 'data-avg', name: 'sort-avg'}
-        ]
-      });
-
-    });
-
-  }
-
-  $(document).ready(function () {
-    // 加载图表
-    $('#modal-indexer-statistics').off('shown.bs.modal').on('shown.bs.modal', function (e) {
-      init_indexer_chart();
-    });
-  });
 
   // 恢复输入项为默认值
   function reset_downloader_config_fields() {
