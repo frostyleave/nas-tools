@@ -228,7 +228,7 @@ def search_media_by_message(input_str, in_from: SearchType, user_id, user_name=N
             # 检查是不是有这个站点
             site_info = Sites().get_sites(siteurl=input_str)
             # 偿试下载种子文件
-            filepath, content, retmsg = Torrent().save_torrent_file(
+            filepath, content, retmsg = Downloader().save_torrent_file(
                 url=input_str,
                 cookie=site_info.get("cookie"),
                 ua=site_info.get("ua"),

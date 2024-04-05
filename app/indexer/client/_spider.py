@@ -248,7 +248,7 @@ class TorrentSpider(feapder.AirSpider):
             # 搜索Url
             searchurl = self.domain + str(torrentspath).format(**inputs_dict)
 
-        log.info(f"【Spider】开始请求：{searchurl}")
+        log.info(f"【Spider】开始请求：{searchurl}, render={str(self.render)}")
         yield feapder.Request(url=searchurl,
                               use_session=True,
                               render=self.render)

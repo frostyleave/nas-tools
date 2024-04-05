@@ -4,7 +4,7 @@ import time
 
 import log
 from app.conf import SystemConfig
-from app.helper import IndexerHelper, IndexerConf, ProgressHelper, ChromeHelper, DbHelper
+from app.helper import ProgressHelper, ChromeHelper, DbHelper
 from app.indexer.client._base import _IIndexClient
 from app.indexer.client._rarbg import Rarbg
 from app.indexer.client._render_spider import RenderSpider
@@ -12,6 +12,7 @@ from app.indexer.client._spider import TorrentSpider
 from app.indexer.client._tnode import TNodeSpider
 from app.indexer.client._torrentleech import TorrentLeech
 from app.indexer.client._plugins import PluginsSpider
+from app.indexer.manager import IndexerManager, IndexerConf
 from app.sites import Sites
 from app.utils import StringUtils
 from app.utils.types import SearchType, IndexerType, ProgressKey, SystemConfigKey
@@ -72,7 +73,7 @@ class BuiltinIndexer(_IIndexClient):
             if not url or not cookie:
                 continue
             render = False if not chrome_ok else site.get("chrome")
-            indexer = IndexerHelper().get_indexer(url=url,
+            indexer = IndexerManager().get_indexer(url=url,
                                                   siteid=site.get("id"),
                                                   cookie=cookie,
                                                   ua=site.get("ua"),
@@ -92,8 +93,7 @@ class BuiltinIndexer(_IIndexClient):
                     indexer.name = site.get("name")
                     ret_indexers.append(indexer)
         # 公开站点
-        # if public and self._show_more_sites:
-        for indexer in IndexerHelper().get_all_indexers():
+        for indexer in IndexerManager().get_all_indexers():
             if not indexer.get("public"):
                 continue
             if indexer_id and indexer.get("id") == indexer_id:

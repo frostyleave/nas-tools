@@ -110,8 +110,9 @@ class _IIndexClient(metaclass=ABCMeta):
             # 描述
             description = item.get('description') if item.get('description') else ''
 
+            mtype = match_media.type if match_media else None
             # 识别种子名称
-            meta_info = MetaInfo(title=torrent_name, subtitle=f"{labels} {description}".strip(), mtype=match_media.type)
+            meta_info = MetaInfo(title=torrent_name, subtitle=f"{labels} {description}".strip(), mtype=mtype)
             if not meta_info.get_name():
                 log.info(f"【{self.client_name}】{torrent_name} 无法识别到名称")
                 index_match_fail += 1
