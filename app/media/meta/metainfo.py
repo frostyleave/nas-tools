@@ -1,7 +1,7 @@
 import os.path
 import regex as re
 import PTN
-
+import anitopy
 import log
 from app.conf import ModuleConf
 from app.helper import WordsHelper
@@ -72,7 +72,13 @@ def MetaInfo(title, subtitle=None, mtype=None):
 def info_fix(meta_info, rev_title):
     # 移除字幕组信息
     resource_team = meta_info.resource_team if meta_info.resource_team else ''
-    t = PTN.parse(rev_title.replace('[', '.').replace(']', '.').replace(resource_team, '').strip('.'))
+    # 移除部分副标题
+    title = re.sub(meta_info._subtitle_season_all_re, '', rev_title, flags=re.IGNORECASE)
+    title = re.sub(meta_info._subtitle_episode_all_re, '', title, flags=re.IGNORECASE)
+    title = title.replace('[]','')
+    title = title.replace('[', '.').replace(']', '.').replace(resource_team, '').strip('.')
+    title = re.sub("\.+", ".", title).strip('.')
+    t = PTN.parse(title)
     t_title = t.get('title')
 
     if t_title:
@@ -99,7 +105,7 @@ def info_fix(meta_info, rev_title):
         if isinstance(t_episode, list):
             meta_info.begin_episode = t_episode[0]
             meta_info.end_episode = t_episode[len(t_episode) - 1]
-        else:
+        elif not meta_info.begin_episode:
             meta_info.begin_episode = t_episode
 
 
@@ -107,6 +113,19 @@ def info_fix(meta_info, rev_title):
 def preprocess_title(rev_title):
     # 提取制作组/字幕组
     resource_team = ReleaseGroupsMatcher().match_list(title=rev_title)
+    # anitopy 辅助提取
+    try:
+        anitopy_info_origin = anitopy.parse(rev_title)
+        if anitopy_info_origin and anitopy_info_origin.get("release_group"):
+            release_group = anitopy_info_origin.get("release_group")
+            if not resource_team:
+                resource_team = []
+                resource_team.append(release_group)
+            elif release_group not in resource_team:
+                resource_team.append(release_group)
+    except Exception as err:
+        log.warn("【Meta】anitopy提取字幕组信息出错: %s 不存在" % str(err))
+
     # 把标题中的制作组/字幕组去掉
     if resource_team:
         for item in resource_team:
@@ -114,6 +133,8 @@ def preprocess_title(rev_title):
         resource_team = ReleaseGroupsMatcher().get_separator().join(resource_team)
     # []换成.
     rev_title = rev_title.replace('[', '.').replace(']', '.').strip('.')
+    # 把多个连续'.'合并为一个
+    rev_title = re.sub("\.+", ".", rev_title).strip('.')
     return resource_team, rev_title
 
 
