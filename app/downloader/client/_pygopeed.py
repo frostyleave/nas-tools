@@ -68,7 +68,7 @@ class PyGopeed(object):
         return self.resolveResponse(response)
 
     def addTask(self, url, name=None, path=None, tag=None):
-        labels = { "tag": tag } if tag else None
+        labels = { "tag": tag } if tag else {}
         payload = {
             "req": { "url": url, "labels": labels },
             "opt": {
