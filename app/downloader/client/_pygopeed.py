@@ -72,8 +72,8 @@ class PyGopeed(object):
         payload = {
             "req": { "url": url, "labels": labels },
             "opt": {
-                "name": name if name else '',
-                "path": path.replace(' ', '').replace('.', '') if path else ''
+                "name": name.replace(' ', '.').strip('.') if name else '',
+                "path": path.replace(' ', '.').strip('.') if path else ''
             }
         }
         response = requests.post(
