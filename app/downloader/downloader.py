@@ -520,7 +520,7 @@ class Downloader:
                     title = media_info.en_name
                 elif media_info.title:
                     title = media_info.title
-                ret = downloader.add_torrent(content, name=title, tag=tags)
+                ret = downloader.add_torrent(content, name=title, download_dir=download_dir, tag=PT_TAG)
                 download_id = ret
             else:
                 # 其它下载器，添加下载后需返回下载ID或添加状态

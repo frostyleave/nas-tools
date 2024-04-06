@@ -63,7 +63,7 @@ class Gopeed(_IDownloadClient):
             tag_ret = []
             for torrent_item in ret_torrents:
                 file_tag = self.get_tag_in_torrent_label(torrent_item)
-                if file_tag and file_tag == tag:
+                if file_tag and file_tag in tag:
                     tag_ret.append(torrent_item)
             return tag_ret
 
