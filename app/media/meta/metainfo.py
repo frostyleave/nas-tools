@@ -50,6 +50,11 @@ def MetaInfo(title, subtitle=None, mtype=None):
     else:
         resource_team, rev_title = preprocess_title(rev_title)
         meta_info = MetaVideo(rev_title, subtitle, fileflag)
+        # 识别出为剧集、且有年份，但是没有集数，去掉标题中年份，重新识别
+        if MediaType.MOVIE != meta_info.type and not meta_info.begin_episode and meta_info.year:
+            year = meta_info.year
+            meta_info = MetaVideo(rev_title.replace(meta_info.year, ''), subtitle, fileflag)
+            meta_info.year = year
         if resource_team:
             meta_info.resource_team = resource_team
 
@@ -75,7 +80,10 @@ def info_fix(meta_info, rev_title):
     # 移除部分副标题
     title = re.sub(meta_info._subtitle_season_all_re, '', rev_title, flags=re.IGNORECASE)
     title = re.sub(meta_info._subtitle_episode_all_re, '', title, flags=re.IGNORECASE)
-    title = title.replace('[]','')
+    # 移除年份
+    if hasattr(meta_info, 'year') and meta_info.year:
+        title = title.replace(meta_info.year, '')
+    title = title.replace('[]', '')
     title = title.replace('[', '.').replace(']', '.').replace(resource_team, '').strip('.')
     title = re.sub("\.+", ".", title).strip('.')
     t = PTN.parse(title)
