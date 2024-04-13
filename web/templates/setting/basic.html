@@ -1203,6 +1203,7 @@
       if (flag) {
         $("#" + type + "_btn").text("保存").attr("disabled", false);
         window_history_refresh()
+        show_success_modal("配置已保存!");
       }
     });
   }

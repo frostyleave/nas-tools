@@ -2588,7 +2588,7 @@ class DbHelper:
         return self._db.query(INDEXERSITE).all()
     
     @DbPersist(_db)
-    def add_indexer(self, id,name,domain,proxy,render,downloader,source_type,search_type,search,torrents,browse=None,parse=None,category=None):
+    def add_indexer(self, id, name, domain, proxy, render, downloader, source_type, search_type, search, torrents, browse=None, parser=None, category=None):
         """
         新增索引站点
         """
@@ -2605,12 +2605,12 @@ class DbHelper:
             SEARCH=search,
             TORRENTS=torrents,
             BROWSE=browse,
-            PARSER=parse,
+            PARSER=parser,
             CATEGORY=category
         ))
     
     @DbPersist(_db)
-    def update_indexer(self, id,proxy,render,downloader,source_type,search_type,search,torrents,browse=None,parse=None,category=None):
+    def update_indexer(self, id, domain, proxy, render, downloader, source_type, search_type, search, torrents, browse=None, parser=None, category=None):
         """
         更新索引站点
         """
@@ -2618,6 +2618,8 @@ class DbHelper:
             return
 
         update_dic = {}
+        if domain is not None and domain:
+            update_dic['DOMAIN'] = domain
         if proxy is not None:
             update_dic['PROXY'] = proxy
         if render is not None:
@@ -2634,8 +2636,8 @@ class DbHelper:
             update_dic['TORRENTS'] = torrents
         if browse is not None:
             update_dic['BROWSE'] = browse
-        if parse is not None:
-            update_dic['PARSER'] = parse
+        if parser is not None:
+            update_dic['PARSER'] = parser
         if category is not None:
             update_dic['CATEGORY'] = category
         
@@ -2643,6 +2645,15 @@ class DbHelper:
             return
         
         return self._db.query(INDEXERSITE).filter(INDEXERSITE.ID == id).update(update_dic) > 0
+    
+    @DbPersist(_db)
+    def delete_indexer(self, id):
+        """
+        删除索引站点
+        """
+        if not id:
+            return
+        self._db.query(INDEXERSITE).filter(INDEXERSITE.ID == id).delete()
 
 
     def get_downloaders(self):
