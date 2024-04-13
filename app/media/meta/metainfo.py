@@ -47,15 +47,14 @@ def MetaInfo(title, subtitle=None, mtype=None):
 
     if mtype == MediaType.ANIME or is_anime(rev_title):
         meta_info = MetaAnime(rev_title, subtitle, fileflag)
-        # 有年份，但是没有集数，去掉标题中年份，重新识别
-        if not meta_info.begin_episode and meta_info.year:
-            meta_info = MetaAnime(rev_title.replace(meta_info.year, ''), subtitle, fileflag)
     else:
         resource_team, rev_title = preprocess_title(rev_title)
         meta_info = MetaVideo(rev_title, subtitle, fileflag)
         # 识别出为剧集、且有年份，但是没有集数，去掉标题中年份，重新识别
         if MediaType.MOVIE != meta_info.type and not meta_info.begin_episode and meta_info.year:
+            year = meta_info.year
             meta_info = MetaVideo(rev_title.replace(meta_info.year, ''), subtitle, fileflag)
+            meta_info.year = year
         if resource_team:
             meta_info.resource_team = resource_team
 

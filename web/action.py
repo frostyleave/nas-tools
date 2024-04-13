@@ -221,6 +221,7 @@ class WebAction:
             "get_indexer": self.__get_indexer,
             "add_indexer": self.__add_indexer,
             "update_indexer": self.__update_indexer,
+            "delete_indexer": self.__delete_indexer,
             "get_indexer_statistics": self.__get_indexer_statistics,
             "media_path_scrap": self.__media_path_scrap,
             "get_default_rss_setting": self.get_default_rss_setting,
@@ -5015,7 +5016,7 @@ class WebAction:
             data.get('search'),
             data.get('torrents'),
             data.get('browse'),
-            data.get('parse'),
+            data.get('parser'),
             data.get('category')
         )
         IndexerManager().init_config()
@@ -5025,6 +5026,7 @@ class WebAction:
     def __update_indexer(data):
         success = DbHelper().update_indexer(
             data.get('id'),
+            data.get('domain'),
             data.get('proxy'),
             data.get('render'),
             data.get('downloader'),
@@ -5033,13 +5035,19 @@ class WebAction:
             data.get('search'),
             data.get('torrents'),
             data.get('browse'),
-            data.get('parse'),
+            data.get('parser'),
             data.get('category')
         )
         if success:
             IndexerManager().init_config()
             return {"code": 0, "msg": "更新成功"}
         return {"code": 1, "msg": "更新失败，请检查"}
+
+    @staticmethod
+    def __delete_indexer(data):
+        DbHelper().delete_indexer(data.get('id'))
+        IndexerManager().init_config()
+        return {"code": 0, "msg": "更新成功"}
 
     @staticmethod
     def __get_indexer_statistics():

@@ -127,9 +127,6 @@
                   {% if site.proxy %}
                   <span class="badge bg-lime-lt mb-1 me-1">代理</span>
                   {% endif %}
-                  {% if site.parse %}
-                  <span class="badge bg-pink-lt mb-1 me-1">解析</span>
-                  {% endif %}
                 </div>
               </div>
             </div>
@@ -194,9 +191,6 @@
                   {% endif %}
                   {% if site.proxy %}
                   <span class="badge bg-lime-lt mb-1 me-1">代理</span>
-                  {% endif %}
-                  {% if site.parse %}
-                  <span class="badge bg-pink-lt mb-1 me-1">解析</span>
                   {% endif %}
                 </div>
               </div>
@@ -403,7 +397,7 @@
             解析器 <span class="form-help" title="解析器" data-bs-toggle="tooltip">?</span>
           </summary>
           <div class="row mt-2">
-            <textarea class="form-control mt-2" id="parse_cfg" rows="1" aria-label=""></textarea>
+            <textarea class="form-control mt-2" id="parser_cfg" rows="1" aria-label=""></textarea>
           </div>
         </details>
         <details>
@@ -416,6 +410,9 @@
         </details>
       </div>
       <div class="modal-footer">
+        <a href="javascript:do_del_indexer()" class="btn btn-link text-red me-auto" id="indexer_delete_btn">
+          删除站点
+        </a>
         <div class="btn-list">
           <a href="javascript:do_add_indexer()" name="indexer_add_btn" class="btn btn-primary">添加</a>
           <a href="javascript:do_update_indexer()" name="indexer_edit_btn" class="btn btn-primary">确定</a>
@@ -443,6 +440,7 @@
   function save_indexer_config(type) {
     save_config_index(type, function (ret) {
       window_history_refresh();
+      show_success_modal(`索引设置已保存`);
     });
   }
 
@@ -450,18 +448,21 @@
   function add_indexer(site_url) {
     $("#indexer_id").val("").attr("readonly", false);
     $("#indexer_name").val("").attr("readonly", false);
-    $("#indexer_url").val("").attr("readonly", false);
+    $("#indexer_url").val("")
 
     $("#indexer_download_setting").val(0);
+    select_SelectALL(true, "source_type")
+    select_SelectPart(['title', 'en_name'], "search_type")
     $('#search_cfg').val("");
     $('#torrent_cfg').val("");
     $('browse_cfg').val("");
-    $('parse_cfg').val("");
+    $('parser_cfg').val("");
     $('category_cfg').val("");
 
     $("#indexer_modal_title").text("新增索引站点");
     $("[name='indexer_add_btn']").show();
     $("[name='indexer_edit_btn']").hide();
+    $("#indexer_delete_btn").hide();
 
     $("#modal-manual-indexer").modal("show");
   }
@@ -486,7 +487,7 @@
       return
     }
 
-    var parse_cfg = $('#parse_cfg').val();
+    var parser_cfg = $('#parser_cfg').val();
 
     var category_cfg = $('#category_cfg').val();
     if (!object_json_valid(category_cfg, true)) {
@@ -506,7 +507,7 @@
       "search": search_cfg,
       "torrents": torrent_cfg,
       "browse": browse_cfg,
-      "parse": parse_cfg,
+      "parser": parser_cfg,
       "category": category_cfg
     };
 
@@ -535,7 +536,7 @@
 
         $("#indexer_id").val(ret.data.id).attr("readonly", true);
         $("#indexer_name").val(ret.data.name).attr("readonly", true);
-        $("#indexer_url").val(ret.data.domain).attr("readonly", true);
+        $("#indexer_url").val(ret.data.domain);
 
         $("#indexer_download_setting").val(ret.data.downloader ?? 0);
         select_SelectPart(ret.data.source_type, "source_type")
@@ -556,8 +557,8 @@
           append_json_to_textarea('browse_cfg', ret.data.browse)
         }
 
-        if (ret.data.parse) {
-          $("#parse_cfg").val(ret.data.parse);
+        if (ret.data.parser) {
+          $("#parser_cfg").val(ret.data.parser);
         }
 
         if (ret.data.category) {
@@ -567,6 +568,7 @@
         $("#indexer_modal_title").text("编辑站点");
         $("[name='indexer_add_btn']").hide();
         $("[name='indexer_edit_btn']").show();
+        $("#indexer_delete_btn").show();
 
         $("#modal-manual-indexer").modal("show");
       }
@@ -584,6 +586,15 @@
     if (current_indexer.id != indexer_id) {
       show_fail_modal('站点ID不一致, 请重新编辑');
       return
+    }
+
+    var indexer_url = $("#indexer_url").val();
+    if (!indexer_url || !isUrl(indexer_url)){
+      show_fail_modal('站点地址无效, 请重新编辑');
+      return
+    }
+    if (indexer_url == current_indexer.domain) {
+      indexer_url = NaN
     }
 
     var search_cfg = $('#search_cfg').val();
@@ -647,13 +658,21 @@
     if (search_type == current_indexer.search_type) {
       search_type = NaN
     }
-    var parse_cfg = $('#parse_cfg').val();
-    if (parse_cfg == current_indexer.parse){
-      parse_cfg = NaN
+    var parser_cfg = $('#parser_cfg').val();
+    if (parser_cfg == current_indexer.parser) {
+      parser_cfg = NaN
+    }
+
+    if (indexer_url == NaN && proxy == NaN && render == NaN && downloader == NaN
+      && source_type == NaN && search_type == NaN && search_cfg == NaN && torrent_cfg == NaN
+      && browse_cfg == NaN && parser_cfg == NaN && category_cfg == NaN) {
+      $("#modal-manual-indexer").modal("hide");
+      return;
     }
 
     const data = {
-      "id": $("#indexer_id").val(),
+      "id": indexer_id,
+      "domain": indexer_url,
       "proxy": proxy,
       "render": render,
       "downloader": downloader,
@@ -662,9 +681,12 @@
       "search": zip_json(search_cfg),
       "torrents": zip_json(torrent_cfg),
       "browse": zip_json(browse_cfg),
-      "parse": parse_cfg,
+      "parser": parser_cfg,
       "category": zip_json(category_cfg)
     };
+
+    console.log(data)
+    console.log(current_indexer)
 
     ajax_post("update_indexer", data, function (ret) {
       if (ret.code === 0) {
@@ -678,6 +700,33 @@
 
 };
 
+  function do_del_indexer() {
+
+    if (current_indexer == NaN) {
+      show_fail_modal('系统异常, 请重新编辑');
+      return
+    }
+
+    var indexer_id = $("#indexer_id").val();
+    if (current_indexer.id != indexer_id) {
+      show_fail_modal('站点ID不一致, 请重新编辑');
+      return
+    }
+
+    const data = {
+      "id": indexer_id
+    };
+
+    ajax_post("delete_indexer", data, function (ret) {
+      if (ret.code === 0) {
+        $("#modal-manual-indexer").modal("hide");
+        window_history_refresh();
+      } else {
+        show_fail_modal(`索引站点删除失败：${ret.msg}!`);
+      }
+    });
+
+};
   // json合法性检查
   function object_json_valid(json_str, allow_empty) {
 
@@ -743,6 +792,14 @@
       $("#" + elem_id).height(height + 'px');
     }
 
+  }
+
+  // 判断是否为网址
+  function isUrl(str) {
+    // 根据网址的特征进行判断
+    var hasProtocol = str.startsWith("http://") || str.startsWith("https://");
+    var hasDomain = str.includes(".");
+    return hasProtocol && hasDomain;
   }
 
   // 显示索引统计
