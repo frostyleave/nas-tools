@@ -174,10 +174,11 @@ class DouBan:
             return None
         log.info("【Douban】查询到数据：%s" % douban_info.get("title"))
 
-        if douban_info.get('title') and not StringUtils.is_all_chinese_and_mark(douban_info.get('title')) and len(douban_info.get('aka')):
-            match_cn = next(filter(lambda x: StringUtils.is_all_chinese_and_mark(x), douban_info.get('aka')), None)
-            if match_cn:
-                douban_info['title'] = match_cn
+        original_title = douban_info.get("original_title")
+        title = douban_info.get('title')
+        # 如果标题中包含原始标题，则去除原始标题部分
+        if title and original_title and title.find(original_title) > 0:
+            douban_info['title'] = title.replace(original_title, '').strip()
 
         return douban_info
 

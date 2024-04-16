@@ -750,9 +750,6 @@ class Media:
         file_media_info = self.query_tmdb_info(meta_info.get_name(), meta_info.type, meta_info.year,
                                                meta_info.begin_season, append_to_response, chinese, strict, cache)
 
-        # 根据查询结果进行季集修正
-        self.fix_file_season_by_tmdb_info(meta_info, file_media_info)
-
         # 通过ChatGPT查询
         if not file_media_info and self._chatgpt_enable:
             mtype, seasons, episodes, file_media_info = self.__search_chatgpt(file_name=meta_info.get_name(),
@@ -847,8 +844,16 @@ class Media:
         if meta_info.begin_season or tmdb_info.number_of_seasons <= 1:
             return
         # 名称中没有可以用于进行季集修正的数据
-        if not meta_info.cn_name or tmdb_info.name == meta_info.cn_name:
+        if not meta_info.cn_name:
             return
+        if tmdb_info.name != meta_info.cn_name:
+            self.fix_when_name_different(meta_info, tmdb_info)
+        elif '篇' in meta_info.rev_string:
+            self.fix_when_has_season_name(meta_info, tmdb_info)
+            return
+    
+    # 名称信息不同
+    def fix_when_name_different(self, meta_info, tmdb_info):
 
         # 移除元文件名中的中文名和英文名
         cn_name = meta_info.cn_name.replace(tmdb_info.name,'')
@@ -869,15 +874,33 @@ class Media:
                 match_season = next(filter(lambda t: t.season_number == x and t.air_date.startswith(meta_info.year), tmdb_info.seasons), None)
                 if match_season:
                     meta_info.begin_season = match_season.season_number
+                    # 集数修正
+                    if meta_info.end_episode and meta_info.end_episode - meta_info.begin_episode > match_season.episode_count:
+                        meta_info.end_episode = None
                     return
                 match_season = next(filter(lambda t: t.air_date.startswith(meta_info.year), tmdb_info.seasons), None)
                 if match_season:
                     meta_info.begin_season = match_season.season_number
+                    # 集数修正
+                    if meta_info.end_episode and meta_info.end_episode - meta_info.begin_episode > match_season.episode_count:
+                        meta_info.end_episode = None
                     return
             else:
                 meta_info.begin_season = x
         except:
+            if '篇' in meta_info.rev_string:
+                self.fix_when_has_season_name(meta_info, tmdb_info)
             return
+
+    # 名称中包含季名称
+    def fix_when_has_season_name(self, meta_info, tmdb_info):
+        rev_string = zhconv.convert(meta_info.rev_string, "zh-hans")
+        match_season = next(filter(lambda t: t.name in rev_string, tmdb_info.seasons), None)
+        if match_season:
+            meta_info.begin_season = match_season.season_number
+            # 集数修正
+            if meta_info.end_episode and meta_info.end_episode - meta_info.begin_episode > match_season.episode_count:
+                meta_info.end_episode = None
 
     def __insert_media_cache(self, media_key, file_media_info):
         """
@@ -2321,8 +2344,7 @@ class Media:
         meta_info = MetaInfo(title=file_name)
         self.__insert_media_cache(self.__make_cache_key(meta_info), cache_info)
 
-    @staticmethod
-    def merge_media_info(target, source):
+    def merge_media_info(self, target, source):
         """
         将soruce中有效的信息合并到target中并返回
         """
@@ -2331,6 +2353,9 @@ class Media:
         target.fanart_backdrop = source.get_backdrop_image()
         target.set_download_info(download_setting=source.download_setting,
                                  save_path=source.save_path)
+        # 根据查询结果进行季集修正
+        self.fix_file_season_by_tmdb_info(target, source.tmdb_info)
+
         return target
 
     def get_tmdbid_by_imdbid(self, imdbid):
