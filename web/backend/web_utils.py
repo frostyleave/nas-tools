@@ -118,6 +118,11 @@ class WebUtils:
             media_info.set_tmdb_info(tmdb_info)
             media_info.begin_season = begin_season
             media_info.douban_id = doubanid
+            
+            media_info.cn_name = title
+            media_info.title = title
+            media_info.rev_string = title
+            media_info.org_string = title
 
             return media_info
         if str(mediaid).startswith("BG:"):
@@ -151,8 +156,12 @@ class WebUtils:
             douban_info = DouBan().search_detail_by_keyword(keyword)
             if douban_info:
                 douban_id_list = list(map(lambda x: x.get("id"), douban_info))
-                # douban_id_list.sort(reverse=True)
                 media_info.douban_id = ",".join(douban_id_list)
+                douban_title = douban_info[0].get("title")
+                media_info.cn_name = douban_title
+                media_info.title = douban_title
+                media_info.rev_string = douban_title
+                media_info.org_string = douban_title
             else:
                 media_info.douban_id = ''
 
