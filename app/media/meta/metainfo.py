@@ -91,7 +91,7 @@ def info_fix(meta_info, rev_title):
 
     if t_title:
         # 如果没有解析出中文名，或解析出的中文名中不包含中文，则尝试进行修正
-        if (not meta_info.cn_name or not StringUtils.contain_chinese(meta_info.cn_name)) \
+        if (not meta_info.cn_name or StringUtils.is_all_chinese_and_mark(meta_info.cn_name) == False) \
                 and StringUtils.contain_chinese(t_title):
             meta_info.cn_name = t_title
         if StringUtils.is_english_or_number(t_title):
