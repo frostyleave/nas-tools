@@ -172,10 +172,11 @@ def search_media_by_message(input_str, in_from: SearchType, user_id, user_name=N
         if not SEARCH_MEDIA_TYPE.get(user_id) \
                 or SEARCH_MEDIA_TYPE.get(user_id) == "SEARCH":
             # 如果是豆瓣数据，需要重新查询TMDB的数据
+            log.info("【message】豆瓣id: %s" % media_info.douban_id)
             if media_info.douban_id:
                 _title = media_info.get_title_string()
                 # 重新根据豆瓣ID查询媒体数据
-                media_info = WebUtils.get_mediainfo_from_id(mediaid='DB:' + media_info.douban_id)
+                media_info = WebUtils.get_mediainfo_from_id(media_info.type, 'DB:' + media_info.douban_id)
 
                 if not media_info or not media_info.tmdb_info:
                     Message().send_channel_msg(channel=in_from,
@@ -324,9 +325,10 @@ def search_media_by_message(input_str, in_from: SearchType, user_id, user_name=N
                 if not SEARCH_MEDIA_TYPE.get(user_id) \
                         or SEARCH_MEDIA_TYPE.get(user_id) == "SEARCH":
                     # 如果是豆瓣数据，需要重新查询TMDB的数据
+                    log.info("【message】豆瓣id: %s" % media_info.douban_id)
                     if media_info.douban_id:
                         _title = media_info.get_title_string()
-                        media_info = media_info = WebUtils.get_mediainfo_from_id(mediaid='DB:' + media_info.douban_id)
+                        media_info = media_info = WebUtils.get_mediainfo_from_id(media_info.type, 'DB:' + media_info.douban_id)
                         if not media_info or not media_info.tmdb_info:
                             Message().send_channel_msg(channel=in_from,
                                                        title="%s 从TMDB查询不到媒体信息！" % _title,

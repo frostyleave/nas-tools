@@ -4,6 +4,7 @@ from urllib.parse import quote
 import cn2an
 import re
 import PTN
+import log
 
 from app.media import Media, Bangumi, DouBan
 from app.media.meta import MetaInfo
@@ -108,8 +109,15 @@ class WebUtils:
                         year = None
 
             tmdb_info = Media().query_tmdb_info(title, mtype, year, begin_season, append_to_response="all")
-            if not tmdb_info and original_title:
-                tmdb_info = Media().query_tmdb_info(original_title, mtype, year, begin_season, append_to_response="all")
+            if not tmdb_info:
+                log.warn("【Douban】根据名称[%s]查询tmdb数据失败" % title)
+                if original_title:
+                    log.info("【Douban】尝试根据别名[%s]查询tmdb数据" % original_title)
+                    tmdb_info = Media().query_tmdb_info(original_title, mtype, year, begin_season, append_to_response="all")
+                    if not tmdb_info:
+                        log.info("【Douban】尝试根据别名[%s]查询tmdb数据失败" % original_title)
+                    else:
+                        log.info("【Douban】根据别名[%s]查询tmdb数据成功！" % original_title)
 
             if not tmdb_info:
                 return None
