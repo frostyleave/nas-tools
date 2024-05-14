@@ -13,6 +13,8 @@ import log
 from app.utils.exception_utils import ExceptionUtils
 from app.utils.types import MediaType
 
+from config import SPLIT_CHARS
+
 
 class StringUtils:
 
@@ -659,3 +661,10 @@ class StringUtils:
                 offset = cn_char.regs[0][0]
         title = title[0: offset].strip() + new_info + title[offset:].strip()
         return title.strip()
+
+    @staticmethod
+    def remve_redundant_symbol(title):
+        # []换成.
+        rev_title = title.replace('[', '.').replace(']', '.').replace('「', '.').replace('」', '.').strip('.-/\&#_')
+        # 把多个连续'.'合并为一个
+        return re.sub("\.+", ".", rev_title).strip('.')

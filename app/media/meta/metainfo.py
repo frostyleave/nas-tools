@@ -83,9 +83,10 @@ def info_fix(meta_info, rev_title):
     # 移除年份
     if hasattr(meta_info, 'year') and meta_info.year:
         title = title.replace(meta_info.year, '')
-    title = title.replace('[]', '')
-    title = title.replace('[', '.').replace(']', '.').replace(resource_team, '').strip('.')
-    title = re.sub("\.+", ".", title).strip('.')
+
+    title = StringUtils.remve_redundant_symbol(title.replace(resource_team, '')).strip('.')
+    title = title.replace('-', '_')
+
     t = PTN.parse(title)
     t_title = t.get('title')
 
@@ -123,6 +124,9 @@ def preprocess_title(rev_title):
     resource_team = ReleaseGroupsMatcher().match_list(title=rev_title)
     # anitopy 辅助提取
     try:
+        # 移除无用字符
+        rev_title = StringUtils.remve_redundant_symbol(rev_title)
+        # 调用 anitopy
         anitopy_info_origin = anitopy.parse(rev_title)
         if anitopy_info_origin and anitopy_info_origin.get("release_group"):
             release_group = anitopy_info_origin.get("release_group")
@@ -139,11 +143,8 @@ def preprocess_title(rev_title):
         for item in resource_team:
             rev_title = rev_title.replace(item, '')
         resource_team = ReleaseGroupsMatcher().get_separator().join(resource_team)
-    # []换成.
-    rev_title = rev_title.replace('[', '.').replace(']', '.').strip('.')
-    # 把多个连续'.'合并为一个
-    rev_title = re.sub("\.+", ".", rev_title).strip('.')
-    return resource_team, rev_title
+
+    return resource_team, StringUtils.remve_redundant_symbol(rev_title)
 
 
 def is_anime(name):
