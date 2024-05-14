@@ -359,6 +359,14 @@ class StringUtils:
             flags=re.IGNORECASE).strip()
         if key_word:
             key_word = re.sub(r'\s+', ' ', key_word)
+        
+        season_name = re.sub(
+            r'([\s|.].*)(篇){1}', '',
+            content,
+            flags=re.IGNORECASE).strip()
+        if season_name:
+            key_word = re.sub(r'\s+', ' ', season_name)
+            
         if not key_word:
             key_word = year
 
