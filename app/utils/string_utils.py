@@ -137,6 +137,11 @@ class StringUtils:
             return False
 
     @staticmethod
+    def is_alpha_numeric_punct(s):
+        eng = re.compile(r'^[a-zA-Z0-9!"#$%&\'()*+,-./:;<=>?@[\]^_`{|}~]+$')
+        return eng.search(s)
+
+    @staticmethod
     def is_all_chinese_and_mark(word):
         """
         判断是否全是中文(包括中文标点)
@@ -676,3 +681,17 @@ class StringUtils:
         rev_title = title.replace('[', '.').replace(']', '.').replace('「', '.').replace('」', '.').strip('.-/\&#_')
         # 把多个连续'.'合并为一个
         return re.sub("\.+", ".", rev_title).strip('.')
+    
+    @staticmethod
+    def is_string_ending_with_number(s):
+        """
+        判断字符串是否以数字结尾
+        """
+        return bool(re.match(r'.*\d$', s))
+    
+    @staticmethod
+    def remove_numbers_from_end(s):
+        """
+        移除字符串尾部的数字
+        """
+        return re.sub(r'\d+$', '', s).strip()

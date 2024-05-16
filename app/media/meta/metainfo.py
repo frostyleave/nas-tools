@@ -45,7 +45,7 @@ def MetaInfo(title, subtitle=None, mtype=None):
     else:
         fileflag = False
 
-    if mtype == MediaType.ANIME or is_anime(rev_title):
+    if fileflag == False and (mtype == MediaType.ANIME or is_anime(rev_title)):
         meta_info = MetaAnime(rev_title, subtitle, fileflag)
     else:
         resource_team, rev_title = preprocess_title(rev_title)
@@ -124,8 +124,6 @@ def preprocess_title(rev_title):
     resource_team = ReleaseGroupsMatcher().match_list(title=rev_title)
     # anitopy 辅助提取
     try:
-        # 移除无用字符
-        rev_title = StringUtils.remve_redundant_symbol(rev_title)
         # 调用 anitopy
         anitopy_info_origin = anitopy.parse(rev_title)
         if anitopy_info_origin and anitopy_info_origin.get("release_group"):
