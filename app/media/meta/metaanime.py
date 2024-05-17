@@ -42,7 +42,9 @@ class MetaAnime(MetaBase):
                     if anitopy_info:
                         name = anitopy_info.get("anime_title")
                 if name and name.find("/") != -1:
-                    name = name.split("/")[-1].strip()
+                    name_arr = name.split("/")
+                    name = next(filter(lambda x: StringUtils.contain_chinese(x), name_arr), name_arr[-1].strip())
+
                 if not name or name in self._anime_no_words or (len(name) < 5 and not StringUtils.contain_chinese(name)):
                     anitopy_info = anitopy.parse("[ANIME]" + title)
                     if anitopy_info:
@@ -250,6 +252,15 @@ class MetaAnime(MetaBase):
                         titles.append("")
                     else:
                         titles.append("%s%s" % (left_char, name.strip()))
-            return "]".join(titles) + ']'
+
+            title = "]".join(titles)
+            
+            lastX = title.rfind("]")
+            if lastX > 0:
+                lastY = title.rfind("[")
+                if lastY > lastX:
+                    title += ']'
+
+        # 移除数字前的空格
         return title
 

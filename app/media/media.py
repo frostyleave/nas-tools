@@ -298,6 +298,11 @@ class Media:
                 tvs = self.search.tv_shows({"query": file_media_name, "first_air_date_year": first_media_year})
             else:
                 tvs = self.search.tv_shows({"query": file_media_name})
+            if len(tvs) == 0 and StringUtils.is_string_ending_with_number(file_media_name):
+                search_name = StringUtils.remove_numbers_from_end(file_media_name)
+                tvs = self.search.tv_shows({"query": search_name})
+                if len(tvs) > 0 :
+                    file_media_name = search_name
         except TMDbException as err:
             log.error(f"【Meta】连接TMDB出错：{str(err)}")
             return None
@@ -340,6 +345,7 @@ class Media:
                         index += 1
                         info, names = self.__search_tmdb_allnames(MediaType.TV, tv.get("id"))
                         if self.__compare_tmdb_names(file_media_name, names):
+                            info['alias'] = file_media_name
                             return info
                     if index > 5:
                         break
@@ -746,9 +752,22 @@ class Media:
         if mtype and not meta_info.type:
             meta_info.type = mtype
 
+        search_name = meta_info.get_name()
         # 查询tmdb数据
-        file_media_info = self.query_tmdb_info(meta_info.get_name(), meta_info.type, meta_info.year,
+        file_media_info = self.query_tmdb_info(search_name, meta_info.type, meta_info.year,
                                                meta_info.begin_season, append_to_response, chinese, strict, cache)
+        
+        # 搜索结果中含有别名，表明做过名称修正
+        if file_media_info and file_media_info.get('alias'):
+            alias = file_media_info.get('alias')
+            if search_name != alias:
+                if StringUtils.is_alpha_numeric_punct(alias):
+                    meta_info.en_name = alias
+                else:
+                    meta_info.cn_name = alias
+                left_str = search_name.replace(alias, '').strip()
+                if left_str and left_str.isdigit():
+                    meta_info.begin_season = int(left_str)
 
         # 通过ChatGPT查询
         if not file_media_info and self._chatgpt_enable:
@@ -760,8 +779,10 @@ class Media:
                 meta_info.set_season(seasons)
             if not meta_info.get_episode_string():
                 meta_info.set_episode(episodes)
+        
         # 赋值TMDB信息并返回
         meta_info.set_tmdb_info(file_media_info)
+        self.fix_file_season_by_tmdb_info(meta_info, file_media_info)
         return meta_info
 
     # 从tmdb查询电影信息(名称准确时可调用)
@@ -884,6 +905,9 @@ class Media:
                     # 集数修正
                     if meta_info.end_episode and meta_info.end_episode - meta_info.begin_episode > match_season.episode_count:
                         meta_info.end_episode = None
+                    elif meta_info.begin_episode and meta_info.begin_episode > match_season.episode_count:
+                        pre_total = sum(map(lambda x: x.episode_count, filter(lambda t: t.season_number > 0 and t.season_number < match_season.season_number, tmdb_info.seasons)))
+                        meta_info.begin_episode -= pre_total
                     return
             else:
                 meta_info.begin_season = x
@@ -901,6 +925,9 @@ class Media:
             # 集数修正
             if meta_info.end_episode and meta_info.end_episode - meta_info.begin_episode > match_season.episode_count:
                 meta_info.end_episode = None
+            elif meta_info.begin_episode and meta_info.begin_episode > match_season.episode_count:
+                pre_total = sum(map(lambda x: x.episode_count, filter(lambda t: t.season_number > 0 and t.season_number < match_season.season_number, tmdb_info.seasons)))
+                meta_info.begin_episode -= pre_total
 
     def __insert_media_cache(self, media_key, file_media_info):
         """
