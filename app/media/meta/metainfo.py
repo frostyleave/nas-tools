@@ -12,7 +12,7 @@ from app.utils.types import MediaType
 from config import RMT_MEDIAEXT
 
 NAME_NOSTRING_RE = r"高清影视之家发布|连载|日剧|美剧|电视剧|动画片|动漫|欧美|西德|日韩|超高清|高清|蓝光|翡翠台|梦幻天堂·龙网|★?\d?\+?\d*月?新?番★?|[日美国][漫剧]" \
-                   r"|高码版|最终季|全集|合集|[多中国英葡法俄日韩德意西印泰台港粤双文语简繁体特效内封官译外挂]+[字|幕|配|音|轨]+|版本|出品|台版|港版|\w+字幕组|未删减版"
+                   r"|高码版|最终季|全集|合集|[多中国英葡法俄日韩德意西印泰台港粤双文语简繁体特效内封官译外挂]+[字|幕|配|音|轨]+|版本|出品|台版|港版|未删减版"
 
 
 def MetaInfo(title, subtitle=None, mtype=None):
@@ -45,7 +45,7 @@ def MetaInfo(title, subtitle=None, mtype=None):
     else:
         fileflag = False
 
-    if mtype == MediaType.ANIME or is_anime(rev_title):
+    if fileflag == False and (mtype == MediaType.ANIME or is_anime(rev_title)):
         meta_info = MetaAnime(rev_title, subtitle, fileflag)
     else:
         resource_team, rev_title = preprocess_title(rev_title)
@@ -83,9 +83,10 @@ def info_fix(meta_info, rev_title):
     # 移除年份
     if hasattr(meta_info, 'year') and meta_info.year:
         title = title.replace(meta_info.year, '')
-    title = title.replace('[]', '')
-    title = title.replace('[', '.').replace(']', '.').replace(resource_team, '').strip('.')
-    title = re.sub("\.+", ".", title).strip('.')
+
+    title = StringUtils.remve_redundant_symbol(title.replace(resource_team, '')).strip('.')
+    title = title.replace('-', '_')
+
     t = PTN.parse(title)
     t_title = t.get('title')
 
@@ -123,6 +124,7 @@ def preprocess_title(rev_title):
     resource_team = ReleaseGroupsMatcher().match_list(title=rev_title)
     # anitopy 辅助提取
     try:
+        # 调用 anitopy
         anitopy_info_origin = anitopy.parse(rev_title)
         if anitopy_info_origin and anitopy_info_origin.get("release_group"):
             release_group = anitopy_info_origin.get("release_group")
@@ -139,11 +141,8 @@ def preprocess_title(rev_title):
         for item in resource_team:
             rev_title = rev_title.replace(item, '')
         resource_team = ReleaseGroupsMatcher().get_separator().join(resource_team)
-    # []换成.
-    rev_title = rev_title.replace('[', '.').replace(']', '.').strip('.')
-    # 把多个连续'.'合并为一个
-    rev_title = re.sub("\.+", ".", rev_title).strip('.')
-    return resource_team, rev_title
+
+    return resource_team, StringUtils.remve_redundant_symbol(rev_title)
 
 
 def is_anime(name):

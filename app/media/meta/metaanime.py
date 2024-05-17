@@ -37,14 +37,20 @@ class MetaAnime(MetaBase):
                 release_group = anitopy_info.get('release_group') if anitopy_info.get('release_group') else release_group
                 # 名称
                 name = anitopy_info.get("anime_title")
+                if not name:
+                    anitopy_info = anitopy.parse(StringUtils.remve_redundant_symbol(title.replace(release_group, '')))
+                    if anitopy_info:
+                        name = anitopy_info.get("anime_title")
                 if name and name.find("/") != -1:
-                    name = name.split("/")[-1].strip()
+                    name_arr = name.split("/")
+                    name = next(filter(lambda x: StringUtils.contain_chinese(x), name_arr), name_arr[-1].strip())
+
                 if not name or name in self._anime_no_words or (len(name) < 5 and not StringUtils.contain_chinese(name)):
                     anitopy_info = anitopy.parse("[ANIME]" + title)
                     if anitopy_info:
                         name = anitopy_info.get("anime_title")
                 if not name or name in self._anime_no_words or (len(name) < 5 and not StringUtils.contain_chinese(name)):
-                    name_match = re.search(r'\[(.+?)]', title)
+                    name_match = re.search(r'\[(.+?)]', title.replace(release_group, ''))
                     if name_match and name_match.group(1):
                         name = name_match.group(1).strip()
                 # 拆份中英文名称
@@ -230,6 +236,8 @@ class MetaAnime(MetaBase):
                 if name.startswith('['):
                     left_char = '['
                     name = name[1:]
+                if name and name in self._anime_no_words:
+                    continue
                 if name and name.find("/") > 0:
                     name_list = list(filter(None, name.split("/")))
                     # 名称超过2个时，取一个中文和一个非中文
@@ -244,6 +252,15 @@ class MetaAnime(MetaBase):
                         titles.append("")
                     else:
                         titles.append("%s%s" % (left_char, name.strip()))
-            return "]".join(titles)
+
+            title = "]".join(titles)
+            
+            lastX = title.rfind("]")
+            if lastX > 0:
+                lastY = title.rfind("[")
+                if lastY > lastX:
+                    title += ']'
+
+        # 移除数字前的空格
         return title
 

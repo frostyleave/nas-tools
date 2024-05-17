@@ -1211,6 +1211,28 @@ def wechat():
             log.error("微信消息处理发生错误：%s - %s" % (str(err), traceback.format_exc()))
             return make_response("ok", 200)
 
+@App.route('/sendwechat', methods=['POST'])
+@require_auth(force=False)
+def sendwechat():
+    if not SecurityHelper().check_mediaserver_ip(request.remote_addr):
+        log.warn(f"非法IP地址的媒体服务器消息通知：{request.remote_addr}")
+        return '不允许的IP地址请求'
+    interactive_client = Message().get_interactive_client(SearchType.WX)
+    if not interactive_client:
+        return make_response("NAStool没有启用微信交互", 200)
+    
+    
+    title = request.json.get('title')
+    if not title:
+        return make_response("请设置消息标题", 200)
+
+    message = request.json.get('message')
+    if not message:
+        return make_response("请填写消息内容", 200)
+    
+    Message().send_custom_message(clients=[str(interactive_client.get("id"))], title=title, text=message, image=request.json.get('image'))
+    return make_response("ok", 200)
+
 
 # Plex Webhook
 @App.route('/plex', methods=['POST'])

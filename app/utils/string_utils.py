@@ -13,6 +13,8 @@ import log
 from app.utils.exception_utils import ExceptionUtils
 from app.utils.types import MediaType
 
+from config import SPLIT_CHARS
+
 
 class StringUtils:
 
@@ -133,6 +135,11 @@ class StringUtils:
             return True
         else:
             return False
+
+    @staticmethod
+    def is_alpha_numeric_punct(s):
+        eng = re.compile(r'^[a-zA-Z0-9!"#$%&\'()*+,-./:;<=>?@[\]^_`{|}~]+$')
+        return eng.search(s)
 
     @staticmethod
     def is_all_chinese_and_mark(word):
@@ -357,6 +364,14 @@ class StringUtils:
             flags=re.IGNORECASE).strip()
         if key_word:
             key_word = re.sub(r'\s+', ' ', key_word)
+        
+        season_name = re.sub(
+            r'([\s|.].*)(篇){1}', '',
+            content,
+            flags=re.IGNORECASE).strip()
+        if season_name:
+            key_word = re.sub(r'\s+', ' ', season_name)
+            
         if not key_word:
             key_word = year
 
@@ -659,3 +674,24 @@ class StringUtils:
                 offset = cn_char.regs[0][0]
         title = title[0: offset].strip() + new_info + title[offset:].strip()
         return title.strip()
+
+    @staticmethod
+    def remve_redundant_symbol(title):
+        # []换成.
+        rev_title = title.replace('[', '.').replace(']', '.').replace('「', '.').replace('」', '.').strip('.-/\&#_')
+        # 把多个连续'.'合并为一个
+        return re.sub("\.+", ".", rev_title).strip('.')
+    
+    @staticmethod
+    def is_string_ending_with_number(s):
+        """
+        判断字符串是否以数字结尾
+        """
+        return bool(re.match(r'.*\d$', s))
+    
+    @staticmethod
+    def remove_numbers_from_end(s):
+        """
+        移除字符串尾部的数字
+        """
+        return re.sub(r'\d+$', '', s).strip()
