@@ -341,7 +341,7 @@ class Sites:
                 html = etree.HTML(page_source)
                 urls = html.xpath(xpath)
                 if urls:
-                    return str(urls[0])
+                    return str(urls[0]).strip()
         except Exception as err:
             ExceptionUtils.exception_traceback(err)
         return None
