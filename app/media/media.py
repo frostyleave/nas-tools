@@ -866,7 +866,8 @@ class Media:
         if not meta_info.begin_episode and meta_info.type == MediaType.ANIME and meta_info.fileflag:
             anitopy_info = anitopy.parse(meta_info.org_string)
             if anitopy_info and anitopy_info.get("episode_number"):
-                meta_info.begin_episode = anitopy_info.get("episode_number")
+                episode_number = anitopy_info.get("episode_number")
+                meta_info.begin_episode = episode_number if isinstance(episode_number, int) else int(episode_number)
 
         # 已识别出季集信息，或当前剧集的只有1季
         if meta_info.begin_season or tmdb_info.number_of_seasons <= 1:
