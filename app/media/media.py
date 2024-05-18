@@ -862,12 +862,6 @@ class Media:
     def fix_file_season_by_tmdb_info(self, meta_info, tmdb_info):
         if not tmdb_info or not meta_info or meta_info.type == MediaType.MOVIE:
             return
-        # 动漫集数信息补全
-        if not meta_info.begin_episode and meta_info.type == MediaType.ANIME and meta_info.fileflag:
-            anitopy_info = anitopy.parse(meta_info.org_string)
-            if anitopy_info and anitopy_info.get("episode_number"):
-                episode_number = anitopy_info.get("episode_number")
-                meta_info.begin_episode = episode_number if isinstance(episode_number, int) else int(episode_number)
 
         # 已识别出季集信息，或当前剧集的只有1季
         if meta_info.begin_season or tmdb_info.number_of_seasons <= 1:
@@ -1102,12 +1096,10 @@ class Media:
                             file_media_info = None
                     # 赋值TMDB信息
                     meta_info.set_tmdb_info(file_media_info)
-                    meta_info.fix_file_season_by_tmdb_info(meta_info, file_media_info)
                 # 自带TMDB信息
                 else:
                     meta_info = MetaInfo(title=file_name, mtype=media_type)
                     meta_info.set_tmdb_info(tmdb_info)
-                    meta_info.fix_file_season_by_tmdb_info(meta_info, tmdb_info)
                     if season and meta_info.type != MediaType.MOVIE:
                         meta_info.begin_season = int(season)
                     if episode_format:

@@ -45,7 +45,9 @@ def MetaInfo(title, subtitle=None, mtype=None):
     else:
         fileflag = False
 
-    if fileflag == False and (mtype == MediaType.ANIME or is_anime(rev_title)):
+    anime_flag = is_anime(rev_title)
+
+    if fileflag == False and (mtype == MediaType.ANIME or anime_flag):
         meta_info = MetaAnime(rev_title, subtitle, fileflag)
     else:
         resource_team, rev_title = preprocess_title(rev_title)
@@ -57,6 +59,12 @@ def MetaInfo(title, subtitle=None, mtype=None):
             meta_info.year = year
         if resource_team:
             meta_info.resource_team = resource_team
+        # 动漫文件集数信息补全
+        if anime_flag and fileflag and not meta_info.begin_episode:
+            anitopy_info = anitopy.parse(meta_info.org_string)
+            if anitopy_info and anitopy_info.get("episode_number"):
+                episode_number = anitopy_info.get("episode_number")
+                meta_info.begin_episode = episode_number if isinstance(episode_number, int) else int(episode_number)
 
     # 信息修正
     info_fix(meta_info, rev_title)
