@@ -1102,10 +1102,12 @@ class Media:
                             file_media_info = None
                     # 赋值TMDB信息
                     meta_info.set_tmdb_info(file_media_info)
+                    meta_info.fix_file_season_by_tmdb_info(meta_info, file_media_info)
                 # 自带TMDB信息
                 else:
                     meta_info = MetaInfo(title=file_name, mtype=media_type)
                     meta_info.set_tmdb_info(tmdb_info)
+                    meta_info.fix_file_season_by_tmdb_info(meta_info, tmdb_info)
                     if season and meta_info.type != MediaType.MOVIE:
                         meta_info.begin_season = int(season)
                     if episode_format:
