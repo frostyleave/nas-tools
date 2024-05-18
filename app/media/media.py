@@ -3,6 +3,7 @@ import os
 import random
 import re
 import traceback
+import anitopy
 import cn2an
 from functools import lru_cache
 
@@ -861,12 +862,19 @@ class Media:
     def fix_file_season_by_tmdb_info(self, meta_info, tmdb_info):
         if not tmdb_info or not meta_info or meta_info.type == MediaType.MOVIE:
             return
+        # 动漫集数信息补全
+        if not meta_info.begin_episode and meta_info.type == MediaType.ANIME and meta_info.fileflag:
+            anitopy_info = anitopy.parse(meta_info.org_string)
+            if anitopy_info and anitopy_info.get("episode_number"):
+                meta_info.begin_episode = anitopy_info.get("episode_number")
+
         # 已识别出季集信息，或当前剧集的只有1季
         if meta_info.begin_season or tmdb_info.number_of_seasons <= 1:
             return
         # 名称中没有可以用于进行季集修正的数据
         if not meta_info.cn_name:
             return
+            
         if tmdb_info.name != meta_info.cn_name:
             self.fix_when_name_different(meta_info, tmdb_info)
         elif '篇' in meta_info.rev_string:
