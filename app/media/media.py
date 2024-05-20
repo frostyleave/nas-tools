@@ -866,15 +866,14 @@ class Media:
         # 已识别出季集信息，或当前剧集的只有1季
         if meta_info.begin_season or tmdb_info.number_of_seasons <= 1:
             return
-        # 名称中没有可以用于进行季集修正的数据
-        if not meta_info.cn_name:
-            return
             
-        if tmdb_info.name != meta_info.cn_name:
+        if meta_info.cn_name and tmdb_info.name != meta_info.cn_name:
             self.fix_when_name_different(meta_info, tmdb_info)
         elif '篇' in meta_info.rev_string:
             self.fix_when_has_season_name(meta_info, tmdb_info)
             return
+        else:
+            self.fix_when_season_episode_not_match(meta_info, tmdb_info)
     
     # 名称信息不同
     def fix_when_name_different(self, meta_info, tmdb_info):
@@ -931,6 +930,36 @@ class Media:
             elif meta_info.begin_episode and meta_info.begin_episode > match_season.episode_count:
                 pre_total = sum(map(lambda x: x.episode_count, filter(lambda t: t.season_number > 0 and t.season_number < match_season.season_number, tmdb_info.seasons)))
                 meta_info.begin_episode -= pre_total
+
+    # 季集名称不匹配
+    def fix_when_season_episode_not_match(self, meta_info, tmdb_info):
+
+        if not meta_info.begin_episode:
+            return
+
+        season_number = meta_info.begin_season
+        if not season_number:
+            season_number = 1
+        elif isinstance(season_number, str):
+            season_number = int(season_number)
+
+        match_season = next(filter(lambda t: t.season_number == season_number, tmdb_info.seasons), None)
+        if not match_season:
+            return
+        
+        if meta_info.begin_episode <= match_season.episode_count:
+            return
+        
+        # 集数大于当前季的总集数，需要重新推进
+        begin_episode = meta_info.begin_episode - match_season.episode_count
+        lst_season = list(filter(lambda t: t.season_number > season_number, tmdb_info.seasons))
+        for season_info in lst_season:
+            if begin_episode <= season_info.episode_count:
+                meta_info.begin_season = season_info.season_number
+                meta_info.begin_episode = begin_episode
+                return
+            begin_episode -= season_info.episode_count
+        
 
     def __insert_media_cache(self, media_key, file_media_info):
         """
@@ -1096,10 +1125,12 @@ class Media:
                             file_media_info = None
                     # 赋值TMDB信息
                     meta_info.set_tmdb_info(file_media_info)
+                    self.fix_file_season_by_tmdb_info(meta_info, file_media_info)
                 # 自带TMDB信息
                 else:
                     meta_info = MetaInfo(title=file_name, mtype=media_type)
                     meta_info.set_tmdb_info(tmdb_info)
+                    self.fix_file_season_by_tmdb_info(meta_info, file_media_info)
                     if season and meta_info.type != MediaType.MOVIE:
                         meta_info.begin_season = int(season)
                     if episode_format:
