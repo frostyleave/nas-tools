@@ -247,6 +247,19 @@ class MetaAnime(MetaBase):
                         name_list = [name_cn, name_other]
                         name_list = list(filter(lambda x: x is not None, name_list))
                         name = "/".join(name_list)
+                    
+                    if len(name_list) == 2:
+                        name_cn = next(filter(lambda x: StringUtils.contain_chinese(x), name_list), None)
+                        name_other = next(filter(lambda x: not StringUtils.contain_chinese(x), name_list), None)
+                        if name_cn and name_other:
+                            splited_text = list(filter(None, re.split(r'%s' % SPLIT_CHARS, name_other)))
+                            if len(splited_text) > 2:
+                                numbers = list(filter(lambda x: x.isdigit(), splited_text))
+                                if len(numbers) > 1:
+                                    pos = name_other.find(numbers[0])
+                                    name_other = name_other[:pos] + 'S' + name_other[pos:]
+                                    name =  name_cn + "/" + name_other
+
                 if name:
                     if name == '[':
                         titles.append("")
