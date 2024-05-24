@@ -758,19 +758,7 @@ class Media:
         file_media_info = self.query_tmdb_info(search_name, meta_info.type, meta_info.year,
                                                meta_info.begin_season, append_to_response, chinese, strict, cache)
         
-        # 搜索结果中含有别名，表明做过名称修正
-        if file_media_info and file_media_info.get('alias'):
-            alias = file_media_info.get('alias')
-            if search_name != alias:
-                if StringUtils.is_alpha_numeric_punct(alias):
-                    meta_info.en_name = alias
-                else:
-                    meta_info.cn_name = alias
-                left_str = search_name.replace(alias, '').strip()
-                if left_str and left_str.isdigit():
-                    meta_info.begin_season = int(left_str)
-
-        # 通过ChatGPT查询
+       # 通过ChatGPT查询
         if not file_media_info and self._chatgpt_enable:
             mtype, seasons, episodes, file_media_info = self.__search_chatgpt(file_name=meta_info.get_name(),
                                                                               mtype=mtype)
@@ -863,8 +851,25 @@ class Media:
         if not tmdb_info or not meta_info or meta_info.type == MediaType.MOVIE:
             return
 
-        # 已识别出季集信息，或当前剧集的只有1季
-        if meta_info.begin_season or tmdb_info.number_of_seasons <= 1:
+        # 当前剧集的只有1季
+        if tmdb_info.number_of_seasons <= 1:
+            return
+
+        search_name = meta_info.get_name()
+        # 搜索结果中含有别名，表明做过名称修正
+        if tmdb_info.get('alias'):
+            alias = tmdb_info.get('alias')
+            if search_name != alias:
+                if StringUtils.is_alpha_numeric_punct(alias):
+                    meta_info.en_name = alias
+                else:
+                    meta_info.cn_name = alias
+                left_str = search_name.replace(alias, '').strip()
+                if left_str and left_str.isdigit():
+                    meta_info.begin_season = int(left_str)
+
+        # 已识别出季集信息
+        if meta_info.begin_season:
             return
             
         if meta_info.cn_name and tmdb_info.name != meta_info.cn_name:
@@ -982,7 +987,8 @@ class Media:
                     "year": cache_year,
                     "title": cache_title,
                     "poster_path": file_media_info.get("poster_path"),
-                    "backdrop_path": file_media_info.get("backdrop_path")
+                    "backdrop_path": file_media_info.get("backdrop_path"),
+                    "alias": file_media_info.get("alias")
                 }
             })
         else:
