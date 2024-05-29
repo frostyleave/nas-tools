@@ -49,7 +49,7 @@ def MetaInfo(title, subtitle=None, mtype=None):
 
     anime_flag = is_anime(rev_title)
 
-    if fileflag == False and (mtype == MediaType.ANIME or anime_flag):
+    if mtype == MediaType.ANIME or anime_flag:
         meta_info = MetaAnime(rev_title, subtitle, fileflag)
     else:
         resource_team, rev_title = preprocess_title(rev_title)
