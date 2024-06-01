@@ -24,6 +24,10 @@ class Gopeed(_IDownloadClient):
     download_dir = []
     name = "gopeed"
 
+    magnet_prefix = 'magnet:?xt=urn:btih:'
+    magnet_prefix_len = 20
+    magnet_hash_split = '&dn='
+
     def __init__(self, config=None):
         if config:
             self._client_config = config
@@ -131,11 +135,24 @@ class Gopeed(_IDownloadClient):
                 file = open(content, 'r', encoding='ISO-8859-1')
                 file_content = file.read()
                 base64_str = base64.b64encode(file_content.encode()).decode('ascii')
-                return self._client.addTask(url=base64_str, name=name, path=download_dir, **kwargs)
+                save_name = self.join_name_with_hash(name, base64_str)
+                return self._client.addTask(url=base64_str, name=save_name, path=download_dir, **kwargs)
             
-            return self._client.addTask(url=content, name=name, path=download_dir, **kwargs)
+            save_name = self.join_name_with_hash(name, content)
+            return self._client.addTask(url=content, name=save_name, path=download_dir, **kwargs)
         else:
             return "无法提交下载任务"
+    
+    def join_name_with_hash(self, name, input_link):
+        if not input_link or not input_link.startswith(self.magnet_prefix):
+            return name
+
+        s_index = input_link.find(self.magnet_hash_split)
+        if s_index < 0:
+            return '{0}-{1}'.format(name, input_link[self.magnet_prefix_len:])
+        
+        return '{0}-{1}'.format(name, input_link[self.magnet_prefix_len:s_index])
+
 
     def start_torrents(self, ids):
         if not self._client:
