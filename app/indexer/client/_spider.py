@@ -415,8 +415,7 @@ class TorrentSpider(feapder.AirSpider):
         item = self.__filter_text(item, selector.get('filters'))
         if item:
             self.torrents_info['size'] = StringUtils.num_filesize(item.replace("\n", "").strip())
-            self.torrents_info['size'] = self.__filter_text(self.torrents_info.get('size'),
-                                                            selector.get('filters'))
+            self.torrents_info['size'] = self.__filter_text(self.torrents_info.get('size'), selector.get('filters'))
             self.torrents_info['size'] = StringUtils.num_filesize(self.torrents_info.get('size'))
 
     def Getleechers(self, torrent):

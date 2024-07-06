@@ -11,6 +11,7 @@ from app.indexer.client._render_spider import RenderSpider
 from app.indexer.client._spider import TorrentSpider
 from app.indexer.client._tnode import TNodeSpider
 from app.indexer.client._torrentleech import TorrentLeech
+from app.indexer.client._interface import InterfaceSpider
 from app.indexer.client._plugins import PluginsSpider
 from app.indexer.manager import IndexerManager, IndexerConf
 from app.sites import Sites
@@ -154,6 +155,8 @@ class BuiltinIndexer(_IIndexClient):
                     mtype=match_media.type if match_media and match_media.tmdb_info else None)
             elif indexer.parser == "TorrentLeech":
                 error_flag, result_array = TorrentLeech(indexer).search(keyword=search_word)
+            elif indexer.parser == "InterfaceSpider":
+                error_flag, result_array = InterfaceSpider(indexer).search(keyword=search_word)
             else:
                 error_flag, result_array = self.__spider_search(
                     keyword=search_word,

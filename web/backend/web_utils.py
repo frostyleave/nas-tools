@@ -126,11 +126,8 @@ class WebUtils:
             media_info.set_tmdb_info(tmdb_info)
             media_info.begin_season = begin_season
             media_info.douban_id = doubanid
-            
-            media_info.cn_name = title
-            media_info.title = title
-            media_info.rev_string = title
-            media_info.org_string = title
+
+            WebUtils.adjust_tv_search_name(mtype, title, media_info)
 
             return media_info
         if str(mediaid).startswith("BG:"):
@@ -165,15 +162,22 @@ class WebUtils:
             if douban_info:
                 douban_id_list = list(map(lambda x: x.get("id"), douban_info))
                 media_info.douban_id = ",".join(douban_id_list)
-                douban_title = douban_info[0].get("title")
-                media_info.cn_name = douban_title
-                media_info.title = douban_title
-                media_info.rev_string = douban_title
-                media_info.org_string = douban_title
+
+                WebUtils.adjust_tv_search_name(mtype, douban_info[0].get("title"), media_info)
+
             else:
                 media_info.douban_id = ''
 
         return media_info
+
+    @staticmethod
+    def adjust_tv_search_name(mtype, search_name, media_info):
+        if not search_name or MediaType.TV != mtype:
+            return
+        media_info.cn_name = search_name
+        media_info.title = search_name
+        media_info.rev_string = search_name
+        media_info.org_string = search_name    
 
     @staticmethod
     def search_media_infos(keyword, source=None, page=1):
