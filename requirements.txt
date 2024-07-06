@@ -11,7 +11,7 @@ better-exceptions==0.3.3
 bs4==0.0.1
 cacheout==0.15.0
 cachetools==5.3.2
-certifi==2023.7.22
+certifi>=2024.07.04
 cffi==1.16.0
 charset-normalizer==3.3.2
 click==8.1.7
@@ -104,7 +104,7 @@ typing_extensions==4.8.0
 tzdata==2023.3
 tzlocal==5.2
 undetected-chromedriver==3.5.3
-urllib3==2.0.7
+urllib3>=2.2.2
 w3lib==2.0.1
 watchdog==2.1.9
 wcwidth==0.2.5
