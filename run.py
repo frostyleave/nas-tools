@@ -25,14 +25,16 @@ if is_executable:
         print(str(err))
 
 from config import Config
-import log
+
 from web.action import WebAction
 from web.main import App
 from app.db import init_db, update_db, init_data
-from app.helper import init_chrome
+from app.helper.chrome_helper import ChromeHelper
+
 from initializer import update_config, check_config,  start_config_monitor, stop_config_monitor
 from version import APP_VERSION
 
+import log
 
 def sigal_handler(num, stack):
     """
@@ -138,8 +140,8 @@ if __name__ == '__main__':
             p1 = threading.Thread(target=traystart, daemon=True)
             p1.start()
 
-    # 初始化浏览器驱动
-    init_chrome()
+    # 初始化chrome驱动
+    ChromeHelper().init_driver()
 
     # Flask启动
     App.run(**get_run_config(is_windows_exe))

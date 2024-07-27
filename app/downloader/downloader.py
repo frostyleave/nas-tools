@@ -1,22 +1,24 @@
-import datetime
+import bencodepy
+import hashlib
 import os
 import re
 import time
 import json
+import log
+import urllib
+import requests
 
 from apscheduler.schedulers.background import BackgroundScheduler
 from bencode import bdecode
 from threading import Lock
 from enum import Enum
 from urllib.parse import unquote
-from selenium import webdriver
-from selenium.webdriver.chrome.options import Options
 
-import log
 from app.conf import ModuleConf
 from app.conf import SystemConfig
 from app.filetransfer import FileTransfer
 from app.helper import DbHelper, ThreadHelper, SubmoduleHelper
+from app.helper.chrome_helper import ChromeHelper
 from app.media import Media
 from app.media.meta import MetaInfo
 from app.mediaserver import MediaServer
@@ -26,6 +28,7 @@ from app.sites import Sites, SiteSubtitle
 from app.utils import Torrent, StringUtils, SystemUtils, ExceptionUtils, NumberUtils, RequestUtils
 from app.utils.commons import singleton
 from app.utils.types import MediaType, DownloaderType, SearchType, RmtMode, EventType, SystemConfigKey
+
 from config import Config, PT_TAG, RMT_MEDIAEXT, PT_TRANSFER_INTERVAL
 
 lock = Lock()
@@ -368,17 +371,28 @@ class Downloader:
                     # 获取Cookie和ua等
                     site_info = self.sites.get_sites(siteurl=url)
                     if not site_info:
-                        site_info = self.sites.get_public_sites(url=url)
-                    render = site_info and site_info["render"]
-                    # 下载种子文件，并读取信息
-                    torrent_file, content, dl_files_folder, dl_files, retmsg = self.get_torrent_info(
-                        url=url,
-                        cookie=site_info.get("cookie"),
-                        ua=site_info.get("ua"),
-                        referer=page_url if site_info.get("referer") else None,
-                        proxy=proxy if proxy is not None else site_info.get("proxy"),
-                        render=render
-                    )
+                        site_info = self.sites.get_public_sites(url=url,site_name=media_info.site)
+
+                    render = True if site_info and site_info["render"] else False
+
+                    if render and site_info.get('parser') != "InterfaceSpider":
+                        torrent_file, content, dl_files_folder, dl_files, retmsg = self.get_torrent_info(url=url,render=render)
+                    else:
+                        use_session = site_info and site_info.get('parser') == "InterfaceSpider"
+                        proxy = True if site_info and site_info.get("proxy") else False
+                        cookie = site_info.get("cookie") if site_info else None
+                        ua = site_info.get("ua") if site_info else None
+                        referer = page_url if site_info and site_info.get("referer") else None
+
+                        # 下载种子文件，并读取信息
+                        torrent_file, content, dl_files_folder, dl_files, retmsg = self.get_torrent_info(
+                            url=url,
+                            cookie=cookie,
+                            ua=ua,
+                            referer=referer,
+                            proxy=proxy,
+                            use_session=use_session
+                        )
 
         # 解析完成
         if retmsg:
@@ -387,6 +401,9 @@ class Downloader:
         if not content:
             __download_fail(retmsg)
             return None, None, retmsg
+
+        if torrent_file:
+            content = self.torrent_to_magnet(torrent_file)
 
         # 下载设置
         if not download_setting and media_info.site:
@@ -584,7 +601,41 @@ class Downloader:
             log.error(f"【Downloader】下载器 {downloader_name} 添加任务出错：%s" % str(e))
             return None, None, str(e)
 
-    def get_torrent_info(self, url, cookie=None, ua=None, referer=None, proxy=False, render=False):
+    def torrent_to_magnet(self, torrent_file):
+
+        # 读取种子文件
+        with open(torrent_file, 'rb') as f:
+            torrent_data = bencodepy.decode(f.read())
+
+        # 提取info部分并计算info hash
+        info = torrent_data[b'info']
+        info_hash = hashlib.sha1(bencodepy.encode(info)).hexdigest()
+
+        # 获取种子文件中的文件名
+        name = torrent_data[b'info'].get(b'name', b'').decode('utf-8')
+
+        # 提取trackers
+        trackers = []
+        if b'announce' in torrent_data:
+            trackers.append(torrent_data[b'announce'].decode('utf-8'))
+        if b'announce-list' in torrent_data:
+            for tracker_list in torrent_data[b'announce-list']:
+                for tracker in tracker_list:
+                    trackers.append(tracker.decode('utf-8'))
+
+        # 去重
+        trackers = list(set(trackers))
+
+        # 构建磁力链接
+        magnet_link = f"magnet:?xt=urn:btih:{info_hash}"
+        if name:
+            magnet_link += f"&dn={urllib.parse.quote(name)}"
+        for tracker in trackers:
+            magnet_link += f"&tr={urllib.parse.quote(tracker)}"
+
+        return magnet_link
+
+    def get_torrent_info(self, url, cookie=None, ua=None, referer=None, proxy=False, render=False, use_session=False):
         """
         把种子下载到本地，返回种子内容
         :param url: 种子链接
@@ -603,6 +654,12 @@ class Downloader:
             # 下载保存种子文件
             if render:
                 file_path, content, errmsg = self.download_torrent_file_with_selenium(url=url)
+            elif use_session:
+                file_path, content, errmsg = self.save_torrent_file_with_session(url=url,
+                                                                                 cookie=cookie,
+                                                                                 ua=ua,
+                                                                                 referer=referer,
+                                                                                 proxy=proxy)
             else:
                 file_path, content, errmsg = self.save_torrent_file(url=url,
                                                                     cookie=cookie,
@@ -619,29 +676,61 @@ class Downloader:
         except Exception as err:
             return None, None, "", [], "下载种子文件出现异常：%s" % str(err)
 
+    def save_torrent_file_with_session(self, url, cookie=None, ua=None, referer=None, proxy=False):
+        """
+        把种子下载到本地
+        :return: 种子保存路径，错误信息
+        """
+        
+        proxies = Config().get_proxies() if proxy else None
+
+        req = RequestUtils(headers=ua, cookies=cookie, referer=referer, proxies=proxies).get_res(url=url,allow_redirects=True)
+        if req.status_code != 200:
+            return None, None, "下载种子出错，状态码：%s" % req.status_code
+        
+        # 使用正则表达式从响应内容中提取 cookie 值
+        match = re.search(r'document.cookie = "([^=]+)=([^;]+);', req.text)
+        cookie_name = match.group(1)
+        cookie_value = match.group(2)
+        # 创建一个会话对象
+        session = requests.Session()
+        # 设置 cookie
+        session.cookies.set(cookie_name, cookie_value)
+            
+        req = RequestUtils(headers=ua, cookies=cookie, referer=referer, session=session, proxies=proxies).get_res(url=url,allow_redirects=True)
+
+        if req and req.status_code == 200:
+            if not req.content:
+                return None, None, "未下载到种子数据"
+            # 读取种子文件名
+            file_name = self.get_url_torrent_filename(req, url)
+            if not file_name:
+                return None, None, "读取文件名称失败"
+            
+            # 种子文件路径
+            file_path = os.path.join(self._torrent_temp_path, file_name)
+            # 种子内容
+            file_content = req.content
+            # 写入磁盘
+            with open(file_path, 'wb') as f:
+                f.write(file_content)
+        elif req is None:
+            return None, None, "无法打开链接：%s" % url
+        elif req.status_code == 429:
+            return None, None, "触发站点流控，请稍后重试"
+        else:
+            return None, None, "下载种子出错，状态码：%s" % req.status_code
+
+        return file_path, file_content, ""
+
     def save_torrent_file(self, url, cookie=None, ua=None, referer=None, proxy=False):
         """
         把种子下载到本地
         :return: 种子保存路径，错误信息
         """
-        req = RequestUtils(
-            headers=ua,
-            cookies=cookie,
-            referer=referer,
-            proxies=Config().get_proxies() if proxy else None
-        ).get_res(url=url)
-
-        while req and req.status_code in [301, 302]:
-            url = req.headers['Location']
-            if url and url.startswith("magnet:"):
-                return None, url, f"获取到磁力链接：{url}"
-
-            req = RequestUtils(
-                headers=ua,
-                cookies=cookie,
-                referer=referer,
-                proxies=Config().get_proxies() if proxy else None
-            ).get_res(url=url)
+        
+        proxies = Config().get_proxies() if proxy else None           
+        req = RequestUtils(headers=ua, cookies=cookie, referer=referer, proxies=proxies).get_res(url=url,allow_redirects=True)
 
         if req and req.status_code == 200:
             if not req.content:
@@ -698,6 +787,9 @@ class Downloader:
                     return None, None, "种子数据有误，请确认链接是否正确"
             # 读取种子文件名
             file_name = self.get_url_torrent_filename(req, url)
+            if not file_name:
+                return None, None, "读取文件名称失败"
+            
             # 种子文件路径
             file_path = os.path.join(self._torrent_temp_path, file_name)
             # 种子内容
@@ -728,8 +820,7 @@ class Downloader:
                 file_name = file_name[:-1]
         elif url and url.endswith(".torrent"):
             file_name = unquote(url.split("/")[-1])
-        else:
-            file_name = str(datetime.datetime.now())
+
         return file_name
 
     def download_torrent_file_with_selenium(self, url, wait_time=10):
@@ -742,50 +833,20 @@ class Downloader:
         file_content = None
         headless = True
 
-        chrome_options = Options()
-        chrome_options.add_argument('--disable-gpu')
-        chrome_options.add_argument('--no-sandbox')
-        chrome_options.add_argument('--ignore-certificate-errors')
-        chrome_options.add_argument('--disable-dev-shm-usage')
-        chrome_options.add_argument("--start-maximized")
-        chrome_options.add_argument("--disable-blink-features=AutomationControlled")
-        chrome_options.add_argument("--disable-extensions")
-        chrome_options.add_argument("--disable-plugins-discovery")
-        chrome_options.add_argument('--no-first-run')
-        chrome_options.add_argument('--no-service-autorun')
-        chrome_options.add_argument('--no-default-browser-check')
-        chrome_options.add_argument('--password-store=basic')
-        chrome_options.add_argument('--lang=zh-CN')
-
         if SystemUtils.is_windows() or SystemUtils.is_macos():
-            chrome_options.add_argument("--window-position=-32000,-32000")
             headless = False
         
-        if headless:
-            chrome_options.add_argument('--headless')
-
-        chrome_options.add_experimental_option("prefs", {
-            "useAutomationExtension": False,
-            "profile.managed_default_content_settings.images": 2 if headless else 1,
-            "download.default_directory": self._torrent_temp_path,
-            "download.prompt_for_download": False,
-            "safebrowsing.enabled": False,
-            "download.directory_upgrade": True,
-            "excludeSwitches": ["enable-automation", "enable-logging"]
-        })
-
-        chrome = webdriver.Chrome(options=chrome_options)
+        chrome = ChromeHelper(headless=headless)
         # 防爬处理
-        chrome.execute_cdp_cmd("Page.addScriptToEvaluateOnNewDocument",
+        chrome.browser.execute_cdp_cmd("Page.addScriptToEvaluateOnNewDocument",
                                 {"source": "Object.defineProperty(navigator, 'webdriver', {get: () => False}) "})
         # 请求下载页
-        chrome.get(url)
-        # 等待文件下载完成
-        chrome.implicitly_wait(wait_time)  # 等待20秒
+        chrome.visit(url, timeout=wait_time)
+
         # 切换新标签页
-        chrome.switch_to.window(chrome.window_handles[-1])
+        # chrome.browser.switch_to.window(chrome.browser.window_handles[-1])
         # 切换到下载页
-        chrome.get('chrome://downloads')
+        chrome.new_tab('chrome://downloads')
         # 定义截止时间
         end_time = time.time() + wait_time
         while True:

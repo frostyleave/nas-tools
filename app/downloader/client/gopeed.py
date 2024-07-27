@@ -1,9 +1,7 @@
 import os
-import re
-import base64
-
 import log
-from app.utils import RequestUtils, ExceptionUtils, StringUtils
+
+from app.utils import StringUtils
 from app.utils.types import DownloaderType
 from app.downloader.client._base import _IDownloadClient
 from app.downloader.client._pygopeed import PyGopeed
@@ -129,15 +127,7 @@ class Gopeed(_IDownloadClient):
     def add_torrent(self, content, name=name, download_dir=None, **kwargs):
         if not self._client:
             return None
-        if isinstance(content, str):
-            # 已读取的磁力文件内容
-            if content.endswith('.torrent'):
-                file = open(content, 'r', encoding='ISO-8859-1')
-                file_content = file.read()
-                base64_str = base64.b64encode(file_content.encode()).decode('ascii')
-                save_name = self.join_name_with_hash(name, base64_str)
-                return self._client.addTask(url=base64_str, name=save_name, path=download_dir, **kwargs)
-            
+        if isinstance(content, str):         
             save_name = self.join_name_with_hash(name, content)
             return self._client.addTask(url=content, name=save_name, path=download_dir, **kwargs)
         else:

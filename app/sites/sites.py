@@ -346,23 +346,29 @@ class Sites:
             ExceptionUtils.exception_traceback(err)
         return None
 
-    def get_public_sites(self, url):
+    def get_public_sites(self, url, site_name):
         """
         根据url查询站点信息
         """
+        indexers = IndexerManager().get_all_indexers()
         if url:
-            base_url = StringUtils.get_base_url(url)
-            indexers = IndexerManager().get_all_indexers()
+            base_url = StringUtils.get_base_url(url)            
             sites_info = next(filter(lambda x: x.get("domain").startswith(base_url), indexers), None)
-            if not sites_info:
-                url_sld = StringUtils.get_url_sld(url)
-                sites_info = next(filter(lambda x: url_sld.startswith(x.get("id")), indexers), None)
-                # 网址动态变更型站点，更新domain
-                if sites_info:
-                    sites_info["domain"] = base_url
+            if sites_info:
+                return sites_info
+            
+            url_sld = StringUtils.get_url_sld(url)
+            sites_info = next(filter(lambda x: url_sld.startswith(x.get("id")), indexers), None)
+            # 网址动态变更型站点，更新domain
+            if sites_info:
+                sites_info["domain"] = base_url
+                return sites_info
+            
+        if site_name:
+            sites_info = next(filter(lambda x: x.get("name") == site_name, indexers), None)
             return sites_info
-        else:
-            return None
+
+        return None
 
     @staticmethod
     def __get_site_note_items(note):
