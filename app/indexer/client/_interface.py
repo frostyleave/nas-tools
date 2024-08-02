@@ -1,19 +1,12 @@
 # coding: utf-8
-import copy
 import json
+import log
 import re
-import time
+import requests
+
 from urllib.parse import quote
 
-from pyquery import PyQuery
-import requests
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support import expected_conditions as es
-from selenium.webdriver.support.wait import WebDriverWait
-
-from app.helper import ChromeHelper
 from app.indexer.client._spider import TorrentSpider
-from app.utils import ExceptionUtils
 from app.utils.string_utils import StringUtils
 from config import Config
 
@@ -46,6 +39,22 @@ class InterfaceSpider(object):
         if isinstance(keyword, list):
             keyword = " ".join(keyword)
 
+        list_selector = self._indexer.torrents.get('list')
+        if not list_selector:
+            log.warn(f"【InterfaceSpider】渲染器{self._indexer.name} 中torrents配置错误, 缺失list")
+            return False, []
+
+        # 种子筛选器
+        torrents_selector = list_selector.get('selector', 'pre')
+        if not torrents_selector:
+            log.warn(f"【InterfaceSpider】渲染器{self._indexer.name} 中torrents->list配置错误, 缺失selector")
+            return False, []
+        
+        field_selector = self._indexer.torrents.get('fields')
+        if not field_selector:
+            log.warn(f"【InterfaceSpider】渲染器{self._indexer.name} 中torrents配置错误, 缺失fields")
+            return False, []
+
         # 请求路径
         torrentspath = self._indexer.search.get('paths', [{}])[0].get('path', '') or ''
         search_url = self._indexer.domain + torrentspath.replace("{keyword}", quote(keyword))
@@ -60,48 +69,42 @@ class InterfaceSpider(object):
             proxy = Config().get_proxies().get("https")
             if proxy:
                 proxies = proxy.split('/')[-1]
+        
+        # 创建一个会话对象
+        session = requests.Session()
 
         # 发送请求
-        response = requests.get(search_url, headers=headers, allow_redirects=True,  proxies=proxies)
-        
+        log.info(f"【InterfaceSpider】开始请求: {search_url}")
+        response = session.get(search_url, headers=headers, allow_redirects=True,  proxies=proxies)
+
         if response.status_code != 200:
+            log.warn(f"【InterfaceSpider】请求{search_url} 失败: {str(response.status_code)}")
             return True, []
 
         # 使用正则表达式从响应内容中提取 cookie 值
         match = re.search(r'document.cookie = "([^=]+)=([^;]+);', response.text)
         cookie_name = match.group(1)
         cookie_value = match.group(2)
-        # 创建一个会话对象
-        session = requests.Session()
+
         # 设置 cookie
         session.cookies.set(cookie_name, cookie_value)
 
         # 重新发送请求
         response = session.get(search_url, proxies=proxies)
         if response.status_code != 200:
+            log.warn(f"【InterfaceSpider】session请求{search_url} 失败: {str(response.status_code)}")
             return True, []
 
         # 获取HTML文本
         html_text = response.text
         if not html_text:
+            log.warn(f"【InterfaceSpider】session请求{search_url} 失败: 返回结果为空")
             return True, []
-
-        list_selector = self._indexer.torrents.get('list')
-        if not list_selector:
-            return False, []
-
-        field_selector = self._indexer.torrents.get('fields')
-        if not field_selector:
-            return False, []
-
-        # 种子筛选器
-        torrents_selector = list_selector.get('selector', 'pre')
-        if not torrents_selector:
-            return False, []
         
         # 解析文本
         json_obj = json.loads(html_text)
         if not json_obj:
+            log.warn(f"【InterfaceSpider】json解析失败: {html_text}")
             return False, []
         
         data_root = list_selector.get('root')
@@ -111,7 +114,9 @@ class InterfaceSpider(object):
             for param_name in params:
                 tmp_data = tmp_data.get(param_name)
                 if not tmp_data:
+                    log.warn(f"【InterfaceSpider】{param_name}字段值为空")
                     return False, []
+                
             json_obj = tmp_data
         
         data_list = []
@@ -124,6 +129,7 @@ class InterfaceSpider(object):
         elif isinstance(json_obj, list):
             data_list = json_obj
         else:
+            log.warn(f"【InterfaceSpider】json对象结构错误: {html_text}")
             return False, []
         
         for data_item in data_list:

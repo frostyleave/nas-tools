@@ -128,11 +128,15 @@ class Indexer(object):
             log.error("没有配置索引器，无法搜索！")
             return []
 
-        if match_media and match_media.type and match_media.type.name in INDEXER_CATEGORY:
+        if filter_args.get('site'):
+            sites = filter_args.get('site')
+            indexers = list(filter(lambda x: x.name in sites, indexers))            
+        elif match_media and match_media.type and match_media.type.name in INDEXER_CATEGORY:
             indexers = list(filter(lambda x: not x.source_type or match_media.type.name in x.source_type, indexers))
-            if not indexers:
-                log.error("没有配置符合条件的索引器，无法搜索！")
-                return []
+
+        if not indexers:
+            log.error("没有配置符合条件的索引器，无法搜索！")
+            return []
 
         # 计算耗时
         start_time = datetime.datetime.now()
@@ -170,6 +174,10 @@ class Indexer(object):
             if 'imdb' in index.search_type and match_media.imdb_id:
                 task = executor.submit(self._client.search, order_seq, index, match_media.imdb_id, filter_args, match_media, in_from)
                 all_task.append(task)
+
+            # 订阅指定搜索词时，不进行后续
+            if key_word and (in_from == SearchType.RSS or in_from == SearchType.USERRSS):
+                continue
 
             # 英文名检索
             en_name = self.get_en_name(match_media)

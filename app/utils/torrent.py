@@ -4,6 +4,7 @@ import re
 import zhconv
 from bencode import bdecode
 
+from app.utils.media_utils import MediaUtils
 from app.utils.types import MediaType
 from config import ZHTW_SUB_RE
 
@@ -109,31 +110,9 @@ class Torrent:
         if not media_list:
             return []
 
-        # 排序函数，标题、站点、资源类型、做种数量
-        def get_sort_str(x):
-            season_len = str(len(x.get_season_list())).rjust(2, '0')
-            episode_len = str(len(x.get_episode_list())).rjust(4, '0')
-            # 繁体资源标记
-            t_tag = "1" if re.match(ZHTW_SUB_RE, x.title) else "0"
-            # 标题统一处理为简体中文
-            zh_hant_title = t_tag + zhconv.convert(x.title, 'zh-hant')
-            # 排序：标题、资源类型、站点、做种、季集
-            if download_order == "seeder":
-                return "%s%s%s%s%s" % (str(zh_hant_title).ljust(100, ' '),
-                                       str(x.res_order).rjust(3, '0'),
-                                       str(x.seeders).rjust(10, '0'),
-                                       str(x.site_order).rjust(3, '0'),
-                                       "%s%s" % (season_len, episode_len))
-            else:
-                return "%s%s%s%s%s" % (str(zh_hant_title).ljust(100, ' '),
-                                       str(x.res_order).rjust(3, '0'),
-                                       str(x.site_order).rjust(3, '0'),
-                                       str(x.seeders).rjust(10, '0'),
-                                       "%s%s" % (season_len, episode_len))
-
         # 匹配的资源中排序分组选最好的一个下载
         # 按站点顺序、资源匹配顺序、做种人数下载数逆序排序
-        media_list = sorted(media_list, key=lambda x: get_sort_str(x), reverse=True)
+        media_list = sorted(media_list, key=lambda x: MediaUtils.get_sort_str(x), reverse=True)
         # 控重
         can_download_list_item = []
         can_download_list = []

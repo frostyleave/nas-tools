@@ -131,10 +131,8 @@ if __name__ == '__main__':
         sys.stdout = NullWriter()
         sys.stderr = NullWriter()
 
-
         def traystart():
             TrayIcon(homepage, log_path)
-
 
         if len(os.popen("tasklist| findstr %s" % os.path.basename(sys.executable), 'r').read().splitlines()) <= 2:
             p1 = threading.Thread(target=traystart, daemon=True)

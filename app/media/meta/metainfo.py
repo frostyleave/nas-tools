@@ -69,7 +69,7 @@ def MetaInfo(title, subtitle=None, mtype=None):
                 meta_info.begin_episode = episode_number if isinstance(episode_number, int) else int(episode_number)
 
     # 信息修正
-    info_fix(meta_info, rev_title)
+    # info_fix(meta_info, rev_title)
 
     # 设置原始名称
     meta_info.org_string = org_title
@@ -110,16 +110,6 @@ def info_fix(meta_info, rev_title):
             meta_info.cn_name = t_title
         if not meta_info.en_name and StringUtils.is_english_or_number(t_title):
             meta_info.en_name = t_title
-
-    # 季信息修正
-    t_season = t.get('season')
-    if t_season:
-        meta_info.type = MediaType.TV
-        if isinstance(t_season, list):
-            meta_info.begin_season = t_season[0]
-            meta_info.end_season = t_season[len(t_season) - 1]
-        else:
-            meta_info.begin_season = t_season
 
     t_episode = t.get('episode')
     if t_episode:
