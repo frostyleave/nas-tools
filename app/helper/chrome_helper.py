@@ -1,32 +1,88 @@
 import json
+import os
 import os.path
 import tempfile
+
 from functools import reduce
 from threading import Lock
+from typing import Optional
 
-import undetected_chromedriver as uc
-from webdriver_manager.chrome import ChromeDriverManager
+from webdriver_manager.core.download_manager import DownloadManager
+from webdriver_manager.core.driver_cache import DriverCacheManager
+from webdriver_manager.core.manager import DriverManager
+from webdriver_manager.core.os_manager import OperationSystemManager, ChromeType
+from webdriver_manager.drivers.chrome import ChromeDriver
 
-import app.helper.cloudflare_helper as CloudflareHelper
 from app.utils import SystemUtils, RequestUtils
 from config import Config
 
-lock = Lock()
+import undetected_chromedriver as uc
+import app.helper.cloudflare_helper as CloudflareHelper
 
+# 全局变量
+lock = Lock()
 driver_executable_path = None
 
 
-class ChromeHelper(object):
-    _executable_path = None
+class ChromeDriverManagerV2(DriverManager):
+    def __init__(
+            self,
+            driver_version: Optional[str] = None,
+            name: str = "chromedriver",
+            url: str = "https://chromedriver.storage.googleapis.com",
+            latest_release_url: str = "https://chromedriver.storage.googleapis.com/LATEST_RELEASE",
+            chrome_type: str = ChromeType.GOOGLE,
+            download_manager: Optional[DownloadManager] = None,
+            cache_manager: Optional[DriverCacheManager] = None,
+            os_system_manager: Optional[OperationSystemManager] = None
+    ):
+        super().__init__(
+            download_manager=download_manager,
+            cache_manager=cache_manager,
+            os_system_manager=os_system_manager
+        )
 
+        self.driver = ChromeDriver(
+            name=name,
+            driver_version=driver_version,
+            url=url,
+            latest_release_url=latest_release_url,
+            chrome_type=chrome_type,
+            http_client=self.http_client,
+            os_system_manager=os_system_manager
+        )
+
+    def install(self) -> str:
+        driver_path = self._get_driver_binary_path(self.driver)
+        os.chmod(driver_path, 0o755)
+        return driver_path
+
+    def get_os_type(self):
+        os_type = super().get_os_type()
+        
+        if "win" in os_type or not self._os_system_manager.is_mac_os(os_type):
+            return os_type
+
+        if self._os_system_manager.is_arch(os_type):
+            return "mac_arm64"
+
+        return os_type
+
+
+class ChromeHelper(object):
+
+    _executable_path = None
     _chrome = None
     _headless = False
-
     _proxy = None
 
     def __init__(self, headless=False):
 
         self._executable_path = SystemUtils.get_webdriver_path() or driver_executable_path
+        if self._executable_path and SystemUtils.is_windows():
+            self._executable_path = self._executable_path.replace('/', '\\').replace('THIRD_PARTY_NOTICES.', '')
+            if self._executable_path.endswith('.exe') == False:
+                self._executable_path += '.exe'
 
         if SystemUtils.is_windows() or SystemUtils.is_macos():
             self._headless = False
@@ -41,7 +97,8 @@ class ChromeHelper(object):
         if not uc.find_chrome_executable():
             return
         global driver_executable_path
-        driver_executable_path = ChromeDriverManager().install()
+        driver_executable_path = ChromeDriverManagerV2().install()
+        return driver_executable_path
 
     @property
     def browser(self):
@@ -51,8 +108,7 @@ class ChromeHelper(object):
             return self._chrome
 
     def get_status(self):
-        if self._executable_path \
-                and not os.path.exists(self._executable_path):
+        if self._executable_path and not os.path.exists(self._executable_path):
             return False
         if not uc.find_chrome_executable():
             return False
@@ -243,10 +299,3 @@ class ChromeWithPrefs(uc.Chrome):
             # pylint: disable=protected-access
             # remove the experimental_options to avoid an error
             del options._experimental_options["prefs"]
-
-
-def init_chrome():
-    """
-    初始化chrome驱动
-    """
-    ChromeHelper().init_driver()

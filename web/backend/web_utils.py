@@ -155,16 +155,20 @@ class WebUtils:
             media_info = MetaInfo(title=info.get("title") if mtype == MediaType.MOVIE else info.get("name"))
             media_info.set_tmdb_info(info)
 
+        if (hasattr(info, 'imdb_id') == False or not info.imdb_id) and hasattr(info, 'external_ids') and info.external_ids and hasattr(info.external_ids, 'imdb_id') and  info.external_ids.imdb_id:
+            setattr(info, 'imdb_id', info.external_ids.imdb_id)
+        
         # 豆瓣信息补全
         if media_info and info:
-            keyword = info.imdb_id if hasattr(info, 'imdb_id') and info.imdb_id else title
-            douban_info = DouBan().search_detail_by_keyword(keyword)
+            imdb_id = info.imdb_id if hasattr(info, 'imdb_id') else ''
+            if imdb_id:
+                douban_info = DouBan().search_detail_by_keyword(title, mtype)
+            else:
+                douban_info = DouBan().search_detail_by_keyword(title)
             if douban_info:
                 douban_id_list = list(map(lambda x: x.get("id"), douban_info))
                 media_info.douban_id = ",".join(douban_id_list)
-
                 WebUtils.adjust_tv_search_name(mtype, douban_info[0].get("title"), media_info)
-
             else:
                 media_info.douban_id = ''
 
@@ -197,6 +201,7 @@ class WebUtils:
             use_douban_titles = True
         else:
             use_douban_titles = Config().get_config("laboratory").get("use_douban_titles")
+            
         if use_douban_titles:
             medias = DouBan().search_douban_medias(keyword=key_word,
                                                    mtype=mtype,

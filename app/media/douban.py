@@ -1,6 +1,7 @@
 import random
 from threading import Lock
 from time import sleep
+from typing import Optional
 
 import zhconv
 from bs4 import BeautifulSoup
@@ -40,7 +41,7 @@ class DouBan:
             log.warn(f"【Douban】获取cookie失败：{format(err)}")
 
     # 根据关键字查询豆瓣数据
-    def search_detail_by_keyword(self, key_word):
+    def search_detail_by_keyword(self, key_word, mtype : Optional[MediaType] = None):
         log.info("【Douban】正在通过关键字查询豆瓣详情：%s" % key_word)
         douban_info = self.doubanapi.search_agg(key_word)
         if not douban_info:
@@ -62,9 +63,17 @@ class DouBan:
 
         detail_list = []
         for match_item in subject_items:
-            detail = match_item.get("target")
-            if detail.get("title"):
-                detail_list.append(detail)
+            item_type = match_item.get("target_type")
+            if item_type != 'tv' and item_type != 'movie':
+                continue
+            if mtype:
+                if mtype == MediaType.MOVIE:
+                    if item_type != 'movie':
+                        continue
+                else:
+                    if item_type == 'movie':
+                        continue
+            detail_list.append(match_item.get("target"))               
 
         return detail_list
 

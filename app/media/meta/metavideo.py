@@ -332,6 +332,9 @@ class MetaVideo(MetaBase):
                 self._continue_flag = False
                 if not self.resource_pix:
                     self.resource_pix = re_res.group(1).lower()
+                    if self.resource_pix:
+                        scale = int(self.resource_pix.lower().strip('k')) - 1
+                        self.resource_pix = str(int(1080 * (1.5 ** scale))) + 'p'
 
     def __init_season(self, token):
         re_res = re.findall(r"%s" % self._season_re, token, re.IGNORECASE)

@@ -1,3 +1,4 @@
+from app.utils.media_utils import MediaUtils
 import log
 from app.helper import DbHelper
 from app.indexer import Indexer
@@ -125,11 +126,7 @@ class Searcher:
                 # 保存搜索记录
                 self.delete_all_search_torrents()
                 # 搜索结果排序
-                media_list = sorted(media_list, key=lambda x: "%s%s%s%s" % (str(x.title).ljust(100, ' '),
-                                                                            str(x.res_order).rjust(3, '0'),
-                                                                            str(x.site_order).rjust(3, '0'),
-                                                                            str(x.seeders).rjust(10, '0')),
-                                    reverse=True)
+                media_list = sorted(media_list, key=lambda x: MediaUtils.get_sort_str(x), reverse=True)
                 # 插入数据库
                 self.insert_search_results(media_list)
                 # 微信未开自动下载时返回

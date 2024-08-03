@@ -630,6 +630,7 @@ class StringUtils:
         title = StringUtils.name_ch_to_number(title, r"([第|全|共][^第|全|共]+[季|期])", 'S')
         # 集数 统一：改为英文，方便三方插件识别
         title = StringUtils.name_ch_to_number(title, r"([第|全|共][^第|全|共]+[集|话|話])", 'E')
+        title = StringUtils.name_ch_to_number(title, r"(?<!第)(?<!全)(?<!共)(?<!\d)\b\d+[集话話]", 'E')
         # 空格替换为'.'，并把多个连续'.'合并为一个
         title = re.sub("\.+", ".", title).strip('.')
         return title
@@ -649,7 +650,10 @@ class StringUtils:
                 offset -= (raw.regs[0][1] - raw.regs[0][0] + 1)
             tag = info[0]
             # 去掉头尾取中间需要转换的部分
-            info = info[1:-1]
+            if tag.isdigit() == False:
+                info = info[1:-1]
+            else:
+                info = info[0:-1]
             # 正则取中文，转化为数字
             numbers = list(re.finditer(r'[\d\u4e00-\u9fa5]+', info))[::-1]
             for ep in numbers:
@@ -695,3 +699,13 @@ class StringUtils:
         移除字符串尾部的数字
         """
         return re.sub(r'\d+$', '', s).strip()
+    
+    @staticmethod
+    def is_string_and_not_empty(word):
+        """
+        判断是否是字符串并且字符串是否为空
+        """
+        if isinstance(word, str) and word.strip():
+            return True
+        else:
+            return False

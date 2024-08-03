@@ -1,9 +1,10 @@
+import pytz
 import re
 import xml.dom.minidom
+
 from datetime import datetime, timedelta
 from threading import Event
 
-import pytz
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
 from jinja2 import Template
@@ -49,12 +50,12 @@ class DoubanRank(_IPluginModule):
     rsshelper = None
     media = None
     _douban_address = {
-        'movie-ustop': 'https://rsshub.app/douban/movie/ustop',
-        'movie-weekly': 'https://rsshub.app/douban/movie/weekly',
         'movie-real-time': 'https://rsshub.app/douban/movie/weekly/subject_real_time_hotest',
-        'show-domestic': 'https://rsshub.app/douban/movie/weekly/show_domestic',
+        'movie_weekly_best': 'https://rsshub.app/douban/movie/movie_weekly_best',
         'movie-hot-gaia': 'https://rsshub.app/douban/movie/weekly/movie_hot_gaia',
-        'tv-hot': 'https://rsshub.app/douban/movie/weekly/tv_hot',
+        'tv_chinese_best_weekly': 'https://rsshub.app/douban/movie/weekly/tv_chinese_best_weekly',
+        'show-domestic': 'https://rsshub.app/douban/movie/weekly/show_domestic',
+        'movie-ustop': 'https://rsshub.app/douban/movie/ustop',
         'movie-top250': 'https://rsshub.app/douban/movie/weekly/movie_top250',
     }
     _enable = False
@@ -92,7 +93,7 @@ class DoubanRank(_IPluginModule):
         if self.get_state() or self._onlyonce:
             self._scheduler = BackgroundScheduler(timezone=Config().get_timezone())
             if self._cron:
-                self.info(f"订阅服务启动，周期：{self._cron}")
+                self.info(f"订阅服务启动，周期: {self._cron}")
                 self._scheduler.add_job(self.__refresh_rss,
                                         CronTrigger.from_crontab(self._cron))
             if self._onlyonce:
@@ -197,33 +198,33 @@ class DoubanRank(_IPluginModule):
                             'id': 'ranks',
                             'type': 'form-selectgroup',
                             'content': {
-                                'movie-ustop': {
-                                    'id': 'movie-ustop',
-                                    'name': '北美电影票房榜',
-                                },
-                                'movie-weekly': {
-                                    'id': 'movie-weekly',
+                                'movie_weekly_best': {
+                                    'id': 'movie_weekly_best',
                                     'name': '一周电影口碑榜',
-                                },
-                                'movie-real-time': {
-                                    'id': 'movie-real-time',
-                                    'name': '实时热门榜',
                                 },
                                 'movie-hot-gaia': {
                                     'id': 'movie-hot-gaia',
                                     'name': '热门电影',
                                 },
-                                'movie-top250': {
-                                    'id': 'movie-top250',
-                                    'name': '电影TOP10',
+                                'tv_chinese_best_weekly': {
+                                    'id': 'tv_chinese_best_weekly',
+                                    'name': '华语口碑剧集榜',
                                 },
-                                'tv-hot': {
-                                    'id': 'tv-hot',
-                                    'name': '热门剧集',
+                                'movie-ustop': {
+                                    'id': 'movie-ustop',
+                                    'name': '北美电影票房榜',
                                 },
                                 'show-domestic': {
                                     'id': 'show-domestic',
                                     'name': '热门综艺',
+                                },
+                                'movie-top250': {
+                                    'id': 'movie-top250',
+                                    'name': '电影TOP250',
+                                },
+                                'movie-real-time': {
+                                    'id': 'movie-real-time',
+                                    'name': '实时热门书影音',
                                 }
                             }
                         },
@@ -264,7 +265,7 @@ class DoubanRank(_IPluginModule):
                          <div>{{ Item.name }} ({{ Item.year }})</div>
                          {% if Item.rating %}
                            <div class="text-muted text-nowrap">
-                           评份：{{ Item.rating }}
+                           评份: {{ Item.rating }}
                            </div>
                          {% endif %}
                        </td>
@@ -392,13 +393,13 @@ class DoubanRank(_IPluginModule):
             if not addr:
                 continue
             try:
-                self.info(f"获取RSS：{addr} ...")
+                self.info(f"获取RSS: {addr} ...")
                 rss_infos = self.__get_rss_info(addr)
                 if not rss_infos:
-                    self.error(f"RSS地址：{addr} ，未查询到数据")
+                    self.error(f"RSS地址: {addr} ，未查询到数据")
                     continue
                 else:
-                    self.info(f"RSS地址：{addr} ，共 {len(rss_infos)} 条数据")
+                    self.info(f"RSS地址: {addr} ，共 {len(rss_infos)} 条数据")
                 for rss_info in rss_infos:
                     if self._event.is_set():
                         self.info(f"订阅服务停止")
@@ -406,47 +407,48 @@ class DoubanRank(_IPluginModule):
 
                     title = rss_info.get('title')
                     douban_id = rss_info.get('doubanid')
-                    mtype = rss_info.get('type')
-                    unique_flag = f"doubanrank: {title} (DB:{douban_id})"
-                    # 检查是否已处理过
-                    if self.rsshelper.is_rssd_by_simple(torrent_name=unique_flag, enclosure=None):
-                        self.info(f"已处理过：{title} （豆瓣id：{douban_id}）")
+
+                    if not douban_id:
+                        self.info(f"{title}: 没有返回豆瓣id, 不进行识别订阅")
                         continue
+                 
                     # 识别媒体信息
-                    if douban_id:
-                        media_info = WebUtils.get_mediainfo_from_id(mtype=mtype,
-                                                                    mediaid=f"DB:{douban_id}",
-                                                                    wait=True)
-                    else:
-                        media_info = self.media.get_media_info(title=title, mtype=mtype)
+                    # 检查是否已处理过
+                    unique_flag = f"doubanrank: {title} (DB:{douban_id})"
+                    if self.rsshelper.is_rssd_by_simple(torrent_name=unique_flag, enclosure=None):
+                        self.info(f"已处理过: {title} (豆瓣id: {douban_id})")
+                        continue
+                    # 查询媒体信息
+                    media_info = WebUtils.get_mediainfo_from_id(mediaid=f"DB:{douban_id}", wait=True)
                     if not media_info:
-                        self.warn(f"未查询到媒体信息：{title} （豆瓣id：{douban_id}）")
+                        self.warn(f"未查询到媒体信息: {title} (豆瓣id: {douban_id})")
                         continue
-                    if self._vote and media_info.vote_average \
-                            and media_info.vote_average < self._vote:
-                        self.info(
-                            f"{media_info.get_title_string()} 评分 {media_info.vote_average} 低于限制 {self._vote}，跳过 ．．．")
+
+                    if self._vote and media_info.vote_average and media_info.vote_average < self._vote:
+                        self.info(f"{media_info.get_title_string()} 评分 {media_info.vote_average} 低于限制 {self._vote}, 跳过...")
                         continue
-                    # 检查媒体服务器是否存在
+
+                    # 检查媒体资源是否存在
                     item_id = self.mediaserver.check_item_exists(mtype=media_info.type,
                                                                  title=media_info.title,
                                                                  year=media_info.year,
                                                                  tmdbid=media_info.tmdb_id,
                                                                  season=media_info.get_season_seq())
                     if item_id:
-                        self.info(f"媒体服务器已存在：{media_info.get_title_string()}")
+                        self.info(f"媒体服务器已存在: {media_info.get_title_string()}")
                         self.__update_history(media=media_info, state="DOWNLOADED")
                         continue
+
                     # 检查是否已订阅过
                     if self.subscribe.check_history(
                             type_str="MOV" if media_info.type == MediaType.MOVIE else "TV",
                             name=media_info.title,
                             year=media_info.year,
                             season=media_info.get_season_string()):
-                        self.info(
-                            f"{media_info.get_title_string()}{media_info.get_season_string()} 已订阅过")
+                        self.info(f"{media_info.get_title_string()}{media_info.get_season_string()} 已订阅过")
                         self.__update_history(media=media_info, state="RSS")
                         continue
+
                     # 添加处理历史
                     self.rsshelper.simple_insert_rss_torrents(title=unique_flag, enclosure=None)
                     # 添加订阅
@@ -459,7 +461,7 @@ class DoubanRank(_IPluginModule):
                         in_from=SearchType.PLUGIN
                     )
                     if not rss_media or code != 0:
-                        self.warn("%s 添加订阅失败：%s" % (media_info.get_title_string(), msg))
+                        self.warn("%s 添加订阅失败: %s" % (media_info.get_title_string(), msg))
                         # 订阅已存在
                         if code == 9:
                             self.__update_history(media=media_info, state="RSS")
@@ -498,7 +500,7 @@ class DoubanRank(_IPluginModule):
                     if doubanid:
                         doubanid = doubanid[0]
                     if doubanid and not str(doubanid).isdigit():
-                        self.warn(f"解析的豆瓣ID格式不正确：{doubanid}")
+                        self.warn(f"解析的豆瓣ID格式不正确: {doubanid}")
                         continue
                     # 返回对象
                     ret_array.append({
@@ -507,9 +509,9 @@ class DoubanRank(_IPluginModule):
                         'doubanid': doubanid
                     })
                 except Exception as e1:
-                    self.error("解析RSS条目失败：" + str(e1))
+                    self.error("解析RSS条目失败: " + str(e1))
                     continue
             return ret_array
         except Exception as e:
-            self.error("获取RSS失败：" + str(e))
+            self.error("获取RSS失败: " + str(e))
             return []

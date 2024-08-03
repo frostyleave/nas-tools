@@ -11,7 +11,7 @@ RUN apk add --no-cache --virtual .build-deps \
     && if [ "$(uname -m)" = "x86_64" ]; then ARCH=amd64; elif [ "$(uname -m)" = "aarch64" ]; then ARCH=arm64; fi \
     && curl https://dl.min.io/client/mc/release/linux-${ARCH}/mc --create-dirs -o /usr/bin/mc \
     && chmod +x /usr/bin/mc \
-    && pip install --upgrade pip setuptools wheel \
+    && pip install --upgrade pip setuptools==70.1.1 wheel \
     && pip install cython \
     && pip install -r https://raw.githubusercontent.com/frostyleave/nas-tools/master/requirements.txt \
     && apk del --purge .build-deps \

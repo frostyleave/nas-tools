@@ -149,7 +149,7 @@ class TMDb(object):
         if StringUtils.is_alpha_numeric_punct(append_to_response) and (action == '/search/tv' or action == '/search/movie' or action == '/search/keyword'):
             language = 'en'
 
-        url = "%s%s?api_key=%s&%s&language=%s" % (
+        url = "%s%s?api_key=%s&%s&language=%s&include_adult=true" % (
             self.domain,
             action,
             self.api_key,
