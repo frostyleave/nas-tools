@@ -200,14 +200,6 @@
         </div>
       </div>
     </div>
-    <div class="card-footer">
-      <div class="row align-items-center">
-        <div class="col"></div>
-        <div class="col-auto">
-          <button onclick="save_indexer_config('builtin')" id="builtin_save_btn" class="btn btn-primary" style="float: right;">确定</button>
-        </div>
-      </div>
-    </div>
   </div>
 </div>
 
@@ -342,7 +334,7 @@
           </div>
         </div>
         <div class="row">
-          <div class="col-lg-4">
+          <div class="col-lg-6">
             <div class="mb-3">
               <label class="form-label">下载器</label>
               <select class="form-select" id="indexer_download_setting">
@@ -353,18 +345,17 @@
               </select>
             </div>
           </div>
-          <div class="col-lg-8">
+          <div class="col-lg-6">
             <div class="mb-3">
-              <label class="form-label">User-Agent <span class="form-help"
-                title="站点签到/数据获取/搜索请求时使用的User-Agent，为空则使用基础配置中User-Agent设置" data-bs-toggle="tooltip">?</span></label>
-              <div class="input-group input-group-flat">
-                <input type="text" class="form-control" id="site_ua" value="" placeholder="站点访问User-Agent">
-                <span class="input-group-text">
-                  <a href="javascript:set_user_agent('site_ua')" class="link-secondary" title="从浏览器中获取 User-Agent" data-bs-toggle="tooltip">
-                    {{ SVG.arrow_bar_to_left() }}
-                  </a>
-                </span>
-              </div>
+              <label class="form-label">解析器</label>
+              <select class="form-select" id="parser_setting">
+                <option value="">默认</option>
+                <option value="InterfaceSpider">InterfaceSpider</option>
+                <option value="RenderSpider">RenderSpider</option>
+                <option value="TorrentLeech">TorrentLeech</option>
+                <option value="TNodeSpider">TNodeSpider</option>
+                <option value="RarBg">RarBg</option>
+              </select>
             </div>
           </div>
         </div>
@@ -390,14 +381,6 @@
           </summary>
           <div class="row mt-2">
             <textarea class="form-control mt-2" id="browse_cfg" rows="1" aria-label=""></textarea>
-          </div>
-        </details>
-        <details>
-          <summary class="summary">
-            解析器 <span class="form-help" title="解析器" data-bs-toggle="tooltip">?</span>
-          </summary>
-          <div class="row mt-2">
-            <textarea class="form-control mt-2" id="parser_cfg" rows="1" aria-label=""></textarea>
           </div>
         </details>
         <details>
@@ -451,12 +434,14 @@
     $("#indexer_url").val("")
 
     $("#indexer_download_setting").val(0);
+    $('parser_setting').val("");
+
     select_SelectALL(true, "source_type")
     select_SelectPart(['title', 'en_name'], "search_type")
+
     $('#search_cfg').val("");
     $('#torrent_cfg').val("");
     $('browse_cfg').val("");
-    $('parser_cfg').val("");
     $('category_cfg').val("");
 
     $("#indexer_modal_title").text("新增索引站点");
@@ -487,8 +472,6 @@
       return
     }
 
-    var parser_cfg = $('#parser_cfg').val();
-
     var category_cfg = $('#category_cfg').val();
     if (!object_json_valid(category_cfg, true)) {
       show_fail_modal('目录配置不合法，请检查后重试');
@@ -502,12 +485,12 @@
       "proxy": $('#indexer_proxy').prop('checked'),
       "render": $('#indexer_render').prop('checked'),
       "downloader": $("#indexer_download_setting").val(),
+      "parser": $('#parser_setting').val(),
       "source_type": select_GetSelectedVAL("source_type").join(','),
       "search_type": select_GetSelectedVAL('search_type').join(','),
       "search": search_cfg,
       "torrents": torrent_cfg,
       "browse": browse_cfg,
-      "parser": parser_cfg,
       "category": category_cfg
     };
 
@@ -517,7 +500,7 @@
         show_success_modal("添加索引站点成功!");
         window_history_refresh();
       } else {
-        show_fail_modal(`添加索引站点失败：${ret.msg}！`);
+        show_fail_modal(`添加索引站点失败：${ret.msg}!`);
       }
     });
 
@@ -537,8 +520,11 @@
         $("#indexer_id").val(ret.data.id).attr("readonly", true);
         $("#indexer_name").val(ret.data.name).attr("readonly", true);
         $("#indexer_url").val(ret.data.domain);
-
+        
+        // 下拉
         $("#indexer_download_setting").val(ret.data.downloader ?? 0);
+        $("#parser_setting").val(ret.data.parser ?? '');
+        // 多选
         select_SelectPart(ret.data.source_type, "source_type")
         select_SelectPart(ret.data.search_type, "search_type")
 
@@ -555,10 +541,6 @@
 
         if (ret.data.browse) {
           append_json_to_textarea('browse_cfg', ret.data.browse)
-        }
-
-        if (ret.data.parser) {
-          $("#parser_cfg").val(ret.data.parser);
         }
 
         if (ret.data.category) {
@@ -650,6 +632,11 @@
     if (downloader == current_indexer.downloader) {
       downloader = NaN
     }
+    var parser_setting = $('#parser_setting').val();
+    if (parser_setting == current_indexer.parser) {
+      parser_setting = NaN
+    }
+
     var source_type = select_GetSelectedVAL("source_type").join(',');
     if (source_type == current_indexer.source_type) {
       source_type = NaN
@@ -658,14 +645,10 @@
     if (search_type == current_indexer.search_type) {
       search_type = NaN
     }
-    var parser_cfg = $('#parser_cfg').val();
-    if (parser_cfg == current_indexer.parser) {
-      parser_cfg = NaN
-    }
 
     if (indexer_url == NaN && proxy == NaN && render == NaN && downloader == NaN
       && source_type == NaN && search_type == NaN && search_cfg == NaN && torrent_cfg == NaN
-      && browse_cfg == NaN && parser_cfg == NaN && category_cfg == NaN) {
+      && browse_cfg == NaN && parser_setting == NaN && category_cfg == NaN) {
       $("#modal-manual-indexer").modal("hide");
       return;
     }
@@ -676,17 +659,14 @@
       "proxy": proxy,
       "render": render,
       "downloader": downloader,
+      "parser": parser_setting,
       "source_type": source_type,
       "search_type": search_type,
       "search": zip_json(search_cfg),
       "torrents": zip_json(torrent_cfg),
       "browse": zip_json(browse_cfg),
-      "parser": parser_cfg,
       "category": zip_json(category_cfg)
     };
-
-    console.log(data)
-    console.log(current_indexer)
 
     ajax_post("update_indexer", data, function (ret) {
       if (ret.code === 0) {
@@ -694,7 +674,7 @@
         show_success_modal("更新索引站点成功!");
         window_history_refresh();
       } else {
-        show_fail_modal(`更新索引站点失败：${ret.msg}！`);
+        show_fail_modal(`更新索引站点失败：${ret.msg}!`);
       }
     });
 
@@ -727,6 +707,7 @@
     });
 
 };
+  
   // json合法性检查
   function object_json_valid(json_str, allow_empty) {
 
@@ -882,10 +863,17 @@
   }
 
   $(document).ready(function () {
+
     // 加载图表
     $('#modal-indexer-statistics').off('shown.bs.modal').on('shown.bs.modal', function (e) {
       init_indexer_chart();
     });
+
+    // 监听所有具有相同 name 的 checkbox 的状态变化
+    $('input[name="indexer_sites"]').change(function() {
+      save_config_index('builtin');
+    });
+
   });
 
 
