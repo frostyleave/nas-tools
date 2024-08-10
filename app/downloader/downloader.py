@@ -19,6 +19,7 @@ from app.filetransfer import FileTransfer
 from app.helper import DbHelper, ThreadHelper, SubmoduleHelper
 from app.helper.chrome_helper import ChromeHelper
 from app.indexer.client._interface import InterfaceSpider
+from app.indexer.manager import IndexerManager
 from app.media import Media
 from app.media.meta import MetaInfo
 from app.mediaserver import MediaServer
@@ -633,7 +634,9 @@ class Downloader:
             return self.get_torrent_info(url=url)
 
         if site_info.get('parser') == "InterfaceSpider":
-            return self.get_torrent_file_with_interfaceSpider(url, site_info)
+            indexer = IndexerManager().get_indexer(url=site_info.get('domain'))
+            if indexer:
+                return self.get_torrent_file_with_interfaceSpider(url, indexer)
 
         if site_info["render"]:
             return self.get_torrent_info(url=url,render=True)

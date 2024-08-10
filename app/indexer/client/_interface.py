@@ -145,7 +145,7 @@ class InterfaceSpider(object):
         return False, self.torrents_info_array
     
 
-    def request(self, search_url, search_config):
+    def request(self, search_url, search_config=None):
         """
         执行请求
         :param: search_url: 请求链接
