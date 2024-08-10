@@ -162,9 +162,11 @@ class WebUtils:
         if media_info and info:
             imdb_id = info.imdb_id if hasattr(info, 'imdb_id') else ''
             if imdb_id:
-                douban_info = DouBan().search_detail_by_keyword(title, mtype)
+                search_kwd = imdb_id if mtype == MediaType.MOVIE else title
+                douban_info = DouBan().search_detail_by_keyword(search_kwd, mtype)
             else:
                 douban_info = DouBan().search_detail_by_keyword(title)
+
             if douban_info:
                 douban_id_list = list(map(lambda x: x.get("id"), douban_info))
                 media_info.douban_id = ",".join(douban_id_list)

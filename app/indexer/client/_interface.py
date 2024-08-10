@@ -29,7 +29,6 @@ class InterfaceSpider(object):
         """
         开始搜索
         :param: keyword: 搜索关键字
-        :param: indexer: 站点配置
         :param: page: 页码
         :param: mtype: 类型
         :return: (是否发生错误，种子列表)
@@ -56,43 +55,14 @@ class InterfaceSpider(object):
             return False, []
 
         # 请求路径
-        torrentspath = self._indexer.search.get('paths', [{}])[0].get('path', '') or ''
-        search_url = self._indexer.domain + torrentspath.replace("{keyword}", quote(keyword))
+        search_config = self._indexer.search.get('paths', [{}])[0]
+        torrents_path = search_config.get('path', '') or ''
+        search_url = torrents_path.replace("{domain}", self._indexer.domain).replace("{keyword}", quote(keyword))
 
-        # 定义请求头
-        headers = {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-        }
-
-        proxies = None
-        if self._indexer.proxy:
-            proxy = Config().get_proxies().get("https")
-            if proxy:
-                proxies = proxy.split('/')[-1]
-        
-        # 创建一个会话对象
-        session = requests.Session()
-
-        # 发送请求
-        log.info(f"【InterfaceSpider】开始请求: {search_url}")
-        response = session.get(search_url, headers=headers, allow_redirects=True,  proxies=proxies)
+        response = self.request(search_url, search_config)
 
         if response.status_code != 200:
             log.warn(f"【InterfaceSpider】请求{search_url} 失败: {str(response.status_code)}")
-            return True, []
-
-        # 使用正则表达式从响应内容中提取 cookie 值
-        match = re.search(r'document.cookie = "([^=]+)=([^;]+);', response.text)
-        cookie_name = match.group(1)
-        cookie_value = match.group(2)
-
-        # 设置 cookie
-        session.cookies.set(cookie_name, cookie_value)
-
-        # 重新发送请求
-        response = session.get(search_url, proxies=proxies)
-        if response.status_code != 200:
-            log.warn(f"【InterfaceSpider】session请求{search_url} 失败: {str(response.status_code)}")
             return True, []
 
         # 获取HTML文本
@@ -115,8 +85,7 @@ class InterfaceSpider(object):
                 tmp_data = tmp_data.get(param_name)
                 if not tmp_data:
                     log.warn(f"【InterfaceSpider】{param_name}字段值为空")
-                    return False, []
-                
+                    return False, []                
             json_obj = tmp_data
         
         data_list = []
@@ -132,39 +101,99 @@ class InterfaceSpider(object):
             log.warn(f"【InterfaceSpider】json对象结构错误: {html_text}")
             return False, []
         
+        # 遍历结果, 生成种子信息
         for data_item in data_list:
+
+            if not data_item:
+                continue
+
             item_size = self.get_dic_val(data_item, field_selector.get('size'))
-            if item_size:
+            if item_size and isinstance(item_size, str):
                 item_size = item_size.replace("\n", "").strip()
 
             download_link = self.get_dic_val(data_item, field_selector.get('magnet'))
             # 有磁力链接时，校验磁力链接合法性
             if not download_link or download_link.startswith('magnet') == False or len(download_link) < 52:
-                torrent_file = self.get_dic_val(data_item, field_selector.get('torrent'))
-                if torrent_file:
-                    download_link = torrent_file
-                    if download_link.startswith('http') == False:
-                        torrent_domain = field_selector.get('torrent_domain')
-                        if torrent_domain:
-                            if torrent_domain.endswith('/') and download_link.startswith('/'):
-                                download_link = torrent_domain.strip('/') + download_link
-                            elif torrent_domain.endswith('/') == False and download_link.startswith('/') == False:
-                                download_link = torrent_domain+ '/' + download_link
-                            else:
-                                download_link = torrent_domain + download_link
+                download_link = self.get_dic_val(data_item, field_selector.get('hash'))
+                if download_link:
+                    download_link = 'magnet:?xt=urn:btih:' + download_link
+                else:
+                    torrent_file = self.get_dic_val(data_item, field_selector.get('torrent'))
+                    if torrent_file:
+                        download_link = torrent_file
+                        if download_link.startswith('http') == False:
+                            torrent_domain = field_selector.get('torrent_domain')
+                            if torrent_domain:
+                                if torrent_domain.endswith('/') and download_link.startswith('/'):
+                                    download_link = torrent_domain.strip('/') + download_link
+                                elif torrent_domain.endswith('/') == False and download_link.startswith('/') == False:
+                                    download_link = torrent_domain+ '/' + download_link
+                                else:
+                                    download_link = torrent_domain + download_link
 
             torrent = {
                 'indexer': self._indexer.id,
                 'title': self.get_dic_val(data_item, field_selector.get('title')),
                 'enclosure': download_link,
                 'pubdate': self.get_dic_val(data_item, field_selector.get('date_added')),
-                'size': StringUtils.num_filesize(item_size),
+                'size': StringUtils.num_filesize(item_size) if isinstance(item_size, str) else item_size,
+                'seeders' : self.get_dic_val(data_item, field_selector.get('seeders')),
                 'downloadvolumefactor' : 0.0
             }
             self.torrents_info_array.append(torrent)
         
         return False, self.torrents_info_array
     
+
+    def request(self, search_url, search_config):
+        """
+        执行请求
+        :param: search_url: 请求链接
+        :param: search_config: 站点搜索配置
+        :return: response
+        """
+
+        # 定义请求头
+        headers = { 'User-Agent': Config().get_ua() }
+
+        # 代理
+        proxies = None
+        if self._indexer.proxy:
+            proxy = Config().get_proxies().get("https")
+            if proxy:
+                proxies = proxy.split('/')[-1]
+        
+        if not search_config:
+            search_config = self._indexer.search.get('paths', [{}])[0]
+
+        # 是否需要验证cookie
+        check_cookie = search_config.get('cookie', False) or False
+        
+        # 创建一个会话对象
+        session = requests.Session()
+
+        # 发送请求
+        log.info(f"【InterfaceSpider】开始请求: {search_url}")
+        response = session.get(search_url, headers=headers, allow_redirects=True,  proxies=proxies)
+
+        if response.status_code != 200:
+            log.warn(f"【InterfaceSpider】请求{search_url} 失败: {str(response.status_code)}")
+            return response
+
+        if check_cookie:
+            # 使用正则表达式从响应内容中提取 cookie 值
+            match = re.search(r'document.cookie = "([^=]+)=([^;]+);', response.text)
+            cookie_name = match.group(1)
+            cookie_value = match.group(2)
+
+            # 设置 cookie
+            session.cookies.set(cookie_name, cookie_value)
+
+            # 重新发送请求
+            response = session.get(search_url, headers=headers, allow_redirects=True,  proxies=proxies)
+
+        return response
+
     def get_dic_val(self, dict_obj, key_name):
         if not key_name:
             return None
