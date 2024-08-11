@@ -142,6 +142,8 @@ class MetaBase(object):
     offset_words = None
     # 备注字典
     note = {}
+    # 资源发布时间
+    pubdate = ''
     # 副标题解析
     _subtitle_flag = False
     _subtitle_season_re = r"(?<![全|共]\s*)[第\s]+([0-9一二三四五六七八九十S\-]+)\s*季(?!\s*[全|共])"
@@ -587,7 +589,8 @@ class MetaBase(object):
                          hit_and_run=None,
                          imdbid=None,
                          over_edition=None,
-                         labels=None):
+                         labels=None,
+                         pubdate=None):
         if site:
             self.site = site
         if site_order:
@@ -622,6 +625,8 @@ class MetaBase(object):
             self.over_edition = over_edition
         if labels is not None:
             self.labels = labels
+        if pubdate:
+            self.pubdate = StringUtils.parse_time_string(pubdate)
 
     # 整合下载参数
     def set_download_info(self, download_setting=None, save_path=None):

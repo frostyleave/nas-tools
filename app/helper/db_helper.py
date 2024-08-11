@@ -61,7 +61,8 @@ class DbHelper:
                     OTHERINFO=media_item.resource_team,
                     UPLOAD_VOLUME_FACTOR=media_item.upload_volume_factor,
                     DOWNLOAD_VOLUME_FACTOR=media_item.download_volume_factor,
-                    NOTE=media_item.labels
+                    NOTE=media_item.labels,
+                    PUBDATE=media_item.pubdate
                 ))
         self._db.insert(data_list)
 

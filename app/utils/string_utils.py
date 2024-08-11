@@ -1,5 +1,4 @@
 import bisect
-import datetime
 import hashlib
 import random
 import re
@@ -7,16 +6,20 @@ from urllib import parse
 
 import cn2an
 import dateparser
-import dateutil.parser
+
+from datetime import datetime, timedelta
+from dateutil.parser import parse as parse_date, isoparse
 
 import log
 from app.utils.exception_utils import ExceptionUtils
 from app.utils.types import MediaType
 
-from config import SPLIT_CHARS
-
 
 class StringUtils:
+
+    chinese_to_digit = {
+        "零": 0, "一": 1, "二": 2, "三": 3, "四": 4, "五": 5, "六": 6, "七": 7, "八": 8, "九": 9
+    }
 
     @staticmethod
     def num_filesize(text):
@@ -393,7 +396,7 @@ class StringUtils:
     def get_time_stamp(date):
         tempsTime = None
         try:
-            tempsTime = dateutil.parser.parse(date)
+            tempsTime = parse(date)
         except Exception as err:
             ExceptionUtils.exception_traceback(err)
         return tempsTime
@@ -433,10 +436,106 @@ class StringUtils:
         if isinstance(timestamp, str) and not timestamp.isdigit():
             return timestamp
         try:
-            return datetime.datetime.fromtimestamp(int(timestamp)).strftime(date_format)
+            return datetime.fromtimestamp(int(timestamp)).strftime(date_format)
         except Exception as e:
             ExceptionUtils.exception_traceback(e)
             return timestamp
+
+    @staticmethod
+    def convert_chinese_to_digit(chinese_str):
+        # 将中文数字转换为阿拉伯数字
+        digit_str = ''.join(str(StringUtils.chinese_to_digit.get(char, char)) for char in chinese_str)
+        return int(digit_str) if digit_str.isdigit() else None
+
+    @staticmethod
+    def parse_relative_time(now, time_str):
+        # 处理 "约X小时" 和 "约X分钟"
+        match = re.match(r'约([零一二三四五六七八九\d]+)(小时|分钟)', time_str)
+        if match:
+            amount = StringUtils.convert_chinese_to_digit(match.group(1))
+            if not amount:
+                raise ValueError("Unsupported time format")
+            if '小时' in match.group(2):
+                return now - timedelta(hours=amount)
+            elif '分钟' in match.group(2):
+                return now - timedelta(minutes=amount)
+
+        # 处理 "X天"
+        match = re.match(r'([零一二三四五六七八九\d]+)天', time_str)
+        if match:
+            days = StringUtils.convert_chinese_to_digit(match.group(1))
+            if not days:
+                raise ValueError("Unsupported time format")
+            return now - timedelta(days=days)
+
+        # 处理 "今天 HH:mm" 和 "昨天 HH:mm"
+        match = re.match(r'(今天|昨天)\s(\d{1,2}:\d{2})', time_str)
+        if match:
+            date_part = now if match.group(1) == '今天' else now - timedelta(days=1)
+            time_part = match.group(2)
+            return datetime.strptime(f"{date_part.strftime('%Y-%m-%d')} {time_part}", '%Y-%m-%d %H:%M')
+
+        # 处理类似 "1 month, 2 days ago" 的相对时间
+        match = re.match(r'(\d+)\s(month|day|week|year)[s]?,?\s?(\d+)?\s?(month|day|week|year)?\s?ago', time_str)
+        if match:
+            amount1 = int(match.group(1))
+            unit1 = match.group(2)
+            amount2 = int(match.group(3)) if match.group(3) else 0
+            unit2 = match.group(4) if match.group(4) else ""
+
+            time_delta = timedelta()
+
+            if unit1 == "day":
+                time_delta += timedelta(days=amount1)
+            elif unit1 == "week":
+                time_delta += timedelta(weeks=amount1)
+            elif unit1 == "month":
+                time_delta += timedelta(days=30*amount1)
+            elif unit1 == "year":
+                time_delta += timedelta(days=365*amount1)
+
+            if unit2 == "day":
+                time_delta += timedelta(days=amount2)
+            elif unit2 == "week":
+                time_delta += timedelta(weeks=amount2)
+            elif unit2 == "month":
+                time_delta += timedelta(days=30*amount2)
+            elif unit2 == "year":
+                time_delta += timedelta(days=365*amount2)
+
+            return now - time_delta
+
+        return None
+
+    @staticmethod
+    def parse_time_string(time_str):
+
+        if not time_str:
+            return ''
+
+        now = datetime.now()
+
+        # 优先处理相对时间格式
+        relative_time = StringUtils.parse_relative_time(now, time_str)
+        if relative_time:
+            return relative_time.strftime('%Y-%m-%d %H:%M:%S')
+
+        try:
+            # 使用 dateutil 解析绝对时间格式
+            result_time = parse_date(time_str)
+            return result_time.strftime('%Y-%m-%d %H:%M:%S')
+        except (ValueError, TypeError):
+            pass
+
+        # 处理 ISO 8601 格式的日期时间（带T、Z、毫秒）
+        try:
+            result_time = isoparse(time_str)
+            return result_time.strftime('%Y-%m-%d %H:%M:%S')
+        except (ValueError, TypeError):
+            pass
+
+        log.warn(f"Unsupported time format: {time_str}")
+        return time_str
 
     @staticmethod
     def to_bool(text, default_val: bool = False) -> bool:
@@ -599,10 +698,10 @@ class StringUtils:
         if not date_str:
             return False
         # 将日期字符串解析为日期对象
-        date_obj = datetime.datetime.strptime(date_str, '%Y-%m-%d')
+        date_obj = datetime.strptime(date_str, '%Y-%m-%d')
         # 计算当前日期和一个月前的日期
-        today = datetime.datetime.today()
-        one_month_ago = today - datetime.timedelta(days=30)
+        today = datetime.today()
+        one_month_ago = today - timedelta(days=30)
         # 比较日期对象，判断是否早于一个月前
         if date_obj < one_month_ago:
             return True

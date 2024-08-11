@@ -3582,6 +3582,7 @@ class WebAction:
                 "pageurl": item.PAGEURL,
                 "uploadvalue": item.UPLOAD_VOLUME_FACTOR,
                 "downloadvalue": item.DOWNLOAD_VOLUME_FACTOR,
+                "pubdate": item.PUBDATE.strip(' 00:00:00'),
                 "size": item.SIZE,
                 "respix": respix,
                 "restype": restype,
