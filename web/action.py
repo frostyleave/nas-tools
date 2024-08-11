@@ -3571,6 +3571,11 @@ class WebAction:
             # 只需要部分种子标签
             labels = [label for label in str(item.NOTE).split("|")
                       if label in ["官方", "官组", "中字", "国语", "特效", "特效字幕"]]
+            
+            pubdate = item.PUBDATE or ''
+            if pubdate.endswith(' 00:00:00'):
+                pubdate = pubdate[:-9]
+
             # 种子信息
             torrent_item = {
                 "id": item.ID,
@@ -3582,7 +3587,7 @@ class WebAction:
                 "pageurl": item.PAGEURL,
                 "uploadvalue": item.UPLOAD_VOLUME_FACTOR,
                 "downloadvalue": item.DOWNLOAD_VOLUME_FACTOR,
-                "pubdate": item.PUBDATE.strip(' 00:00:00'),
+                "pubdate": pubdate,
                 "size": item.SIZE,
                 "respix": respix,
                 "restype": restype,
