@@ -6,7 +6,6 @@ from app.media.meta._base import MetaBase
 from app.utils import StringUtils
 from app.utils.tokens import Tokens
 from app.utils.types import MediaType
-from app.utils.release_groups import ReleaseGroupsMatcher
 from app.media.meta.customization import CustomizationMatcher
 
 
@@ -331,10 +330,7 @@ class MetaVideo(MetaBase):
                     self.en_name = self.en_name.replace(token, '').strip()
                 self._continue_flag = False
                 if not self.resource_pix:
-                    self.resource_pix = re_res.group(1).lower()
-                    if self.resource_pix:
-                        scale = int(self.resource_pix.lower().strip('k')) - 1
-                        self.resource_pix = str(int(1080 * (1.5 ** scale))) + 'p'
+                    self.resource_pix = self.convert_resolution(re_res.group(1).lower())
 
     def __init_season(self, token):
         re_res = re.findall(r"%s" % self._season_re, token, re.IGNORECASE)
@@ -476,10 +472,10 @@ class MetaVideo(MetaBase):
             self._source = "WEB-DL"
             self._continue_flag = False
             return
-        elif re.search(r"(%s)" % self._source_tc_re, token, re.IGNORECASE):
-            self._source = "枪版"
-            self._continue_flag = False
-            return
+        # elif re.search(r"(%s)" % self._source_tc_re, token, re.IGNORECASE):
+        #     self._source = "枪版"
+        #     self._continue_flag = False
+        #     return
         effect_res = re.search(r"(%s)" % self._effect_re, token, re.IGNORECASE)
         if effect_res:
             self._last_token_type = "effect"
@@ -561,3 +557,17 @@ class MetaVideo(MetaBase):
                 else:
                     self.audio_encode = "%s %s" % (self.audio_encode, token)
             self._last_token = token
+
+    def convert_resolution(self, resource_pix):
+        if not resource_pix:
+            return ''
+        if resource_pix == '1.5k':
+            return '1220p'
+        scale = int(resource_pix.strip('k'))
+        resolution_map = {
+            1: '1080p',
+            2: '1440p',
+            4: '2160p',
+            8: '4320p'
+        }
+        return resolution_map.get(scale, resource_pix)
