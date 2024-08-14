@@ -701,10 +701,9 @@ class DoubanSync(_IPluginModule):
             meta_info = MetaInfo(title="%s %s" % (douban_info.get("title"), douban_info.get("year") or ""))
             meta_info.douban_id = doubanid
             meta_info.type = media_type
-            meta_info.overview = douban_info.get("intro")
-            meta_info.poster_path = douban_info.get("cover_url")
-            rating = douban_info.get("rating", {}) or {}
-            meta_info.vote_average = rating.get("value") or ""
+            meta_info.overview = douban_info.get("summary")
+            meta_info.poster_path = douban_info.get("images", {}).get('large') or ""
+            meta_info.vote_average = douban_info.get("rating", {}).get("average") or ""
             meta_info.imdb_id = douban_info.get("imdbid")
             meta_info.user_name = info.get("user_name")
             if meta_info not in media_list:

@@ -163,30 +163,22 @@ class DouBan:
             time = round(random.uniform(1, 5), 1)
             log.info("【Douban】随机休眠: %s 秒" % time)
             sleep(time)
-        if mtype == MediaType.MOVIE:
-            douban_info = self.doubanapi.movie_detail(doubanid)
-        elif mtype:
-            douban_info = self.doubanapi.tv_detail(doubanid)
-        else:
-            douban_info = self.doubanapi.movie_detail(doubanid)
-            if not douban_info:
-                douban_info = self.doubanapi.tv_detail(doubanid)
+
+        douban_info = self.doubanapi.movie_detail(doubanid)
+
         if not douban_info:
-            log.warn("【Douban】%s 未找到豆瓣详细信息" % doubanid)
+            log.warn("【Douban】%s 豆瓣详细信息查询失败" % doubanid)
             return None
-        if douban_info.get("localized_message"):
-            log.warn("【Douban】查询豆瓣详情错误: %s" % douban_info.get("localized_message"))
+        
+        title = douban_info.get('title')
+        if not title or title == "未知电影" or title == "未知电视剧":
             return None
-        if not douban_info.get("title"):
-            return None
-        if douban_info.get("title") == "未知电影" or douban_info.get("title") == "未知电视剧":
-            return None
-        log.info("【Douban】查询到数据: %s" % douban_info.get("title"))
+        
+        log.info("【Douban】查询到数据: %s" % title)
 
         original_title = douban_info.get("original_title")
-        title = douban_info.get('title')
         # 如果标题中包含原始标题，则去除原始标题部分
-        if title and original_title and title.find(original_title) > 0:
+        if original_title and title.find(original_title) > 0:
             douban_info['title'] = title.replace(original_title, '').strip()
 
         return douban_info
@@ -333,8 +325,7 @@ class DouBan:
             meta_info.douban_id = item.get("id")
             meta_info.overview = item.get("card_subtitle") or ""
             meta_info.poster_path = item.get("cover_url").split('?')[0]
-            rating = item.get("rating", {}) or {}
-            meta_info.vote_average = rating.get("value")
+            meta_info.vote_average = item.get("rating", {}).get("value")
             if meta_info not in ret_medias:
                 ret_medias.append(meta_info)
 
@@ -387,16 +378,16 @@ class DouBan:
             if year:
                 ret_media['year'] = year[1:-1]
             # 简介
-            ret_media['intro'] = "".join(
+            ret_media['summary'] = "".join(
                 [str(x).strip() for x in web_info.get("intro") or []])
             # 封面图
             cover_url = web_info.get("cover")
             if cover_url:
-                ret_media['cover_url'] = cover_url.replace("s_ratio_poster", "m_ratio_poster")
+                ret_media['images'] = { 'large' : cover_url.replace("s_ratio_poster", "m_ratio_poster") }
             # 评分
             rating = web_info.get("rate")
             if rating:
-                ret_media['rating'] = {"value": float(rating)}
+                ret_media['rating'] = {"average": float(rating)}
             # 季数
             season_num = web_info.get("season_num")
             if season_num:

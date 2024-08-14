@@ -1817,18 +1817,14 @@ class WebAction:
         rssid = data.get("rssid")
         if tid and tid.startswith("DB:"):
             doubanid = tid.replace("DB:", "")
-            douban_info = DouBan().get_douban_detail(
-                doubanid=doubanid, mtype=MediaType.MOVIE)
+            douban_info = DouBan().get_douban_detail(doubanid=doubanid, mtype=MediaType.MOVIE)
             if not douban_info:
                 return {"code": 1, "retmsg": "无法查询到豆瓣信息"}
-            poster_path = douban_info.get("cover_url") or ""
+            
+            poster_path = douban_info.get("images", {}).get('large') or ""
             title = douban_info.get("title")
-            rating = douban_info.get("rating", {}) or {}
-            vote_average = rating.get("value") or "无"
+            vote_average = douban_info.get("rating", {}).get("average") or "无"
             release_date = douban_info.get("pubdate")
-            if release_date:
-                release_date = re.sub(
-                    r"\(.*\)", "", douban_info.get("pubdate")[0])
             if not release_date:
                 return {"code": 1, "retmsg": "上映日期不正确"}
             else:
@@ -1882,11 +1878,11 @@ class WebAction:
             douban_info = DouBan().get_douban_detail(doubanid=doubanid, mtype=MediaType.TV)
             if not douban_info:
                 return {"code": 1, "retmsg": "无法查询到豆瓣信息"}
-            poster_path = douban_info.get("cover_url") or ""
+            
+            poster_path = douban_info.get("images", {}).get('large') or ""
             title = douban_info.get("title")
-            rating = douban_info.get("rating", {}) or {}
-            vote_average = rating.get("value") or "无"
-            release_date = re.sub(r"\(.*\)", "", douban_info.get("pubdate")[0])
+            vote_average = douban_info.get("rating", {}).get("average") or "无"
+            release_date = douban_info.get("pubdate")
             if not release_date:
                 return {"code": 1, "retmsg": "上映日期不正确"}
             else:
