@@ -4553,12 +4553,10 @@ class WebAction:
         """
         # TMDBID 或 DB:豆瓣ID
         tmdbid = data.get("tmdbid")
-        mtype = MediaType.MOVIE if data.get(
-            "type") in MovieTypes else MediaType.TV
+        mtype = MediaType.MOVIE if data.get("type") in MovieTypes else MediaType.TV
         if not tmdbid:
             return {"code": 1, "msg": "未指定媒体ID"}
-        media_info = WebUtils.get_mediainfo_from_id(
-            mtype=mtype, mediaid=tmdbid)
+        media_info = WebUtils.get_mediainfo_from_id(mtype=mtype, mediaid=tmdbid)
         # 检查TMDB信息
         if not media_info or not media_info.tmdb_info:
             return {
@@ -4590,11 +4588,8 @@ class WebAction:
         actors = []
         if media_info.douban_id:
             crews, actors = DouBan().scraper_media_celebrities(media_info.douban_id.split(',')[0])
-            self.set_actor_id_from_tmdb(actors, media_info.tmdb_info)
-
-        if len(crews) == 0:
+        else:
             crews = MediaHandler.get_tmdb_crews(tmdbinfo=media_info.tmdb_info, nums=6)
-        if len(actors) == 0:
             actors = MediaHandler.get_tmdb_cats(mtype=mtype, tmdbid=media_info.tmdb_id)
 
         return {
@@ -4620,33 +4615,6 @@ class WebAction:
                 "seasons": seasons
             }
         }
-
-    # 把豆瓣演员ID替换为tmdb演员ID
-    def set_actor_id_from_tmdb(self, actors, tmdb_info):
-        # 豆瓣演员信息匹配tmdb演员信息
-        if not tmdb_info or not tmdb_info.credits or not tmdb_info.credits.cast:
-            return
-        tmdb_info_cast = tmdb_info.credits.cast
-        for actor in actors[:]:
-            match = next(filter(lambda x: self.is_actor_match(actor, x), tmdb_info_cast), None)
-            if not match:
-                actors.remove(actor)
-            else:
-                actor['id'] = match.id
-                if actor['role'] and actor['role'].startswith('演员 Act'):
-                    actor['role'] = match.character
-
-    # 豆瓣演员信息是否和tmdb演员信息匹配
-    @staticmethod
-    def is_actor_match(actor, tmdb_actor):
-        en_name = actor.get("en_name").lower()
-        name = actor.get("name").lower()
-
-        tmdb_actor_name = tmdb_actor.name.replace('-', '').lower()
-
-        if tmdb_actor_name == en_name or tmdb_actor_name == name:
-            return True
-        return tmdb_actor_name.startswith(en_name) or tmdb_actor_name.startswith(name)
 
     @staticmethod
     def __media_similar(data):

@@ -3,16 +3,17 @@ import os
 import random
 import re
 import traceback
-import anitopy
 import cn2an
-from functools import lru_cache
-
 import zhconv
+import log
+
+
+from functools import lru_cache
 from lxml import etree
 
-import log
 from app.helper import MetaHelper
 from app.helper.openai_helper import OpenAiHelper
+from app.media.doubanapi.apiv2 import DoubanApi
 from app.media.meta.metainfo import MetaInfo
 from app.media.tmdbv3api import TMDb, Search, Movie, TV, Person, Find, TMDbException, Discover, Trending, Episode, Genre
 from app.utils import PathUtils, EpisodeFormat, RequestUtils, NumberUtils, StringUtils, cacheman
@@ -2182,19 +2183,51 @@ class Media:
         """
         查询人物相关影视作品
         """
-        if not self.person:
-            return []
         try:
-            if mtype == MediaType.MOVIE:
-                movies = self.person.movie_credits(person_id=personid) or []
-                result = self.__dict_tmdbinfos(movies, mtype)
-            elif mtype:
-                tvs = self.person.tv_credits(person_id=personid) or []
-                result = self.__dict_tmdbinfos(tvs, mtype)
+            # personid = 10859
+            # 豆瓣人物id
+            if str(personid).startswith("DB:"):
+                personid = personid[3:].split(',')[0]
+                movies = DoubanApi().movie_search(personid).get("subjects") or []
+                result = []
+                if movies:
+                    for item in movies:
+                        movie_item = {}
+                        douban_id = 'DB:' + item.get('id')
+                        movie_item['id'] = douban_id
+                        movie_item['orgid'] = douban_id
+                        movie_item['tmdbid'] = douban_id
+                        movie_item['title'] = item.get('title')
+                        subtype = item.get('subtype')
+                        if subtype == 'tv':
+                            if item.get('genres') and '动画' in item.get('genres') :
+                                movie_item['type'] = 'ANI'
+                                movie_item['media_type'] = '动漫'
+                            else:
+                                movie_item['type'] = 'TV'
+                                movie_item['media_type'] = '电视剧'
+                        else:
+                            movie_item['type'] = 'MOV'
+                            movie_item['media_type'] = '电影'
+                        movie_item['overview'] = item.get("summary")
+                        movie_item['image'] = item.get("images", {}).get('large') or ""
+                        movie_item['vote'] = item.get("rating", {}).get("average") or ""
+                        movie_item['year'] = item.get("year")
+                        result.append(movie_item)
             else:
-                medias = self.person.combined_credits(person_id=personid) or []
-                result = self.__dict_tmdbinfos(medias)
-            return result[(page - 1) * 20: page * 20]
+                if not self.person:
+                    return []
+                if mtype == MediaType.MOVIE:
+                    movies = self.person.movie_credits(person_id=personid) or []
+                    result = self.__dict_tmdbinfos(movies, mtype)
+                elif mtype:
+                    tvs = self.person.tv_credits(person_id=personid) or []
+                    result = self.__dict_tmdbinfos(tvs, mtype)
+                else:
+                    medias = self.person.combined_credits(person_id=personid) or []
+                    result = self.__dict_tmdbinfos(medias)
+            if result:
+                return result[(page - 1) * 20: page * 20]
         except Exception as e:
             print(str(e))
         return []

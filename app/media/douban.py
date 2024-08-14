@@ -1,4 +1,5 @@
 import random
+import re
 from threading import Lock
 from time import sleep
 from typing import Optional
@@ -130,8 +131,10 @@ class DouBan:
             if len(role_tag) == 0:
                 continue
             role_name = role_tag[0].text
-            if role_name and ' ' in role_name and ')' in role_name:
-                role_name = role_name[role_name.rfind(' ') + 1:role_name.rfind(')')]
+            if role_name:
+                result = re.search(r'\(.*?\)', role_name)
+                if result:
+                    role_name = result.group(0)[1:-1]  # 去掉括号
 
             image_tag = one_unit.select('div.avatar')
             if len(image_tag) == 0:
@@ -140,7 +143,7 @@ class DouBan:
             role_image = style[style.rfind('(') + 1:style.rfind(')')]
 
             actor = {
-                'id': actor_id,
+                'id': 'DB:' + actor_name,
                 'name': actor_en_name,
                 'original_name': actor_name,
                 'en_name': StringUtils.adjust_en_name(actor_en_name),

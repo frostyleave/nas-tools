@@ -35,7 +35,7 @@ class DoubanApi(object):
         "movie_tag": "/movie/tag",
         "tv_tag": "/tv/tag",
         # q=search_word&start=0&count=20
-        "movie_search": "/search/movie",
+        "movie_search": "/movie/search",
         "tv_search": "/search/movie",
         "book_search": "/search/book",
         "group_search": "/search/group",
@@ -102,6 +102,7 @@ class DoubanApi(object):
         "tv_rank_list": "/tv/rank_list",
 
         # movie info
+        "movie_info": "/movie/",
         "movie_detail": "/movie/subject/",
         "movie_rating": "/movie/%s/rating",
         "movie_photos": "/movie/%s/photos",
@@ -138,6 +139,10 @@ class DoubanApi(object):
         # doulist
         "doulist": "/doulist/",
         "doulist_items": "/doulist/%s/items",
+        
+        # celebrity
+        "celebrity_works": "/movie/celebrity/%s/works",
+
     }
 
     _user_agents = [
@@ -225,7 +230,7 @@ class DoubanApi(object):
         return self.__invoke(self._urls["search"], q=keyword, start=start, count=count, _ts=ts)
 
     def movie_search(self, keyword, start=0, count=20, ts=datetime.strftime(datetime.now(), '%Y%m%d')):
-        return self.__invoke(self._urls["movie_search"], q=keyword, start=start, count=count, _ts=ts)
+        return self.__post(self._urls["movie_search"], q=keyword, start=start, count=count, _ts=ts, apikey='0ab215a8b1977939201640fa14c66bab')
 
     def tv_search(self, keyword, start=0, count=20, ts=datetime.strftime(datetime.now(), '%Y%m%d')):
         return self.__invoke(self._urls["tv_search"], q=keyword, start=start, count=count, _ts=ts)
@@ -269,6 +274,9 @@ class DoubanApi(object):
     def movie_celebrities(self, subject_id):
         return self.__invoke(self._urls["movie_celebrities"] % subject_id)
 
+    def celebrity_works(self, people_id):
+        return self.__post(self._urls["celebrity_works"] % people_id)
+    
     def tv_detail(self, subject_id):
         return self.__invoke(self._urls["tv_detail"] + subject_id)
 
