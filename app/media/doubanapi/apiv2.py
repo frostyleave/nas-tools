@@ -215,7 +215,7 @@ class DoubanApi(object):
             params.update(kwargs)
         if '_ts' in params:
             params.pop('_ts')
-        headers = {'User-Agent': choice(cls._user_agents)}
+        headers = {'User-Agent': choice(self._user_agents)}
         resp = RequestUtils(headers=headers, session=self._session).post_res(url=req_url, data=params)
         if resp.status_code == 400 and "rate_limit" in resp.text:
             return resp.json()
