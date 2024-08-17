@@ -4605,7 +4605,6 @@ class WebAction:
                 "genres": MediaHandler.get_tmdb_genres_names(tmdbinfo=media_info.tmdb_info),
                 "overview": media_info.overview,
                 "runtime": StringUtils.str_timehours(media_info.runtime),
-                "fact": MediaHandler.get_tmdb_factinfo(media_info),
                 "crews": crews,
                 "actors": actors,
                 "link": media_info.get_detail_url(),

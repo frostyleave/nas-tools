@@ -2184,39 +2184,23 @@ class Media:
         查询人物相关影视作品
         """
         try:
-            # personid = 10859
-            # 豆瓣人物id
+            result = []
+            # 豆瓣人物(姓名或id)
             if str(personid).startswith("DB:"):
                 personid = personid[3:].split(',')[0]
-                movies = DoubanApi().movie_search(personid).get("subjects") or []
-                result = []
+                if personid.isdigit():
+                    movies = DoubanApi().celebrity_works(personid).get("works") or []
+                    # celebrity_works 接口返回结构多了一层subject
+                    movies = list(map(lambda x: x.get("subject"), movies))
+                else:
+                    movies = DoubanApi().movie_search(personid).get("subjects") or []
                 if movies:
                     for item in movies:
-                        movie_item = {}
-                        douban_id = 'DB:' + item.get('id')
-                        movie_item['id'] = douban_id
-                        movie_item['orgid'] = douban_id
-                        movie_item['tmdbid'] = douban_id
-                        movie_item['title'] = item.get('title')
-                        subtype = item.get('subtype')
-                        if subtype == 'tv':
-                            if item.get('genres') and '动画' in item.get('genres') :
-                                movie_item['type'] = 'ANI'
-                                movie_item['media_type'] = '动漫'
-                            else:
-                                movie_item['type'] = 'TV'
-                                movie_item['media_type'] = '电视剧'
-                        else:
-                            movie_item['type'] = 'MOV'
-                            movie_item['media_type'] = '电影'
-                        movie_item['overview'] = item.get("summary")
-                        movie_item['image'] = item.get("images", {}).get('large') or ""
-                        movie_item['vote'] = item.get("rating", {}).get("average") or ""
-                        movie_item['year'] = item.get("year")
+                        movie_item = self.__convert_douban_stuct_to_tmdb(item)
                         result.append(movie_item)
             else:
                 if not self.person:
-                    return []
+                    return result
                 if mtype == MediaType.MOVIE:
                     movies = self.person.movie_credits(person_id=personid) or []
                     result = self.__dict_tmdbinfos(movies, mtype)
@@ -2231,6 +2215,37 @@ class Media:
         except Exception as e:
             print(str(e))
         return []
+    
+    def __convert_douban_stuct_to_tmdb(self, douban_item):
+        """
+        豆瓣结构转换为tmdb结构
+        """
+        movie_item = {}
+
+        douban_id = 'DB:' + douban_item.get('id')                       
+        movie_item['id'] = douban_id
+        movie_item['orgid'] = douban_id
+        movie_item['tmdbid'] = douban_id
+        movie_item['title'] = douban_item.get('title')
+
+        subtype = douban_item.get('subtype')
+        if subtype == 'tv':
+            if douban_item.get('genres') and '动画' in douban_item.get('genres') :
+                movie_item['type'] = 'ANI'
+                movie_item['media_type'] = '动漫'
+            else:
+                movie_item['type'] = 'TV'
+                movie_item['media_type'] = '电视剧'
+        else:
+            movie_item['type'] = 'MOV'
+            movie_item['media_type'] = '电影'
+
+        movie_item['image'] = douban_item.get("images", {}).get('large') or ""
+        movie_item['vote'] = douban_item.get("rating", {}).get("average") or ""
+        movie_item['year'] = douban_item.get("year")
+        movie_item['overview'] = douban_item.get("summary")
+
+        return movie_item
 
     @staticmethod
     def __search_engine(feature_name):

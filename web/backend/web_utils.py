@@ -135,12 +135,12 @@ class WebUtils:
         if str(mediaid).startswith("BG:"):
             # BANGUMI
             bangumiid = str(mediaid)[3:]
-            douban_info = Bangumi().detail(bid=bangumiid)
-            if not douban_info:
+            info = Bangumi().detail(bid=bangumiid)
+            if not info:
                 return None
-            title = douban_info.get("name")
-            title_cn = douban_info.get("name_cn")
-            year = douban_info.get("date")[:4] if douban_info.get("date") else ""
+            title = info.get("name")
+            title_cn = info.get("name_cn")
+            year = info.get("date")[:4] if info.get("date") else ""
             media_info = Media().get_media_info(title=f"{title} {year}",
                                                 mtype=MediaType.ANIME,
                                                 append_to_response="all")
@@ -150,25 +150,28 @@ class WebUtils:
                                                     append_to_response="all")
         else:
             # TMDB
-            douban_info = Media().get_tmdb_info(tmdbid=mediaid, mtype=mtype, append_to_response="all")
-            if not douban_info:
+            info = Media().get_tmdb_info(tmdbid=mediaid, mtype=mtype, append_to_response="all")
+            if not info:
                 return None
-            title = douban_info.get("title") if mtype == MediaType.MOVIE else douban_info.get("name")
-            media_info = MetaInfo(title=douban_info.get("title") if mtype == MediaType.MOVIE else douban_info.get("name"))
-            media_info.set_tmdb_info(douban_info)
+            title = info.get("title") if mtype == MediaType.MOVIE else info.get("name")
+            media_info = MetaInfo(title=info.get("title") if mtype == MediaType.MOVIE else info.get("name"))
+            media_info.set_tmdb_info(info)
 
-        if (hasattr(douban_info, 'imdb_id') == False or not douban_info.imdb_id) and hasattr(douban_info, 'external_ids') and douban_info.external_ids and hasattr(douban_info.external_ids, 'imdb_id') and  douban_info.external_ids.imdb_id:
-            setattr(douban_info, 'imdb_id', douban_info.external_ids.imdb_id)
+        if (hasattr(info, 'imdb_id') == False or not info.imdb_id) and hasattr(info, 'external_ids') and info.external_ids and hasattr(info.external_ids, 'imdb_id') and  info.external_ids.imdb_id:
+            setattr(info, 'imdb_id', info.external_ids.imdb_id)
         
         # 豆瓣信息补全
-        if media_info and douban_info:
-            imdb_id = douban_info.imdb_id if hasattr(douban_info, 'imdb_id') else ''
-            if imdb_id:
-                search_kwd = imdb_id if mtype == MediaType.MOVIE else title
-                douban_info = DouBan().search_detail_by_keyword(search_kwd, mtype)
+        if media_info and info:
+            if hasattr(info, 'imdb_id') and info.imdb_id:
+                search_kwd = title
+                if mtype == MediaType.MOVIE:
+                    search_kwd = info.imdb_id
+                elif info.number_of_seasons and info.number_of_seasons == 1:
+                    search_kwd = info.imdb_id
+                douban_info = DouBan().agg_search(search_kwd, mtype)
             else:
-                douban_info = DouBan().search_detail_by_keyword(title)
-
+                douban_info = DouBan().agg_search(title)
+            
             if douban_info:
                 douban_id_list = list(map(lambda x: x.get("id"), douban_info))
                 media_info.douban_id = ",".join(douban_id_list)
