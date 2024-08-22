@@ -65,6 +65,7 @@ class DoubanRank(_IPluginModule):
     _ranks = []
     _vote = 0
     _scheduler = None
+    _useproxy = False
 
     def init_config(self, config: dict = None):
         self.mediaserver = MediaServer()
@@ -74,6 +75,7 @@ class DoubanRank(_IPluginModule):
         if config:
             self._enable = config.get("enable")
             self._onlyonce = config.get("onlyonce")
+            self._useproxy = config.get("useproxy")
             self._cron = self.quartz_cron_compatible(config.get("cron"))
             self._vote = float(config.get("vote")) if config.get("vote") else 0
             rss_addrs = config.get("rss_addrs")
@@ -144,6 +146,14 @@ class DoubanRank(_IPluginModule):
                             'tooltip': '打开后立即运行一次（点击此对话框的确定按钮后即会运行，周期未设置也会运行），关闭后将仅按照刮削周期运行（同时上次触发运行的任务如果在运行中也会停止）',
                             'type': 'switch',
                             'id': 'onlyonce',
+                        }
+                    ],
+                    [
+                        {
+                            'title': '使用代理',
+                            'required': "",
+                            'type': 'switch',
+                            'id': 'useproxy',
                         }
                     ],
                     [
@@ -478,8 +488,10 @@ class DoubanRank(_IPluginModule):
         获取RSS
         """
         try:
-            ret = RequestUtils().get_res(addr)
+            proxy = Config().get_proxies() if self._useproxy else None
+            ret = RequestUtils(proxies=proxy).get_res(addr)
             if not ret:
+                self.error(f"开始请求订阅链接 {addr} 失败")
                 return []
             ret.encoding = ret.apparent_encoding
             ret_xml = ret.text
