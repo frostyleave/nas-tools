@@ -74,7 +74,7 @@ class DoubanRank(_IPluginModule):
         if config:
             self._enable = config.get("enable")
             self._onlyonce = config.get("onlyonce")
-            self._cron = config.get("cron")
+            self._cron = self.quartz_cron_compatible(config.get("cron"))
             self._vote = float(config.get("vote")) if config.get("vote") else 0
             rss_addrs = config.get("rss_addrs")
             if rss_addrs:
@@ -91,16 +91,17 @@ class DoubanRank(_IPluginModule):
 
         # 启动服务
         if self.get_state() or self._onlyonce:
-            self._scheduler = BackgroundScheduler(timezone=Config().get_timezone())
+            timezone = Config().get_timezone()
+            self._scheduler = BackgroundScheduler(timezone=timezone)
+
             if self._cron:
                 self.info(f"订阅服务启动，周期: {self._cron}")
-                self._scheduler.add_job(self.__refresh_rss,
-                                        CronTrigger.from_crontab(self._cron))
+                self._scheduler.add_job(self.__refresh_rss, CronTrigger.from_crontab(self._cron))
+
             if self._onlyonce:
-                self.info(f"订阅服务启动，立即运行一次")
+                self.info("订阅服务启动，立即运行一次")
                 self._scheduler.add_job(self.__refresh_rss, 'date',
-                                        run_date=datetime.now(tz=pytz.timezone(Config().get_timezone())) + timedelta(
-                                            seconds=3))
+                                        run_date=datetime.now(tz=pytz.timezone(timezone)) + timedelta(seconds=3))
                 # 关闭一次性开关
                 self._onlyonce = False
                 self.update_config({

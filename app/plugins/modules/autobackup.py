@@ -141,7 +141,7 @@ class AutoBackup(_IPluginModule):
         # 读取配置
         if config:
             self._enabled = config.get("enabled")
-            self._cron = config.get("cron")
+            self._cron = self.quartz_cron_compatible(config.get("cron"))
             self._cnt = config.get("cnt")
             self._full = config.get("full")
             self._bk_path = config.get("bk_path")

@@ -108,3 +108,14 @@ class SchedulerUtils:
                           "date",
                           run_date=datetime.datetime(year, month, day, hour, minute, second),
                           next_run_time=next_run_time)
+
+    @staticmethod
+    def quartz_cron_compatible(cron_expr):
+        if not cron_expr:
+            return cron_expr
+        
+        values = cron_expr.split()
+        if len(values) != 6:
+            return cron_expr
+        # 移除最左边的“秒”部分
+        return ' '.join(values[1:])

@@ -213,7 +213,7 @@ class IYUUAutoSeed(_IPluginModule):
         if config:
             self._enable = config.get("enable")
             self._onlyonce = config.get("onlyonce")
-            self._cron = config.get("cron")
+            self._cron = self.quartz_cron_compatible(config.get("cron"))
             self._token = config.get("token")
             self._downloaders = config.get("downloaders")
             self._sites = config.get("sites")

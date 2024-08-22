@@ -73,7 +73,7 @@ class WebUtils:
         return None, None
 
     @staticmethod
-    def get_mediainfo_from_id(mtype, mediaid, wait=False):
+    def get_mediainfo_from_id(mediaid, mtype=None, wait=False):
         """
         根据TMDB/豆瓣/BANGUMI获取媒体信息
         """

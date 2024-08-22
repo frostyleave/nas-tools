@@ -144,8 +144,13 @@ class MetaBase(object):
     note = {}
     # 资源发布时间
     pubdate = ''
+    # 名称中的罗马字符序号
+    cn_roman_digit = ''
+    en_roman_digit = ''
+    
     # 副标题解析
     _subtitle_flag = False
+    
     _subtitle_season_re = r"(?<![全|共]\s*)[第\s]+([0-9一二三四五六七八九十S\-]+)\s*季(?!\s*[全|共])"
     _subtitle_season_all_re = r"[全|共]\s*([0-9一二三四五六七八九十]+)\s*季|([0-9一二三四五六七八九十]+)\s*季\s*[全|共]"
     _subtitle_episode_re = r"(?<![全|共]\s*)[第\s]+([0-9一二三四五六七八九十百零EP\-]+)\s*[集话話期](?!\s*[全|共])"

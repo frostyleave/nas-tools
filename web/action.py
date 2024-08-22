@@ -1664,8 +1664,7 @@ class WebAction:
         # 订阅信息不足
         if not rssid_ok:
             if mediaid:
-                media = WebUtils.get_mediainfo_from_id(
-                    mtype=media_type, mediaid=mediaid)
+                media = WebUtils.get_mediainfo_from_id(mediaid=mediaid, mtype=media_type)
             else:
                 media = _media.get_media_info(
                     title=f"{title} {year}", mtype=media_type)
@@ -2680,8 +2679,7 @@ class WebAction:
         else:
             title_season = None
         if not str(tmdbid).isdigit():
-            media_info = WebUtils.get_mediainfo_from_id(mtype=MediaType.TV,
-                                                        mediaid=tmdbid)
+            media_info = WebUtils.get_mediainfo_from_id(mediaid=tmdbid, mtype=MediaType.TV)
             season_infos = Media().get_tmdb_tv_seasons(media_info.tmdb_info)
         else:
             season_infos = Media().get_tmdb_tv_seasons_byid(tmdbid=tmdbid)
@@ -4556,7 +4554,7 @@ class WebAction:
         mtype = MediaType.MOVIE if data.get("type") in MovieTypes else MediaType.TV
         if not tmdbid:
             return {"code": 1, "msg": "未指定媒体ID"}
-        media_info = WebUtils.get_mediainfo_from_id(mtype=mtype, mediaid=tmdbid)
+        media_info = WebUtils.get_mediainfo_from_id(mediaid=tmdbid, mtype=mtype)
         # 检查TMDB信息
         if not media_info or not media_info.tmdb_info:
             return {

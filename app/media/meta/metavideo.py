@@ -127,6 +127,18 @@ class MetaVideo(MetaBase):
         # 没有识别出类型时默认为电影
         if not self.type:
             self.type = MediaType.MOVIE
+        
+        # 如果中文名称中包含罗马字符的序号、有英文名
+        if self.cn_roman_digit and self.cn_name and self.en_name:
+            # 如果英文名不包含罗马字符序号, 则说明可能是误判
+            if not self.en_roman_digit:
+                self.en_name = "%s %s" % (self.cn_roman_digit, self.en_name)
+                self.cn_name = self.cn_name[:-len(self.cn_roman_digit)]
+            # 如果中英文罗马序号不一致, 则也可能是误判
+            elif self.cn_roman_digit != self.en_roman_digit:
+                self.cn_name = self.cn_name[:-len(self.cn_roman_digit)]
+                self.en_name = "%s %s %s" % (self.cn_roman_digit, self.en_name, self.en_roman_digit)
+
         # 去掉名字中不需要的干扰字符，过短的纯数字不要
         self.cn_name = self.__fix_name(self.cn_name)
         self.en_name = StringUtils.str_title(self.__fix_name(self.en_name))
@@ -215,8 +227,18 @@ class MetaVideo(MetaBase):
                         # 4位以下的数字或者罗马数字，拼装到已有标题中
                         if self._last_token_type == "cnname":
                             self.cn_name = "%s %s" % (self.cn_name, token)
+                            if is_roman_digit:
+                                if self.cn_roman_digit:
+                                    self.cn_roman_digit = "%s %s" % (self.cn_roman_digit, token)
+                                else:
+                                    self.cn_roman_digit = token
                         elif self._last_token_type == "enname":
                             self.en_name = "%s %s" % (self.en_name, token)
+                            if is_roman_digit:
+                                if self.en_roman_digit:
+                                    self.en_roman_digit = "%s %s" % (self.en_roman_digit, token)
+                                else:
+                                    self.en_roman_digit = token
                         self._continue_flag = False
                     elif token.isdigit() and len(token) == 4:
                         # 4位数字，可能是年份，也可能真的是标题的一部分，也有可能是集

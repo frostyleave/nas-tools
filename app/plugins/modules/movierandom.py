@@ -264,7 +264,7 @@ class MovieRandom(_IPluginModule):
         if config:
             self._enable = config.get("enable")
             self._onlyonce = config.get("onlyonce")
-            self._cron = config.get("cron")
+            self._cron = self.quartz_cron_compatible(config.get("cron"))
             self._language = config.get("language")
             self._genres = config.get("genres")
             self._vote = config.get("vote")

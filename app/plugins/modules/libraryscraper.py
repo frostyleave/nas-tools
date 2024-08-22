@@ -146,7 +146,7 @@ class LibraryScraper(_IPluginModule):
         # 读取配置
         if config:
             self._onlyonce = config.get("onlyonce")
-            self._cron = config.get("cron")
+            self._cron = self.quartz_cron_compatible(config.get("cron"))
             self._mode = config.get("mode")
             self._scraper_path = config.get("scraper_path")
             self._exclude_path = config.get("exclude_path")

@@ -470,9 +470,7 @@ class DoubanSync(_IPluginModule):
                     if not history or history.get("state") == "NEW":
                         if self._auto_search:
                             # 需要搜索
-                            media_info = WebUtils.get_mediainfo_from_id(mtype=media.type,
-                                                                        mediaid=f"DB:{media.douban_id}",
-                                                                        wait=True)
+                            media_info = WebUtils.get_mediainfo_from_id(mediaid=f"DB:{media.douban_id}",mtype=media.type,wait=True)
                             # 不需要自动加订阅，则直接搜索
                             if not media_info or not media_info.tmdb_info:
                                 self.warn("%s 未查询到媒体信息" % media.get_name())

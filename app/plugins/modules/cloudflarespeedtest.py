@@ -192,7 +192,7 @@ class CloudflareSpeedTest(_IPluginModule):
         # 读取配置
         if config:
             self._onlyonce = config.get("onlyonce")
-            self._cron = config.get("cron")
+            self._cron = self.quartz_cron_compatible(config.get("cron"))
             self._cf_ip = config.get("cf_ip")
             self._version = config.get("version")
             self._ipv4 = config.get("ipv4")
