@@ -68,6 +68,72 @@
       background-size: cover;
       border: 0;
   }
+  .top-sub-navbar {
+    font-size: 1rem;
+    border-bottom: 0;
+  }
+
+  div.top-sub-navbar > ul {
+    border-bottom: var(--tblr-nav-tabs-border-width) solid var(--tblr-nav-tabs-border-color);
+    background: transparent;
+  }
+
+  div.top-sub-navbar > ul > li {
+    min-width: 10rem;
+    margin-left: 1.5rem;
+  }
+
+  div.top-sub-navbar > ul > li > a {
+    display: block;
+    text-align: center;
+  }
+
+  .nav-tabs .nav-link.active {
+    border-color: transparent;
+    border-bottom-color: var(--tblr-link-hover-color);
+  }
+  
+  .components-div {
+    border-radius: 5px;
+    border: var(--tblr-card-border-width) solid var(--tblr-card-border-color);
+    background-color: var(--tblr-card-bg);
+    background-clip: border-box;
+    margin: 10px;
+  }
+
+  .nav-link-icon {
+    margin: 0 .6rem;
+  }
+
+  .nav-link {
+    margin-right: 1rem !important;
+  }
+
+  .section-title-container {
+    display: flex;
+    align-items: center;
+    margin: .5rem 1rem;
+  }
+
+  .section-title {
+    color: var(--tblr-card-border-color);
+    font-size: 0.9rem;
+    text-transform: uppercase;
+    margin-right: 10px;
+    white-space: nowrap;
+    border-radius: 4px;
+  }
+
+  .divider-line {
+    flex-grow: 1;
+    height: 1px;
+    background-color: var(--tblr-border-color);
+  }
+
+ .nav-link-title {
+  margin-left: 0.5rem;
+ }
+
   {% for site_name, site_icon in SiteFavicons.items() %}
   .siteicon-{{ site_name|hash }} {
       background-image: url({{ site_icon }});
@@ -99,7 +165,6 @@
   <!-- 解决密码填充问题 -->
   <span hidden><input type="text" aria-label=""><input type="password" aria-label=""></span>
   <layout-navbar id="navbar-menu" hidden
-    layout-userlevel="{{ CurrentUser.level }}"
     layout-useradmin="{{ CurrentUser.admin }}"
     layout-gopage="{{ GoPage }}"
     layout-appversion="{{ AppVersion }}"
@@ -114,10 +179,14 @@
   </layout-searchbar>
   <div class="spinner-border" role="status" id="logo_animation"></div>
   <div class="page-wrapper" >
+    <div class="input-group mx-2 top-sub-navbar" id="top-sub-navbar">
+      <ul class="nav nav-tabs card-header-tabs" data-bs-toggle="tabs" role="tablist"></ul>
+    </div>
     <div id="page_content" hidden="">
     {{ OOPS.loading() }}
     </div>
   </div>
+  <!-- 竖屏模式底部菜单 -->
   <div id="main_bottom_menubar" class="position-fixed w-100 d-flex justify-content-between d-sm-none main-bottom-menubar d-none">
     {% if "我的媒体库" in CurrentUser.pris %}
     <a class="card-btn border-0 px-0 text-center" href="javascript:navmenu('index')">
@@ -128,18 +197,18 @@
     <a class="card-btn border-0 px-0 text-center" href="javascript:navmenu('ranking')">
       {{ SVG.chart_bar() }}
     </a>
+    <a class="card-btn border-0 px-0 text-center" href="javascript:navmenu('search')">
+      {{ SVG.list_search() }}
+    </a>
     {% endif %}
     {% if "服务" in CurrentUser.pris %}
     <a class="card-btn border-0 px-0 text-center" href="javascript:navmenu('service')">
-      {{ SVG.layout_2() }}
+      {{ SVG.apps() }}
     </a>
     {% endif %}
     {% if "订阅管理" in CurrentUser.pris %}
     <a class="card-btn border-0 px-0 text-center" href="javascript:navmenu('movie_rss')">
       {{ SVG.movie() }}
-    </a>
-    <a class="card-btn border-0 px-0 text-center" href="javascript:navmenu('tv_rss')">
-      {{ SVG.device_tv() }}
     </a>
     {% endif %}
   </div>
@@ -1184,6 +1253,13 @@
       e.stopPropagation();
     });
 
+
+    // 导航菜单
+    // $("div#top-sub-navbar>ul>li>a").click(function () {
+    //   var link = $(this).data("id");
+    //   navmenu(link);
+    // });
+    
     // 全局变量默认值
     DefaultTransferMode = '{{ SyncMod }}';
     DefaultPath = "{{ DefaultPath }}";

@@ -2589,7 +2589,7 @@ class DbHelper:
         return self._db.query(INDEXERSITE).all()
     
     @DbPersist(_db)
-    def add_indexer(self, id, name, domain, proxy, render, downloader, source_type, search_type, search, torrents, browse=None, parser=None, category=None):
+    def add_indexer(self, id, name, domain, proxy, render, downloader, source_type, search_type, search, torrents, browse=None, parser=None, category=None, is_public=1):
         """
         新增索引站点
         """
@@ -2597,7 +2597,7 @@ class DbHelper:
             ID=id,
             NAME=name,
             DOMAIN=domain,
-            PUBLIC=1,
+            PUBLIC=is_public,
             PROXY=proxy,
             RENDER=render,
             DOWNLOADER=downloader,

@@ -1,3 +1,4 @@
+import json
 import os
 import shutil
 import sys
@@ -126,9 +127,10 @@ class Config(object):
 
     def init_config(self):
         try:
+            inner_cfg_path = self.get_inner_config_path()
             if not os.path.exists(self._config_path):
                 os.makedirs(os.path.dirname(self._config_path), exist_ok=True)
-                cfg_tp_path = os.path.join(self.get_inner_config_path(), "config.yaml")
+                cfg_tp_path = os.path.join(inner_cfg_path, "config.yaml")
                 cfg_tp_path = cfg_tp_path.replace("\\", "/")
                 shutil.copy(cfg_tp_path, self._config_path)
                 print("【Config】config.yaml 配置文件不存在，已将配置文件模板复制到配置目录...")
@@ -141,13 +143,17 @@ class Config(object):
                     print("【Config】配置文件 config.yaml 格式出现严重错误！请检查：%s" % str(e))
                     self._config = {}
 
-            with open(os.path.join(self.get_inner_config_path(), "sites.dat"), "rb") as f:
+            with open(os.path.join(inner_cfg_path, "menu.json"), "rb") as f:
                 try:
-                    cfg_obj = pickle.load(f)
-                    self.menu = cfg_obj.get("menu")
-                    self.services = cfg_obj.get("services")
+                    self.menu = json.loads(f.read())
                 except Exception as e:
-                    print("菜单配置解析出现严重错误！请检查：%s" % str(e))
+                    print("menu.json解析出现严重错误！请检查：%s" % str(e))
+
+            with open(os.path.join(inner_cfg_path, "services.json"), "rb") as f:
+                try:
+                    self.services = json.loads(f.read())
+                except Exception as e:
+                    print("services.json解析出现严重错误！请检查：%s" % str(e))
 
         except Exception as err:
             print("【Config】加载 config.yaml 配置出错：%s" % str(err))

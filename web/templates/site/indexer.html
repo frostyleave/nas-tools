@@ -2,10 +2,10 @@
 {% import 'macro/oops.html' as OOPS %}
 
 <style>
-  .tab-title {
+  .tab-title > ul {
     font-size: 1.0rem;
     font-weight: var(--tblr-font-weight-bold);
-    border-bottom: 0;
+    border-bottom: var(--tblr-nav-tabs-border-width) solid var(--tblr-nav-tabs-border-color);
   }
   div.tab-title > ul > li {
     min-width: 5rem;
@@ -20,6 +20,7 @@
   }
   .tab-content {
     border-top: var(--tblr-card-border-width) solid var(--tblr-card-border-color);
+    margin-top: 1rem;
   }
   .modal-body > details {
     margin: 0 8px 8px 8px;
@@ -34,9 +35,7 @@
   <div class="page-header d-print-none">
     <div class="row align-items-center">
       <div class="col">
-        <h2 class="page-title">
-          索引站点
-        </h2>
+        <input type="hidden" id="is_public_site" value="{{ IsPublic }}" />
       </div>
       <!-- Page title actions -->
       <div class="col-auto ms-auto d-print-none">
@@ -60,149 +59,81 @@
     </div>
   </div>
 </div>
-<div class="page-body">
-  <div class="card">
-    <div class="tab-title card-header">
-      <ul class="nav nav-tabs card-header-tabs" data-bs-toggle="tabs" role="tablist">
-        <li class="nav-item" role="presentation"><a data-toggle="tab" class="nav-link active" href="#public-indexer-div" data-bs-toggle="tab" aria-selected="true" role="tab">公开</a></li>
-        <li class="nav-item" role="presentation"><a data-toggle="tab" class="nav-link" href="#private-indexer-div" data-bs-toggle="tab" aria-selected="false" role="tab">私有</a></li>
-      </ul>
-    </div>
-    <div class="tab-content card-body">
-      <div id="public-indexer-div" class="tab-pane fade active show" role="tabpanel">
-        <div class="d-grid gap-3 grid-info-card">
-          {% for site in PublicIndexers %}
-          <div class="card card-link-pop">
-            <div class="card-header">
-              <div class="form-switch">
-                <input name="indexer_sites" type="checkbox" class="form-check-input" value="{{ site.id }}" {% if site.checked %}checked{% endif %} >
-              </div>
-              <h3 class="card-title">
-                <a href="javascript:void(0)" class="ms-1">
-                  <strong>{{ site.name }}</strong>
-                  </a>
-              </h3>
-              <div class="card-actions btn-actions">
-                <a href="javascript:edit_site('{{ site.domain }}')" class="btn-action ms-1" title="编辑站点">
-                  {{ SVG.edit() }}
-                </a>
-              </div>
-            </div>
-            <div class="card-body">
-              <dl class="row">
-                <dt class="col-3">站点地址:</dt>
-                <dd class="col-9"><a href={{ site.domain }} target="_blank">{{ site.domain }}</a></dd>
-                <dt class="col-3">资源类型:</dt>
-                <dd class="col-9">
-                  {% for source in site.source_type %}
-                    {% if source|string in SourceTypes %}
-                    <span class="badge bg-blue me-2">{{SourceTypes[source|string]}}</span>
-                    {% else %}
-                    <span class="badge bg-blue me-2">{{ source }}</span>
-                    {% endif %}
-                  {% endfor %}
-                </dd>
-                <dt class="col-3">搜索方式:</dt>
-                <dd class="col-9">
-                  {% for search in site.search_type %}
-                    {% if search|string in SearchTypes %}
-                    <span class="badge bg-lime me-2">{{SearchTypes[search|string]}}</span>
-                    {% else %}
-                    <span class="badge bg-lime me-2">{{ search }}</span>
-                    {% endif %}
-                  {% endfor %}
-                </dd>
-                <dt class="col-3">下载器:</dt>
-                {% if site.downloader and site.downloader|string in DownloadSettings %}
-                <dd class="col-9"><span class="badge bg-yellow me-2">{{ DownloadSettings[site.downloader|string] }}</span></dd>
+{% if Indexers %}
+<div class="container-xl tab-content">
+  <div id="public-indexer-div" class="tab-pane fade active show" role="tabpanel">
+    <div class="d-grid gap-3 grid-info-card">
+      {% for site in Indexers %}
+      <div class="card card-link-pop">
+        <div class="card-header">
+          <div class="form-switch">
+            <input name="indexer_sites" type="checkbox" class="form-check-input" value="{{ site.id }}" {% if site.checked %}checked{% endif %} >
+          </div>
+          <h3 class="card-title">
+            <a href="javascript:void(0)" class="ms-1">
+              <strong>{{ site.name }}</strong>
+              </a>
+          </h3>
+          <div class="card-actions btn-actions">
+            <a href="javascript:edit_site('{{ site.domain }}')" class="btn-action ms-1" title="编辑站点">
+              {{ SVG.edit() }}
+            </a>
+          </div>
+        </div>
+        <div class="card-body">
+          <dl class="row">
+            <dt class="col-3">站点地址:</dt>
+            <dd class="col-9"><a href={{ site.domain }} target="_blank">{{ site.domain }}</a></dd>
+            <dt class="col-3">资源类型:</dt>
+            <dd class="col-9">
+              {% for source in site.source_type %}
+                {% if source|string in SourceTypes %}
+                <span class="badge bg-blue me-2">{{SourceTypes[source|string]}}</span>
                 {% else %}
-                <dd class="col-9"><span class="badge bg-yellow me-2">默认</span></dd>
+                <span class="badge bg-blue me-2">{{ source }}</span>
                 {% endif %}
-              </dl>
-              <div class="row">
-                <div class="col">
-                  {% if site.render %}
-                  <span class="badge bg-yellow-lt mb-1 me-1">仿真</span>
-                  {% endif %}
-                  {% if site.proxy %}
-                  <span class="badge bg-lime-lt mb-1 me-1">代理</span>
-                  {% endif %}
-                </div>
-              </div>
+              {% endfor %}
+            </dd>
+            <dt class="col-3">搜索方式:</dt>
+            <dd class="col-9">
+              {% for search in site.search_type %}
+                {% if search|string in SearchTypes %}
+                <span class="badge bg-lime me-2">{{SearchTypes[search|string]}}</span>
+                {% else %}
+                <span class="badge bg-lime me-2">{{ search }}</span>
+                {% endif %}
+              {% endfor %}
+            </dd>
+            <dt class="col-3">下载器:</dt>
+            {% if site.downloader and site.downloader|string in DownloadSettings %}
+            <dd class="col-9"><span class="badge bg-yellow me-2">{{ DownloadSettings[site.downloader|string] }}</span></dd>
+            {% else %}
+            <dd class="col-9"><span class="badge bg-yellow me-2">默认</span></dd>
+            {% endif %}
+          </dl>
+          <div class="row">
+            <div class="col">
+              {% if site.render %}
+              <span class="badge bg-yellow-lt mb-1 me-1">仿真</span>
+              {% endif %}
+              {% if site.proxy %}
+              <span class="badge bg-lime-lt mb-1 me-1">代理</span>
+              {% endif %}
             </div>
           </div>
-          {% endfor %}
         </div>
       </div>
-      <div id="private-indexer-div" class="tab-pane fade" role="tabpanel">
-        <div class="d-grid gap-3 grid-info-card">
-          {% for site in PrivateIndexers %}
-          <div class="card card-link-pop">
-            <div class="card-header">
-              <div class="form-switch">
-                <input name="indexer_sites" type="checkbox" class="form-check-input" value="{{ site.id }}" {% if site.checked %}checked{% endif %} >
-              </div>
-              <h3 class="card-title">
-                <a href="javascript:void(0)" class="ms-1">
-                  <strong>{{ site.name }}</strong>
-                  </a>
-              </h3>
-              <div class="card-actions btn-actions">
-                <a href="javascript:edit_site('{{ site.domain }}')" class="btn-action ms-1" title="编辑站点">
-                  {{ SVG.edit() }}
-                </a>
-              </div>
-            </div>
-            <div class="card-body">
-              <dl class="row">
-                <dt class="col-3">站点地址:</dt>
-                <dd class="col-9"><a href={{ site.domain }} target="_blank">{{ site.domain }}</a></dd>
-                <dt class="col-3">资源类型:</dt>
-                <dd class="col-9">
-                  {% for source in site.source_type %}
-                    {% if source|string in SourceTypes %}
-                    <span class="badge bg-blue me-2">{{SourceTypes[source|string]}}</span>
-                    {% else %}
-                    <span class="badge bg-blue me-2">{{ source }}</span>
-                    {% endif %}
-                  {% endfor %}
-                </dd>
-                <dt class="col-3">搜索方式:</dt>
-                <dd class="col-9">
-                  {% for search in site.search_type %}
-                    {% if search|string in SearchTypes %}
-                    <span class="badge bg-lime me-2">{{SearchTypes[search|string]}}</span>
-                    {% else %}
-                    <span class="badge bg-lime me-2">{{ search }}</span>
-                    {% endif %}
-                  {% endfor %}
-                </dd>
-                <dt class="col-3">下载器:</dt>
-                {% if site.downloader and site.downloader|string in DownloadSettings %}
-                <dd class="col-9"><span class="badge bg-yellow me-2">{{ DownloadSettings[site.downloader|string] }}</span></dd>
-                {% else %}
-                <dd class="col-9"><span class="badge bg-yellow me-2">默认</span></dd>
-                {% endif %}
-              </dl>
-              <div class="row">
-                <div class="col">
-                  {% if site.render %}
-                  <span class="badge bg-yellow-lt mb-1 me-1">仿真</span>
-                  {% endif %}
-                  {% if site.proxy %}
-                  <span class="badge bg-lime-lt mb-1 me-1">代理</span>
-                  {% endif %}
-                </div>
-              </div>
-            </div>
-          </div>
-          {% endfor %}
-        </div>
-      </div>
+      {% endfor %}
     </div>
   </div>
 </div>
-
+{% else %}
+  {% if IsPublic == 1 %}
+  {{ OOPS.nodatafound('没有数据', '没有可以用的公共索引站点') }}
+  {% else %}
+  {{ OOPS.nodatafound('没有数据', '没有认证成功的PT站点信息') }}
+  {% endif %}
+{% endif %}
 <div class="modal modal-blur fade" id="modal-indexer-statistics" tabindex="-1" role="dialog" aria-hidden="true">
   <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
     <div class="card modal-content" style="border-top-left-radius:var(--tblr-modal-inner-border-radius) !important; border-top-right-radius:var(--tblr-modal-inner-border-radius) !important">
@@ -491,7 +422,8 @@
       "search": search_cfg,
       "torrents": torrent_cfg,
       "browse": browse_cfg,
-      "category": category_cfg
+      "category": category_cfg,
+      "public": $('#is_public_site').val()
     };
 
     ajax_post("add_indexer", data, function (ret) {
