@@ -808,3 +808,31 @@ class StringUtils:
             return True
         else:
             return False
+        
+    @staticmethod
+    def is_public_url(url: str) -> bool:
+
+        if not url:
+            return False
+
+        # 正则表达式：匹配以 http 或 https 开头的有效 URL
+        regex = re.compile(
+            r'^(http|https)://'  # 协议
+            r'(([A-Za-z0-9-]+\.)+[A-Za-z]{2,6})'  # 域名
+            r'(:\d+)?'  # 可选端口号
+            r'(/[\w\-./?%&=]*)?$',  # 路径和查询参数
+            re.IGNORECASE
+        )
+        
+        # 检查是否符合 URL 格式
+        if regex.match(url):
+            # 排除非公网网址（如 localhost 和私有 IP 地址）
+            private_domains = ['localhost', '127.0.0.1', '::1']
+            private_ip_pattern = re.compile(r'^(10|172\.(1[6-9]|2[0-9]|3[01])|192\.168)\.')
+            
+            domain = url.split('//')[-1].split('/')[0].split(':')[0]
+            
+            if domain not in private_domains and not private_ip_pattern.match(domain):
+                return True
+        
+        return False

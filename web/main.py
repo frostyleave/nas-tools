@@ -1046,11 +1046,6 @@ def rss_parser():
 @App.route('/plugin', methods=['POST', 'GET'])
 @login_required
 def plugin():
-    # 只有选中的索引器才搜索
-    indexers = Indexer().get_indexers(check=False)
-    private_count = len([item.id for item in indexers if not item.public])
-    public_count = len([item.id for item in indexers if item.public])
-    indexer_sites = SystemConfig().get(SystemConfigKey.UserIndexerSites)
     # 下载器
     DefaultDownloader = Downloader().default_downloader_id
     Downloaders = Downloader().get_downloader_conf()
@@ -1066,10 +1061,6 @@ def plugin():
     Settings = '\n'.join(SystemConfig().get(SystemConfigKey.ExternalPluginsSource) or [])
     return render_template("setting/plugin.html",
                            Config=Config().get_config(),
-                           PrivateCount=private_count,
-                           PublicCount=public_count,
-                           Indexers=indexers,
-                           IndexerSites=indexer_sites,
                            Downloaders=Downloaders,
                            DefaultDownloader=DefaultDownloader,
                            DownloadersCount=DownloadersCount,

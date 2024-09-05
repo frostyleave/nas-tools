@@ -65,6 +65,7 @@ class Subscribe:
                           season=None,
                           fuzzy_match=False,
                           mediaid=None,
+                          media_info=None,
                           rss_sites=None,
                           search_sites=None,
                           over_edition=False,
@@ -162,22 +163,23 @@ class Subscribe:
                     search_sites = default_search_sites
         # 搜索媒体信息
         if not fuzzy_match:
-            # 根据TMDBID查询，从推荐加订阅的情况
-            if mediaid:
-                # 根据ID查询
-                media_info = WebUtils.get_mediainfo_from_id(mediaid=mediaid, mtype=mtype)
-                if not season:
-                    season = media_info.begin_season
-            else:
-                # 根据名称和年份查询
-                if season:
-                    title = "%s %s 第%s季".strip() % (name, year, season)
+            if not media_info or hasattr(media_info, 'tmdb_info') == False or not media_info.tmdb_info:
+                # 根据TMDBID查询，从推荐加订阅的情况
+                if mediaid:
+                    # 根据ID查询
+                    media_info = WebUtils.get_mediainfo_from_id(mediaid=mediaid, mtype=mtype)
+                    if not season:
+                        season = media_info.begin_season
                 else:
-                    title = "%s %s".strip() % (name, year)
-                media_info = self.media.get_media_info(title=title,
-                                                       mtype=mtype,
-                                                       strict=True if year else False,
-                                                       cache=False)
+                    # 根据名称和年份查询
+                    if season:
+                        title = "%s %s 第%s季".strip() % (name, year, season)
+                    else:
+                        title = "%s %s".strip() % (name, year)
+                    media_info = self.media.get_media_info(title=title,
+                                                        mtype=mtype,
+                                                        strict=True if year else False,
+                                                        cache=False)
             # 检查TMDB信息
             if not media_info or not media_info.tmdb_info:
                 return 1, "无法TMDB查询到媒体信息", None
@@ -326,8 +328,7 @@ class Subscribe:
             # 发送订阅成功消息
             if in_from:
                 media_info.user_name = user_name
-                self.message.send_rss_success_message(in_from=in_from,
-                                                      media_info=media_info)
+                self.message.send_rss_success_message(in_from=in_from, media_info=media_info)
             return code, "添加订阅成功", media_info
         elif code == 9:
             return code, "订阅已存在", media_info
@@ -988,17 +989,25 @@ class Subscribe:
         """
         return self.dbhelper.get_rss_tv_episodes(rssid)
 
-    def check_history(self, type_str, name, year, season):
+    def check_history(self, tmdbid, season=None):
         """
         检查订阅历史是否存在
         """
-        return self.dbhelper.check_rss_history(type_str=type_str,
-                                               name=name,
-                                               year=year,
-                                               season=season)
-
-    def delete_subscribe(self, mtype,
-                         title=None, year=None, season=None, rssid=None, tmdbid=None):
+        return self.dbhelper.check_rss_history(tmdbid, season)
+    
+    def check_movie_in_rss(self, tmdbid):
+        """
+        检查电影是否已在订阅
+        """
+        return self.dbhelper.is_exists_rss_movie(tmdbid)
+    
+    def check_tv_in_rss(self, tmdbid, season=None):
+        """
+        检查剧集是否已在订阅
+        """
+        return self.dbhelper.is_exists_rss_tv(tmdbid, season)
+    
+    def delete_subscribe(self, mtype, title=None, year=None, season=None, rssid=None, tmdbid=None):
         """
         删除电影订阅
         """

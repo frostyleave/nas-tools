@@ -124,7 +124,7 @@ class Gopeed(_IDownloadClient):
             trans_tasks.append({'path': os.path.join(true_path, name).replace("\\", "/"), 'id': torrent.get("id")})
         return trans_tasks
 
-    def add_torrent(self, content, name=name, download_dir=None, **kwargs):
+    def add_torrent(self, content, name, download_dir=None, **kwargs):
         if not self._client:
             return None
         if isinstance(content, str):         

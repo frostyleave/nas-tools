@@ -420,7 +420,8 @@ def __rss_media(in_from, media_info, user_id=None, state='D', user_name=None):
     """
     # 添加订阅
     mediaid = f"DB:{media_info.douban_id}" if media_info.douban_id else media_info.tmdb_id
-    code, msg, media_info = Subscribe().add_rss_subscribe(mtype=media_info.type,
+    code, msg, media_info = Subscribe().add_rss_subscribe(media_info=media_info,
+                                                          mtype=media_info.type,
                                                           name=media_info.title,
                                                           year=media_info.year,
                                                           channel=RssType.Auto,

@@ -1204,10 +1204,8 @@ class Media:
                 typestr = 'MOV' if mtype == MediaType.MOVIE else 'TV'
                 title = info.get("title") if mtype == MediaType.MOVIE else info.get("name")
             else:
-                media_type = MediaType.MOVIE.value if info.get(
-                    "media_type") == "movie" else MediaType.TV.value
-                year = info.get("release_date")[0:4] if info.get(
-                    "release_date") and info.get(
+                media_type = MediaType.MOVIE.value if info.get("media_type") == "movie" else MediaType.TV.value
+                year = info.get("release_date")[0:4] if info.get("release_date") and info.get(
                     "media_type") == "movie" else info.get(
                     "first_air_date")[0:4] if info.get(
                     "first_air_date") else ""
@@ -1233,7 +1231,7 @@ class Media:
 
         return ret_infos
 
-    def get_tmdb_hot_movies(self, page):
+    def get_tmdb_hot_movies(self, page=1):
         """
         获取热门电影
         :param page: 第几页
@@ -1243,7 +1241,7 @@ class Media:
             return []
         return self.__dict_tmdbinfos(self.movie.popular(page), MediaType.MOVIE)
 
-    def get_tmdb_hot_tvs(self, page):
+    def get_tmdb_hot_tvs(self, page=1):
         """
         获取热门电视剧
         :param page: 第几页
@@ -1253,7 +1251,7 @@ class Media:
             return []
         return self.__dict_tmdbinfos(self.tv.popular(page), MediaType.TV)
 
-    def get_tmdb_new_movies(self, page):
+    def get_tmdb_new_movies(self, page=1):
         """
         获取最新电影
         :param page: 第几页
@@ -1263,7 +1261,7 @@ class Media:
             return []
         return self.__dict_tmdbinfos(self.movie.now_playing(page), MediaType.MOVIE)
 
-    def get_tmdb_new_tvs(self, page):
+    def get_tmdb_new_tvs(self, page=1):
         """
         获取最新电视剧
         :param page: 第几页
@@ -1285,7 +1283,7 @@ class Media:
 
     def get_tmdb_trending_all_week(self, page=1):
         """
-        获取即将上映电影
+        获取趋势榜单
         :param page: 第几页
         :return: TMDB信息列表
         """

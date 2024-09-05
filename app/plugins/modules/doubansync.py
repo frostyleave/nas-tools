@@ -499,7 +499,8 @@ class DoubanSync(_IPluginModule):
                                     "%s %s 更新到%s订阅中..." % (media_info.title,
                                                                  media_info.year,
                                                                  media_info.type.value))
-                                code, msg, _ = self.subscribe.add_rss_subscribe(mtype=media_info.type,
+                                code, msg, _ = self.subscribe.add_rss_subscribe(media_info=media_info,
+                                                                                mtype=media_info.type,
                                                                                 name=media_info.title,
                                                                                 year=media_info.year,
                                                                                 channel=RssType.Auto,

@@ -3,6 +3,12 @@
 {% import 'macro/oops.html' as OOPS %}
 
 <style>
+
+  .text-desc {
+      height: 40px;
+      overflow-y: auto;
+  }
+
   .components-div {
     border-radius: 5px;
     border: var(--tblr-card-border-width) solid var(--tblr-card-border-color);
@@ -15,6 +21,7 @@
     margin-left: -55px;
     --tblr-badge-border-radius: 0;
   }
+
   #modal-plugin-apps-content{
     --tblr-modal-width: 1400px;
   }
@@ -855,7 +862,7 @@
               </div>
               <div class="card-body text-start">
                 <div class="card-title mb-1">${plugin.name}</div>
-                <div class="text-muted"><strong>描述：</strong>${plugin.desc}</div>
+                <div class="text-muted text-desc">${plugin.desc}</div>
                 <div class="text-muted mt-1"><strong>作者：</strong>
                 ${plugin.author_url ? `<a href="${plugin.author_url}" target="_blank">${plugin.author}</a>`
                   : `<span class="text-muted">${plugin.author}</span>`}
