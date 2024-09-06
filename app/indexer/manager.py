@@ -1,5 +1,3 @@
-import base64
-
 import log
 from app.helper import DbHelper
 from app.helper.json_helper import JsonHelper
