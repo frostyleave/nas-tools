@@ -374,6 +374,7 @@ class RssChecker(object):
         if rss_subscribe_torrents:
             for media in rss_subscribe_torrents:
                 code, msg, rss_media = self.subscribe.add_rss_subscribe(
+                    media_info=media,
                     mtype=media.type,
                     name=media.get_name(),
                     year=media.year,

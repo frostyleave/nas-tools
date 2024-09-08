@@ -6,7 +6,6 @@ from app.media.meta._base import MetaBase
 from app.utils import StringUtils
 from app.utils.tokens import Tokens
 from app.utils.types import MediaType
-from app.utils.release_groups import ReleaseGroupsMatcher
 from app.media.meta.customization import CustomizationMatcher
 
 
@@ -128,6 +127,18 @@ class MetaVideo(MetaBase):
         # 没有识别出类型时默认为电影
         if not self.type:
             self.type = MediaType.MOVIE
+        
+        # 如果中文名称中包含罗马字符的序号、有英文名
+        if self.cn_roman_digit and self.cn_name and self.en_name:
+            # 如果英文名不包含罗马字符序号, 则说明可能是误判
+            if not self.en_roman_digit:
+                self.en_name = "%s %s" % (self.cn_roman_digit, self.en_name)
+                self.cn_name = self.cn_name[:-len(self.cn_roman_digit)]
+            # 如果中英文罗马序号不一致, 则也可能是误判
+            elif self.cn_roman_digit != self.en_roman_digit:
+                self.cn_name = self.cn_name[:-len(self.cn_roman_digit)]
+                self.en_name = "%s %s %s" % (self.cn_roman_digit, self.en_name, self.en_roman_digit)
+
         # 去掉名字中不需要的干扰字符，过短的纯数字不要
         self.cn_name = self.__fix_name(self.cn_name)
         self.en_name = StringUtils.str_title(self.__fix_name(self.en_name))
@@ -216,8 +227,18 @@ class MetaVideo(MetaBase):
                         # 4位以下的数字或者罗马数字，拼装到已有标题中
                         if self._last_token_type == "cnname":
                             self.cn_name = "%s %s" % (self.cn_name, token)
+                            if is_roman_digit:
+                                if self.cn_roman_digit:
+                                    self.cn_roman_digit = "%s %s" % (self.cn_roman_digit, token)
+                                else:
+                                    self.cn_roman_digit = token
                         elif self._last_token_type == "enname":
                             self.en_name = "%s %s" % (self.en_name, token)
+                            if is_roman_digit:
+                                if self.en_roman_digit:
+                                    self.en_roman_digit = "%s %s" % (self.en_roman_digit, token)
+                                else:
+                                    self.en_roman_digit = token
                         self._continue_flag = False
                     elif token.isdigit() and len(token) == 4:
                         # 4位数字，可能是年份，也可能真的是标题的一部分，也有可能是集
@@ -331,10 +352,7 @@ class MetaVideo(MetaBase):
                     self.en_name = self.en_name.replace(token, '').strip()
                 self._continue_flag = False
                 if not self.resource_pix:
-                    self.resource_pix = re_res.group(1).lower()
-                    if self.resource_pix:
-                        scale = int(self.resource_pix.lower().strip('k')) - 1
-                        self.resource_pix = str(int(1080 * (1.5 ** scale))) + 'p'
+                    self.resource_pix = self.convert_resolution(re_res.group(1).lower())
 
     def __init_season(self, token):
         re_res = re.findall(r"%s" % self._season_re, token, re.IGNORECASE)
@@ -476,10 +494,10 @@ class MetaVideo(MetaBase):
             self._source = "WEB-DL"
             self._continue_flag = False
             return
-        elif re.search(r"(%s)" % self._source_tc_re, token, re.IGNORECASE):
-            self._source = "枪版"
-            self._continue_flag = False
-            return
+        # elif re.search(r"(%s)" % self._source_tc_re, token, re.IGNORECASE):
+        #     self._source = "枪版"
+        #     self._continue_flag = False
+        #     return
         effect_res = re.search(r"(%s)" % self._effect_re, token, re.IGNORECASE)
         if effect_res:
             self._last_token_type = "effect"
@@ -561,3 +579,17 @@ class MetaVideo(MetaBase):
                 else:
                     self.audio_encode = "%s %s" % (self.audio_encode, token)
             self._last_token = token
+
+    def convert_resolution(self, resource_pix):
+        if not resource_pix:
+            return ''
+        if resource_pix == '1.5k':
+            return '1220p'
+        scale = int(resource_pix.strip('k'))
+        resolution_map = {
+            1: '1080p',
+            2: '1440p',
+            4: '2160p',
+            8: '4320p'
+        }
+        return resolution_map.get(scale, resource_pix)

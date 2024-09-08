@@ -122,7 +122,8 @@ class _IIndexClient(metaclass=ABCMeta):
                                        imdbid=imdbid,
                                        upload_volume_factor=uploadvolumefactor,
                                        download_volume_factor=downloadvolumefactor,
-                                       labels=labels)
+                                       labels=labels,
+                                       pubdate=item.get("pubdate"))
 
             # 先过滤掉可以明确的类型
             if meta_info.type == MediaType.TV and filter_args.get("type") == MediaType.MOVIE:

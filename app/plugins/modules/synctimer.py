@@ -65,7 +65,7 @@ class SyncTimer(_IPluginModule):
 
         # 读取配置
         if config:
-            self._cron = config.get("cron")
+            self._cron = self.quartz_cron_compatible(config.get("cron"))
 
         # 停止现有任务
         self.stop_service()

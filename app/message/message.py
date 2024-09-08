@@ -126,7 +126,7 @@ class Message(object):
                     url = "%s?next=%s" % (self._domain, url)
             else:
                 url = ""
-        else:
+        elif not StringUtils.is_public_url(url):
             url = ""
         # 消息内容分段
         max_length = client.get("max_length")
@@ -474,7 +474,7 @@ class Message(object):
                     image=item.get_message_image()
                 )
 
-    def send_rss_success_message(self, in_from: Enum, media_info):
+    def send_rss_success_message(self, in_from, media_info):
         """
         发送订阅成功的消息
         """
@@ -482,12 +482,15 @@ class Message(object):
             msg_title = f"{media_info.get_title_string()} 已添加订阅"
         else:
             msg_title = f"{media_info.get_title_string()} {media_info.get_season_string()} 已添加订阅"
+
         msg_str = f"类型：{media_info.type.value}"
         if media_info.vote_average:
             msg_str = f"{msg_str}，{media_info.get_vote_string()}"
-        msg_str = f"{msg_str}，来自：{in_from.value}"
+        msg_str = f"{msg_str}，来自：{in_from.value if isinstance(in_from, Enum) else in_from}"
         if media_info.user_name:
             msg_str = f"{msg_str}，用户：{media_info.user_name}"
+        
+        url = media_info.get_detail_url()
         # 插入消息中心
         self.messagecenter.insert_system_message(title=msg_title, content=msg_str)
         # 发送消息
@@ -498,7 +501,7 @@ class Message(object):
                     title=msg_title,
                     text=msg_str,
                     image=media_info.get_message_image(),
-                    url='movie_rss' if media_info.type == MediaType.MOVIE else 'tv_rss'
+                    url=url
                 )
 
     def send_rss_finished_message(self, media_info):

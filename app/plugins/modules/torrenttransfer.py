@@ -278,7 +278,7 @@ class TorrentTransfer(_IPluginModule):
         if config:
             self._enable = config.get("enable")
             self._onlyonce = config.get("onlyonce")
-            self._cron = config.get("cron")
+            self._cron = self.quartz_cron_compatible(config.get("cron"))
             self._notify = config.get("notify")
             self._nolabels = config.get("nolabels")
             self._frompath = config.get("frompath")

@@ -73,7 +73,7 @@ class WebUtils:
         return None, None
 
     @staticmethod
-    def get_mediainfo_from_id(mtype, mediaid, wait=False):
+    def get_mediainfo_from_id(mediaid, mtype=None, wait=False):
         """
         根据TMDB/豆瓣/BANGUMI获取媒体信息
         """
@@ -83,18 +83,20 @@ class WebUtils:
         if str(mediaid).startswith("DB:"):
             # 豆瓣
             doubanid = mediaid[3:].split(',')[0]
-            info = DouBan().get_douban_detail(doubanid=doubanid, mtype=mtype, wait=wait)
-            if not info:
+            douban_info = DouBan().get_douban_detail(doubanid=doubanid, mtype=mtype, wait=wait)
+            if not douban_info:
                 return None
-            title = info.get("title")
-            original_title = info.get("original_title")
-            year = info.get("year")
-            begin_season = None
-            # 有集数的识别为剧集，否则为电影
-            if not mtype:
-                mtype = MediaType.TV if info.get("episodes_count") else MediaType.MOVIE
+            
+            title = douban_info.get("title")
+            original_title = douban_info.get("original_title")
+            year = douban_info.get("year")
 
-            # 剧集类型，去掉季信息
+            if not mtype and douban_info.get("subtype"):
+                subtype = douban_info.get("subtype")
+                mtype = MediaType.TV if subtype == 'tv' else MediaType.MOVIE
+
+            begin_season = None
+            # 剧集类型，去掉标题中的季信息
             if mtype == MediaType.TV and re.search(r'%s' % DB_SEASON_SUFFIX, title, flags=re.IGNORECASE):
                 new_title = StringUtils.season_ep_name_to_en(title)
                 t = PTN.parse(new_title)
@@ -160,13 +162,16 @@ class WebUtils:
         
         # 豆瓣信息补全
         if media_info and info:
-            imdb_id = info.imdb_id if hasattr(info, 'imdb_id') else ''
-            if imdb_id:
-                search_kwd = imdb_id if mtype == MediaType.MOVIE else title
-                douban_info = DouBan().search_detail_by_keyword(search_kwd, mtype)
+            if hasattr(info, 'imdb_id') and info.imdb_id:
+                search_kwd = title
+                if mtype == MediaType.MOVIE:
+                    search_kwd = info.imdb_id
+                elif info.number_of_seasons and info.number_of_seasons == 1:
+                    search_kwd = info.imdb_id
+                douban_info = DouBan().agg_search(search_kwd, mtype)
             else:
-                douban_info = DouBan().search_detail_by_keyword(title)
-
+                douban_info = DouBan().agg_search(title)
+            
             if douban_info:
                 douban_id_list = list(map(lambda x: x.get("id"), douban_info))
                 media_info.douban_id = ",".join(douban_id_list)
@@ -177,13 +182,13 @@ class WebUtils:
         return media_info
 
     @staticmethod
-    def adjust_tv_search_name(mtype, search_name, media_info):
-        if not search_name or MediaType.TV != mtype:
+    def adjust_tv_search_name(mtype, douban_name, media_info):
+        if not douban_name or MediaType.TV != mtype or media_info.cn_name in douban_name:
             return
-        media_info.cn_name = search_name
-        media_info.title = search_name
-        media_info.rev_string = search_name
-        media_info.org_string = search_name    
+        media_info.cn_name = douban_name
+        media_info.title = douban_name
+        media_info.rev_string = douban_name
+        media_info.org_string = douban_name    
 
     @staticmethod
     def search_media_infos(keyword, source=None, page=1):

@@ -155,7 +155,7 @@ class CookieCloud(_IPluginModule):
         # 读取配置
         if config:
             self._server = config.get("server")
-            self._cron = config.get("cron")
+            self._cron = self.quartz_cron_compatible(config.get("cron"))
             self._key = config.get("key")
             self._password = config.get("password")
             self._notify = config.get("notify")

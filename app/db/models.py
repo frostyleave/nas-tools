@@ -357,6 +357,7 @@ class SEARCHRESULTINFO(Base):
     UPLOAD_VOLUME_FACTOR = Column(Float)
     DOWNLOAD_VOLUME_FACTOR = Column(Float)
     NOTE = Column(Text)
+    PUBDATE = Column(Text)
 
 
 class SITEBRUSHTASK(Base):

@@ -63,21 +63,21 @@ export class NormalCard extends observeState(CustomElement) {
                         ${this.vote}
                       </div>`;
 
-     if (this.fav == "2") {
-        var fav_html = html`
-        <div class="badge badge-pill bg-green" style="position:absolute;bottom:10px;right:10px;padding:0;">
-          <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-check" width="24" height="24"
-               viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round"
-               stroke-linejoin="round">
-            <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
-            <path d="M5 12l5 5l10 -10"></path>
-          </svg>
-        </div>`;
-        if (has_vote) {
-            return html`${fav_html}${vote_html}`;
-        }
-        return fav_html;
-    }
+    //  if (this.fav == "2") {
+    //     var fav_html = html`
+    //     <div class="badge badge-pill bg-green" style="position:absolute;bottom:10px;right:10px;padding:0;">
+    //       <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-check" width="24" height="24"
+    //            viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round"
+    //            stroke-linejoin="round">
+    //         <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+    //         <path d="M5 12l5 5l10 -10"></path>
+    //       </svg>
+    //     </div>`;
+    //     if (has_vote) {
+    //         return html`${fav_html}${vote_html}`;
+    //     }
+    //     return fav_html;
+    // }
     if (has_vote) {
       return vote_html;
     }
@@ -130,6 +130,14 @@ export class NormalCard extends observeState(CustomElement) {
              src=${this.lazy == "1" ? "" : this.image ?? Golbal.noImage}
              @error=${() => { if (this.lazy != "1") {this.image = Golbal.noImage; this._card_image_error = true} }}
              @load=${() => { this._placeholder = false }}/>
+            ${this.fav == "2" ? html`
+            <div style="position: absolute; bottom: 0; right: 0; width: 30px; height: 30px; padding: 12px; background-color: var(--tblr-success); clip-path: polygon(100% 0, 100% 100%, 0 100%); border-radius: 0 0 8px 0;">
+              <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-check" width="15" height="15" viewBox="0 0 30 30" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round" >
+                <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+                <path d="M5 12l5 5l10 -10"></path>
+              </svg>
+            </div>
+            ` : null}
           ${this._render_left_up()}
           ${this._render_right_up()}
         </div>

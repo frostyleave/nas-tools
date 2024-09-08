@@ -1664,8 +1664,7 @@ class WebAction:
         # 订阅信息不足
         if not rssid_ok:
             if mediaid:
-                media = WebUtils.get_mediainfo_from_id(
-                    mtype=media_type, mediaid=mediaid)
+                media = WebUtils.get_mediainfo_from_id(mediaid=mediaid, mtype=media_type)
             else:
                 media = _media.get_media_info(
                     title=f"{title} {year}", mtype=media_type)
@@ -1817,18 +1816,14 @@ class WebAction:
         rssid = data.get("rssid")
         if tid and tid.startswith("DB:"):
             doubanid = tid.replace("DB:", "")
-            douban_info = DouBan().get_douban_detail(
-                doubanid=doubanid, mtype=MediaType.MOVIE)
+            douban_info = DouBan().get_douban_detail(doubanid=doubanid, mtype=MediaType.MOVIE)
             if not douban_info:
                 return {"code": 1, "retmsg": "无法查询到豆瓣信息"}
-            poster_path = douban_info.get("cover_url") or ""
+            
+            poster_path = douban_info.get("images", {}).get('large') or ""
             title = douban_info.get("title")
-            rating = douban_info.get("rating", {}) or {}
-            vote_average = rating.get("value") or "无"
+            vote_average = douban_info.get("rating", {}).get("average") or "无"
             release_date = douban_info.get("pubdate")
-            if release_date:
-                release_date = re.sub(
-                    r"\(.*\)", "", douban_info.get("pubdate")[0])
             if not release_date:
                 return {"code": 1, "retmsg": "上映日期不正确"}
             else:
@@ -1882,11 +1877,11 @@ class WebAction:
             douban_info = DouBan().get_douban_detail(doubanid=doubanid, mtype=MediaType.TV)
             if not douban_info:
                 return {"code": 1, "retmsg": "无法查询到豆瓣信息"}
-            poster_path = douban_info.get("cover_url") or ""
+            
+            poster_path = douban_info.get("images", {}).get('large') or ""
             title = douban_info.get("title")
-            rating = douban_info.get("rating", {}) or {}
-            vote_average = rating.get("value") or "无"
-            release_date = re.sub(r"\(.*\)", "", douban_info.get("pubdate")[0])
+            vote_average = douban_info.get("rating", {}).get("average") or "无"
+            release_date = douban_info.get("pubdate")
             if not release_date:
                 return {"code": 1, "retmsg": "上映日期不正确"}
             else:
@@ -2684,8 +2679,7 @@ class WebAction:
         else:
             title_season = None
         if not str(tmdbid).isdigit():
-            media_info = WebUtils.get_mediainfo_from_id(mtype=MediaType.TV,
-                                                        mediaid=tmdbid)
+            media_info = WebUtils.get_mediainfo_from_id(mediaid=tmdbid, mtype=MediaType.TV)
             season_infos = Media().get_tmdb_tv_seasons(media_info.tmdb_info)
         else:
             season_infos = Media().get_tmdb_tv_seasons_byid(tmdbid=tmdbid)
@@ -3571,6 +3565,11 @@ class WebAction:
             # 只需要部分种子标签
             labels = [label for label in str(item.NOTE).split("|")
                       if label in ["官方", "官组", "中字", "国语", "特效", "特效字幕"]]
+            
+            pubdate = item.PUBDATE or ''
+            if pubdate.endswith(' 00:00:00'):
+                pubdate = pubdate[:-9]
+
             # 种子信息
             torrent_item = {
                 "id": item.ID,
@@ -3582,6 +3581,7 @@ class WebAction:
                 "pageurl": item.PAGEURL,
                 "uploadvalue": item.UPLOAD_VOLUME_FACTOR,
                 "downloadvalue": item.DOWNLOAD_VOLUME_FACTOR,
+                "pubdate": pubdate,
                 "size": item.SIZE,
                 "respix": respix,
                 "restype": restype,
@@ -4551,12 +4551,10 @@ class WebAction:
         """
         # TMDBID 或 DB:豆瓣ID
         tmdbid = data.get("tmdbid")
-        mtype = MediaType.MOVIE if data.get(
-            "type") in MovieTypes else MediaType.TV
+        mtype = MediaType.MOVIE if data.get("type") in MovieTypes else MediaType.TV
         if not tmdbid:
             return {"code": 1, "msg": "未指定媒体ID"}
-        media_info = WebUtils.get_mediainfo_from_id(
-            mtype=mtype, mediaid=tmdbid)
+        media_info = WebUtils.get_mediainfo_from_id(mediaid=tmdbid, mtype=mtype)
         # 检查TMDB信息
         if not media_info or not media_info.tmdb_info:
             return {
@@ -4588,11 +4586,8 @@ class WebAction:
         actors = []
         if media_info.douban_id:
             crews, actors = DouBan().scraper_media_celebrities(media_info.douban_id.split(',')[0])
-            self.set_actor_id_from_tmdb(actors, media_info.tmdb_info)
-
-        if len(crews) == 0:
+        else:
             crews = MediaHandler.get_tmdb_crews(tmdbinfo=media_info.tmdb_info, nums=6)
-        if len(actors) == 0:
             actors = MediaHandler.get_tmdb_cats(mtype=mtype, tmdbid=media_info.tmdb_id)
 
         return {
@@ -4608,7 +4603,6 @@ class WebAction:
                 "genres": MediaHandler.get_tmdb_genres_names(tmdbinfo=media_info.tmdb_info),
                 "overview": media_info.overview,
                 "runtime": StringUtils.str_timehours(media_info.runtime),
-                "fact": MediaHandler.get_tmdb_factinfo(media_info),
                 "crews": crews,
                 "actors": actors,
                 "link": media_info.get_detail_url(),
@@ -4618,33 +4612,6 @@ class WebAction:
                 "seasons": seasons
             }
         }
-
-    # 把豆瓣演员ID替换为tmdb演员ID
-    def set_actor_id_from_tmdb(self, actors, tmdb_info):
-        # 豆瓣演员信息匹配tmdb演员信息
-        if not tmdb_info or not tmdb_info.credits or not tmdb_info.credits.cast:
-            return
-        tmdb_info_cast = tmdb_info.credits.cast
-        for actor in actors[:]:
-            match = next(filter(lambda x: self.is_actor_match(actor, x), tmdb_info_cast), None)
-            if not match:
-                actors.remove(actor)
-            else:
-                actor['id'] = match.id
-                if actor['role'] and actor['role'].startswith('演员 Act'):
-                    actor['role'] = match.character
-
-    # 豆瓣演员信息是否和tmdb演员信息匹配
-    @staticmethod
-    def is_actor_match(actor, tmdb_actor):
-        en_name = actor.get("en_name").lower()
-        name = actor.get("name").lower()
-
-        tmdb_actor_name = tmdb_actor.name.replace('-', '').lower()
-
-        if tmdb_actor_name == en_name or tmdb_actor_name == name:
-            return True
-        return tmdb_actor_name.startswith(en_name) or tmdb_actor_name.startswith(name)
 
     @staticmethod
     def __media_similar(data):
@@ -4831,12 +4798,12 @@ class WebAction:
         """
         查询用户菜单
         """
-        # 需要过滤的菜单
-        ignore = []
-        # 查询最早加入PT站的时间, 如果不足一个月, 则隐藏刷流任务
-        first_pt_site = SiteUserInfo().get_pt_site_min_join_date()
-        if not first_pt_site or not StringUtils.is_one_month_ago(first_pt_site):
-            ignore.append('brushtask')
+        # # 需要过滤的菜单
+        # ignore = []
+        # # 查询最早加入PT站的时间, 如果不足一个月, 则隐藏刷流任务
+        # first_pt_site = SiteUserInfo().get_pt_site_min_join_date()
+        # if not first_pt_site or not StringUtils.is_one_month_ago(first_pt_site):
+        #     ignore.append('brushtask')
 
         # 获取可用菜单
         menus = current_user.get_usermenus()
@@ -5017,7 +4984,8 @@ class WebAction:
             data.get('torrents'),
             data.get('browse'),
             data.get('parser'),
-            data.get('category')
+            data.get('category'),
+            data.get('is_public')
         )
         IndexerManager().init_config()
         return {"code": 0, "msg": "已插入"}

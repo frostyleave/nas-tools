@@ -221,3 +221,17 @@ class _IPluginModule(metaclass=ABCMeta):
         :param msg: 日志信息
         """
         log.debug(f"【Plugin】{self.module_name} - {msg}")
+    
+    def quartz_cron_compatible(self, cron_expr):
+        """
+        quartz_cron表达式兼容
+        :param msg: 日志信息
+        """
+        if not cron_expr:
+            return cron_expr
+        
+        values = cron_expr.split()
+        if len(values) != 6:
+            return cron_expr
+        # 移除最左边的“秒”部分
+        return ' '.join(values[1:]).replace('?', '*')

@@ -11,8 +11,6 @@ import requests.exceptions
 from .as_obj import AsObj
 from .exceptions import TMDbException
 
-from app.utils import StringUtils
-
 logger = logging.getLogger(__name__)
 
 
@@ -145,16 +143,12 @@ class TMDb(object):
         if self.api_key is None or self.api_key == "":
             raise TMDbException("No API key found.")
 
-        language = self.language
-        if StringUtils.is_alpha_numeric_punct(append_to_response) and (action == '/search/tv' or action == '/search/movie' or action == '/search/keyword'):
-            language = 'en'
-
         url = "%s%s?api_key=%s&%s&language=%s&include_adult=true" % (
             self.domain,
             action,
             self.api_key,
             append_to_response,
-            language,
+            self.language,
         )
 
         if self.cache and self.obj_cached and call_cached and method != "POST":

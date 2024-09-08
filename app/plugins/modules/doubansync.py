@@ -470,9 +470,7 @@ class DoubanSync(_IPluginModule):
                     if not history or history.get("state") == "NEW":
                         if self._auto_search:
                             # 需要搜索
-                            media_info = WebUtils.get_mediainfo_from_id(mtype=media.type,
-                                                                        mediaid=f"DB:{media.douban_id}",
-                                                                        wait=True)
+                            media_info = WebUtils.get_mediainfo_from_id(mediaid=f"DB:{media.douban_id}",mtype=media.type,wait=True)
                             # 不需要自动加订阅，则直接搜索
                             if not media_info or not media_info.tmdb_info:
                                 self.warn("%s 未查询到媒体信息" % media.get_name())
@@ -501,7 +499,8 @@ class DoubanSync(_IPluginModule):
                                     "%s %s 更新到%s订阅中..." % (media_info.title,
                                                                  media_info.year,
                                                                  media_info.type.value))
-                                code, msg, _ = self.subscribe.add_rss_subscribe(mtype=media_info.type,
+                                code, msg, _ = self.subscribe.add_rss_subscribe(media_info=media_info,
+                                                                                mtype=media_info.type,
                                                                                 name=media_info.title,
                                                                                 year=media_info.year,
                                                                                 channel=RssType.Auto,
@@ -701,10 +700,9 @@ class DoubanSync(_IPluginModule):
             meta_info = MetaInfo(title="%s %s" % (douban_info.get("title"), douban_info.get("year") or ""))
             meta_info.douban_id = doubanid
             meta_info.type = media_type
-            meta_info.overview = douban_info.get("intro")
-            meta_info.poster_path = douban_info.get("cover_url")
-            rating = douban_info.get("rating", {}) or {}
-            meta_info.vote_average = rating.get("value") or ""
+            meta_info.overview = douban_info.get("summary")
+            meta_info.poster_path = douban_info.get("images", {}).get('large') or ""
+            meta_info.vote_average = douban_info.get("rating", {}).get("average") or ""
             meta_info.imdb_id = douban_info.get("imdbid")
             meta_info.user_name = info.get("user_name")
             if meta_info not in media_list:

@@ -228,7 +228,10 @@
                                         {% if torrent.releasegroup %}
                                           <span class="badge text-white bg-cyan mb-1">{{ torrent.releasegroup }}</span>
                                         {% endif %}
-                                        {% if torrent.uploadvalue != 1.0 %}
+                                        {% if torrent.pubdate %}
+                                          <span class="badge text-white bg-lime mb-1">{{ torrent.pubdate }}</span>
+                                        {% endif %}
+                                        <!-- {% if torrent.uploadvalue != 1.0 %}
                                         <span class="badge text-white bg-azure mb-1">{{ (torrent.uploadvalue * 100) | int }}%UL</span>
                                         {% endif %}
                                         {% if torrent.downloadvalue != 1.0 %}
@@ -237,7 +240,7 @@
                                           {% else %}
                                             <span class="badge text-white bg-indigo mb-1">{{ (torrent.downloadvalue * 100) | int }}%DL</span>
                                           {% endif %}
-                                        {% endif %}
+                                        {% endif %} -->
                                         {% if torrent.seeders %}
                                         <span class="badge text-white mb-1">{{ torrent.seeders }}{{ UPCHAR }}</span>
                                         {% endif %}

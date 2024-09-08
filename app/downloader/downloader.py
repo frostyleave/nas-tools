@@ -1,3 +1,4 @@
+import shutil
 import bencodepy
 import hashlib
 import os
@@ -387,9 +388,6 @@ class Downloader:
             __download_fail(retmsg)
             return None, None, retmsg
 
-        if torrent_file:
-            content = self.torrent_to_magnet(torrent_file)
-
         # 下载设置
         if not download_setting and media_info.site:
             # 站点的下载设置
@@ -417,10 +415,26 @@ class Downloader:
         if not downloader or not downloader_conf:
             __download_fail("请检查下载设置所选下载器是否有效且启用")
             return None, None, f"下载设置 {download_setting_name} 所选下载器失效"
+        
         downloader_name = downloader_conf.get("name")
 
         # 开始添加下载
         try:
+
+            if torrent_file:
+                content = self.torrent_to_magnet(torrent_file)
+                # 把种子文件移动到下载器可访问的目录
+                if downloader_conf and downloader_conf.get('download_dir'):
+                   container_path = downloader_conf.get('download_dir')[0].get('container_path')
+                   save_path = downloader_conf.get('download_dir')[0].get('save_path')
+                   if container_path and save_path:
+                       file_name = os.path.basename(torrent_file)
+                       dst = os.path.join(container_path, file_name)
+                       if os.path.exists(dst):
+                            os.remove(dst)
+                       shutil.move(torrent_file, container_path)
+                       torrent_file = os.path.join(save_path, file_name) 
+
             # 下载设置中的分类
             category = download_attr.get("category")
             # 合并TAG
@@ -523,7 +537,16 @@ class Downloader:
                     title = media_info.en_name
                 elif media_info.title:
                     title = media_info.title
-                ret = downloader.add_torrent(content, name=title, download_dir=download_dir, tag=PT_TAG)
+
+                if torrent_file:
+                    task_name = os.path.basename(torrent_file).strip('.torrent')
+                    if not task_name:
+                        task_name = title
+                    elif title in task_name == False:
+                        task_name = title + task_name
+                    ret = downloader.add_torrent(torrent_file, name=task_name, download_dir=download_dir, tag=PT_TAG)
+                else:
+                    ret = downloader.add_torrent(content, name=title, download_dir=download_dir, tag=PT_TAG)
                 download_id = ret
 
             else:

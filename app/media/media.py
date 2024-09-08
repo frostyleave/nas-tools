@@ -3,16 +3,17 @@ import os
 import random
 import re
 import traceback
-import anitopy
 import cn2an
-from functools import lru_cache
-
 import zhconv
+import log
+
+
+from functools import lru_cache
 from lxml import etree
 
-import log
 from app.helper import MetaHelper
 from app.helper.openai_helper import OpenAiHelper
+from app.media.doubanapi.apiv2 import DoubanApi
 from app.media.meta.metainfo import MetaInfo
 from app.media.tmdbv3api import TMDb, Search, Movie, TV, Person, Find, TMDbException, Discover, Trending, Episode, Genre
 from app.utils import PathUtils, EpisodeFormat, RequestUtils, NumberUtils, StringUtils, cacheman
@@ -1203,10 +1204,8 @@ class Media:
                 typestr = 'MOV' if mtype == MediaType.MOVIE else 'TV'
                 title = info.get("title") if mtype == MediaType.MOVIE else info.get("name")
             else:
-                media_type = MediaType.MOVIE.value if info.get(
-                    "media_type") == "movie" else MediaType.TV.value
-                year = info.get("release_date")[0:4] if info.get(
-                    "release_date") and info.get(
+                media_type = MediaType.MOVIE.value if info.get("media_type") == "movie" else MediaType.TV.value
+                year = info.get("release_date")[0:4] if info.get("release_date") and info.get(
                     "media_type") == "movie" else info.get(
                     "first_air_date")[0:4] if info.get(
                     "first_air_date") else ""
@@ -1232,7 +1231,7 @@ class Media:
 
         return ret_infos
 
-    def get_tmdb_hot_movies(self, page):
+    def get_tmdb_hot_movies(self, page=1):
         """
         获取热门电影
         :param page: 第几页
@@ -1242,7 +1241,7 @@ class Media:
             return []
         return self.__dict_tmdbinfos(self.movie.popular(page), MediaType.MOVIE)
 
-    def get_tmdb_hot_tvs(self, page):
+    def get_tmdb_hot_tvs(self, page=1):
         """
         获取热门电视剧
         :param page: 第几页
@@ -1252,7 +1251,7 @@ class Media:
             return []
         return self.__dict_tmdbinfos(self.tv.popular(page), MediaType.TV)
 
-    def get_tmdb_new_movies(self, page):
+    def get_tmdb_new_movies(self, page=1):
         """
         获取最新电影
         :param page: 第几页
@@ -1262,7 +1261,7 @@ class Media:
             return []
         return self.__dict_tmdbinfos(self.movie.now_playing(page), MediaType.MOVIE)
 
-    def get_tmdb_new_tvs(self, page):
+    def get_tmdb_new_tvs(self, page=1):
         """
         获取最新电视剧
         :param page: 第几页
@@ -1284,7 +1283,7 @@ class Media:
 
     def get_tmdb_trending_all_week(self, page=1):
         """
-        获取即将上映电影
+        获取趋势榜单
         :param page: 第几页
         :return: TMDB信息列表
         """
@@ -2182,22 +2181,69 @@ class Media:
         """
         查询人物相关影视作品
         """
-        if not self.person:
-            return []
         try:
-            if mtype == MediaType.MOVIE:
-                movies = self.person.movie_credits(person_id=personid) or []
-                result = self.__dict_tmdbinfos(movies, mtype)
-            elif mtype:
-                tvs = self.person.tv_credits(person_id=personid) or []
-                result = self.__dict_tmdbinfos(tvs, mtype)
+            result = []
+            # 豆瓣人物(姓名或id)
+            if str(personid).startswith("DB:"):
+                personid = personid[3:].split(',')[0]
+                if personid.isdigit():
+                    movies = DoubanApi().celebrity_works(personid).get("works") or []
+                    # celebrity_works 接口返回结构多了一层subject
+                    movies = list(map(lambda x: x.get("subject"), movies))
+                else:
+                    movies = DoubanApi().movie_search(personid).get("subjects") or []
+                if movies:
+                    for item in movies:
+                        movie_item = self.__convert_douban_stuct_to_tmdb(item)
+                        result.append(movie_item)
             else:
-                medias = self.person.combined_credits(person_id=personid) or []
-                result = self.__dict_tmdbinfos(medias)
-            return result[(page - 1) * 20: page * 20]
+                if not self.person:
+                    return result
+                if mtype == MediaType.MOVIE:
+                    movies = self.person.movie_credits(person_id=personid) or []
+                    result = self.__dict_tmdbinfos(movies, mtype)
+                elif mtype:
+                    tvs = self.person.tv_credits(person_id=personid) or []
+                    result = self.__dict_tmdbinfos(tvs, mtype)
+                else:
+                    medias = self.person.combined_credits(person_id=personid) or []
+                    result = self.__dict_tmdbinfos(medias)
+            if result:
+                return result[(page - 1) * 20: page * 20]
         except Exception as e:
             print(str(e))
         return []
+    
+    def __convert_douban_stuct_to_tmdb(self, douban_item):
+        """
+        豆瓣结构转换为tmdb结构
+        """
+        movie_item = {}
+
+        douban_id = 'DB:' + douban_item.get('id')                       
+        movie_item['id'] = douban_id
+        movie_item['orgid'] = douban_id
+        movie_item['tmdbid'] = douban_id
+        movie_item['title'] = douban_item.get('title')
+
+        subtype = douban_item.get('subtype')
+        if subtype == 'tv':
+            if douban_item.get('genres') and '动画' in douban_item.get('genres') :
+                movie_item['type'] = 'ANI'
+                movie_item['media_type'] = '动漫'
+            else:
+                movie_item['type'] = 'TV'
+                movie_item['media_type'] = '电视剧'
+        else:
+            movie_item['type'] = 'MOV'
+            movie_item['media_type'] = '电影'
+
+        movie_item['image'] = douban_item.get("images", {}).get('large') or ""
+        movie_item['vote'] = douban_item.get("rating", {}).get("average") or ""
+        movie_item['year'] = douban_item.get("year")
+        movie_item['overview'] = douban_item.get("summary")
+
+        return movie_item
 
     @staticmethod
     def __search_engine(feature_name):

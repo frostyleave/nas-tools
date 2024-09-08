@@ -50,7 +50,7 @@ function navmenu(page, newflag = false) {
   // 主动点击时清除页码, 刷新页面也需要清除
   sessionStorage.removeItem("CurrentPage");
   // 展开菜单
-  document.querySelector("#navbar-menu").update_active(page);
+  navbarMenu = document.querySelector("#navbar-menu")
   // 解除滚动事件
   $(window).unbind('scroll');
   // 显示进度条
@@ -91,6 +91,63 @@ function navmenu(page, newflag = false) {
         $(window).scrollTop(0);
         // 记录当前页面ID
         CurrentPageUri = page;
+
+        let navLinks = document.querySelectorAll('#top-sub-navbar a');
+        let isPageInNav = Array.from(navLinks).some(link => link.getAttribute('data-id') === page);
+        // 当前菜单不在子菜单中
+        if (!isPageInNav) {
+          // 激活当前菜单
+          navbarMenu.update_active(page);
+          // 如果当前菜单有子菜单, 重绘子菜单
+          let menuList = navbarMenu.navbar_list;
+          if (menuList) {
+            const selMenu = menuList.find(item => item.page === page);
+            const navList = selMenu ? selMenu.nav : null;
+            if (navList) {
+
+              // 获取ul元素
+              const ulElement = document.querySelector('#top-sub-navbar ul');
+              // 清空现有的li元素
+              ulElement.innerHTML = '';
+
+              // 生成li元素
+              navList.forEach(item => {
+
+                const aElement = document.createElement('a');
+                aElement.className = 'nav-link';
+                aElement.href = '#';
+                aElement.innerHTML = `${item.name}`;
+                aElement.setAttribute('data-bs-toggle', 'tab');
+                aElement.setAttribute('data-id', item.page);
+                aElement.onclick = () => navmenu(item.page); // 根据 item.page 设定点击行为
+
+                const liElement = document.createElement('li');
+                liElement.className = 'nav-item';
+                liElement.appendChild(aElement);
+                ulElement.appendChild(liElement);
+
+              });
+
+              // 第一个a标签增加选中状态
+              ulElement.firstChild.firstChild.classList.add('active');
+
+              $('#top-sub-navbar').show();
+              
+            } else {
+              $('#top-sub-navbar').hide();
+            }
+          }
+        } else {
+          // 如果子菜单可见, 说明是同页面切换, 否则需要激活第一个标签
+          if (!$('#top-sub-navbar').is(':visible')) {
+            $('#top-sub-navbar').show();
+            $(navLinks).removeClass('active');
+            $(navLinks).eq(0).addClass('active');
+            // 激活当前菜单
+            navbarMenu.update_active(page);
+          }
+        }
+
       }
       // 并记录当前历史记录
       window_history(!newflag);

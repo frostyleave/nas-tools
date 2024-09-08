@@ -264,7 +264,7 @@ class MovieRandom(_IPluginModule):
         if config:
             self._enable = config.get("enable")
             self._onlyonce = config.get("onlyonce")
-            self._cron = config.get("cron")
+            self._cron = self.quartz_cron_compatible(config.get("cron"))
             self._language = config.get("language")
             self._genres = config.get("genres")
             self._vote = config.get("vote")
@@ -372,15 +372,16 @@ class MovieRandom(_IPluginModule):
             f"电影 {title}-{year}（tmdbid:{tmdb_id}）未入库，开始订阅")
 
         # 检查是否已订阅过
-        if self.subscribe.check_history(
-                type_str="MOV",
-                name=title,
-                year=year,
-                season=None):
-            self.info(
-                f"{title} 已订阅过")
+        if self.subscribe.check_history(tmdb_id, season=None):
+            self.info(f"{title} 已订阅过")
             self.__update_history(media=media_info, state="RSS")
             return
+
+        if self.subscribe.check_tv_in_rss(tmdb_id, season=None) or self.subscribe.check_movie_in_rss(tmdb_id):
+            self.info(f"{title} 已在订阅中")
+            self.__update_history(media=media_info, state="RSS")
+            return
+        
         # 添加处理历史
         self.rsshelper.simple_insert_rss_torrents(title=unique_flag, enclosure=None)
         # 添加订阅

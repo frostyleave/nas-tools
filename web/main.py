@@ -375,8 +375,44 @@ def indexer():
     indexer_sites = SystemConfig().get(SystemConfigKey.UserIndexerSites)
 
     public_indexers = []
+    for site in indexers:
+        if site.public:
+            site_info = {
+                "id": site.id,
+                "name": site.name,
+                "domain": site.domain,
+                "render": site.render,
+                "source_type": site.source_type,
+                "search_type": site.search_type,
+                "downloader": site.downloader,
+                "public": site.public,
+                "proxy": site.proxy,
+                "checked": site.id in indexer_sites
+            }
+            public_indexers.append(site_info)
+   
+    DownloadSettings = {did: attr["name"] for did, attr in Downloader().get_download_setting().items()}
+    SourceTypes = { "MOVIE":'电影', "TV":'剧集', "ANIME":'动漫' }
+    SearchTypes = { "title":'关键字', "en_name":'英文名', "douban_id":'豆瓣id', "imdb":'imdb id' }
+    return render_template("site/indexer.html",
+                           Config=Config().get_config(),
+                           IsPublic=1,
+                           Indexers=public_indexers,
+                           DownloadSettings=DownloadSettings,
+                           SourceTypes=SourceTypes,
+                           SearchTypes=SearchTypes)
+
+
+@App.route('/ptindexer', methods=['POST', 'GET'])
+@login_required
+def ptindexer():
+    indexers = Indexer().get_indexers(check=False)
+    indexer_sites = SystemConfig().get(SystemConfigKey.UserIndexerSites)
+
     private_indexers = []
     for site in indexers:
+        if site.public:
+            continue
         site_info = {
             "id": site.id,
             "name": site.name,
@@ -389,18 +425,15 @@ def indexer():
             "proxy": site.proxy,
             "checked": site.id in indexer_sites
         }
-        if site.public:
-            public_indexers.append(site_info)
-        else:
-            private_indexers.append(site_info)
+        private_indexers.append(site_info)
    
     DownloadSettings = {did: attr["name"] for did, attr in Downloader().get_download_setting().items()}
     SourceTypes = { "MOVIE":'电影', "TV":'剧集', "ANIME":'动漫' }
     SearchTypes = { "title":'关键字', "en_name":'英文名', "douban_id":'豆瓣id', "imdb":'imdb id' }
     return render_template("site/indexer.html",
                            Config=Config().get_config(),
-                           PrivateIndexers=private_indexers,
-                           PublicIndexers=public_indexers,
+                           IsPublic=0,
+                           Indexers=private_indexers,
                            DownloadSettings=DownloadSettings,
                            SourceTypes=SourceTypes,
                            SearchTypes=SearchTypes)
@@ -894,6 +927,7 @@ def basic():
                            CurrentUser=current_user,
                            ScraperNfo=ScraperConf.get("scraper_nfo") or {},
                            ScraperPic=ScraperConf.get("scraper_pic") or {},
+                           MediaServerConf=ModuleConf.MEDIASERVER_CONF,
                            TmdbDomains=TMDB_API_DOMAINS)
 
 
@@ -1012,11 +1046,6 @@ def rss_parser():
 @App.route('/plugin', methods=['POST', 'GET'])
 @login_required
 def plugin():
-    # 只有选中的索引器才搜索
-    indexers = Indexer().get_indexers(check=False)
-    private_count = len([item.id for item in indexers if not item.public])
-    public_count = len([item.id for item in indexers if item.public])
-    indexer_sites = SystemConfig().get(SystemConfigKey.UserIndexerSites)
     # 下载器
     DefaultDownloader = Downloader().default_downloader_id
     Downloaders = Downloader().get_downloader_conf()
@@ -1032,10 +1061,6 @@ def plugin():
     Settings = '\n'.join(SystemConfig().get(SystemConfigKey.ExternalPluginsSource) or [])
     return render_template("setting/plugin.html",
                            Config=Config().get_config(),
-                           PrivateCount=private_count,
-                           PublicCount=public_count,
-                           Indexers=indexers,
-                           IndexerSites=indexer_sites,
                            Downloaders=Downloaders,
                            DefaultDownloader=DefaultDownloader,
                            DownloadersCount=DownloadersCount,

@@ -105,13 +105,16 @@ export class PageMediainfo extends CustomElement {
               </custom-img>
               <div class="d-flex justify-content-center">
                 <div class="d-flex flex-column justify-content-end div-media-detail-margin mt-2">
-                  <div class="align-self-center align-self-md-start mb-1">
-                  ${this.fav == "2" ? html`<strong class="badge badge-pill bg-green text-white">已入库</strong>` : nothing }
-                  </div>  
-                  <h1 class="align-self-center align-self-md-start display-6 text-center">
-                    <strong>${this.media_info.title ?? this._render_placeholder("200px")}</strong>
-                    <strong class="h1" ?hidden=${!this.media_info.year}>(${this.media_info.year})</strong>
-                  </h1>
+                  <div style="display: flex;">
+                    <h1 class="align-self-center align-self-md-start display-6 text-center">
+                      <strong>${this.media_info.title ?? this._render_placeholder("200px")}</strong>
+                      <strong class="h1" ?hidden=${!this.media_info.year}>(${this.media_info.year})</strong>
+                    </h1>
+                    <div class="align-self-center align-self-md-start mb-1" style="align-self: flex-end !important; margin: 0.8em !important;">
+                      ${this.fav == "2" ? html`<strong class="badge badge-pill bg-green text-white">已入库</strong>` : nothing }
+                      ${this.media_info.vote ? html`<strong class="badge badge-pill bg-purple text-white">${this.media_info.vote}</strong>` : nothing }
+                    </div>
+                  </div>
                   <div class="align-self-center align-self-md-start text-center">
                     <span class="h3 ms-1" ?hidden=${!this.media_info.runtime}>${this.media_info.runtime}</span>
                     <span class="h3" ?hidden=${!this.media_info.genres}>| ${this.media_info.genres}</span>
@@ -166,24 +169,10 @@ export class PageMediainfo extends CustomElement {
           </div>
         </div>
         <div class="row">
-          <div class="col-lg-9">
+          <div>
             <h2 class="text-muted ms-4 me-2">
               <small>${this.media_info.overview ?? this._render_placeholder("200px", "", "col-12", 7)}</small>
             </h2>
-            <div class="row mx-2 mt-4 d-none d-md-flex">
-              ${this.media_info.crews
-              ? this.media_info.crews.map((item, index) => ( html`
-                <div class="col-12 col-md-6 col-lg-4">
-                  <h2 class="">
-                    <strong>${Object.keys(item)[0]}</strong>
-                  </h2>
-                  <p class="text-muted mb-4">
-                    <strong>${Object.values(item)[0]}</strong>
-                  </p>
-                </div>
-                `) )
-              : nothing }
-            </div>
             <accordion-seasons
               .seasons_data=${this.seasons_data}
               .tmdbid=${this.tmdbid}
@@ -191,28 +180,28 @@ export class PageMediainfo extends CustomElement {
               .year=${this.media_info.year}
             ></accordion-seasons>
           </div>
-          <div class="col-lg-3">
-            ${this.media_info.fact
-            ? html`
-              <div class="ms-2 me-2 mt-1">
-                <div class="card rounded-3" style="background: none">
-                  ${this.media_info.fact.map((item) => ( html`
-                    <div class="card-body p-2">
-                      <div class="d-flex justify-content-between">
-                        <div class="align-self-center" style="min-width:25%;">
-                          <strong>${Object.keys(item)[0]}</strong>
-                        </div>
-                        <div class="text-break text-muted" style="text-align:end;">
-                          ${Object.values(item)[0]}
-                        </div>
-                      </div>
-                    </div>
-                    `) ) }
-                </div>
-              </div>`
-            : this._render_placeholder("200px", "200px", "col-12") }
-          </div>
         </div>
+
+        ${this.media_info.crews && this.media_info.crews.length
+        ? html`
+          <custom-slide
+            slide-title="导演"
+            slide-click='javascript:navmenu("discovery_person?tmdbid=${this.tmdbid}&type=${this.media_type}&title=导演&subtitle=${this.media_info.title}")'
+            lazy="person-card"
+            .slide_card=${this.media_info.crews.map((item) => ( html`
+              <person-card
+                lazy=1
+                person-id=${item.id}
+                person-image=${item.image}
+                person-name=${item.original_name}
+                person-role=${item.role}
+                @click=${() => {
+                  navmenu("recommend?type="+this.media_type+"&subtype=person&personid="+item.id+"&title=参与作品&subtitle="+item.original_name)
+                }}
+              ></person-card>`))
+            }
+          ></custom-slide>`
+        : nothing }
 
         <!-- 渲染演员阵容 -->
         ${this.media_info.actors && this.media_info.actors.length
@@ -229,7 +218,7 @@ export class PageMediainfo extends CustomElement {
                 person-name=${item.original_name}
                 person-role=${item.role}
                 @click=${() => {
-                  navmenu("recommend?type="+this.media_type+"&subtype=person&personid="+item.id+"&title=参演作品&subtitle="+item.original_name)
+                  navmenu("recommend?type="+this.media_type+"&subtype=person&personid="+item.id+"&title=参与作品&subtitle="+item.original_name)
                 }}
               ></person-card>`))
             }

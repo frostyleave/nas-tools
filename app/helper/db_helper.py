@@ -61,7 +61,8 @@ class DbHelper:
                     OTHERINFO=media_item.resource_team,
                     UPLOAD_VOLUME_FACTOR=media_item.upload_volume_factor,
                     DOWNLOAD_VOLUME_FACTOR=media_item.download_volume_factor,
-                    NOTE=media_item.labels
+                    NOTE=media_item.labels,
+                    PUBDATE=media_item.pubdate
                 ))
         self._db.insert(data_list)
 
@@ -628,14 +629,13 @@ class DbHelper:
         else:
             return 0
 
-    def is_exists_rss_movie(self, title, year):
+    def is_exists_rss_movie(self, tmdbid):
         """
         判断RSS电影是否存在
         """
-        if not title:
+        if not tmdbid:
             return False
-        count = self._db.query(RSSMOVIES).filter(RSSMOVIES.NAME == title,
-                                                 RSSMOVIES.YEAR == str(year)).count()
+        count = self._db.query(RSSMOVIES).filter(RSSMOVIES.TMDBID == tmdbid).count()
         if count > 0:
             return True
         else:
@@ -670,8 +670,9 @@ class DbHelper:
             return -1
         if not media_info.title:
             return -1
-        if self.is_exists_rss_movie(media_info.title, media_info.year):
+        if self.is_exists_rss_movie(media_info.tmdb_id, media_info.year):
             return 9
+        
         self._db.insert(RSSMOVIES(
             NAME=media_info.title,
             YEAR=media_info.year,
@@ -820,19 +821,17 @@ class DbHelper:
             }
         )
 
-    def is_exists_rss_tv(self, title, year, season=None):
+    def is_exists_rss_tv(self, tmdbid, season=None):
         """
         判断RSS电视剧是否存在
         """
-        if not title:
+        if not tmdbid:
             return False
         if season:
-            count = self._db.query(RSSTVS).filter(RSSTVS.NAME == title,
-                                                  RSSTVS.YEAR == str(year),
+            count = self._db.query(RSSTVS).filter(RSSTVS.TMDBID == tmdbid,
                                                   RSSTVS.SEASON == season).count()
         else:
-            count = self._db.query(RSSTVS).filter(RSSTVS.NAME == title,
-                                                  RSSTVS.YEAR == str(year)).count()
+            count = self._db.query(RSSTVS).filter(RSSTVS.TMDBID == tmdbid).count()
         if count > 0:
             return True
         else:
@@ -876,8 +875,10 @@ class DbHelper:
             season_str = ""
         else:
             season_str = media_info.get_season_string()
-        if self.is_exists_rss_tv(media_info.title, media_info.year, season_str):
+
+        if self.is_exists_rss_tv(media_info.tmdb_id, season_str):
             return 9
+        
         self._db.insert(RSSTVS(
             NAME=media_info.title,
             YEAR=media_info.year,
@@ -2096,14 +2097,12 @@ class DbHelper:
         else:
             return False
 
-    def check_rss_history(self, type_str, name, year, season):
+    def check_rss_history(self, tmdbid, season):
         """
         检查RSS历史是否存在
         """
         count = self._db.query(RSSHISTORY).filter(
-            RSSHISTORY.TYPE == type_str,
-            RSSHISTORY.NAME == name,
-            RSSHISTORY.YEAR == year,
+            RSSHISTORY.TMDBID == tmdbid,
             RSSHISTORY.SEASON == season
         ).count()
         if count > 0:
@@ -2588,7 +2587,7 @@ class DbHelper:
         return self._db.query(INDEXERSITE).all()
     
     @DbPersist(_db)
-    def add_indexer(self, id, name, domain, proxy, render, downloader, source_type, search_type, search, torrents, browse=None, parser=None, category=None):
+    def add_indexer(self, id, name, domain, proxy, render, downloader, source_type, search_type, search, torrents, browse=None, parser=None, category=None, is_public=1):
         """
         新增索引站点
         """
@@ -2596,7 +2595,7 @@ class DbHelper:
             ID=id,
             NAME=name,
             DOMAIN=domain,
-            PUBLIC=1,
+            PUBLIC=is_public,
             PROXY=proxy,
             RENDER=render,
             DOWNLOADER=downloader,

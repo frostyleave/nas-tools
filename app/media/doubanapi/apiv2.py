@@ -35,7 +35,7 @@ class DoubanApi(object):
         "movie_tag": "/movie/tag",
         "tv_tag": "/tv/tag",
         # q=search_word&start=0&count=20
-        "movie_search": "/search/movie",
+        "movie_search": "/movie/search",
         "tv_search": "/search/movie",
         "book_search": "/search/book",
         "group_search": "/search/group",
@@ -102,7 +102,8 @@ class DoubanApi(object):
         "tv_rank_list": "/tv/rank_list",
 
         # movie info
-        "movie_detail": "/movie/",
+        "movie_info": "/movie/",
+        "movie_detail": "/movie/subject/",
         "movie_rating": "/movie/%s/rating",
         "movie_photos": "/movie/%s/photos",
         "movie_trailers": "/movie/%s/trailers",
@@ -138,16 +139,26 @@ class DoubanApi(object):
         # doulist
         "doulist": "/doulist/",
         "doulist_items": "/doulist/%s/items",
+        
+        # celebrity
+        "celebrity_works": "/movie/celebrity/%s/works",
+
     }
 
     _user_agents = [
         "api-client/1 com.douban.frodo/7.22.0.beta9(231) Android/23 product/Mate 40 vendor/HUAWEI model/Mate 40 brand/HUAWEI  rom/android  network/wifi  platform/AndroidPad"
         "api-client/1 com.douban.frodo/7.18.0(230) Android/22 product/MI 9 vendor/Xiaomi model/MI 9 brand/Android  rom/miui6  network/wifi  platform/mobile nd/1",
         "api-client/1 com.douban.frodo/7.1.0(205) Android/29 product/perseus vendor/Xiaomi model/Mi MIX 3  rom/miui6  network/wifi  platform/mobile nd/1",
-        "api-client/1 com.douban.frodo/7.3.0(207) Android/22 product/MI 9 vendor/Xiaomi model/MI 9 brand/Android  rom/miui6  network/wifi platform/mobile nd/1"]
+        "api-client/1 com.douban.frodo/7.3.0(207) Android/22 product/MI 9 vendor/Xiaomi model/MI 9 brand/Android  rom/miui6  network/wifi platform/mobile nd/1"
+        ]
+    
     _api_secret_key = "bf7dddc7c9cfe6f7"
     _api_key = "0dad551ec0f84ed02907ff5c42e8ec70"
     _base_url = "https://frodo.douban.com/api/v2"
+
+    _api_key2 = "0df993c66c0c636e29ecbb5344252a4a"
+    _api_url2 = "https://api.douban.com/v2"
+
     _session = requests.Session()
 
     def __init__(self):
@@ -187,11 +198,39 @@ class DoubanApi(object):
         except json.JSONDecodeError as e:
             return {}
 
+
+    @lru_cache(maxsize=512)
+    def __post(self, url: str, **kwargs) -> dict:
+        """
+        POST请求
+        esponse = requests.post(
+            url="https://api.douban.com/v2/movie/imdb/tt29139455",
+            headers={
+                "Content-Type": "application/x-www-form-urlencoded; charset=utf-8",
+                "Cookie": "bid=J9zb1zA5sJc",
+            },
+            data={
+                "apikey": "0ab215a8b1977939201640fa14c66bab",
+            },
+        )
+        """
+        req_url = self._api_url2 + url
+        params = {'apikey': self._api_key2}
+        if kwargs:
+            params.update(kwargs)
+        if '_ts' in params:
+            params.pop('_ts')
+        headers = {'User-Agent': choice(self._user_agents)}
+        resp = RequestUtils(headers=headers, session=self._session).post_res(url=req_url, data=params)
+        if resp.status_code == 400 and "rate_limit" in resp.text:
+            return resp.json()
+        return resp.json() if resp else {}
+
     def search(self, keyword, start=0, count=20, ts=datetime.strftime(datetime.now(), '%Y%m%d')):
         return self.__invoke(self._urls["search"], q=keyword, start=start, count=count, _ts=ts)
 
     def movie_search(self, keyword, start=0, count=20, ts=datetime.strftime(datetime.now(), '%Y%m%d')):
-        return self.__invoke(self._urls["movie_search"], q=keyword, start=start, count=count, _ts=ts)
+        return self.__post(self._urls["movie_search"], q=keyword, start=start, count=count, _ts=ts, apikey='0ab215a8b1977939201640fa14c66bab')
 
     def tv_search(self, keyword, start=0, count=20, ts=datetime.strftime(datetime.now(), '%Y%m%d')):
         return self.__invoke(self._urls["tv_search"], q=keyword, start=start, count=count, _ts=ts)
@@ -227,7 +266,7 @@ class DoubanApi(object):
         return self.__invoke(self._urls["show_hot"], start=start, count=count, _ts=ts)
 
     def movie_detail(self, subject_id):
-        return self.__invoke(self._urls["movie_detail"] + subject_id)
+        return self.__post(self._urls["movie_detail"] + subject_id)
 
     def search_agg(self, key_word):
         return self.__invoke(self._urls["search_agg"], q=key_word)
@@ -235,6 +274,9 @@ class DoubanApi(object):
     def movie_celebrities(self, subject_id):
         return self.__invoke(self._urls["movie_celebrities"] % subject_id)
 
+    def celebrity_works(self, people_id):
+        return self.__post(self._urls["celebrity_works"] % people_id)
+    
     def tv_detail(self, subject_id):
         return self.__invoke(self._urls["tv_detail"] + subject_id)
 
