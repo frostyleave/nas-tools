@@ -629,13 +629,14 @@ class DbHelper:
         else:
             return 0
 
-    def is_exists_rss_movie(self, tmdbid):
+    def is_exists_rss_movie(self, tmdbid, year):
         """
         判断RSS电影是否存在
         """
         if not tmdbid:
             return False
-        count = self._db.query(RSSMOVIES).filter(RSSMOVIES.TMDBID == tmdbid).count()
+        count = self._db.query(RSSMOVIES).filter(RSSMOVIES.TMDBID == tmdbid,
+                                                 RSSMOVIES.YEAR == str(year)).count()
         if count > 0:
             return True
         else:

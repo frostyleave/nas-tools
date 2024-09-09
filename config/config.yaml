@@ -49,7 +49,8 @@ app:
   # 示例：http://IP:3000
   domain: ''
   # 【UserAgent】：可适当修改，用于站点签到、豆瓣数据抓取等
-  user_agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML,
+  user_agent:
+    Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML,
     like Gecko) Chrome/117.0.0.0 Safari/537.36
   # 是否启用redis缓存
   redis_enable: true
@@ -64,16 +65,16 @@ app:
   # 开启后，只有Releases更新，才会有更新提示
   releases_update_only: false
 
-# 【配置媒体库信息】
+  # 【配置媒体库信息】
   init_files:
-  - init_filter.sql
-  - init_userrss_v3.sql
-  - stop_all_service.sql
-  - update_downloader.sql
-  - update_subscribe.sql
-  - update_systemdict.sql
-  - update_userpris.sql
-  - update_userrss.sql
+    - init_filter.sql
+    - init_userrss_v3.sql
+    - stop_all_service.sql
+    - update_downloader.sql
+    - update_subscribe.sql
+    - update_systemdict.sql
+    - update_userpris.sql
+    - update_userrss.sql
 media:
   # 【媒体库电影文件存放目录】：支持配置多个目录，不同的硬盘需映射为不同的根目录，以更于程序区分
   movie_path:
@@ -108,7 +109,8 @@ media:
   movie_name_format: '{title} ({year})/{title}-{part} ({year}) - {videoFormat}'
   # 【电视剧命名定义】：程序会按定义的命名格式对电视剧进行重命名；/代表上下级目录，{}内为占位符；占位符会使用文件识别出来的实际值替换，占位符外的字符会当成普通字符，直接体现在名称上
   # 电视剧占位符有：{title}：标题，{en_title}：英文标题，{original_title}：原语种标题，{original_name}：原文件名，{year}：年份，{edition}：版本(Bluray/WEB-DL等)，{videoFormat}：分辨率(1080p/4k等)，{videoCodec}：视频编码，{audioCodec}：音频编码及声道，{effect}: 视频特效(DV,HDR等), {tmdbid}：TMDB的ID，{imdbid}：IMDB的ID，{season}：季数，{episode}：集数，{season_episode}：剧集SxxExx，{part}：part1/disc1/dvd1，{releaseGroup}：制作组/字幕组等
-  tv_name_format: '{title} ({year})/Season {season}/{title}-{part} - {season_episode}
+  tv_name_format:
+    '{title} ({year})/Season {season}/{title}-{part} - {season_episode}
     - 第{episode}集'
   # 【刮削元数据及图片】：开启后文件转移完成时会自动生成nfo描述文件及poster海报，协助媒体服务器识别和搜刮
   nfo_poster: false
@@ -160,8 +162,8 @@ pt:
   # 【RSS订阅开关】：此处配置RSS订阅检查时间间隔，即每隔多长时间检查一下各站点是否有资源更新，建议不要少于30分钟，单位时间为秒
   # 配置为空或者0则不启用RSS订阅功能
   pt_check_interval: 1800
-  # 【定量搜索开关】：打开后，每隔设置时间会通过站点资源检索的方式查询和下载订阅，单位：小时，配置小于1小时时强制为1小时，不配置则为关
-  search_rss_interval: '1'
+  # 【定量搜索开关】：打开后，每隔设置时间会通过站点资源检索的方式查询和下载订阅，单位：小时，配置小于3小时时强制为3小时，不配置则为关
+  search_rss_interval: '3'
   # 【下载优先规则】：订阅及远程搜索下载将按此优先规则选择下载资源，字典：site 站点优先、seeder做种数优先
   download_order: site
   # 【搜索结果数量限制】：每个站点返回搜索结果的最大数量

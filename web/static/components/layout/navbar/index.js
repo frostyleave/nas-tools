@@ -179,8 +179,8 @@ export class LayoutNavbar extends CustomElement {
           <div class="d-flex flex-row flex-grow-1 lit-navbar-hide-scrollbar">
             <div class="d-flex flex-column flex-grow-1">
               <h1 style="text-align:center;margin: 1.5rem 0">
-                <img src="../static/favicon.ico" style="vertical-align: bottom;">
-                <label style="font-size: xx-large;color: white;">nastool</label>
+                <img src="../static/favicon.ico" style="vertical-align: bottom;border: 1px solid var(--tblr-navbar-toggler-border-color);border-radius: 5px;">
+                <label style="font-size: xx-large;color: var(--tblr-body-color);">nastool</label>
               </h1>
               <div class="accordion px-2 py-2 flex-grow-1">
               ${content}
