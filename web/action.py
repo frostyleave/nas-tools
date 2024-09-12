@@ -4985,7 +4985,7 @@ class WebAction:
             data.get('browse'),
             data.get('parser'),
             data.get('category'),
-            data.get('is_public')
+            data.get('public')
         )
         IndexerManager().init_config()
         return {"code": 0, "msg": "已插入"}
