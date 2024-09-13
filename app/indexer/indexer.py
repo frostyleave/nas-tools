@@ -165,10 +165,10 @@ class Indexer(object):
 
             # 豆瓣id检索
             if 'douban_id' in index.search_type and match_media.douban_id:
-                for db_id in match_media.douban_id.split(","):
-                    if db_id:
-                        task = executor.submit(self._client.search, order_seq, index, db_id, filter_args, match_media, in_from)
-                        all_task.append(task)
+                for db_id in StringUtils.split_and_filter(match_media.douban_id, ","):
+                    task = executor.submit(self._client.search, order_seq, index, db_id, filter_args, match_media, in_from)
+                    all_task.append(task)
+                        
 
             # imdb id 检索
             if 'imdb' in index.search_type and match_media.imdb_id:
@@ -180,10 +180,11 @@ class Indexer(object):
                 continue
 
             # 英文名检索
-            en_name = self.get_en_name(match_media)
-            if en_name and 'en_name' in index.search_type and Config().get_config("laboratory").get("search_en_title"):
-                task = executor.submit(self._client.search, order_seq, index, en_name, filter_args, match_media, in_from)
-                all_task.append(task)
+            if 'en_name' in index.search_type:
+                en_name = self.get_en_name(match_media)
+                if en_name:
+                    task = executor.submit(self._client.search, order_seq, index, en_name, filter_args, match_media, in_from)
+                    all_task.append(task)
 
         ret_array = []
         finish_count = 0

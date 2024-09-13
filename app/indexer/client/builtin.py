@@ -1,6 +1,7 @@
 import copy
 import datetime
 import time
+import traceback
 
 import log
 from app.conf import SystemConfig
@@ -108,7 +109,7 @@ class BuiltinIndexer(_IIndexClient):
         return None if indexer_id else ret_indexers
 
     def search(self, order_seq,
-               indexer,
+               indexer: IndexerConf,
                key_word,
                filter_args: dict,
                match_media,
@@ -158,13 +159,11 @@ class BuiltinIndexer(_IIndexClient):
             elif indexer.parser == "InterfaceSpider":
                 error_flag, result_array = InterfaceSpider(indexer).search(keyword=search_word)
             else:
-                error_flag, result_array = self.__spider_search(
-                    keyword=search_word,
-                    indexer=indexer,
-                    mtype=match_media.type if match_media and match_media.tmdb_info else None)
+                mtype=match_media.type if match_media and match_media.tmdb_info else None
+                error_flag, result_array = self.__spider_search(keyword=search_word, indexer=indexer, mtype=mtype)
         except Exception as err:
+            log.error("【%s】%s搜索执行出错: %s - %s" % (self.client_name, indexer.name, str(err), traceback.format_exc()))
             error_flag = True
-            print(str(err))
 
         # 索引花费的时间
         seconds = round((datetime.datetime.now() - start_time).seconds, 1)

@@ -143,6 +143,12 @@ class StringUtils:
     def is_alpha_numeric_punct(s):
         eng = re.compile(r'^[a-zA-Z0-9!"#$%&\'()*+,-./:;<=>?@[\]^_`{|}~]+$')
         return eng.search(s)
+    
+    @staticmethod
+    def is_all_en_character(s: str) -> bool:
+        # 正则表达式匹配字母、数字、空格、常见标点符号和特殊符号 @ 和 #
+        pattern = r'^[a-zA-Z0-9\s.,!?;:\'"()\-@#]+$'
+        return bool(re.fullmatch(pattern, s))
 
     @staticmethod
     def is_all_chinese_and_mark(word):
@@ -836,3 +842,17 @@ class StringUtils:
                 return True
         
         return False
+    
+    @staticmethod
+    def split_and_filter(text: str, delimiter: str) -> list:
+        """
+        将字符串按指定分隔符分割，并移除空字符串。
+
+        :param text: 要处理的字符串
+        :param delimiter: 用于分割的分隔符
+        :return: 分割后移除空字符串的列表
+        """
+        # 使用分隔符分割字符串
+        parts = text.split(delimiter)
+        # 移除空字符串
+        return [part for part in parts if part]

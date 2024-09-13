@@ -120,7 +120,7 @@ class IndexerConf(object):
         # 网站资源类型
         self.source_type = datas.get('source_type', ['MOVIE', 'TV', 'ANIME'])
         # 支持的搜索类型, 为空默认为标题、英文名
-        self.search_type = datas.get('search_type', ['title', 'en_name'])
+        self.search_type = datas.get('search_type', ['title'])
         # 是否公开站点
         self.public = datas.get('public', public)
         # 是否使用代理
