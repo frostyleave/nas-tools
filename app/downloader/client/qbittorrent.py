@@ -605,6 +605,10 @@ class Qbittorrent(_IDownloadClient):
         for torrent in Torrents:
             # 进度
             progress = round(torrent.get('progress') * 100, 1)
+            total_size = int(torrent.get('size'))
+            downloaded = int(torrent.get('completed'))
+            sizeprogress = ("%sB / %sB" % (StringUtils.str_filesize(downloaded), StringUtils.str_filesize(total_size))).replace('BB', 'B')
+            
             if torrent.get('state') in ['pausedDL']:
                 state = "Stoped"
                 speed = "已暂停"
@@ -617,13 +621,15 @@ class Qbittorrent(_IDownloadClient):
                 else:
                     eta = StringUtils.str_timelong(torrent.get('eta'))
                     speed = "%s%sB/s %s%sB/s %s" % (chr(8595), _dlspeed, chr(8593), _upspeed, eta)
+                speed = speed.replace('BB', 'B')
             # 主键
             DispTorrents.append({
                 'id': torrent.get('hash'),
                 'name': torrent.get('name'),
                 'speed': speed,
                 'state': state,
-                'progress': progress
+                'progress': progress,
+                'sizeprogress': sizeprogress
             })
         return DispTorrents
 

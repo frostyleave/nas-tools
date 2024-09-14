@@ -159,7 +159,9 @@ class Aria2(_IDownloadClient):
         for torrent in Torrents:
             # 进度
             try:
-                progress = round(int(torrent.get('completedLength')) / int(torrent.get("totalLength")), 1) * 100
+                downloaded = int(torrent.get('completedLength'))
+                total_size = int(torrent.get("totalLength"))
+                progress = round(downloaded / total_size, 1) * 100
             except ZeroDivisionError:
                 progress = 0.0
             if torrent.get('status') in ['paused']:
@@ -169,14 +171,15 @@ class Aria2(_IDownloadClient):
                 state = "Downloading"
                 _dlspeed = StringUtils.str_filesize(torrent.get('downloadSpeed'))
                 _upspeed = StringUtils.str_filesize(torrent.get('uploadSpeed'))
-                speed = "%s%sB/s %s%sB/s" % (chr(8595), _dlspeed, chr(8593), _upspeed)
+                speed = ("%s%sB/s %s%sB/s" % (chr(8595), _dlspeed, chr(8593), _upspeed)).replace('BB', 'B')
 
             DispTorrents.append({
                 'id': torrent.get('gid'),
                 'name': torrent.get('bittorrent', {}).get('info', {}).get("name"),
                 'speed': speed,
                 'state': state,
-                'progress': progress
+                'progress': progress,
+                 "sizeprogress": ("%sB / %sB" % (StringUtils.str_filesize(downloaded), StringUtils.str_filesize(total_size))).replace('BB', 'B')
             })
 
         return DispTorrents

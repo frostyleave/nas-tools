@@ -170,41 +170,52 @@ class Gopeed(_IDownloadClient):
         Torrents = self.get_downloading_torrents(tag)
         DispTorrents = []
         for torrent in Torrents:
+            res_info = torrent.get("meta", {}).get("res")
+            opts_info = torrent.get("meta", {}).get("opts")
+
             # 进度
-            progress_info = torrent.get('progress')
-            try:
-                progress = round(int(progress_info.get('downloaded')) / int(progress_info.get("used")), 1) * 100
-            except ZeroDivisionError:
-                progress = 0.0
-            if torrent.get('status') in ['pause']:
-                state = "Stoped"
-                speed = "已暂停"
-            else:
-                state = "Downloading"
-                _dlspeed = StringUtils.str_filesize(progress_info.get('speed'))
-                speed = "%s%sB/s %s%sB/s" % (chr(8595), _dlspeed, chr(8593), '')
+            progress_info = torrent.get("progress")
+            if res_info and progress_info:
+                name = res_info.get("name")
+                if not name and opts_info:
+                    name = opts_info.get("name")
+                    if not name:
+                        continue
 
-            name = ''
-            res_meta = torrent.get('meta')
-            if res_meta:
-                res_info = res_meta.get('res')
-                if res_info:
-                    name = res_info.get("name")
-                if not name:
-                    opts_info = res_meta.get('opts')
-                    if opts_info:
-                        name = opts_info.get("name")
-            
-            if not name:
-                continue
+                total_size = res_info.get("size", 1)
+                downloaded = progress_info.get("downloaded", 0)
 
-            DispTorrents.append({
-                'id': torrent.get('id'),
-                'name': name,
-                'speed': speed,
-                'state': state,
-                'progress': progress
-            })
+                try:
+                    progress = round(int(downloaded) / int(total_size), 1) * 100
+                except:  # noqa: E722
+                    progress = 0.0
+
+                if torrent.get("status") in ["pause"]:
+                    state = "Stoped"
+                    speed = "已暂停"
+                else:
+                    state = "Downloading"
+                    _dlspeed = StringUtils.str_filesize(progress_info.get("speed"))
+                    _upspeed = StringUtils.str_filesize(
+                        progress_info.get("uploadSpeed")
+                    )
+                    speed = ("%s %sB/s %s %sB/s" % (
+                        chr(8595),
+                        _dlspeed,
+                        chr(8593),
+                        _upspeed,
+                    )).replace('BB', 'B')
+
+                DispTorrents.append(
+                    {
+                        "id": torrent.get("id"),
+                        "name": name,
+                        "speed": speed,
+                        "state": state,
+                        "progress": progress,
+                        "sizeprogress": ("%sB / %sB" % (StringUtils.str_filesize(downloaded), StringUtils.str_filesize(total_size))).replace('BB', 'B')
+                    }
+                )
 
         return DispTorrents
 

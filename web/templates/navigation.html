@@ -130,9 +130,50 @@
     background-color: var(--tblr-border-color);
   }
 
- .nav-link-title {
-  margin-left: 0.5rem;
- }
+  .nav-link-title {
+    margin-left: 0.5rem;
+  }
+
+  .space-between-box {
+    display: flex;
+    justify-content: space-between;
+    margin: 0.25rem;
+  }
+
+  .space-between-box a:hover {
+    text-decoration: none;
+  }
+
+  .media-box {
+    position: relative;
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    border-radius: var(--tblr-card-border-radius);
+  }
+
+  .media-box::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(to right, rgba(0, 0, 0, 0.5) 0%, var(--tblr-dark) 100%);
+    z-index: 0;
+    border-radius: var(--tblr-card-border-radius);
+  }
+
+  .media-content {
+    color: white;
+    position: relative;
+    z-index: 1;
+  }
+
+  .card-text {
+    font-weight: 500 !important;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.7);
+  }
 
   {% for site_name, site_icon in SiteFavicons.items() %}
   .siteicon-{{ site_name|hash }} {
@@ -329,7 +370,7 @@
   <div class="modal-dialog modal-sm modal-dialog-centered" role="document">
     <div class="modal-content">
       <div class="modal-body">
-        <div class="modal-title">询问</div>
+        <div id="system_ask_title" class="modal-title">询问</div>
         <div id="system_ask_message" class="text-wrap">是否执行？</div>
       </div>
       <div class="modal-footer">

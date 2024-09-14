@@ -12,7 +12,6 @@ from functools import wraps
 from math import floor
 from pathlib import Path
 from threading import Lock
-from urllib import parse
 from urllib.parse import unquote
 
 from flask import Flask, request, json, render_template, make_response, session, send_from_directory, send_file, \
@@ -321,7 +320,9 @@ def movie_rss():
                            Count=len(RssItems),
                            RuleGroups=RuleGroups,
                            DownloadSettings=DownloadSettings,
-                           Items=RssItems
+                           Items=RssItems,
+                           Type='MOV',
+                           TypeName='电影'
                            )
 
 
@@ -332,11 +333,13 @@ def tv_rss():
     RssItems = WebAction().get_tv_rss_list().get("result")
     RuleGroups = {str(group["id"]): group["name"] for group in Filter().get_rule_groups()}
     DownloadSettings = Downloader().get_download_setting()
-    return render_template("rss/tv_rss.html",
+    return render_template("rss/movie_rss.html",
                            Count=len(RssItems),
                            RuleGroups=RuleGroups,
                            DownloadSettings=DownloadSettings,
-                           Items=RssItems
+                           Items=RssItems,
+                           Type='TV',
+                           TypeName='电视剧'
                            )
 
 
@@ -1374,7 +1377,7 @@ def telegram():
                                                user_id=user_id)
                     return '只有管理员才有权限执行此命令'
             else:
-                if not str(user_id) in interactive_client.get("client").get_users():
+                if str(user_id) not in interactive_client.get("client").get_users():
                     Message().send_channel_msg(channel=SearchType.TG,
                                                title="你不在用户白名单中，无法使用此机器人",
                                                user_id=user_id)

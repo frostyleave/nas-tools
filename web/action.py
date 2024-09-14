@@ -1225,7 +1225,7 @@ class WebAction:
             open(tmp_path_file, "wb").write(result.content)
 
             # 解压文件
-            log.info(f'【UpdateSystem】正在解压文件...')
+            log.info('【UpdateSystem】正在解压文件...')
             shutil.unpack_archive(tmp_path_file, tmp_path, format='zip')
             tmp_path_root = os.path.join(tmp_path, f"nas-tools-{version.split()[0]}")
             log.info(f'【UpdateSystem】文件解压成功：{tmp_path_root}')
@@ -1235,11 +1235,11 @@ class WebAction:
             PathUtils.del_files(os.path.join(tmp_path_root, "config"))
 
             # 拷贝文件
-            log.info(f'【UpdateSystem】正在升级系统版本...')
+            log.info('【UpdateSystem】正在升级系统版本...')
             os.system(f"cp -R {tmp_path_root}/* {root_path}/")
 
             # 安装依赖
-            log.info(f'【UpdateSystem】正在安装系统依赖...')
+            log.info('【UpdateSystem】正在安装系统依赖...')
             os.system(f'sudo pip install -r {root_path}/requirements.txt')
             # 修复权限
             user_auth = os.stat(root_path)
@@ -1247,10 +1247,10 @@ class WebAction:
 
             # 清理临时目录
             PathUtils.del_files(tmp_path)
-            log.info(f'【UpdateSystem】清理临时目录...')
+            log.info('【UpdateSystem】清理临时目录...')
 
             # 重启
-            log.info(f'【UpdateSystem】系统升级完成，正在重启...')
+            log.info('【UpdateSystem】系统升级完成，正在重启...')
             log.info("【UpdateSystem】请手动刷新页面！")
             time.sleep(3)
             self.restart_server()
@@ -1349,7 +1349,7 @@ class WebAction:
 
         # 源目录检查
         if not source:
-            return {"code": 1, "msg": f'源目录不能为空'}
+            return {"code": 1, "msg": '源目录不能为空'}
         if not os.path.exists(source):
             return {"code": 1, "msg": f'{source}目录不存在'}
         # windows目录用\，linux目录用/
@@ -2475,7 +2475,8 @@ class WebAction:
                 'year': item.YEAR,
                 'vote': item.VOTE,
                 'image': item.POSTER,
-                'overview': item.TORRENT,
+                'backdrop': item.BACKDROP,
+                'overview': item.OVERVIEW,
                 "date": item.DATE,
                 "site": item.SITE
             } for item in Items]}
@@ -3766,7 +3767,6 @@ class WebAction:
         """
         查询正在下载的任务
         """
-        MediaHander = Media()
         DownloaderHandler = Downloader()
         torrents = DownloaderHandler.get_downloading_progress()
         for torrent in torrents:
@@ -3780,31 +3780,18 @@ class WebAction:
                 name = download_info.TITLE
                 year = download_info.YEAR
                 poster_path = download_info.POSTER
+                backdrop = download_info.BACKDROP
                 se = download_info.SE
-            else:
-                media_info = MediaHander.get_media_info(title=name)
-                if not media_info:
-                    torrent.update({
-                        "title": name,
-                        "image": ""
-                    })
-                    continue
-                year = media_info.year
-                name = media_info.title or media_info.get_name()
-                se = media_info.get_season_episode_string()
-                poster_path = media_info.get_poster_image()
-            # 拼装标题
-            if year:
-                title = "%s (%s) %s" % (name,
-                                        year,
-                                        se)
-            else:
-                title = "%s %s" % (name, se)
-
-            torrent.update({
-                "title": title,
-                "image": poster_path or ""
-            })
+                title = "%s %s" % (name, se) if se else ( "%s(%s)" % (name, year) if year else name)
+                tpye_str = 'MOV' if download_info.TYPE == '电影' else 'TV'
+                    
+                torrent.update({
+                    "tmdbid": download_info.TMDBID,
+                    "title": title,
+                    "image": poster_path or "",
+                    "backdrop" : backdrop or "",
+                    "type": tpye_str
+                })
 
         return {"code": 0, "result": torrents}
 

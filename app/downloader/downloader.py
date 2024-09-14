@@ -1023,7 +1023,11 @@ class Downloader:
             tag = [PT_TAG]
         else:
             tag = None
-        return _client.get_downloading_progress(tag=tag, ids=ids)
+        try:
+            return _client.get_downloading_progress(tag=tag, ids=ids)
+        except:  # noqa: E722
+            return []
+
 
     def get_completed_torrents(self, downloader_id=None, ids=None, tag=None):
         """
@@ -1720,7 +1724,7 @@ class Downloader:
         # 测试状态
         state = self.__build_class(ctype=dtype, conf=config).get_status()
         if not state:
-            log.error(f"【Downloader】下载器连接测试失败")
+            log.error("【Downloader】下载器连接测试失败")
         return state
 
     def recheck_torrents(self, downloader_id=None, ids=None):

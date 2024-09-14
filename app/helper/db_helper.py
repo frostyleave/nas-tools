@@ -1416,7 +1416,7 @@ class DbHelper:
         if end_day:
             try:
                 end = datetime.datetime.strptime(end_day, "%Y-%m-%d")
-            except Exception as e:
+            except Exception:
                 pass
 
         # 开始时间
@@ -1514,7 +1514,7 @@ class DbHelper:
                                                    DOWNLOADHISTORY.DOWNLOADER == downloader,
                                                    DOWNLOADHISTORY.DOWNLOAD_ID == download_id).update(
                 {
-                    "TORRENT": media_info.org_string,
+                    "BACKDROP": media_info.get_backdrop_image(default=False, original=True),
                     "ENCLOSURE": media_info.enclosure,
                     "DESC": media_info.description,
                     "SITE": media_info.site,
@@ -1534,7 +1534,7 @@ class DbHelper:
                 VOTE=media_info.vote_average,
                 POSTER=media_info.get_poster_image(),
                 OVERVIEW=media_info.overview,
-                TORRENT=media_info.org_string,
+                BACKDROP=media_info.get_backdrop_image(default=False, original=True),
                 ENCLOSURE=media_info.enclosure,
                 DESC=media_info.description,
                 DATE=time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time())),
