@@ -107,10 +107,12 @@ class IndexerConf(object):
         self.search = datas.get('search', {})
         # 批量搜索，如果为空对象则表示不支持批量搜索
         self.batch = self.search.get("batch", {}) if builtin else {}
-        # 解析器
-        self.parser = parser if parser is not None else datas.get('parser')
         # 是否启用渲染
         self.render = render if render is not None else datas.get("render", False)
+        # 解析器
+        self.parser = parser if parser is not None else datas.get('parser')
+        if self.parser == 'RenderSpider':
+            self.render = True
         # 浏览
         self.browse = datas.get('browse', {})
         # 种子过滤

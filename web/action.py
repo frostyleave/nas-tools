@@ -362,7 +362,9 @@ class WebAction:
             if SystemUtils.check_process('node'):
                 os.system("pm2 restart NAStool")
             else:
-                os.system("pkill -f 'python3 run.py'")
+                log.info("kill $(pgrep -f 'python3 run.py')")
+                os.system("kill $(pgrep -f 'python3 run.py')")
+                # os.system("pkill -f 'python3 run.py'")
 
     def handle_message_job(self, msg, in_from=SearchType.OT, user_id=None, user_name=None):
         """

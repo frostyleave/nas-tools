@@ -114,9 +114,10 @@ Werkzeug>=3.0.0
 wsproto==1.2.0
 zhconv==1.4.3
 bencodepy>=0.9.5
-feapder[render]
 qbittorrent-api
-anitopy
-plexapi
+anitopy==2.1.1
+plexapi==4.15.11
 transmission-rpc
-slack_bolt
+slack_bolt==1.18.0
+cf_clearance==0.31.0
+chardet==4.0.0

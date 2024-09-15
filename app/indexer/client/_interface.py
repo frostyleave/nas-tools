@@ -6,18 +6,15 @@ import requests
 
 from urllib.parse import quote
 
-from app.indexer.client._spider import TorrentSpider
 from app.utils.string_utils import StringUtils
 from config import Config
 
 
 class InterfaceSpider(object):
-    torrentspider = None
     torrents_info_array = []
     result_num = 100
 
     def __init__(self, indexer):
-        self.torrentspider = TorrentSpider()
         self._indexer = indexer
         self.init_config()
 
@@ -157,11 +154,7 @@ class InterfaceSpider(object):
         headers = { 'User-Agent': Config().get_ua() }
 
         # 代理
-        proxies = None
-        if self._indexer.proxy:
-            proxy = Config().get_proxies().get("https")
-            if proxy:
-                proxies = proxy.split('/')[-1]
+        proxies = Config().get_proxies() if self._indexer.proxy else None
         
         if not search_config:
             search_config = self._indexer.search.get('paths', [{}])[0]
@@ -183,11 +176,11 @@ class InterfaceSpider(object):
         if check_cookie:
             # 使用正则表达式从响应内容中提取 cookie 值
             match = re.search(r'document.cookie = "([^=]+)=([^;]+);', response.text)
-            cookie_name = match.group(1)
-            cookie_value = match.group(2)
-
-            # 设置 cookie
-            session.cookies.set(cookie_name, cookie_value)
+            if match:
+                cookie_name = match.group(1)
+                cookie_value = match.group(2)
+                # 设置 cookie
+                session.cookies.set(cookie_name, cookie_value)
 
             # 重新发送请求
             response = session.get(search_url, headers=headers, allow_redirects=True,  proxies=proxies)

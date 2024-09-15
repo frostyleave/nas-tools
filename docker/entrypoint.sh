@@ -33,13 +33,13 @@ if [ "${NASTOOL_AUTO_UPDATE}" = "true" ]; then
         if [ "${hash_old}" != "${hash_new}" ]; then
             echo "检测到package_list.txt有变化，更新软件包..."
             if [ "${NASTOOL_CN_UPDATE}" = "true" ]; then
-                sed -i "s/dl-cdn.alpinelinux.org/${ALPINE_MIRROR}/g" /etc/apk/repositories
-                apk update -f
+                sed -i "s/deb.debian.org/${DEBIAN_MIRROR}/g" /etc/apt/sources.list
+                apt-get update -y
                 if [ $? -ne 0 ]; then
                     echo "无法更新软件包，请更新镜像！"
                 fi
             fi
-            apk add --no-cache $(echo $(cat package_list.txt))
+            apt-get install -y $(cat package_list.txt)
             if [ $? -ne 0 ]; then
                 echo "无法更新软件包，请更新镜像！"
             else
@@ -81,11 +81,11 @@ groupmod -o -g "$PGID" nt
 usermod -o -u "$PUID" nt
 
 # 创建目录、权限设置
-chown -R nt:nt "${WORKDIR}" "${NT_HOME}" /config /usr/lib/chromium /etc/hosts
-export PATH=${PATH}:/usr/lib/chromium
-
+chown -R nt:nt "${WORKDIR}" /etc/hosts /tmp
+# export PATH=${PATH}:/usr/lib/chromium
+gosu nt:nt playwright install chromium
 # 执行扩展脚本
-$*
+exec "$@"
 
 # 掩码设置
 umask "${UMASK}"
@@ -97,4 +97,4 @@ if [ -n "$(which redis-server)" ]; then
 fi
 
 # 启动主程序
-exec su-exec nt:nt "$(which dumb-init)" "$(which pm2-runtime)" start run.py -n NAStool --interpreter python3
+exec gosu nt:nt dumb-init python3 run.py -n NAStool

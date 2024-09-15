@@ -1,24 +1,62 @@
-FROM alpine:3.17 AS Builder
-RUN apk add --no-cache --virtual .build-deps \
-        libffi-dev \
+FROM python:3.10-slim AS Builder
+
+# 安装构建依赖和运行所需的依赖包
+RUN apt-get update -y \
+     && apt-get upgrade -y \
+     && apt-get install -y --no-install-recommends \
+        gosu \
+        bash \
+        busybox \
+        dumb-init \
         gcc \
+        libffi-dev \
         musl-dev \
         libxml2-dev \
         libxslt-dev \
-    && apk add --no-cache $(echo $(wget --no-check-certificate -qO- https://raw.githubusercontent.com/frostyleave/nas-tools/dev/package_list.txt )) \
-    && ln -sf /usr/bin/python3 /usr/bin/python \
-    && curl https://rclone.org/install.sh | bash \
-    && if [ "$(uname -m)" = "x86_64" ]; then ARCH=amd64; elif [ "$(uname -m)" = "aarch64" ]; then ARCH=arm64; fi \
+        wget \
+        curl \
+        git \
+        unzip \
+    && \
+    if [ "$(uname -m)" = "x86_64" ]; \
+        then ln -s /usr/lib/x86_64-linux-musl/libc.so /lib/libc.musl-x86_64.so.1; \
+    elif [ "$(uname -m)" = "aarch64" ]; \
+        then ln -s /usr/lib/aarch64-linux-musl/libc.so /lib/libc.musl-aarch64.so.1; \
+    fi \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+
+# 安装 rclone
+RUN curl https://rclone.org/install.sh | bash
+
+# 安装 MinIO 客户端
+RUN if [ "$(uname -m)" = "x86_64" ]; then ARCH=amd64; elif [ "$(uname -m)" = "aarch64" ]; then ARCH=arm64; fi \
     && curl https://dl.min.io/client/mc/release/linux-${ARCH}/mc --create-dirs -o /usr/bin/mc \
-    && chmod +x /usr/bin/mc \
-    && pip install --upgrade pip setuptools==70.1.1 wheel \
+    && chmod +x /usr/bin/mc
+
+# 升级 pip、setuptools 和 wheel
+RUN pip install --upgrade pip setuptools==70.1.1 wheel \
     && pip install cython \
     && pip install -r https://raw.githubusercontent.com/frostyleave/nas-tools/dev/requirements.txt \
-    && apk del --purge .build-deps \
-    && rm -rf /tmp/* /root/.cache /var/cache/apk/*
+    && playwright install-deps chromium \
+    && apt-get remove -y build-essential \
+    && apt-get autoremove -y \
+    && apt-get clean -y \
+    && rm -rf \
+        /tmp/* \
+        /var/lib/apt/lists/* \
+        /var/tmp/* \
+        /root/.cache
+
+# 复制 rootfs
 COPY --chmod=755 ./rootfs /
+
 FROM scratch AS APP
+
+# 从 Builder 阶段复制文件
 COPY --from=Builder / /
+
+# 设置环境变量
 ENV S6_SERVICES_GRACETIME=30000 \
     S6_KILL_GRACETIME=60000 \
     S6_CMD_WAIT_FOR_SERVICES_MAXTIME=0 \
@@ -35,24 +73,29 @@ ENV S6_SERVICES_GRACETIME=30000 \
     PS1="\u@\h:\w \$ " \
     REPO_URL="https://github.com/frostyleave/nas-tools.git" \
     PYPI_MIRROR="https://pypi.tuna.tsinghua.edu.cn/simple" \
-    ALPINE_MIRROR="mirrors.ustc.edu.cn" \
+    DEBIAN_MIRROR="http://deb.debian.org/debian/" \
     PUID=0 \
     PGID=0 \
     UMASK=000 \
     WORKDIR="/nas-tools"
+
 WORKDIR ${WORKDIR}
+
+# 创建用户和组
 RUN mkdir ${HOME} \
-    && addgroup -S nt -g 911 \
-    && adduser -S nt -G nt -h ${HOME} -s /bin/bash -u 911 \
+    && addgroup --gid 911 nt \
+    && adduser --uid 911 --gid 911 --home ${HOME} --shell /bin/bash --disabled-password nt \
     && python_ver=$(python3 -V | awk '{print $2}') \
-    && echo "${WORKDIR}/" > /usr/lib/python${python_ver%.*}/site-packages/nas-tools.pth \
+    && echo "${WORKDIR}/" > /usr/local/lib/python${python_ver%.*}/site-packages/nas-tools.pth \
     && echo 'fs.inotify.max_user_watches=5242880' >> /etc/sysctl.conf \
     && echo 'fs.inotify.max_user_instances=5242880' >> /etc/sysctl.conf \
     && echo "nt ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers \
     && git config --global pull.ff only \
     && git clone -b dev ${REPO_URL} ${WORKDIR} --depth=1 --recurse-submodule \
     && git config --global --add safe.directory ${WORKDIR} \
-    && chmod +x /nas-tools/docker/entrypoint.sh
+    && cp -f /nas-tools/docker/entrypoint.sh /entrypoint.sh \
+    && chmod +x /entrypoint.sh
+
 EXPOSE 3000
 VOLUME ["/config"]
-ENTRYPOINT [ "/init" ]
+ENTRYPOINT ["/entrypoint.sh"]
