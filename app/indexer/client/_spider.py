@@ -111,14 +111,11 @@ class TorrentSpider(object):
 
         # 浏览器仿真
         if self.render:
-            proxy={
-                'server': self.proxies.get('http') if self.proxies else ''
-            }
             page_source = PlaywrightHelper().get_page_source(
                 url=searchurl,
                 cookies=self.cookie,
                 ua=self.ua,
-                proxies=proxy,
+                proxy=True if self._indexer.proxy else False,
                 timeout=self.timeout,
                 wait_item=self.wait_element,
                 headless=SystemUtils.is_docker()

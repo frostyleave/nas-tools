@@ -7,7 +7,7 @@ from .path_utils import PathUtils
 from .string_utils import StringUtils
 from .system_utils import SystemUtils
 from .tokens import Tokens
-from .torrent import Torrent
+from .torrent import TorrentUtils
 from .cache_manager import cacheman, TokenCache, ConfigLoadCache, CategoryLoadCache, OpenAISessionCache
 from .exception_utils import ExceptionUtils
 from .rsstitle_utils import RssTitleUtils

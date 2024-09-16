@@ -324,7 +324,7 @@ class Sites:
         if len(xpaths) > 3:
             referer = xpaths[3]
         try:
-            site_info = self.get_public_sites(url=page_url)
+            site_info = self.get_indexer_sites(url=page_url)
             if not site_info.get("referer"):
                 referer = None
             req = RequestUtils(
@@ -346,9 +346,9 @@ class Sites:
             ExceptionUtils.exception_traceback(err)
         return None
 
-    def get_public_sites(self, url, site_name):
+    def get_indexer_sites(self, url, site_name):
         """
-        根据url查询站点信息
+        根据url查询索引站点信息
         """
         indexers = IndexerManager().get_all_indexers()
         if url:
@@ -359,9 +359,7 @@ class Sites:
             
             url_sld = StringUtils.get_url_sld(url)
             sites_info = next(filter(lambda x: url_sld.startswith(x.get("id")), indexers), None)
-            # 网址动态变更型站点，更新domain
             if sites_info:
-                sites_info["domain"] = base_url
                 return sites_info
             
         if site_name:

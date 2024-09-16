@@ -13,7 +13,7 @@ from app.message import Message
 from app.plugins import EventManager
 from app.searcher import Searcher
 from app.sites import Sites
-from app.utils import Torrent
+from app.utils import TorrentUtils
 from app.utils.commons import singleton
 from app.utils.types import MediaType, SearchType, EventType, SystemConfigKey, RssType
 from web.backend.web_utils import WebUtils
@@ -863,7 +863,7 @@ class Subscribe:
                                                       media=media_info)
                         continue
                     # 取交集做为缺失集
-                    rss_no_exists = Torrent.get_intersection_episodes(target=rss_no_exists,
+                    rss_no_exists = TorrentUtils.get_intersection_episodes(target=rss_no_exists,
                                                                       source=library_no_exists,
                                                                       title=media_info.tmdb_id)
                     if rss_no_exists.get(media_info.tmdb_id):
