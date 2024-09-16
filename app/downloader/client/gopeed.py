@@ -24,7 +24,8 @@ class Gopeed(_IDownloadClient):
 
     magnet_prefix = 'magnet:?xt=urn:btih:'
     magnet_prefix_len = 20
-    magnet_hash_split = '&dn='
+    magnet_hash_dn = '&dn='
+    magnet_hash_tr = '&tr='
 
     def __init__(self, config=None):
         if config:
@@ -134,14 +135,20 @@ class Gopeed(_IDownloadClient):
             return "无法提交下载任务"
     
     def join_name_with_hash(self, name, input_link):
+
         if not input_link or not input_link.startswith(self.magnet_prefix):
             return name
 
-        s_index = input_link.find(self.magnet_hash_split)
-        if s_index < 0:
-            return '{0}-{1}'.format(name, input_link[self.magnet_prefix_len:])
+        left = input_link[self.magnet_prefix_len:]
+        dn_index = left.find(self.magnet_hash_dn)
+        if dn_index > 0:
+            left = left[:dn_index]
         
-        return '{0}-{1}'.format(name, input_link[self.magnet_prefix_len:s_index])
+        tr_index = left.find(self.magnet_hash_tr)
+        if tr_index > 0:
+            left = left[:tr_index]        
+        
+        return '{0}-{1}'.format(name, left)
 
 
     def start_torrents(self, ids):
@@ -195,7 +202,13 @@ class Gopeed(_IDownloadClient):
                     speed = "已暂停"
                 else:
                     state = "Downloading"
-                    _dlspeed = StringUtils.str_filesize(progress_info.get("speed"))
+                    speed = progress_info.get("speed")
+                    if isinstance(speed, str):
+                        speed = int(speed)
+                    if speed < 0:
+                        speed = abs(speed)
+
+                    _dlspeed = StringUtils.str_filesize(speed)
                     _upspeed = StringUtils.str_filesize(
                         progress_info.get("uploadSpeed")
                     )

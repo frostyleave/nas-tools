@@ -527,16 +527,20 @@ class Downloader:
                 elif media_info.title:
                     title = media_info.title
 
+                se = media_info.get_season_string() + media_info.get_episode_string()
+
                 if torrent_file:
                     task_name = os.path.basename(torrent_file).strip('.torrent')
                     if not task_name:
                         task_name = title
                     elif title not in task_name:
                         task_name = title + task_name
+
+                    title += se
                     ret = downloader.add_torrent(torrent_file, name=task_name, download_dir=download_dir, tag=PT_TAG)
                     log.info(f"【Downloader】下载器 {downloader_name} 发起种子文件下载: %s" % (torrent_file))
                 else:
-                    ret = downloader.add_torrent(content, name=title, download_dir=download_dir, tag=PT_TAG)
+                    ret = downloader.add_torrent(content, name=title+se, download_dir=download_dir, tag=PT_TAG)
                 download_id = ret
 
             else:
