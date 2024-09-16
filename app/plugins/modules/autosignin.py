@@ -2,18 +2,16 @@ import re
 import time
 from datetime import datetime, timedelta
 from multiprocessing.dummy import Pool as ThreadPool
-from multiprocessing.pool import ThreadPool
 from threading import Event
 
 import pytz
 from apscheduler.schedulers.background import BackgroundScheduler
 from lxml import etree
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support import expected_conditions as es
-from selenium.webdriver.support.wait import WebDriverWait
+from playwright.sync_api import Page
 
-from app.helper import ChromeHelper, SubmoduleHelper, SiteHelper
+from app.helper import SubmoduleHelper, SiteHelper
 from app.helper.cloudflare_helper import under_challenge
+from app.indexer.client.browser import PlaywrightHelper
 from app.message import Message
 from app.plugins import EventHandler
 from app.plugins.modules._base import _IPluginModule
@@ -215,7 +213,7 @@ class AutoSignIn(_IPluginModule):
 
             # 运行一次
             if self._onlyonce:
-                self.info(f"签到服务启动，立即运行一次")
+                self.info("签到服务启动，立即运行一次")
                 self._scheduler.add_job(self.sign_in, 'date',
                                         run_date=datetime.now(tz=pytz.timezone(Config().get_timezone())) + timedelta(
                                             seconds=3))
@@ -433,67 +431,62 @@ class AutoSignIn(_IPluginModule):
             if not site_url or not site_cookie:
                 self.warn("未配置 %s 的站点地址或Cookie，无法签到" % str(site))
                 return ""
-            chrome = ChromeHelper()
-            if site_info.get("chrome") and chrome.get_status():
+
+            if site_info.get("chrome"):
                 # 首页
                 self.info("开始站点仿真签到：%s" % site)
                 home_url = StringUtils.get_base_url(site_url)
                 if "1ptba" in home_url:
                     home_url = f"{home_url}/index.php"
-                if not chrome.visit(url=home_url, ua=ua, cookie=site_cookie, proxy=site_info.get("proxy")):
-                    self.warn("%s 无法打开网站" % site)
-                    return f"【{site}】仿真签到失败，无法打开网站！"
-                # 循环检测是否过cf
-                cloudflare = chrome.pass_cloudflare()
-                if not cloudflare:
-                    self.warn("%s 跳转站点失败" % site)
-                    return f"【{site}】仿真签到失败，跳转站点失败！"
-                # 判断是否已签到
-                html_text = chrome.get_html()
-                if not html_text:
-                    self.warn("%s 获取站点源码失败" % site)
-                    return f"【{site}】仿真签到失败，获取站点源码失败！"
-                # 查找签到按钮
-                html = etree.HTML(html_text)
-                xpath_str = None
-                for xpath in self.siteconf.get_checkin_conf():
-                    if html.xpath(xpath):
-                        xpath_str = xpath
-                        break
-                if re.search(r'已签|签到已得', html_text, re.IGNORECASE) \
-                        and not xpath_str:
-                    self.info("%s 今日已签到" % site)
-                    return f"【{site}】今日已签到"
-                if not xpath_str:
-                    if SiteHelper.is_logged_in(html_text):
-                        self.warn("%s 未找到签到按钮，模拟登录成功" % site)
-                        return f"【{site}】模拟登录成功"
-                    else:
-                        self.info("%s 未找到签到按钮，且模拟登录失败" % site)
-                        return f"【{site}】模拟登录失败！"
-                # 开始仿真
-                try:
-                    checkin_obj = WebDriverWait(driver=chrome.browser, timeout=6).until(
-                        es.element_to_be_clickable((By.XPATH, xpath_str)))
-                    if checkin_obj:
-                        checkin_obj.click()
-                        # 检测是否过cf
-                        time.sleep(3)
-                        if under_challenge(chrome.get_html()):
-                            cloudflare = chrome.pass_cloudflare()
-                            if not cloudflare:
-                                self.info("%s 仿真签到失败，无法通过Cloudflare" % site)
-                                return f"【{site}】仿真签到失败，无法通过Cloudflare！"
+                
+                def _click_sign(page: Page):
+                    """
+                    仿真签到
+                    :param page: 网页对象
+                    :return: 签到结果信息
+                    """
+                    html_text = page.content()
+                    if not html_text:
+                        self.warn("%s 获取站点源码失败" % site)
+                        return f"【{site}】仿真签到失败，获取站点源码失败！"
+                    # 查找签到按钮
+                    html = etree.HTML(html_text)
+                    xpath_str = None
+                    for xpath in self.siteconf.get_checkin_conf():
+                        if html.xpath(xpath):
+                            xpath_str = xpath
+                            break
+                    if re.search(r'已签|签到已得', html_text, re.IGNORECASE) \
+                            and not xpath_str:
+                        self.info("%s 今日已签到" % site)
+                        return f"【{site}】今日已签到"
+                    if not xpath_str:
+                        if SiteHelper.is_logged_in(html_text):
+                            self.warn("%s 未找到签到按钮，模拟登录成功" % site)
+                            return f"【{site}】模拟登录成功"
+                        else:
+                            self.info("%s 未找到签到按钮，且模拟登录失败" % site)
+                            return f"【{site}】模拟登录失败！"
+                    
+                    page.click(xpath_str) 
+                    # 等待3秒
+                    time.sleep(3)
+                    # 获取页面内容
+                    content = page.content()
 
-                        # 判断是否已签到   [签到已得125, 补签卡: 0]
-                        if re.search(r'已签|签到已得', chrome.get_html(), re.IGNORECASE):
-                            return f"【{site}】签到成功"
-                        self.info("%s 仿真签到成功" % site)
-                        return f"【{site}】仿真签到成功"
-                except Exception as e:
-                    ExceptionUtils.exception_traceback(e)
-                    self.warn("%s 仿真签到失败：%s" % (site, str(e)))
-                    return f"【{site}】签到失败！"
+                    # 判断是否已签到   [签到已得125, 补签卡: 0]
+                    if re.search(r'已签|签到已得', content, re.IGNORECASE):
+                        return f"【{site}】签到成功"
+                    
+                    self.info("%s 仿真签到成功" % site)
+                    return f"【{site}】仿真签到成功"
+                
+                return PlaywrightHelper().action(url=home_url, 
+                                                 ua=ua, 
+                                                 cookie=site_cookie, 
+                                                 proxy=True if site_info.get("proxy") else False,
+                                                 callback=_click_sign)
+
             # 模拟登录
             else:
                 if site_url.find("attendance.php") != -1:

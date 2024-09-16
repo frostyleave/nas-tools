@@ -66,3 +66,15 @@ class SiteHelper:
             return 1
         else:
             return SystemUtils.copy(source_sub_file, new_sub_file)
+
+    @staticmethod
+    def parse_cookies(cookies: list) -> str:
+        """
+        将浏览器返回的cookies转化为字符串
+        """
+        if not cookies:
+            return ""
+        cookie_str = ""
+        for cookie in cookies:
+            cookie_str += f"{cookie['name']}={cookie['value']}; "
+        return cookie_str

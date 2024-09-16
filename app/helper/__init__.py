@@ -1,4 +1,3 @@
-from .chrome_helper import ChromeHelper
 from .meta_helper import MetaHelper
 from .progress_helper import ProgressHelper
 from .security_helper import SecurityHelper

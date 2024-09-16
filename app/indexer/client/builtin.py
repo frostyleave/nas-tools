@@ -5,7 +5,7 @@ import traceback
 import log
 
 from app.conf import SystemConfig
-from app.helper import ProgressHelper, ChromeHelper, DbHelper
+from app.helper import ProgressHelper, DbHelper
 from app.indexer.client._base import _IIndexClient
 from app.indexer.client._rarbg import Rarbg
 from app.indexer.client._spider import TorrentSpider
@@ -66,15 +66,13 @@ class BuiltinIndexer(_IIndexClient):
         # 选中站点配置
         indexer_sites = SystemConfig().get(SystemConfigKey.UserIndexerSites) or []
         _indexer_domains = []
-        # 检查浏览器状态
-        chrome_ok = ChromeHelper().get_status()
         # 私有站点
         for site in Sites().get_sites():
             url = site.get("signurl") or site.get("rssurl")
             cookie = site.get("cookie")
             if not url or not cookie:
                 continue
-            render = False if not chrome_ok else site.get("chrome")
+            render = site.get("chrome")
             indexer = IndexerManager().get_indexer(url=url,
                                                   siteid=site.get("id"),
                                                   cookie=cookie,

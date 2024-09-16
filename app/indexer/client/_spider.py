@@ -111,6 +111,7 @@ class TorrentSpider(object):
 
         # 浏览器仿真
         if self.render:
+            noGraphical = SystemUtils.is_windows() is False and SystemUtils.is_macos() is False
             page_source = PlaywrightHelper().get_page_source(
                 url=searchurl,
                 cookies=self.cookie,
@@ -118,7 +119,7 @@ class TorrentSpider(object):
                 proxy=True if self._indexer.proxy else False,
                 timeout=self.timeout,
                 wait_item=self.wait_element,
-                headless=SystemUtils.is_docker()
+                headless=noGraphical
             )
             return self.parse(page_source)
         

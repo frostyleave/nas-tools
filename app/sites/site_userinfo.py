@@ -5,8 +5,9 @@ from threading import Lock
 
 import requests
 
+from app.indexer.client.browser import PlaywrightHelper
 import log
-from app.helper import ChromeHelper, SubmoduleHelper, DbHelper
+from app.helper import SubmoduleHelper, DbHelper
 from app.message import Message
 from app.sites.sites import Sites
 from app.utils import RequestUtils, ExceptionUtils, StringUtils
@@ -65,18 +66,9 @@ class SiteUserInfo(object):
             return
 
         # 检测环境，有浏览器内核的优先使用仿真签到
-        chrome = ChromeHelper()
-        if emulate and chrome.get_status():
-            if not chrome.visit(url=url, ua=ua, cookie=site_cookie, proxy=proxy):
-                log.error("【Sites】%s 无法打开网站" % site_name)
-                return None
-            # 循环检测是否过cf
-            cloudflare = chrome.pass_cloudflare()
-            if not cloudflare:
-                log.error("【Sites】%s 跳转站点失败" % site_name)
-                return None
+        if emulate:
             # 判断是否已签到
-            html_text = chrome.get_html()
+            html_text = PlaywrightHelper().get_page_source(url=url, ua=ua, cookie=site_cookie, proxy=proxy)
         else:
             proxies = Config().get_proxies() if proxy else None
             res = RequestUtils(cookies=site_cookie,

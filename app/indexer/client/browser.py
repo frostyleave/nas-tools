@@ -37,7 +37,7 @@ class PlaywrightHelper:
                callback: Callable,
                cookies: str = None,
                ua: str = None,
-               proxies: dict = None,
+               proxy: bool = False,
                headless: bool = True,
                timeout: int = 30) -> Any:
         """
@@ -51,6 +51,9 @@ class PlaywrightHelper:
         :param timeout: 超时时间
         """
         try:
+            proxies={
+                'server': Config().get_proxies().get('http')
+            } if proxy else None
             with sync_playwright() as playwright:
                 browser = playwright[self.browser_type].launch(headless=headless)
                 context = browser.new_context(user_agent=ua, proxy=proxies)

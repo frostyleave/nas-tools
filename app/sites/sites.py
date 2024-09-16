@@ -1,8 +1,9 @@
 import json
 from datetime import datetime
 
+from app.indexer.client.browser import PlaywrightHelper
 import log
-from app.helper import ChromeHelper, SiteHelper, DbHelper
+from app.helper import SiteHelper, DbHelper
 from app.indexer.manager import IndexerManager
 from app.message import Message
 from app.sites.site_limiter import SiteRateLimiter
@@ -268,21 +269,15 @@ class Sites:
         # 站点特殊处理...
         if '1ptba' in site_url:
             site_url = site_url + '/index.php'
-        chrome = ChromeHelper()
-        if site_info.get("chrome") and chrome.get_status():
+        if site_info.get("chrome"):
             # 计时
             start_time = datetime.now()
-            if not chrome.visit(url=site_url, ua=ua, cookie=site_cookie, proxy=site_info.get("proxy")):
-                return False, "Chrome模拟访问失败", 0
-            # 循环检测是否过cf
-            cloudflare = chrome.pass_cloudflare()
-            seconds = int((datetime.now() - start_time).microseconds / 1000)
-            if not cloudflare:
-                return False, "跳转站点失败", seconds
+            proxy=True if site_info.get("proxy") else False
             # 判断是否已签到
-            html_text = chrome.get_html()
+            html_text = PlaywrightHelper().get_page_source(url=site_url, ua=ua, cookie=site_cookie, proxy=proxy)
             if not html_text:
                 return False, "获取站点源码失败", 0
+            seconds = int((datetime.now() - start_time).microseconds / 1000)
             if SiteHelper.is_logged_in(html_text):
                 return True, "连接成功", seconds
             else:
