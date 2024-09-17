@@ -203,19 +203,6 @@
         </div>
         <div class="col-12 col-xl-3">
           <div class="mb-6">
-            <label class="form-label form-check form-switch">开启Redis缓存
-              <input class="form-check-input" type="checkbox" id="app.redis_enable" {% if Config.app.redis_enable
-                %}checked{% endif %}>
-              <span class="form-help" title="redis服务的ip和端口号,默认使用db0" data-bs-toggle="tooltip">?</span>
-            </label>
-            <div class="input-group input-group-flat">
-              <input type="text" value="{{ Config.app.redis_addr or '' }}" class="form-control" id="app.redis_addr"
-                placeholder="127.0.0.1:6379" autocomplete="off">
-            </div>
-          </div>
-        </div>
-        <div class="col-12 col-xl-3">
-          <div class="mb-6">
             <label class="form-label">自建OCR服务 <span class="form-help" title="填写后将使用自建的OCR服务进行验证码识别"
                 data-bs-toggle="tooltip">?</span></label>
             <div class="input-group input-group-flat">

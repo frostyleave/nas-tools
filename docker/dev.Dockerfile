@@ -3,6 +3,7 @@ FROM python:3.10-slim AS Builder
 # 安装构建依赖和运行所需的依赖包
 RUN apt-get update -y \
      && apt-get upgrade -y \
+     && apt-get install -y build-essential \
      && apt-get install -y --no-install-recommends \
         gosu \
         bash \
@@ -10,35 +11,50 @@ RUN apt-get update -y \
         dumb-init \
         gcc \
         libffi-dev \
-        musl-dev \
         libxml2-dev \
         libxslt-dev \
-        wget \
+        musl-dev \
         curl \
         git \
         unzip \
+        wget \
+        gnupg \
+        libnss3 \
+        libxss1 \
+        libasound2 \
+        libxshmfence1 \
+        libxrandr2 \
+        libxcomposite1 \
+        libxdamage1 \
+        libfontconfig1 \
+        libgbm1 \
+        libgtk-3-0 \
+        libdrm2 \
+        ca-certificates \
+        fonts-liberation \
+        libappindicator3-1 \
+        libx11-xcb1 \
+        xdg-utils \
     && \
     if [ "$(uname -m)" = "x86_64" ]; \
         then ln -s /usr/lib/x86_64-linux-musl/libc.so /lib/libc.musl-x86_64.so.1; \
     elif [ "$(uname -m)" = "aarch64" ]; \
         then ln -s /usr/lib/aarch64-linux-musl/libc.so /lib/libc.musl-aarch64.so.1; \
     fi \
+    && curl https://rclone.org/install.sh | bash \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
-# 安装 rclone
-RUN curl https://rclone.org/install.sh | bash
+# 设置环境变量，将浏览器安装到 /ms-playwright
+RUN mkdir -p /ms-playwright
+ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
 
-# 安装 MinIO 客户端
-RUN if [ "$(uname -m)" = "x86_64" ]; then ARCH=amd64; elif [ "$(uname -m)" = "aarch64" ]; then ARCH=arm64; fi \
-    && curl https://dl.min.io/client/mc/release/linux-${ARCH}/mc --create-dirs -o /usr/bin/mc \
-    && chmod +x /usr/bin/mc
-
-# 升级 pip、setuptools 和 wheel
+# 升级 pip、setuptools、 wheel, 
 RUN pip install --upgrade pip setuptools==70.1.1 wheel \
     && pip install cython \
+    && pip install --no-cache-dir playwright \
+    && python -m playwright install chromium \
     && pip install -r https://raw.githubusercontent.com/frostyleave/nas-tools/dev/requirements.txt \
-    && playwright install-deps chromium \
     && apt-get remove -y build-essential \
     && apt-get autoremove -y \
     && apt-get clean -y \
@@ -64,6 +80,7 @@ ENV S6_SERVICES_GRACETIME=30000 \
     HOME="/nt" \
     TERM="xterm" \
     PATH=${PATH}:/usr/lib/chromium \
+    PLAYWRIGHT_BROWSERS_PATH=/ms-playwright \
     LANG="C.UTF-8" \
     TZ="Asia/Shanghai" \
     NASTOOL_CONFIG="/config/config.yaml" \

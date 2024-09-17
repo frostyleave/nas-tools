@@ -1,5 +1,4 @@
 #!/bin/sh
-# 仅用于兼容v3.1.5及之前的docker镜像
 
 cd ${WORKDIR}
 
@@ -81,20 +80,14 @@ groupmod -o -g "$PGID" nt
 usermod -o -u "$PUID" nt
 
 # 创建目录、权限设置
-chown -R nt:nt "${WORKDIR}" /etc/hosts /tmp
+chown -R nt:nt "${WORKDIR}"  /etc/hosts /tmp /ms-playwright
 # export PATH=${PATH}:/usr/lib/chromium
-gosu nt:nt playwright install chromium
+# gosu nt:nt playwright install chromium
 # 执行扩展脚本
 exec "$@"
 
 # 掩码设置
 umask "${UMASK}"
-
-# 启动Redis
-if [ -n "$(which redis-server)" ]; then
-    echo "启动Redis..."
-    redis-server --daemonize yes
-fi
 
 # 启动主程序
 exec gosu nt:nt dumb-init python3 run.py -n NAStool
