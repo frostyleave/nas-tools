@@ -81,6 +81,9 @@ class _IIndexClient(metaclass=ABCMeta):
         index_rule_fail = 0
         index_match_fail = 0
         index_error = 0
+
+        check_kw = filter_args.get("check_kw")
+
         for item in result_array:
             # 名称
             torrent_name = item.get('title')
@@ -92,6 +95,12 @@ class _IIndexClient(metaclass=ABCMeta):
             # 全匹配模式下，非公开站点，过滤掉做种数为0的
             if filter_args.get("seeders") and not indexer.public and str(seeders) == "0":
                 log.info(f"【{self.client_name}】{torrent_name} 做种数为0")
+                index_rule_fail += 1
+                continue
+
+            # 关键字搜索时, 过滤无关内容
+            if check_kw and check_kw not in torrent_name:
+                log.info(f"【{self.client_name}】过滤：搜索关键字 {check_kw} 不在 {torrent_name} 中")
                 index_rule_fail += 1
                 continue
 
@@ -215,9 +224,6 @@ class _IIndexClient(metaclass=ABCMeta):
                         )
                         continue
 
-            # 如果集数大于当前季，则把集数减去当前季的总集数，季数+1
-            self.try_adjust_season_info(media_info, meta_info)
-
             # 检查标题是否匹配季、集、年
             if not self.filter.is_torrent_match_sey(media_info,
                                                     filter_args.get("season"),
@@ -270,46 +276,3 @@ class _IIndexClient(metaclass=ABCMeta):
                                   f"耗时 {(end_time - start_time).seconds} 秒")
         return ret_array
 
-    def try_adjust_season_info(self, media_info, meta_info):
-        """
-        如果集数大于当前季，则把集数减去当前季的总集数，季数+1
-        """
-        if meta_info.type == MediaType.MOVIE or not media_info:
-            return
-        if not media_info.begin_season:
-            media_info.begin_season = 1
-        if not media_info.begin_episode or not media_info.tmdb_info:
-            return
-        season_count = len(media_info.tmdb_info.seasons)
-        if season_count <= 0:
-            return
-        
-        if season_count == 1:
-            # 当季全集
-            if self.is_all_season(meta_info.tmdb_info.seasons[0], media_info.begin_episode, meta_info.end_episode):
-                meta_info.begin_episode = None
-                meta_info.end_episode = None
-            return
-
-        while True:
-            match_season = next(filter(lambda x: x.season_number == media_info.begin_season,
-                                       media_info.tmdb_info.seasons), None)
-            if not match_season or media_info.begin_episode <= match_season.episode_count:
-                return
-            # 是否有下一季
-            if not next(filter(lambda x: x.season_number == media_info.begin_season + 1,
-                               media_info.tmdb_info.seasons), None):
-                return
-            # 如果有下一季则下推
-            media_info.begin_season = media_info.begin_season + 1
-            media_info.begin_episode -= match_season.episode_count
-            if media_info.end_season:
-                media_info.end_season -= match_season.episode_count
-
-    def is_all_season(self, season_info, file_begin_episode: int, file_end_episode: int) -> bool:
-        """
-        是否为该季全集
-        """
-        if not file_begin_episode or not file_end_episode or not season_info:
-            return False
-        return file_begin_episode == 1 and file_end_episode == season_info.episode_count

@@ -104,6 +104,7 @@ class PlaywrightHelper:
                 if cookies:
                     page.set_extra_http_headers({"cookie": cookies})
                 try:
+                    log.info(f'[Playwright]开始访问{url}')
                     if not self.__pass_cloudflare(url, page):
                         log.warn("cloudflare challenge fail!")
 
@@ -114,7 +115,7 @@ class PlaywrightHelper:
                     page.wait_for_load_state("networkidle", timeout=timeout * 1000)
                     source = page.content()
                 except Exception as e:
-                    log.error(f"获取网页源码失败: {str(e)}")
+                    log.error(f"获取网页源码失败: {str(e)} {page.content() if page else ''}")
                     source = None
                 finally:
                     browser.close()

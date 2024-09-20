@@ -243,6 +243,7 @@ class TorrentSpider(object):
         ).get_res(searchurl, allow_redirects=True)
 
         if ret is None:
+            log.warn(f"【Spider】[{self.indexername}] 请求失败: {searchurl}")
             return ''
         
         # 使用chardet检测字符编码
@@ -254,7 +255,7 @@ class TorrentSpider(object):
                 # 解码为字符串
                 return raw_data.decode(encoding)
             except Exception as e:
-                log.debug(f"chardet解码失败：{str(e)}")
+                log.warn(f"chardet解码失败: {str(e)}")
                 # 探测utf-8解码
                 if re.search(r"charset=\"?utf-8\"?", ret.text, re.IGNORECASE):
                     ret.encoding = "utf-8"
@@ -726,6 +727,7 @@ class TorrentSpider(object):
         """
         try:
             if not html_text:
+                log.warn(f"【Spider】[{self.indexername}]返回页面信息为空")
                 return False, []
             # 获取站点文本
             html_text = html_text.replace("\u200b", "")
@@ -736,8 +738,12 @@ class TorrentSpider(object):
             # 种子筛选器
             torrents_selector = self.list.get("selector", "")
             # 遍历种子html列表
-            list = html_doc(torrents_selector)
-            for torn in list:
+            result_list = html_doc(torrents_selector)
+            if not result_list:
+                log.warn(f"【Spider】[{self.indexername}]没有搜索到结果")
+                return False, []
+
+            for torn in result_list:
                 torn_copy = copy.deepcopy(self.Getinfo(PyQuery(torn)))
                 self.torrents_info_array.append(torn_copy)
                 if len(self.torrents_info_array) >= int(self.result_num):
@@ -747,5 +753,5 @@ class TorrentSpider(object):
         except Exception as err:
             self.is_error = True
             ExceptionUtils.exception_traceback(err)
-            log.warn(f"【Spider】错误：{self.indexername} {str(err)}")
+            log.warn(f"【Spider】{self.indexername} 错误: {str(err)}")
             return False, []

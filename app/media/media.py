@@ -14,6 +14,7 @@ from lxml import etree
 from app.helper import MetaHelper
 from app.helper.openai_helper import OpenAiHelper
 from app.media.doubanapi.apiv2 import DoubanApi
+from app.media.meta._base import MetaBase
 from app.media.meta.metainfo import MetaInfo
 from app.media.tmdbv3api import TMDb, Search, Movie, TV, Person, Find, TMDbException, Discover, Trending, Episode, Genre
 from app.utils import PathUtils, EpisodeFormat, RequestUtils, NumberUtils, StringUtils, cacheman
@@ -772,7 +773,9 @@ class Media:
         
         # 赋值TMDB信息并返回
         meta_info.set_tmdb_info(file_media_info)
-        self.fix_file_season_by_tmdb_info(meta_info, file_media_info)
+        # 根据TMDB信息修正文件剧集信息
+        self.fix_file_season_by_tmdb_info(meta_info)
+
         return meta_info
 
     # 从tmdb查询电影信息(名称准确时可调用)
@@ -848,7 +851,9 @@ class Media:
 
         
     # 根据tmdb_info查询结果进行季集修正
-    def fix_file_season_by_tmdb_info(self, meta_info, tmdb_info):
+    def fix_file_season_by_tmdb_info(self, meta_info: MetaBase):
+
+        tmdb_info = meta_info.tmdb_info
         if not tmdb_info or not meta_info or meta_info.type == MediaType.MOVIE:
             return
 
@@ -869,17 +874,18 @@ class Media:
                 if left_str and left_str.isdigit():
                     meta_info.begin_season = int(left_str)
 
-        # 已识别出季集信息
-        if meta_info.begin_season:
-            return
-            
-        if meta_info.cn_name and tmdb_info.name != meta_info.cn_name:
-            self.fix_when_name_different(meta_info, tmdb_info)
-        elif '篇' in meta_info.rev_string:
-            self.fix_when_has_season_name(meta_info, tmdb_info)
-            return
-        else:
-            self.fix_when_season_episode_not_match(meta_info, tmdb_info)
+        # 未识别出季集信息
+        if not meta_info.begin_season:           
+            if meta_info.cn_name and tmdb_info.name != meta_info.cn_name:
+                self.fix_when_name_different(meta_info, tmdb_info)
+            elif '篇' in meta_info.rev_string:
+                self.fix_when_has_season_name(meta_info, tmdb_info)
+                return
+            # else:
+            #     self.fix_when_season_episode_not_match(meta_info, tmdb_info)
+        
+        # 季集数调整
+        self.try_adjust_season_info(meta_info)
     
     # 名称信息不同
     def fix_when_name_different(self, meta_info, tmdb_info):
@@ -966,6 +972,78 @@ class Media:
                 return
             begin_episode -= season_info.episode_count
         
+
+    def try_adjust_season_info(self, media_info: MetaBase):
+        """
+        如果集数大于当前季，则把集数减去当前季的总集数，季数+1
+        """
+        if media_info.type == MediaType.MOVIE or not media_info:
+            return
+        if not media_info.begin_season:
+            media_info.begin_season = 1
+        if not media_info.begin_episode or not media_info.tmdb_info:
+            return
+        tmdb_info = media_info.tmdb_info
+        season_count = len(tmdb_info.seasons)
+        if season_count <= 0:
+            return
+        
+        if season_count == 1:
+            # 当季全集
+            if self.is_all_season(tmdb_info.seasons[0], media_info.begin_episode, media_info.end_episode):
+                media_info.begin_episode = None
+                media_info.end_episode = None
+            return
+
+        # 季集信息不匹配修正
+        while True:
+            match_season = next(filter(lambda x: x.season_number == media_info.begin_season,
+                                       tmdb_info.seasons), None)
+            if not match_season:
+                return
+            if media_info.begin_episode <= match_season.episode_count:
+                # 当季全集
+                if self.is_all_season(match_season, media_info.begin_episode, media_info.end_episode):
+                    media_info.begin_episode = None
+                    media_info.end_episode = None
+                elif not media_info.end_season and media_info.end_episode \
+                    and tmdb_info.number_of_seasons and tmdb_info.number_of_seasons > media_info.begin_season \
+                    and media_info.begin_episode == 1 and media_info.end_episode > match_season.episode_count:
+                    # 可能多季集合，尝试下探
+                    episode_count = media_info.end_episode - match_season.episode_count
+                    ss = media_info.begin_season + 1
+                    next_season = next(filter(lambda x: x.season_number == ss, tmdb_info.seasons), None)
+                    while next_season:
+                        episode_count -= next_season.episode_count
+                        if episode_count == 0:
+                            media_info.end_season = ss
+                            media_info.begin_episode = None
+                            media_info.end_episode = None
+                            break
+                        if episode_count < 0:
+                            break
+                        # 还有剩余集数，继续下探
+                        ss += 1
+                        next_season = next(filter(lambda x: x.season_number == ss, tmdb_info.seasons), None)
+                return
+            # 是否有下一季
+            if not next(filter(lambda x: x.season_number == media_info.begin_season + 1,
+                               tmdb_info.seasons), None):
+                return
+            # 如果有下一季则下推
+            media_info.begin_season = media_info.begin_season + 1
+            media_info.begin_episode -= match_season.episode_count
+            if media_info.end_episode:
+                media_info.end_episode -= match_season.episode_count
+
+    def is_all_season(self, season_info, file_begin_episode: int, file_end_episode: int) -> bool:
+        """
+        是否为该季全集
+        """
+        if not file_begin_episode or not file_end_episode or not season_info:
+            return False
+        return file_begin_episode == 1 and file_end_episode == season_info.episode_count
+
 
     def __insert_media_cache(self, media_key, file_media_info):
         """
@@ -1132,12 +1210,12 @@ class Media:
                             file_media_info = None
                     # 赋值TMDB信息
                     meta_info.set_tmdb_info(file_media_info)
-                    self.fix_file_season_by_tmdb_info(meta_info, file_media_info)
+                    self.fix_file_season_by_tmdb_info(meta_info)
                 # 自带TMDB信息
                 else:
                     meta_info = MetaInfo(title=file_name, mtype=media_type)
                     meta_info.set_tmdb_info(tmdb_info)
-                    self.fix_file_season_by_tmdb_info(meta_info, file_media_info)
+                    self.fix_file_season_by_tmdb_info(meta_info)
                     if season and meta_info.type != MediaType.MOVIE:
                         meta_info.begin_season = int(season)
                     if episode_format:
@@ -2467,7 +2545,7 @@ class Media:
         target.set_download_info(download_setting=source.download_setting,
                                  save_path=source.save_path)
         # 根据查询结果进行季集修正
-        self.fix_file_season_by_tmdb_info(target, source.tmdb_info)
+        self.fix_file_season_by_tmdb_info(target)
 
         return target
 

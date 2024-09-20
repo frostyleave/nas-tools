@@ -130,7 +130,7 @@ function navmenu(page, newflag = false) {
                 const aElement = document.createElement('a');
                 aElement.className = 'nav-link';
                 aElement.href = '#';
-                aElement.innerHTML = `${item.name}`;
+                aElement.innerHTML = `<span class="d-md-none" style="color:var(--tblr-body-color);">${item.icon}</span><span class="d-none d-md-inline">${item.name}</span>`;
                 aElement.setAttribute('data-bs-toggle', 'tab');
                 aElement.setAttribute('data-id', item.page);
                 aElement.onclick = () => navmenu(item.page); // 根据 item.page 设定点击行为
