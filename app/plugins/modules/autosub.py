@@ -309,12 +309,12 @@ class AutoSub(_IPluginModule):
 
         # 如果没有配置信息， 则不处理
         if not path_list or not self.file_size:
-            self.warn(f"配置信息不完整，不进行处理")
+            self.warn("配置信息不完整，不进行处理")
             return
 
         # 校验文件大小是否为数字
         if not self.file_size.isdigit():
-            self.warn(f"文件大小不是数字，不进行处理")
+            self.warn("文件大小不是数字，不进行处理")
             return
 
         # asr 配置检查
@@ -322,7 +322,7 @@ class AutoSub(_IPluginModule):
             return
 
         if self._running:
-            self.warn(f"上一次任务还未完成，不进行处理")
+            self.warn("上一次任务还未完成，不进行处理")
             return
 
         # 依次处理每个目录
@@ -333,17 +333,17 @@ class AutoSub(_IPluginModule):
                 self.info(f"开始处理目录：{path} ...")
                 # 如果目录不存在， 则不处理
                 if not os.path.exists(path):
-                    self.warn(f"目录不存在，不进行处理")
+                    self.warn("目录不存在，不进行处理")
                     continue
 
                 # 如果目录不是文件夹， 则不处理
                 if not os.path.isdir(path):
-                    self.warn(f"目录不是文件夹，不进行处理")
+                    self.warn("目录不是文件夹，不进行处理")
                     continue
 
                 # 如果目录不是绝对路径， 则不处理
                 if not os.path.isabs(path):
-                    self.warn(f"目录不是绝对路径，不进行处理")
+                    self.warn("目录不是绝对路径，不进行处理")
                     continue
 
                 # 处理目录
@@ -358,33 +358,33 @@ class AutoSub(_IPluginModule):
     def __check_asr(self):
         if self.asr_engine == 'whisper.cpp':
             if not self.whisper_main or not self.whisper_model:
-                self.warn(f"配置信息不完整，不进行处理")
+                self.warn("配置信息不完整，不进行处理")
                 return
             if not os.path.exists(self.whisper_main):
-                self.warn(f"whisper.cpp主程序不存在，不进行处理")
+                self.warn("whisper.cpp主程序不存在，不进行处理")
                 return False
             if not os.path.exists(self.whisper_model):
-                self.warn(f"whisper.cpp模型文件不存在，不进行处理")
+                self.warn("whisper.cpp模型文件不存在，不进行处理")
                 return False
             # 校验扩展参数是否包含异常字符
             if self.additional_args and re.search(r'[;|&]', self.additional_args):
-                self.warn(f"扩展参数包含异常字符，不进行处理")
+                self.warn("扩展参数包含异常字符，不进行处理")
                 return False
         elif self.asr_engine == 'faster-whisper':
             if not self.faster_whisper_model_path or not self.faster_whisper_model:
-                self.warn(f"配置信息不完整，不进行处理")
+                self.warn("配置信息不完整，不进行处理")
                 return
             if not os.path.exists(self.faster_whisper_model_path):
-                self.warn(f"faster-whisper模型文件夹不存在，不进行处理")
+                self.warn("faster-whisper模型文件夹不存在，不进行处理")
                 return False
             try:
                 from faster_whisper import WhisperModel, download_model
             except ImportError:
-                self.warn(f"faster-whisper 未安装，不进行处理")
+                self.warn("faster-whisper 未安装，不进行处理")
                 return False
             return True
         else:
-            self.warn(f"未配置asr引擎，不进行处理")
+            self.warn("未配置asr引擎，不进行处理")
             return False
         return True
 
@@ -411,7 +411,7 @@ class AutoSub(_IPluginModule):
                 self.info(f"开始处理文件：{video_file} ...")
                 # 判断目的字幕（和内嵌）是否已存在
                 if self.__target_subtitle_exists(video_file):
-                    self.warn(f"字幕文件已经存在，不进行处理")
+                    self.warn("字幕文件已经存在，不进行处理")
                     self.skip_count += 1
                     continue
                 # 生成字幕
@@ -434,7 +434,7 @@ class AutoSub(_IPluginModule):
 
                 if self.translate_zh:
                     # 翻译字幕
-                    self.info(f"开始翻译字幕为中文 ...")
+                    self.info("开始翻译字幕为中文 ...")
                     if self.send_notify:
                         self.send_message(title="自动字幕生成",
                                                       text=f" 媒体: {file_name}\n 开始翻译字幕为中文 ... ")
@@ -444,7 +444,7 @@ class AutoSub(_IPluginModule):
                 end_time = time.time()
                 message = f" 媒体: {file_name}\n 处理完成\n 字幕原始语言: {lang}\n "
                 if self.translate_zh:
-                    message += f"字幕翻译语言: zh\n "
+                    message += "字幕翻译语言: zh\n "
                 message += f"耗时：{round(end_time - start_time, 2)}秒"
                 self.info(f"自动字幕生成 处理完成：{message}")
                 if self.send_notify:
@@ -522,7 +522,7 @@ class AutoSub(_IPluginModule):
                 self.__save_srt(f"{audio_file}.srt", subs)
                 return True, lang
             except ImportError:
-                self.warn(f"faster-whisper 未安装，不进行处理")
+                self.warn("faster-whisper 未安装，不进行处理")
                 return False, None
             except Exception as e:
                 traceback.print_exc()
@@ -540,7 +540,7 @@ class AutoSub(_IPluginModule):
         # 获取文件元数据
         video_meta = FfmpegHelper().get_video_metadata(video_file)
         if not video_meta:
-            self.error(f"获取视频文件元数据失败，跳过后续处理")
+            self.error("获取视频文件元数据失败，跳过后续处理")
             return False, None
 
         # 获取视频文件音轨和语言信息
@@ -549,7 +549,7 @@ class AutoSub(_IPluginModule):
             return False, None
 
         if not iso639.find(audio_lang) or not iso639.to_iso639_1(audio_lang):
-            self.info(f"未知语言音轨")
+            self.info("未知语言音轨")
             audio_lang = 'auto'
 
         expert_subtitle_langs = ['en', 'eng'] if audio_lang == 'auto' else [audio_lang, iso639.to_iso639_1(audio_lang)]
@@ -567,10 +567,10 @@ class AutoSub(_IPluginModule):
         if ret and (audio_lang == subtitle_lang or subtitle_count == 1):
             if audio_lang == subtitle_lang:
                 # 如果音轨和字幕语言一致， 则直接提取字幕
-                self.info(f"内嵌音轨和字幕语言一致，直接提取字幕 ...")
+                self.info("内嵌音轨和字幕语言一致，直接提取字幕 ...")
             elif subtitle_count == 1:
                 # 如果音轨和字幕语言不一致，但只有一个字幕， 则直接提取字幕
-                self.info(f"内嵌音轨和字幕语言不一致，但只有一个字幕，直接提取字幕 ...")
+                self.info("内嵌音轨和字幕语言不一致，但只有一个字幕，直接提取字幕 ...")
 
             audio_lang = iso639.to_iso639_1(subtitle_lang) \
                 if (iso639.find(subtitle_lang) and iso639.to_iso639_1(subtitle_lang)) else 'und'
@@ -582,7 +582,7 @@ class AutoSub(_IPluginModule):
             audio_lang = iso639.to_iso639_1(audio_lang)
 
         if only_extract:
-            self.info(f"未开启语音识别，且无已有字幕文件，跳过后续处理")
+            self.info("未开启语音识别，且无已有字幕文件，跳过后续处理")
             return False, None
 
         # 清理异常退出的临时文件
@@ -609,7 +609,7 @@ class AutoSub(_IPluginModule):
                 os.remove(f"{audio_file.name}.srt")
                 return ret, lang
             else:
-                self.error(f"生成字幕失败")
+                self.error("生成字幕失败")
                 return False, None
 
     @staticmethod
@@ -683,7 +683,7 @@ class AutoSub(_IPluginModule):
 
         # 如果没有音轨， 则不处理
         if audio_index is None:
-            self.warn(f"没有音轨，不进行处理")
+            self.warn("没有音轨，不进行处理")
             return False, None, None
 
         self.info(f"选中音轨信息：{audio_index}, {audio_lang}")
@@ -759,7 +759,7 @@ class AutoSub(_IPluginModule):
 
         # 如果没有字幕， 则不处理
         if subtitle_index is None:
-            self.debug(f"没有内嵌字幕")
+            self.debug("没有内嵌字幕")
             return False, None, None, None
 
         self.debug(f"命中内嵌字幕信息：{subtitle_index}, {subtitle_lang}")
@@ -829,7 +829,7 @@ class AutoSub(_IPluginModule):
             if ret and result:
                 break
             if "Rate limit reached" in result:
-                self.info(f"OpenAI Api Rate limit reached, sleep 60s ...")
+                self.info("OpenAI Api Rate limit reached, sleep 60s ...")
                 time.sleep(60)
             else:
                 self.warn(f"翻译失败，重试第{i + 1}次")
@@ -851,7 +851,7 @@ class AutoSub(_IPluginModule):
         srt_data = self.__load_srt(source_subtitle)
         # 合并字幕语句，目前带标点带英文效果较好，非英文或者无标点的需要NLP处理
         if source_lang in ['en', 'eng']:
-            self.info(f"开始合并字幕语句 ...")
+            self.info("开始合并字幕语句 ...")
             merged_data = self.__merge_srt(srt_data)
             self.info(f"合并字幕语句完成，合并前字幕数量：{len(srt_data)}, 合并后字幕数量：{len(merged_data)}")
             srt_data = merged_data

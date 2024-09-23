@@ -4,9 +4,10 @@ from functools import lru_cache
 from urllib.parse import quote
 
 from pyquery import PyQuery
+from playwright.sync_api import Page
 
 from app.helper import SiteHelper
-from app.helper.chrome_helper import ChromeHelper
+from app.indexer.client.browser import PlaywrightHelper
 from app.plugins import EventHandler
 from app.plugins.modules._base import _IPluginModule
 from app.utils import RequestUtils, PathUtils, ExceptionUtils
@@ -206,49 +207,51 @@ class OpenSubtitles(_IPluginModule):
         """
         搜索并解析结果
         """
-        chrome = ChromeHelper()
-        if not chrome.get_status():
-            return []
-        # 访问页面
-        if not chrome.visit(url):
-            return []
-        # 源码
-        html_text = chrome.get_html()
-        # Cookie
-        cls._cookie = chrome.get_cookies()
-        # 解析列表
-        ret_subtitles = []
-        html_doc = PyQuery(html_text)
-        global_season = ''
-        for tr in html_doc('#search_results > tbody > tr:not([style])'):
-            tr_doc = PyQuery(tr)
-            # 季
-            season = tr_doc('span[id^="season-"] > a > b').text()
-            if season:
-                global_season = season
-                continue
-            # 集
-            episode = tr_doc('span[itemprop="episodeNumber"]').text()
-            # 标题
-            title = tr_doc('strong > a.bnone').text()
-            # 描述 下载链接
-            if not global_season:
-                description = tr_doc('td:nth-child(1)').text()
-                if description and len(description.split("\n")) > 1:
-                    description = description.split("\n")[1]
-                link = tr_doc('td:nth-child(5) > a').attr("href")
-            else:
-                description = tr_doc('span[itemprop="name"]').text()
-                link = tr_doc('a[href^="/download/"]').attr("href")
-            if link:
-                link = "https://www.opensubtitles.org%s" % link
-            else:
-                continue
-            ret_subtitles.append({
-                "season": global_season,
-                "episode": episode,
-                "title": title,
-                "description": description,
-                "link": link
-            })
-        return ret_subtitles
+
+        def __page_handler(page: Page)-> list: 
+
+           # 访问页面
+            if not page:
+                return []
+            # 源码
+            html_text = page.content()
+            # Cookie
+            cls._cookie = SiteHelper.parse_cookies(page.context.cookies())
+            # 解析列表
+            ret_subtitles = []
+            html_doc = PyQuery(html_text)
+            global_season = ''
+            for tr in html_doc('#search_results > tbody > tr:not([style])'):
+                tr_doc = PyQuery(tr)
+                # 季
+                season = tr_doc('span[id^="season-"] > a > b').text()
+                if season:
+                    global_season = season
+                    continue
+                # 集
+                episode = tr_doc('span[itemprop="episodeNumber"]').text()
+                # 标题
+                title = tr_doc('strong > a.bnone').text()
+                # 描述 下载链接
+                if not global_season:
+                    description = tr_doc('td:nth-child(1)').text()
+                    if description and len(description.split("\n")) > 1:
+                        description = description.split("\n")[1]
+                    link = tr_doc('td:nth-child(5) > a').attr("href")
+                else:
+                    description = tr_doc('span[itemprop="name"]').text()
+                    link = tr_doc('a[href^="/download/"]').attr("href")
+                if link:
+                    link = "https://www.opensubtitles.org%s" % link
+                else:
+                    continue
+                ret_subtitles.append({
+                    "season": global_season,
+                    "episode": episode,
+                    "title": title,
+                    "description": description,
+                    "link": link
+                })
+            return ret_subtitles
+        
+        return PlaywrightHelper().action(url=url, callback=__page_handler)

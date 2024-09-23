@@ -629,14 +629,13 @@ class DbHelper:
         else:
             return 0
 
-    def is_exists_rss_movie(self, tmdbid, year):
+    def is_exists_rss_movie(self, tmdbid):
         """
         判断RSS电影是否存在
         """
         if not tmdbid:
             return False
-        count = self._db.query(RSSMOVIES).filter(RSSMOVIES.TMDBID == tmdbid,
-                                                 RSSMOVIES.YEAR == str(year)).count()
+        count = self._db.query(RSSMOVIES).filter(RSSMOVIES.TMDBID == tmdbid).count()
         if count > 0:
             return True
         else:
@@ -671,7 +670,7 @@ class DbHelper:
             return -1
         if not media_info.title:
             return -1
-        if self.is_exists_rss_movie(media_info.tmdb_id, media_info.year):
+        if self.is_exists_rss_movie(media_info.tmdb_id):
             return 9
         
         self._db.insert(RSSMOVIES(
@@ -1416,7 +1415,7 @@ class DbHelper:
         if end_day:
             try:
                 end = datetime.datetime.strptime(end_day, "%Y-%m-%d")
-            except Exception as e:
+            except Exception:
                 pass
 
         # 开始时间
@@ -1514,7 +1513,7 @@ class DbHelper:
                                                    DOWNLOADHISTORY.DOWNLOADER == downloader,
                                                    DOWNLOADHISTORY.DOWNLOAD_ID == download_id).update(
                 {
-                    "TORRENT": media_info.org_string,
+                    "BACKDROP": media_info.get_backdrop_image(default=False, original=True),
                     "ENCLOSURE": media_info.enclosure,
                     "DESC": media_info.description,
                     "SITE": media_info.site,
@@ -1534,7 +1533,7 @@ class DbHelper:
                 VOTE=media_info.vote_average,
                 POSTER=media_info.get_poster_image(),
                 OVERVIEW=media_info.overview,
-                TORRENT=media_info.org_string,
+                BACKDROP=media_info.get_backdrop_image(default=False, original=True),
                 ENCLOSURE=media_info.enclosure,
                 DESC=media_info.description,
                 DATE=time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time())),

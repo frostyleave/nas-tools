@@ -8,8 +8,9 @@ from urllib.parse import urljoin, urlsplit
 import requests
 from lxml import etree
 
+from app.indexer.client.browser import PlaywrightHelper
 import log
-from app.helper import SiteHelper, ChromeHelper
+from app.helper import SiteHelper
 from app.helper.cloudflare_helper import under_challenge
 from app.utils import RequestUtils
 from app.utils.types import SiteSchema
@@ -246,21 +247,7 @@ class _ISiteUserInfo(metaclass=ABCMeta):
             # 如果cloudflare 有防护，尝试使用浏览器仿真
             if under_challenge(res.text):
                 log.debug(f"【Sites】{self.site_name} 检测到Cloudflare，需要浏览器仿真")
-                chrome = ChromeHelper()
-                if self._emulate and chrome.get_status():
-                    if not chrome.visit(url=url, ua=self._ua, cookie=self._site_cookie, proxy=self._proxy):
-                        log.error(f"【Sites】{self.site_name} 无法打开网站")
-                        return ""
-                    # 循环检测是否过cf
-                    cloudflare = chrome.pass_cloudflare()
-                    if not cloudflare:
-                        log.error(f"【Sites】{self.site_name} 跳转站点失败")
-                        return ""
-                    return chrome.get_html()
-                else:
-                    log.warn(
-                        f"【Sites】{self.site_name} 检测到Cloudflare，需要浏览器仿真，但是浏览器不可用或者未开启浏览器仿真")
-                    return ""
+                return PlaywrightHelper().get_page_source(url=url, ua=self._ua, cookie=self._site_cookie, proxy=True if self._proxy else False)
             if "charset=utf-8" in res.text or "charset=UTF-8" in res.text:
                 res.encoding = "UTF-8"
             else:

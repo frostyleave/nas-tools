@@ -9,7 +9,7 @@ from app.media import Media
 from app.media.meta import MetaInfo
 from app.sites import Sites, SiteConf
 from app.subscribe import Subscribe
-from app.utils import ExceptionUtils, Torrent
+from app.utils import ExceptionUtils, TorrentUtils
 from app.utils.commons import singleton
 from app.utils.types import MediaType, SearchType
 
@@ -251,7 +251,7 @@ class Rss:
                                         total_ep={season: total_ep}
                                     )
                                     # 取交集做为缺失集
-                                    rss_no_exists = Torrent.get_intersection_episodes(target=rss_no_exists,
+                                    rss_no_exists = TorrentUtils.get_intersection_episodes(target=rss_no_exists,
                                                                                       source=library_no_exists,
                                                                                       title=media_info.tmdb_id)
                                     if rss_no_exists.get(media_info.tmdb_id):

@@ -1,3 +1,4 @@
+import copy
 import datetime
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
@@ -7,7 +8,7 @@ from app.media import Media
 from app.utils import ExceptionUtils, StringUtils
 from app.utils.commons import singleton
 from app.utils.types import SearchType, IndexerType, ProgressKey
-from config import Config, INDEXER_CATEGORY
+from config import INDEXER_CATEGORY
 
 
 @singleton
@@ -156,7 +157,9 @@ class Indexer(object):
 
             # 原始标题检索
             if 'title' in index.search_type and key_word:
-                task = executor.submit(self._client.search, order_seq, index, key_word, filter_args, match_media, in_from)
+                _filter_args = copy.deepcopy(filter_args) if filter_args is not None else {}
+                _filter_args['check_kw'] = key_word
+                task = executor.submit(self._client.search, order_seq, index, key_word, _filter_args, match_media, in_from)
                 all_task.append(task)
 
             # 其他搜索类型都需要 match_media 不为空
@@ -165,14 +168,14 @@ class Indexer(object):
 
             # 豆瓣id检索
             if 'douban_id' in index.search_type and match_media.douban_id:
-                for db_id in match_media.douban_id.split(","):
-                    if db_id:
-                        task = executor.submit(self._client.search, order_seq, index, db_id, filter_args, match_media, in_from)
-                        all_task.append(task)
+                for db_id in StringUtils.split_and_filter(match_media.douban_id, ","):
+                    task = executor.submit(self._client.search, order_seq, index, db_id, copy.deepcopy(filter_args), match_media, in_from)
+                    all_task.append(task)
+                        
 
             # imdb id 检索
             if 'imdb' in index.search_type and match_media.imdb_id:
-                task = executor.submit(self._client.search, order_seq, index, match_media.imdb_id, filter_args, match_media, in_from)
+                task = executor.submit(self._client.search, order_seq, index, match_media.imdb_id, copy.deepcopy(filter_args), match_media, in_from)
                 all_task.append(task)
 
             # 订阅指定搜索词时，不进行后续
@@ -180,10 +183,13 @@ class Indexer(object):
                 continue
 
             # 英文名检索
-            en_name = self.get_en_name(match_media)
-            if en_name and 'en_name' in index.search_type and Config().get_config("laboratory").get("search_en_title"):
-                task = executor.submit(self._client.search, order_seq, index, en_name, filter_args, match_media, in_from)
-                all_task.append(task)
+            if 'en_name' in index.search_type:
+                en_name = self.get_en_name(match_media)
+                if en_name:
+                    _filter_args_en = copy.deepcopy(filter_args) if filter_args is not None else {}
+                    _filter_args_en['check_kw'] = en_name
+                    task = executor.submit(self._client.search, order_seq, index, en_name, _filter_args_en, match_media, in_from)
+                    all_task.append(task)
 
         ret_array = []
         finish_count = 0

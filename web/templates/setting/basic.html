@@ -2,7 +2,6 @@
 {% import 'macro/form.html' as FORM %}
 
 <style>
-
   .card {
     border: none;
   }
@@ -15,23 +14,25 @@
   .form-group {
     margin: 10px 0 10px 0;
   }
+
   .control-label {
     flex: 0 0 auto;
     width: 10%;
   }
-  div.form-group > div {
+
+  div.form-group>div {
     display: inline-flex;
     width: 88%;
-  }  
-  div.form-group > div> input {
+  }
+
+  div.form-group>div>input {
     width: 50%;
     margin: 0 10px 0 10px;
   }
-
 </style>
 
 <!-- 业务页面代码 -->
-<div class="card components-div">
+<div class="card components-div" id="sys_config">
   <div class="card">
     <div class="card-header" style="display: flex; align-items: center;">
       <h4 class="card-title"><strong>基础设置</strong></h4>
@@ -39,7 +40,8 @@
         {{ SVG.menu_2() }}
       </a>
       <div class="col-auto" style="margin-left: auto;">
-        <a href="javascript:void(0)" class="btn d-none d-sm-inline-block" data-bs-toggle="modal" data-bs-target="#modal-user-script">
+        <a href="javascript:void(0)" class="btn d-none d-sm-inline-block" data-bs-toggle="modal"
+          data-bs-target="#modal-user-script">
           自定义 CSS/JavaScript
         </a>
         <a href="javascript:void(0)" class="btn d-sm-none btn-icon" data-bs-toggle="modal"
@@ -201,19 +203,6 @@
         </div>
         <div class="col-12 col-xl-3">
           <div class="mb-6">
-            <label class="form-label form-check form-switch">开启Redis缓存
-              <input class="form-check-input" type="checkbox" id="app.redis_enable" {% if Config.app.redis_enable
-                %}checked{% endif %}>
-              <span class="form-help" title="redis服务的ip和端口号,默认使用db0" data-bs-toggle="tooltip">?</span>
-            </label>
-            <div class="input-group input-group-flat">
-              <input type="text" value="{{ Config.app.redis_addr or '' }}" class="form-control" id="app.redis_addr"
-                placeholder="127.0.0.1:6379" autocomplete="off">
-            </div>
-          </div>
-        </div>
-        <div class="col-12 col-xl-3">
-          <div class="mb-6">
             <label class="form-label">自建OCR服务 <span class="form-help" title="填写后将使用自建的OCR服务进行验证码识别"
                 data-bs-toggle="tooltip">?</span></label>
             <div class="input-group input-group-flat">
@@ -289,7 +278,8 @@
         {{ SVG.menu_2() }}
       </a>
       <div class="col-auto" style="margin-left: auto;">
-        <a href="javascript:void(0)" class="btn d-none d-sm-inline-block" data-bs-toggle="modal" data-bs-target="#modal-scraper">
+        <a href="javascript:void(0)" class="btn d-none d-sm-inline-block" data-bs-toggle="modal"
+          data-bs-target="#modal-scraper">
           刮削设置
         </a>
         <a href="javascript:void(0)" class="btn d-sm-none btn-icon" data-bs-toggle="modal"
@@ -302,8 +292,8 @@
       <div class="row">
         <div class="col-12 col-xl-3">
           <div class="mb-3">
-            <label class="form-label">媒体服务器同步周期(小时) <span class="form-help"
-                title="定时同步媒体服务器数据到本地，用于展示媒体是否存在，留空则不启用同步服务" data-bs-toggle="tooltip">?</span></label>
+            <label class="form-label">媒体服务器同步周期(小时) <span class="form-help" title="定时同步媒体服务器数据到本地，用于展示媒体是否存在，留空则不启用同步服务"
+                data-bs-toggle="tooltip">?</span></label>
             <input type="text" value="{{ Config.media.mediasync_interval or '' }}" class="form-control"
               id="media.mediasync_interval" placeholder="留空关闭媒体服务器同步" autocomplete="off">
           </div>
@@ -613,8 +603,8 @@
         <div class="col-12 col-xl-3">
           <div class="mb-3">
             <label class="form-check form-switch">
-              <input class="form-check-input" type="checkbox" id="laboratory.chatgpt_enable" {% if Config.laboratory
-                and Config.laboratory.chatgpt_enable %}checked{% endif %}>
+              <input class="form-check-input" type="checkbox" id="laboratory.chatgpt_enable" {% if Config.laboratory and
+                Config.laboratory.chatgpt_enable %}checked{% endif %}>
               <span class="form-check-label">ChatGPT增强识别 <span class="form-help"
                   title="开启后，通过TMDB的API无法识别到媒体信息时，使用ChatGPT识别匹配，需要先填写OpenAI API Key" data-bs-toggle="tooltip">?</span>
               </span>
@@ -624,8 +614,8 @@
         <div class="col-12 col-xl-3">
           <div class="mb-3">
             <label class="form-check form-switch">
-              <input class="form-check-input" type="checkbox" id="laboratory.search_keyword" {% if Config.laboratory
-                and Config.laboratory.search_keyword %}checked{% endif %}>
+              <input class="form-check-input" type="checkbox" id="laboratory.search_keyword" {% if Config.laboratory and
+                Config.laboratory.search_keyword %}checked{% endif %}>
               <span class="form-check-label">辅助识别 <span class="form-help"
                   title="开启后，无法识别到媒体信息时会尝试猜测和纠正关键词并再次匹配，会大大增加识别耗时，一般情况下不建议开启" data-bs-toggle="tooltip">?</span>
               </span>
@@ -635,8 +625,8 @@
         <div class="col-12 col-xl-3">
           <div class="mb-3">
             <label class="form-check form-switch">
-              <input class="form-check-input" type="checkbox" id="laboratory.search_tmdbweb" {% if Config.laboratory
-                and Config.laboratory.search_tmdbweb %}checked{% endif %}>
+              <input class="form-check-input" type="checkbox" id="laboratory.search_tmdbweb" {% if Config.laboratory and
+                Config.laboratory.search_tmdbweb %}checked{% endif %}>
               <span class="form-check-label">WEB增强识别 <span class="form-help"
                   title="开启后，通过TMDB的API无法识别到媒体信息时，会尝试通过themoviedb.org网站再次搜索匹配，仅个别极端情况下有效，会大大增加识别耗时，一般情况下不建议开启"
                   data-bs-toggle="tooltip">?</span>
@@ -649,8 +639,8 @@
         <div class="col-12 col-xl-3">
           <div class="mb-3">
             <label class="form-check form-switch">
-              <input class="form-check-input" type="checkbox" id="laboratory.tmdb_cache_expire" {% if
-                Config.laboratory and Config.laboratory.tmdb_cache_expire %}checked{% endif %}>
+              <input class="form-check-input" type="checkbox" id="laboratory.tmdb_cache_expire" {% if Config.laboratory
+                and Config.laboratory.tmdb_cache_expire %}checked{% endif %}>
               <span class="form-check-label">TMDB缓存过期策略 <span class="form-help"
                   title="开启TMDB缓存过期策略后，默认7天过期，过期缓存将被删除,  7天内访问过期时间可以被刷新，建议开启" data-bs-toggle="tooltip">?</span>
               </span>
@@ -660,8 +650,8 @@
         <div class="col-12 col-xl-3">
           <div class="mb-3">
             <label class="form-check form-switch">
-              <input class="form-check-input" type="checkbox" id="laboratory.use_douban_titles" {% if
-                Config.laboratory and Config.laboratory.use_douban_titles %}checked{% endif %}>
+              <input class="form-check-input" type="checkbox" id="laboratory.use_douban_titles" {% if Config.laboratory
+                and Config.laboratory.use_douban_titles %}checked{% endif %}>
               <span class="form-check-label">默认搜索豆瓣资源 <span class="form-help"
                   title="开启将使用豆瓣进行电影电视剧的名称搜索，允许中文名不完整时自动联想，但如豆瓣数据与TMDB不一致时可能会无法搜索；关闭后使用TMDB的数据，对中文支持不友好，但不会有无法搜索的问题"
                   data-bs-toggle="tooltip">?</span></span>
@@ -686,7 +676,7 @@
     <div class="row align-items-center">
       <div class="col"></div>
       <div class="col-auto">
-        <a id="basic_system_btn" href="javascript:save_basic_config('basic_system')" class="btn btn-primary">
+        <a id="basic_system_btn" href="javascript:save_basic_config('sys_config')" class="btn btn-primary">
           保存
         </a>
       </div>
@@ -694,22 +684,23 @@
   </div>
 </div>
 <div class="modal modal-blur fade" id="modal-scraper" tabindex="-1" role="dialog" aria-hidden="true"
-     data-bs-backdrop="static" data-bs-keyboard="false">
+  data-bs-backdrop="static" data-bs-keyboard="false">
   <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
-    <div class="card modal-content" style="border-top-left-radius:var(--tblr-modal-inner-border-radius) !important; border-top-right-radius:var(--tblr-modal-inner-border-radius) !important">
-      <div class="card-header" style="border-top-left-radius:var(--tblr-modal-inner-border-radius) !important; border-top-right-radius:var(--tblr-modal-inner-border-radius) !important">
-        <ul class="nav nav-fill card-header-tabs nav-tabs rounded-3" data-bs-toggle="tabs"
-            role="tablist">
+    <div class="card modal-content"
+      style="border-top-left-radius:var(--tblr-modal-inner-border-radius) !important; border-top-right-radius:var(--tblr-modal-inner-border-radius) !important">
+      <div class="card-header"
+        style="border-top-left-radius:var(--tblr-modal-inner-border-radius) !important; border-top-right-radius:var(--tblr-modal-inner-border-radius) !important">
+        <ul class="nav nav-fill card-header-tabs nav-tabs rounded-3" data-bs-toggle="tabs" role="tablist">
           <li class="nav-item" role="presentation">
             <a href="#tabs-scraper-nfo" class="nav-link active" style="justify-content: center" data-bs-toggle="tab"
-               aria-selected="true" role="tab">
+              aria-selected="true" role="tab">
               <span class="me-2">{{ SVG.info_square_rounded() }}</span>
               元数据
             </a>
           </li>
           <li class="nav-item" role="presentation">
             <a href="#tabs-scraper-pic" class="nav-link" style="justify-content: center" data-bs-toggle="tab"
-               aria-selected="false" role="tab" tabindex="-1">
+              aria-selected="false" role="tab" tabindex="-1">
               <span class="me-2">{{ SVG.photo() }}</span>
               图片
             </a>
@@ -731,8 +722,8 @@
                 <div class="col-12 col-lg-4">
                   <div class="mb-3">
                     <label class="form-check">
-                      <input class="form-check-input" type="checkbox" id="scraper_nfo_movie_basic" {% if
-                        ScraperNfo and ScraperNfo.movie.basic %}checked{% endif %}>
+                      <input class="form-check-input" type="checkbox" id="scraper_nfo_movie_basic" {% if ScraperNfo and
+                        ScraperNfo.movie.basic %}checked{% endif %}>
                       <span class="form-check-label">基础信息 </span>
                     </label>
                   </div>
@@ -740,8 +731,8 @@
                 <div class="col-12 col-lg-4">
                   <div class="mb-3">
                     <label class="form-check">
-                      <input class="form-check-input" type="checkbox" id="scraper_nfo_movie_credits" {% if
-                        ScraperNfo and ScraperNfo.movie.credits %}checked{% endif %}>
+                      <input class="form-check-input" type="checkbox" id="scraper_nfo_movie_credits" {% if ScraperNfo
+                        and ScraperNfo.movie.credits %}checked{% endif %}>
                       <span class="form-check-label">演职人员 </span>
                     </label>
                   </div>
@@ -767,8 +758,8 @@
                 <div class="col-12 col-lg-4">
                   <div class="mb-3">
                     <label class="form-check">
-                      <input class="form-check-input" type="checkbox" id="scraper_nfo_tv_basic" {% if
-                        ScraperNfo and ScraperNfo.tv.basic %}checked{% endif %}>
+                      <input class="form-check-input" type="checkbox" id="scraper_nfo_tv_basic" {% if ScraperNfo and
+                        ScraperNfo.tv.basic %}checked{% endif %}>
                       <span class="form-check-label">基础信息 </span>
                     </label>
                   </div>
@@ -776,8 +767,8 @@
                 <div class="col-12 col-lg-4">
                   <div class="mb-3">
                     <label class="form-check">
-                      <input class="form-check-input" type="checkbox" id="scraper_nfo_tv_credits" {% if
-                        ScraperNfo and ScraperNfo.tv.credits %}checked{% endif %}>
+                      <input class="form-check-input" type="checkbox" id="scraper_nfo_tv_credits" {% if ScraperNfo and
+                        ScraperNfo.tv.credits %}checked{% endif %}>
                       <span class="form-check-label">演职人员 </span>
                     </label>
                   </div>
@@ -803,8 +794,8 @@
                 <div class="col-12 col-lg-4">
                   <div class="mb-3">
                     <label class="form-check">
-                      <input class="form-check-input" type="checkbox" id="scraper_nfo_tv_season_basic" {% if
-                        ScraperNfo and ScraperNfo.tv.season_basic %}checked{% endif %}>
+                      <input class="form-check-input" type="checkbox" id="scraper_nfo_tv_season_basic" {% if ScraperNfo
+                        and ScraperNfo.tv.season_basic %}checked{% endif %}>
                       <span class="form-check-label">季-基础信息 </span>
                     </label>
                   </div>
@@ -812,8 +803,8 @@
                 <div class="col-12 col-lg-4">
                   <div class="mb-3">
                     <label class="form-check">
-                      <input class="form-check-input" type="checkbox" id="scraper_nfo_tv_episode_basic" {% if
-                        ScraperNfo and ScraperNfo.tv.episode_basic %}checked{% endif %}>
+                      <input class="form-check-input" type="checkbox" id="scraper_nfo_tv_episode_basic" {% if ScraperNfo
+                        and ScraperNfo.tv.episode_basic %}checked{% endif %}>
                       <span class="form-check-label">集-基础信息 </span>
                     </label>
                   </div>
@@ -843,8 +834,8 @@
                 <div class="col-12 col-lg-3">
                   <div class="mb-3">
                     <label class="form-check">
-                      <input class="form-check-input" type="checkbox" id="scraper_pic_movie_poster" {% if
-                        ScraperPic and ScraperPic.movie.poster %}checked{% endif %}>
+                      <input class="form-check-input" type="checkbox" id="scraper_pic_movie_poster" {% if ScraperPic and
+                        ScraperPic.movie.poster %}checked{% endif %}>
                       <span class="form-check-label">poster </span>
                     </label>
                   </div>
@@ -852,8 +843,8 @@
                 <div class="col-12 col-lg-3">
                   <div class="mb-3">
                     <label class="form-check">
-                      <input class="form-check-input" type="checkbox" id="scraper_pic_movie_backdrop" {% if
-                        ScraperPic and ScraperPic.movie.backdrop %}checked{% endif %}>
+                      <input class="form-check-input" type="checkbox" id="scraper_pic_movie_backdrop" {% if ScraperPic
+                        and ScraperPic.movie.backdrop %}checked{% endif %}>
                       <span class="form-check-label">fanart </span>
                     </label>
                   </div>
@@ -861,8 +852,8 @@
                 <div class="col-12 col-lg-3">
                   <div class="mb-3">
                     <label class="form-check">
-                      <input class="form-check-input" type="checkbox" id="scraper_pic_movie_background" {% if
-                        ScraperPic and ScraperPic.movie.background %}checked{% endif %}>
+                      <input class="form-check-input" type="checkbox" id="scraper_pic_movie_background" {% if ScraperPic
+                        and ScraperPic.movie.background %}checked{% endif %}>
                       <span class="form-check-label">background </span>
                     </label>
                   </div>
@@ -870,8 +861,8 @@
                 <div class="col-12 col-lg-3">
                   <div class="mb-3">
                     <label class="form-check">
-                      <input class="form-check-input" type="checkbox" id="scraper_pic_movie_logo" {% if
-                        ScraperPic and ScraperPic.movie.logo %}checked{% endif %}>
+                      <input class="form-check-input" type="checkbox" id="scraper_pic_movie_logo" {% if ScraperPic and
+                        ScraperPic.movie.logo %}checked{% endif %}>
                       <span class="form-check-label">logo </span>
                     </label>
                   </div>
@@ -881,8 +872,8 @@
                 <div class="col-12 col-lg-3">
                   <div class="mb-3">
                     <label class="form-check">
-                      <input class="form-check-input" type="checkbox" id="scraper_pic_movie_disc" {% if
-                        ScraperPic and ScraperPic.movie.disc %}checked{% endif %}>
+                      <input class="form-check-input" type="checkbox" id="scraper_pic_movie_disc" {% if ScraperPic and
+                        ScraperPic.movie.disc %}checked{% endif %}>
                       <span class="form-check-label">disc </span>
                     </label>
                   </div>
@@ -890,8 +881,8 @@
                 <div class="col-12 col-lg-3">
                   <div class="mb-3">
                     <label class="form-check">
-                      <input class="form-check-input" type="checkbox" id="scraper_pic_movie_banner" {% if
-                        ScraperPic and ScraperPic.movie.banner %}checked{% endif %}>
+                      <input class="form-check-input" type="checkbox" id="scraper_pic_movie_banner" {% if ScraperPic and
+                        ScraperPic.movie.banner %}checked{% endif %}>
                       <span class="form-check-label">banner </span>
                     </label>
                   </div>
@@ -899,8 +890,8 @@
                 <div class="col-12 col-lg-3">
                   <div class="mb-3">
                     <label class="form-check">
-                      <input class="form-check-input" type="checkbox" id="scraper_pic_movie_thumb" {% if
-                        ScraperPic and ScraperPic.movie.thumb %}checked{% endif %}>
+                      <input class="form-check-input" type="checkbox" id="scraper_pic_movie_thumb" {% if ScraperPic and
+                        ScraperPic.movie.thumb %}checked{% endif %}>
                       <span class="form-check-label">thumb </span>
                     </label>
                   </div>
@@ -917,8 +908,8 @@
                 <div class="col-12 col-lg-3">
                   <div class="mb-3">
                     <label class="form-check">
-                      <input class="form-check-input" type="checkbox" id="scraper_pic_tv_poster" {% if
-                        ScraperPic and ScraperPic.tv.poster %}checked{% endif %}>
+                      <input class="form-check-input" type="checkbox" id="scraper_pic_tv_poster" {% if ScraperPic and
+                        ScraperPic.tv.poster %}checked{% endif %}>
                       <span class="form-check-label">poster </span>
                     </label>
                   </div>
@@ -926,8 +917,8 @@
                 <div class="col-12 col-lg-3">
                   <div class="mb-3">
                     <label class="form-check">
-                      <input class="form-check-input" type="checkbox" id="scraper_pic_tv_backdrop" {% if
-                        ScraperPic and ScraperPic.tv.backdrop %}checked{% endif %}>
+                      <input class="form-check-input" type="checkbox" id="scraper_pic_tv_backdrop" {% if ScraperPic and
+                        ScraperPic.tv.backdrop %}checked{% endif %}>
                       <span class="form-check-label">fanart </span>
                     </label>
                   </div>
@@ -935,8 +926,8 @@
                 <div class="col-12 col-lg-3">
                   <div class="mb-3">
                     <label class="form-check">
-                      <input class="form-check-input" type="checkbox" id="scraper_pic_tv_background" {% if
-                        ScraperPic and ScraperPic.tv.background %}checked{% endif %}>
+                      <input class="form-check-input" type="checkbox" id="scraper_pic_tv_background" {% if ScraperPic
+                        and ScraperPic.tv.background %}checked{% endif %}>
                       <span class="form-check-label">background </span>
                     </label>
                   </div>
@@ -944,8 +935,8 @@
                 <div class="col-12 col-lg-3">
                   <div class="mb-3">
                     <label class="form-check">
-                      <input class="form-check-input" type="checkbox" id="scraper_pic_tv_logo" {% if
-                        ScraperPic and ScraperPic.tv.logo %}checked{% endif %}>
+                      <input class="form-check-input" type="checkbox" id="scraper_pic_tv_logo" {% if ScraperPic and
+                        ScraperPic.tv.logo %}checked{% endif %}>
                       <span class="form-check-label">logo </span>
                     </label>
                   </div>
@@ -955,8 +946,8 @@
                 <div class="col-12 col-lg-3">
                   <div class="mb-3">
                     <label class="form-check">
-                      <input class="form-check-input" type="checkbox" id="scraper_pic_tv_clearart" {% if
-                        ScraperPic and ScraperPic.tv.clearart %}checked{% endif %}>
+                      <input class="form-check-input" type="checkbox" id="scraper_pic_tv_clearart" {% if ScraperPic and
+                        ScraperPic.tv.clearart %}checked{% endif %}>
                       <span class="form-check-label">clearart </span>
                     </label>
                   </div>
@@ -964,8 +955,8 @@
                 <div class="col-12 col-lg-3">
                   <div class="mb-3">
                     <label class="form-check">
-                      <input class="form-check-input" type="checkbox" id="scraper_pic_tv_banner" {% if
-                        ScraperPic and ScraperPic.tv.banner %}checked{% endif %}>
+                      <input class="form-check-input" type="checkbox" id="scraper_pic_tv_banner" {% if ScraperPic and
+                        ScraperPic.tv.banner %}checked{% endif %}>
                       <span class="form-check-label">banner </span>
                     </label>
                   </div>
@@ -973,8 +964,8 @@
                 <div class="col-12 col-lg-3">
                   <div class="mb-3">
                     <label class="form-check">
-                      <input class="form-check-input" type="checkbox" id="scraper_pic_tv_thumb" {% if
-                        ScraperPic and ScraperPic.tv.thumb %}checked{% endif %}>
+                      <input class="form-check-input" type="checkbox" id="scraper_pic_tv_thumb" {% if ScraperPic and
+                        ScraperPic.tv.thumb %}checked{% endif %}>
                       <span class="form-check-label">thumb </span>
                     </label>
                   </div>
@@ -991,8 +982,8 @@
                 <div class="col-12 col-lg-3">
                   <div class="mb-3">
                     <label class="form-check">
-                      <input class="form-check-input" type="checkbox" id="scraper_pic_tv_season_poster" {% if
-                        ScraperPic and ScraperPic.tv.season_poster %}checked{% endif %}>
+                      <input class="form-check-input" type="checkbox" id="scraper_pic_tv_season_poster" {% if ScraperPic
+                        and ScraperPic.tv.season_poster %}checked{% endif %}>
                       <span class="form-check-label">poster </span>
                     </label>
                   </div>
@@ -1000,8 +991,8 @@
                 <div class="col-12 col-lg-3">
                   <div class="mb-3">
                     <label class="form-check">
-                      <input class="form-check-input" type="checkbox" id="scraper_pic_tv_season_banner" {% if
-                        ScraperPic and ScraperPic.tv.season_banner %}checked{% endif %}>
+                      <input class="form-check-input" type="checkbox" id="scraper_pic_tv_season_banner" {% if ScraperPic
+                        and ScraperPic.tv.season_banner %}checked{% endif %}>
                       <span class="form-check-label">banner </span>
                     </label>
                   </div>
@@ -1009,8 +1000,8 @@
                 <div class="col-12 col-lg-3">
                   <div class="mb-3">
                     <label class="form-check">
-                      <input class="form-check-input" type="checkbox" id="scraper_pic_tv_season_thumb" {% if
-                        ScraperPic and ScraperPic.tv.season_thumb %}checked{% endif %}>
+                      <input class="form-check-input" type="checkbox" id="scraper_pic_tv_season_thumb" {% if ScraperPic
+                        and ScraperPic.tv.season_thumb %}checked{% endif %}>
                       <span class="form-check-label">thumb </span>
                     </label>
                   </div>
@@ -1027,18 +1018,24 @@
                 <div class="col-12 col-lg-3">
                   <div class="mb-3">
                     <label class="form-check">
-                      <input class="form-check-input" type="checkbox" id="scraper_pic_tv_episode_thumb" onclick="open_ffmpeg_div('modal_episode_thumb_ffmpeg')" {% if
-                        ScraperPic and ScraperPic.tv.episode_thumb %}checked{% endif %}>
-                      <span class="form-check-label">thumb <span class="form-help" title="开启后将查询TMDB生成集缩略图" data-bs-toggle="tooltip">?</span></span>
+                      <input class="form-check-input" type="checkbox" id="scraper_pic_tv_episode_thumb"
+                        onclick="open_ffmpeg_div('modal_episode_thumb_ffmpeg')" {% if ScraperPic and
+                        ScraperPic.tv.episode_thumb %}checked{% endif %}>
+                      <span class="form-check-label">thumb <span class="form-help" title="开启后将查询TMDB生成集缩略图"
+                          data-bs-toggle="tooltip">?</span></span>
                     </label>
                   </div>
                 </div>
-                <div class="col-12 col-lg-3 {% if not ScraperPic or not ScraperPic.tv.episode_thumb %}d-none{% endif %}" id="modal_episode_thumb_ffmpeg">
+                <div class="col-12 col-lg-3 {% if not ScraperPic or not ScraperPic.tv.episode_thumb %}d-none{% endif %}"
+                  id="modal_episode_thumb_ffmpeg">
                   <div class="mb-3">
                     <label class="form-check">
                       <input class="form-check-input" type="checkbox" id="scraper_pic_tv_episode_thumb_ffmpeg" {% if
-                        ScraperPic and ScraperPic.tv.episode_thumb and ScraperPic.tv.episode_thumb_ffmpeg %}checked{% endif %}>
-                      <span class="form-check-label">thumb-ffmpeg <span class="form-help" title="开始后，如TMDB无数据则读取视频文件生成（需要ffmpeg，最新完整版Docker镜像已包含，lite版本镜像默认不支持该功能）" data-bs-toggle="tooltip">?</span></span>
+                        ScraperPic and ScraperPic.tv.episode_thumb and ScraperPic.tv.episode_thumb_ffmpeg %}checked{%
+                        endif %}>
+                      <span class="form-check-label">thumb-ffmpeg <span class="form-help"
+                          title="开始后，如TMDB无数据则读取视频文件生成（需要ffmpeg，最新完整版Docker镜像已包含，lite版本镜像默认不支持该功能）"
+                          data-bs-toggle="tooltip">?</span></span>
                     </label>
                   </div>
                 </div>
@@ -1057,21 +1054,22 @@
   </div>
 </div>
 <div class="modal modal-blur fade" id="modal-user-script" tabindex="-1" role="dialog" aria-hidden="true"
-     data-bs-backdrop="static" data-bs-keyboard="false">
+  data-bs-backdrop="static" data-bs-keyboard="false">
   <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
-    <div class="card modal-content" style="border-top-left-radius:var(--tblr-modal-inner-border-radius) !important; border-top-right-radius:var(--tblr-modal-inner-border-radius) !important">
-      <div class="card-header" style="border-top-left-radius:var(--tblr-modal-inner-border-radius) !important; border-top-right-radius:var(--tblr-modal-inner-border-radius) !important">
-        <ul class="nav nav-fill card-header-tabs nav-tabs rounded-3" data-bs-toggle="tabs"
-            role="tablist">
+    <div class="card modal-content"
+      style="border-top-left-radius:var(--tblr-modal-inner-border-radius) !important; border-top-right-radius:var(--tblr-modal-inner-border-radius) !important">
+      <div class="card-header"
+        style="border-top-left-radius:var(--tblr-modal-inner-border-radius) !important; border-top-right-radius:var(--tblr-modal-inner-border-radius) !important">
+        <ul class="nav nav-fill card-header-tabs nav-tabs rounded-3" data-bs-toggle="tabs" role="tablist">
           <li class="nav-item" role="presentation">
             <a href="#tabs-user-css" class="nav-link active" style="justify-content: center" data-bs-toggle="tab"
-               aria-selected="true" role="tab">
+              aria-selected="true" role="tab">
               CSS
             </a>
           </li>
           <li class="nav-item" role="presentation">
             <a href="#tabs-user-script" class="nav-link" style="justify-content: center" data-bs-toggle="tab"
-               aria-selected="false" role="tab" tabindex="-1">
+              aria-selected="false" role="tab" tabindex="-1">
               JavaScript
             </a>
           </li>
@@ -1083,7 +1081,8 @@
             <div class="form-control" id="user_script_css" style="height: 20rem;">{{ CustomScriptCfg.css or '' }}</div>
           </div>
           <div class="tab-pane fade" id="tabs-user-script" role="tabpanel">
-            <div class="form-control" id="user_script_javascript" style="height: 20rem;">{{ CustomScriptCfg.javascript or '' }}</div>
+            <div class="form-control" id="user_script_javascript" style="height: 20rem;">{{ CustomScriptCfg.javascript
+              or '' }}</div>
           </div>
         </div>
       </div>
@@ -1097,7 +1096,7 @@
   </div>
 </div>
 <div class="modal modal-blur fade" id="modal-library-category" tabindex="-1" role="dialog" aria-hidden="true"
-     data-bs-backdrop="static" data-bs-keyboard="false">
+  data-bs-backdrop="static" data-bs-keyboard="false">
   <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
     <div class="modal-content">
       <div class="modal-header">
@@ -1116,7 +1115,7 @@
 </div>
 
 <div class="modal modal-blur fade" id="modal-dirctory" tabindex="-1" role="dialog" aria-hidden="true"
-     data-bs-backdrop="static" data-bs-keyboard="false">
+  data-bs-backdrop="static" data-bs-keyboard="false">
   <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
     <div class="modal-content">
       <div class="modal-header">
@@ -1128,8 +1127,8 @@
           <div class="col-lg-12">
             <div class="mb-3">
               <label class="form-label">路径 <span class="form-help"
-                                                   title="Emby/Jellyfin/Plex媒体库对应文件的路径，下载文件转移、目录同步未配置目的目录时，媒体文件将重命名转移到该目录"
-                                                   data-bs-toggle="tooltip">?</span></label>
+                  title="Emby/Jellyfin/Plex媒体库对应文件的路径，下载文件转移、目录同步未配置目的目录时，媒体文件将重命名转移到该目录"
+                  data-bs-toggle="tooltip">?</span></label>
               <input type="text" value="" id="path_str" class="form-control filetree-folders-only" autocomplete="off">
               <input type="hidden" value="" id="path_type" class="form-control">
             </div>
@@ -1189,9 +1188,9 @@
           // 刷新页面
           window.location.reload();
           return;
-        }               
+        }
         // 从响应中提取指定 ID 的元素
-        var $newContent = $response.find(element_id);        
+        var $newContent = $response.find(element_id);
         // 用新内容替换当前页面中的对应元素
         $(element_id).replaceWith($newContent);
 
@@ -1201,14 +1200,14 @@
         } else {
           $(element_id).show();
         }
-        
+
       }
     });
 
   }
 
   // 保存基础设置
-  function save_basic_config(type, flag=true) {
+  function save_basic_config(type, flag = true) {
     let params = input_select_GetVal(type);
     if (params["media.category"] === "config") {
       show_warning_modal("非法二级分类策略名称");
@@ -1220,7 +1219,7 @@
     ajax_post("update_config", params, function (ret) {
       if (flag) {
         $("#" + type + "_btn").text("保存").attr("disabled", false);
-        window_history_refresh();
+        // window_history_refresh();
         show_success_modal("配置已保存!");
       }
     });
@@ -1286,29 +1285,29 @@
   }
 
   // 保存自定义CSS/JavsScript配置
-  function save_user_script(){
+  function save_user_script() {
     let css_text = css_editor.getValue();
     let javascript_text = javascript_editor.getValue();
     $("#user_script_save_btn").text("保存中...").attr("disabled", true);
-    ajax_post("save_user_script", {css: css_text, javascript: javascript_text}, function (ret) {
+    ajax_post("save_user_script", { css: css_text, javascript: javascript_text }, function (ret) {
       $("#user_script_save_btn").text("保存").attr("disabled", false);
     });
     $("#modal-user-script").modal("hide");
   }
 
   // 选中电视剧-集图片thumb，显示ffmpeg
-  function open_ffmpeg_div(div_id){
-    let ffmpeg_container = $("#"+div_id);
+  function open_ffmpeg_div(div_id) {
+    let ffmpeg_container = $("#" + div_id);
     let ffmpeg_check = ffmpeg_container.find("input[type='checkbox']");
-    if (ffmpeg_container.hasClass("d-none")){
+    if (ffmpeg_container.hasClass("d-none")) {
       ffmpeg_container.removeClass("d-none");
-    }else{
+    } else {
       ffmpeg_container.addClass("d-none");
       ffmpeg_check.prop("checked", false);
     }
   }
 
-    // 显示二级分类编辑框
+  // 显示二级分类编辑框
   function show_category_config_modal() {
     let category_name = $("[name=category_name]").val();
     if (!category_name) {
@@ -1319,7 +1318,7 @@
       show_warning_modal("非法二级分类策略名称");
       return;
     }
-    ajax_post("get_category_config", {"category_name": category_name}, function (ret) {
+    ajax_post("get_category_config", { "category_name": category_name }, function (ret) {
       if (ret.code === 0) {
         category_editor.setValue(ret.text);
         $("#modal-library-category").modal('show');
@@ -1332,7 +1331,7 @@
   // 保存二级分类配置
   function save_category_config() {
     const value = category_editor.getValue();
-    const params = {"config": value};
+    const params = { "config": value };
     ajax_post("update_category_config", params, function (ret) {
       $("#modal-library-category").modal('hide');
     });

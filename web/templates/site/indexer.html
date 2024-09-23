@@ -2,30 +2,34 @@
 {% import 'macro/oops.html' as OOPS %}
 
 <style>
-  .tab-title > ul {
+  .tab-title>ul {
     font-size: 1.0rem;
     font-weight: var(--tblr-font-weight-bold);
     border-bottom: var(--tblr-nav-tabs-border-width) solid var(--tblr-nav-tabs-border-color);
   }
-  div.tab-title > ul > li {
+
+  div.tab-title>ul>li {
     min-width: 5rem;
     z-index: 2;
   }
-  div.tab-title > ul > li > a {
+
+  div.tab-title>ul>li>a {
     display: block;
     text-align: center;
   }
+
   .modal-content {
     border-color: lightgrey;
   }
+
   .tab-content {
     border-top: var(--tblr-card-border-width) solid var(--tblr-card-border-color);
     margin-top: 1rem;
   }
-  .modal-body > details {
+
+  .modal-body>details {
     margin: 0 8px 8px 8px;
   }
-
 </style>
 
 <script type="text/javascript" src="../../static/js/jquery.json.js"></script>
@@ -67,12 +71,13 @@
       <div class="card card-link-pop">
         <div class="card-header">
           <div class="form-switch">
-            <input name="indexer_sites" type="checkbox" class="form-check-input" value="{{ site.id }}" {% if site.checked %}checked{% endif %} >
+            <input name="indexer_sites" type="checkbox" class="form-check-input" value="{{ site.id }}" {% if
+              site.checked %}checked{% endif %}>
           </div>
           <h3 class="card-title">
             <a href="javascript:void(0)" class="ms-1">
               <strong>{{ site.name }}</strong>
-              </a>
+            </a>
           </h3>
           <div class="card-actions btn-actions">
             <a href="javascript:edit_site('{{ site.domain }}')" class="btn-action ms-1" title="编辑站点">
@@ -87,26 +92,27 @@
             <dt class="col-3">资源类型:</dt>
             <dd class="col-9">
               {% for source in site.source_type %}
-                {% if source|string in SourceTypes %}
-                <span class="badge bg-blue me-2">{{SourceTypes[source|string]}}</span>
-                {% else %}
-                <span class="badge bg-blue me-2">{{ source }}</span>
-                {% endif %}
+              {% if source|string in SourceTypes %}
+              <span class="badge bg-blue me-2">{{SourceTypes[source|string]}}</span>
+              {% else %}
+              <span class="badge bg-blue me-2">{{ source }}</span>
+              {% endif %}
               {% endfor %}
             </dd>
             <dt class="col-3">搜索方式:</dt>
             <dd class="col-9">
               {% for search in site.search_type %}
-                {% if search|string in SearchTypes %}
-                <span class="badge bg-lime me-2">{{SearchTypes[search|string]}}</span>
-                {% else %}
-                <span class="badge bg-lime me-2">{{ search }}</span>
-                {% endif %}
+              {% if search|string in SearchTypes %}
+              <span class="badge bg-lime me-2">{{SearchTypes[search|string]}}</span>
+              {% else %}
+              <span class="badge bg-lime me-2">{{ search }}</span>
+              {% endif %}
               {% endfor %}
             </dd>
             <dt class="col-3">下载器:</dt>
             {% if site.downloader and site.downloader|string in DownloadSettings %}
-            <dd class="col-9"><span class="badge bg-yellow me-2">{{ DownloadSettings[site.downloader|string] }}</span></dd>
+            <dd class="col-9"><span class="badge bg-yellow me-2">{{ DownloadSettings[site.downloader|string] }}</span>
+            </dd>
             {% else %}
             <dd class="col-9"><span class="badge bg-yellow me-2">默认</span></dd>
             {% endif %}
@@ -128,27 +134,28 @@
   </div>
 </div>
 {% else %}
-  {% if IsPublic == 1 %}
-  {{ OOPS.nodatafound('没有数据', '没有可以用的公共索引站点') }}
-  {% else %}
-  {{ OOPS.nodatafound('没有数据', '没有认证成功的PT站点信息') }}
-  {% endif %}
+{% if IsPublic == 1 %}
+{{ OOPS.nodatafound('没有数据', '没有可以用的公共索引站点') }}
+{% else %}
+{{ OOPS.nodatafound('没有数据', '没有认证成功的PT站点信息') }}
+{% endif %}
 {% endif %}
 <div class="modal modal-blur fade" id="modal-indexer-statistics" tabindex="-1" role="dialog" aria-hidden="true">
   <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
-    <div class="card modal-content" style="border-top-left-radius:var(--tblr-modal-inner-border-radius) !important; border-top-right-radius:var(--tblr-modal-inner-border-radius) !important">
-      <div class="card-header" style="border-top-left-radius:var(--tblr-modal-inner-border-radius) !important; border-top-right-radius:var(--tblr-modal-inner-border-radius) !important">
-        <ul class="nav nav-fill card-header-tabs nav-tabs rounded-3" data-bs-toggle="tabs"
-            role="tablist">
+    <div class="card modal-content"
+      style="border-top-left-radius:var(--tblr-modal-inner-border-radius) !important; border-top-right-radius:var(--tblr-modal-inner-border-radius) !important">
+      <div class="card-header"
+        style="border-top-left-radius:var(--tblr-modal-inner-border-radius) !important; border-top-right-radius:var(--tblr-modal-inner-border-radius) !important">
+        <ul class="nav nav-fill card-header-tabs nav-tabs rounded-3" data-bs-toggle="tabs" role="tablist">
           <li class="nav-item" role="presentation">
             <a href="#tabs-indexer-chart" class="nav-link active" style="justify-content: center" data-bs-toggle="tab"
-               aria-selected="true" role="tab">
+              aria-selected="true" role="tab">
               图表
             </a>
           </li>
           <li class="nav-item" role="presentation">
             <a href="#tabs-indexer-list" class="nav-link" style="justify-content: center" data-bs-toggle="tab"
-               aria-selected="false" role="tab" tabindex="-1">
+              aria-selected="false" role="tab" tabindex="-1">
               详情
             </a>
           </li>
@@ -184,7 +191,8 @@
   </div>
 </div>
 
-<div class="modal modal-blur fade" id="modal-manual-indexer" tabindex="-1" role="dialog" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
+<div class="modal modal-blur fade" id="modal-manual-indexer" tabindex="-1" role="dialog" aria-hidden="true"
+  data-bs-backdrop="static" data-bs-keyboard="false">
   <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable" role="document">
     <div class="modal-content">
       <div class="modal-header">
@@ -207,7 +215,8 @@
           </div>
           <div class="col-lg-6">
             <div class="mb-3">
-              <label class="form-label required">站点地址 <span class="form-help" title="站点访问地址，站点签到、数据统计、刷流、内置索引器等将使用"  data-bs-toggle="tooltip">?</span>
+              <label class="form-label required">站点地址 <span class="form-help" title="站点访问地址，站点签到、数据统计、刷流、内置索引器等将使用"
+                  data-bs-toggle="tooltip">?</span>
               </label>
               <input type="text" class="form-control" id="indexer_url" value="" placeholder="站点http地址">
             </div>
@@ -219,8 +228,7 @@
               <label class="form-check form-switch">
                 <input class="form-check-input" type="checkbox" id="indexer_proxy">
                 <span class="form-check-label">使用代理服务器 <span class="form-help"
-                                                              title="开启后该站点的访问将使用代理服务器，代理需在基础设置->系统->代理服务器中设置"
-                                                              data-bs-toggle="tooltip">?</span>
+                    title="开启后该站点的访问将使用代理服务器，代理需在基础设置->系统->代理服务器中设置" data-bs-toggle="tooltip">?</span>
                 </span>
               </label>
             </div>
@@ -228,10 +236,9 @@
           <div class="col-xl-4">
             <div class="mb-3">
               <label class="form-check form-switch">
-                <input class="form-check-input" type="checkbox" id="indexer_render" >
+                <input class="form-check-input" type="checkbox" id="indexer_render">
                 <span class="form-check-label">开启浏览器仿真 <span class="form-help"
-                                                          title="开启后可以兼容更多站点，但获取数据耗时会大幅增加；需要拉取含浏览器内核的镜像才能使用"
-                                                          data-bs-toggle="tooltip">?</span></span>
+                    title="开启后可以兼容更多站点，但获取数据耗时会大幅增加；需要拉取含浏览器内核的镜像才能使用" data-bs-toggle="tooltip">?</span></span>
               </label>
             </div>
           </div>
@@ -239,26 +246,28 @@
         <div class="row">
           <div class="col-lg-6">
             <div class="mb-3">
-              <label class="form-label required">资源类型 <span class="form-help" title="站点可进行哪种类型资源的检索" data-bs-toggle="tooltip">?</span></label>
+              <label class="form-label required">资源类型 <span class="form-help" title="站点可进行哪种类型资源的检索"
+                  data-bs-toggle="tooltip">?</span></label>
               <div class="form-selectgroup">
                 {% for key, value in SourceTypes.items() %}
-                  <label class="form-selectgroup-item">
-                    <input type="checkbox" name="source_type" value="{{key}}" class="form-selectgroup-input" checked>
-                    <span class="form-selectgroup-label">{{value}}</span>
-                  </label>
+                <label class="form-selectgroup-item">
+                  <input type="checkbox" name="source_type" value="{{key}}" class="form-selectgroup-input" checked>
+                  <span class="form-selectgroup-label">{{value}}</span>
+                </label>
                 {% endfor %}
               </div>
             </div>
           </div>
           <div class="col-lg-6">
             <div class="mb-3">
-              <label class="form-label required">检索方式 <span class="form-help" title="站点支持根据哪些参数进行资源检索" data-bs-toggle="tooltip">?</span></label>
+              <label class="form-label required">检索方式 <span class="form-help" title="站点支持根据哪些参数进行资源检索"
+                  data-bs-toggle="tooltip">?</span></label>
               <div class="form-selectgroup">
                 {% for key, value in SearchTypes.items() %}
-                  <label class="form-selectgroup-item">
-                    <input type="checkbox" name="search_type" value="{{key}}" class="form-selectgroup-input" checked>
-                    <span class="form-selectgroup-label">{{value}}</span>
-                  </label>
+                <label class="form-selectgroup-item">
+                  <input type="checkbox" name="search_type" value="{{key}}" class="form-selectgroup-input" checked>
+                  <span class="form-selectgroup-label">{{value}}</span>
+                </label>
                 {% endfor %}
               </div>
             </div>
@@ -282,7 +291,7 @@
               <select class="form-select" id="parser_setting">
                 <option value="">默认</option>
                 <option value="InterfaceSpider">InterfaceSpider</option>
-                <option value="RenderSpider">RenderSpider</option>
+                <option value="ShadesSpider">ShadesSpider</option>
                 <option value="TorrentLeech">TorrentLeech</option>
                 <option value="TNodeSpider">TNodeSpider</option>
                 <option value="RarBg">RarBg</option>
@@ -343,11 +352,11 @@
   // 保存索引选择配置
   function save_config_index(type, func, test) {
     let sites = select_GetSelectedVAL("indexer_sites");
-      let params = {
-        key: "UserIndexerSites",
-        value: sites
-      }
-      ajax_post("set_system_config", params, func);
+    let params = {
+      key: "UserIndexerSites",
+      value: sites
+    }
+    ajax_post("set_system_config", params, func);
   }
 
   // 保存配置、关闭和刷新页面
@@ -368,7 +377,7 @@
     $('parser_setting').val("");
 
     select_SelectALL(true, "source_type")
-    select_SelectPart(['title', 'en_name'], "search_type")
+    select_SelectPart(['title'], "search_type")
 
     $('#search_cfg').val("");
     $('#torrent_cfg').val("");
@@ -441,7 +450,7 @@
 
   // 编辑站点
   function edit_site(site_url) {
-  
+
     current_indexer = NaN
 
     // 根据ID查询详细信息
@@ -452,7 +461,7 @@
         $("#indexer_id").val(ret.data.id).attr("readonly", true);
         $("#indexer_name").val(ret.data.name).attr("readonly", true);
         $("#indexer_url").val(ret.data.domain);
-        
+
         // 下拉
         $("#indexer_download_setting").val(ret.data.downloader ?? 0);
         $("#parser_setting").val(ret.data.parser ?? '');
@@ -466,7 +475,7 @@
         if (ret.data.search) {
           append_json_to_textarea('search_cfg', ret.data.search)
         }
-        
+
         if (ret.data.torrents) {
           append_json_to_textarea('torrent_cfg', ret.data.torrents)
         }
@@ -503,7 +512,7 @@
     }
 
     var indexer_url = $("#indexer_url").val();
-    if (!indexer_url || !isUrl(indexer_url)){
+    if (!indexer_url || !isUrl(indexer_url)) {
       show_fail_modal('站点地址无效, 请重新编辑');
       return
     }
@@ -610,7 +619,7 @@
       }
     });
 
-};
+  };
 
   function do_del_indexer() {
 
@@ -638,8 +647,8 @@
       }
     });
 
-};
-  
+  };
+
   // json合法性检查
   function object_json_valid(json_str, allow_empty) {
 
@@ -663,7 +672,7 @@
         return false;
       }
     } catch (e) {
-      console.log('对象解析失败：'+ e)
+      console.log('对象解析失败：' + e)
       return false;
     }
   }
@@ -700,7 +709,7 @@
     $("#" + elem_id).val(json);
 
     var match_break_line = json.match(/\n/ig);
-    if (match_break_line){
+    if (match_break_line) {
       var height = Math.min(match_break_line.length * 22 + 15, 500);
       $("#" + elem_id).height(height + 'px');
     }
@@ -716,7 +725,7 @@
   }
 
   // 显示索引统计
-  function show_indexer_statistics_modal(){
+  function show_indexer_statistics_modal() {
     $("#modal-indexer-statistics").modal("show");
   }
 
@@ -724,11 +733,11 @@
 
   function init_indexer_chart() {
     // 请求数据
-    ajax_post("get_indexer_statistics", {}, function(ret){
+    ajax_post("get_indexer_statistics", {}, function (ret) {
       // 饼图
       if (typeof (indexer_chat) != 'undefined')
         indexer_chat.dispose();
-        indexer_chat = echarts.init($('#indexer_chart_content')[0], null, {
+      indexer_chat = echarts.init($('#indexer_chart_content')[0], null, {
         height: 300
       });
       let options = {
@@ -783,10 +792,10 @@
         sortClass: 'table-sort',
         listClass: 'table-tbody',
         valueNames: ['sort-name', 'sort-total', 'sort-fail', 'sort-avg',
-          {attr: 'data-name', name: 'sort-name'},
-          {attr: 'data-total', name: 'sort-total'},
-          {attr: 'data-fail', name: 'sort-fail'},
-          {attr: 'data-avg', name: 'sort-avg'}
+          { attr: 'data-name', name: 'sort-name' },
+          { attr: 'data-total', name: 'sort-total' },
+          { attr: 'data-fail', name: 'sort-fail' },
+          { attr: 'data-avg', name: 'sort-avg' }
         ]
       });
 
@@ -802,7 +811,7 @@
     });
 
     // 监听所有具有相同 name 的 checkbox 的状态变化
-    $('input[name="indexer_sites"]').change(function() {
+    $('input[name="indexer_sites"]').change(function () {
       save_config_index('builtin');
     });
 

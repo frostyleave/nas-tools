@@ -2,17 +2,19 @@ import base64
 import time
 
 from lxml import etree
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support import expected_conditions as es
-from selenium.webdriver.support.wait import WebDriverWait
+from typing import Tuple, Optional
+from playwright.sync_api import Page
+
 
 import log
-from app.helper import ChromeHelper, ProgressHelper, OcrHelper, SiteHelper
+from app.helper import ProgressHelper, OcrHelper, SiteHelper
+from app.indexer.client.browser import PlaywrightHelper
 from app.sites.siteconf import SiteConf
 from app.sites.sites import Sites
-from app.utils import StringUtils, RequestUtils, ExceptionUtils
+from app.utils import StringUtils, RequestUtils
 from app.utils.commons import singleton
 from app.utils.types import ProgressKey
+from app.utils.system_utils import SystemUtils
 
 
 @singleton
@@ -64,97 +66,101 @@ class SiteCookie(object):
         """
         if not url or not username or not password:
             return None, None, "参数错误"
-        # 全局锁
-        chrome = ChromeHelper()
-        if not chrome.get_status():
-            return None, None, "需要浏览器内核环境才能更新站点信息"
-        if not chrome.visit(url=url, proxy=proxy):
-            return None, None, "Chrome模拟访问失败"
-        # 循环检测是否过cf
-        cloudflare = chrome.pass_cloudflare()
-        if not cloudflare:
-            return None, None, "跳转站点失败，无法通过Cloudflare验证"
-        # 登录页面代码
-        html_text = chrome.get_html()
-        if not html_text:
-            return None, None, "获取源码失败"
-        if SiteHelper.is_logged_in(html_text):
-            return chrome.get_cookies(), chrome.get_ua(), "已经登录过且Cookie未失效"
-        # 站点配置
-        login_conf = self.siteconf.get_login_conf()
-        # 查找用户名输入框
-        html = etree.HTML(html_text)
-        username_xpath = None
-        for xpath in login_conf.get("username"):
-            if html.xpath(xpath):
-                username_xpath = xpath
-                break
-        if not username_xpath:
-            return None, None, "未找到用户名输入框"
-        # 查找密码输入框
-        password_xpath = None
-        for xpath in login_conf.get("password"):
-            if html.xpath(xpath):
-                password_xpath = xpath
-                break
-        if not password_xpath:
-            return None, None, "未找到密码输入框"
-        # 查找两步验证码
-        twostepcode_xpath = None
-        for xpath in login_conf.get("twostep"):
-            if html.xpath(xpath):
-                twostepcode_xpath = xpath
-                break
-        # 查找验证码输入框
-        captcha_xpath = None
-        for xpath in login_conf.get("captcha"):
-            if html.xpath(xpath):
-                captcha_xpath = xpath
-                break
-        # 查找验证码图片
-        captcha_img_url = None
-        if captcha_xpath:
-            for xpath in login_conf.get("captcha_img"):
+        
+        noGraphical = SystemUtils.is_windows() is False and SystemUtils.is_macos() is False
+        # 无图形界面时, 强制走ocr识别
+        if noGraphical:
+            ocrflag = True
+
+        def __page_handler(page: Page) -> Tuple[Optional[str], Optional[str], str]:
+            if not page:
+                return None, None, "访问页面失败"
+
+            html_text = page.content()
+            if not html_text:
+                return None, None, "获取源码失败"
+            
+            # 当前Cookie未失效
+            if SiteHelper.is_logged_in(html_text):
+                return SiteHelper.parse_cookies(page.context.cookies()), \
+                    page.evaluate("() => window.navigator.userAgent"), ""
+            
+            # 站点配置
+            login_conf = self.siteconf.get_login_conf()
+            # 查找用户名输入框
+            html = etree.HTML(html_text)
+            username_xpath = None
+            for xpath in login_conf.get("username"):
                 if html.xpath(xpath):
-                    captcha_img_url = html.xpath(xpath)[0]
+                    username_xpath = xpath
                     break
-            if not captcha_img_url:
-                return None, None, "未找到验证码图片"
-        # 查找登录按钮
-        submit_xpath = None
-        for xpath in login_conf.get("submit"):
-            if html.xpath(xpath):
-                submit_xpath = xpath
-                break
-        if not submit_xpath:
-            return None, None, "未找到登录按钮"
-        # 点击登录按钮
-        try:
-            submit_obj = WebDriverWait(driver=chrome.browser,
-                                       timeout=6).until(es.element_to_be_clickable((By.XPATH,
-                                                                                    submit_xpath)))
-            if submit_obj:
+            if not username_xpath:
+                return None, None, "未找到用户名输入框"
+            # 查找密码输入框
+            password_xpath = None
+            for xpath in login_conf.get("password"):
+                if html.xpath(xpath):
+                    password_xpath = xpath
+                    break
+            if not password_xpath:
+                return None, None, "未找到密码输入框"
+
+            # 二步验证码
+            twostep_xpath = None
+            if twostepcode:
+                for xpath in login_conf.get("twostep"):
+                    if html.xpath(xpath):
+                        twostep_xpath = xpath
+                        break
+            # 查找验证码输入框
+            captcha_xpath = None
+            for xpath in login_conf.get("captcha"):
+                if html.xpath(xpath):
+                    captcha_xpath = xpath
+                    break
+            # 查找验证码图片
+            captcha_img_url = None
+            if captcha_xpath:
+                for xpath in login_conf.get("captcha_img"):
+                    if html.xpath(xpath):
+                        captcha_img_url = html.xpath(xpath)[0]
+                        break
+                if not captcha_img_url:
+                    return None, None, "未找到验证码图片"
+            # 查找登录按钮
+            submit_xpath = None
+            for xpath in login_conf.get("submit"):
+                if html.xpath(xpath):
+                    submit_xpath = xpath
+                    break
+            if not submit_xpath:
+                return None, None, "未找到登录按钮"
+            # 点击登录按钮
+            try:
+                # 等待登录按钮准备好
+                page.wait_for_selector(submit_xpath)
                 # 输入用户名
-                chrome.browser.find_element(By.XPATH, username_xpath).send_keys(username)
+                page.fill(username_xpath, username)
                 # 输入密码
-                chrome.browser.find_element(By.XPATH, password_xpath).send_keys(password)
-                # 输入两步验证码
-                if twostepcode and twostepcode_xpath:
-                    twostepcode_element = chrome.browser.find_element(By.XPATH, twostepcode_xpath)
-                    if twostepcode_element.is_displayed():
-                        twostepcode_element.send_keys(twostepcode)
+                page.fill(password_xpath, password)
+                # 输入二步验证码
+                if twostep_xpath:
+                    page.fill(twostep_xpath, twostepcode)
                 # 识别验证码
-                if captcha_xpath:
-                    captcha_element = chrome.browser.find_element(By.XPATH, captcha_xpath)
-                    if captcha_element.is_displayed():
+                if captcha_xpath and captcha_img_url:
+                    captcha_element = page.query_selector(captcha_xpath)
+                    if captcha_element.is_visible():
+                        # 验证码图片地址
                         code_url = self.__get_captcha_url(url, captcha_img_url)
+                        # 获取当前的cookie和ua
+                        cookie = SiteHelper.parse_cookies(page.context.cookies())
+                        ua = page.evaluate("() => window.navigator.userAgent")
                         if ocrflag:
                             # 自动OCR识别验证码
-                            captcha = self.get_captcha_text(chrome, code_url)
-                            if captcha:
-                                log.info("【Sites】验证码地址为：%s，识别结果：%s" % (code_url, captcha))
-                            else:
+                            captcha = self.get_captcha_text(cookie, ua, code_url)
+                            if not captcha:
                                 return None, None, "验证码识别失败"
+                            log.info("验证码地址为：%s，识别结果：%s" % (code_url, captcha))                                
                         else:
                             # 等待用户输入
                             captcha = None
@@ -169,7 +175,7 @@ class SiteCookie(object):
                                     break
                                 else:
                                     # 获取验证码图片base64
-                                    code_bin = self.get_captcha_base64(chrome, code_url)
+                                    code_bin = self.get_captcha_base64(cookie, ua, code_url)
                                     if not code_bin:
                                         return None, None, "获取验证码图片数据失败"
                                     else:
@@ -181,44 +187,62 @@ class SiteCookie(object):
                             if not captcha:
                                 return None, None, "验证码输入超时"
                         # 输入验证码
-                        captcha_element.send_keys(captcha)
+                        captcha_element.fill(captcha)
                     else:
                         # 不可见元素不处理
                         pass
-                # 提交登录
-                submit_obj.click()
-                # 等待页面刷新完毕
-                WebDriverWait(driver=chrome.browser, timeout=5).until(es.staleness_of(submit_obj))
+                # 点击登录按钮
+                page.click(submit_xpath)
+                page.wait_for_load_state("networkidle", timeout=30 * 1000)
+            except Exception as e:
+                log.error(f"仿真登录失败：{str(e)}")
+                return None, None, f"仿真登录失败：{str(e)}"
+            # 对于某二次验证码为单页面的站点，输入二次验证码
+            if "verify" in page.url:
+                if not twostepcode:
+                    return None, None, "需要二次验证码"
+                html = etree.HTML(page.content())
+                for xpath in login_conf.get("twostep"):
+                    if html.xpath(xpath):
+                        try:
+                            page.fill(xpath, twostepcode)
+                            # 登录按钮 xpath 理论上相同，不再重复查找
+                            page.click(submit_xpath)
+                            page.wait_for_load_state("networkidle", timeout=30 * 1000)
+                        except Exception as e:
+                            log.error(f"二次验证码输入失败：{str(e)}")
+                            return None, None, f"二次验证码输入失败：{str(e)}"
+                        break
+            # 登录后的源码
+            html_text = page.content()
+            if not html_text:
+                return None, None, "获取网页源码失败"
+            if SiteHelper.is_logged_in(html_text):
+                return SiteHelper.parse_cookies(page.context.cookies()), \
+                    page.evaluate("() => window.navigator.userAgent"), ""
             else:
-                return None, None, "未找到登录按钮"
-        except Exception as e:
-            ExceptionUtils.exception_traceback(e)
-            return None, None, "仿真登录失败：%s" % str(e)
-        # 登录后的源码
-        html_text = chrome.get_html()
-        if not html_text:
-            return None, None, "获取源码失败"
-        if SiteHelper.is_logged_in(html_text):
-            return chrome.get_cookies(), chrome.get_ua(), ""
-        else:
-            # 读取错误信息
-            error_xpath = None
-            for xpath in login_conf.get("error"):
-                if html.xpath(xpath):
-                    error_xpath = xpath
-                    break
-            if not error_xpath:
-                return None, None, "登录失败"
-            else:
-                error_msg = html.xpath(error_xpath)[0]
-                return None, None, error_msg
+                # 读取错误信息
+                error_xpath = None
+                for xpath in login_conf.get("error"):
+                    if html.xpath(xpath):
+                        error_xpath = xpath
+                        break
+                if not error_xpath:
+                    return None, None, "登录失败"
+                else:
+                    error_msg = html.xpath(error_xpath)[0]
+                    return None, None, error_msg
+        
+        return PlaywrightHelper().action(url=url,
+                                         callback=__page_handler,
+                                         headless=noGraphical,
+                                         proxies=proxy)
 
-    def get_captcha_text(self, chrome, code_url):
+    def get_captcha_text(self, cookie: str, ua: str, code_url: str):
         """
         识别验证码图片的内容
         """
-        code_b64 = self.get_captcha_base64(chrome=chrome,
-                                           image_url=code_url)
+        code_b64 = self.get_captcha_base64(cookie,ua,code_url)
         if not code_b64:
             return ""
         return self.ocrhelper.get_captcha_text(image_b64=code_b64)
@@ -297,14 +321,14 @@ class SiteCookie(object):
         return retcode, messages
 
     @staticmethod
-    def get_captcha_base64(chrome, image_url):
+    def get_captcha_base64(cookie: str, ua: str, image_url: str):
         """
         根据图片地址，使用浏览器获取验证码图片base64编码
         """
         if not image_url:
             return ""
-        ret = RequestUtils(headers=chrome.get_ua(),
-                           cookies=chrome.get_cookies()).get_res(image_url)
+        ret = RequestUtils(headers=ua,
+                           cookies=cookie).get_res(image_url)
         if ret:
             return base64.b64encode(ret.content).decode()
         return ""

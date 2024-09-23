@@ -196,6 +196,15 @@ class RssType(Enum):
     # 自动
     Auto = "auto"
 
+class IndexerSearchType(Enum):
+    # 原始标题
+    Title = "title"
+    # 豆瓣id
+    DoubanId = "douban_id"
+    # IMDB id
+    Imdb = "imdb"
+    # 英文名
+    EnName = "en_name"
 
 # 电影类型关键字
 MovieTypes = ['MOV', '电影', MediaType.MOVIE]

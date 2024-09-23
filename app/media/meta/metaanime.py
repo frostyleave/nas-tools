@@ -1,6 +1,6 @@
+from decimal import Decimal
 import re
 
-import PTN
 import zhconv
 
 import anitopy
@@ -126,9 +126,9 @@ class MetaAnime(MetaBase):
                     end_episode = None
                 if begin_episode:
                     try:
-                        self.begin_episode = int(begin_episode)
-                        if end_episode and int(end_episode) != self.begin_episode:
-                            self.end_episode = int(end_episode)
+                        self.begin_episode = int(Decimal(begin_episode))
+                        if end_episode and (end_episode_int := int(Decimal(end_episode))) != self.begin_episode:
+                            self.end_episode = end_episode_int
                             self.total_episodes = (self.end_episode - self.begin_episode) + 1
                         else:
                             self.total_episodes = 1

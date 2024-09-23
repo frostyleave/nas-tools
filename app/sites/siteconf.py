@@ -6,7 +6,7 @@ from functools import lru_cache
 
 from lxml import etree
 
-from app.helper import ChromeHelper
+from app.indexer.client.browser import PlaywrightHelper
 from app.utils import ExceptionUtils, StringUtils, RequestUtils
 from app.utils.commons import singleton
 from config import Config
@@ -166,13 +166,9 @@ class SiteConf:
     @staticmethod
     @lru_cache(maxsize=128)
     def __get_site_page_html(url, cookie, ua, render=False, proxy=False):
-        chrome = ChromeHelper(headless=True)
-        if render and chrome.get_status():
-            # 开渲染
-            if chrome.visit(url=url, cookie=cookie, ua=ua, proxy=proxy):
-                # 等待页面加载完成
-                time.sleep(10)
-                return chrome.get_html()
+        # 开渲染
+        if render:            
+            return PlaywrightHelper().get_page_source(url=url, cookie=cookie, ua=ua, proxy=proxy, timeout=10)
         else:
             res = RequestUtils(
                 cookies=cookie,

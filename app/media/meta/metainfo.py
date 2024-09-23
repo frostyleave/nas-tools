@@ -2,12 +2,13 @@ import os.path
 import regex as re
 import PTN
 import anitopy
+
 import log
 from app.conf import ModuleConf
 from app.helper import WordsHelper
 from app.media.meta.metaanime import MetaAnime
 from app.media.meta.metavideo import MetaVideo
-from app.utils import StringUtils, ReleaseGroupsMatcher
+from app.utils import StringUtils, ReleaseGroupsMatcher, MediaUtils
 from app.utils.types import MediaType
 from config import RMT_MEDIAEXT
 
@@ -28,10 +29,18 @@ def MetaInfo(title, subtitle=None, mtype=None):
 
     # 记录原始名称
     org_title = title
+    
     # 预去除一些无用的词
     rev_title = re.sub(r'%s' % NAME_NOSTRING_RE, "", title, flags=re.IGNORECASE)
-    # 所有【】换成[]、季名转英文
-    rev_title = StringUtils.season_ep_name_to_en(rev_title)
+
+    # 判断是否处理文件、格式化剧集文件名
+    if org_title and os.path.splitext(org_title)[-1] in RMT_MEDIAEXT:
+        fileflag = True
+        rev_title = MediaUtils.clean_episode_range_from_file_name(rev_title)
+    else:
+        fileflag = False
+        rev_title = MediaUtils.format_tv_file_name(rev_title)
+
     # 应用自定义识别词，获取识别词处理后名称
     rev_title, msg, used_info = WordsHelper().process(rev_title)
     if subtitle:
@@ -40,12 +49,6 @@ def MetaInfo(title, subtitle=None, mtype=None):
     if msg:
         for msg_item in msg:
             log.warn("【Meta】%s" % msg_item)
-
-    # 判断是否处理文件
-    if org_title and os.path.splitext(org_title)[-1] in RMT_MEDIAEXT:
-        fileflag = True
-    else:
-        fileflag = False
 
     anime_flag = is_anime(rev_title)
 

@@ -515,15 +515,20 @@ class Transmission(_IDownloadClient):
                     _upspeed = StringUtils.str_filesize(torrent.rate_upload)
                 else:
                     _upspeed = StringUtils.str_filesize(torrent.rateUpload)
-                speed = "%s%sB/s %s%sB/s" % (chr(8595), _dlspeed, chr(8593), _upspeed)
+                speed = ("%s%sB/s %s%sB/s" % (chr(8595), _dlspeed, chr(8593), _upspeed)).replace('BB', 'B')
             # 进度
             progress = round(torrent.progress)
+            left_until_done = torrent.left_until_done
+            total_size = int(left_until_done / (1 - progress))
+            sizeprogress = ("%sB / %sB" % (StringUtils.str_filesize(total_size - left_until_done), StringUtils.str_filesize(total_size))).replace('BB', 'B')
+
             DispTorrents.append({
                 'id': torrent.hashString,
                 'name': torrent.name,
                 'speed': speed,
                 'state': state,
-                'progress': progress
+                'progress': progress,
+                'sizeprogress': sizeprogress
             })
         return DispTorrents
 

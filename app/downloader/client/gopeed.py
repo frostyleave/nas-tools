@@ -24,7 +24,8 @@ class Gopeed(_IDownloadClient):
 
     magnet_prefix = 'magnet:?xt=urn:btih:'
     magnet_prefix_len = 20
-    magnet_hash_split = '&dn='
+    magnet_hash_dn = '&dn='
+    magnet_hash_tr = '&tr='
 
     def __init__(self, config=None):
         if config:
@@ -121,7 +122,31 @@ class Gopeed(_IDownloadClient):
             if match_path and not replace_flag:
                 log.debug(f"【{self.client_name}】{self.name} 开启目录隔离，但 {name} 未匹配下载目录范围")
                 continue
-            trans_tasks.append({'path': os.path.join(true_path, name).replace("\\", "/"), 'id': torrent.get("id")})
+
+            trans_path = os.path.join(true_path, name).replace("\\", "/")
+            if os.path.exists(trans_path):
+                trans_tasks.append({'path': trans_path, 'id': torrent.get("id")})
+                continue
+
+            # 1.59版本后移除顶级目录, 需要取资源目录
+            res_info = res_meta.get('res')
+            if res_info:
+                name = res_info.get("name")
+                if name:
+                    trans_path = os.path.join(true_path, name).replace("\\", "/")
+                    if os.path.exists(trans_path):
+                        trans_tasks.append({'path': trans_path, 'id': torrent.get("id")})
+                    continue
+                # 单文件
+                files = res_info.get("files", [])
+                for file_info in files:
+                    file_name = file_info.get("name")
+                    if file_name:
+                        file_path = os.path.join(true_path, file_name).replace("\\", "/")
+                        if os.path.exists(file_path):
+                            trans_tasks.append({'path': file_path, 'id': torrent.get("id")})
+                        continue
+
         return trans_tasks
 
     def add_torrent(self, content, name, download_dir=None, **kwargs):
@@ -134,14 +159,20 @@ class Gopeed(_IDownloadClient):
             return "无法提交下载任务"
     
     def join_name_with_hash(self, name, input_link):
+
         if not input_link or not input_link.startswith(self.magnet_prefix):
             return name
 
-        s_index = input_link.find(self.magnet_hash_split)
-        if s_index < 0:
-            return '{0}-{1}'.format(name, input_link[self.magnet_prefix_len:])
+        left = input_link[self.magnet_prefix_len:]
+        dn_index = left.find(self.magnet_hash_dn)
+        if dn_index > 0:
+            left = left[:dn_index]
         
-        return '{0}-{1}'.format(name, input_link[self.magnet_prefix_len:s_index])
+        tr_index = left.find(self.magnet_hash_tr)
+        if tr_index > 0:
+            left = left[:tr_index]        
+        
+        return '{0}-{1}'.format(name, left)
 
 
     def start_torrents(self, ids):
@@ -170,41 +201,58 @@ class Gopeed(_IDownloadClient):
         Torrents = self.get_downloading_torrents(tag)
         DispTorrents = []
         for torrent in Torrents:
+            res_info = torrent.get("meta", {}).get("res")
+            opts_info = torrent.get("meta", {}).get("opts")
+
             # 进度
-            progress_info = torrent.get('progress')
-            try:
-                progress = round(int(progress_info.get('downloaded')) / int(progress_info.get("used")), 1) * 100
-            except ZeroDivisionError:
-                progress = 0.0
-            if torrent.get('status') in ['pause']:
-                state = "Stoped"
-                speed = "已暂停"
-            else:
-                state = "Downloading"
-                _dlspeed = StringUtils.str_filesize(progress_info.get('speed'))
-                speed = "%s%sB/s %s%sB/s" % (chr(8595), _dlspeed, chr(8593), '')
+            progress_info = torrent.get("progress")
+            if res_info and progress_info:
+                name = res_info.get("name")
+                if not name and opts_info:
+                    name = opts_info.get("name")
+                    if not name:
+                        continue
 
-            name = ''
-            res_meta = torrent.get('meta')
-            if res_meta:
-                res_info = res_meta.get('res')
-                if res_info:
-                    name = res_info.get("name")
-                if not name:
-                    opts_info = res_meta.get('opts')
-                    if opts_info:
-                        name = opts_info.get("name")
-            
-            if not name:
-                continue
+                total_size = res_info.get("size", 1)
+                downloaded = progress_info.get("downloaded", 0)
 
-            DispTorrents.append({
-                'id': torrent.get('id'),
-                'name': name,
-                'speed': speed,
-                'state': state,
-                'progress': progress
-            })
+                try:
+                    progress = round(int(downloaded) / int(total_size), 1) * 100
+                except:  # noqa: E722
+                    progress = 0.0
+
+                if torrent.get("status") in ["pause"]:
+                    state = "Stoped"
+                    speed = "已暂停"
+                else:
+                    state = "Downloading"
+                    speed = progress_info.get("speed")
+                    if isinstance(speed, str):
+                        speed = int(speed)
+                    if speed < 0:
+                        speed = abs(speed)
+
+                    _dlspeed = StringUtils.str_filesize(speed)
+                    _upspeed = StringUtils.str_filesize(
+                        progress_info.get("uploadSpeed")
+                    )
+                    speed = ("%s %sB/s %s %sB/s" % (
+                        chr(8595),
+                        _dlspeed,
+                        chr(8593),
+                        _upspeed,
+                    )).replace('BB', 'B')
+
+                DispTorrents.append(
+                    {
+                        "id": torrent.get("id"),
+                        "name": name,
+                        "speed": speed,
+                        "state": state,
+                        "progress": progress,
+                        "sizeprogress": ("%sB / %sB" % (StringUtils.str_filesize(downloaded), StringUtils.str_filesize(total_size))).replace('BB', 'B')
+                    }
+                )
 
         return DispTorrents
 

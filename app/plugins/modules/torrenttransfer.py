@@ -11,7 +11,7 @@ from bencode import bdecode, bencode
 from app.downloader import Downloader
 from app.media.meta import MetaInfo
 from app.plugins.modules._base import _IPluginModule
-from app.utils import Torrent
+from app.utils import TorrentUtils
 from app.utils.types import DownloaderType
 from config import Config
 
@@ -300,13 +300,13 @@ class TorrentTransfer(_IPluginModule):
                 self.error(f"源下载器种子文件保存路径不存在：{self._fromtorrentpath}")
                 return
             if isinstance(self._fromdownloader, list) and len(self._fromdownloader) > 1:
-                self.error(f"源下载器只能选择一个")
+                self.error("源下载器只能选择一个")
                 return
             if isinstance(self._todownloader, list) and len(self._todownloader) > 1:
-                self.error(f"目的下载器只能选择一个")
+                self.error("目的下载器只能选择一个")
                 return
             if self._fromdownloader == self._todownloader:
-                self.error(f"源下载器和目的下载器不能相同")
+                self.error("源下载器和目的下载器不能相同")
                 return
             self._scheduler = BackgroundScheduler(timezone=Config().get_timezone())
             if self._cron:
@@ -314,7 +314,7 @@ class TorrentTransfer(_IPluginModule):
                 self._scheduler.add_job(self.transfer,
                                         CronTrigger.from_crontab(self._cron))
             if self._onlyonce:
-                self.info(f"移转做种服务启动，立即运行一次")
+                self.info("移转做种服务启动，立即运行一次")
                 self._scheduler.add_job(self.transfer, 'date',
                                         run_date=datetime.now(tz=pytz.timezone(Config().get_timezone())) + timedelta(
                                             seconds=3))
@@ -380,7 +380,7 @@ class TorrentTransfer(_IPluginModule):
         hash_strs = []
         for torrent in torrents:
             if self._event.is_set():
-                self.info(f"移转服务停止")
+                self.info("移转服务停止")
                 return
             # 获取种子hash
             hash_str = self.__get_hash(torrent, downloader_type)
@@ -444,7 +444,7 @@ class TorrentTransfer(_IPluginModule):
                 # 如果是QB检查是否有Tracker，没有的话补充解析
                 if downloader_type == DownloaderType.QB:
                     # 读取种子内容、解析种子文件
-                    content, _, _, retmsg = Torrent().read_torrent_content(torrent_file)
+                    content, _, _, retmsg = TorrentUtils().read_torrent_content(torrent_file)
                     if not content:
                         self.error(f"读取种子文件失败：{retmsg}")
                         fail += 1
@@ -544,7 +544,7 @@ class TorrentTransfer(_IPluginModule):
                     text=f"总数：{total}，成功：{success}，失败：{fail}"
                 )
         else:
-            self.info(f"没有需要移转的种子")
+            self.info("没有需要移转的种子")
         self.info("移转做种任务执行完成")
 
     def check_recheck(self):

@@ -3,12 +3,11 @@ from urllib.parse import quote
 
 import cn2an
 import re
-import PTN
 import log
 
 from app.media import Media, Bangumi, DouBan
 from app.media.meta import MetaInfo
-from app.utils import StringUtils, ExceptionUtils, SystemUtils, RequestUtils, IpUtils
+from app.utils import StringUtils, ExceptionUtils, SystemUtils, RequestUtils, IpUtils, MediaUtils
 from app.utils.types import MediaType
 from config import Config
 from version import APP_VERSION
@@ -98,17 +97,7 @@ class WebUtils:
             begin_season = None
             # 剧集类型，去掉标题中的季信息
             if mtype == MediaType.TV and re.search(r'%s' % DB_SEASON_SUFFIX, title, flags=re.IGNORECASE):
-                new_title = StringUtils.season_ep_name_to_en(title)
-                t = PTN.parse(new_title)
-                if t.get('title') and t.get('season'):
-                    title = t.get('title')
-                    season = t.get('season')
-                    if isinstance(season, list):
-                        begin_season = season[0]
-                    elif isinstance(season, int):
-                        begin_season = season
-                    if begin_season and begin_season > 1:
-                        year = None
+                title, begin_season = MediaUtils.resolve_douban_season_tag(title)
 
             tmdb_info = Media().query_tmdb_info(title, mtype, year, begin_season, append_to_response="all")
             if not tmdb_info:
@@ -157,20 +146,19 @@ class WebUtils:
             media_info = MetaInfo(title=info.get("title") if mtype == MediaType.MOVIE else info.get("name"))
             media_info.set_tmdb_info(info)
 
-        if (hasattr(info, 'imdb_id') == False or not info.imdb_id) and hasattr(info, 'external_ids') and info.external_ids and hasattr(info.external_ids, 'imdb_id') and  info.external_ids.imdb_id:
+        if (hasattr(info, 'imdb_id') is False or not info.imdb_id) and hasattr(info, 'external_ids') and info.external_ids and hasattr(info.external_ids, 'imdb_id') and  info.external_ids.imdb_id:
             setattr(info, 'imdb_id', info.external_ids.imdb_id)
         
         # 豆瓣信息补全
         if media_info and info:
-            if hasattr(info, 'imdb_id') and info.imdb_id:
-                search_kwd = title
-                if mtype == MediaType.MOVIE:
-                    search_kwd = info.imdb_id
-                elif info.number_of_seasons and info.number_of_seasons == 1:
-                    search_kwd = info.imdb_id
-                douban_info = DouBan().agg_search(search_kwd, mtype)
+
+            imdb_id = info.imdb_id if hasattr(info, 'imdb_id') and info.imdb_id else ''
+            season_count = info.number_of_seasons if hasattr(info, 'number_of_seasons') else 0
+            if season_count > 1:
+                douban_info = DouBan().agg_search(title, mtype)
             else:
-                douban_info = DouBan().agg_search(title)
+                search_kwd = imdb_id if imdb_id else title
+                douban_info = DouBan().agg_search(search_kwd, mtype)
             
             if douban_info:
                 douban_id_list = list(map(lambda x: x.get("id"), douban_info))

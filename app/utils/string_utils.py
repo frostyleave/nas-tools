@@ -143,6 +143,12 @@ class StringUtils:
     def is_alpha_numeric_punct(s):
         eng = re.compile(r'^[a-zA-Z0-9!"#$%&\'()*+,-./:;<=>?@[\]^_`{|}~]+$')
         return eng.search(s)
+    
+    @staticmethod
+    def is_all_en_character(s: str) -> bool:
+        # 正则表达式匹配字母、数字、空格、常见标点符号和特殊符号 @ 和 #
+        pattern = r'^[a-zA-Z0-9\s.,!?;:\'"()\-@#]+$'
+        return bool(re.fullmatch(pattern, s))
 
     @staticmethod
     def is_all_chinese_and_mark(word):
@@ -722,63 +728,6 @@ class StringUtils:
         return raw_text
 
     @staticmethod
-    def season_ep_name_to_en(title):
-        # 所有【】换成[]
-        title = title.replace("【", "[").replace("】", "]").strip()
-        # 季、期 统一：改为英文，方便三方插件识别
-        title = StringUtils.name_ch_to_number(title, r"([第|全|共][^第|全|共]+[季|期])", 'S')
-        # 集数 统一：改为英文，方便三方插件识别
-        title = StringUtils.name_ch_to_number(title, r"([第|全|共][^第|全|共]+[集|话|話])", 'E')
-        title = StringUtils.name_ch_to_number(title, r"(?<!第)(?<!全)(?<!共)(?<!\d)\b\d+[集话話]", 'E')
-        # 空格替换为'.'，并把多个连续'.'合并为一个
-        title = re.sub("\.+", ".", title).strip('.')
-        return title
-
-    @staticmethod
-    def name_ch_to_number(title, reg_pattern, format_str):
-        offset = 0
-        new_list = set()
-        for raw in list(re.finditer(reg_pattern, title, flags=re.IGNORECASE))[::-1]:
-            info = raw.group()
-            # 截掉这部分内容
-            title = title[0:raw.regs[0][0]] + title[raw.regs[0][1]:]
-            # 偏移量
-            if offset == 0:
-                offset = raw.regs[0][0]
-            else:
-                offset -= (raw.regs[0][1] - raw.regs[0][0] + 1)
-            tag = info[0]
-            # 去掉头尾取中间需要转换的部分
-            if tag.isdigit() == False:
-                info = info[1:-1]
-            else:
-                info = info[0:-1]
-            # 正则取中文，转化为数字
-            numbers = list(re.finditer(r'[\d\u4e00-\u9fa5]+', info))[::-1]
-            for ep in numbers:
-                try:
-                    x = cn2an.cn2an(ep.group(), "smart")
-                    info = info[0: ep.regs[0][0]] + str(int(x)).rjust(2, '0') + info[ep.regs[0][1]:]
-                except Exception as err:
-                    log.error(f"季集信息转换出错出错：{str(err)}")
-            
-            if len(numbers) == 1 and (tag =='全' or tag =='共'):
-                info = '01-' + info
-
-            new_list.add(format_str + info)
-
-        if len(new_list) == 0:
-            return title
-
-        new_info = '.{}.'.format(' '.join(new_list))
-        if offset == 0:
-            cn_char = re.search('[A-Za-z]+', title, flags=re.IGNORECASE)
-            if cn_char:
-                offset = cn_char.regs[0][0]
-        title = title[0: offset].strip() + new_info + title[offset:].strip()
-        return title.strip()
-
-    @staticmethod
     def remve_redundant_symbol(title):
         # []换成.
         rev_title = title.replace('[', '.').replace(']', '.').replace('「', '.').replace('」', '.').strip('.-/\&#_')
@@ -836,3 +785,17 @@ class StringUtils:
                 return True
         
         return False
+    
+    @staticmethod
+    def split_and_filter(text: str, delimiter: str) -> list:
+        """
+        将字符串按指定分隔符分割，并移除空字符串。
+
+        :param text: 要处理的字符串
+        :param delimiter: 用于分割的分隔符
+        :return: 分割后移除空字符串的列表
+        """
+        # 使用分隔符分割字符串
+        parts = text.split(delimiter)
+        # 移除空字符串
+        return [part for part in parts if part]

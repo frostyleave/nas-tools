@@ -1,4 +1,5 @@
 #!/usr/bin/with-contenv bash
 # shellcheck shell=bash
 
-pkill -f 'redis-server'
+# pkill -f 'redis-server'
+kill $(pgrep -f 'redis-server')

@@ -34,6 +34,20 @@ if (window.location.protocol === "https:") {
 // 页面加载的时间
 let PageLoadedTime = new Date();
 
+window.addEventListener('popstate', function (event) {
+  back_page = event.state?.page;
+  if (back_page) {
+    page = back_page.replaceAll(" ", "%20");
+    let navLinks = document.querySelectorAll('#top-sub-navbar a');
+    let isPageInNav = Array.from(navLinks).some(link => link.getAttribute('data-id') === page);
+    if (isPageInNav) {
+      $('#top-sub-navbar').show();
+    } else {
+      $('#top-sub-navbar').hide();
+    }
+  }
+});
+
 
 /**
  * 公共函数区
@@ -93,9 +107,9 @@ function navmenu(page, newflag = false) {
         CurrentPageUri = page;
 
         let navLinks = document.querySelectorAll('#top-sub-navbar a');
-        let isPageInNav = Array.from(navLinks).some(link => link.getAttribute('data-id') === page);
+        let selectNav = Array.from(navLinks).find(link => link.getAttribute('data-id') === page);
         // 当前菜单不在子菜单中
-        if (!isPageInNav) {
+        if (!selectNav) {
           // 激活当前菜单
           navbarMenu.update_active(page);
           // 如果当前菜单有子菜单, 重绘子菜单
@@ -116,7 +130,7 @@ function navmenu(page, newflag = false) {
                 const aElement = document.createElement('a');
                 aElement.className = 'nav-link';
                 aElement.href = '#';
-                aElement.innerHTML = `${item.name}`;
+                aElement.innerHTML = `<span class="d-md-none" style="color:var(--tblr-body-color);">${item.icon}</span><span class="d-none d-md-inline">${item.name}</span>`;
                 aElement.setAttribute('data-bs-toggle', 'tab');
                 aElement.setAttribute('data-id', item.page);
                 aElement.onclick = () => navmenu(item.page); // 根据 item.page 设定点击行为
@@ -132,7 +146,7 @@ function navmenu(page, newflag = false) {
               ulElement.firstChild.firstChild.classList.add('active');
 
               $('#top-sub-navbar').show();
-              
+
             } else {
               $('#top-sub-navbar').hide();
             }
@@ -141,13 +155,17 @@ function navmenu(page, newflag = false) {
           // 如果子菜单可见, 说明是同页面切换, 否则需要激活第一个标签
           if (!$('#top-sub-navbar').is(':visible')) {
             $('#top-sub-navbar').show();
-            $(navLinks).removeClass('active');
-            $(navLinks).eq(0).addClass('active');
             // 激活当前菜单
             navbarMenu.update_active(page);
           }
+          $(navLinks).removeClass('active');
+          $(selectNav).addClass('active');
         }
-
+      } else {
+        let navLinks = document.querySelectorAll('#top-sub-navbar a');
+        $(navLinks).removeClass('active');
+        let selectNav = Array.from(navLinks).find(link => link.getAttribute('data-id') === page);
+        $(selectNav).addClass('active');
       }
       // 并记录当前历史记录
       window_history(!newflag);
@@ -157,7 +175,7 @@ function navmenu(page, newflag = false) {
 
 // 搜索
 function media_search(tmdbid, title, type) {
-  const param = {"tmdbid": tmdbid, "search_word": title, "media_type": type};
+  const param = { "tmdbid": tmdbid, "search_word": title, "media_type": type };
   show_refresh_progress("正在搜索 " + title + " ...", "search");
   ajax_post("search", param, function (ret) {
     hide_refresh_process();
@@ -343,7 +361,7 @@ function render_message(ret) {
           </div>`;
       $("#system-messages").prepend(html_text);
       // 滚动到顶部
-      $(".offcanvas-body").animate({scrollTop: 0}, 300);
+      $(".offcanvas-body").animate({ scrollTop: 0 }, 300);
       // 浏览器消息提醒
       if (!$("#offcanvasEnd").is(":hidden")) {
         // 判断消息时间是否大于页面打开时间
@@ -367,12 +385,12 @@ function get_message(lst_time) {
   if (!MessageWS) {
     return;
   }
-  MessageWS.send(JSON.stringify({"lst_time": lst_time}));
+  MessageWS.send(JSON.stringify({ "lst_time": lst_time }));
 }
 
 //检查系统是否在线
 function check_system_online() {
-  ajax_post("refresh_process", {type: "restart"}, function (ret) {
+  ajax_post("refresh_process", { type: "restart" }, function (ret) {
     if (ret.code === -1) {
       logout();
     } else {
@@ -434,7 +452,7 @@ function user_auth() {
   $("#user_auth_btn").text("认证中...").prop("disabled", true);
   let siteid = $("#user_auth_site").val();
   let params = input_select_GetVal(`user_auth_${siteid}_params`, `${siteid}_`);
-  ajax_post("auth_user_level", {site: siteid, params: params}, function (ret) {
+  ajax_post("auth_user_level", { site: siteid, params: params }, function (ret) {
     GlobalModalAbort = true;
     $("#modal-user-auth").modal("hide");
     $("#user_auth_btn").prop("disabled", false).text("认证");
@@ -514,8 +532,9 @@ function hide_confirm_modal() {
 }
 
 // 显示询问提示框
-function show_ask_modal(title, func) {
-  $("#system_ask_message").text(title);
+function show_ask_modal(message, func, title = '询问') {
+  $("#system_ask_title").text(title);
+  $("#system_ask_message").text(message);
   $("#system_ask_btn").unbind('click').click(func);
   $("#system-ask-modal").modal("show");
 }
@@ -605,46 +624,46 @@ function show_mediainfo_modal(rtype, name, year, mediaid, page, rssid) {
       if (ret.rssid) {
         //取消订阅按钮
         $("#system_media_rss_btn").text("取消订阅")
-            .removeAttr("data-bs-toggle")
-            .removeClass("dropdown-toggle")
-            .attr("href", 'javascript:remove_rss_media("' + ret.title + '","' + ret.year + '","' + ret.type + '","' + ret.rssid + '","' + ret.page + '")')
-            .show();
+          .removeAttr("data-bs-toggle")
+          .removeClass("dropdown-toggle")
+          .attr("href", 'javascript:remove_rss_media("' + ret.title + '","' + ret.year + '","' + ret.type + '","' + ret.rssid + '","' + ret.page + '")')
+          .show();
         //搜索按钮
         $("#system_media_search_btn").text("搜索")
-            .attr("href", 'javascript:search_mediainfo_media("' + ret.tmdbid + '", "' + ret.title + '", "' + ret.type_str + '")')
-            .show();
+          .attr("href", 'javascript:search_mediainfo_media("' + ret.tmdbid + '", "' + ret.title + '", "' + ret.type_str + '")')
+          .show();
         //刷新和编辑按钮
         if (ret.page.startsWith("movie_rss") || ret.page.startsWith("tv_rss")) {
           //编辑
           $("#system_media_url_btn").text("编辑")
-              .attr("href", "javascript:show_edit_rss_media_modal('" + ret.rssid + "', '" + ret.type_str + "')")
-              .show();
+            .attr("href", "javascript:show_edit_rss_media_modal('" + ret.rssid + "', '" + ret.type_str + "')")
+            .show();
           //刷新
           $("#system_media_refresh_btn").text("刷新")
-              .attr("href", 'javascript:refresh_rss_media("' + ret.type + '","' + ret.rssid + '","' + ret.page + '")')
-              .show();
+            .attr("href", 'javascript:refresh_rss_media("' + ret.type + '","' + ret.rssid + '","' + ret.page + '")')
+            .show();
         } else {
           //详情按钮
           $("#system_media_url_btn").text("详情")
-              .attr("href", 'javascript:navmenu("media_detail?type=' + ret.type + '&id=' + ret.tmdbid + '")')
-              .show();
+            .attr("href", 'javascript:navmenu("media_detail?type=' + ret.type + '&id=' + ret.tmdbid + '")')
+            .show();
         }
       } else {
         //详情按钮
         $("#system_media_url_btn").text("详情")
-            .attr("href", 'javascript:navmenu("media_detail?type=' + ret.type + '&id=' + ret.tmdbid + '")')
-            .show();
+          .attr("href", 'javascript:navmenu("media_detail?type=' + ret.type + '&id=' + ret.tmdbid + '")')
+          .show();
         //订阅按钮
         $("#system_media_rss_btn").text("订阅");
         $("#system_media_rss_dropdown").empty();
         if (ret.seasons.length === 0) {
           $("#system_media_rss_btn").removeAttr("data-bs-toggle")
-              .removeClass("dropdown-toggle")
-              .attr("href", 'javascript:add_rss_media("' + ret.title + '","' + ret.year + '","' + ret.type + '","' + ret.tmdbid + '","' + ret.page + '","")')
+            .removeClass("dropdown-toggle")
+            .attr("href", 'javascript:add_rss_media("' + ret.title + '","' + ret.year + '","' + ret.type + '","' + ret.tmdbid + '","' + ret.page + '","")')
         } else {
           $("#system_media_rss_btn").prop("data-bs-toggle", "dropdown")
-              .addClass("dropdown-toggle")
-              .attr("href", 'javascript:$("#system_media_rss_btn").dropdown("toggle")')
+            .addClass("dropdown-toggle")
+            .attr("href", 'javascript:$("#system_media_rss_btn").dropdown("toggle")')
           //订阅季的下拉框
           for (let i = 0; i < ret.seasons.length; i++) {
             $("#system_media_rss_dropdown").append('<a class="dropdown-item" href=\'javascript:add_rss_media("' + ret.title + '","' + ret.year + '","' + ret.type + '","' + ret.tmdbid + '","' + ret.page + '","' + ret.seasons[i].num + '")\'>' + ret.seasons[i].text + '</a>');
@@ -653,8 +672,8 @@ function show_mediainfo_modal(rtype, name, year, mediaid, page, rssid) {
         $("#system_media_rss_btn").show();
         //搜索按钮
         $("#system_media_search_btn").text("搜索")
-            .attr("href", 'javascript:search_mediainfo_media("' + ret.tmdbid + '", "' + ret.title + '", "' + ret.type_str + '")')
-            .show();
+          .attr("href", 'javascript:search_mediainfo_media("' + ret.tmdbid + '", "' + ret.title + '", "' + ret.type_str + '")')
+          .show();
       }
       $("#system_media_name_link").attr("href", ret.link_url);
       //弹窗
@@ -704,7 +723,7 @@ function add_rss_media(name, year, type, mediaid, page, season, func) {
 // 取消订阅
 function remove_rss_media(name, year, type, rssid, page, tmdbid, func) {
   hide_mediainfo_modal();
-  let data = {"name": name, "type": type, "year": year, "rssid": rssid, "page": page, "tmdbid": tmdbid};
+  let data = { "name": name, "type": type, "year": year, "rssid": rssid, "page": page, "tmdbid": tmdbid };
   ajax_post("remove_rss_media", data, function (ret) {
     if (func) {
       func();
@@ -719,7 +738,7 @@ function remove_rss_media(name, year, type, rssid, page, tmdbid, func) {
 // 刷新订阅
 function refresh_rss_media(type, rssid, page) {
   hide_mediainfo_modal();
-  ajax_post("refresh_rss", {"type": type, "rssid": rssid, "page": page}, function (ret) {
+  ajax_post("refresh_rss", { "type": type, "rssid": rssid, "page": page }, function (ret) {
     if (ret.page) {
       window_history_refresh();
     } else {
@@ -751,7 +770,7 @@ function show_rss_seasons_modal(name, year, type, mediaid, seasons, func) {
 //搜索
 function search_mediainfo_media(tmdbid, title, typestr) {
   hide_mediainfo_modal();
-  const param = {"tmdbid": tmdbid, "search_word": title, "media_type": typestr};
+  const param = { "tmdbid": tmdbid, "search_word": title, "media_type": typestr };
   show_refresh_progress("正在搜索 " + title + " ...", "search");
   ajax_post("search", param, function (ret) {
     hide_refresh_process();
@@ -990,7 +1009,7 @@ function show_default_rss_setting_modal(mtype) {
   refresh_downloadsetting_select("default_rss_setting_download_setting", false)
 
   // 查询已保存配置
-  ajax_post("get_default_rss_setting", {mtype: mtype}, function (ret) {
+  ajax_post("get_default_rss_setting", { mtype: mtype }, function (ret) {
     if (ret.code === 0 && ret.data) {
       $("#default_rss_setting_restype").val(ret.data.restype);
       $("#default_rss_setting_pix").val(ret.data.pix);
@@ -1037,9 +1056,9 @@ function save_default_rss_setting() {
   };
   const common = input_select_GetVal("modal-default-rss-setting", "default_rss_setting_");
   const key = common.mtype === "MOV" ? "DefaultRssSettingMOV" : "DefaultRssSettingTV";
-  const value = {...common, ...sites};
+  const value = { ...common, ...sites };
   $("#modal-default-rss-setting").modal("hide");
-  ajax_post("set_system_config", {key: key, value: value}, function (ret) {
+  ajax_post("set_system_config", { key: key, value: value }, function (ret) {
     if (ret.code === 0) {
       show_success_modal("设置订阅默认配置成功！");
     } else {
@@ -1059,7 +1078,7 @@ function show_edit_rss_media_modal(rssid, type) {
   refresh_rss_download_setting_dirs();
 
   // 获取订阅信息
-  ajax_post("rss_detail", {"rssid": rssid, "rsstype": type}, function (ret) {
+  ajax_post("rss_detail", { "rssid": rssid, "rsstype": type }, function (ret) {
     if (ret.code === 0) {
       $("#rss_tmdbid").val(ret.detail.tmdbid);
       $("#rss_name").val(ret.detail.name).attr("readonly", true);
@@ -1122,8 +1141,8 @@ function show_edit_rss_media_modal(rssid, type) {
       $("[name='rss_add_btn']").hide();
       $("[name='rss_edit_btn']").show();
       $("#rss_delete_btn").attr("href",
-          `javascript:remove_rss_manual('${ret.detail.type}','${ret.detail.name}','${ret.detail.year}','${rssid}')`)
-          .show();
+        `javascript:remove_rss_manual('${ret.detail.type}','${ret.detail.name}','${ret.detail.year}','${rssid}')`)
+        .show();
       $("#modal-manual-rss").modal('show');
     }
   });
@@ -1134,10 +1153,10 @@ function show_rss_success_modal(rssid, type, text) {
   $("#system_success_action_message").text(text);
   if (rssid) {
     $("#system_success_action_btn").text("编辑订阅")
-        .unbind('click').click(function () {
-      $("#system-success-action-modal").modal('hide');
-      show_edit_rss_media_modal(rssid, type);
-    });
+      .unbind('click').click(function () {
+        $("#system-success-action-modal").modal('hide');
+        show_edit_rss_media_modal(rssid, type);
+      });
     ;
     $("#system_success_action_div").show();
   } else {
@@ -1162,7 +1181,7 @@ function refresh_filter_select(obj_id, aync = true) {
 
 // 刷新RSS站点下拉框
 function refresh_rsssites_select(obj_id, item_name, aync = true) {
-  ajax_post("get_sites", {rss: true, basic: true}, function (ret) {
+  ajax_post("get_sites", { rss: true, basic: true }, function (ret) {
     if (ret.code === 0) {
       let rsssites_select = $(`#${obj_id}`);
       let rsssites_select_content = "";
@@ -1186,7 +1205,7 @@ function refresh_rsssites_select(obj_id, item_name, aync = true) {
 
 // 刷新搜索站点列表
 function refresh_searchsites_select(obj_id, item_name, aync = true) {
-  ajax_post("get_indexers", {check: true, basic: true}, function (ret) {
+  ajax_post("get_indexers", { check: true, basic: true }, function (ret) {
     if (ret.code === 0) {
       let searchsites_select = $(`#${obj_id}`);
       let searchsites_select_content = "";
@@ -1210,7 +1229,7 @@ function refresh_searchsites_select(obj_id, item_name, aync = true) {
 
 // 刷新搜索站点下拉框
 function refresh_site_options(obj_id, show_all = false) {
-  ajax_post("get_indexers", {check: true, basic: true}, function (ret) {
+  ajax_post("get_indexers", { check: true, basic: true }, function (ret) {
     if (ret.code === 0) {
       let site_options = '';
       if (show_all) {
@@ -1235,7 +1254,7 @@ function refresh_savepath_select(obj_id, aync = true, sid = "", is_default = fal
     savepath_input_manual.hide();
     savepath_select.show();
   } else {
-    ajax_post("get_download_dirs", {sid: sid, site: site}, function (ret) {
+    ajax_post("get_download_dirs", { sid: sid, site: site }, function (ret) {
       if (ret.code === 0) {
         for (let path of ret.paths) {
           savepath_select_content += `<option value="${path}">${path}</option>`;
@@ -1361,7 +1380,7 @@ function download_link() {
   const dir = get_savepath("search_download_dir", "search_download_dir_manual");
   const setting = $("#search_download_setting").val();
   $("#modal-search-download").modal('hide');
-  ajax_post("download", {"id": id, "dir": dir, "setting": setting}, function (ret) {
+  ajax_post("download", { "id": id, "dir": dir, "setting": setting }, function (ret) {
     if (ret.retcode === 0) {
       show_success_modal(`${name} 添加下载成功！`);
     } else {
@@ -1415,7 +1434,7 @@ function search_media_advanced() {
     "sp_state": sp_state,
     "rule": search_rule
   };
-  const param = {"search_word": keyword, "filters": filters, "unident": true};
+  const param = { "search_word": keyword, "filters": filters, "unident": true };
   $("#modal-search-advanced").modal("hide");
   show_refresh_progress(`正在搜索 ${keyword} ...`, "search");
   ajax_post("search", param, function (ret) {
@@ -1453,35 +1472,35 @@ function openFileBrowser(el, root, filter, on_folders, on_files, close_on_select
   p.after("<div id='fileTree" + r + "' class='fileTree card shadow-sm' style='z-index: 99999;'></div>");
   const ft = $('#fileTree' + r);
   ft.fileTree({
-        script: 'dirlist',
-        root: root,
-        filter: filter,
-        allowBrowsing: true
-      },
-      function (file) {
-        if (on_files) {
-          p.val(file);
-          p.trigger('change');
-          if (close_on_select) {
-            ft.slideUp('fast', function () {
-              ft.remove();
-            });
-          }
+    script: 'dirlist',
+    root: root,
+    filter: filter,
+    allowBrowsing: true
+  },
+    function (file) {
+      if (on_files) {
+        p.val(file);
+        p.trigger('change');
+        if (close_on_select) {
+          ft.slideUp('fast', function () {
+            ft.remove();
+          });
         }
-      },
-      function (folder) {
-        if (on_folders) {
-          p.val(folder);
-          p.trigger('change');
-          if (close_on_select) {
-            $(ft).slideUp('fast', function () {
-              $(ft).remove();
-            });
-          }
+      }
+    },
+    function (folder) {
+      if (on_folders) {
+        p.val(folder);
+        p.trigger('change');
+        if (close_on_select) {
+          $(ft).slideUp('fast', function () {
+            $(ft).remove();
+          });
         }
-      });
+      }
+    });
   // Format fileTree according to parent position, height and width
-  ft.css({'left': p.position().left, 'top': (p.position().top + p.outerHeight()), 'width': (p.parent().width())});
+  ft.css({ 'left': p.position().left, 'top': (p.position().top + p.outerHeight()), 'width': (p.parent().width()) });
   // close if click elsewhere
   $(document).mouseup(function (e) {
     if (!ft.is(e.target) && ft.has(e.target).length === 0) {
@@ -1515,7 +1534,7 @@ function media_name_test(name, result_div, func, subtitle) {
   if (!name) {
     return;
   }
-  ajax_post("name_test", {"name": name, "subtitle": subtitle || ""}, function (ret) {
+  ajax_post("name_test", { "name": name, "subtitle": subtitle || "" }, function (ret) {
     if (func) {
       func();
     }
@@ -1614,7 +1633,7 @@ function show_manual_transfer_modal(manual_type, inpath, syncmod, media_type, un
 
 // 重新识别
 function re_identification(flag, ids) {
-  ajax_post("re_identification", {"flag": flag, "ids": ids}, function (ret) {
+  ajax_post("re_identification", { "flag": flag, "ids": ids }, function (ret) {
     if (ret.retcode == 0) {
       navmenu(flag);
     } else {
@@ -1778,7 +1797,7 @@ function search_tmdbid_by_name(keyid, resultid) {
     $("#" + keyid).removeClass("is-invalid");
   }
   $("#" + keyid).prop("disabled", true);
-  ajax_post("search_media_infos", {"keyword": name, "searchtype": "tmdb"}, function (ret) {
+  ajax_post("search_media_infos", { "keyword": name, "searchtype": "tmdb" }, function (ret) {
     $("#" + keyid).prop("disabled", false);
     if (ret.code == 0) {
       let data = ret.result;
@@ -1818,7 +1837,7 @@ function send_web_message(obj) {
   if (!MessageWS) {
     return;
   }
-  MessageWS.send(JSON.stringify({"text": text}));
+  MessageWS.send(JSON.stringify({ "text": text }));
   // 显示自己发送的消息
   $("#system-messages").prepend(`<div class="list-group-item">
       <div class="row align-items-center">
@@ -1838,7 +1857,7 @@ function send_web_message(obj) {
       </div>
     </div>`);
   // 滚动到顶部
-  $(".offcanvas-body").animate({scrollTop:0}, 300);
+  $(".offcanvas-body").animate({ scrollTop: 0 }, 300);
 }
 
 // 初始化DropZone

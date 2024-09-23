@@ -1,15 +1,14 @@
+import hashlib
 import os.path
 import re
-
-import zhconv
-from bencode import bdecode
+import bencodepy
+import urllib
 
 from app.utils.media_utils import MediaUtils
 from app.utils.types import MediaType
-from config import ZHTW_SUB_RE
 
 
-class Torrent:
+class TorrentUtils:
 
     @staticmethod
     def convert_hash_to_magnet(hash_text, title):
@@ -27,48 +26,93 @@ class Torrent:
         ret_magnet = f'magnet:?xt=urn:btih:{hash_text}'
         return ret_magnet
 
+
     @staticmethod
-    def get_torrent_files(path):
+    def resolve_torrent_files(content: str):
         """
-        解析Torrent文件，获取文件清单
+        解析Torrent文件, 获取文件清单
         :return: 种子文件列表主目录、种子文件列表、错误信息
         """
-        if not path or not os.path.exists(path):
-            return "", [], f"种子文件不存在：{path}"
+        if not content:
+            return "", [], "种子内容为空"
+        
         file_names = []
         file_folder = ""
         try:
-            torrent = bdecode(open(path, 'rb').read())
-            if torrent.get("info"):
-                files = torrent.get("info", {}).get("files") or []
+            torrent = bencodepy.decode(content)
+            if torrent.get(b"info"):
+                files = torrent.get(b"info", {}).get(b"files") or []
                 if files:
                     for item in files:
-                        if item.get("path"):
-                            file_names.append(item["path"][0])
-                    file_folder = torrent.get("info", {}).get("name")
+                        if item.get(b"path"):
+                            file_names.append(item[b"path"][0].decode('utf-8'))
+                    file_folder = torrent.get(b"info", {}).get(b"name").decode('utf-8')
                 else:
-                    file_names.append(torrent.get("info", {}).get("name"))
+                    file_names.append(torrent.get(b"info", {}).get(b"name").decode('utf-8'))
         except Exception as err:
             return file_folder, file_names, "解析种子文件异常：%s" % str(err)
         return file_folder, file_names, ""
+    
 
-    def read_torrent_content(self, path):
+    @staticmethod
+    def read_torrent_content(path):
         """
         读取本地种子文件的内容
         :return: 种子内容、种子文件列表主目录、种子文件列表、错误信息
         """
         if not path or not os.path.exists(path):
             return None, "", [], "种子文件不存在：%s" % path
+        
         content, retmsg, file_folder, files = None, "", "", []
+        
         try:
             # 读取种子文件内容
             with open(path, 'rb') as f:
                 content = f.read()
-            # 解析种子文件
-            file_folder, files, retmsg = self.get_torrent_files(path)
+
+            file_folder, files, retmsg = TorrentUtils.resolve_torrent_files(content)
         except Exception as e:
             retmsg = "读取种子文件出错：%s" % str(e)
+
         return content, file_folder, files, retmsg
+
+    @staticmethod
+    def torrent_to_magnet(torrent_file):
+        """
+        种子文件转磁力链接
+        :return: 磁力链接
+        """
+        # 读取种子文件
+        with open(torrent_file, 'rb') as f:
+            torrent_data = bencodepy.decode(f.read())
+
+        # 提取info部分并计算info hash
+        info = torrent_data[b'info']
+        info_hash = hashlib.sha1(bencodepy.encode(info)).hexdigest()
+
+        # 获取种子文件中的文件名
+        name = torrent_data[b'info'].get(b'name', b'').decode('utf-8')
+
+        # 提取trackers
+        trackers = []
+        if b'announce' in torrent_data:
+            trackers.append(torrent_data[b'announce'].decode('utf-8'))
+        if b'announce-list' in torrent_data:
+            for tracker_list in torrent_data[b'announce-list']:
+                for tracker in tracker_list:
+                    trackers.append(tracker.decode('utf-8'))
+
+        # 去重
+        trackers = list(set(trackers))
+
+        # 构建磁力链接
+        magnet_link = f"magnet:?xt=urn:btih:{info_hash}"
+        if name:
+            magnet_link += f"&dn={urllib.parse.quote(name)}"
+        for tracker in trackers:
+            magnet_link += f"&tr={urllib.parse.quote(tracker)}"
+
+        return magnet_link
 
     @staticmethod
     def get_intersection_episodes(target, source, title):

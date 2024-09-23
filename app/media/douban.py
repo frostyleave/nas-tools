@@ -71,6 +71,89 @@ class DouBan:
     
         return detail_list
     
+    def search_multi_season_tv(self, original_title, title):
+        """
+        查询多季剧集信息
+        """
+        douban_info = self.doubanapi.movie_search(title)
+        if not douban_info:
+            return None
+        
+        total = min(douban_info.get('total', 0), 100)
+        if total == 0 or not douban_info.get('subjects'):
+            return None
+
+        subjects = douban_info.get("subjects")
+        detail_list = self.filter_search_result(subjects, original_title, title)
+
+        if total > 20:
+            total_page = int(total / 20)
+            if total % 20 > 0:
+                total_page = total_page + 1
+            for i in range(1, total_page):
+                douban_info = self.doubanapi.movie_search(title, i * 20)
+                if not douban_info:
+                    break
+                subjects = douban_info.get("subjects")
+                if not subjects:
+                    break
+                detail_list.extend(self.filter_search_result(subjects, original_title, title))
+                if len(subjects) < 20:
+                    break
+
+        return detail_list
+
+
+    def filter_search_result(self, subjects, original_title, title):
+        """
+        过滤剧集搜索结果
+        """
+        detail_list = []
+        for subject_item in subjects:
+            subtype = subject_item.get('subtype')
+            if subtype != 'tv':
+                continue
+            item_original_title = subject_item.get('original_title', '')
+            item_title = subject_item.get('title', '')
+            if not item_original_title.startswith(original_title) and not item_title.startswith(title):
+                continue
+            detail_item = {
+                'id' : subject_item.get('id'),
+                'title': item_title,
+                'year' : subject_item.get('year'),
+                'uri': subject_item.get('alt')
+            }
+            detail_list.append(detail_item)
+        return detail_list
+    
+    def search_agg_by_page(self, key_word, page, mtype : Optional[MediaType] = None):
+        douban_info = self.doubanapi.search_agg(key_word)
+        if not douban_info:
+            return None
+        if douban_info.get("localized_message"):
+            log.warn("【Douban】查询豆瓣详情错误: %s" % douban_info.get("localized_message"))
+            return None
+
+        result_items = []
+        
+        # 搜索结果融合
+        subject = douban_info.get("subjects")
+        if subject and subject.get("items"):
+            result_items.extend(subject.get("items"))
+        if douban_info.get('smart_box'):
+            result_items.extend(douban_info['smart_box'])
+
+        if len(result_items) == 0:
+            return None
+
+        # 根据媒体资源类型过滤
+        detail_list = []
+        for item in result_items:
+            if self.is_target_type_match(item.get("target_type"), mtype):
+                detail_list.append(item.get("target"))
+    
+        return detail_list
+    
     # 媒体资源类型是否适用
     def is_target_type_match(self, item_type, mtype : Optional[MediaType] = None):
         if not item_type:

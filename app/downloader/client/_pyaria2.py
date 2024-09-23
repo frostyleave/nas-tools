@@ -3,7 +3,7 @@
 import json
 import requests
 
-from app.utils import Torrent
+from app.utils import TorrentUtils
 
 DEFAULT_HOST = 'localhost'
 DEFAULT_PORT = 6800
@@ -79,7 +79,7 @@ class PyAria2(object):
 
         return: This method returns GID of registered download.
         """
-        magnet_link = Torrent.binary_data_to_magnet_link(torrent)
+        magnet_link = TorrentUtils.binary_data_to_magnet_link(torrent)
         return self._send_request("aria2.addUri", [[magnet_link], options or {}])
 
     def addTorrentFile(self, torrent, uris=None, options=None, position=None):

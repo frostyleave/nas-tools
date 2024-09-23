@@ -107,10 +107,12 @@ class IndexerConf(object):
         self.search = datas.get('search', {})
         # 批量搜索，如果为空对象则表示不支持批量搜索
         self.batch = self.search.get("batch", {}) if builtin else {}
-        # 解析器
-        self.parser = parser if parser is not None else datas.get('parser')
         # 是否启用渲染
         self.render = render if render is not None else datas.get("render", False)
+        # 解析器
+        self.parser = parser if parser is not None else datas.get('parser')
+        if self.parser == 'RenderSpider':
+            self.render = True
         # 浏览
         self.browse = datas.get('browse', {})
         # 种子过滤
@@ -120,7 +122,7 @@ class IndexerConf(object):
         # 网站资源类型
         self.source_type = datas.get('source_type', ['MOVIE', 'TV', 'ANIME'])
         # 支持的搜索类型, 为空默认为标题、英文名
-        self.search_type = datas.get('search_type', ['title', 'en_name'])
+        self.search_type = datas.get('search_type', ['title'])
         # 是否公开站点
         self.public = datas.get('public', public)
         # 是否使用代理
