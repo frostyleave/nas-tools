@@ -122,7 +122,31 @@ class Gopeed(_IDownloadClient):
             if match_path and not replace_flag:
                 log.debug(f"【{self.client_name}】{self.name} 开启目录隔离，但 {name} 未匹配下载目录范围")
                 continue
-            trans_tasks.append({'path': os.path.join(true_path, name).replace("\\", "/"), 'id': torrent.get("id")})
+
+            trans_path = os.path.join(true_path, name).replace("\\", "/")
+            if os.path.exists(trans_path):
+                trans_tasks.append({'path': trans_path, 'id': torrent.get("id")})
+                continue
+
+            # 1.59版本后移除顶级目录, 需要取资源目录
+            res_info = res_meta.get('res')
+            if res_info:
+                name = res_info.get("name")
+                if name:
+                    trans_path = os.path.join(true_path, name).replace("\\", "/")
+                    if os.path.exists(trans_path):
+                        trans_tasks.append({'path': trans_path, 'id': torrent.get("id")})
+                    continue
+                # 单文件
+                files = res_info.get("files", [])
+                for file_info in files:
+                    file_name = file_info.get("name")
+                    if file_name:
+                        file_path = os.path.join(true_path, file_name).replace("\\", "/")
+                        if os.path.exists(file_path):
+                            trans_tasks.append({'path': file_path, 'id': torrent.get("id")})
+                        continue
+
         return trans_tasks
 
     def add_torrent(self, content, name, download_dir=None, **kwargs):
