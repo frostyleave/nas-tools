@@ -1479,23 +1479,19 @@ class DbHelper:
         else:
             return 0, 0, [], [], []
 
-    def is_exists_download_history(self, enclosure, downloader, download_id):
+    def query_exists_download_history(self, enclosure, downloader, download_id):
         """
         查询下载历史是否存在
         """
         if enclosure:
-            count = self._db.query(DOWNLOADHISTORY).filter(
+            return self._db.query(DOWNLOADHISTORY).filter(
                 DOWNLOADHISTORY.ENCLOSURE == enclosure
-            ).count()
+            )
         else:
-            count = self._db.query(DOWNLOADHISTORY).filter(
+            return self._db.query(DOWNLOADHISTORY).filter(
                 DOWNLOADHISTORY.DOWNLOADER == downloader,
                 DOWNLOADHISTORY.DOWNLOAD_ID == download_id
-            ).count()
-        if count > 0:
-            return True
-        else:
-            return False
+            )
 
     @DbPersist(_db)
     def insert_download_history(self, media_info, downloader, download_id, save_dir):
@@ -1506,12 +1502,12 @@ class DbHelper:
             return
         if not media_info.title or not media_info.tmdb_id:
             return
-        if self.is_exists_download_history(enclosure=media_info.enclosure,
+        
+        exists_data = self.query_exists_download_history(enclosure=media_info.enclosure,
                                            downloader=downloader,
-                                           download_id=download_id):
-            self._db.query(DOWNLOADHISTORY).filter(DOWNLOADHISTORY.ENCLOSURE == media_info.enclosure,
-                                                   DOWNLOADHISTORY.DOWNLOADER == downloader,
-                                                   DOWNLOADHISTORY.DOWNLOAD_ID == download_id).update(
+                                           download_id=download_id)
+        if exists_data and exists_data.count() > 0:
+            exists_data.update(
                 {
                     "BACKDROP": media_info.get_backdrop_image(default=False, original=True),
                     "ENCLOSURE": media_info.enclosure,
