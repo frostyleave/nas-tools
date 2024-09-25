@@ -146,20 +146,12 @@ class WebUtils:
             media_info = MetaInfo(title=info.get("title") if mtype == MediaType.MOVIE else info.get("name"))
             media_info.set_tmdb_info(info)
 
-        if (hasattr(info, 'imdb_id') is False or not info.imdb_id) and hasattr(info, 'external_ids') and info.external_ids and hasattr(info.external_ids, 'imdb_id') and  info.external_ids.imdb_id:
-            setattr(info, 'imdb_id', info.external_ids.imdb_id)
+        # if (hasattr(info, 'imdb_id') is False or not info.imdb_id) and hasattr(info, 'external_ids') and info.external_ids and hasattr(info.external_ids, 'imdb_id') and  info.external_ids.imdb_id:
+        #     setattr(info, 'imdb_id', info.external_ids.imdb_id)
         
         # 豆瓣信息补全
         if media_info and info:
-
-            imdb_id = info.imdb_id if hasattr(info, 'imdb_id') and info.imdb_id else ''
-            season_count = info.number_of_seasons if hasattr(info, 'number_of_seasons') else 0
-            if season_count > 1:
-                douban_info = DouBan().agg_search(title, mtype)
-            else:
-                search_kwd = imdb_id if imdb_id else title
-                douban_info = DouBan().agg_search(search_kwd, mtype)
-            
+            douban_info = DouBan().agg_search(title, mtype)            
             if douban_info:
                 douban_id_list = list(map(lambda x: x.get("id"), douban_info))
                 media_info.douban_id = ",".join(douban_id_list)
