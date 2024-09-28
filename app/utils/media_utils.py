@@ -74,10 +74,10 @@ class MediaUtils:
         clean_title = MediaUtils.name_ch_to_number(clean_title, r"(\d+)(集|话|話)全", 'E')
         clean_title = MediaUtils.name_ch_to_number(clean_title, r"(?<!第)(?<!全)(?<!共)(?<!\d)\b\d+[集话話]", 'E')
 
-        if title != clean_title:
-            return MediaUtils.adjust_tv_se_position(clean_title)
+        # 英文集数范围格式化
+        clean_title = re.sub(r'(E)(\d{2,3})-(\d{2,3})', r'\1\2-E\3', clean_title)
 
-        return title
+        return MediaUtils.adjust_tv_se_position(clean_title)
     
     @staticmethod
     def resolve_douban_season_tag(title: str):
@@ -136,23 +136,36 @@ class MediaUtils:
             else:
                 info = info[0:-1]
             # 正则取中文，转化为数字
-            numbers = list(re.finditer(r'[\d\u4e00-\u9fa5]+', info))[::-1]
-            for ep in numbers:
+            numbers = list(re.finditer(r'[\d\u4e00-\u9fa5]+', info))
+            trans_num_list = []
+            position_list = []
+            for ep in numbers[::-1]:
                 try:
-                    x = cn2an.cn2an(ep.group(), "smart")
-                    info = info[0: ep.regs[0][0]] + str(int(x)).rjust(2, '0') + info[ep.regs[0][1]:]
+                    digit = cn2an.cn2an(ep.group(), "smart")
+                    format_ep = format_str + str(int(digit)).rjust(2, '0')
+                    trans_num_list.append(format_ep)
+                    position_list.append(ep.regs)
                 except Exception as err:
                     log.error(f"季集信息转换出错出错：{str(err)}")
             
             if len(numbers) == 1 and (tag =='全' or tag =='共'):
-                info = f'{format_str}01-{format_str}{info}'
+                position = position_list[0]
+                info = format_str + '01-' + info[0: position[0][0]] + trans_num_list[0] + info[position[0][1]:]
             else:
-                info = format_str + info
+                sorted_list = sorted(trans_num_list)
+                list_len = len(sorted_list)
+                for i in range(list_len):
+                    position_item = position_list[i]
+                    se_item = sorted_list[list_len - i - 1]
+                    info = info[0: position_item[0][0]] + se_item + info[position_item[0][1]:]
 
             new_list.add(info)
 
-        if len(new_list) == 0:
+        list_len = len(new_list)
+        if list_len == 0:
             return title
+        elif list_len > 1:
+            new_list = list(set(new_list))
 
         new_info = '.{}.'.format(' '.join(new_list))
         if offset == 0:
@@ -200,14 +213,16 @@ class MediaUtils:
             if len(season_match) > 1 and len(list({s.upper() for s in season_match})) > 1:
                 return re.sub(episode_pattern, '', cleaned_filename)
 
-            if len(episode_match) > 2:
+            # 去重后排序
+            real_episode = sorted(list(set(list(map(lambda x: 'E' + x.upper().strip('E'), episode_match)))))
+            if len(real_episode) > 2:
                 return filename
             
-            first_episode = episode_match[0]
+            first_episode = real_episode[0]
             cleaned_filename = MediaUtils.insert_episode_to_sw(first_episode, cleaned_filename)
             
-            if len(episode_match) == 2:
-                second_episode = episode_match[1]
+            if len(real_episode) == 2:
+                second_episode = real_episode[1]
                 cleaned_filename = MediaUtils.insert_episode_to_sw(second_episode, cleaned_filename)
 
         return re.sub(r"\.+", ".", cleaned_filename)
