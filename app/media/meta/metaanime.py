@@ -224,6 +224,8 @@ class MetaAnime(MetaBase):
         # 移除部分副标题
         title = re.sub(self._subtitle_season_all_re, '', title, flags=re.IGNORECASE)
         title = re.sub(self._subtitle_episode_all_re, '', title, flags=re.IGNORECASE)
+        # 剧集范围仅保留1个E
+        title = re.sub(r'(E\d{2,3})-E(\d{2,3})', r'\1-\2', title)
         title = title.replace('[]','')
         # 处理/分隔的中英文标题
         names = title.split("]")
