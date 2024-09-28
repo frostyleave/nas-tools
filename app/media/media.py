@@ -857,32 +857,30 @@ class Media:
         if not tmdb_info or not meta_info or meta_info.type == MediaType.MOVIE:
             return
 
-        # 当前剧集的只有1季
-        if tmdb_info.number_of_seasons <= 1:
-            return
+        # 当前剧集的大于1季
+        if tmdb_info.number_of_seasons > 1:
+            search_name = meta_info.get_name()
+            # 搜索结果中含有别名，表明做过名称修正
+            if tmdb_info.get('alias'):
+                alias = tmdb_info.get('alias')
+                if search_name != alias:
+                    if StringUtils.is_alpha_numeric_punct(alias):
+                        meta_info.en_name = alias
+                    else:
+                        meta_info.cn_name = alias
+                    left_str = search_name.replace(alias, '').strip()
+                    if left_str and left_str.isdigit():
+                        meta_info.begin_season = int(left_str)
 
-        search_name = meta_info.get_name()
-        # 搜索结果中含有别名，表明做过名称修正
-        if tmdb_info.get('alias'):
-            alias = tmdb_info.get('alias')
-            if search_name != alias:
-                if StringUtils.is_alpha_numeric_punct(alias):
-                    meta_info.en_name = alias
-                else:
-                    meta_info.cn_name = alias
-                left_str = search_name.replace(alias, '').strip()
-                if left_str and left_str.isdigit():
-                    meta_info.begin_season = int(left_str)
-
-        # 未识别出季集信息
-        if not meta_info.begin_season:           
-            if meta_info.cn_name and tmdb_info.name != meta_info.cn_name:
-                self.fix_when_name_different(meta_info, tmdb_info)
-            elif '篇' in meta_info.rev_string:
-                self.fix_when_has_season_name(meta_info, tmdb_info)
-                return
-            # else:
-            #     self.fix_when_season_episode_not_match(meta_info, tmdb_info)
+            # 未识别出季集信息
+            if not meta_info.begin_season:           
+                if meta_info.cn_name and tmdb_info.name != meta_info.cn_name:
+                    self.fix_when_name_different(meta_info, tmdb_info)
+                elif '篇' in meta_info.rev_string:
+                    self.fix_when_has_season_name(meta_info, tmdb_info)
+                    return
+                # else:
+                #     self.fix_when_season_episode_not_match(meta_info, tmdb_info)
         
         # 季集数调整
         self.try_adjust_season_info(meta_info)
