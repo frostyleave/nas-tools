@@ -7,6 +7,7 @@ import log
 
 from app.media import Media, Bangumi, DouBan
 from app.media.meta import MetaInfo
+from app.media.meta._base import MetaBase
 from app.utils import StringUtils, ExceptionUtils, SystemUtils, RequestUtils, IpUtils, MediaUtils
 from app.utils.types import MediaType
 from config import Config
@@ -143,7 +144,7 @@ class WebUtils:
             if not info:
                 return None
             title = info.get("title") if mtype == MediaType.MOVIE else info.get("name")
-            media_info = MetaInfo(title=info.get("title") if mtype == MediaType.MOVIE else info.get("name"))
+            media_info = MetaInfo(title)
             media_info.set_tmdb_info(info)
 
         # if (hasattr(info, 'imdb_id') is False or not info.imdb_id) and hasattr(info, 'external_ids') and info.external_ids and hasattr(info.external_ids, 'imdb_id') and  info.external_ids.imdb_id:
@@ -151,18 +152,29 @@ class WebUtils:
         
         # 豆瓣信息补全
         if media_info and info:
-            douban_info = DouBan().agg_search(title, mtype)            
-            if douban_info:
-                douban_id_list = list(map(lambda x: x.get("id"), douban_info))
-                media_info.douban_id = ",".join(douban_id_list)
-                WebUtils.adjust_tv_search_name(mtype, douban_info[0].get("title"), media_info)
-            else:
-                media_info.douban_id = ''
+            WebUtils.fill_douban_info(title, mtype, media_info)
 
         return media_info
 
+
     @staticmethod
-    def adjust_tv_search_name(mtype, douban_name, media_info):
+    def fill_douban_info(title:str, mtype:MediaType, media_info:MetaBase):
+        """
+        补全豆瓣信息: 豆瓣id, 剧集名称
+        """
+        if not title:
+            return
+        douban_info = DouBan().agg_search(title, mtype)            
+        if douban_info:
+            douban_id_list = list(map(lambda x: x.get("id"), douban_info))
+            media_info.douban_id = ",".join(douban_id_list)
+            WebUtils.adjust_tv_search_name(mtype, douban_info[0].get("title"), media_info)
+        else:
+            media_info.douban_id = ''
+
+
+    @staticmethod
+    def adjust_tv_search_name(mtype:MediaType, douban_name:str, media_info:MetaBase):
         if not douban_name or MediaType.TV != mtype or media_info.cn_name in douban_name:
             return
         media_info.cn_name = douban_name
