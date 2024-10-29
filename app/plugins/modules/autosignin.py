@@ -451,15 +451,17 @@ class AutoSignIn(_IPluginModule):
                         return f"【{site}】仿真签到失败，获取站点源码失败！"
                     # 查找签到按钮
                     html = etree.HTML(html_text)
+
+                    if re.search(r'已签|签到已得', html_text, re.IGNORECASE):
+                        self.info("%s 今日已签到" % site)
+                        return f"【{site}】今日已签到"
+                    
                     xpath_str = None
                     for xpath in self.siteconf.get_checkin_conf():
                         if html.xpath(xpath):
                             xpath_str = xpath
                             break
-                    if re.search(r'已签|签到已得', html_text, re.IGNORECASE) \
-                            and not xpath_str:
-                        self.info("%s 今日已签到" % site)
-                        return f"【{site}】今日已签到"
+                    
                     if not xpath_str:
                         if SiteHelper.is_logged_in(html_text):
                             self.warn("%s 未找到签到按钮，模拟登录成功" % site)
@@ -483,7 +485,7 @@ class AutoSignIn(_IPluginModule):
                 
                 return PlaywrightHelper().action(url=home_url, 
                                                  ua=ua, 
-                                                 cookie=site_cookie, 
+                                                 cookies=site_cookie, 
                                                  proxy=True if site_info.get("proxy") else False,
                                                  callback=_click_sign)
 
