@@ -274,7 +274,7 @@ class Sites:
             start_time = datetime.now()
             proxy=True if site_info.get("proxy") else False
             # 判断是否已签到
-            html_text = PlaywrightHelper().get_page_source(url=site_url, ua=ua, cookie=site_cookie, proxy=proxy)
+            html_text = PlaywrightHelper().get_page_source(url=site_url, ua=ua, cookies=site_cookie, proxy=proxy)
             if not html_text:
                 return False, "获取站点源码失败", 0
             seconds = int((datetime.now() - start_time).microseconds / 1000)

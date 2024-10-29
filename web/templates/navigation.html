@@ -1472,7 +1472,9 @@
 
   <!-- 用户自定义JavaScript -->
   <script type="text/javascript">
-    { { CustomScriptCfg.javascript | safe or "" } }
+    {% if CustomScriptCfg.javascript %}
+        {{ CustomScriptCfg.javascript | safe }}
+    {% endif %}
   </script>
 
 </body>

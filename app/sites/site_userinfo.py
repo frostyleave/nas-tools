@@ -68,7 +68,7 @@ class SiteUserInfo(object):
         # 检测环境，有浏览器内核的优先使用仿真签到
         if emulate:
             # 判断是否已签到
-            html_text = PlaywrightHelper().get_page_source(url=url, ua=ua, cookie=site_cookie, proxy=proxy)
+            html_text = PlaywrightHelper().get_page_source(url=url, ua=ua, cookies=site_cookie, proxy=proxy)
         else:
             proxies = Config().get_proxies() if proxy else None
             res = RequestUtils(cookies=site_cookie,

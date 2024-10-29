@@ -168,7 +168,7 @@ class SiteConf:
     def __get_site_page_html(url, cookie, ua, render=False, proxy=False):
         # 开渲染
         if render:            
-            return PlaywrightHelper().get_page_source(url=url, cookie=cookie, ua=ua, proxy=proxy, timeout=10)
+            return PlaywrightHelper().get_page_source(url=url, cookies=cookie, ua=ua, proxy=proxy, timeout=10)
         else:
             res = RequestUtils(
                 cookies=cookie,
