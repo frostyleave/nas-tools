@@ -4956,7 +4956,8 @@ class WebAction:
                 "search_type": site.search_type,
                 "downloader": site.downloader,
                 "public": site.public,
-                "proxy": site.proxy
+                "proxy": site.proxy,
+                "en_expand": site.en_expand
             }
         }
 
@@ -4976,7 +4977,8 @@ class WebAction:
             data.get('browse'),
             data.get('parser'),
             data.get('category'),
-            data.get('public')
+            data.get('public'),
+            data.get('en_expand')
         )
         IndexerManager().init_config()
         return {"code": 0, "msg": "已插入"}
@@ -4995,7 +4997,8 @@ class WebAction:
             data.get('torrents'),
             data.get('browse'),
             data.get('parser'),
-            data.get('category')
+            data.get('category'),
+            data.get('en_expand')
         )
         if success:
             IndexerManager().init_config()

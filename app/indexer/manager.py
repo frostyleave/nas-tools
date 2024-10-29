@@ -27,10 +27,11 @@ class IndexerManager:
                     'torrents': JsonHelper.de_json(db_item.TORRENTS) if db_item.TORRENTS else None,
                     'category': JsonHelper.de_json(db_item.CATEGORY) if db_item.CATEGORY else None,
                     'source_type': db_item.SOURCE_TYPE.split(',') if db_item.SOURCE_TYPE else [],
-                    'search_type': db_item.SEARCH_TYPE.split(',') if db_item.SEARCH_TYPE else [],
+                    'search_type': db_item.SEARCH_TYPE,
                     'downloader': db_item.DOWNLOADER,
                     'public': db_item.PUBLIC,
-                    'proxy': db_item.PROXY
+                    'proxy': db_item.PROXY,
+                    'en_expand': db_item.EN_EXPAND
                 }
                 self._indexers.append(indexer)
         except Exception as err:
@@ -122,9 +123,11 @@ class IndexerConf(object):
         # 网站资源类型
         self.source_type = datas.get('source_type', ['MOVIE', 'TV', 'ANIME'])
         # 支持的搜索类型, 为空默认为标题、英文名
-        self.search_type = datas.get('search_type', ['title'])
+        self.search_type = datas.get('search_type', 'title')
         # 是否公开站点
         self.public = datas.get('public', public)
+        # 是否使用英文名进行扩展搜索
+        self.en_expand = datas.get('en_expand', False)
         # 是否使用代理
         self.proxy = proxy if proxy is not None else datas.get('proxy', False)
         # 指定下载器
