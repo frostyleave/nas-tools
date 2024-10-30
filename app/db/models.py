@@ -547,6 +547,7 @@ class INDEXERSITE(Base):
     TORRENTS = Column(Text)
     DOWNLOADER = Column(Integer)
     CATEGORY = Column(Text)
+    EN_EXPAND = Column(Boolean)
 
 class INDEXERCUSTOMSITE(Base):
     __tablename__ = 'INDEXER_CUSTOM_SITE'

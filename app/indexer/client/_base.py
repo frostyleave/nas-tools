@@ -82,8 +82,6 @@ class _IIndexClient(metaclass=ABCMeta):
         index_match_fail = 0
         index_error = 0
 
-        check_kw = filter_args.get("check_kw")
-
         for item in result_array:
             # 名称
             torrent_name = item.get('title')
@@ -95,12 +93,6 @@ class _IIndexClient(metaclass=ABCMeta):
             # 全匹配模式下，非公开站点，过滤掉做种数为0的
             if filter_args.get("seeders") and not indexer.public and str(seeders) == "0":
                 log.info(f"【{self.client_name}】{torrent_name} 做种数为0")
-                index_rule_fail += 1
-                continue
-
-            # 关键字搜索时, 过滤无关内容
-            if check_kw and check_kw not in torrent_name:
-                log.info(f"【{self.client_name}】过滤：搜索关键字 {check_kw} 不在 {torrent_name} 中")
                 index_rule_fail += 1
                 continue
 

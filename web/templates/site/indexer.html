@@ -101,13 +101,7 @@
             </dd>
             <dt class="col-3">搜索方式:</dt>
             <dd class="col-9">
-              {% for search in site.search_type %}
-              {% if search|string in SearchTypes %}
-              <span class="badge bg-lime me-2">{{SearchTypes[search|string]}}</span>
-              {% else %}
-              <span class="badge bg-lime me-2">{{ search }}</span>
-              {% endif %}
-              {% endfor %}
+              <span class="badge bg-lime me-2">{{ site.search_type }}</span>
             </dd>
             <dt class="col-3">下载器:</dt>
             {% if site.downloader and site.downloader|string in DownloadSettings %}
@@ -124,6 +118,9 @@
               {% endif %}
               {% if site.proxy %}
               <span class="badge bg-lime-lt mb-1 me-1">代理</span>
+              {% endif %}
+              {% if site.en_expand %}
+              <span class="badge bg-cyan-lt mb-1 me-1">扩展</span>
               {% endif %}
             </div>
           </div>
@@ -201,19 +198,19 @@
       </div>
       <div class="modal-body">
         <div class="row">
-          <div class="col-lg-3">
+          <div class="col-lg-4">
             <div class="mb-3">
               <label class="form-label required">ID</label>
               <input type="text" value="" id="indexer_id" class="form-control" placeholder="ID">
             </div>
           </div>
-          <div class="col-lg-3">
+          <div class="col-lg-4">
             <div class="mb-3">
               <label class="form-label required">名称</label>
               <input type="text" value="" id="indexer_name" class="form-control" placeholder="名称">
             </div>
           </div>
-          <div class="col-lg-6">
+          <div class="col-lg-4">
             <div class="mb-3">
               <label class="form-label required">站点地址 <span class="form-help" title="站点访问地址，站点签到、数据统计、刷流、内置索引器等将使用"
                   data-bs-toggle="tooltip">?</span>
@@ -223,7 +220,45 @@
           </div>
         </div>
         <div class="row">
-          <div class="col-xl-4">
+          <div class="col-lg-4">
+            <div class="mb-3">
+              <label class="form-label required">检索方式 <span class="form-help" title="站点支持根据哪些参数进行资源检索"
+                  data-bs-toggle="tooltip">?</span></label>
+              <select class="form-select" id="search_type">
+                <option value="title">关键字</option>
+                <option value="en_name">英文名</option>
+                <option value="douban_id">豆瓣id</option>
+                <option value="imdb">imdb id</option>
+              </select>
+            </div>
+          </div>
+          <div class="col-lg-4">
+            <div class="mb-3">
+              <label class="form-label">解析器</label>
+              <select class="form-select" id="parser_setting">
+                <option value="">默认</option>
+                <option value="InterfaceSpider">InterfaceSpider</option>
+                <option value="ShadesSpider">ShadesSpider</option>
+                <option value="TorrentLeech">TorrentLeech</option>
+                <option value="TNodeSpider">TNodeSpider</option>
+                <option value="RarBg">RarBg</option>
+              </select>
+            </div>
+          </div>
+          <div class="col-lg-4">
+            <div class="mb-3">
+              <label class="form-label">下载器</label>
+              <select class="form-select" id="indexer_download_setting">
+                <option value="0">默认</option>
+                {% for Id, Attr in DownloadSettings.items() %}
+                <option value="{{ Id }}">{{ Attr }}</option>
+                {% endfor %}
+              </select>
+            </div>
+          </div>
+        </div>
+        <div class="row">
+          <div class="col-lg-4">
             <div class="mb-3">
               <label class="form-check form-switch">
                 <input class="form-check-input" type="checkbox" id="indexer_proxy">
@@ -233,7 +268,7 @@
               </label>
             </div>
           </div>
-          <div class="col-xl-4">
+          <div class="col-lg-4">
             <div class="mb-3">
               <label class="form-check form-switch">
                 <input class="form-check-input" type="checkbox" id="indexer_render">
@@ -242,9 +277,17 @@
               </label>
             </div>
           </div>
+          <div class="col-lg-4">
+            <div class="mb-3">
+              <label class="form-check form-switch">
+                <input class="form-check-input" type="checkbox" id="en_expand">
+                <span class="form-check-label">使用英文名进行扩展搜索</span>
+              </label>
+            </div>
+          </div>
         </div>
         <div class="row">
-          <div class="col-lg-6">
+          <div class="col-lg-4">
             <div class="mb-3">
               <label class="form-label required">资源类型 <span class="form-help" title="站点可进行哪种类型资源的检索"
                   data-bs-toggle="tooltip">?</span></label>
@@ -256,46 +299,6 @@
                 </label>
                 {% endfor %}
               </div>
-            </div>
-          </div>
-          <div class="col-lg-6">
-            <div class="mb-3">
-              <label class="form-label required">检索方式 <span class="form-help" title="站点支持根据哪些参数进行资源检索"
-                  data-bs-toggle="tooltip">?</span></label>
-              <div class="form-selectgroup">
-                {% for key, value in SearchTypes.items() %}
-                <label class="form-selectgroup-item">
-                  <input type="checkbox" name="search_type" value="{{key}}" class="form-selectgroup-input" checked>
-                  <span class="form-selectgroup-label">{{value}}</span>
-                </label>
-                {% endfor %}
-              </div>
-            </div>
-          </div>
-        </div>
-        <div class="row">
-          <div class="col-lg-6">
-            <div class="mb-3">
-              <label class="form-label">下载器</label>
-              <select class="form-select" id="indexer_download_setting">
-                <option value="0">默认</option>
-                {% for Id, Attr in DownloadSettings.items() %}
-                <option value="{{ Id }}">{{ Attr }}</option>
-                {% endfor %}
-              </select>
-            </div>
-          </div>
-          <div class="col-lg-6">
-            <div class="mb-3">
-              <label class="form-label">解析器</label>
-              <select class="form-select" id="parser_setting">
-                <option value="">默认</option>
-                <option value="InterfaceSpider">InterfaceSpider</option>
-                <option value="ShadesSpider">ShadesSpider</option>
-                <option value="TorrentLeech">TorrentLeech</option>
-                <option value="TNodeSpider">TNodeSpider</option>
-                <option value="RarBg">RarBg</option>
-              </select>
             </div>
           </div>
         </div>
@@ -347,25 +350,9 @@
 
 <script type="text/javascript">
 
+  var check_sites = {{ CheckSites | tojson }};
+
   var current_indexer = NaN;
-
-  // 保存索引选择配置
-  function save_config_index(type, func, test) {
-    let sites = select_GetSelectedVAL("indexer_sites");
-    let params = {
-      key: "UserIndexerSites",
-      value: sites
-    }
-    ajax_post("set_system_config", params, func);
-  }
-
-  // 保存配置、关闭和刷新页面
-  function save_indexer_config(type) {
-    save_config_index(type, function (ret) {
-      window_history_refresh();
-      show_success_modal(`索引设置已保存`);
-    });
-  }
 
   // 新增站点
   function add_indexer(site_url) {
@@ -375,9 +362,9 @@
 
     $("#indexer_download_setting").val(0);
     $('parser_setting').val("");
+    $('search_type').val("title");
 
     select_SelectALL(true, "source_type")
-    select_SelectPart(['title'], "search_type")
 
     $('#search_cfg').val("");
     $('#torrent_cfg').val("");
@@ -424,10 +411,11 @@
       "domain": $("#indexer_url").val(),
       "proxy": $('#indexer_proxy').prop('checked'),
       "render": $('#indexer_render').prop('checked'),
+      "en_expand": $('#en_expand').prop('checked'),
       "downloader": $("#indexer_download_setting").val(),
       "parser": $('#parser_setting').val(),
       "source_type": select_GetSelectedVAL("source_type").join(','),
-      "search_type": select_GetSelectedVAL('search_type').join(','),
+      "search_type": $('#search_type').val(),
       "search": search_cfg,
       "torrents": torrent_cfg,
       "browse": browse_cfg,
@@ -447,7 +435,6 @@
 
   };
 
-
   // 编辑站点
   function edit_site(site_url) {
 
@@ -465,12 +452,13 @@
         // 下拉
         $("#indexer_download_setting").val(ret.data.downloader ?? 0);
         $("#parser_setting").val(ret.data.parser ?? '');
+        $('#search_type').val(ret.data.search_type ?? 'title')
         // 多选
         select_SelectPart(ret.data.source_type, "source_type")
-        select_SelectPart(ret.data.search_type, "search_type")
 
         $("#indexer_proxy").prop("checked", ret.data.proxy);
         $("#indexer_render").prop("checked", ret.data.render);
+        $("#en_expand").prop("checked", ret.data.en_expand);
 
         if (ret.data.search) {
           append_json_to_textarea('search_cfg', ret.data.search)
@@ -568,6 +556,10 @@
     if (render == current_indexer.render) {
       render = NaN
     }
+    var en_expand = $('#en_expand').prop('checked');
+    if (en_expand == current_indexer.en_expand) {
+      en_expand = NaN
+    }
 
     var downloader = $("#indexer_download_setting").val();
     if (downloader == current_indexer.downloader) {
@@ -582,12 +574,12 @@
     if (source_type == current_indexer.source_type) {
       source_type = NaN
     }
-    var search_type = select_GetSelectedVAL('search_type').join(',');
+    var search_type = $('#search_type').val();
     if (search_type == current_indexer.search_type) {
       search_type = NaN
     }
 
-    if (indexer_url == NaN && proxy == NaN && render == NaN && downloader == NaN
+    if (indexer_url == NaN && proxy == NaN && render == NaN && downloader == NaN && en_expand == NaN
       && source_type == NaN && search_type == NaN && search_cfg == NaN && torrent_cfg == NaN
       && browse_cfg == NaN && parser_setting == NaN && category_cfg == NaN) {
       $("#modal-manual-indexer").modal("hide");
@@ -599,6 +591,7 @@
       "domain": indexer_url,
       "proxy": proxy,
       "render": render,
+      "en_expand": en_expand,
       "downloader": downloader,
       "parser": parser_setting,
       "source_type": source_type,
@@ -812,7 +805,23 @@
 
     // 监听所有具有相同 name 的 checkbox 的状态变化
     $('input[name="indexer_sites"]').change(function () {
-      save_config_index('builtin');
+      const itemVal = $(this).val();
+
+      if (this.checked) {
+          check_sites.push(itemVal)
+      } else {
+          const indexToRemove = myList.indexOf(itemVal);
+          if (indexToRemove > -1) {
+            check_sites.splice(indexToRemove, 1);
+          }
+      }
+
+      let params = {
+        key: "UserIndexerSites",
+        value: check_sites
+      }
+      ajax_post("set_system_config", params);
+      
     });
 
   });

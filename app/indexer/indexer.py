@@ -156,9 +156,8 @@ class Indexer(object):
             order_seq = 100 - int(index.pri)
 
             # 原始标题检索
-            if 'title' in index.search_type and key_word:
+            if 'title' == index.search_type and key_word:
                 _filter_args = copy.deepcopy(filter_args) if filter_args is not None else {}
-                _filter_args['check_kw'] = key_word
                 task = executor.submit(self._client.search, order_seq, index, key_word, _filter_args, match_media, in_from)
                 all_task.append(task)
 
@@ -167,27 +166,22 @@ class Indexer(object):
                 continue
 
             # 豆瓣id检索
-            if 'douban_id' in index.search_type and match_media.douban_id:
+            if 'douban_id' == index.search_type and match_media.douban_id:
                 for db_id in StringUtils.split_and_filter(match_media.douban_id, ","):
                     task = executor.submit(self._client.search, order_seq, index, db_id, copy.deepcopy(filter_args), match_media, in_from)
                     all_task.append(task)
                         
 
             # imdb id 检索
-            if 'imdb' in index.search_type and match_media.imdb_id:
+            if 'imdb' == index.search_type and match_media.imdb_id:
                 task = executor.submit(self._client.search, order_seq, index, match_media.imdb_id, copy.deepcopy(filter_args), match_media, in_from)
                 all_task.append(task)
 
-            # 订阅指定搜索词时，不进行后续
-            if key_word and (in_from == SearchType.RSS or in_from == SearchType.USERRSS):
-                continue
-
             # 英文名检索
-            if 'en_name' in index.search_type:
+            if 'en_name' == index.search_type or index.en_expand:
                 en_name = self.get_en_name(match_media)
                 if en_name:
                     _filter_args_en = copy.deepcopy(filter_args) if filter_args is not None else {}
-                    _filter_args_en['check_kw'] = en_name
                     task = executor.submit(self._client.search, order_seq, index, en_name, _filter_args_en, match_media, in_from)
                     all_task.append(task)
 

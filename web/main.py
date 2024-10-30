@@ -377,8 +377,14 @@ def indexer():
     indexers = Indexer().get_indexers(check=False)
     indexer_sites = SystemConfig().get(SystemConfigKey.UserIndexerSites)
 
+    SearchTypes = { "title":'关键字', "en_name":'英文名', "douban_id":'豆瓣id', "imdb":'imdb id' }
+
     public_indexers = []
+    check_sites = []
     for site in indexers:
+        checked = site.id in indexer_sites
+        if checked:
+            check_sites.append(site.id)
         if site.public:
             site_info = {
                 "id": site.id,
@@ -386,24 +392,24 @@ def indexer():
                 "domain": site.domain,
                 "render": site.render,
                 "source_type": site.source_type,
-                "search_type": site.search_type,
+                "search_type": SearchTypes.get(site.search_type, '关键字'),
                 "downloader": site.downloader,
                 "public": site.public,
                 "proxy": site.proxy,
-                "checked": site.id in indexer_sites
+                "en_expand": site.en_expand,
+                "checked": checked
             }
             public_indexers.append(site_info)
    
     DownloadSettings = {did: attr["name"] for did, attr in Downloader().get_download_setting().items()}
     SourceTypes = { "MOVIE":'电影', "TV":'剧集', "ANIME":'动漫' }
-    SearchTypes = { "title":'关键字', "en_name":'英文名', "douban_id":'豆瓣id', "imdb":'imdb id' }
     return render_template("site/indexer.html",
                            Config=Config().get_config(),
                            IsPublic=1,
                            Indexers=public_indexers,
                            DownloadSettings=DownloadSettings,
-                           SourceTypes=SourceTypes,
-                           SearchTypes=SearchTypes)
+                           CheckSites=check_sites,
+                           SourceTypes=SourceTypes)
 
 
 @App.route('/ptindexer', methods=['POST', 'GET'])
@@ -412,8 +418,14 @@ def ptindexer():
     indexers = Indexer().get_indexers(check=False)
     indexer_sites = SystemConfig().get(SystemConfigKey.UserIndexerSites)
 
+    SearchTypes = { "title":'关键字', "en_name":'英文名', "douban_id":'豆瓣id', "imdb":'imdb id' }
+
     private_indexers = []
+    check_sites = []
     for site in indexers:
+        checked = site.id in indexer_sites
+        if checked:
+            check_sites.append(site.id)
         if site.public:
             continue
         site_info = {
@@ -422,22 +434,24 @@ def ptindexer():
             "domain": site.domain,
             "render": site.render,
             "source_type": site.source_type,
-            "search_type": site.search_type,
+            "search_type": SearchTypes.get(site.search_type, '关键字'),
             "downloader": site.downloader,
             "public": site.public,
             "proxy": site.proxy,
-            "checked": site.id in indexer_sites
+            "en_expand": site.en_expand,
+            "checked": checked
         }
         private_indexers.append(site_info)
    
     DownloadSettings = {did: attr["name"] for did, attr in Downloader().get_download_setting().items()}
     SourceTypes = { "MOVIE":'电影', "TV":'剧集', "ANIME":'动漫' }
-    SearchTypes = { "title":'关键字', "en_name":'英文名', "douban_id":'豆瓣id', "imdb":'imdb id' }
+    
     return render_template("site/indexer.html",
                            Config=Config().get_config(),
                            IsPublic=0,
                            Indexers=private_indexers,
                            DownloadSettings=DownloadSettings,
+                           CheckSites=check_sites,
                            SourceTypes=SourceTypes,
                            SearchTypes=SearchTypes)
 

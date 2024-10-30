@@ -2583,7 +2583,7 @@ class DbHelper:
         return self._db.query(INDEXERSITE).all()
     
     @DbPersist(_db)
-    def add_indexer(self, id, name, domain, proxy, render, downloader, source_type, search_type, search, torrents, browse=None, parser=None, category=None, is_public=1):
+    def add_indexer(self, id, name, domain, proxy, render, downloader, source_type, search_type, search, torrents, browse=None, parser=None, category=None, is_public=1, en_expand=1):
         """
         新增索引站点
         """
@@ -2601,11 +2601,12 @@ class DbHelper:
             TORRENTS=torrents,
             BROWSE=browse,
             PARSER=parser,
-            CATEGORY=category
+            CATEGORY=category,
+            EN_EXPAND=en_expand
         ))
     
     @DbPersist(_db)
-    def update_indexer(self, id, domain, proxy, render, downloader, source_type, search_type, search, torrents, browse=None, parser=None, category=None):
+    def update_indexer(self, id, domain, proxy, render, downloader, source_type, search_type, search, torrents, browse=None, parser=None, category=None, en_expand=None):
         """
         更新索引站点
         """
@@ -2635,6 +2636,8 @@ class DbHelper:
             update_dic['PARSER'] = parser
         if category is not None:
             update_dic['CATEGORY'] = category
+        if en_expand is not None:
+            update_dic['EN_EXPAND'] = en_expand
         
         if not update_dic:
             return
