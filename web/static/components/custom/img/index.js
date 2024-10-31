@@ -12,6 +12,8 @@ export class CustomImg extends CustomElement {
     div_style: { attribute: "div-style" },
     img_placeholder: { attribute: "img-placeholder" },
     img_error: { attribute: "img-error" },
+    img_vote: { attribute: "img_vote" },
+    img_mark: { attribute: "img_mark" },
     img_src_list: { type: Array },
     lazy: {},
     _placeholder: { state: true },
@@ -83,6 +85,20 @@ export class CustomImg extends CustomElement {
               }, 100);
             }
           }}/>
+        ${
+          this.img_vote ?
+          html`<div class="badge badge-pill bg-purple" style="position: absolute; top: 10px; right: 10px">${this.img_vote}</div>` 
+          : nothing
+        }
+        ${this.img_mark == "1" ? html`
+            <div style="position: absolute; bottom: 0; right: 0; width: 30px; height: 30px; padding: 12px; background-color: var(--tblr-success); clip-path: polygon(100% 0, 100% 100%, 0 100%); border-radius: 0 0 8px 0;">
+              <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-check" width="15" height="15" viewBox="0 0 30 30" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round" >
+                <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+                <path d="M5 12l5 5l10 -10"></path>
+              </svg>
+            </div>
+            ` : null
+          }
       </div>
     `;
   }

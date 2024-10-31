@@ -1,4 +1,4 @@
-FROM python:3.10-slim AS Builder
+FROM python:3.11-slim AS Builder
 
 # 安装构建依赖和运行所需的依赖包
 RUN apt-get update -y \
