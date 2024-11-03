@@ -3,6 +3,7 @@ import PTN
 import re
 import zhconv
 
+from app.utils.string_utils import StringUtils
 import log
 
 from config import ZHTW_SUB_RE, Config
@@ -192,12 +193,33 @@ class MediaUtils:
         season_pattern = r"(S\d{1,2})"
         episode_pattern = r"(E\d{1,3})"
 
-        # 查找季和集信息
-        season_match = re.findall(season_pattern, filename)
-        episode_match = re.findall(episode_pattern, filename)
+        def standardizing_se(source_str, reg_pattern):
+            """
+            剧集名标准化
+            """
+            match_reg = list(re.finditer(reg_pattern, source_str, flags=re.IGNORECASE))
 
-        cleaned_filename = filename
-        if season_match:
+            if not match_reg:
+                return source_str, []
+
+            result_match = []
+            cleaned_filename = source_str
+
+            # 超过2个匹配项时, 倒序标准化处理
+            if len(match_reg) > 1:
+                for match_raw in match_reg[::-1]:
+                    info = match_raw.group()
+                    if len(info) == 2:
+                        info = StringUtils.insert_char_at_index(info, '0', 1)
+                        cleaned_filename = StringUtils.insert_char_at_index(cleaned_filename, '0', match_raw.regs[0][0] + 1)
+                    result_match.append(info)
+                return cleaned_filename, result_match[::-1]
+                
+            return cleaned_filename, list(map(lambda x: x.group(), match_reg))
+
+        # 季
+        cleaned_filename, season_match = standardizing_se(filename, season_pattern)
+        if season_match:        
             if len(season_match) > 2:
                 return filename
             first_season = season_match[0]
@@ -206,7 +228,9 @@ class MediaUtils:
             if len(season_match) == 2:
                 second_season = season_match[1]
                 cleaned_filename = MediaUtils.insert_season_to_sw(second_season, cleaned_filename)
-        
+
+        # 集
+        cleaned_filename, episode_match = standardizing_se(cleaned_filename, episode_pattern)
         if episode_match:
             # 真实季数大于1的, 不保留集信息
             season_match = re.findall(season_pattern, cleaned_filename)
@@ -216,7 +240,7 @@ class MediaUtils:
             # 去重后排序
             real_episode = sorted(list(set(list(map(lambda x: 'E' + x.upper().strip('E'), episode_match)))))
             if len(real_episode) > 2:
-                return filename
+                return cleaned_filename
             
             first_episode = real_episode[0]
             cleaned_filename = MediaUtils.insert_episode_to_sw(first_episode, cleaned_filename)
@@ -320,4 +344,3 @@ class MediaUtils:
             return target_str[0:insert_pos] + '.' + first_episode + '.' + target_str[insert_pos:]
 
         return target_str + '.' + first_episode
-

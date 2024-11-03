@@ -100,6 +100,13 @@ function navmenu(page, newflag = false) {
         // 刷新filetree控件
         init_filetree_element();
       }
+
+      let pageMenu = page;
+      let paramIndex = page.indexOf('?')
+      if (paramIndex > 0) {
+        pageMenu = pageMenu.substring(0, paramIndex);
+      }
+
       if (page !== CurrentPageUri) {
         // 切换页面时滚动到顶部
         $(window).scrollTop(0);
@@ -107,15 +114,15 @@ function navmenu(page, newflag = false) {
         CurrentPageUri = page;
 
         let navLinks = document.querySelectorAll('#top-sub-navbar a');
-        let selectNav = Array.from(navLinks).find(link => link.getAttribute('data-id') === page);
+        let selectNav = Array.from(navLinks).find(link => link.getAttribute('data-id') === pageMenu);
         // 当前菜单不在子菜单中
         if (!selectNav) {
           // 激活当前菜单
-          navbarMenu.update_active(page);
+          navbarMenu.update_active(pageMenu);
           // 如果当前菜单有子菜单, 重绘子菜单
           let menuList = navbarMenu.navbar_list;
           if (menuList) {
-            const selMenu = menuList.find(item => item.page === page);
+            const selMenu = menuList.find(item => item.page === pageMenu);
             const navList = selMenu ? selMenu.nav : null;
             if (navList) {
 
@@ -156,7 +163,7 @@ function navmenu(page, newflag = false) {
           if (!$('#top-sub-navbar').is(':visible')) {
             $('#top-sub-navbar').show();
             // 激活当前菜单
-            navbarMenu.update_active(page);
+            navbarMenu.update_active(pageMenu);
           }
           $(navLinks).removeClass('active');
           $(selectNav).addClass('active');
@@ -164,7 +171,7 @@ function navmenu(page, newflag = false) {
       } else {
         let navLinks = document.querySelectorAll('#top-sub-navbar a');
         $(navLinks).removeClass('active');
-        let selectNav = Array.from(navLinks).find(link => link.getAttribute('data-id') === page);
+        let selectNav = Array.from(navLinks).find(link => link.getAttribute('data-id') === pageMenu);
         $(selectNav).addClass('active');
       }
       // 并记录当前历史记录

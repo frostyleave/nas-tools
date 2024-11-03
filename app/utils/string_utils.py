@@ -799,3 +799,10 @@ class StringUtils:
         parts = text.split(delimiter)
         # 移除空字符串
         return [part for part in parts if part]
+    
+    @staticmethod
+    def insert_char_at_index(s, char, index):
+        """
+        在指定下标位置插入字符
+        """
+        return s[:index] + char + s[index:]
