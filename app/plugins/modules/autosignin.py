@@ -460,12 +460,13 @@ class AutoSignIn(_IPluginModule):
                     for xpath in self.siteconf.get_checkin_conf():
                         if html.xpath(xpath):
                             xpath_str = xpath
+                            self.info(f"站点[{site}]签到按钮: {xpath_str}")
                             break
                     
                     if not xpath_str:
                         if SiteHelper.is_logged_in(html_text):
                             self.warn("%s 未找到签到按钮，模拟登录成功" % site)
-                            return f"【{site}】模拟登录成功"
+                            return f"【{site}】模拟登录成功, 未找到签到按钮"
                         else:
                             self.info("%s 未找到签到按钮，且模拟登录失败" % site)
                             return f"【{site}】模拟登录失败！"
@@ -495,6 +496,7 @@ class AutoSignIn(_IPluginModule):
                     checkin_text = "签到"
                 else:
                     checkin_text = "模拟登录"
+                    
                 self.info(f"开始站点{checkin_text}：{site}")
                 # 访问链接
                 res = RequestUtils(cookies=site_cookie,
