@@ -215,6 +215,17 @@ class _IIndexClient(metaclass=ABCMeta):
                             f"跳过低优先级或同优先级资源：{torrent_name}"
                         )
                         continue
+            
+            if (media_info.type == MediaType.TV or media_info.type == MediaType.ANIME) \
+                  and media_info.tmdb_info and media_info.tmdb_info.seasons:
+                
+                total_season = max(media_info.tmdb_info.seasons, key=lambda info: info.season_number).season_number
+                # 匹配元数据错误, 季信息不匹配
+                if media_info.begin_season and int(media_info.begin_season) > total_season:
+                    continue
+                if media_info.end_season and int(media_info.end_season) > total_season:
+                    continue
+                
 
             # 检查标题是否匹配季、集、年
             if not self.filter.is_torrent_match_sey(media_info,
