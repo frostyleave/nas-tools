@@ -327,17 +327,18 @@ class MediaUtils:
             e_index = target_str.find(second_episode)
             # 第二个集信息必须不在开头
             if e_index > 0:
-                sep = int(second_episode[1:])
                 fep = int(first_episode[1:])
+                sep = int(second_episode[1:])
+                insert_idx = fep
                 if fep != sep:
                     if sep > fep:
-                        insert_pos = e_index
+                        insert_idx = e_index
                         insert_str = first_episode + '-'
                     else:
-                        insert_pos = e_index + len(second_episode)
+                        insert_idx = e_index + len(second_episode)
                         insert_str = '-' + first_episode
-                    target_str = target_str[0:insert_pos] + insert_str + target_str[insert_pos:]
-                return target_str, insert_pos + 1
+                    target_str = target_str[0:insert_idx] + insert_str + target_str[insert_idx:]
+                return target_str, insert_idx + 1
 
         move_result, pos = MediaUtils.move_episode_after_season(first_episode, target_str)
         if pos > -1:
@@ -346,9 +347,9 @@ class MediaUtils:
         t = PTN.parse(target_str)
         t_title = t.get('title')
         if t_title:
-            insert_pos = target_str.find(t_title) + len(t_title)
-            splicing = StringUtils.insert_char_at_index(target_str, '.{}.'.format(first_episode), insert_pos)
-            return splicing, insert_pos + 1
+            insert_idx = target_str.find(t_title) + len(t_title)
+            splicing = StringUtils.insert_char_at_index(target_str, '.{}.'.format(first_episode), insert_idx)
+            return splicing, insert_idx + 1
 
         splicing = target_str + '.' + first_episode
         return splicing, len(splicing)

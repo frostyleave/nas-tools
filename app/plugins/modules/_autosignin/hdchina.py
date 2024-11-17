@@ -3,7 +3,7 @@ import json
 from lxml import etree
 
 from app.plugins.modules._autosignin._base import _ISiteSigninHandler
-from app.utils import StringUtils, RequestUtils
+from app.utils import SiteUtils, RequestUtils
 from config import Config
 
 
@@ -24,7 +24,7 @@ class HDChina(_ISiteSigninHandler):
         :param url: 站点Url
         :return: 是否匹配，如匹配则会调用该类的signin方法
         """
-        return True if StringUtils.url_equal(url, cls.site_url) else False
+        return True if SiteUtils.url_equal(url, cls.site_url) else False
 
     def signin(self, site_info: dict):
         """
@@ -54,7 +54,7 @@ class HDChina(_ISiteSigninHandler):
         site_cookie = cookie
         # 获取页面html
         html_res = RequestUtils(cookies=site_cookie,
-                                headers=ua,
+                                ua=ua,
                                 proxies=proxy
                                 ).get_res(url="https://hdchina.org/index.php")
         if not html_res or html_res.status_code != 200:
@@ -94,7 +94,7 @@ class HDChina(_ISiteSigninHandler):
             'csrf': x_csrf
         }
         sign_res = RequestUtils(cookies=site_cookie,
-                                headers=ua,
+                                ua=ua,
                                 proxies=proxy
                                 ).post_res(url="https://hdchina.org/plugin_sign-in.php?cmd=signin", data=data)
         if not sign_res or sign_res.status_code != 200:

@@ -3,7 +3,7 @@ from urllib.parse import quote
 from threading import Lock
 
 from app.message.client._base import _IMessageClient
-from app.utils import ExceptionUtils, RequestUtils, StringUtils
+from app.utils import ExceptionUtils, RequestUtils, SiteUtils
 from config import Config
 
 lock = Lock()
@@ -31,7 +31,7 @@ class SynologyChat(_IMessageClient):
         if self._client_config:
             self._webhook_url = self._client_config.get("webhook_url")
             if self._webhook_url:
-                self._domain = StringUtils.get_base_url(self._webhook_url)
+                self._domain = SiteUtils.get_base_url(self._webhook_url)
             self._token = self._client_config.get('token')
 
     @classmethod

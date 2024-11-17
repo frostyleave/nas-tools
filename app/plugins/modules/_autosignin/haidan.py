@@ -1,5 +1,5 @@
 from app.plugins.modules._autosignin._base import _ISiteSigninHandler
-from app.utils import StringUtils, RequestUtils
+from app.utils import SiteUtils, RequestUtils
 from config import Config
 
 
@@ -20,7 +20,7 @@ class HaiDan(_ISiteSigninHandler):
         :param url: 站点Url
         :return: 是否匹配，如匹配则会调用该类的signin方法
         """
-        return True if StringUtils.url_equal(url, cls.site_url) else False
+        return True if SiteUtils.url_equal(url, cls.site_url) else False
 
     def signin(self, site_info: dict):
         """
@@ -35,7 +35,7 @@ class HaiDan(_ISiteSigninHandler):
 
         # 签到
         sign_res = RequestUtils(cookies=site_cookie,
-                                headers=ua,
+                                ua=ua,
                                 proxies=proxy
                                 ).get_res(url="https://www.haidan.video/signin.php")
         if not sign_res or sign_res.status_code != 200:

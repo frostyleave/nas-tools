@@ -770,9 +770,10 @@ class Media:
             meta_info.type = mtype
 
         search_name = meta_info.get_name()
+        en_name = meta_info.get_en_name()
         # 没有年份、但有英文名时, 结合英文名搜索
-        if not meta_info.year and meta_info.get_en_name():
-            search_name = '{} {}'.format(search_name, meta_info.get_en_name())
+        if not meta_info.year and en_name and en_name != search_name:
+            search_name = '{} {}'.format(search_name, en_name)
 
         # 查询tmdb数据
         file_media_info = self.query_tmdb_info(search_name, meta_info.type, meta_info.year,

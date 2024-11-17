@@ -1,8 +1,9 @@
 # author: https://github.com/jxxghp/MoviePilot/blob/main/app/helper/browser.py
 import os
 import time
-from config import Config
 import log
+
+from config import Config
 from typing import Callable, Any
 
 from playwright.sync_api import sync_playwright, Page
@@ -61,10 +62,10 @@ class PlaywrightHelper:
                 context = browser.new_context(user_agent=ua, proxy=proxies)
                 page = context.new_page()
                 if cookies:
-                    page.set_extra_http_headers({"cookie": cookies})
+                    page.set_extra_http_headers({"cookie": cookies}) 
                 try:
                     if not self.__pass_cloudflare(url, page):
-                        log.warn("cloudflare challenge fail！")
+                        log.warn("cloudflare challenge fail !")
 
                     # 等待页面自动跳转
                     if wait_item and wait_item.element and wait_item.state:
@@ -111,11 +112,11 @@ class PlaywrightHelper:
                 context = browser.new_context(user_agent=ua)
                 page = context.new_page()
                 if cookies:
-                    page.set_extra_http_headers({"cookie": cookies})
+                    page.set_extra_http_headers({"cookie": cookies}) 
                 try:
                     log.info(f'[Playwright]开始访问{url}')
                     if not self.__pass_cloudflare(url, page):
-                        log.warn("cloudflare challenge fail!")
+                        log.warn("cloudflare challenge fail !")
 
                     # 等待页面自动跳转
                     if wait_item and wait_item.element and wait_item.state:
@@ -162,6 +163,7 @@ class PlaywrightHelper:
                 browser = playwright[self.browser_type].launch(headless=headless, proxy=proxies, downloads_path=save_path)
                 context = browser.new_context(user_agent=ua)
                 page = context.new_page()
+
                 if cookies:
                     page.set_extra_http_headers({"cookie": cookies})
 

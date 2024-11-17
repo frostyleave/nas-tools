@@ -1093,6 +1093,8 @@ class WebAction:
         rssurl = data.get('site_rssurl')
         signurl = data.get('site_signurl')
         cookie = data.get('site_cookie')
+        token = data.get('site_token')
+        apikey = data.get('site_apikey')
         note = data.get('site_note')
         if isinstance(note, dict):
             note = json.dumps(note)
@@ -1113,6 +1115,8 @@ class WebAction:
                                      rssurl=rssurl,
                                      signurl=signurl,
                                      cookie=cookie,
+                                     token=token,
+                                     apikey=apikey,
                                      note=note,
                                      rss_uses=rss_uses)
             if ret and (name != old_name):
@@ -1125,6 +1129,8 @@ class WebAction:
                                   rssurl=rssurl,
                                   signurl=signurl,
                                   cookie=cookie,
+                                  token=token,
+                                  apikey=apikey,
                                   note=note,
                                   rss_uses=rss_uses)
 
@@ -4936,7 +4942,7 @@ class WebAction:
         if not url:
             return {"code": 1, "msg": "站点url为空"}
 
-        site = IndexerManager().get_indexer(url=url)
+        site = IndexerManager().build_indexer_conf(url=url)
         if not site:
             return {"code": 1, "msg": "索引站点查询失败"}
 

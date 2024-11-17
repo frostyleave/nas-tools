@@ -3,7 +3,7 @@ import re
 from abc import ABCMeta, abstractmethod
 
 import log
-from app.utils import StringUtils
+from app.utils import SiteUtils
 
 
 class _ISiteSigninHandler(metaclass=ABCMeta):
@@ -21,7 +21,7 @@ class _ISiteSigninHandler(metaclass=ABCMeta):
         :param url: 站点Url
         :return: 是否匹配，如匹配则会调用该类的signin方法
         """
-        return True if StringUtils.url_equal(url, self.site_url) else False
+        return True if SiteUtils.url_equal(url, self.site_url) else False
 
     @abstractmethod
     def signin(self, site_info: dict):

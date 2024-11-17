@@ -6,7 +6,7 @@ from datetime import datetime
 import log
 import qbittorrentapi
 from app.downloader.client._base import _IDownloadClient
-from app.utils import ExceptionUtils, StringUtils
+from app.utils import ExceptionUtils, StringUtils, SiteUtils
 from app.utils.types import DownloaderType
 
 
@@ -344,7 +344,7 @@ class Qbittorrent(_IDownloadClient):
             remove_torrents.append({
                 "id": torrent.hash,
                 "name": torrent.name,
-                "site": StringUtils.get_url_sld(torrent.tracker),
+                "site": SiteUtils.get_url_sld(torrent.tracker),
                 "size": torrent.size
             })
             remove_torrents_ids.append(torrent.hash)
@@ -358,7 +358,7 @@ class Qbittorrent(_IDownloadClient):
                         remove_torrents_plus.append({
                             "id": torrent.hash,
                             "name": torrent.name,
-                            "site": StringUtils.get_url_sld(torrent.tracker),
+                            "site": SiteUtils.get_url_sld(torrent.tracker),
                             "size": torrent.size
                         })
             remove_torrents_plus += remove_torrents

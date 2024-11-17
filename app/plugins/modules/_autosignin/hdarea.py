@@ -1,5 +1,5 @@
 from app.plugins.modules._autosignin._base import _ISiteSigninHandler
-from app.utils import StringUtils, RequestUtils
+from app.utils import SiteUtils, RequestUtils
 from config import Config
 
 
@@ -22,7 +22,7 @@ class HDArea(_ISiteSigninHandler):
         :param url: 站点Url
         :return: 是否匹配，如匹配则会调用该类的signin方法
         """
-        return True if StringUtils.url_equal(url, cls.site_url) else False
+        return True if SiteUtils.url_equal(url, cls.site_url) else False
 
     def signin(self, site_info: dict):
         """
@@ -40,7 +40,7 @@ class HDArea(_ISiteSigninHandler):
             'action': 'sign_in'
         }
         html_res = RequestUtils(cookies=site_cookie,
-                                headers=ua,
+                                ua=ua,
                                 proxies=proxy
                                 ).post_res(url="https://www.hdarea.co/sign_in.php", data=data)
         if not html_res or html_res.status_code != 200:

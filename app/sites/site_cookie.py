@@ -11,7 +11,7 @@ from app.helper import ProgressHelper, OcrHelper, SiteHelper
 from app.indexer.client.browser import PlaywrightHelper
 from app.sites.siteconf import SiteConf
 from app.sites.sites import Sites
-from app.utils import StringUtils, RequestUtils
+from app.utils import StringUtils, RequestUtils, SiteUtils
 from app.utils.commons import singleton
 from app.utils.types import ProgressKey
 from app.utils.system_utils import SystemUtils
@@ -256,7 +256,7 @@ class SiteCookie(object):
             return ""
         if imageurl.startswith("/"):
             imageurl = imageurl[1:]
-        return "%s/%s" % (StringUtils.get_base_url(siteurl), imageurl)
+        return "%s/%s" % (SiteUtils.get_base_url(siteurl), imageurl)
 
     def update_sites_cookie_ua(self,
                                username,
@@ -288,7 +288,7 @@ class SiteCookie(object):
             self.progress.update(ptype=ProgressKey.SiteCookie,
                                  text="开始更新 %s Cookie和User-Agent ..." % site.get("name"))
             # 登录页面地址
-            baisc_url = StringUtils.get_base_url(site.get("signurl") or site.get("rssurl"))
+            baisc_url = SiteUtils.get_base_url(site.get("signurl") or site.get("rssurl"))
             site_conf = self.siteconf.get_grap_conf(url=baisc_url)
             if site_conf.get("LOGIN"):
                 login_url = "%s/%s" % (baisc_url, site_conf.get("LOGIN"))
@@ -327,7 +327,7 @@ class SiteCookie(object):
         """
         if not image_url:
             return ""
-        ret = RequestUtils(headers=ua,
+        ret = RequestUtils(ua=ua,
                            cookies=cookie).get_res(image_url)
         if ret:
             return base64.b64encode(ret.content).decode()

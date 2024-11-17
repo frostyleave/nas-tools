@@ -3,6 +3,7 @@ import os.path
 import time
 import json
 from enum import Enum
+from typing import List
 from sqlalchemy import cast, func, and_, case
 
 from app.db import MainDb, DbPersist
@@ -415,7 +416,7 @@ class DbHelper:
         """
         self._db.query(RSSTVEPISODES).delete()
 
-    def get_config_site(self):
+    def get_config_site(self) -> List[CONFIGSITE]:
         """
         查询所有站点信息
         """
@@ -429,7 +430,7 @@ class DbHelper:
 
     @DbPersist(_db)
     def insert_config_site(self, name, site_pri,
-                           rssurl=None, signurl=None, cookie=None, note=None, rss_uses=None):
+                           rssurl=None, signurl=None, cookie=None, token=None, apikey=None, note=None, rss_uses=None):
         """
         插入站点信息
         """
@@ -441,6 +442,8 @@ class DbHelper:
             RSSURL=rssurl,
             SIGNURL=signurl,
             COOKIE=cookie,
+            TOKEN=token,
+            API_KEY=apikey,
             NOTE=note,
             INCLUDE=rss_uses
         ))
@@ -455,7 +458,7 @@ class DbHelper:
         self._db.query(CONFIGSITE).filter(CONFIGSITE.ID == int(tid)).delete()
 
     @DbPersist(_db)
-    def update_config_site(self, tid, name, site_pri, rssurl, signurl, cookie, note, rss_uses):
+    def update_config_site(self, tid, name, site_pri, rssurl, signurl, cookie, token, apikey, note, rss_uses):
         """
         更新站点信息
         """
@@ -468,26 +471,15 @@ class DbHelper:
                 "RSSURL": rssurl,
                 "SIGNURL": signurl,
                 "COOKIE": cookie,
+                "TOKEN": token,
+                "API_KEY": apikey,
                 "NOTE": note,
                 "INCLUDE": rss_uses
             }
         )
 
     @DbPersist(_db)
-    def update_config_site_note(self, tid, note):
-        """
-        更新站点属性
-        """
-        if not tid:
-            return
-        self._db.query(CONFIGSITE).filter(CONFIGSITE.ID == int(tid)).update(
-            {
-                "NOTE": note
-            }
-        )
-
-    @DbPersist(_db)
-    def update_site_cookie_ua(self, tid, cookie, ua=None):
+    def update_site_cookie_ua(self, tid, cookie, token=None, ua=None):
         """
         更新站点Cookie和ua
         """
@@ -503,6 +495,7 @@ class DbHelper:
         self._db.query(CONFIGSITE).filter(CONFIGSITE.ID == int(tid)).update(
             {
                 "COOKIE": cookie,
+                "TOKEN": token,
                 "NOTE": json.dumps(note)
             }
         )

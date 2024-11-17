@@ -1,8 +1,7 @@
 from urllib import parse
 
 from app.message.client._base import _IMessageClient
-from app.utils import RequestUtils, StringUtils, ExceptionUtils
-
+from app.utils import RequestUtils, SiteUtils, ExceptionUtils
 
 class Chanify(_IMessageClient):
     schema = "chanify"
@@ -18,7 +17,7 @@ class Chanify(_IMessageClient):
 
     def init_config(self):
         if self._client_config:
-            self._server = StringUtils.get_base_url(self._client_config.get('server'))
+            self._server = SiteUtils.get_base_url(self._client_config.get('server'))
             self._token = self._client_config.get('token')
             self._params = self._client_config.get('params')
 

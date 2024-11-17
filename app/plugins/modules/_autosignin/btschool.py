@@ -1,7 +1,7 @@
 
 from app.indexer.client.browser import PlaywrightHelper
 from app.plugins.modules._autosignin._base import _ISiteSigninHandler
-from app.utils import StringUtils, RequestUtils
+from app.utils import SiteUtils, RequestUtils
 
 
 class BTSchool(_ISiteSigninHandler):
@@ -21,7 +21,7 @@ class BTSchool(_ISiteSigninHandler):
         :param url: 站点Url
         :return: 是否匹配，如匹配则会调用该类的signin方法
         """
-        return True if StringUtils.url_equal(url, cls.site_url) else False
+        return True if SiteUtils.url_equal(url, cls.site_url) else False
 
     def signin(self, site_info: dict):
         """
@@ -66,7 +66,7 @@ class BTSchool(_ISiteSigninHandler):
         else:
             self.info(f"{site} 开始签到")
             html_res = RequestUtils(cookies=site_cookie,
-                                    headers=ua,
+                                    ua=ua,
                                     proxies=proxy
                                     ).get_res(url="https://pt.btschool.club")
             if not html_res or html_res.status_code != 200:
@@ -83,7 +83,7 @@ class BTSchool(_ISiteSigninHandler):
                 return True, f'【{site}】今日已签到'
 
             sign_res = RequestUtils(cookies=site_cookie,
-                                    headers=ua,
+                                    ua=ua,
                                     proxies=proxy
                                     ).get_res(url="https://pt.btschool.club/index.php?action=addbonus")
             if not sign_res or sign_res.status_code != 200:
