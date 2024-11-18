@@ -1,11 +1,10 @@
 import requests
 import urllib3
 
-from typing import Optional, Union
-from urllib3.exceptions import InsecureRequestWarning
+from typing import Any, Optional, Union
 from requests import Session, Response
+from urllib3.exceptions import InsecureRequestWarning
 
-from app.utils.site_utils import SiteUtils
 from config import Config
 
 urllib3.disable_warnings(InsecureRequestWarning)
@@ -34,8 +33,8 @@ class RequestUtils:
             self._headers = headers
         else:
             self._headers = {
-                "Content-Type": content_type,
                 "User-Agent": ua if ua else Config().get_ua(),
+                "Content-Type": content_type,
                 "Accept": accept_type,
                 "referer": referer
             }
@@ -80,30 +79,65 @@ class RequestUtils:
                 raise
             return None
 
-    def post(self, url, data=None, json=None):
+    def post(self, url: str, data: Any = None, json: dict = None, **kwargs) -> Optional[Response]:
+        """
+        发送POST请求
+        :param url: 请求的URL
+        :param data: 请求的数据
+        :param json: 请求的JSON数据
+        :param kwargs: 其他请求参数，如headers, cookies, proxies等
+        :return: HTTP响应对象，若发生RequestException则返回None
+        """
         if json is None:
             json = {}
-        return self.request(method="post", url=url, data=data, json=json)
+        return self.request(method="post", url=url, data=data, json=json, **kwargs)
 
-    def get(self, url, params=None):
-        response = self.request(method="get", url=url, params=params)
+    def get(self, url: str, params: dict = None, **kwargs) -> Optional[str]:
+        """
+        发送GET请求
+        :param url: 请求的URL
+        :param params: 请求的参数
+        :param kwargs: 其他请求参数，如headers, cookies, proxies等
+        :return: 响应的内容，若发生RequestException则返回None
+        """
+        response = self.request(method="get", url=url, params=params, **kwargs)
         return str(response.content, "utf-8") if response else None
 
-    def get_res(self, url, params=None, allow_redirects=True, raise_exception=False):
+    def get_res(self, 
+                url: str,
+                params: dict = None,
+                data: Any = None,
+                json: dict = None,
+                allow_redirects: bool = True,
+                raise_exception: bool = False,
+                **kwargs) -> Optional[Response]:
         return self.request(method="get",
                             url=url,
                             params=params,
+                            data=data,
+                            json=json,
                             allow_redirects=allow_redirects,
-                            raise_exception=raise_exception)
+                            raise_exception=raise_exception,
+                            **kwargs)
 
-    def post_res(self, url, data=None, params=None, allow_redirects=True, files=None, json=None):
+    def post_res(self,
+                 url: str,
+                 data: Any = None,
+                 params: dict = None,
+                 allow_redirects: bool = True,
+                 files: Any = None,
+                 json: dict = None,
+                 raise_exception: bool = False,
+                 **kwargs) -> Optional[Response]:
         return self.request(method="post",
                             url=url,
                             data=data,
                             params=params,
                             allow_redirects=allow_redirects,
                             files=files,
-                            json=json)
+                            json=json,
+                            raise_exception=raise_exception,
+                            **kwargs)
 
     @staticmethod
     def cookie_parse(cookies_str) -> dict[str, str]:

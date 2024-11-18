@@ -79,187 +79,7 @@
       border: 0;
     }
 
-    .top-sub-navbar {
-      font-size: 1rem;
-      border-bottom: 0;
-    }
-
-    div.top-sub-navbar>ul {
-      display: flex;
-      flex-wrap: nowrap;
-      /* 确保标签不换行 */
-      border-bottom: var(--tblr-nav-tabs-border-width) solid var(--tblr-nav-tabs-border-color);
-      background: transparent;
-      justify-content: flex-start;
-      /* 电脑模式下靠左对齐 */
-      overflow-x: auto;
-      /* 允许横向滚动，防止内容超出 */
-    }
-
-    div.top-sub-navbar>ul>li {
-      min-width: 9rem;
-    }
-
-    div.top-sub-navbar>ul>li>a {
-      display: block;
-      text-align: center;
-    }
-
-    div.top-sub-navbar>ul>li>a.active {
-      display: block;
-      box-shadow: inset 0 -1px 0 0 var(--tblr-link-hover-color);
-      /* 模拟边框效果 */
-    }
-
-    /* 手机屏幕上的样式 */
-    @media (max-width: 576px) {
-      div.top-sub-navbar>ul {
-        justify-content: center;
-        /* 手机模式下居中对齐 */
-        padding: 0;
-        /* 去掉左右的空白 */
-        overflow-x: hidden;
-      }
-
-      div.top-sub-navbar>ul>li {
-        margin-left: 0;
-        /* 移除间距 */
-        min-width: auto;
-        /* 移除最小宽度限制，标签宽度自适应 */
-        flex: 1;
-        /* 让每个标签等宽，填满整个行 */
-      }
-
-      div.top-sub-navbar>ul>li>a {
-        margin: 0 !important;
-      }
-    }
-
-
-    .scroll-to-top {
-      position: fixed;
-      bottom: 20px;
-      right: 20px;
-      background-color: #007bff;
-      /* 按钮背景颜色 */
-      color: white;
-      /* 图标颜色 */
-      border: none;
-      border-radius: 50%;
-      width: 50px;
-      height: 50px;
-      display: none;
-      /* 默认隐藏 */
-      align-items: center;
-      justify-content: center;
-      font-size: 24px;
-      /* 图标大小 */
-      cursor: pointer;
-      z-index: 1000;
-      transition: background-color 0.3s, transform 0.3s;
-      /* 添加过渡效果 */
-    }
-
-    .scroll-to-top.show {
-      display: flex;
-      /* 显示按钮 */
-    }
-
-    .scroll-to-top:hover {
-      background-color: #0056b3;
-      /* 鼠标悬停背景颜色 */
-      transform: scale(1.1);
-      /* 鼠标悬停时放大 */
-    }
-
-    .nav-tabs .nav-link.active {
-      border-color: transparent;
-      border-bottom-color: var(--tblr-link-hover-color);
-    }
-
-    .components-div {
-      border-radius: 5px;
-      border: var(--tblr-card-border-width) solid var(--tblr-card-border-color);
-      background-color: var(--tblr-card-bg);
-      background-clip: border-box;
-      margin: 10px;
-    }
-
-    .nav-link-icon {
-      margin: 0 .6rem;
-    }
-
-    .nav-link {
-      margin-right: 1rem !important;
-    }
-
-    .section-title-container {
-      display: flex;
-      align-items: center;
-      margin: .5rem 1rem;
-    }
-
-    .section-title {
-      color: var(--tblr-card-border-color);
-      font-size: 0.9rem;
-      text-transform: uppercase;
-      margin-right: 10px;
-      white-space: nowrap;
-      border-radius: 4px;
-    }
-
-    .divider-line {
-      flex-grow: 1;
-      height: 1px;
-      background-color: var(--tblr-border-color);
-    }
-
-    .nav-link-title {
-      margin-left: 0.5rem;
-    }
-
-    .space-between-box {
-      display: flex;
-      justify-content: space-between;
-      margin: 0.25rem;
-    }
-
-    .space-between-box a:hover {
-      text-decoration: none;
-    }
-
-    .media-box {
-      position: relative;
-      background-size: cover;
-      background-position: center;
-      background-repeat: no-repeat;
-      border-radius: var(--tblr-card-border-radius);
-    }
-
-    .media-box::before {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background: linear-gradient(to right, rgba(0, 0, 0, 0.5) 0%, var(--tblr-dark) 100%);
-      z-index: 0;
-      border-radius: var(--tblr-card-border-radius);
-    }
-
-    .media-content {
-      color: white;
-      position: relative;
-      z-index: 1;
-    }
-
-    .card-text {
-      font-weight: 500 !important;
-      text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.7);
-    }
-
-      {
+    {
       % for site_name,
       site_icon in SiteFavicons.items() %
     }
@@ -310,12 +130,25 @@
       layout-useradmin="{{ CurrentUser.admin }}" layout-search="{{ CurrentUser.search }}">
     </layout-searchbar>
     <div class="spinner-border" role="status" id="logo_animation"></div>
+    <!-- 加载动画遮罩 -->
+    <div class="wave-loading" id="loadingOverlay">
+      <div class="wave-loading-item"></div>
+      <div class="wave-loading-item"></div>
+      <div class="wave-loading-item"></div>
+      <div class="wave-loading-item"></div>
+      <div class="wave-loading-item"></div>
+      <div class="wave-loading-item"></div>
+      <div class="wave-loading-item"></div>
+      <div class="wave-loading-item"></div>
+  </div>
     <div class="page-wrapper">
       <div class="input-group top-sub-navbar" id="top-sub-navbar">
         <ul class="nav nav-tabs card-header-tabs" data-bs-toggle="tabs" role="tablist"></ul>
       </div>
-      <div id="page_content" hidden="">
+      <div id="loading_tips" style="display: none;">
         {{ OOPS.loading() }}
+      </div>
+      <div id="page_content" hidden="">
       </div>
     </div>
   </div>

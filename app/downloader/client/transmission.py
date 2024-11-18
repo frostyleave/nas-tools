@@ -372,6 +372,7 @@ class Transmission(_IDownloadClient):
         return remove_torrents
 
     def add_torrent(self, content,
+                    tag=None,
                     is_paused=False,
                     download_dir=None,
                     upload_limit=None,
@@ -382,6 +383,7 @@ class Transmission(_IDownloadClient):
             ret = self.trc.add_torrent(torrent=content,
                                        download_dir=download_dir,
                                        paused=is_paused,
+                                       labels=tag,
                                        cookies=cookie)
             if ret and ret.hashString:
                 if upload_limit:
@@ -517,9 +519,9 @@ class Transmission(_IDownloadClient):
                     _upspeed = StringUtils.str_filesize(torrent.rateUpload)
                 speed = ("%s%sB/s %s%sB/s" % (chr(8595), _dlspeed, chr(8593), _upspeed)).replace('BB', 'B')
             # 进度
-            progress = round(torrent.progress)
+            progress = torrent.progress
             left_until_done = torrent.left_until_done
-            total_size = int(left_until_done / (1 - progress))
+            total_size = int(left_until_done / (1 - progress / 100.0))
             sizeprogress = ("%sB / %sB" % (StringUtils.str_filesize(total_size - left_until_done), StringUtils.str_filesize(total_size))).replace('BB', 'B')
 
             DispTorrents.append({

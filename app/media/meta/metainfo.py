@@ -12,8 +12,6 @@ from app.utils import StringUtils, ReleaseGroupsMatcher, MediaUtils
 from app.utils.types import MediaType
 from config import RMT_MEDIAEXT
 
-import zhconv
-
 NAME_NOSTRING_RE = r"高清影视之家发布|连载|日剧|美剧|电视剧|动画片|动漫|欧美|西德|日韩|超高清|高清|蓝光|翡翠台|梦幻天堂·龙网|★?\d?\+?\d*月?新?番★?|[日美国][漫剧]" \
                    r"|高码版|最终季|全集|合集|[多中国英葡法俄日韩德意西印泰台港粤双文语简繁体特效内封官译外挂]+[字|幕|配|音|轨]+|版本|出品|台版|港版|未删减版"
 
@@ -33,18 +31,18 @@ def MetaInfo(title, subtitle=None, mtype=None):
     # 预去除一些无用的词
     rev_title = re.sub(r'%s' % NAME_NOSTRING_RE, "", title, flags=re.IGNORECASE)
 
-    # 判断是否处理文件、格式化剧集文件名
-    if org_title and os.path.splitext(org_title)[-1] in RMT_MEDIAEXT:
-        fileflag = True
-        rev_title = MediaUtils.clean_episode_range_from_file_name(rev_title)
-    else:
-        fileflag = False
-        rev_title = MediaUtils.format_tv_file_name(rev_title)
-
     # 应用自定义识别词，获取识别词处理后名称
     rev_title, msg, used_info = WordsHelper().process(rev_title)
     if subtitle:
         subtitle, _, _ = WordsHelper().process(subtitle)
+
+    # 判断是否处理文件、格式化剧集文件名
+    if org_title and os.path.splitext(org_title)[-1] in RMT_MEDIAEXT:
+        fileflag = True
+        rev_title, subtitle = MediaUtils.clean_episode_range_from_file_name(rev_title, subtitle)
+    else:
+        fileflag = False
+        rev_title, subtitle = MediaUtils.format_tv_file_name(rev_title, subtitle)
 
     if msg:
         for msg_item in msg:
@@ -78,9 +76,6 @@ def MetaInfo(title, subtitle=None, mtype=None):
     meta_info.org_string = org_title
     # 设置识别词处理后名称
     meta_info.rev_string = rev_title
-    if meta_info.cn_name:
-        cn_name = zhconv.convert(meta_info.cn_name, "zh-hans")
-        meta_info.cn_name = cn_name
 
     # 设置应用的识别词
     meta_info.ignored_words = used_info.get("ignored")

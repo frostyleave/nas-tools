@@ -563,18 +563,30 @@ class WebAction:
         dl_setting = data.get("setting")
         results = Searcher().get_search_result_by_id(dl_id)
         for res in results:
-            media = Media().get_media_info(title=res.TORRENT_NAME, subtitle=res.DESCRIPTION)
-            if not media:
+            if not res.TMDBID:
                 continue
-            media.set_torrent_info(enclosure=res.ENCLOSURE,
+            mtype = None
+            if res.TYPE == 'MOV':
+                mtype = MediaType.MOVIE 
+            elif res.TYPE == 'ANI': 
+                mtype = MediaType.ANIME
+            elif res.TYPE == 'TV': 
+                mtype = MediaType.TV
+
+            info = Media().get_tmdb_info(tmdbid=res.TMDBID, mtype=mtype, append_to_response="all")
+            if not info:
+                continue
+            media_info = MetaInfo(res.TITLE)
+            media_info.org_string = res.TORRENT_NAME
+            media_info.set_tmdb_info(info)
+            media_info.set_torrent_info(enclosure=res.ENCLOSURE,
                                    size=res.SIZE,
                                    site=res.SITE,
                                    page_url=res.PAGEURL,
-                                   upload_volume_factor=float(
-                                       res.UPLOAD_VOLUME_FACTOR),
+                                   upload_volume_factor=float(res.UPLOAD_VOLUME_FACTOR),
                                    download_volume_factor=float(res.DOWNLOAD_VOLUME_FACTOR))
             # 添加下载
-            _, ret, ret_msg = Downloader().download(media_info=media,
+            _, ret, ret_msg = Downloader().download(media_info=media_info,
                                                     download_dir=dl_dir,
                                                     download_setting=dl_setting,
                                                     in_from=SearchType.WEB,
@@ -715,7 +727,8 @@ class WebAction:
         查询具体种子的信息
         """
         ids = data.get("ids")
-        torrents = Downloader().get_downloading_progress(ids=ids)
+        downloader_id = data.get("downloaderId")
+        torrents = Downloader().get_downloading_progress(downloader_id=downloader_id,ids=ids)
         return {"retcode": 0, "torrents": torrents}
 
     @staticmethod
@@ -3720,8 +3733,21 @@ class WebAction:
         def se_sort(k):
             k = re.sub(r" +|(?<=s\d)\D*?(?=e)|(?<=s\d\d)\D*?(?=e)",
                        " ", k[0], flags=re.I).split()
-            return (k[0], k[1]) if len(k) > 1 else ("Z" + k[0], "ZZZ")
-
+            # 如果只有一个元素，检查是否包含 '-'
+            if len(k) == 1:
+                if re.match(r"^(S\d+)-S\d+$", k[0], flags=re.I) or re.match(r"^(E\d+)-E\d+$", k[0], flags=re.I):
+                    parts = k[0].split('-')  # 按 '-' 拆分
+                    if len(parts) == 2:
+                        return (parts[1], parts[0])  # 翻转顺序
+                return (k[0], "FF")
+            
+            if re.match(r"^(E\d+)-E\d+$", k[1], flags=re.I):
+                parts = k[1].split('-')  # 按 '-' 拆分
+                if len(parts) == 2:
+                    return (k[0], '{}-{}'.format(parts[1], parts[0]))
+            
+            return (k[0], k[1])
+        
         # 开始排序季集顺序
         for title, item in SearchResults.items():
             # 排序筛选器 季
@@ -3771,17 +3797,17 @@ class WebAction:
         return {"code": 0, "result": [rec.as_dict() for rec in Rss().get_rss_history(rtype=mtype)]}
 
     @staticmethod
-    def get_downloading():
+    def get_downloading(downloader_id=None):
         """
         查询正在下载的任务
         """
         DownloaderHandler = Downloader()
-        torrents = DownloaderHandler.get_downloading_progress()
+        torrents = DownloaderHandler.get_downloading_progress(downloader_id=downloader_id)
         for torrent in torrents:
             # 先查询下载记录，没有再识别
             name = torrent.get("name")
             download_info = DownloaderHandler.get_download_history_by_downloader(
-                downloader=DownloaderHandler.default_downloader_id,
+                downloader=downloader_id,
                 download_id=torrent.get("id")
             )
             if download_info:

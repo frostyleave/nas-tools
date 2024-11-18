@@ -1,13 +1,5 @@
 {% import 'macro/svg.html' as SVG %}
 {% import 'macro/oops.html' as OOPS %}
-<div class="container-xl">
-  <div class="page-header d-print-none">
-    <div class="row align-items-center">
-      <div class="col">
-      </div>
-    </div>
-  </div>
-</div>
 {% if SiteNames %}
   <div class="page-body">
     <div class="container-xl">
@@ -60,7 +52,7 @@
               <div class="row align-items-center">
                 <div class="col-auto">
                 <span class="bg-green avatar text-white">
-                  {{ SVG.arrow_big_up_lines() }}
+                  {{ SVG.seeding() }}
                 </span>
                 </div>
                 <div class="col">
@@ -81,7 +73,7 @@
               <div class="row align-items-center">
                 <div class="col-auto">
                 <span class="bg-green avatar text-white">
-                  {{ SVG.cloud_upload() }}
+                  {{ SVG.database() }}
                 </span>
                 </div>
                 <div class="col">
@@ -213,9 +205,6 @@
                           {% else %}
                             <span class="badge bg-success me-2"></span>
                           {% endif %}
-                          <span onclick="navmenu('statistics?refresh_site={{ item.site }}')" title="点击刷新站点数据"
-                               class="avatar avatar-sm rounded me-2 siteicon-{{ item.site|hash }}" width="24"
-                                height="24" alt="" style="cursor:pointer"></span>
                           <div class="flex-fill">
                             <div class="font-weight-medium"><a href="{{ item.url }}" target="_blank">{{ item.site }}</a>
                               {% if item.msg_unread > 0 %}
@@ -258,9 +247,11 @@
                         <span class="d-none d-lg-block">{{ item.update_at }}</span>
                       </td>
                       <td class="activity">
-                        <a href="javascript:show_site_activity('{{ item.site }}')" class="btn-icon"
-                           aria-label="activity">
+                        <a href="javascript:show_site_activity('{{ item.site }}')" class="btn-icon" title="查看历史数据"  aria-label="activity">
                           {{ SVG.activity() }}
+                        </a>
+                        <a href="javascript:void(0)" class="btn-icon ms-3" title="刷新站点数据" onclick="navmenu('statistics?refresh_site={{ item.site }}')" >
+                          {{ SVG.refresh() }}
                         </a>
                       </td>
                     </tr>

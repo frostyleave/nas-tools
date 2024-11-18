@@ -25,75 +25,7 @@
   #modal-plugin-apps-content{
     --tblr-modal-width: 1400px;
   }
-  /* 设置位置 */
-  .loading {
-      position: absolute;
-      /* 居中 */
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      width: 100%
-      /* 高度 */
-      height: 400px;
-      /* 弹性布局 */
-      display: flex;
-      /* 设置子项在y轴方向居中，应该是设置起点在中间，非常有用，不然动画很怪 */
-      align-items: center;
-  }
-  /* 小竖条 */
-  .loading-item {
-      height: 50px;
-      width: 5px;
-      background: var(--tblr-body-color);
-      /* 加margin，使竖条之间有空隙 */
-      margin: 0px 3px;
-      /* 圆角 */
-      border-radius: 10px;
-      /* 动画：名称、时间、循环 */
-      animation: loading 1s infinite;
-  }
 
-  /* 设置动画 */
-  @keyframes loading {
-      0% {
-          height: 0px;
-      }
-      50% {
-          height: 50px;
-      }
-      100% {
-          height: 0px;
-      }
-  }
-
-  /* 为每一个竖条设置延时 */
-  .loading-item:nth-child(2) {
-      animation-delay: 0.1s;
-  }
-
-  .loading-item:nth-child(3) {
-      animation-delay: 0.2s;
-  }
-
-  .loading-item:nth-child(4) {
-      animation-delay: 0.3s;
-  }
-
-  .loading-item:nth-child(5) {
-      animation-delay: 0.4s;
-  }
-
-  .loading-item:nth-child(6) {
-      animation-delay: 0.5s;
-  }
-
-  .loading-item:nth-child(7) {
-      animation-delay: 0.6s;
-  }
-
-  .loading-item:nth-child(8) {
-      animation-delay: 0.7s;
-  }
 </style>
 
 <div id="downloaders-div" class="card components-div">
@@ -128,7 +60,6 @@
         <a class="card card-link-pop p-0 overflow-hidden rounded-3" href="javascript:void(0)" onclick="show_edit_downloader_modal('{{ Id }}')">
           <div class="card-cover card-cover-blurred text-center"
                {% if DownloaderConf[Attr.type].color %}style="background-color: {{ DownloaderConf[Attr.type].color }}"{% endif %}>
-              <span class="badge bg-cyan tag-span" title="下载器">下载器</span>
               <span onclick="event.stopPropagation();set_default_downloader('{{ Attr.id }}')"
                     class="btn-action p-1"
                     title="设置默认" style="position:absolute;top:5px;right:5px;z-index:1;"
@@ -386,16 +317,6 @@
         </div>
         <div class="modal-body" style="min-height:800px;">
           <div class="d-grid gap-3 grid-normal-card align-items-start" id="plugin_apps_content" style="display:none;"></div>
-          <div class="loading" id="loading-box">
-            <div class="loading-item"></div>
-            <div class="loading-item"></div>
-            <div class="loading-item"></div>
-            <div class="loading-item"></div>
-            <div class="loading-item"></div>
-            <div class="loading-item"></div>
-            <div class="loading-item"></div>
-            <div class="loading-item"></div>
-        </div>
         </div>
       </div>
     </div>
@@ -801,7 +722,7 @@
 
   // 跳转下载设置
   function goto_download_setting(){
-    let downloaders = {{ Downloaders|safe }};
+    var downloaders = {{ Downloaders | tojson }};
     if (!Object.keys(downloaders).length) {
       show_fail_modal("请先添加下载器！");
     } else {
@@ -841,7 +762,6 @@
 
   // 加载官方插件
   function load_plugin_apps_modal() {
-    $("#loading-box").show();
     $("#plugin_apps_content").empty();
     // 获取插件列表
     ajax_post("get_plugin_apps", {}, function(ret) {
@@ -886,14 +806,12 @@
           $("#plugin_apps_content").append(plugin_html);
         }
         $("#plugin_apps_content").show();
-        $("#loading-box").hide();
       }
     });
   }
 
   // 加载第三方插件
   function load_external_plugin_apps_modal() {
-    $("#loading-box").show();
     $("#plugin_apps_content").empty();
     // 获取插件列表
     ajax_post("get_external_plugin_apps", {}, function(ret) {
@@ -945,7 +863,6 @@
           $("#plugin_apps_content").append(plugin_html);
         }
         $("#plugin_apps_content").show();
-        $("#loading-box").hide();
       }
     });
   }
