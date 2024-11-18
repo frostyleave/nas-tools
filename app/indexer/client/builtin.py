@@ -1,17 +1,13 @@
 import datetime
 import traceback
+from typing import List
 
 import log
 
 from app.conf import SystemConfig
 from app.helper import ProgressHelper, DbHelper
 from app.indexer.client._base import _IIndexClient
-from app.indexer.client._rarbg import Rarbg
-from app.indexer.client._spider import TorrentSpider
-from app.indexer.client._tnode import TNodeSpider
-from app.indexer.client._torrentleech import TorrentLeech
-from app.indexer.client._interface import InterfaceSpider
-from app.indexer.client._plugins import PluginsSpider
+from app.indexer.client import Rarbg, TorrentSpider, TNodeSpider, TorrentLeech, InterfaceSpider, MTorrentSpider
 from app.indexer.manager import IndexerManager, IndexerConf
 from app.sites import Sites
 from app.utils import StringUtils
@@ -60,21 +56,25 @@ class BuiltinIndexer(_IIndexClient):
         """
         return True
 
-    def get_indexers(self, check=True, indexer_id=None, public=True):
+    def get_indexers(self, check=True, indexer_id=None, public=True) -> List[IndexerConf]:
+
         ret_indexers = []
+
         # 选中站点配置
         indexer_sites = SystemConfig().get(SystemConfigKey.UserIndexerSites) or []
         _indexer_domains = []
+
         # 私有站点
         for site in Sites().get_sites():
             url = site.get("signurl") or site.get("rssurl")
-            cookie = site.get("cookie")
-            if not url or not cookie:
+            if not url:
                 continue
             render = site.get("chrome")
-            indexer = IndexerManager().get_indexer(url=url,
+            indexer = IndexerManager().build_indexer_conf(url=url,
                                                   siteid=site.get("id"),
-                                                  cookie=cookie,
+                                                  cookie=site.get("cookie"),
+                                                  token=site.get("token"),
+                                                  apikey=site.get("apikey"),
                                                   ua=site.get("ua"),
                                                   name=site.get("name"),
                                                   rule=site.get("rule"),
@@ -140,18 +140,20 @@ class BuiltinIndexer(_IIndexClient):
         # 开始索引
         result_array = []
         try:
+            mtype = match_media.type if match_media and match_media.tmdb_info else None
+
             if indexer.parser == "TNodeSpider":
                 error_flag, result_array = TNodeSpider(indexer).search(keyword=search_word)
             elif indexer.parser == "RarBg":
-                error_flag, result_array = Rarbg(indexer).search(
-                    keyword=search_word,
-                    imdb_id=match_media.imdb_id if match_media else None)
+                imdb_id=match_media.imdb_id if match_media else None
+                error_flag, result_array = Rarbg(indexer).search(keyword=search_word, imdb_id=imdb_id)
             elif indexer.parser == "TorrentLeech":
                 error_flag, result_array = TorrentLeech(indexer).search(keyword=search_word)
             elif indexer.parser == "InterfaceSpider":
-                error_flag, result_array = InterfaceSpider(indexer).search(keyword=search_word)
+                error_flag, result_array = InterfaceSpider(indexer).search(keyword=search_word, mtype=mtype)
+            elif indexer.parser == "MTorrentSpider":
+                error_flag, result_array = MTorrentSpider(indexer).search(keyword=search_word, mtype=mtype)
             else:
-                mtype=match_media.type if match_media and match_media.tmdb_info else None
                 error_flag, result_array = TorrentSpider(indexer).search_torrents(keyword=search_word, mtype=mtype)
         except Exception as err:
             log.error("【%s】%s搜索执行出错: %s - %s" % (self.client_name, indexer.name, str(err), traceback.format_exc()))
@@ -181,42 +183,3 @@ class BuiltinIndexer(_IIndexClient):
                                               filter_args=filter_args,
                                               match_media=match_media,
                                               start_time=start_time)
-
-    def list(self, index_id, page=0, keyword=None):
-        """
-        根据站点ID搜索站点首页资源
-        """
-        if not index_id:
-            return []
-        indexer: IndexerConf = self.get_indexers(indexer_id=index_id)
-        if not indexer:
-            return []
-
-        # 计算耗时
-        start_time = datetime.datetime.now()
-
-        if indexer.parser == "RarBg":
-            error_flag, result_array = Rarbg(indexer).search(keyword=keyword,
-                                                             page=page)
-        elif indexer.parser == "TNodeSpider":
-            error_flag, result_array = TNodeSpider(indexer).search(keyword=keyword,
-                                                                   page=page)
-        elif indexer.parser == "TorrentLeech":
-            error_flag, result_array = TorrentLeech(indexer).search(keyword=keyword,
-                                                                    page=page)
-        else:
-            if PluginsSpider().status(indexer=indexer):
-                error_flag, result_array = PluginsSpider().search(keyword=keyword, indexer=indexer, page=page)
-
-            else:
-                error_flag, result_array = TorrentSpider(indexer).search(indexer=indexer, page=page, keyword=keyword)
-        # 索引花费的时间
-        seconds = round((datetime.datetime.now() - start_time).seconds, 1)
-
-        # 索引统计
-        self.dbhelper.insert_indexer_statistics(indexer=indexer.name,
-                                                itype=self.client_id,
-                                                seconds=seconds,
-                                                result='N' if error_flag else 'Y')
-        return result_array
-

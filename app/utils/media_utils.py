@@ -228,6 +228,9 @@ class MediaUtils:
             if len(season_match) == 2:
                 second_season = season_match[1]
                 cleaned_filename = MediaUtils.insert_season_to_sw(second_season, cleaned_filename)
+                # 如果两个季信息相同，则去掉第一个
+                if second_season == first_season:
+                    cleaned_filename = cleaned_filename.replace(first_season, "", 1)
 
         # 集
         cleaned_filename, episode_match = standardizing_se(cleaned_filename, episode_pattern)
@@ -243,11 +246,17 @@ class MediaUtils:
                 return cleaned_filename
             
             first_episode = real_episode[0]
-            cleaned_filename = MediaUtils.insert_episode_to_sw(first_episode, cleaned_filename)
+            cleaned_filename, pos = MediaUtils.insert_episode_to_sw(first_episode, cleaned_filename)
             
             if len(real_episode) == 2:
                 second_episode = real_episode[1]
-                cleaned_filename = MediaUtils.insert_episode_to_sw(second_episode, cleaned_filename)
+                if pos <= 0:
+                    pos = cleaned_filename.find(first_episode)
+                # 移除second_episode
+                cleaned_filename = cleaned_filename.replace(second_episode, "", 1)
+                # 调整插入下标位置
+                pos = pos + len(first_episode) - len(second_episode)
+                cleaned_filename = StringUtils.insert_char_at_index(cleaned_filename, '.{}.'.format(second_episode), pos)
 
         return re.sub(r"\.+", ".", cleaned_filename)
 
@@ -279,7 +288,7 @@ class MediaUtils:
                     else:
                         insert_pos = p_index + len(second_season)
                         insert_str = '-' + first_season
-                    target_str = target_str[0:insert_pos] + insert_str + target_str[insert_pos:]
+                    target_str = StringUtils.insert_char_at_index(target_str, insert_str, insert_pos)
                 return target_str
 
         episode_pattern = r"(E\d{1,3})"
@@ -290,13 +299,13 @@ class MediaUtils:
             p_index = target_str.find(episode_info)
             # 仅处理不在开头的情况
             if p_index > 0:
-                return target_str[0:p_index]  + '.' + first_season + '.' + target_str[p_index:]
+                return StringUtils.insert_char_at_index(target_str, '.{}.'.format(first_season), p_index)
         
         t = PTN.parse(target_str)
         t_title = t.get('title')
         if t_title:
             insert_pos = target_str.find(t_title) + len(t_title)
-            return target_str[0:insert_pos] + '.' + first_season + '.' + target_str[insert_pos:]
+            return StringUtils.insert_char_at_index(target_str, '.{}.'.format(first_season), insert_pos)
         
         return target_str + '.' + first_season
 
@@ -304,10 +313,11 @@ class MediaUtils:
     def insert_episode_to_sw(first_episode:str, target_str:str):
         """
         把集信息插入合适的位置
+        :return: 调整后的字符串、first_episode 下标
         """
         if not target_str.startswith(first_episode):
-            return target_str
-        
+            return MediaUtils.move_episode_after_season(first_episode, target_str)
+
         target_str = target_str[len(first_episode):].strip(".-")
 
         episode_pattern = r"(E\d{1,3})"
@@ -317,30 +327,51 @@ class MediaUtils:
             e_index = target_str.find(second_episode)
             # 第二个集信息必须不在开头
             if e_index > 0:
-                sep = int(second_episode[1:])
                 fep = int(first_episode[1:])
+                sep = int(second_episode[1:])
+                insert_idx = fep
                 if fep != sep:
                     if sep > fep:
-                        insert_pos = e_index
+                        insert_idx = e_index
                         insert_str = first_episode + '-'
                     else:
-                        insert_pos = e_index + len(second_episode)
+                        insert_idx = e_index + len(second_episode)
                         insert_str = '-' + first_episode
-                    target_str = target_str[0:insert_pos] + insert_str + target_str[insert_pos:]
-                return target_str
+                    target_str = target_str[0:insert_idx] + insert_str + target_str[insert_idx:]
+                return target_str, insert_idx + 1
 
-        season_pattern = r"(S\d{1,2})"
-        season_match = re.findall(season_pattern, target_str)
-        if season_match:
-            if len(season_match) > 1:
-                return target_str
-            p_index = target_str.find(season_match[0]) + len(season_match[0])
-            return target_str[0:p_index]  + '.' + first_episode + '.' + target_str[p_index:]
+        move_result, pos = MediaUtils.move_episode_after_season(first_episode, target_str)
+        if pos > -1:
+            return move_result, pos
         
         t = PTN.parse(target_str)
         t_title = t.get('title')
         if t_title:
-            insert_pos = target_str.find(t_title) + len(t_title)
-            return target_str[0:insert_pos] + '.' + first_episode + '.' + target_str[insert_pos:]
+            insert_idx = target_str.find(t_title) + len(t_title)
+            splicing = StringUtils.insert_char_at_index(target_str, '.{}.'.format(first_episode), insert_idx)
+            return splicing, insert_idx + 1
 
-        return target_str + '.' + first_episode
+        splicing = target_str + '.' + first_episode
+        return splicing, len(splicing)
+
+
+    @staticmethod
+    def move_episode_after_season(first_episode:str, target_str:str):
+        """
+        把集信息插入季信息之后
+        """
+        season_pattern = r"(S\d{1,2})"
+        season_match = re.findall(season_pattern, target_str)
+        if not season_match:
+            return target_str, -1
+        
+        if len(season_match) > 1:
+            return target_str, -1
+        
+        # 移除first_episode
+        target_str = target_str.replace(first_episode, "", 1)
+        
+        p_index = target_str.find(season_match[0]) + len(season_match[0])
+        # 拼接到季信息之后
+        splicing = StringUtils.insert_char_at_index(target_str, '.{}.'.format(first_episode), p_index)
+        return splicing, p_index + 1

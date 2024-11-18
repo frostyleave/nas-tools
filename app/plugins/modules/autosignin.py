@@ -17,7 +17,7 @@ from app.plugins import EventHandler
 from app.plugins.modules._base import _IPluginModule
 from app.sites.siteconf import SiteConf
 from app.sites.sites import Sites
-from app.utils import RequestUtils, ExceptionUtils, StringUtils, SchedulerUtils
+from app.utils import RequestUtils, ExceptionUtils, SiteUtils, SchedulerUtils
 from app.utils.types import EventType
 from config import Config
 
@@ -435,7 +435,8 @@ class AutoSignIn(_IPluginModule):
             if site_info.get("chrome"):
                 # 首页
                 self.info("开始站点仿真签到：%s" % site)
-                home_url = StringUtils.get_base_url(site_url)
+
+                home_url = SiteUtils.get_base_url(site_url)
                 if "1ptba" in home_url:
                     home_url = f"{home_url}/index.php"
                 
@@ -497,10 +498,11 @@ class AutoSignIn(_IPluginModule):
                 else:
                     checkin_text = "模拟登录"
                     
-                self.info(f"开始站点{checkin_text}：{site}")
+                self.info(f"开始站点{checkin_text}: {site}")
+
                 # 访问链接
                 res = RequestUtils(cookies=site_cookie,
-                                   headers=ua,
+                                   ua=ua,
                                    proxies=Config().get_proxies() if site_info.get("proxy") else None
                                    ).get_res(url=site_url)
                 if res and res.status_code in [200, 500, 403]:

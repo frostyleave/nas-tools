@@ -14,16 +14,16 @@ from app.conf import ModuleConf
 from app.conf import SystemConfig
 from app.filetransfer import FileTransfer
 from app.helper import DbHelper, ThreadHelper, SubmoduleHelper
-from app.indexer.client._interface import InterfaceSpider
+from app.indexer.client import InterfaceSpider, MTorrentSpider
 from app.indexer.client.browser import PlaywrightHelper
-from app.indexer.manager import IndexerManager
+from app.indexer.manager import IndexerConf, IndexerManager
 from app.media import Media
 from app.media.meta import MetaInfo
 from app.mediaserver import MediaServer
 from app.message import Message
 from app.plugins import EventManager
 from app.sites import Sites, SiteSubtitle
-from app.utils import TorrentUtils, StringUtils, SystemUtils, ExceptionUtils, NumberUtils, RequestUtils
+from app.utils import TorrentUtils, StringUtils, SystemUtils, ExceptionUtils, NumberUtils, RequestUtils, SiteUtils
 from app.utils.commons import singleton
 from app.utils.types import MediaType, DownloaderType, SearchType, RmtMode, EventType, SystemConfigKey
 
@@ -368,13 +368,27 @@ class Downloader:
                             return None, "%s 转换磁力链失败" % content
                 else:
                     # 从HTTP链接下载种子
-                    # 获取索引站点信息
                     site_info = self.sites.get_sites(siteurl=url)
-                    if not site_info:
-                        site_info = self.sites.get_indexer_sites(url=url,site_name=media_info.site)
+                    if site_info:
+                        render = site_info.get("chrome")
+                        indexer_conf = IndexerManager().build_indexer_conf(url=site_info.get("strict_url"),
+                                                            siteid=site_info.get("id"),
+                                                            cookie=site_info.get("cookie"),
+                                                            token=site_info.get("token"),
+                                                            apikey=site_info.get("apikey"),
+                                                            ua=site_info.get("ua"),
+                                                            name=site_info.get("name"),
+                                                            rule=site_info.get("rule"),
+                                                            pri=site_info.get('pri'),
+                                                            public=False,
+                                                            proxy=site_info.get("proxy"),
+                                                            render=render)
+                    else:
+                        indexer_conf = IndexerManager().build_indexer_conf(url=url)
+
 
                     # 下载种子文件, 并读取信息
-                    torrent_file, content, dl_files_folder, dl_files, retmsg = self.get_torrent_info_with_site(url, site_info, page_url)
+                    torrent_file, content, dl_files_folder, dl_files, retmsg = self.get_torrent_info_with_site(url, indexer_conf, page_url)
 
         # 解析完成
         if retmsg:
@@ -618,7 +632,7 @@ class Downloader:
             log.info(f"【Downloader】下载器 {downloader_name} 添加任务: %s, 目录: %s, Url: %s" % (
                 title, download_dir, print_url))
 
-    def get_torrent_info_with_site(self, url, site_info, page_url):
+    def get_torrent_info_with_site(self, url:str, indexer_info:IndexerConf, page_url:str):
         """
         根据下载链接所属的站点信息，把种子下载到本地, 返回种子内容
         :param url: 种子链接
@@ -626,26 +640,24 @@ class Downloader:
         :param page_url: 种子链接页面的url
         :return: 种子保存路径、种子内容、种子文件列表主目录、种子文件列表、错误信息
         """
-        if not site_info:
+        if not indexer_info:
             return self.get_torrent_info(url=url)
 
-        if site_info.get('parser') == "InterfaceSpider":
-            indexer = IndexerManager().get_indexer(url=site_info.get('domain'))
-            if indexer:
-                return self.get_torrent_file_with_interfaceSpider(url, indexer)
+        parser = indexer_info.parser
+        if parser == "InterfaceSpider" or parser == "MTorrentSpider":
+            return self.get_torrent_file_with_spider(url, indexer_info, parser)                
 
-        cookie = site_info.get("cookie") if site_info else None
-        ua = site_info.get("ua") if site_info else None
-        referer = page_url if site_info.get("referer") else None
-        proxy = True if site_info.get("proxy") else False
-        render=True if site_info["render"] else False
+        cookie = indexer_info.cookie if indexer_info else None
+        ua = indexer_info.ua if indexer_info else None
+        proxy = True if indexer_info.proxy else False
+        render=True if indexer_info.render else False
 
         # 下载种子文件, 并读取信息
         return self.get_torrent_info(
             url=url,
             cookie=cookie,
             ua=ua,
-            referer=referer,
+            referer=page_url,
             proxy=proxy,
             render=render
         )
@@ -696,13 +708,14 @@ class Downloader:
         except Exception as err:
             return None, None, "", [], "下载种子文件出现异常: %s" % str(err)
 
-    def get_torrent_file_with_interfaceSpider(self, url, site_info):
+    def get_torrent_file_with_spider(self, url:str, indexer_info:IndexerConf, parser:str):
         """
         把种子下载到本地
         :return: 种子保存路径, 种子内容, 错误信息
         """
             
-        req = InterfaceSpider(site_info).request(url)
+        req = MTorrentSpider(indexer_info).get_torrent(url) if parser == 'MTorrentSpider' \
+              else InterfaceSpider(indexer_info).request(url) 
 
         if req and req.status_code == 200:
             if not req.content:
@@ -738,7 +751,7 @@ class Downloader:
         """
         
         proxies = Config().get_proxies() if proxy else None           
-        req = RequestUtils(headers=ua, cookies=cookie, referer=referer, proxies=proxies).get_res(url=url,allow_redirects=True)
+        req = RequestUtils(us=ua, cookies=cookie, referer=referer, proxies=proxies).get_res(url=url,allow_redirects=True)
 
         if req and req.status_code == 200:
             if not req.content:
@@ -757,7 +770,7 @@ class Downloader:
                         if not action or action == "?":
                             action = url
                         elif not action.startswith('http'):
-                            action = StringUtils.get_base_url(url) + action
+                            action = SiteUtils.get_base_url(url) + action
                         inputs = re.findall(r'<input.*?name="(.*?)".*?value="(.*?)".*?>', form[0][1], re.S)
                         if action and inputs:
                             data = {}
@@ -765,7 +778,7 @@ class Downloader:
                                 data[item[0]] = item[1]
                             # 改写req
                             req = RequestUtils(
-                                headers=ua,
+                                ua=ua,
                                 cookies=cookie,
                                 referer=referer,
                                 proxies=Config().get_proxies() if proxy else None

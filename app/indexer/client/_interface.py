@@ -6,6 +6,7 @@ import requests
 
 from urllib.parse import quote
 
+from app.indexer.manager import IndexerConf
 from app.utils.string_utils import StringUtils
 from config import Config
 
@@ -14,13 +15,35 @@ class InterfaceSpider(object):
     torrents_info_array = []
     result_num = 100
 
-    def __init__(self, indexer):
+    def __init__(self, indexer:IndexerConf):
         self._indexer = indexer
+        self.list_selector = None
+        self.torrents_selector = None
+        self.field_selector = None
+        self.search_config = None
         self.init_config()
 
     def init_config(self):
         self.torrents_info_array = []
         self.result_num = Config().get_config('pt').get('site_search_result_num') or 100
+
+        # 解析搜索配置
+        self.list_selector = self._indexer.torrents.get('list')
+        if not self.list_selector:
+            log.warn(f"【InterfaceSpider】渲染器{self._indexer.name} 中torrents配置错误, 缺失list")
+            return
+        # 种子筛选器
+        self.torrents_selector = self.list_selector.get('selector', 'pre')
+        if not self.torrents_selector:
+            log.warn(f"【InterfaceSpider】渲染器{self._indexer.name} 中torrents->list配置错误, 缺失selector")
+            return
+        # 字段筛选器
+        self.field_selector = self._indexer.torrents.get('fields')
+        if not self.field_selector:
+            log.warn(f"【InterfaceSpider】渲染器{self._indexer.name} 中torrents配置错误, 缺失fields")
+            return
+        # 搜索配置
+        self.search_config = self._indexer.search.get('paths', [{}])[0]
 
     def search(self, keyword, page=None, mtype=None):
         """
@@ -35,28 +58,10 @@ class InterfaceSpider(object):
         if isinstance(keyword, list):
             keyword = " ".join(keyword)
 
-        list_selector = self._indexer.torrents.get('list')
-        if not list_selector:
-            log.warn(f"【InterfaceSpider】渲染器{self._indexer.name} 中torrents配置错误, 缺失list")
-            return False, []
-
-        # 种子筛选器
-        torrents_selector = list_selector.get('selector', 'pre')
-        if not torrents_selector:
-            log.warn(f"【InterfaceSpider】渲染器{self._indexer.name} 中torrents->list配置错误, 缺失selector")
-            return False, []
-        
-        field_selector = self._indexer.torrents.get('fields')
-        if not field_selector:
-            log.warn(f"【InterfaceSpider】渲染器{self._indexer.name} 中torrents配置错误, 缺失fields")
-            return False, []
-
-        # 请求路径
-        search_config = self._indexer.search.get('paths', [{}])[0]
-        torrents_path = search_config.get('path', '') or ''
+        torrents_path = self.search_config.get('path', '') or ''
         search_url = torrents_path.replace("{domain}", self._indexer.domain).replace("{keyword}", quote(keyword))
 
-        response = self.request(search_url, search_config)
+        response = self.request(search_url)
 
         if response.status_code != 200:
             log.warn(f"【InterfaceSpider】请求{search_url} 失败: {str(response.status_code)}")
@@ -74,7 +79,7 @@ class InterfaceSpider(object):
             log.warn(f"【InterfaceSpider】json解析失败: {html_text}")
             return False, []
         
-        data_root = list_selector.get('root')
+        data_root = self.list_selector.get('root')
         if data_root:
             tmp_data = json_obj
             params = data_root.split('>')
@@ -104,22 +109,22 @@ class InterfaceSpider(object):
             if not data_item:
                 continue
 
-            item_size = self.get_dic_val(data_item, field_selector.get('size'))
+            item_size = self.get_dic_val(data_item, self.field_selector.get('size'))
             if item_size and isinstance(item_size, str):
                 item_size = item_size.replace("\n", "").strip()
 
-            download_link = self.get_dic_val(data_item, field_selector.get('magnet'))
+            download_link = self.get_dic_val(data_item, self.field_selector.get('magnet'))
             # 有磁力链接时，校验磁力链接合法性
             if not download_link or download_link.startswith('magnet') == False or len(download_link) < 52:
-                download_link = self.get_dic_val(data_item, field_selector.get('hash'))
+                download_link = self.get_dic_val(data_item, self.field_selector.get('hash'))
                 if download_link:
                     download_link = 'magnet:?xt=urn:btih:' + download_link
                 else:
-                    torrent_file = self.get_dic_val(data_item, field_selector.get('torrent'))
+                    torrent_file = self.get_dic_val(data_item, self.field_selector.get('torrent'))
                     if torrent_file:
                         download_link = torrent_file
                         if download_link.startswith('http') == False:
-                            torrent_domain = field_selector.get('torrent_domain')
+                            torrent_domain = self.field_selector.get('torrent_domain')
                             if torrent_domain:
                                 if torrent_domain.endswith('/') and download_link.startswith('/'):
                                     download_link = torrent_domain.strip('/') + download_link
@@ -130,23 +135,21 @@ class InterfaceSpider(object):
 
             torrent = {
                 'indexer': self._indexer.id,
-                'title': self.get_dic_val(data_item, field_selector.get('title')),
+                'title': self.get_dic_val(data_item, self.field_selector.get('title')),
                 'enclosure': download_link,
-                'pubdate': self.get_dic_val(data_item, field_selector.get('date_added')),
+                'pubdate': self.get_dic_val(data_item, self.field_selector.get('date_added')),
                 'size': StringUtils.num_filesize(item_size) if isinstance(item_size, str) else item_size,
-                'seeders' : self.get_dic_val(data_item, field_selector.get('seeders')),
+                'seeders' : self.get_dic_val(data_item, self.field_selector.get('seeders')),
                 'downloadvolumefactor' : 0.0
             }
             self.torrents_info_array.append(torrent)
         
         return False, self.torrents_info_array
-    
 
-    def request(self, search_url, search_config=None):
+    def request(self, search_url):
         """
         执行请求
         :param: search_url: 请求链接
-        :param: search_config: 站点搜索配置
         :return: response
         """
 
@@ -156,11 +159,8 @@ class InterfaceSpider(object):
         # 代理
         proxies = Config().get_proxies() if self._indexer.proxy else None
         
-        if not search_config:
-            search_config = self._indexer.search.get('paths', [{}])[0]
-
         # 是否需要验证cookie
-        check_cookie = search_config.get('cookie', False) or False
+        check_cookie = self.search_config.get('cookie', False) or False
         
         # 创建一个会话对象
         session = requests.Session()

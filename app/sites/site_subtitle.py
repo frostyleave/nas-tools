@@ -7,7 +7,7 @@ import log
 from app.sites.sites import Sites
 from app.sites.siteconf import SiteConf
 from app.helper import SiteHelper
-from app.utils import RequestUtils, StringUtils, PathUtils, ExceptionUtils
+from app.utils import RequestUtils, SiteUtils, PathUtils, ExceptionUtils, SiteUtils
 from config import Config, RMT_SUBEXT
 
 
@@ -42,7 +42,7 @@ class SiteSubtitle:
             return
 
         # 读取网站代码
-        request = RequestUtils(cookies=cookie, headers=ua)
+        request = RequestUtils(cookies=cookie, ua=ua)
         res = request.get_res(media_info.page_url)
         if res and res.status_code == 200:
             if not res.text:
@@ -57,7 +57,7 @@ class SiteSubtitle:
                         if not sublink:
                             continue
                         if not sublink.startswith("http"):
-                            base_url = StringUtils.get_base_url(media_info.page_url)
+                            base_url = SiteUtils.get_base_url(media_info.page_url)
                             if sublink.startswith("/"):
                                 sublink = "%s%s" % (base_url, sublink)
                             else:

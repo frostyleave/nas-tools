@@ -329,8 +329,18 @@ class Media:
                             return tv
             else:
                 for tv in tvs:
-                    if self.__compare_tmdb_names(file_media_name, tv.get('name')) \
-                            or self.__compare_tmdb_names(file_media_name, tv.get('original_name')):
+                    tmdb_names = []
+                    lan_name = tv.get('name')
+                    original_name = tv.get('original_name')
+                    if lan_name:
+                        tmdb_names.append(lan_name)
+                    if original_name:
+                        tmdb_names.append(original_name)
+                    if lan_name and original_name:
+                        tmdb_names.append(lan_name + original_name)
+                        tmdb_names.append(original_name + lan_name)
+
+                    if self.__compare_tmdb_names(file_media_name, tmdb_names):
                         return tv
             if not info:
                 index = 0
@@ -703,7 +713,11 @@ class Media:
         """
         if not meta_info:
             return None
-        return self.___make_cache_key(meta_info.type, meta_info.get_name(), meta_info.year, meta_info.begin_season)
+        
+        if meta_info.year:
+            return self.___make_cache_key(meta_info.type, meta_info.get_name(), meta_info.year, meta_info.begin_season)
+
+        return self.___make_cache_key(meta_info.type, meta_info.get_name(), meta_info.get_en_name, meta_info.begin_season)
 
     def ___make_cache_key(self, mtype, name, year, begin_season):
         """
@@ -756,6 +770,11 @@ class Media:
             meta_info.type = mtype
 
         search_name = meta_info.get_name()
+        en_name = meta_info.get_en_name()
+        # 没有年份、但有英文名时, 结合英文名搜索
+        if not meta_info.year and en_name and en_name != search_name:
+            search_name = '{} {}'.format(search_name, en_name)
+
         # 查询tmdb数据
         file_media_info = self.query_tmdb_info(search_name, meta_info.type, meta_info.year,
                                                meta_info.begin_season, append_to_response, chinese, strict, cache)

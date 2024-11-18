@@ -8,6 +8,8 @@ from functools import lru_cache
 import requests
 import requests.exceptions
 
+from config import Config
+
 from .as_obj import AsObj
 from .exceptions import TMDbException
 
@@ -142,13 +144,16 @@ class TMDb(object):
     ):
         if self.api_key is None or self.api_key == "":
             raise TMDbException("No API key found.")
+        
+        include_adult = Config().get_config('laboratory').get("search_adult")
 
-        url = "%s%s?api_key=%s&%s&language=%s&include_adult=true" % (
+        url = "%s%s?api_key=%s&%s&language=%s&include_adult=%s" % (
             self.domain,
             action,
             self.api_key,
             append_to_response,
             self.language,
+            str(include_adult)
         )
 
         if self.cache and self.obj_cached and call_cached and method != "POST":

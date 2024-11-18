@@ -1,6 +1,5 @@
 from app.message.client._base import _IMessageClient
-from app.utils import RequestUtils, StringUtils, ExceptionUtils
-
+from app.utils import RequestUtils, SiteUtils, ExceptionUtils
 
 class Gotify(_IMessageClient):
     schema = "gotify"
@@ -16,7 +15,7 @@ class Gotify(_IMessageClient):
 
     def init_config(self):
         if self._client_config:
-            self._server = StringUtils.get_base_url(self._client_config.get('server'))
+            self._server = SiteUtils.get_base_url(self._client_config.get('server'))
             self._token = self._client_config.get('token')
             try:
                 self._priority = int(self._client_config.get('priority'))

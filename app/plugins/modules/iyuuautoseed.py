@@ -817,7 +817,7 @@ class IYUUAutoSeed(_IPluginModule):
             self.info(f"正在获取种子下载链接：{page_url} ...")
             res = RequestUtils(
                 cookies=site.get("cookie"),
-                headers=site.get("ua"),
+                ua=site.get("ua"),
                 proxies=Config().get_proxies() if site.get("proxy") else None
             ).get_res(url=page_url)
             if res is not None and res.status_code in (200, 500):

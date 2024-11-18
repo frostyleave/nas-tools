@@ -2,7 +2,7 @@ import xml.dom.minidom
 
 from app.db import MainDb, DbPersist
 from app.db.models import RSSTORRENTS
-from app.utils import RssTitleUtils, StringUtils, RequestUtils, ExceptionUtils, DomUtils
+from app.utils import RssTitleUtils, StringUtils, RequestUtils, ExceptionUtils, DomUtils, SiteUtils
 from config import Config
 from lxml import etree
 from urllib.parse import urljoin
@@ -230,7 +230,7 @@ class RssHelper:
         """
         try:
             # 获取站点域名
-            domain = StringUtils.get_url_domain(url)
+            domain = SiteUtils.get_url_domain(url)
             # 获取配置
             site_conf = self.rss_link_conf.get(domain) or self.rss_link_conf.get("default")
             # RSS地址
@@ -287,7 +287,7 @@ class RssHelper:
         ret_array = []
         if not url:
             return []
-        site_domain = StringUtils.get_url_domain(url)
+        site_domain = SiteUtils.get_url_domain(url)
         try:
             ret = RequestUtils(proxies=Config().get_proxies() if proxy else None).get_res(url)
             if not ret:

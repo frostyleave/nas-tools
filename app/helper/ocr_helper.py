@@ -20,7 +20,7 @@ class OcrHelper:
         if ocr_url:
             self._ocr_b64_url = ocr_url
         if image_url:
-            ret = RequestUtils(headers=ua,
+            ret = RequestUtils(ua=ua,
                                cookies=cookie).get_res(image_url)
             if ret is not None:
                 image_bin = ret.content

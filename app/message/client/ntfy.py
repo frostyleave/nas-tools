@@ -1,5 +1,5 @@
 from app.message.client._base import _IMessageClient
-from app.utils import RequestUtils, StringUtils, ExceptionUtils
+from app.utils import RequestUtils, SiteUtils, ExceptionUtils
 
 
 class Ntfy(_IMessageClient):
@@ -18,7 +18,7 @@ class Ntfy(_IMessageClient):
 
     def init_config(self):
         if self._client_config:
-            self._server = StringUtils.get_base_url(self._client_config.get('server'))
+            self._server = SiteUtils.get_base_url(self._client_config.get('server'))
             self._token = self._client_config.get('token')
             self._topic = self._client_config.get('topic')
             self._tags = 'rotating_light' if self._client_config.get('tags') == '' else self._client_config.get('tags')

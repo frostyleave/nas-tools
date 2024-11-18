@@ -810,7 +810,7 @@
       if (this.checked) {
           check_sites.push(itemVal)
       } else {
-          const indexToRemove = myList.indexOf(itemVal);
+          const indexToRemove = check_sites.indexOf(itemVal);
           if (indexToRemove > -1) {
             check_sites.splice(indexToRemove, 1);
           }

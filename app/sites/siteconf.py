@@ -7,7 +7,7 @@ from functools import lru_cache
 from lxml import etree
 
 from app.indexer.client.browser import PlaywrightHelper
-from app.utils import ExceptionUtils, StringUtils, RequestUtils
+from app.utils import ExceptionUtils, SiteUtils, RequestUtils
 from app.utils.commons import singleton
 from config import Config
 
@@ -99,7 +99,7 @@ class SiteConf:
         if not url:
             return self._RSS_SITE_GRAP_CONF
         for k, v in self._RSS_SITE_GRAP_CONF.items():
-            if StringUtils.url_equal(k, url):
+            if SiteUtils.url_equal(k, url):
                 return v
         return {}
 
@@ -168,11 +168,11 @@ class SiteConf:
     def __get_site_page_html(url, cookie, ua, render=False, proxy=False):
         # 开渲染
         if render:            
-            return PlaywrightHelper().get_page_source(url=url, cookie=cookie, ua=ua, proxy=proxy, timeout=10)
+            return PlaywrightHelper().get_page_source(url=url, cookies=cookie, ua=ua, proxy=proxy, timeout=10)
         else:
             res = RequestUtils(
                 cookies=cookie,
-                headers=ua,
+                ua=ua,
                 proxies=Config().get_proxies() if proxy else None
             ).get_res(url=url)
             if res and res.status_code == 200:

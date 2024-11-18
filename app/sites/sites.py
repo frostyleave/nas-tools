@@ -7,7 +7,7 @@ from app.helper import SiteHelper, DbHelper
 from app.indexer.manager import IndexerManager
 from app.message import Message
 from app.sites.site_limiter import SiteRateLimiter
-from app.utils import RequestUtils, StringUtils, ExceptionUtils
+from app.utils import RequestUtils, SiteUtils, ExceptionUtils
 from app.utils.commons import singleton
 from config import Config
 from lxml import etree
@@ -63,12 +63,14 @@ class Sites:
             site_rssurl = site.RSSURL
             site_signurl = site.SIGNURL
             site_cookie = site.COOKIE
+            site_token = site.TOKEN
+            site_apikey = site.API_KEY
             site_uses = site.INCLUDE or ''
             uses = []
             if site_uses:
                 rss_enable = True if "D" in site_uses and site_rssurl else False
-                brush_enable = True if "S" in site_uses and site_rssurl and site_cookie else False
-                statistic_enable = True if "T" in site_uses and (site_rssurl or site_signurl) and site_cookie else False
+                brush_enable = True if "S" in site_uses and site_rssurl else False
+                statistic_enable = True if "T" in site_uses and (site_rssurl or site_signurl) else False
                 uses.append("D") if rss_enable else None
                 uses.append("S") if brush_enable else None
                 uses.append("T") if statistic_enable else None
@@ -76,6 +78,7 @@ class Sites:
                 rss_enable = False
                 brush_enable = False
                 statistic_enable = False
+
             site_info = {
                 "id": site.ID,
                 "name": site.NAME,
@@ -83,6 +86,8 @@ class Sites:
                 "rssurl": site_rssurl,
                 "signurl": site_signurl,
                 "cookie": site_cookie,
+                "token": site_token,
+                "apikey": site_apikey,
                 "rule": site_note.get("rule"),
                 "download_setting": site_note.get("download_setting"),
                 "rss_enable": rss_enable,
@@ -98,12 +103,12 @@ class Sites:
                 "limit_interval": site_note.get("limit_interval"),
                 "limit_count": site_note.get("limit_count"),
                 "limit_seconds": site_note.get("limit_seconds"),
-                "strict_url": StringUtils.get_base_url(site_signurl or site_rssurl)
+                "strict_url": SiteUtils.get_base_url(site_signurl or site_rssurl)
             }
             # 以ID存储
             self._siteByIds[site.ID] = site_info
             # 以域名存储
-            site_strict_url = StringUtils.get_url_domain(site.SIGNURL or site.RSSURL)
+            site_strict_url = SiteUtils.get_url_domain(site.SIGNURL or site.RSSURL)
             if site_strict_url:
                 self._siteByUrls[site_strict_url] = site_info
             # 初始化站点限速器
@@ -137,7 +142,7 @@ class Sites:
         if siteid:
             return self._siteByIds.get(int(siteid)) or {}
         if siteurl:
-            return self._siteByUrls.get(StringUtils.get_url_domain(siteurl)) or {}
+            return self._siteByUrls.get(SiteUtils.get_url_domain(siteurl)) or {}
 
         ret_sites = []
         for site in self._siteByIds.values():
@@ -263,18 +268,16 @@ class Sites:
         if not site_cookie:
             return False, "未配置站点Cookie", 0
         ua = site_info.get("ua") or Config().get_ua()
-        site_url = StringUtils.get_base_url(site_info.get("signurl") or site_info.get("rssurl"))
+        site_url = SiteUtils.get_base_url(site_info.get("signurl") or site_info.get("rssurl"))
         if not site_url:
             return False, "未配置站点地址", 0
-        # 站点特殊处理...
-        if '1ptba' in site_url:
-            site_url = site_url + '/index.php'
+
         if site_info.get("chrome"):
             # 计时
             start_time = datetime.now()
             proxy=True if site_info.get("proxy") else False
             # 判断是否已签到
-            html_text = PlaywrightHelper().get_page_source(url=site_url, ua=ua, cookie=site_cookie, proxy=proxy)
+            html_text = PlaywrightHelper().get_page_source(url=site_url, ua=ua, cookies=site_cookie, proxy=proxy, headless=False)
             if not html_text:
                 return False, "获取站点源码失败", 0
             seconds = int((datetime.now() - start_time).microseconds / 1000)
@@ -286,7 +289,7 @@ class Sites:
             # 计时
             start_time = datetime.now()
             res = RequestUtils(cookies=site_cookie,
-                               headers=ua,
+                               ua=ua,
                                proxies=Config().get_proxies() if site_info.get("proxy") else None
                                ).get_res(url=site_url)
             seconds = int((datetime.now() - start_time).microseconds / 1000)
@@ -323,7 +326,7 @@ class Sites:
             if not site_info.get("referer"):
                 referer = None
             req = RequestUtils(
-                headers=ua,
+                ua=ua,
                 cookies=cookie,
                 referer=referer,
                 proxies=Config().get_proxies() if site_info.get("proxy") else None
@@ -341,18 +344,18 @@ class Sites:
             ExceptionUtils.exception_traceback(err)
         return None
 
-    def get_indexer_sites(self, url, site_name):
+    def get_indexer_sites(self, url, site_name=None):
         """
         根据url查询索引站点信息
         """
         indexers = IndexerManager().get_all_indexers()
         if url:
-            base_url = StringUtils.get_base_url(url)            
+            base_url = SiteUtils.get_base_url(url)            
             sites_info = next(filter(lambda x: x.get("domain").startswith(base_url), indexers), None)
             if sites_info:
                 return sites_info
             
-            url_sld = StringUtils.get_url_sld(url)
+            url_sld = SiteUtils.get_url_sld(url)
             sites_info = next(filter(lambda x: url_sld.startswith(x.get("id")), indexers), None)
             if sites_info:
                 return sites_info
@@ -374,7 +377,7 @@ class Sites:
         return infos
 
     def add_site(self, name, site_pri,
-                 rssurl=None, signurl=None, cookie=None, note=None, rss_uses=None):
+                 rssurl=None, signurl=None, cookie=None, token=None, apikey=None, note=None, rss_uses=None):
         """
         添加站点
         """
@@ -383,13 +386,15 @@ class Sites:
                                                rssurl=rssurl,
                                                signurl=signurl,
                                                cookie=cookie,
+                                               token=token,
+                                               apikey=apikey,
                                                note=note,
                                                rss_uses=rss_uses)
         self.init_config()
         return ret
 
     def update_site(self, tid, name, site_pri,
-                    rssurl, signurl, cookie, note, rss_uses):
+                    rssurl, signurl, cookie, token, apikey, note, rss_uses):
         """
         更新站点
         """
@@ -399,6 +404,8 @@ class Sites:
                                                rssurl=rssurl,
                                                signurl=signurl,
                                                cookie=cookie,
+                                               token=token,
+                                               apikey=apikey,
                                                note=note,
                                                rss_uses=rss_uses)
         self.init_config()
@@ -412,12 +419,13 @@ class Sites:
         self.init_config()
         return ret
 
-    def update_site_cookie(self, siteid, cookie, ua=None):
+    def update_site_cookie(self, siteid, cookie, token=None, ua=None):
         """
         更新站点Cookie和UA
         """
         ret = self.dbhelper.update_site_cookie_ua(tid=siteid,
                                                   cookie=cookie,
+                                                  token=token,
                                                   ua=ua)
         self.init_config()
         return ret
