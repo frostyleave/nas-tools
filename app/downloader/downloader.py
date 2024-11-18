@@ -431,20 +431,6 @@ class Downloader:
         # 开始添加下载
         try:
 
-            if torrent_file and (not content or isinstance(content, bytes)):
-                content = TorrentUtils.torrent_to_magnet(torrent_file)
-                # 把种子文件移动到下载器可访问的目录
-                if downloader_conf and downloader_conf.get('download_dir'):
-                   container_path = downloader_conf.get('download_dir')[0].get('container_path')
-                   save_path = downloader_conf.get('download_dir')[0].get('save_path')
-                   if container_path and save_path:
-                       file_name = os.path.basename(torrent_file)
-                       dst = os.path.join(container_path, file_name)
-                       if os.path.exists(dst):
-                            os.remove(dst)
-                       shutil.move(torrent_file, container_path)
-                       torrent_file = os.path.join(save_path, file_name) 
-
             # 下载设置中的分类
             category = download_attr.get("category")
             # 合并TAG
@@ -478,6 +464,7 @@ class Downloader:
             ratio_limit = download_attr.get("ratio_limit")
             # 做种时间
             seeding_time_limit = download_attr.get("seeding_time_limit")
+
             # 下载目录设置
             if not download_dir:
                 download_info = self.__get_download_dir_info(media_info, downloader_conf.get("download_dir"))
@@ -491,6 +478,7 @@ class Downloader:
             downloader_type = downloader.get_type()
             if downloader_type == DownloaderType.TR:
                 ret = downloader.add_torrent(content,
+                                             tag=tags,
                                              is_paused=is_paused,
                                              download_dir=download_dir,
                                              cookie=site_info.get("cookie"))
@@ -526,14 +514,21 @@ class Downloader:
                     download_id = downloader.get_torrent_id_by_tag(torrent_tag)
 
             elif downloader_type == DownloaderType.ARIA2:
-                ret = downloader.add_torrent(torrent_file if torrent_file else content,
-                                             is_paused=is_paused,
-                                             tag=tags,
-                                             download_dir=download_dir,
-                                             category=category)
-                download_id = ret
-
+                # 种子内容可以用时直接提交
+                if content and (isinstance(content, bytes) or isinstance(content, str)):
+                    download_id = downloader.add_torrent(content,
+                                                 is_paused=is_paused,
+                                                 tag=tags,
+                                                 download_dir=download_dir,
+                                                 category=category)
+                elif torrent_file:
+                    download_id = downloader.add_torrent(torrent_file,
+                                                 is_paused=is_paused,
+                                                 tag=tags,
+                                                 download_dir=download_dir,
+                                                 category=category)
             elif downloader_type == DownloaderType.Gopeed:
+
                 if media_info.cn_name:
                     title = media_info.cn_name
                 elif media_info.en_name:
@@ -541,32 +536,37 @@ class Downloader:
                 elif media_info.title:
                     title = media_info.title
 
-                se = media_info.get_season_string() + media_info.get_episode_string()
+                se_info = media_info.get_season_string() + media_info.get_episode_string()
+                title += se_info
 
                 if torrent_file:
-                    task_name = os.path.basename(torrent_file).strip('.torrent')
-                    if not task_name:
-                        task_name = title
-                    elif title not in task_name:
-                        task_name = title + task_name
+                    mv_file = self.move_torrent_file_to_downloader_dir(torrent_file, downloader_conf)
+                    # 没有移动, 则读取文件内容提交
+                    if mv_file == torrent_file:
+                        content = TorrentUtils.torrent_to_magnet(torrent_file)
+                        download_id = downloader.add_torrent(content, name=title, download_dir=download_dir, tag=PT_TAG)
+                    else:
+                        # 名称转换
+                        task_name = os.path.basename(mv_file).strip('.torrent')
+                        if not task_name:
+                            task_name = title
+                        elif title not in task_name:
+                            task_name = title + task_name
+                        task_name += se_info
 
-                    title += se
-                    ret = downloader.add_torrent(torrent_file, name=task_name, download_dir=download_dir, tag=PT_TAG)
-                    log.info(f"【Downloader】下载器 {downloader_name} 发起种子文件下载: %s" % (torrent_file))
+                        download_id = downloader.add_torrent(mv_file, name=task_name, download_dir=download_dir, tag=PT_TAG)
+                        log.info(f"【Downloader】下载器 {downloader_name} 发起种子文件下载: %s" % (torrent_file))
                 else:
-                    ret = downloader.add_torrent(content, name=title+se, download_dir=download_dir, tag=PT_TAG)
-                download_id = ret
-
+                    download_id = downloader.add_torrent(content, name=title, download_dir=download_dir, tag=PT_TAG)
             else:
                 # 其它下载器, 添加下载后需返回下载ID或添加状态
-                ret = downloader.add_torrent(content,
+                download_id = downloader.add_torrent(content,
                                              is_paused=is_paused,
                                              tag=tags,
                                              download_dir=download_dir,
                                              category=category)
-                download_id = ret
             # 添加下载成功
-            if ret:
+            if download_id:
                 self.log_add_download(downloader_name, title, download_dir, torrent_file, content, url, is_paused)
                 # 计算数据文件保存的路径
                 save_dir = subtitle_dir = None
@@ -621,6 +621,27 @@ class Downloader:
             log.error(f"【Downloader】下载器 {downloader_name} 添加任务出错: %s" % str(e))
             return None, None, str(e)
 
+    def move_torrent_file_to_downloader_dir(self, torrent_file, downloader_conf):
+        """
+        把种子文件移动到下载器目录
+        :param torrent_file: 种子文件
+        :param downloader_conf: 下载器配置
+        :return: 移动后的文件路径
+        """
+        if not torrent_file or not downloader_conf or not downloader_conf.get('download_dir'):
+            return torrent_file
+
+        # 把种子文件移动到下载器可访问的目录
+        container_path = downloader_conf.get('download_dir')[0].get('container_path')
+        save_path = downloader_conf.get('download_dir')[0].get('save_path')
+        if container_path and save_path:
+            file_name = os.path.basename(torrent_file)
+            dst = os.path.join(container_path, file_name)
+            if os.path.exists(dst):
+                 os.remove(dst)
+            shutil.move(torrent_file, container_path)
+            torrent_file = os.path.join(save_path, file_name)
+        return torrent_file
 
     def log_add_download(self, downloader_name, title, download_dir, torrent_file, content, url, is_paused : bool):
 
@@ -751,7 +772,7 @@ class Downloader:
         """
         
         proxies = Config().get_proxies() if proxy else None           
-        req = RequestUtils(us=ua, cookies=cookie, referer=referer, proxies=proxies).get_res(url=url,allow_redirects=True)
+        req = RequestUtils(ua=ua, cookies=cookie, referer=referer, proxies=proxies).get_res(url=url,allow_redirects=True)
 
         if req and req.status_code == 200:
             if not req.content:

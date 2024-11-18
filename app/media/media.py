@@ -123,10 +123,25 @@ class Media:
             return False
         if not isinstance(tmdb_names, list):
             tmdb_names = [tmdb_names]
-        file_name = StringUtils.handler_special_chars(file_name).upper()
+
+        file_names = []
+
+        if (file_name.find(' ') > 0):
+            part_name = file_name.split(" ")[0]
+            file_names.append(StringUtils.handler_special_chars(part_name).upper())
+            zh_name = zhconv.convert(part_name, "zh-hans")
+            if zh_name != part_name:
+                file_names.append(zh_name)
+
+        format_name = StringUtils.handler_special_chars(file_name).upper()
+        file_names.append(format_name)
+        format_name_zh = zhconv.convert(format_name, "zh-hans")
+        if format_name_zh != format_name:
+            file_names.append(format_name_zh)
+        
         for tmdb_name in tmdb_names:
             tmdb_name = StringUtils.handler_special_chars(tmdb_name).strip().upper()
-            if file_name == tmdb_name or zhconv.convert(file_name, "zh-hans") == zhconv.convert(tmdb_name, "zh-hans"):
+            if tmdb_name in file_names or zhconv.convert(tmdb_name, "zh-hans")in file_names:
                 return True
         return False
 
@@ -174,7 +189,7 @@ class Media:
                       season_number=None):
         """
         搜索tmdb中的媒体信息，匹配返回一条尽可能正确的信息
-        :param file_media_name: 剑索的名称
+        :param file_media_name: 检索的名称
         :param search_type: 类型：电影、电视剧、动漫
         :param first_media_year: 年份，如要是季集需要是首播年份(first_air_date)
         :param media_year: 当前季集年份
@@ -336,9 +351,6 @@ class Media:
                         tmdb_names.append(lan_name)
                     if original_name:
                         tmdb_names.append(original_name)
-                    if lan_name and original_name:
-                        tmdb_names.append(lan_name + original_name)
-                        tmdb_names.append(original_name + lan_name)
 
                     if self.__compare_tmdb_names(file_media_name, tmdb_names):
                         return tv

@@ -638,8 +638,20 @@ def discovery_person():
 @App.route('/downloading', methods=['POST', 'GET'])
 @login_required
 def downloading():
-    DispTorrents = WebAction().get_downloading().get("result")
+    downloader_proxy = Downloader()
+    Downloaders = []
+    for key, value in downloader_proxy.get_downloader_conf().items():
+        if value.get('enabled'):
+            Downloaders.append(value)
+
+    did = request.args.get('downloaderId')
+    if not did:
+        did = downloader_proxy.default_downloader_id
+
+    DispTorrents = WebAction().get_downloading(downloader_id=did).get("result")
     return render_template("download/downloading.html",
+                           DownloaderId=int(did),
+                           Downloaders=Downloaders,
                            DownloadCount=len(DispTorrents),
                            Torrents=DispTorrents)
 

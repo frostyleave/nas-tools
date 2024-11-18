@@ -3720,8 +3720,21 @@ class WebAction:
         def se_sort(k):
             k = re.sub(r" +|(?<=s\d)\D*?(?=e)|(?<=s\d\d)\D*?(?=e)",
                        " ", k[0], flags=re.I).split()
-            return (k[0], k[1]) if len(k) > 1 else ("Z" + k[0], "ZZZ")
-
+            # 如果只有一个元素，检查是否包含 '-'
+            if len(k) == 1:
+                if re.match(r"^(S\d+)-S\d+$", k[0], flags=re.I) or re.match(r"^(E\d+)-E\d+$", k[0], flags=re.I):
+                    parts = k[0].split('-')  # 按 '-' 拆分
+                    if len(parts) == 2:
+                        return (parts[1], parts[0])  # 翻转顺序
+                return (k[0], "FF")
+            
+            if re.match(r"^(E\d+)-E\d+$", k[1], flags=re.I):
+                parts = k[1].split('-')  # 按 '-' 拆分
+                if len(parts) == 2:
+                    return (k[0], '{}-{}'.format(parts[1], parts[0]))
+            
+            return (k[0], k[1])
+        
         # 开始排序季集顺序
         for title, item in SearchResults.items():
             # 排序筛选器 季
@@ -3771,12 +3784,12 @@ class WebAction:
         return {"code": 0, "result": [rec.as_dict() for rec in Rss().get_rss_history(rtype=mtype)]}
 
     @staticmethod
-    def get_downloading():
+    def get_downloading(downloader_id=None):
         """
         查询正在下载的任务
         """
         DownloaderHandler = Downloader()
-        torrents = DownloaderHandler.get_downloading_progress()
+        torrents = DownloaderHandler.get_downloading_progress(downloader_id=downloader_id)
         for torrent in torrents:
             # 先查询下载记录，没有再识别
             name = torrent.get("name")

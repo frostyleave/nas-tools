@@ -73,24 +73,7 @@
     "level": 1,
     "page": "downloading",
     "group": "整理",
-    "icon": "<svg xmlns=\"http://www.w3.org/2000/svg\" class=\"icon icon-tabler icon-tabler-download {{ class }}\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" stroke-width=\"2\" stroke=\"currentColor\" fill=\"none\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path stroke=\"none\" d=\"M0 0h24v24H0z\" fill=\"none\"></path><path d=\"M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2 -2v-2\"></path><polyline points=\"7 11 12 16 17 11\"></polyline><line x1=\"12\" y1=\"4\" x2=\"12\" y2=\"16\"></line></svg>",
-    "nav": [
-      {
-        "name": "正在下载",
-        "page": "downloading",
-        "icon": "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" class=\"icon icon-tabler icons-tabler-outline icon-tabler-cloud-download\">  <path stroke=\"none\" d=\"M0 0h24v24H0z\" fill=\"none\" />  <path d=\"M19 18a3.5 3.5 0 0 0 0 -7h-1a5 4.5 0 0 0 -11 -2a4.6 4.4 0 0 0 -2.1 8.4\" />  <path d=\"M12 13l0 9\" />  <path d=\"M9 19l3 3l3 -3\" /></svg>"
-      },
-      {
-        "name": "近期下载",
-        "page": "downloaded",
-        "icon": "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" class=\"icon icon-tabler icons-tabler-outline icon-tabler-history-toggle\">  <path stroke=\"none\" d=\"M0 0h24v24H0z\" fill=\"none\" />  <path d=\"M10 20.777a8.942 8.942 0 0 1 -2.48 -.969\" />  <path d=\"M14 3.223a9.003 9.003 0 0 1 0 17.554\" />  <path d=\"M4.579 17.093a8.961 8.961 0 0 1 -1.227 -2.592\" />  <path d=\"M3.124 10.5c.16 -.95 .468 -1.85 .9 -2.675l.169 -.305\" />  <path d=\"M6.907 4.579a8.954 8.954 0 0 1 3.093 -1.356\" />  <path d=\"M12 8v4l3 3\" /></svg>"
-      },
-      {
-        "name": "自动删种",
-        "page": "torrent_remove",
-        "icon": "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" class=\"icon icon-tabler icons-tabler-outline icon-tabler-trash\">  <path stroke=\"none\" d=\"M0 0h24v24H0z\" fill=\"none\" />  <path d=\"M4 7l16 0\" />  <path d=\"M10 11l0 6\" />  <path d=\"M14 11l0 6\" />  <path d=\"M5 7l1 12a2 2 0 0 0 2 2h8a2 2 0 0 0 2 -2l1 -12\" />  <path d=\"M9 7v-3a1 1 0 0 1 1 -1h4a1 1 0 0 1 1 1v3\" /></svg>"
-      }
-    ]
+    "icon": "<svg xmlns=\"http://www.w3.org/2000/svg\" class=\"icon icon-tabler icon-tabler-download {{ class }}\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" stroke-width=\"2\" stroke=\"currentColor\" fill=\"none\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path stroke=\"none\" d=\"M0 0h24v24H0z\" fill=\"none\"></path><path d=\"M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2 -2v-2\"></path><polyline points=\"7 11 12 16 17 11\"></polyline><line x1=\"12\" y1=\"4\" x2=\"12\" y2=\"16\"></line></svg>"
   },
   {
     "name": "文件",
@@ -103,6 +86,11 @@
         "name": "文件管理",
         "page": "mediafile",
         "icon": "<svg xmlns=\"http://www.w3.org/2000/svg\" class=\"icon icon-tabler icon-tabler-file-pencil\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" stroke-width=\"2\" stroke=\"currentColor\" fill=\"none\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path stroke=\"none\" d=\"M0 0h24v24H0z\" fill=\"none\"></path><path d=\"M14 3v4a1 1 0 0 0 1 1h4\"></path><path d=\"M17 21h-10a2 2 0 0 1 -2 -2v-14a2 2 0 0 1 2 -2h7l5 5v11a2 2 0 0 1 -2 2z\"></path><path d=\"M10 18l5 -5a1.414 1.414 0 0 0 -2 -2l-5 5v2h2z\"></path></svg>"
+      },
+      {
+        "name": "自动删种",
+        "page": "torrent_remove",
+        "icon": "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" class=\"icon icon-tabler icons-tabler-outline icon-tabler-trash\">  <path stroke=\"none\" d=\"M0 0h24v24H0z\" fill=\"none\" />  <path d=\"M4 7l16 0\" />  <path d=\"M10 11l0 6\" />  <path d=\"M14 11l0 6\" />  <path d=\"M5 7l1 12a2 2 0 0 0 2 2h8a2 2 0 0 0 2 -2l1 -12\" />  <path d=\"M9 7v-3a1 1 0 0 1 1 -1h4a1 1 0 0 1 1 1v3\" /></svg>"
       },
       {
         "name": "转移记录",

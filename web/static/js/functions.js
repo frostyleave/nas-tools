@@ -79,6 +79,7 @@ function navmenu(page, newflag = false) {
     url: page,
     dataType: 'html',
     success: function (data) {
+      hideLoading();
       // 演染
       let page_content = $("#page_content");
       page_content.html(data);
