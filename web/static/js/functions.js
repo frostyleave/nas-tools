@@ -509,6 +509,7 @@ function render_progress(ret) {
 
 // 显示全局进度框
 function show_refresh_progress(title, type) {
+  hideLoading();
   // 显示对话框
   if (title) {
     $("#modal_process_title").text(title);
@@ -1780,7 +1781,7 @@ function manual_media_transfer() {
         $('#modal-media-identification').modal('show');
       });
     }
-  });
+  }, true, false);
 }
 
 // 查示查询TMDBID的对话框
