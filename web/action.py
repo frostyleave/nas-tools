@@ -563,10 +563,22 @@ class WebAction:
         dl_setting = data.get("setting")
         results = Searcher().get_search_result_by_id(dl_id)
         for res in results:
-            media = Media().get_media_info(title=res.TORRENT_NAME, subtitle=res.DESCRIPTION)
-            if not media:
+            if not res.TMDBID:
                 continue
-            media.set_torrent_info(enclosure=res.ENCLOSURE,
+            mtype = None
+            if res.TYPE == 'MOV':
+                mtype = MediaType.MOVIE 
+            elif res.TYPE == 'ANI': 
+                mtype = MediaType.ANIME
+            elif res.TYPE == 'TV': 
+                mtype = MediaType.TV
+
+            info = Media().get_tmdb_info(tmdbid=res.TMDBID, mtype=mtype, append_to_response="all")
+            if not info:
+                continue
+            media_info = MetaInfo(res.TITLE)
+            media_info.set_tmdb_info(info)
+            media_info.set_torrent_info(enclosure=res.ENCLOSURE,
                                    size=res.SIZE,
                                    site=res.SITE,
                                    page_url=res.PAGEURL,
@@ -574,7 +586,7 @@ class WebAction:
                                        res.UPLOAD_VOLUME_FACTOR),
                                    download_volume_factor=float(res.DOWNLOAD_VOLUME_FACTOR))
             # 添加下载
-            _, ret, ret_msg = Downloader().download(media_info=media,
+            _, ret, ret_msg = Downloader().download(media_info=media_info,
                                                     download_dir=dl_dir,
                                                     download_setting=dl_setting,
                                                     in_from=SearchType.WEB,
