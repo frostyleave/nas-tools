@@ -505,7 +505,11 @@ class AutoSignIn(_IPluginModule):
                                    ua=ua,
                                    proxies=Config().get_proxies() if site_info.get("proxy") else None
                                    ).get_res(url=site_url)
-                if res and res.status_code in [200, 500, 403]:
+                if res is None:
+                    self.warn(f"{site} {checkin_text}失败，无法打开网站")
+                    return f"【{site}】{checkin_text}失败，无法打开网站！"
+                
+                if res.status_code in [200, 500, 403]:
                     if not SiteHelper.is_logged_in(res.text):
                         if under_challenge(res.text):
                             msg = "站点被Cloudflare防护，请开启浏览器仿真"
@@ -518,12 +522,9 @@ class AutoSignIn(_IPluginModule):
                     else:
                         self.info(f"{site} {checkin_text}成功")
                         return f"【{site}】{checkin_text}成功"
-                elif res is not None:
+                else:
                     self.warn(f"{site} {checkin_text}失败，状态码：{res.status_code}")
                     return f"【{site}】{checkin_text}失败，状态码：{res.status_code}！"
-                else:
-                    self.warn(f"{site} {checkin_text}失败，无法打开网站")
-                    return f"【{site}】{checkin_text}失败，无法打开网站！"
         except Exception as e:
             ExceptionUtils.exception_traceback(e)
             self.warn("%s 签到失败：%s" % (site, str(e)))
