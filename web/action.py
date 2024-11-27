@@ -727,7 +727,8 @@ class WebAction:
         查询具体种子的信息
         """
         ids = data.get("ids")
-        torrents = Downloader().get_downloading_progress(ids=ids)
+        downloader_id = data.get("downloaderId")
+        torrents = Downloader().get_downloading_progress(downloader_id=downloader_id,ids=ids)
         return {"retcode": 0, "torrents": torrents}
 
     @staticmethod
@@ -3806,7 +3807,7 @@ class WebAction:
             # 先查询下载记录，没有再识别
             name = torrent.get("name")
             download_info = DownloaderHandler.get_download_history_by_downloader(
-                downloader=DownloaderHandler.default_downloader_id,
+                downloader=downloader_id,
                 download_id=torrent.get("id")
             )
             if download_info:

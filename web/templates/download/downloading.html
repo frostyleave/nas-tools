@@ -10,6 +10,7 @@
   }
 </style>
 <div class="input-group top-sub-navbar" id="downloader-navbar">
+  <input type="hidden" id="downloaderId" value="{{ DownloaderId }}">
   <ul class="nav nav-tabs card-header-tabs" data-bs-toggle="tabs" role="tablist">
     {% for dataItem in Downloaders %}
     <li class="nav-item">
@@ -150,7 +151,8 @@
     if (ids.length == 0) {
       return;
     }
-    ajax_post("pt_info", { "ids": ids }, function (ret) {
+    let downloaderId = $('#downloaderId').val();
+    ajax_post("pt_info", { "downloaderId": downloaderId, "ids": ids }, function (ret) {
       if (ret.retcode == "0") {
         for (let torrent of ret.torrents) {
           update_torrent_ui(torrent);
