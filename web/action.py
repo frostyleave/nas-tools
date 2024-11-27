@@ -577,13 +577,13 @@ class WebAction:
             if not info:
                 continue
             media_info = MetaInfo(res.TITLE)
+            media_info.org_string = res.TORRENT_NAME
             media_info.set_tmdb_info(info)
             media_info.set_torrent_info(enclosure=res.ENCLOSURE,
                                    size=res.SIZE,
                                    site=res.SITE,
                                    page_url=res.PAGEURL,
-                                   upload_volume_factor=float(
-                                       res.UPLOAD_VOLUME_FACTOR),
+                                   upload_volume_factor=float(res.UPLOAD_VOLUME_FACTOR),
                                    download_volume_factor=float(res.DOWNLOAD_VOLUME_FACTOR))
             # 添加下载
             _, ret, ret_msg = Downloader().download(media_info=media_info,

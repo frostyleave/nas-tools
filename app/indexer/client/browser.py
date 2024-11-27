@@ -108,8 +108,8 @@ class PlaywrightHelper:
                 'server': Config().get_proxies().get('http')
             } if proxy else None
             with sync_playwright() as playwright:
-                browser = playwright[self.browser_type].launch(headless=headless, proxy=proxies)
-                context = browser.new_context(user_agent=ua)
+                browser = playwright[self.browser_type].launch(headless=headless)
+                context = browser.new_context(user_agent=ua, proxy=proxies)
                 page = context.new_page()
                 if cookies:
                     page.set_extra_http_headers({"cookie": cookies}) 
@@ -160,8 +160,8 @@ class PlaywrightHelper:
             } if proxy else None
             
             with sync_playwright() as playwright:
-                browser = playwright[self.browser_type].launch(headless=headless, proxy=proxies, downloads_path=save_path)
-                context = browser.new_context(user_agent=ua)
+                browser = playwright[self.browser_type].launch(headless=headless, downloads_path=save_path)
+                context = browser.new_context(user_agent=ua, proxy=proxies)
                 page = context.new_page()
 
                 if cookies:
