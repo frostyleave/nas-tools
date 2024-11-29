@@ -3,11 +3,13 @@ import time
 from datetime import datetime, timedelta
 from multiprocessing.dummy import Pool as ThreadPool
 from threading import Event
+from typing import Tuple
 
 import pytz
 from apscheduler.schedulers.background import BackgroundScheduler
 from lxml import etree
 from playwright.sync_api import Page
+from urllib.parse import urljoin
 
 from app.helper import SubmoduleHelper, SiteHelper
 from app.helper.cloudflare_helper import under_challenge
@@ -20,6 +22,8 @@ from app.sites.sites import Sites
 from app.utils import RequestUtils, ExceptionUtils, SiteUtils, SchedulerUtils
 from app.utils.types import EventType
 from config import Config
+
+from web.backend.wallpaper import get_bing_wallpaper
 
 
 class AutoSignIn(_IPluginModule):
@@ -281,13 +285,13 @@ class AutoSignIn(_IPluginModule):
             self.info(f"今日 {today} 未签到，开始签到已选站点")
         else:
             # 今天已签到需要重签站点
-            retry_sites = today_history['retry']
+            retry_sites_id = today_history['retry']
             # 今天已签到站点
             already_sign_sites = today_history['sign']
             # 今日未签站点
             no_sign_sites = [site_id for site_id in self._sign_sites if site_id not in already_sign_sites]
             # 签到站点 = 需要重签+今日未签+特殊站点
-            sign_sites = list(set(retry_sites + no_sign_sites + self._special_sites))
+            sign_sites = list(set(retry_sites_id + no_sign_sites + self._special_sites))
             if sign_sites:
                 self.info(f"今日 {today} 已签到，开始重签重试站点、特殊站点、未签站点")
             else:
@@ -302,94 +306,74 @@ class AutoSignIn(_IPluginModule):
 
         # 执行签到
         self.info("开始执行签到任务")
-        with ThreadPool(min(len(sign_sites), int(self._queue_cnt) if self._queue_cnt else 10)) as p:
-            status = p.map(self.signin_site, sign_sites)
 
-        if status:
-            self.info("站点签到任务完成！")
+        # with ThreadPool(min(len(sign_sites), int(self._queue_cnt) if self._queue_cnt else 10)) as p:
+        #     status = p.map(self.signin_site, sign_sites)
 
-            # 命中重试词的站点id
-            retry_sites = []
-            # 命中重试词的站点签到msg
-            retry_msg = []
-            # 登录成功
-            login_success_msg = []
+        # 命中重试词的站点id
+        retry_sites_id = []
+        # 命中重试词的站点签到msg
+        retry_msg = []        
+        # 签到成功
+        success_msg = []
+        # 失败｜错误
+        failed_msg = []
+
+        success_sites = []
+        failed_sites = []
+        retry_sites = []
+
+        # 遍历站点执行签到
+        for site_info in sign_sites:
+            site_name = site_info.get('name')
+            # 执行签到
+            success, sign_msg = self.signin_site(site_info)
             # 签到成功
-            sign_success_msg = []
-            # 已签到
-            already_sign_msg = []
-            # 仿真签到成功
-            fz_sign_msg = []
-            # 失败｜错误
-            failed_msg = []
-
-            sites = {site.get('name'): site.get("id") for site in Sites().get_site_dict()}
-            for s in status:
-                # 记录本次命中重试关键词的站点
-                if self._retry_keyword:
-                    site_names = re.findall(r'【(.*?)】', s)
-                    if site_names:
-                        site_id = sites.get(site_names[0])
-                        match = re.search(self._retry_keyword, s)
-                        if match:
-                            if site_id:
-                                self.debug(f"站点 {site_names[0]} 命中重试关键词 {self._retry_keyword}")
-                                retry_sites.append(str(site_id))
-                                # 命中的站点
-                                retry_msg.append(s)
-                                continue
-
-                if "登录成功" in s:
-                    login_success_msg.append(s)
-                elif "仿真签到成功" in s:
-                    fz_sign_msg.append(s)
+            if success:
+                success_msg.append(sign_msg)
+                success_sites.append(site_name)
+                continue            
+            # 失败重试检查
+            if self._retry_keyword:
+                match = re.search(self._retry_keyword, sign_msg)
+                if match:
+                    self.debug(f"站点 {site_name} 命中重试关键词 {self._retry_keyword}")
+                    retry_sites_id.append(str(site_info.get('id')))
+                    retry_msg.append(sign_msg)
+                    retry_sites.append(site_name)
                     continue
-                elif "签到成功" in s:
-                    sign_success_msg.append(s)
-                elif '已签到' in s:
-                    already_sign_msg.append(s)
-                else:
-                    failed_msg.append(s)
+            # 记录失败
+            failed_msg.append(sign_msg)
+            failed_sites.append(site_name)
 
-            if not self._retry_keyword:
-                # 没设置重试关键词则重试已选站点
-                retry_sites = self._sign_sites
-            self.debug(f"下次签到重试站点 {retry_sites}")
+        self.info("站点签到任务完成！")        
 
-            # 存入历史
-            if not today_history:
-                self.history(key=today,
-                             value={
-                                 "sign": self._sign_sites,
-                                 "retry": retry_sites
-                             })
-            else:
-                self.update_history(key=today,
-                                    value={
-                                        "sign": self._sign_sites,
-                                        "retry": retry_sites
-                                    })
-
-            # 发送通知
-            if self._notify:
-                # 签到详细信息 登录成功、签到成功、已签到、仿真签到成功、失败--命中重试
-                signin_message = login_success_msg + sign_success_msg + already_sign_msg + fz_sign_msg + failed_msg
-                if len(retry_msg) > 0:
-                    signin_message.append("——————命中重试—————")
-                    signin_message += retry_msg
-                Message().send_site_signin_message(signin_message)
-
-                next_run_time = self._scheduler.get_jobs()[0].next_run_time.strftime('%Y-%m-%d %H:%M:%S')
-                # 签到汇总信息
-                self.send_message(title="【自动签到任务完成】",
-                                  text=f"本次签到数量: {len(sign_sites)} \n"
-                                       f"命中重试数量: {len(retry_sites) if self._retry_keyword else 0} \n"
-                                       f"强制签到数量: {len(self._special_sites)} \n"
-                                       f"下次签到数量: {len(set(retry_sites + self._special_sites))} \n"
-                                       f"下次签到时间: {next_run_time} \n"
-                                       f"详见签到消息")
+        # 存入历史
+        history = { "sign": self._sign_sites, "retry": retry_sites_id }
+        if not today_history:
+                self.history(key=today, value=history)
         else:
-            self.error("站点签到任务失败！")
+            self.update_history(key=today,value=history)
+
+        # 发送通知
+        if self._notify:
+            # 签到详细信息 登录成功、签到成功、已签到、仿真签到成功、失败--命中重试
+            signin_message = success_msg + failed_msg
+            if len(retry_msg) > 0:
+                signin_message.append("——————命中重试—————")
+                signin_message += retry_msg
+            Message().send_site_signin_message(signin_message)
+
+            next_run_time = self._scheduler.get_jobs()[0].next_run_time.strftime('%Y-%m-%d %H:%M:%S')
+            img_url, img_title, img_link = get_bing_wallpaper(today)
+            # 签到汇总信息
+            self.send_message(title="自动签到任务完成",
+                              text=f"签到成功站点: {','.join(success_sites)} \n"
+                                   f"签到失败站点: {','.join(failed_sites)} \n"
+                                   f"命中重试站点: {','.join(retry_sites)} \n"
+                                   f"强制签到数量: {len(self._special_sites)} \n"
+                                   f"下次签到时间: {next_run_time}",
+                              image=img_url)
 
     def __build_class(self, url):
         for site_schema in self._site_schema:
@@ -400,43 +384,44 @@ class AutoSignIn(_IPluginModule):
                 ExceptionUtils.exception_traceback(e)
         return None
 
-    def signin_site(self, site_info):
+    def signin_site(self, site_info) -> Tuple[bool, str]:
         """
         签到一个站点
         """
         site_module = self.__build_class(site_info.get("signurl"))
         if site_module and hasattr(site_module, "signin"):
             try:
-                status, msg = site_module().signin(site_info)
-                # 特殊站点直接返回签到信息，防止仿真签到、模拟登陆有歧义
-                return msg
+                return site_module().signin(site_info)
             except Exception as e:
-                return f"【{site_info.get('name')}】签到失败：{str(e)}"
+                return False, f"[{site_info.get('name')}]签到失败：{str(e)}"
         else:
             return self.__signin_base(site_info)
 
-    def __signin_base(self, site_info):
+    def __signin_base(self, site_info) -> Tuple[bool, str]:
         """
         通用签到处理
         :param site_info: 站点信息
         :return: 签到结果信息
         """
         if not site_info:
-            return ""
-        site = site_info.get("name")
+            return False, "站点信息获取失败"
+
+        site_name = site_info.get("name")
         try:
             site_url = site_info.get("signurl")
             site_cookie = site_info.get("cookie")
-            ua = site_info.get("ua")
+            
             if not site_url or not site_cookie:
-                self.warn("未配置 %s 的站点地址或Cookie，无法签到" % str(site))
-                return ""
+                err_msg = "未配置 %s 的站点地址或Cookie，无法签到" % str(site_name)
+                return False, err_msg
+
+            home_url = SiteUtils.get_base_url(site_url)
+            ua = site_info.get("ua")
 
             if site_info.get("chrome"):
-                # 首页
-                self.info("开始站点仿真签到：%s" % site)
 
-                home_url = SiteUtils.get_base_url(site_url)
+                self.info(f"[{site_name}]开始仿真签到..")
+
                 if "1ptba" in home_url:
                     home_url = f"{home_url}/index.php"
                 
@@ -448,29 +433,27 @@ class AutoSignIn(_IPluginModule):
                     """
                     html_text = page.content()
                     if not html_text:
-                        self.warn("%s 获取站点源码失败" % site)
-                        return f"【{site}】仿真签到失败，获取站点源码失败！"
+                        return False, f"[{site_name}]仿真签到失败: 获取站点源码失败"
+                    
                     # 查找签到按钮
                     html = etree.HTML(html_text)
 
                     if re.search(r'已签|签到已得', html_text, re.IGNORECASE):
-                        self.info("%s 今日已签到" % site)
-                        return f"【{site}】今日已签到"
+                        self.info("%s 今日已签到" % site_name)
+                        return True, f"[{site_name}]今日已签到"
                     
                     xpath_str = None
                     for xpath in self.siteconf.get_checkin_conf():
                         if html.xpath(xpath):
                             xpath_str = xpath
-                            self.info(f"站点[{site}]签到按钮: {xpath_str}")
+                            self.info(f"站点[{site_name}]签到按钮: {xpath_str}")
                             break
                     
                     if not xpath_str:
                         if SiteHelper.is_logged_in(html_text):
-                            self.warn("%s 未找到签到按钮，模拟登录成功" % site)
-                            return f"【{site}】模拟登录成功, 未找到签到按钮"
+                            return False, f"[{site_name}]仿真签到失败: 模拟登录成功, 未找到签到按钮"
                         else:
-                            self.info("%s 未找到签到按钮，且模拟登录失败" % site)
-                            return f"【{site}】模拟登录失败！"
+                            return False, f"[{site_name}]仿真签到失败: 模拟登录失败, 未找到签到按钮"
                     
                     page.click(xpath_str) 
                     # 等待3秒
@@ -480,55 +463,42 @@ class AutoSignIn(_IPluginModule):
 
                     # 判断是否已签到   [签到已得125, 补签卡: 0]
                     if re.search(r'已签|签到已得', content, re.IGNORECASE):
-                        return f"【{site}】签到成功"
+                        return True, f"[{site_name}]签到成功"
                     
-                    self.info("%s 仿真签到成功" % site)
-                    return f"【{site}】仿真签到成功"
+                    return False, f"[{site_name}]仿真签到异常: 无法获取签到结果"
                 
                 return PlaywrightHelper().action(url=home_url, 
                                                  ua=ua, 
                                                  cookies=site_cookie, 
                                                  proxy=True if site_info.get("proxy") else False,
                                                  callback=_click_sign)
-
-            # 模拟登录
             else:
-                if site_url.find("attendance.php") != -1:
-                    checkin_text = "签到"
-                else:
-                    checkin_text = "模拟登录"
-                    
-                self.info(f"开始站点{checkin_text}: {site}")
+                
+                checkin_url = site_url if "pttime" in home_url else urljoin(home_url, "attendance.php")
 
+                self.info(f"[{site_name}]开始签到: {checkin_url}")
+
+                # 代理
+                proxies = Config().get_proxies() if site_info.get("proxy") else None
                 # 访问链接
-                res = RequestUtils(cookies=site_cookie,
-                                   ua=ua,
-                                   proxies=Config().get_proxies() if site_info.get("proxy") else None
-                                   ).get_res(url=site_url)
+                res = RequestUtils(cookies=site_cookie, ua=ua, proxies=proxies).get_res(url=checkin_url)
                 if res is None:
-                    self.warn(f"{site} {checkin_text}失败，无法打开网站")
-                    return f"【{site}】{checkin_text}失败，无法打开网站！"
+                    return False, f"[{site_name}]签到失败: 无法打开网站"
                 
                 if res.status_code in [200, 500, 403]:
-                    if not SiteHelper.is_logged_in(res.text):
-                        if under_challenge(res.text):
-                            msg = "站点被Cloudflare防护，请开启浏览器仿真"
-                        elif res.status_code == 200:
-                            msg = "Cookie已失效"
-                        else:
-                            msg = f"状态码：{res.status_code}"
-                        self.warn(f"{site} {checkin_text}失败，{msg}")
-                        return f"【{site}】{checkin_text}失败，{msg}！"
+                    if SiteHelper.is_logged_in(res.text):
+                        return True, f"[{site_name}]签到成功"
+                    if under_challenge(res.text):
+                        return False, f"[{site_name}]签到失败: 站点被Cloudflare防护,请开启浏览器仿真"
+                    elif res.status_code == 200:
+                        return False, f"[{site_name}]签到失败: Cookie已失效"
                     else:
-                        self.info(f"{site} {checkin_text}成功")
-                        return f"【{site}】{checkin_text}成功"
+                        return False, f"[{site_name}]签到失败: 状态码：{res.status_code}"
                 else:
-                    self.warn(f"{site} {checkin_text}失败，状态码：{res.status_code}")
-                    return f"【{site}】{checkin_text}失败，状态码：{res.status_code}！"
+                    return False, f"[{site_name}]签到失败: 状态码：{res.status_code}"
         except Exception as e:
             ExceptionUtils.exception_traceback(e)
-            self.warn("%s 签到失败：%s" % (site, str(e)))
-            return f"【{site}】签到失败：{str(e)}！"
+            return False, f"[{site_name}]签到出错: {str(e)}"
 
     def stop_service(self):
         """
