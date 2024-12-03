@@ -152,13 +152,13 @@ class Indexer(object):
         # 多线程
         executor = ThreadPoolExecutor(max_workers=len(indexers))
         all_task = []
-        for index in indexers:
-            order_seq = 100 - int(index.pri)
+        for indexer in indexers:
+            order_seq = 100 - int(indexer.pri)
 
             # 原始标题检索
-            if 'title' == index.search_type and key_word:
+            if 'title' == indexer.search_type and key_word:
                 _filter_args = copy.deepcopy(filter_args) if filter_args is not None else {}
-                task = executor.submit(self._client.search, order_seq, index, key_word, _filter_args, match_media, in_from)
+                task = executor.submit(self._client.search, order_seq, indexer, key_word, _filter_args, match_media, in_from)
                 all_task.append(task)
 
             # 其他搜索类型都需要 match_media 不为空
@@ -166,23 +166,23 @@ class Indexer(object):
                 continue
 
             # 豆瓣id检索
-            if 'douban_id' == index.search_type and match_media.douban_id:
+            if 'douban_id' == indexer.search_type and match_media.douban_id:
                 for db_id in StringUtils.split_and_filter(match_media.douban_id, ","):
-                    task = executor.submit(self._client.search, order_seq, index, db_id, copy.deepcopy(filter_args), match_media, in_from)
+                    task = executor.submit(self._client.search, order_seq, indexer, db_id, copy.deepcopy(filter_args), match_media, in_from)
                     all_task.append(task)
                         
 
             # imdb id 检索
-            if 'imdb' == index.search_type and match_media.imdb_id:
-                task = executor.submit(self._client.search, order_seq, index, match_media.imdb_id, copy.deepcopy(filter_args), match_media, in_from)
+            if 'imdb' == indexer.search_type and match_media.imdb_id:
+                task = executor.submit(self._client.search, order_seq, indexer, match_media.imdb_id, copy.deepcopy(filter_args), match_media, in_from)
                 all_task.append(task)
 
             # 英文名检索
-            if 'en_name' == index.search_type or index.en_expand:
+            if 'en_name' == indexer.search_type or indexer.en_expand:
                 en_name = self.get_en_name(match_media)
                 if en_name:
                     _filter_args_en = copy.deepcopy(filter_args) if filter_args is not None else {}
-                    task = executor.submit(self._client.search, order_seq, index, en_name, _filter_args_en, match_media, in_from)
+                    task = executor.submit(self._client.search, order_seq, indexer, en_name, _filter_args_en, match_media, in_from)
                     all_task.append(task)
 
         ret_array = []

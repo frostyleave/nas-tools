@@ -1,8 +1,7 @@
 from urllib.parse import quote_plus
 
 from app.message.client._base import _IMessageClient
-from app.utils import RequestUtils, StringUtils, ExceptionUtils
-
+from app.utils import RequestUtils, SiteUtils, ExceptionUtils
 
 class Bark(_IMessageClient):
     schema = "bark"
@@ -18,7 +17,7 @@ class Bark(_IMessageClient):
 
     def init_config(self):
         if self._client_config:
-            self._server = StringUtils.get_base_url(self._client_config.get('server'))
+            self._server = SiteUtils.get_base_url(self._client_config.get('server'))
             self._apikey = self._client_config.get('apikey')
             self._params = self._client_config.get('params')
 

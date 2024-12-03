@@ -73,6 +73,9 @@ function navmenu(page, newflag = false) {
   if (NavPageXhr && NavPageLoading) {
     NavPageXhr.abort();
   }
+  // 显示等待动画
+  menu_swith_wait();
+
   // 加载新页面
   NavPageLoading = true;
   NavPageXhr = $.ajax({
@@ -86,6 +89,8 @@ function navmenu(page, newflag = false) {
       NavPageLoading = false;
       // 隐藏进度条
       NProgress.done();
+      // 隐藏等待动画
+      hide_loading();
       // 修复登录页面刷新问题
       if (page_content.find("title").first().text() === "登录 - NAStool") {
         // 刷新页面
@@ -508,6 +513,7 @@ function render_progress(ret) {
 
 // 显示全局进度框
 function show_refresh_progress(title, type) {
+  hide_loading();
   // 显示对话框
   if (title) {
     $("#modal_process_title").text(title);
@@ -1779,7 +1785,7 @@ function manual_media_transfer() {
         $('#modal-media-identification').modal('show');
       });
     }
-  });
+  }, true, false);
 }
 
 // 查示查询TMDBID的对话框

@@ -79,6 +79,15 @@
         </div>
         <div class="row">
           <div class="col">
+            <div class="mb-3">
+              <label class="form-label">副标题 <span class="form-help"
+                  title="副标题" data-bs-toggle="tooltip">?</span></label>
+              <input type="text" value="" id="test_subtitle_name" class="form-control" placeholder="副标题">
+            </div>
+          </div>
+        </div>
+        <div class="row">
+          <div class="col">
             <custom-chips id="test_result"></custom-chips>
           </div>
         </div>
@@ -403,7 +412,7 @@
     btn_obj.text("识别中...").attr("disabled", true);
     media_name_test(name, "test_result", function () {
       btn_obj.text("识别").attr("disabled", false);
-    });
+    }, $('#test_subtitle_name').val());
   }
 
   //过滤规则测试

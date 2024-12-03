@@ -20,11 +20,6 @@
     width: 10%;
   }
 
-  div.form-group>div {
-    display: inline-flex;
-    width: 88%;
-  }
-
   div.form-group>div>input {
     width: 50%;
     margin: 0 10px 0 10px;
@@ -639,17 +634,6 @@
         <div class="col-12 col-xl-3">
           <div class="mb-3">
             <label class="form-check form-switch">
-              <input class="form-check-input" type="checkbox" id="laboratory.tmdb_cache_expire" {% if Config.laboratory
-                and Config.laboratory.tmdb_cache_expire %}checked{% endif %}>
-              <span class="form-check-label">TMDB缓存过期策略 <span class="form-help"
-                  title="开启TMDB缓存过期策略后，默认7天过期，过期缓存将被删除,  7天内访问过期时间可以被刷新，建议开启" data-bs-toggle="tooltip">?</span>
-              </span>
-            </label>
-          </div>
-        </div>
-        <div class="col-12 col-xl-3">
-          <div class="mb-3">
-            <label class="form-check form-switch">
               <input class="form-check-input" type="checkbox" id="laboratory.use_douban_titles" {% if Config.laboratory
                 and Config.laboratory.use_douban_titles %}checked{% endif %}>
               <span class="form-check-label">默认搜索豆瓣资源 <span class="form-help"
@@ -661,10 +645,34 @@
         <div class="col-12 col-xl-3">
           <div class="mb-3">
             <label class="form-check form-switch">
+              <input class="form-check-input" type="checkbox" id="laboratory.search_adult" {% if Config.laboratory
+                and Config.laboratory.search_adult %}checked{% endif %}>
+              <span class="form-check-label">TMDB搜索成人资源 <span class="form-help"
+                  title="TMDB默认不返回成人内容" data-bs-toggle="tooltip">?</span>
+              </span>
+            </label>
+          </div>
+        </div>
+        <div class="col-12 col-xl-3">
+          <div class="mb-3">
+            <label class="form-check form-switch">
               <input class="form-check-input" type="checkbox" id="laboratory.search_en_title" {% if Config.laboratory
                 and Config.laboratory.search_en_title %}checked{% endif %}>
               <span class="form-check-label">搜索优先使用英文名 <span class="form-help"
                   title="开启后对于精确搜索场景将会优先使用英文名搜索，否则优先使用中文名搜索" data-bs-toggle="tooltip">?</span>
+              </span>
+            </label>
+          </div>
+        </div>
+      </div>
+      <div class="row">
+        <div class="col-12 col-xl-3">
+          <div class="mb-3">
+            <label class="form-check form-switch">
+              <input class="form-check-input" type="checkbox" id="laboratory.tmdb_cache_expire" {% if Config.laboratory
+                and Config.laboratory.tmdb_cache_expire %}checked{% endif %}>
+              <span class="form-check-label">TMDB缓存过期策略 <span class="form-help"
+                  title="开启TMDB缓存过期策略后，默认7天过期，过期缓存将被删除,  7天内访问过期时间可以被刷新，建议开启" data-bs-toggle="tooltip">?</span>
               </span>
             </label>
           </div>

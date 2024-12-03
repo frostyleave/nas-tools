@@ -5,8 +5,23 @@
   .space-between-box a:hover {
     text-decoration: none;
   }
+  div.top-sub-navbar>ul>li {
+      margin: 0 1em;
+  }
 </style>
-
+<div class="input-group top-sub-navbar" id="downloader-navbar">
+  <input type="hidden" id="downloaderId" value="{{ DownloaderId }}">
+  <ul class="nav nav-tabs card-header-tabs" data-bs-toggle="tabs" role="tablist">
+    {% for dataItem in Downloaders %}
+    <li class="nav-item">
+      <a class="nav-link {% if dataItem.id == DownloaderId %} active {% endif %}" href="#" data-bs-toggle="tab" data-id="ranking" onclick="navmenu('downloading?downloaderId={{dataItem.id}}')">
+        <span class="d-md-none" style="color:var(--tblr-body-color);">{{dataItem.name}}</span>
+        <span class="d-none d-md-inline">{{dataItem.name}}</span>
+      </a>
+    </li>
+    {% endfor %}
+  </ul>
+</div>
 <div class="container-xl">
   <!-- Page title -->
   <div class="page-header d-print-none">
@@ -98,6 +113,9 @@
 {{ OOPS.nodatafound('没有下载任务', '当前下载器中没有正在下载的任务。') }}
 {% endif %}
 <script type="text/javascript">
+
+  $('#downloader-navbar').show();
+
   // 下载控制
   function start_pt_download(id) {
     ajax_post("pt_start", { "id": id }, function (ret) {
@@ -133,7 +151,8 @@
     if (ids.length == 0) {
       return;
     }
-    ajax_post("pt_info", { "ids": ids }, function (ret) {
+    let downloaderId = $('#downloaderId').val();
+    ajax_post("pt_info", { "downloaderId": downloaderId, "ids": ids }, function (ret) {
       if (ret.retcode == "0") {
         for (let torrent of ret.torrents) {
           update_torrent_ui(torrent);

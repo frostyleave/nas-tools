@@ -27,10 +27,31 @@ Date.prototype.format = function (format) {
   return format;
 }
 
+function menu_swith_wait() {
+  $("#loading_tips").show();
+  $("#page_content").hide();
+}
+
+/**
+ * 显示加载动画
+ */
+function show_loading_wave() {
+  document.getElementById('loadingOverlay').style.display = 'flex';
+}
+
+/**
+ * 隐藏加载动画
+ */
+function hide_loading() {
+  document.getElementById('loadingOverlay').style.display = 'none';
+  $("#loading_tips").hide();
+  $("#page_content").show();
+}
+
 // Ajax主方法
 function ajax_post(cmd, params, handler, aync = true, show_progress = true) {
   if (show_progress) {
-    NProgress.start();
+    show_loading_wave();
   }
   let data = {
     cmd: cmd,
@@ -47,7 +68,7 @@ function ajax_post(cmd, params, handler, aync = true, show_progress = true) {
     timeout: 0,
     success: function (data) {
       if (show_progress) {
-        NProgress.done();
+        hide_loading();
       }
       if (handler) {
         handler(data);
@@ -55,7 +76,7 @@ function ajax_post(cmd, params, handler, aync = true, show_progress = true) {
     },
     error: function (xhr, textStatus, errorThrown) {
       if (show_progress) {
-        NProgress.done();
+        hide_loading();
       }
       if (xhr && xhr.status === 200) {
         handler({code: 0});

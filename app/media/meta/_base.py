@@ -151,9 +151,12 @@ class MetaBase(object):
     # 副标题解析
     _subtitle_flag = False
     
-    _subtitle_season_re = r"(?<![全|共]\s*)[第\s]+([0-9一二三四五六七八九十S\-]+)\s*季(?!\s*[全|共])"
+    _subtitle_season_re = r"(?<!(?:全|共)\s*)第\s*([0-9一二三四五六七八九十S\-]+)\s*季(?!\s*(?:全|共))"
     _subtitle_season_all_re = r"[全|共]\s*([0-9一二三四五六七八九十]+)\s*季|([0-9一二三四五六七八九十]+)\s*季\s*[全|共]"
-    _subtitle_episode_re = r"(?<![全|共]\s*)[第\s]+([0-9一二三四五六七八九十百零EP\-]+)\s*[集话話期](?!\s*[全|共])"
+    _subtitle_season_range_re = r"(?:第)?(\d+)\s*[季]\s*-\s*(?:第)?(\d+)\s*[季]"
+    _subtitle_episode_re = r"(?<!(?:全|共)\s*)第\s*([0-9一二三四五六七八九十百零EP\-]+)\s*[集话話期](?!\s*(?:全|共))"
+    _subtitle_episode_range_re = r"(?:第)?(\d+)\s*[集话話期]\s*-\s*(?:第)?(\d+)\s*[集话話期]"
+    _subtitle_episode_range_re_2 = r"(\d+)\s*[集话話期]?-\s*(\d+)\s*[集话話期]"
     _subtitle_episode_all_re = r"([0-9一二三四五六七八九十百零]+)\s*集\s*[全|共]|[全|共]\s*([0-9一二三四五六七八九十百零]+)\s*[集话話期]"
 
     def __init__(self, title, subtitle=None, fileflag=False):
@@ -172,6 +175,11 @@ class MetaBase(object):
             return self.en_name
         elif self.cn_name:
             return self.cn_name
+        return ""
+    
+    def get_en_name(self):
+        if self.en_name:
+            return self.en_name
         return ""
 
     def get_title_string(self):
@@ -664,8 +672,22 @@ class MetaBase(object):
     def init_subtitle(self, title_text):
         if not title_text:
             return
+        # 移除数字前后的空格
+        title_text = re.sub(r'\s*(\d+)\s*', r'\1', title_text)
         title_text = f" {title_text} "
         if re.search(r'[全第季集话話期]', title_text, re.IGNORECASE):
+            # 第x-y季
+            season_range = re.findall(r'%s' % self._subtitle_season_range_re, title_text, re.IGNORECASE)
+            if season_range:
+                try:
+                    range_item = season_range[0]
+                    self.begin_season = int(cn2an.cn2an(range_item[0], mode='smart'))
+                    self.end_season = int(cn2an.cn2an(range_item[1], mode='smart'))
+                    self.type = MediaType.TV
+                    self._subtitle_flag = True
+                except Exception as err:
+                    ExceptionUtils.exception_traceback(err)
+                    return
             # 第x季
             season_str = re.search(r'%s' % self._subtitle_season_re, title_text, re.IGNORECASE)
             if season_str:
@@ -727,6 +749,24 @@ class MetaBase(object):
                     self.total_episodes = (self.end_episode - self.begin_episode) + 1
                 self.type = MediaType.TV
                 self._subtitle_flag = True
+            # 第x-y集
+            episode_range = re.findall(r'%s' % self._subtitle_episode_range_re, title_text, re.IGNORECASE)
+            if not episode_range:
+                episode_range = re.findall(r'%s' % self._subtitle_episode_range_re_2, title_text, re.IGNORECASE)
+            if episode_range:
+                try:
+                    range_item = episode_range[0]
+                    self.begin_episode = int(cn2an.cn2an(range_item[0], mode='smart'))
+                    self.end_episode = int(cn2an.cn2an(range_item[1], mode='smart'))
+                    if self.begin_episode > self.end_episode:
+                        tmp_val = self.end_episode
+                        self.end_episode = self.begin_episode
+                        self.begin_episode = tmp_val
+                    self.type = MediaType.TV
+                    self._subtitle_flag = True
+                except Exception as err:
+                    ExceptionUtils.exception_traceback(err)
+                    return
             # x集全
             episode_all_str = re.search(r'%s' % self._subtitle_episode_all_re, title_text, re.IGNORECASE)
             if episode_all_str:
@@ -736,13 +776,13 @@ class MetaBase(object):
                 if episode_all and self.begin_episode is None:
                     try:
                         self.total_episodes = int(cn2an.cn2an(episode_all.strip(), mode='smart'))
+                        self.begin_episode = 1
+                        self.end_episode = self.total_episodes
+                        self.type = MediaType.TV
+                        self._subtitle_flag = True
                     except Exception as err:
                         ExceptionUtils.exception_traceback(err)
                         return
-                    self.begin_episode = None
-                    self.end_episode = None
-                    self.type = MediaType.TV
-                    self._subtitle_flag = True
             # 全x季 x季全
             season_all_str = re.search(r"%s" % self._subtitle_season_all_re, title_text, re.IGNORECASE)
             if season_all_str:

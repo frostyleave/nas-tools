@@ -37,7 +37,7 @@ class TNodeSpider(object):
     def __get_token(self):
         if not self._domain:
             return
-        res = RequestUtils(headers=self._ua,
+        res = RequestUtils(ua=self._ua,
                            cookies=self._cookie,
                            proxies=self._proxy,
                            timeout=15).get_res(url=self._domain)

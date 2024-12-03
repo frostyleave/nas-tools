@@ -73,7 +73,7 @@ class SiteUserInfo(object):
             proxies = Config().get_proxies() if proxy else None
             res = RequestUtils(cookies=site_cookie,
                                session=session,
-                               headers=ua,
+                               ua=ua,
                                proxies=proxies
                                ).get_res(url=url)
             if res and res.status_code == 200:
@@ -91,7 +91,7 @@ class SiteUserInfo(object):
                         .replace("\"", "").replace("+", "").replace(" ", "").replace("window.location=", "")
                     res = RequestUtils(cookies=site_cookie,
                                        session=session,
-                                       headers=ua,
+                                       ua=ua,
                                        proxies=proxies
                                        ).get_res(url=tmp_url)
                     if res and res.status_code == 200:
@@ -110,7 +110,7 @@ class SiteUserInfo(object):
                 if '"search"' not in html_text and '"csrf-token"' not in html_text:
                     res = RequestUtils(cookies=site_cookie,
                                        session=session,
-                                       headers=ua,
+                                       ua=ua,
                                        proxies=proxies
                                        ).get_res(url=url + "/index.php")
                     if res and res.status_code == 200:

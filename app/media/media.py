@@ -123,10 +123,25 @@ class Media:
             return False
         if not isinstance(tmdb_names, list):
             tmdb_names = [tmdb_names]
-        file_name = StringUtils.handler_special_chars(file_name).upper()
+
+        file_names = []
+
+        if (file_name.find(' ') > 0):
+            part_name = file_name.split(" ")[0]
+            file_names.append(StringUtils.handler_special_chars(part_name).upper())
+            zh_name = zhconv.convert(part_name, "zh-hans")
+            if zh_name != part_name:
+                file_names.append(zh_name)
+
+        format_name = StringUtils.handler_special_chars(file_name).upper()
+        file_names.append(format_name)
+        format_name_zh = zhconv.convert(format_name, "zh-hans")
+        if format_name_zh != format_name:
+            file_names.append(format_name_zh)
+        
         for tmdb_name in tmdb_names:
             tmdb_name = StringUtils.handler_special_chars(tmdb_name).strip().upper()
-            if file_name == tmdb_name or zhconv.convert(file_name, "zh-hans") == zhconv.convert(tmdb_name, "zh-hans"):
+            if tmdb_name in file_names or zhconv.convert(tmdb_name, "zh-hans")in file_names:
                 return True
         return False
 
@@ -174,7 +189,7 @@ class Media:
                       season_number=None):
         """
         搜索tmdb中的媒体信息，匹配返回一条尽可能正确的信息
-        :param file_media_name: 剑索的名称
+        :param file_media_name: 检索的名称
         :param search_type: 类型：电影、电视剧、动漫
         :param first_media_year: 年份，如要是季集需要是首播年份(first_air_date)
         :param media_year: 当前季集年份
@@ -329,8 +344,15 @@ class Media:
                             return tv
             else:
                 for tv in tvs:
-                    if self.__compare_tmdb_names(file_media_name, tv.get('name')) \
-                            or self.__compare_tmdb_names(file_media_name, tv.get('original_name')):
+                    tmdb_names = []
+                    lan_name = tv.get('name')
+                    original_name = tv.get('original_name')
+                    if lan_name:
+                        tmdb_names.append(lan_name)
+                    if original_name:
+                        tmdb_names.append(original_name)
+
+                    if self.__compare_tmdb_names(file_media_name, tmdb_names):
                         return tv
             if not info:
                 index = 0
@@ -703,7 +725,11 @@ class Media:
         """
         if not meta_info:
             return None
-        return self.___make_cache_key(meta_info.type, meta_info.get_name(), meta_info.year, meta_info.begin_season)
+        
+        if meta_info.year:
+            return self.___make_cache_key(meta_info.type, meta_info.get_name(), meta_info.year, meta_info.begin_season)
+
+        return self.___make_cache_key(meta_info.type, meta_info.get_name(), meta_info.get_en_name, meta_info.begin_season)
 
     def ___make_cache_key(self, mtype, name, year, begin_season):
         """
@@ -756,6 +782,11 @@ class Media:
             meta_info.type = mtype
 
         search_name = meta_info.get_name()
+        en_name = meta_info.get_en_name()
+        # 没有年份、但有英文名时, 结合英文名搜索
+        if not meta_info.year and en_name and en_name != search_name:
+            search_name = '{} {}'.format(search_name, en_name)
+
         # 查询tmdb数据
         file_media_info = self.query_tmdb_info(search_name, meta_info.type, meta_info.year,
                                                meta_info.begin_season, append_to_response, chinese, strict, cache)

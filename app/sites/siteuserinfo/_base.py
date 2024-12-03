@@ -201,7 +201,7 @@ class _ISiteUserInfo(metaclass=ABCMeta):
             if fav_link:
                 self._favicon_url = urljoin(self._base_url, fav_link[0])
 
-        res = RequestUtils(cookies=self._site_cookie, session=self._session, timeout=60, headers=self._ua).get_res(
+        res = RequestUtils(cookies=self._site_cookie, session=self._session, timeout=60, ua=self._ua).get_res(
             url=self._favicon_url)
         if res:
             self.site_favicon = base64.b64encode(res.content).decode()
@@ -231,18 +231,16 @@ class _ISiteUserInfo(metaclass=ABCMeta):
             if self._addition_headers:
                 req_headers.update(self._addition_headers)
 
+        reqHandler = RequestUtils(cookies=self._site_cookie,
+                               session=self._session,
+                               timeout=60,
+                               proxies=proxies,
+                               headers=req_headers)
+
         if params:
-            res = RequestUtils(cookies=self._site_cookie,
-                               session=self._session,
-                               timeout=60,
-                               proxies=proxies,
-                               headers=req_headers).post_res(url=url, data=params)
+            res = reqHandler.post_res(url=url, data=params)
         else:
-            res = RequestUtils(cookies=self._site_cookie,
-                               session=self._session,
-                               timeout=60,
-                               proxies=proxies,
-                               headers=req_headers).get_res(url=url)
+            res = reqHandler.get_res(url=url)
         if res is not None and res.status_code in (200, 500, 403):
             # 如果cloudflare 有防护，尝试使用浏览器仿真
             if under_challenge(res.text):

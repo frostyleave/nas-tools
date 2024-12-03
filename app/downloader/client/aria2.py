@@ -115,9 +115,9 @@ class Aria2(_IDownloadClient):
             if content.endswith('.torrent'):
                 file = open(content, 'r', encoding='ISO-8859-1')
                 file_content = file.read()
-                base64_str = base64.b64encode(file_content.encode()).decode('ascii')
-                return self._client.addTorrentFile(torrent=base64_str, uris=[], options=dict(dir=download_dir))
-            # 转换为磁力链
+                torrent_bin = base64.b64encode(file_content.encode()).decode('ascii')
+                return self._client.addTorrentFile(torrent=torrent_bin, options=dict(dir=download_dir))
+            # 处理重定向
             if re.match("^https*://", content):
                 try:
                     p = RequestUtils().get_res(url=content, allow_redirects=False)
@@ -125,9 +125,11 @@ class Aria2(_IDownloadClient):
                         content = p.headers.get("Location")
                 except Exception as result:
                     ExceptionUtils.exception_traceback(result)
+            # 直接添加url
             return self._client.addUri(uris=[content], options=dict(dir=download_dir))
-        else:
-            return "无法识别"
+        elif isinstance(content, bytes):
+            return self._client.addTorrentFile(torrent=content, options=dict(dir=download_dir))
+        return "无法识别"
 
     def start_torrents(self, ids):
         if not self._client:

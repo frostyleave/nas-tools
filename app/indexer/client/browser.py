@@ -1,8 +1,9 @@
 # author: https://github.com/jxxghp/MoviePilot/blob/main/app/helper/browser.py
 import os
 import time
-from config import Config
 import log
+
+from config import Config
 from typing import Callable, Any
 
 from playwright.sync_api import sync_playwright, Page
@@ -39,6 +40,7 @@ class PlaywrightHelper:
                ua: str = None,
                proxy: bool = False,
                headless: bool = True,
+               wait_item: WaitElement = None,
                timeout: int = 30) -> Any:
         """
         访问网页，接收Page对象并执行操作
@@ -54,16 +56,24 @@ class PlaywrightHelper:
             proxies={
                 'server': Config().get_proxies().get('http')
             } if proxy else None
+
             with sync_playwright() as playwright:
                 browser = playwright[self.browser_type].launch(headless=headless)
                 context = browser.new_context(user_agent=ua, proxy=proxies)
                 page = context.new_page()
                 if cookies:
-                    page.set_extra_http_headers({"cookie": cookies})
+                    page.set_extra_http_headers({"cookie": cookies}) 
                 try:
                     if not self.__pass_cloudflare(url, page):
-                        log.warn("cloudflare challenge fail！")
+                        log.warn("cloudflare challenge fail !")
+
+                    # 等待页面自动跳转
+                    if wait_item and wait_item.element and wait_item.state:
+                        page.wait_for_selector(wait_item.element, state=wait_item.state, timeout=timeout * 3000)
+                    
+                    # 等待网络空闲，即没有HTTP请求正在进行
                     page.wait_for_load_state("networkidle", timeout=timeout * 1000)
+
                     # 回调函数
                     return callback(page)
                 except Exception as e:
@@ -98,15 +108,15 @@ class PlaywrightHelper:
                 'server': Config().get_proxies().get('http')
             } if proxy else None
             with sync_playwright() as playwright:
-                browser = playwright[self.browser_type].launch(headless=headless, proxy=proxies)
-                context = browser.new_context(user_agent=ua)
+                browser = playwright[self.browser_type].launch(headless=headless)
+                context = browser.new_context(user_agent=ua, proxy=proxies)
                 page = context.new_page()
                 if cookies:
-                    page.set_extra_http_headers({"cookie": cookies})
+                    page.set_extra_http_headers({"cookie": cookies}) 
                 try:
                     log.info(f'[Playwright]开始访问{url}')
                     if not self.__pass_cloudflare(url, page):
-                        log.warn("cloudflare challenge fail!")
+                        log.warn("cloudflare challenge fail !")
 
                     # 等待页面自动跳转
                     if wait_item and wait_item.element and wait_item.state:
@@ -150,9 +160,10 @@ class PlaywrightHelper:
             } if proxy else None
             
             with sync_playwright() as playwright:
-                browser = playwright[self.browser_type].launch(headless=headless, proxy=proxies, downloads_path=save_path)
-                context = browser.new_context(user_agent=ua)
+                browser = playwright[self.browser_type].launch(headless=headless, downloads_path=save_path)
+                context = browser.new_context(user_agent=ua, proxy=proxies)
                 page = context.new_page()
+
                 if cookies:
                     page.set_extra_http_headers({"cookie": cookies})
 

@@ -7,7 +7,7 @@ from lxml import etree
 
 from app.helper.openai_helper import OpenAiHelper
 from app.plugins.modules._autosignin._base import _ISiteSigninHandler
-from app.utils import StringUtils, RequestUtils
+from app.utils import SiteUtils, RequestUtils
 from config import Config
 
 
@@ -37,7 +37,7 @@ class CHDBits(_ISiteSigninHandler):
         :param url: 站点Url
         :return: 是否匹配，如匹配则会调用该类的signin方法
         """
-        return True if StringUtils.url_equal(url, cls.site_url) else False
+        return True if SiteUtils.url_equal(url, cls.site_url) else False
 
     def signin(self, site_info: dict):
         """
@@ -56,7 +56,7 @@ class CHDBits(_ISiteSigninHandler):
 
         # 判断今日是否已签到
         index_res = RequestUtils(cookies=site_cookie,
-                                 headers=ua,
+                                 ua=ua,
                                  proxies=proxy
                                  ).get_res(url='https://chdbits.co/bakatest.php')
         if not index_res or index_res.status_code != 200:
@@ -181,7 +181,7 @@ class CHDBits(_ISiteSigninHandler):
         self.debug(f"签到请求参数 {data}")
 
         sign_res = RequestUtils(cookies=site_cookie,
-                                headers=ua,
+                                ua=ua,
                                 proxies=proxy
                                 ).post_res(url='https://chdbits.co/bakatest.php', data=data)
         if not sign_res or sign_res.status_code != 200:

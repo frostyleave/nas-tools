@@ -11,7 +11,7 @@ from bs4 import BeautifulSoup
 
 from app.indexer.client.browser import PlaywrightHelper
 from app.plugins.modules._autosignin._base import _ISiteSigninHandler
-from app.utils import StringUtils, RequestUtils
+from app.utils import SiteUtils, RequestUtils
 from config import Config
 
 
@@ -44,7 +44,7 @@ class Tjupt(_ISiteSigninHandler):
         :param url: 站点Url
         :return: 是否匹配，如匹配则会调用该类的signin方法
         """
-        return True if StringUtils.url_equal(url, cls.site_url) else False
+        return True if SiteUtils.url_equal(url, cls.site_url) else False
 
     def signin(self, site_info: dict):
         """
@@ -63,7 +63,7 @@ class Tjupt(_ISiteSigninHandler):
 
         # 获取北洋签到页面html
         html_res = RequestUtils(cookies=site_cookie,
-                                headers=ua,
+                                ua=ua,
                                 proxies=proxy
                                 ).get_res(url=self._sign_in_url)
 
@@ -97,7 +97,7 @@ class Tjupt(_ISiteSigninHandler):
         self.info(f"获取到签到图片 {img_url}")
         # 获取签到图片hash
         captcha_img_res = RequestUtils(cookies=site_cookie,
-                                       headers=ua,
+                                       ua=ua,
                                        proxies=proxy
                                        ).get_res(url=img_url)
         if not captcha_img_res or captcha_img_res.status_code != 200:
@@ -245,7 +245,7 @@ class Tjupt(_ISiteSigninHandler):
         }
         self.debug(f"提交data {data}")
         sign_in_res = RequestUtils(cookies=site_cookie,
-                                   headers=ua,
+                                   ua=ua,
                                    proxies=proxy
                                    ).post_res(url=self._sign_in_url, data=data)
         if not sign_in_res or sign_in_res.status_code != 200:

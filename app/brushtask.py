@@ -14,7 +14,7 @@ from app.helper import DbHelper, RssHelper
 from app.media.meta import MetaInfo
 from app.message import Message
 from app.sites import Sites, SiteConf
-from app.utils import StringUtils, ExceptionUtils
+from app.utils import StringUtils, ExceptionUtils, SiteUtils
 from app.utils.commons import singleton
 from app.utils.types import BrushDeleteType
 from config import BRUSH_REMOVE_TORRENTS_INTERVAL, Config
@@ -101,7 +101,7 @@ class BrushTask(object):
         for task in brushtasks:
             site_info = self.sites.get_sites(siteid=task.SITE)
             if site_info:
-                site_url = StringUtils.get_base_url(site_info.get("signurl") or site_info.get("rssurl"))
+                site_url = SiteUtils.get_base_url(site_info.get("signurl") or site_info.get("rssurl"))
             else:
                 site_url = ""
             downloader_info = self.downloader.get_downloader_conf(task.DOWNLOADER)

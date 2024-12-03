@@ -22,7 +22,7 @@ def get_login_wallpaper(time_now=None):
     else:
         # 每天更新
         today = datetime.datetime.strftime(time_now, '%Y%m%d')
-        img_url, img_title, img_link = __get_bing_wallpaper(today)
+        img_url, img_title, img_link = get_bing_wallpaper(today)
     img_enc = __get_image_b64(img_url)
     if img_enc:
         return img_enc, img_title, img_link
@@ -52,7 +52,7 @@ def __get_themoviedb_wallpaper(cache_tag):
 
 
 @lru_cache(maxsize=1)
-def __get_bing_wallpaper(today):
+def get_bing_wallpaper(today):
     """
     获取Bing每日壁纸
     """
