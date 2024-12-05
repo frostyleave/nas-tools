@@ -1,7 +1,8 @@
 import regex as re
 import cn2an
+import zhconv
 from app.media.fanart import Fanart
-from config import ANIME_GENREIDS, DEFAULT_TMDB_IMAGE, Config
+from config import ANIME_GENREIDS, DEFAULT_TMDB_IMAGE, ZHTW_SUB_RE, Config
 from app.media.category import Category
 from app.utils import StringUtils, ExceptionUtils
 from app.utils.types import MediaType
@@ -799,6 +800,62 @@ class MetaBase(object):
                     self.end_season = self.total_seasons
                     self.type = MediaType.TV
                     self._subtitle_flag = True
+
+    def get_sort_str(self):
+        """
+        生成排序字符
+        """
+
+        sort_str = ''
+
+        if self.title:
+            # 标题统一处理为简体中文，简体资源优先
+            if re.match(ZHTW_SUB_RE, self.title):
+                sort_str = '0' + zhconv.convert(self.title, 'zh-hans')
+            else:
+                sort_str = '1' + self.title
+
+        # 季集
+        se_list = self.get_season_list()
+        if se_list:
+            sort_str += str(se_list[-1]).rjust(4, '0') + str(len(se_list)).rjust(2, '0')
+
+        ep_list = self.get_episode_list()
+        if ep_list:
+            sort_str += str(ep_list[-1]).rjust(4, '0') + str(len(ep_list)).rjust(4, '0')
+
+        sort_str += str(self.res_order).rjust(3, '0')
+        
+        if self.resource_pix:
+            resource_pix = str(self.resource_pix).lower().replace('x', '×').replace('*', '×')
+            if resource_pix.endswith('p'):
+                resource_pix = resource_pix[0:-1]
+            index = resource_pix.rfind('×')
+            if index != -1:
+                resource_pix = resource_pix[index + 1:]
+            sort_str += resource_pix.rjust(4, '0')
+        else:
+            sort_str += '0000'
+        
+        pt = Config().get_config('pt')
+        if pt and pt.get("download_order") == "seeder":            
+            sort_str += str(self.seeders).rjust(5, '0')
+        
+        if self.pubdate:
+            sort_str += self.pubdate
+        else:
+            sort_str += '0000-00-00 00:00:00'
+        
+        # 添加文件大小，确保小文件排在前面
+        if self.size:
+            sort_str += str(9999999999 - int(self.size / 1024)).rjust(10, '0')
+        else:
+            sort_str += '0000000000'
+
+        # 站点排序
+        sort_str += str(self.site_order).rjust(3, '0')
+
+        return sort_str
 
     def to_dict(self):
         """

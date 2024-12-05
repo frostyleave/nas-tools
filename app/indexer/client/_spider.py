@@ -745,6 +745,8 @@ class TorrentSpider(object):
 
             for torn in result_list:
                 torn_copy = copy.deepcopy(self.Getinfo(PyQuery(torn)))
+                if not torn_copy['title']:
+                    continue
                 self.torrents_info_array.append(torn_copy)
                 if len(self.torrents_info_array) >= int(self.result_num):
                     break

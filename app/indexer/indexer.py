@@ -1,10 +1,12 @@
 import copy
 import datetime
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from typing import List
 
 import log
 from app.helper import ProgressHelper, SubmoduleHelper, DbHelper
 from app.media import Media
+from app.media.meta.metainfo import MetaInfo
 from app.utils import ExceptionUtils, StringUtils
 from app.utils.commons import singleton
 from app.utils.types import SearchType, IndexerType, ProgressKey
@@ -110,7 +112,7 @@ class Indexer(object):
                           key_word: [str, list],
                           filter_args: dict,
                           match_media=None,
-                          in_from: SearchType = None):
+                          in_from: SearchType = None) -> List[MetaInfo]:
         """
         根据关键字调用 Index API 搜索
         :param key_word: 搜索的关键字，不能为空

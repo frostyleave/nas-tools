@@ -156,7 +156,7 @@ class TorrentUtils:
 
         # 匹配的资源中排序分组选最好的一个下载
         # 按站点顺序、资源匹配顺序、做种人数下载数逆序排序
-        media_list = sorted(media_list, key=lambda x: MediaUtils.get_sort_str(x), reverse=True)
+        media_list = sorted(media_list, key=lambda x: x.get_sort_str(), reverse=True)
         # 控重
         can_download_list_item = []
         can_download_list = []

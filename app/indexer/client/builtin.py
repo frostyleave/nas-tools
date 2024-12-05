@@ -9,6 +9,7 @@ from app.helper import ProgressHelper, DbHelper
 from app.indexer.client._base import _IIndexClient
 from app.indexer.client import Rarbg, TorrentSpider, TNodeSpider, TorrentLeech, InterfaceSpider, MTorrentSpider
 from app.indexer.manager import IndexerManager, IndexerConf
+from app.media.meta.metainfo import MetaInfo
 from app.sites import Sites
 from app.utils import StringUtils
 from app.utils.types import SearchType, IndexerType, ProgressKey, SystemConfigKey
@@ -110,7 +111,7 @@ class BuiltinIndexer(_IIndexClient):
                key_word,
                filter_args: dict,
                match_media,
-               in_from: SearchType):
+               in_from: SearchType) -> List[MetaInfo]:
         """
         根据关键字多线程搜索
         """
