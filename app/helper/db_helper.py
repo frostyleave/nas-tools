@@ -67,7 +67,7 @@ class DbHelper:
                 ))
         self._db.insert(data_list)
 
-    def get_search_result_by_id(self, dl_id):
+    def get_search_result_by_id(self, dl_id) -> List[SEARCHRESULTINFO]:
         """
         根据ID从数据库中查询搜索结果的一条记录
         """

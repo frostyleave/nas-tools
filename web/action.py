@@ -576,7 +576,8 @@ class WebAction:
             info = Media().get_tmdb_info(tmdbid=res.TMDBID, mtype=mtype, append_to_response="all")
             if not info:
                 continue
-            media_info = MetaInfo(res.TITLE)
+            media_info = MetaInfo(f'{res.TITLE} {res.ES_STRING}')
+            media_info.year = res.YEAR
             media_info.org_string = res.TORRENT_NAME
             media_info.set_tmdb_info(info)
             media_info.set_torrent_info(enclosure=res.ENCLOSURE,

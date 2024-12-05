@@ -1,5 +1,6 @@
 import datetime
 from abc import ABCMeta, abstractmethod
+from typing import List
 
 import log
 from app.filter import Filter
@@ -72,7 +73,7 @@ class _IIndexClient(metaclass=ABCMeta):
                               indexer,
                               filter_args: dict,
                               match_media,
-                              start_time):
+                              start_time) -> List[MetaInfo]:
         """
         从搜索结果中匹配符合资源条件的记录
         """

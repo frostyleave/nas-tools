@@ -132,7 +132,7 @@ def search_medias_for_web(content, ident_flag=True, filters=None, tmdbid=None, m
     else:
         log.info("【Web】共搜索到 %s 个有效资源" % len(media_list))
         # 插入数据库
-        media_list = sorted(media_list, key=lambda x: MediaUtils.get_sort_str(x), reverse=True)
+        media_list = sorted(media_list, key=lambda x: x.get_sort_str(), reverse=True)
         _searcher.insert_search_results(media_items=media_list,
                                         ident_flag=ident_flag,
                                         title=content)

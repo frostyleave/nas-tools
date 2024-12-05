@@ -1,3 +1,5 @@
+from typing import List
+from app.db.models import SEARCHRESULTINFO
 from app.utils.media_utils import MediaUtils
 import log
 from app.helper import DbHelper
@@ -8,6 +10,7 @@ from config import Config
 from app.message import Message
 from app.downloader import Downloader
 from app.media import Media
+from app.media.meta.metainfo import MetaInfo
 from app.helper import ProgressHelper
 from app.utils.types import SearchType, EventType, ProgressKey
 
@@ -41,7 +44,7 @@ class Searcher:
                       key_word: [str, list],
                       filter_args: dict,
                       match_media=None,
-                      in_from: SearchType = None):
+                      in_from: SearchType = None) -> List[MetaInfo]:
         """
         根据关键字调用索引器检查媒体
         :param key_word: 搜索的关键字，不能为空
@@ -126,7 +129,7 @@ class Searcher:
                 # 保存搜索记录
                 self.delete_all_search_torrents()
                 # 搜索结果排序
-                media_list = sorted(media_list, key=lambda x: MediaUtils.get_sort_str(x), reverse=True)
+                media_list = sorted(media_list, key=lambda x: x.get_sort_str(), reverse=True)
                 # 插入数据库
                 self.insert_search_results(media_list)
                 # 微信未开自动下载时返回
@@ -150,7 +153,7 @@ class Searcher:
                 else:
                     return download_items[0], no_exists, len(media_list), len(download_items)
 
-    def get_search_result_by_id(self, dl_id):
+    def get_search_result_by_id(self, dl_id) -> List[SEARCHRESULTINFO]:
         """
         根据下载ID获取搜索结果
         :param dl_id: 下载ID
