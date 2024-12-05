@@ -156,7 +156,7 @@ class DoubanApi(object):
     _api_key = "0dad551ec0f84ed02907ff5c42e8ec70"
     _base_url = "https://frodo.douban.com/api/v2"
 
-    _api_key2 = "0df993c66c0c636e29ecbb5344252a4a"
+    _api_key2 = "0ab215a8b1977939201640fa14c66bab"
     _api_url2 = "https://api.douban.com/v2"
 
     _session = requests.Session()
