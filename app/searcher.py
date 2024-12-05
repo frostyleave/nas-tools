@@ -1,5 +1,6 @@
 from typing import List
-
+from app.db.models import SEARCHRESULTINFO
+from app.utils.media_utils import MediaUtils
 import log
 from app.helper import DbHelper
 from app.indexer import Indexer
@@ -152,7 +153,7 @@ class Searcher:
                 else:
                     return download_items[0], no_exists, len(media_list), len(download_items)
 
-    def get_search_result_by_id(self, dl_id):
+    def get_search_result_by_id(self, dl_id) -> List[SEARCHRESULTINFO]:
         """
         根据下载ID获取搜索结果
         :param dl_id: 下载ID
