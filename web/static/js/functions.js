@@ -140,9 +140,9 @@ function navmenu(page, newflag = false) {
               navList.forEach(item => {
 
                 const aElement = document.createElement('a');
-                aElement.className = 'nav-link';
+                aElement.className = 'nav-link top-nav-link';
                 aElement.href = '#';
-                aElement.innerHTML = `<span class="d-md-none" style="color:var(--tblr-body-color);">${item.icon}</span><span class="d-none d-md-inline">${item.name}</span>`;
+                aElement.innerHTML = `<span class="tab-icon" style="color:var(--tblr-body-color);">${item.icon}</span><span class="tab-text">${item.name}</span>`;
                 aElement.setAttribute('data-bs-toggle', 'tab');
                 aElement.setAttribute('data-id', item.page);
                 aElement.onclick = () => navmenu(item.page); // 根据 item.page 设定点击行为
@@ -158,7 +158,6 @@ function navmenu(page, newflag = false) {
               ulElement.firstChild.firstChild.classList.add('active');
 
               $('#top-sub-navbar').show();
-
             } else {
               $('#top-sub-navbar').hide();
             }
@@ -181,9 +180,57 @@ function navmenu(page, newflag = false) {
       }
       // 并记录当前历史记录
       window_history(!newflag);
+      // 更新元素菜单显隐
+      updateTabDisplay();
     }
   });
 }
+
+function updateTabDisplay() {
+ 
+    if (!$('#top-sub-navbar').is(':visible')) {
+      return;
+    }
+
+    const tabMenus = document.querySelectorAll('.top-nav-link');
+    const firstMenu = tabMenus[0];
+
+    // 获取计算样式
+    const menuItemStyle = window.getComputedStyle(firstMenu);
+    const menuItemWidth = firstMenu.clientWidth - parseFloat(menuItemStyle.paddingRight) - parseFloat(menuItemStyle.paddingLeft);
+
+    const iconStyle = window.getComputedStyle(firstMenu.querySelector('.tab-icon'));;
+    const iconWith = parseFloat(iconStyle.width);
+
+    var textMaxWidth = 0;
+
+    tabMenus.forEach(link => {
+      const tabText = link.querySelector('.tab-text');
+      if (tabText) {
+        textMaxWidth = Math.max(tabText.scrollWidth, textMaxWidth);
+      }
+  
+    });
+
+    // 文字所需宽度 > 菜单宽度：只展示图标
+    if (textMaxWidth > menuItemWidth) {
+      tabMenus.forEach(link => {
+        link.querySelector('.tab-text').style.display = 'none';
+        link.querySelector('.tab-icon').style.display = 'inline-block';
+      });
+    } else if (textMaxWidth + iconWith > menuItemWidth) {
+      tabMenus.forEach(link => {
+        link.querySelector('.tab-text').style.display = 'inline-block';
+        link.querySelector('.tab-icon').style.display = 'none';
+      });
+    } else {
+      tabMenus.forEach(link => {
+        link.querySelector('.tab-text').style.display = 'inline-block';
+        link.querySelector('.tab-icon').style.display = 'inline-block';
+      });
+    }
+}
+
 
 // 搜索
 function media_search(tmdbid, title, type) {
