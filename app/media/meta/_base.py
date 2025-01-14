@@ -674,8 +674,7 @@ class MetaBase(object):
     def init_subtitle(self, title_text):
         if not title_text:
             return
-        # 移除数字前后的空格
-        title_text = re.sub(r'\s*(\d+)\s*', r'\1', title_text)
+
         title_text = f" {title_text} "
         if re.search(r'[全第季集话話期]', title_text, re.IGNORECASE):
             # 第x-y季
@@ -801,7 +800,7 @@ class MetaBase(object):
                     self.end_season = self.total_seasons
                     self.type = MediaType.TV
                     self._subtitle_flag = True
-        else:
+        elif not self.begin_episode:
             episode_range = re.findall(r'%s' % self._subtitle_episode_range_simple, title_text, re.IGNORECASE)
             if episode_range:
                 try:
@@ -871,7 +870,7 @@ class MetaBase(object):
 
         # 站点排序
         sort_str += str(self.site_order).rjust(3, '0')
-
+        print(sort_str)
         return sort_str
 
     def to_dict(self):
