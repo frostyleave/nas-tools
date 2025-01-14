@@ -159,6 +159,7 @@ class MetaBase(object):
     _subtitle_episode_range_re = r"(?:第)?(\d+)\s*[集话話期]\s*-\s*(?:第)?(\d+)\s*[集话話期]"
     _subtitle_episode_range_re_2 = r"(\d+)\s*[集话話期]?-\s*(\d+)\s*[集话話期]"
     _subtitle_episode_all_re = r"([0-9一二三四五六七八九十百零]+)\s*集\s*[全|共]|[全|共]\s*([0-9一二三四五六七八九十百零]+)\s*[集话話期]"
+    _subtitle_episode_range_simple = r"(?:第)?(\d+)\s*-\s*(?:第)?(\d+)"
 
     def __init__(self, title, subtitle=None, fileflag=False):
         self.category_handler = Category()
@@ -800,6 +801,22 @@ class MetaBase(object):
                     self.end_season = self.total_seasons
                     self.type = MediaType.TV
                     self._subtitle_flag = True
+        else:
+            episode_range = re.findall(r'%s' % self._subtitle_episode_range_simple, title_text, re.IGNORECASE)
+            if episode_range:
+                try:
+                    range_item = episode_range[0]
+                    self.begin_episode = int(cn2an.cn2an(range_item[0], mode='smart'))
+                    self.end_episode = int(cn2an.cn2an(range_item[1], mode='smart'))
+                    if self.begin_episode > self.end_episode:
+                        tmp_val = self.end_episode
+                        self.end_episode = self.begin_episode
+                        self.begin_episode = tmp_val
+                    self.type = MediaType.TV
+                    self._subtitle_flag = True
+                except Exception as err:
+                    ExceptionUtils.exception_traceback(err)
+                    return
 
     def get_sort_str(self):
         """
