@@ -3,12 +3,12 @@ import base64
 import hashlib
 import hmac
 from datetime import datetime
-from functools import lru_cache
 from random import choice
 from urllib import parse
 import json
 import re
 
+from cachetools import TTLCache, cached
 import requests
 
 from app.utils import RequestUtils
@@ -24,6 +24,8 @@ class DoubanApi(object):
         # 聚合搜索
         "search": "/search/weixin",
         "search_agg": "/search",
+        "imdbid": "/movie/imdb/%s",
+        "search_subject": "/search/subjects",
 
         # 电影探索
         # sort=U:综合排序 T:近期热度 S:高分优先 R:首播时间
@@ -159,32 +161,52 @@ class DoubanApi(object):
     _api_key2 = "0ab215a8b1977939201640fa14c66bab"
     _api_url2 = "https://api.douban.com/v2"
 
-    _session = requests.Session()
+    _session = None
 
     def __init__(self):
-        pass
+        self._session = requests.Session()
 
     @classmethod
-    def __sign(cls, url: str, ts: int, method='GET') -> str:
+    def __sign(cls, url: str, ts: str, method='GET') -> str:
+        """
+        签名
+        """
         url_path = parse.urlparse(url).path
-        raw_sign = '&'.join([method.upper(), parse.quote(url_path, safe=''), str(ts)])
-        return base64.b64encode(hmac.new(cls._api_secret_key.encode(), raw_sign.encode(), hashlib.sha1).digest()
-                                ).decode()
+        raw_sign = '&'.join([method.upper(), parse.quote(url_path, safe=''), ts])
+        return base64.b64encode(
+            hmac.new(
+                cls._api_secret_key.encode(),
+                raw_sign.encode(),
+                hashlib.sha1
+            ).digest()
+        ).decode()
 
-    @classmethod
-    @lru_cache(maxsize=256)
-    def __invoke(cls, url, **kwargs):
-        req_url = cls._base_url + url
+    @cached(cache=TTLCache(maxsize=256, ttl=7200))
+    def __invoke(self, url: str, **kwargs) -> dict:
+        """
+        GET请求
+        """
+        req_url = self._base_url + url
 
-        params = {'apiKey': cls._api_key}
+        params: dict = {'apiKey': self._api_key}
         if kwargs:
             params.update(kwargs)
 
-        ts = params.pop('_ts', int(datetime.strftime(datetime.now(), '%Y%m%d')))
-        params.update({'os_rom': 'android', 'apiKey': cls._api_key, '_ts': ts, '_sig': cls.__sign(url=req_url, ts=ts)})
+        ts = params.pop(
+            '_ts',
+            datetime.strftime(datetime.now(), '%Y%m%d')
+        )
+        params.update({
+            'os_rom': 'android', 
+            'apiKey': self._api_key, 
+            '_ts': ts, 
+            '_sig': self.__sign(url=req_url, ts=ts)
+        })
 
-        headers = {'User-Agent': choice(cls._user_agents)}
-        resp = RequestUtils(headers=headers, session=cls._session).get_res(url=req_url, params=params)
+        resp = RequestUtils(
+            ua=choice(self._user_agents),
+            session=self._session
+        ).get_res(url=req_url, params=params)
 
         if not resp:
             return {}
@@ -198,8 +220,7 @@ class DoubanApi(object):
         except json.JSONDecodeError as e:
             return {}
 
-
-    @lru_cache(maxsize=512)
+    @cached(cache=TTLCache(maxsize=256, ttl=7200))
     def __post(self, url: str, **kwargs) -> dict:
         """
         POST请求
@@ -220,20 +241,39 @@ class DoubanApi(object):
             params.update(kwargs)
         if '_ts' in params:
             params.pop('_ts')
-        headers = {'User-Agent': choice(self._user_agents)}
-        resp = RequestUtils(headers=headers, session=self._session).post_res(url=req_url, data=params)
-        if resp.status_code == 400 and "rate_limit" in resp.text:
+
+        resp = RequestUtils(
+            ua=choice(self._user_agents),
+            session=self._session,
+        ).post_res(url=req_url, data=params)
+
+        if resp is not None and resp.status_code == 400 and "rate_limit" in resp.text:
             return resp.json()
         return resp.json() if resp else {}
 
+    def imdbid(self, imdbid: str, ts=datetime.strftime(datetime.now(), '%Y%m%d')):
+        """
+        IMDBID搜索
+        """
+        return self.__post(self._urls["imdbid"] % imdbid, _ts=ts)
+
     def search(self, keyword, start=0, count=20, ts=datetime.strftime(datetime.now(), '%Y%m%d')):
+        """
+        关键字搜索
+        """
         return self.__invoke(self._urls["search"], q=keyword, start=start, count=count, _ts=ts)
 
     def movie_search(self, keyword, start=0, count=20, ts=datetime.strftime(datetime.now(), '%Y%m%d')):
+        """
+        电影搜索
+        """
         return self.__post(self._urls["movie_search"], q=keyword, start=start, count=count, _ts=ts, apikey='0ab215a8b1977939201640fa14c66bab')
 
     def tv_search(self, keyword, start=0, count=20, ts=datetime.strftime(datetime.now(), '%Y%m%d')):
-        return self.__invoke(self._urls["tv_search"], q=keyword, start=start, count=count, _ts=ts)
+        """
+        剧集搜索
+        """
+        return self.__invoke(self._urls["search_subject"], q=keyword, start=start, count=count, _ts=ts)
 
     def book_search(self, keyword, start=0, count=20, ts=datetime.strftime(datetime.now(), '%Y%m%d')):
         return self.__invoke(self._urls["book_search"], q=keyword, start=start, count=count, _ts=ts)
@@ -268,8 +308,8 @@ class DoubanApi(object):
     def movie_detail(self, subject_id):
         return self.__post(self._urls["movie_detail"] + subject_id)
 
-    def search_agg(self, key_word):
-        return self.__invoke(self._urls["search_agg"], q=key_word)
+    def search_agg(self, key_word, start=0, count=30):
+        return self.__invoke(self._urls["search_agg"], q=key_word, start=start, count=count)
 
     def movie_celebrities(self, subject_id):
         return self.__invoke(self._urls["movie_celebrities"] % subject_id)
