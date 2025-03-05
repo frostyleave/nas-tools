@@ -164,11 +164,11 @@ class WebUtils:
         """
         补全豆瓣信息: 豆瓣id, 剧集名称
         """
-        doubanapi = DouBan()                   
         media_info.douban_id = ''
         if not imdb_id:
             return
         try:
+            doubanapi = DouBan()
             douban_info = doubanapi.search_douban_info_by_imdbid(imdb_id)
             if not douban_info:
                 return
@@ -180,118 +180,23 @@ class WebUtils:
                 doubanid = re.search(r"\d+", doubanid).group(0)
             media_info.douban_id = doubanid
 
-            # 电影类型，不再进行扩展搜索
+            # 电影类型，不再进行后续操作
             if mtype == MediaType.MOVIE:
                 return
 
-            douban_name = title
+            # 豆瓣资源名和tmdb资源名不一致时调整
             imdb_name = douban_info.get("title")
             if StringUtils.contain_chinese(imdb_name):
-                douban_name = imdb_name
-            else:
-                alt_title = douban_info.get("alt_title")
-                if alt_title:
-                    douban_name = alt_title.split(" ", 1)[0]
-
-            # 豆瓣资源名和tmdb资源名不一致时调整
-            WebUtils.adjust_tv_search_name(mtype, douban_name, media_info)
-            # 剧集类型时，如果只有1季，也不在进行扩展搜索
-            info = media_info.tmdb_info
-            if info and len(info.seasons) <= 1:
-                return
-            # 计算季数大于0的季
-            season_cnt = len(list(filter(lambda t: t.season_number > 0, info.seasons)))
-            if season_cnt == 1:
+                WebUtils.adjust_tv_search_name(mtype, imdb_name, media_info)
                 return
             
-            # 解析季名称
-            season_names = []
-            for season_info in info.seasons:
-                if season_info.season_number == 0:
-                    continue
-                season_name = WebUtils.convert_numbers_in_string(season_info.name)
-                season_names.append(season_name)
-            
-            douban_ids = []
-
-            # 根据名称查询豆瓣剧集信息
-            start = 0
-            page_size = 30
-            while True:
-                search_res = doubanapi.tv_search(douban_name, start, page_size)
-                for res_item in search_res:
-                    if not doubanapi.is_target_type_match(res_item.get("target_type"), mtype):
-                        continue
-                    target_info = res_item.get("target")
-                    if not target_info:
-                        continue
-                    item_title = target_info.get("title")
-                    if not item_title:
-                        continue
-                    if item_title == title or item_title == douban_name:
-                        douban_ids.append(target_info.get("id"))
-                        continue
-                    # 移除名称
-                    left_part = item_title.replace(douban_name, "", 1).strip()
-                    if left_part in season_names:
-                        douban_ids.append(target_info.get("id"))
-                if len(search_res) == page_size:
-                    start += page_size
-                else:
-                    break
-            
-            media_info.douban_id = ",".join(douban_ids)
+            douban_info = doubanapi.get_douban_detail(doubanid=doubanid, mtype=mtype)
+            if douban_info:
+                WebUtils.adjust_tv_search_name(mtype, douban_info.get("title"), media_info)
 
         except Exception as err:
             ExceptionUtils.exception_traceback(err)            
 
-
-    @staticmethod
-    def int_to_chinese(num: int):
-        """将 0~9999 范围内的整数转换为中文数字（简单实现）。"""
-        digits = ['零', '一', '二', '三', '四', '五', '六', '七', '八', '九']
-        if num == 0:
-            return digits[0]
-        
-        num_str = str(num)
-        length = len(num_str)
-        result = ""
-        for i, ch in enumerate(num_str):
-            digit = int(ch)
-            unit = length - i - 1  # 当前位数对应的单位（十、百、千）
-            if digit != 0:
-                result += digits[digit]
-                if unit == 1:
-                    result += "十"
-                elif unit == 2:
-                    result += "百"
-                elif unit == 3:
-                    result += "千"
-            else:
-                # 避免连续“零”
-                if not result.endswith("零") and i != length - 1:
-                    result += "零"
-        # 去除末尾可能多余的“零”
-        result = result.rstrip("零")
-        # 特殊处理：例如 10、11 转换结果为“一十…”，改为“十…”
-        if result.startswith("一十"):
-            result = result[1:]
-        return result
-
-    @staticmethod
-    def convert_numbers_in_string(s: str):
-        """
-        使用正则表达式查找字符串中所有数字（包含其两侧空白字符），
-        并替换为转换后的中文数字，同时去掉两侧的空格。
-        """
-        # 匹配：任意数量空格 + 一段数字 + 任意数量空格
-        pattern = re.compile(r'\s*(\d+)\s*')
-        
-        def repl(match):
-            num = int(match.group(1))
-            return WebUtils.int_to_chinese(num)
-        
-        return pattern.sub(repl, s)
 
     @staticmethod
     def adjust_tv_search_name(mtype:MediaType, douban_name:str, media_info:MetaBase):
