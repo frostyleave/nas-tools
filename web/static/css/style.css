@@ -429,12 +429,10 @@ body, .page {
     background: transparent;
     justify-content: flex-start;
     /* 电脑模式下靠左对齐 */
-    overflow-x: auto;
-    /* 允许横向滚动，防止内容超出 */
   }
 
   div.top-sub-navbar>ul>li {
-    min-width: 9rem;
+    min-width: 9.5rem;
   }
 
   div.top-sub-navbar>ul>li>a {
@@ -664,3 +662,31 @@ body, .page {
 .wave-loading-item:nth-child(8) {
     animation-delay: 0.7s;
 }
+
+.top-nav-link {
+    display: flex;
+    align-items: center; /* 垂直居中对齐 */
+    justify-content: center; /* 水平居中（可选，具体场景调整） */
+    gap: 6px; /* 图标和文字的间距 */
+    padding: 8px 12px; /* 增加触控区域 */
+    height: 48px; /* 固定高度 */
+  }
+  
+  .tab-icon {
+    display: inline-block; /* 保证 SVG 图标的布局独立 */
+    width: 24px;
+    height: 24px;
+    vertical-align: middle; /* 修复 SVG 默认基线偏移 */
+  }
+  
+  .tab-text {
+    display: inline-block; /* 保证文字布局独立 */
+    max-width: 120px; /* 限制文字最大宽度 */
+    white-space: nowrap; /* 禁止文字换行 */
+    overflow: hidden; /* 超出隐藏 */
+    text-overflow: ellipsis; /* 超出部分显示省略号 */
+    vertical-align: middle; /* 确保与图标保持一致 */
+    line-height: 1; /* 避免文字行高影响对齐 */
+    margin: 0 0.1rem;
+  }
+  

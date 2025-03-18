@@ -1190,6 +1190,10 @@
       window.addEventListener('scroll', checkScrollPosition);
       window.addEventListener('resize', checkScrollPosition); // 处理窗口大小调整
 
+      // 初始化和窗口大小变化时更新
+      document.addEventListener("DOMContentLoaded", updateTabDisplay);
+      window.addEventListener("resize", updateTabDisplay);
+
       // 滚动到页面顶部的功能
       scrollToTopButton.addEventListener('click', function () {
         window.scrollTo({

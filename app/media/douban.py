@@ -1,4 +1,5 @@
 import random
+import re
 import zhconv
 import log
 
@@ -39,10 +40,22 @@ class DouBan:
             ExceptionUtils.exception_traceback(err)
             log.warn(f"【Douban】获取cookie失败: {format(err)}")
 
-    # 聚合搜索
-    def agg_search(self, key_word, mtype : Optional[MediaType] = None):
+    def search_douban_info_by_imdbid(self, imdbid):
+        """
+        根据imdb id查询豆瓣id
+        """
+        log.info("【Douban】正在通过imdbid查询豆瓣详情: %s" % imdbid)
+        return self.doubanapi.imdbid(imdbid)
+    
+    def tv_search(self, key_word, start=0, count=30):
+        return self.doubanapi.tv_search(keyword=key_word, start=start, count=count).get("items") or []
+
+    def agg_search(self, key_word, start=0, count=30):
+        """
+        聚合搜索
+        """
         log.info("【Douban】正在通过关键字查询豆瓣详情: %s" % key_word)
-        douban_info = self.doubanapi.search_agg(key_word)
+        douban_info = self.doubanapi.search_agg(key_word, start=start, count=count)
         if not douban_info:
             log.warn("【Douban】%s 未找到豆瓣详细信息" % key_word)
             return None
@@ -63,13 +76,7 @@ class DouBan:
             log.warn("【Douban】%s 查询结果为空" % key_word)
             return None
 
-        # 根据媒体资源类型过滤
-        detail_list = []
-        for item in result_items:
-            if self.is_target_type_match(item.get("target_type"), mtype):
-                detail_list.append(item.get("target"))
-    
-        return detail_list
+        return result_items
     
     def search_multi_season_tv(self, original_title, title):
         """
@@ -102,7 +109,6 @@ class DouBan:
                     break
 
         return detail_list
-
 
     def filter_search_result(self, subjects, original_title, title):
         """

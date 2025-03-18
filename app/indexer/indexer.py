@@ -1,15 +1,20 @@
 import copy
 import datetime
+import re
+
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import List
 
 import log
+
+from app.media.douban import DouBan
+from app.media.meta._base import MetaBase
 from app.helper import ProgressHelper, SubmoduleHelper, DbHelper
 from app.media import Media
 from app.media.meta.metainfo import MetaInfo
 from app.utils import ExceptionUtils, StringUtils
 from app.utils.commons import singleton
-from app.utils.types import SearchType, IndexerType, ProgressKey
+from app.utils.types import MediaType, SearchType, IndexerType, ProgressKey
 from config import INDEXER_CATEGORY
 
 
@@ -169,7 +174,9 @@ class Indexer(object):
 
             # 豆瓣id检索
             if 'douban_id' == indexer.search_type and match_media.douban_id:
-                for db_id in StringUtils.split_and_filter(match_media.douban_id, ","):
+                # 剧集信息, 查询特定季的豆瓣id
+                douban_ids = self.get_douban_tv_season_id(match_media)
+                for db_id in douban_ids:
                     task = executor.submit(self._client.search, order_seq, indexer, db_id, copy.deepcopy(filter_args), match_media, in_from)
                     all_task.append(task)
                         
@@ -220,3 +227,113 @@ class Indexer(object):
         获取索引器统计信息
         """
         return self.dbhelper.get_indexer_statistics()
+    
+    def get_douban_tv_season_id(self, media_info:MetaBase):
+        """
+        查询剧集信息的豆瓣id
+        """
+        douban_ids = []
+        if not media_info.douban_id:
+            return douban_ids
+        
+        douban_ids.append(media_info.douban_id)
+
+        doubanapi = DouBan()
+        try:
+            # 剧集类型时，如果只有1季，也不在进行扩展搜索
+            info = media_info.tmdb_info
+            if info and len(info.seasons) <= 1:
+                return douban_ids
+            # 计算季数大于0的季
+            season_cnt = len(list(filter(lambda t: t.season_number > 0, info.seasons)))
+            if season_cnt == 1:
+                return douban_ids
+            
+            # 解析季名称
+            season_names = []
+            for season_info in info.seasons:
+                if season_info.season_number == 0:
+                    continue
+                season_name = self.convert_numbers_in_string(season_info.name)
+                season_names.append(season_name)
+            
+            # 根据名称查询豆瓣剧集信息
+            start = 0
+            page_size = 30
+            tv_name = media_info.title
+            while True:
+                search_res = doubanapi.tv_search(tv_name, start, page_size)
+                for res_item in search_res:
+                    if not doubanapi.is_target_type_match(res_item.get("target_type"), MediaType.TV):
+                        continue
+                    target_info = res_item.get("target")
+                    if not target_info:
+                        continue
+                    item_title = target_info.get("title")
+                    if not item_title:
+                        continue
+
+                    res_item_id = target_info.get("id")
+                    if res_item_id == media_info.douban_id:
+                        continue
+                    if item_title == tv_name:
+                        douban_ids.append(target_info.get("id"))
+                        continue
+                    # 移除名称
+                    left_part = item_title.replace(tv_name, "", 1).strip()
+                    if left_part in season_names:
+                        douban_ids.append(target_info.get("id"))
+                if len(search_res) == page_size:
+                    start += page_size
+                else:
+                    break
+            
+        except Exception as err:
+            ExceptionUtils.exception_traceback(err)
+
+        return douban_ids
+
+    def int_to_chinese(self, num: int):
+        """将 0~9999 范围内的整数转换为中文数字（简单实现）。"""
+        digits = ['零', '一', '二', '三', '四', '五', '六', '七', '八', '九']
+        if num == 0:
+            return digits[0]
+        
+        num_str = str(num)
+        length = len(num_str)
+        result = ""
+        for i, ch in enumerate(num_str):
+            digit = int(ch)
+            unit = length - i - 1  # 当前位数对应的单位（十、百、千）
+            if digit != 0:
+                result += digits[digit]
+                if unit == 1:
+                    result += "十"
+                elif unit == 2:
+                    result += "百"
+                elif unit == 3:
+                    result += "千"
+            else:
+                # 避免连续“零”
+                if not result.endswith("零") and i != length - 1:
+                    result += "零"
+        # 去除末尾可能多余的“零”
+        result = result.rstrip("零")
+        # 特殊处理：例如 10、11 转换结果为“一十…”，改为“十…”
+        if result.startswith("一十"):
+            result = result[1:]
+        return result
+
+    def convert_numbers_in_string(self, s: str):
+        """
+        使用正则表达式查找字符串中所有数字（包含其两侧空白字符），
+        并替换为转换后的中文数字，同时去掉两侧的空格。
+        """
+        # 匹配：任意数量空格 + 一段数字 + 任意数量空格
+        pattern = re.compile(r'\s*(\d+)\s*')
+        
+        def repl(match):
+            num = int(match.group(1))
+            return self.int_to_chinese(num)
+        
+        return pattern.sub(repl, s)
