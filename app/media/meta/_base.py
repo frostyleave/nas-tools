@@ -159,6 +159,7 @@ class MetaBase(object):
     _subtitle_episode_range_re = r"(?:第)?(\d+)\s*[集话話期]\s*-\s*(?:第)?(\d+)\s*[集话話期]"
     _subtitle_episode_range_re_2 = r"(\d+)\s*[集话話期]?-\s*(\d+)\s*[集话話期]"
     _subtitle_episode_all_re = r"([0-9一二三四五六七八九十百零]+)\s*集\s*[全|共]|[全|共]\s*([0-9一二三四五六七八九十百零]+)\s*[集话話期]"
+    _subtitle_episode_range_simple = r"(?:第)?(\d+)\s*-\s*(?:第)?(\d+)"
 
     def __init__(self, title, subtitle=None, fileflag=False):
         self.category_handler = Category()
@@ -673,8 +674,7 @@ class MetaBase(object):
     def init_subtitle(self, title_text):
         if not title_text:
             return
-        # 移除数字前后的空格
-        title_text = re.sub(r'\s*(\d+)\s*', r'\1', title_text)
+
         title_text = f" {title_text} "
         if re.search(r'[全第季集话話期]', title_text, re.IGNORECASE):
             # 第x-y季
@@ -800,6 +800,22 @@ class MetaBase(object):
                     self.end_season = self.total_seasons
                     self.type = MediaType.TV
                     self._subtitle_flag = True
+        elif not self.begin_episode:
+            episode_range = re.findall(r'%s' % self._subtitle_episode_range_simple, title_text, re.IGNORECASE)
+            if episode_range:
+                try:
+                    range_item = episode_range[0]
+                    self.begin_episode = int(cn2an.cn2an(range_item[0], mode='smart'))
+                    self.end_episode = int(cn2an.cn2an(range_item[1], mode='smart'))
+                    if self.begin_episode > self.end_episode:
+                        tmp_val = self.end_episode
+                        self.end_episode = self.begin_episode
+                        self.begin_episode = tmp_val
+                    self.type = MediaType.TV
+                    self._subtitle_flag = True
+                except Exception as err:
+                    ExceptionUtils.exception_traceback(err)
+                    return
 
     def get_sort_str(self):
         """
@@ -854,7 +870,7 @@ class MetaBase(object):
 
         # 站点排序
         sort_str += str(self.site_order).rjust(3, '0')
-
+        print(sort_str)
         return sort_str
 
     def to_dict(self):

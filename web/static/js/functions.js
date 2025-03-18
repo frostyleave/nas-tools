@@ -140,9 +140,9 @@ function navmenu(page, newflag = false) {
               navList.forEach(item => {
 
                 const aElement = document.createElement('a');
-                aElement.className = 'nav-link';
+                aElement.className = 'nav-link top-nav-link';
                 aElement.href = '#';
-                aElement.innerHTML = `<span class="d-md-none" style="color:var(--tblr-body-color);">${item.icon}</span><span class="d-none d-md-inline">${item.name}</span>`;
+                aElement.innerHTML = `<span class="tab-icon" style="color:var(--tblr-body-color);">${item.icon}</span><span class="tab-text">${item.name}</span>`;
                 aElement.setAttribute('data-bs-toggle', 'tab');
                 aElement.setAttribute('data-id', item.page);
                 aElement.onclick = () => navmenu(item.page); // 根据 item.page 设定点击行为
@@ -158,7 +158,6 @@ function navmenu(page, newflag = false) {
               ulElement.firstChild.firstChild.classList.add('active');
 
               $('#top-sub-navbar').show();
-
             } else {
               $('#top-sub-navbar').hide();
             }
@@ -181,9 +180,73 @@ function navmenu(page, newflag = false) {
       }
       // 并记录当前历史记录
       window_history(!newflag);
+      // 更新元素菜单显隐
+      updateTabDisplay();
     }
   });
 }
+
+function updateTabDisplay() {
+ 
+    if (!$('#top-sub-navbar').is(':visible')) {
+      return;
+    }
+
+    const menu = document.querySelector('.nav.nav-tabs');
+    if (!menu) return;
+  
+    // 克隆原始菜单用于测量（避免污染实际DOM）
+    const clone = menu.cloneNode(true);
+    clone.style.visibility = 'hidden';
+    document.body.appendChild(clone);
+  
+    // 初始化测量元素
+    const items = Array.from(clone.querySelectorAll('.nav-item'));
+    const links = items.map(item => item.querySelector('.nav-link'));
+    const textElements = links.map(link => link.querySelector('.tab-text'));
+    const iconElements = links.map(link => link.querySelector('.tab-icon'));
+  
+    // 测量模式函数（返回总宽度）
+    function measureMode(mode) {
+      textElements.forEach(el => el.style.display = 
+        mode === 'ICON' ? 'none' : 'inline-block');
+      iconElements.forEach(el => el.style.display = 
+        mode === 'TEXT' ? 'none' : 'inline-block');
+      
+      return Array.from(clone.querySelectorAll('.nav-item'))
+        .reduce((sum, item) => sum + item.offsetWidth, 0);
+    }
+  
+    // 获取容器可用宽度
+    const containerWidth = menu.parentElement.offsetWidth;
+    
+    // 按优先级测量三种模式
+    const modeWidths = {
+      BOTH: measureMode('BOTH'),
+      ICON: measureMode('ICON'),
+      TEXT: measureMode('TEXT')
+    };
+  
+    // 移除克隆体
+    document.body.removeChild(clone);
+  
+    // 选择最佳显示模式
+    let bestMode = 'ICON'; // 默认图标模式
+    if (modeWidths.BOTH <= containerWidth) {
+      bestMode = 'BOTH';
+    } else if (modeWidths.TEXT <= containerWidth) {
+      bestMode = 'TEXT';
+    }
+  
+    // 应用最终模式
+    menu.querySelectorAll('.nav-item').forEach((item, index) => {
+      item.querySelector('.tab-text').style.display = 
+        bestMode === 'ICON' ? 'none' : 'inline-block';
+      item.querySelector('.tab-icon').style.display = 
+        bestMode === 'TEXT' ? 'none' : 'inline-block';
+    });
+}
+
 
 // 搜索
 function media_search(tmdbid, title, type) {

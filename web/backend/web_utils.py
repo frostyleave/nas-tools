@@ -146,31 +146,56 @@ class WebUtils:
             title = info.get("title") if mtype == MediaType.MOVIE else info.get("name")
             media_info = MetaInfo(title)
             media_info.set_tmdb_info(info)
-
-        # if (hasattr(info, 'imdb_id') is False or not info.imdb_id) and hasattr(info, 'external_ids') and info.external_ids and hasattr(info.external_ids, 'imdb_id') and  info.external_ids.imdb_id:
-        #     setattr(info, 'imdb_id', info.external_ids.imdb_id)
         
         # 豆瓣信息补全
         if media_info and info:
-            WebUtils.fill_douban_info(title, mtype, media_info)
+            imdb_id = ''
+            if hasattr(info, 'imdb_id') and info.imdb_id:
+                imdb_id = info.imdb_id
+            elif hasattr(info, 'external_ids') and info.external_ids and hasattr(info.external_ids, 'imdb_id') and  info.external_ids.imdb_id:
+                imdb_id = info.external_ids.imdb_id
+            WebUtils.fill_douban_info(title, mtype, media_info, imdb_id)
 
         return media_info
 
 
     @staticmethod
-    def fill_douban_info(title:str, mtype:MediaType, media_info:MetaBase):
+    def fill_douban_info(title:str, mtype:MediaType, media_info:MetaBase, imdb_id:str = None):
         """
         补全豆瓣信息: 豆瓣id, 剧集名称
         """
-        if not title:
+        media_info.douban_id = ''
+        if not imdb_id:
             return
-        douban_info = DouBan().agg_search(title, mtype)            
-        if douban_info:
-            douban_id_list = list(map(lambda x: x.get("id"), douban_info))
-            media_info.douban_id = ",".join(douban_id_list)
-            WebUtils.adjust_tv_search_name(mtype, douban_info[0].get("title"), media_info)
-        else:
-            media_info.douban_id = ''
+        try:
+            doubanapi = DouBan()
+            douban_info = doubanapi.search_douban_info_by_imdbid(imdb_id)
+            if not douban_info:
+                return
+            doubanid = douban_info.get("id")
+            if not doubanid:
+                return
+
+            if not str(doubanid).isdigit():
+                doubanid = re.search(r"\d+", doubanid).group(0)
+            media_info.douban_id = doubanid
+
+            # 电影类型，不再进行后续操作
+            if mtype == MediaType.MOVIE:
+                return
+
+            # 豆瓣资源名和tmdb资源名不一致时调整
+            imdb_name = douban_info.get("title")
+            if StringUtils.contain_chinese(imdb_name):
+                WebUtils.adjust_tv_search_name(mtype, imdb_name, media_info)
+                return
+            
+            douban_info = doubanapi.get_douban_detail(doubanid=doubanid, mtype=mtype)
+            if douban_info:
+                WebUtils.adjust_tv_search_name(mtype, douban_info.get("title"), media_info)
+
+        except Exception as err:
+            ExceptionUtils.exception_traceback(err)            
 
 
     @staticmethod

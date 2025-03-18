@@ -150,7 +150,7 @@ class Transmission(_IDownloadClient):
             return None
         try:
             torrents, error = self.get_torrents(ids=ids,
-                                                status=["downloading", "download_pending"],
+                                                status=["downloading", "download_pending", "stopped"],
                                                 tag=tag)
             return None if error else torrents or []
         except Exception as err:
