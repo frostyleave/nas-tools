@@ -69,6 +69,11 @@ def MetaInfo(title, subtitle=None, mtype=None):
                 episode_number = anitopy_info.get("episode_number")
                 meta_info.begin_episode = episode_number if isinstance(episode_number, int) else int(episode_number)
 
+    # 多季文件, 剧集范围无效
+    if meta_info.begin_episode and meta_info.begin_season != meta_info.end_season:
+        meta_info.begin_episode = None
+        meta_info.end_episode = None
+
     # 信息修正
     # info_fix(meta_info, rev_title)
 
