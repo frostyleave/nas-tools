@@ -2,6 +2,7 @@ import os
 import shutil
 from urllib.parse import quote
 
+from cachetools import TTLCache, cached
 from pyquery import PyQuery
 from playwright.sync_api import Page
 
@@ -10,7 +11,6 @@ from app.indexer.client.browser import PlaywrightHelper
 from app.plugins import EventHandler
 from app.plugins.modules._base import _IPluginModule
 from app.utils import RequestUtils, PathUtils, ExceptionUtils
-from app.utils.cache_manager import ttl_lru_cache
 from app.utils.types import MediaType, EventType
 from config import Config, RMT_SUBEXT
 
@@ -202,7 +202,7 @@ class OpenSubtitles(_IPluginModule):
         return self.__parse_opensubtitles_results(url=self._url_keyword % quote(keyword))
 
     @classmethod
-    @ttl_lru_cache(maxsize=128, ttl=600)
+    @cached(cache=TTLCache(maxsize=512, ttl=3600))
     def __parse_opensubtitles_results(cls, url):
         """
         搜索并解析结果

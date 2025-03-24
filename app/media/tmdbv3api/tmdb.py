@@ -5,10 +5,10 @@ import os
 import time
 from typing import Dict, Optional
 
+from cachetools import TTLCache, cached
 import requests
 import requests.exceptions
 
-from app.utils.cache_manager import ttl_lru_cache
 from config import Config
 
 from .as_obj import AsObj
@@ -26,7 +26,6 @@ class TMDb(object):
     TMDB_PROXIES = "TMDB_PROXIES"
     TMDB_DOMAIN = "TMDB_DOMAIN"
     REQUEST_CACHE_MAXSIZE = 512
-    CACHE_TTL = 3600  # 60分钟缓存过期
 
     def __init__(self, obj_cached=True, session=None):
         self._session = requests.Session() if session is None else session
@@ -136,7 +135,7 @@ class TMDb(object):
             return [AsObj(**res) for res in result[key]]
 
     @staticmethod
-    @ttl_lru_cache(maxsize=REQUEST_CACHE_MAXSIZE, ttl=CACHE_TTL)
+    @cached(cache=TTLCache(maxsize=512, ttl=3600))
     def cached_request(method, url, data, proxies):
         return requests.request(method, url, data=data, proxies=eval(proxies), verify=False, timeout=10)
 
