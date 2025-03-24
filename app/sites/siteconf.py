@@ -2,12 +2,12 @@ import os
 import pickle
 import random
 import time
-from functools import lru_cache
 
 from lxml import etree
 
 from app.indexer.client.browser import PlaywrightHelper
 from app.utils import ExceptionUtils, SiteUtils, RequestUtils
+from app.utils.cache_manager import ttl_lru_cache
 from app.utils.commons import singleton
 from config import Config
 
@@ -164,7 +164,7 @@ class SiteConf:
         return ret_attr
 
     @staticmethod
-    @lru_cache(maxsize=128)
+    @ttl_lru_cache(maxsize=128, ttl=10)
     def __get_site_page_html(url, cookie, ua, render=False, proxy=False):
         # 开渲染
         if render:            

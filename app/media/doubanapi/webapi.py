@@ -5,6 +5,7 @@ from lxml import etree
 import datetime
 
 from app.utils import RequestUtils, ExceptionUtils
+from app.utils.cache_manager import ttl_lru_cache
 from app.utils.commons import singleton
 
 
@@ -250,7 +251,7 @@ class DoubanWeb(object):
         return obj
 
     @classmethod
-    @lru_cache(maxsize=256)
+    @ttl_lru_cache(maxsize=256, ttl=3600)
     def detail(cls, cookie, doubanid):
         """
         查询详情
@@ -258,7 +259,7 @@ class DoubanWeb(object):
         return cls.__get_obj("detail", cls.__invoke_web("detail", cookie, doubanid))
 
     @classmethod
-    @lru_cache(maxsize=10)
+    @ttl_lru_cache(maxsize=128, ttl=3600)
     def user(cls, cookie, userid):
         """
         查询用户信息

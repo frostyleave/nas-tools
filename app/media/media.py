@@ -8,7 +8,6 @@ import zhconv
 import log
 
 
-from functools import lru_cache
 from lxml import etree
 
 from app.helper import MetaHelper
@@ -18,6 +17,7 @@ from app.media.meta._base import MetaBase
 from app.media.meta.metainfo import MetaInfo
 from app.media.tmdbv3api import TMDb, Search, Movie, TV, Person, Find, TMDbException, Discover, Trending, Episode, Genre
 from app.utils import PathUtils, EpisodeFormat, RequestUtils, NumberUtils, StringUtils, cacheman
+from app.utils.cache_manager import ttl_lru_cache
 from app.utils.types import MediaType, MatchMode
 from config import Config, KEYWORD_BLACKLIST, KEYWORD_SEARCH_WEIGHT_3, KEYWORD_SEARCH_WEIGHT_2, KEYWORD_SEARCH_WEIGHT_1, \
     KEYWORD_STR_SIMILARITY_THRESHOLD, KEYWORD_DIFF_SCORE_THRESHOLD
@@ -474,7 +474,7 @@ class Media:
             log.info("【Meta】%s 在TMDB中未找到媒体信息!" % file_media_name)
         return info
 
-    @lru_cache(maxsize=512)
+    @ttl_lru_cache(maxsize=128, ttl=3600)
     def __search_chatgpt(self, file_name, mtype: MediaType):
         """
         通过ChatGPT对话识别文件名和集数等信息，重新查询TMDB数据
@@ -521,7 +521,7 @@ class Media:
                 tmdb_info = self.__search_multi_tmdb(file_media_name=file_title)
             return mtype, file_info.get("season"), file_info.get("episode"), tmdb_info
 
-    @lru_cache(maxsize=512)
+    @ttl_lru_cache(maxsize=128, ttl=3600)
     def __search_tmdb_web(self, file_media_name, mtype: MediaType):
         """
         搜索TMDB网站，直接抓取结果，结果只有一条时才返回

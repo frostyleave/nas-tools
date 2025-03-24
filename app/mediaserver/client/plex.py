@@ -1,10 +1,10 @@
 import os
 from urllib.parse import quote
-from functools import lru_cache
 from urllib.parse import quote_plus
 import log
 from app.mediaserver.client._base import _IMediaClient
 from app.utils import ExceptionUtils
+from app.utils.cache_manager import ttl_lru_cache
 from app.utils.types import MediaServerType, MediaType
 from config import Config
 from plexapi import media
@@ -372,7 +372,7 @@ class Plex(_IMediaClient):
             })
         return libraries
 
-    @lru_cache(maxsize=10)
+    @ttl_lru_cache(maxsize=128, ttl=300)
     def get_libraries_image(self, library_key, type):
         """
         获取媒体服务器最近添加的媒体的图片列表

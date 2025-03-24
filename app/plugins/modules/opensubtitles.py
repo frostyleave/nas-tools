@@ -1,6 +1,5 @@
 import os
 import shutil
-from functools import lru_cache
 from urllib.parse import quote
 
 from pyquery import PyQuery
@@ -11,6 +10,7 @@ from app.indexer.client.browser import PlaywrightHelper
 from app.plugins import EventHandler
 from app.plugins.modules._base import _IPluginModule
 from app.utils import RequestUtils, PathUtils, ExceptionUtils
+from app.utils.cache_manager import ttl_lru_cache
 from app.utils.types import MediaType, EventType
 from config import Config, RMT_SUBEXT
 
@@ -202,7 +202,7 @@ class OpenSubtitles(_IPluginModule):
         return self.__parse_opensubtitles_results(url=self._url_keyword % quote(keyword))
 
     @classmethod
-    @lru_cache(maxsize=128)
+    @ttl_lru_cache(maxsize=128, ttl=600)
     def __parse_opensubtitles_results(cls, url):
         """
         搜索并解析结果

@@ -1,9 +1,9 @@
 import base64
 import datetime
-from functools import lru_cache
 
 from app.media import Media
 from app.utils import RequestUtils, ExceptionUtils
+from app.utils.cache_manager import ttl_lru_cache
 from config import Config
 
 
@@ -29,7 +29,7 @@ def get_login_wallpaper(time_now=None):
     return "", "", ""
 
 
-@lru_cache(maxsize=1)
+@ttl_lru_cache(maxsize=512, ttl=3600)
 def __get_image_b64(img_url, cache_tag=None):
     """
     根据图片URL缓存
@@ -42,7 +42,7 @@ def __get_image_b64(img_url, cache_tag=None):
     return ""
 
 
-@lru_cache(maxsize=1)
+@ttl_lru_cache(maxsize=512, ttl=3600)
 def __get_themoviedb_wallpaper(cache_tag):
     """
     获取TheMovieDb的随机背景图
@@ -51,7 +51,7 @@ def __get_themoviedb_wallpaper(cache_tag):
     return Media().get_random_discover_backdrop()
 
 
-@lru_cache(maxsize=1)
+@ttl_lru_cache(maxsize=512, ttl=3600)
 def get_bing_wallpaper(today):
     """
     获取Bing每日壁纸

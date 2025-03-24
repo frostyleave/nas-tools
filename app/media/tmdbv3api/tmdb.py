@@ -3,11 +3,12 @@
 import logging
 import os
 import time
-from functools import lru_cache
+from typing import Dict, Optional
 
 import requests
 import requests.exceptions
 
+from app.utils.cache_manager import ttl_lru_cache
 from config import Config
 
 from .as_obj import AsObj
@@ -25,12 +26,15 @@ class TMDb(object):
     TMDB_PROXIES = "TMDB_PROXIES"
     TMDB_DOMAIN = "TMDB_DOMAIN"
     REQUEST_CACHE_MAXSIZE = 512
+    CACHE_TTL = 3600  # 60分钟缓存过期
 
     def __init__(self, obj_cached=True, session=None):
         self._session = requests.Session() if session is None else session
         self._remaining = 40
         self._reset = None
         self.obj_cached = obj_cached
+
+        # 初始化环境变量默认值
         if os.environ.get(self.TMDB_LANGUAGE) is None:
             os.environ[self.TMDB_LANGUAGE] = "zh"
         if not os.environ.get(self.TMDB_DOMAIN):
@@ -132,7 +136,7 @@ class TMDb(object):
             return [AsObj(**res) for res in result[key]]
 
     @staticmethod
-    @lru_cache(maxsize=REQUEST_CACHE_MAXSIZE)
+    @ttl_lru_cache(maxsize=REQUEST_CACHE_MAXSIZE, ttl=CACHE_TTL)
     def cached_request(method, url, data, proxies):
         return requests.request(method, url, data=data, proxies=eval(proxies), verify=False, timeout=10)
 
@@ -140,7 +144,7 @@ class TMDb(object):
         return self.cached_request.cache_clear()
 
     def _call(
-            self, action, append_to_response, call_cached=True, method="GET", data=None
+            self, action: str, append_to_response: str, call_cached: bool=True, method: str="GET", data: Optional[Dict]=None
     ):
         if self.api_key is None or self.api_key == "":
             raise TMDbException("No API key found.")

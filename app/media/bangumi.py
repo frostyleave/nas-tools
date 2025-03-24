@@ -1,9 +1,9 @@
 from datetime import datetime
-from functools import lru_cache
 
 import requests
 
 from app.utils import RequestUtils
+from app.utils.cache_manager import ttl_lru_cache
 from app.utils.types import MediaType
 
 
@@ -24,7 +24,7 @@ class Bangumi(object):
         pass
 
     @classmethod
-    @lru_cache(maxsize=128)
+    @ttl_lru_cache(maxsize=128, ttl=3600)
     def __invoke(cls, url, **kwargs):
         req_url = cls._base_url + url
         params = {}
