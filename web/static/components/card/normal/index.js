@@ -158,7 +158,7 @@ export class NormalCard extends observeState(CustomElement) {
             ${this.overview
             ? html`
               <p class="lh-sm text-white"
-                 style="margin-bottom: 5px; -webkit-line-clamp:4; display: -webkit-box; -webkit-box-orient:vertical; overflow:hidden; text-overflow: ellipsis;">
+                 style="margin-bottom: 5px; -webkit-line-clamp:4; display: -webkit-box; -webkit-box-orient:vertical; overflow:hidden; text-overflow: ellipsis; -webkit-line-clamp: 2; /* 限制为2行 */">
                 ${this.overview}
               </p>`
             : nothing }
@@ -173,6 +173,7 @@ export class NormalCard extends observeState(CustomElement) {
           ${this._render_bottom()}
         </div>
       </div>
+      <div class="m-2 text-center" style="-webkit-line-clamp:1; display: -webkit-box; -webkit-box-orient:vertical; overflow:hidden; text-overflow: ellipsis;">${this.title}</div>
     `;
   }
 
