@@ -476,28 +476,27 @@ body, .page {
     bottom: 20px;
     right: 20px;
     background-color: #007bff;
-    /* 按钮背景颜色 */
     color: white;
-    /* 图标颜色 */
     border: none;
     border-radius: 50%;
     width: 50px;
     height: 50px;
     display: none;
-    /* 默认隐藏 */
     align-items: center;
     justify-content: center;
     font-size: 24px;
-    /* 图标大小 */
     cursor: pointer;
     z-index: 1000;
-    transition: background-color 0.3s, transform 0.3s;
-    /* 添加过渡效果 */
+    opacity: 0;
+    /* transition: background-color 0.3s, transform 0.3s; */
+    transition: opacity 0.3s ease-in-out;
+    pointer-events: none;
   }
 
   .scroll-to-top.show {
     display: flex;
-    /* 显示按钮 */
+    opacity: 1;
+    pointer-events: auto;
   }
 
   .scroll-to-top:hover {

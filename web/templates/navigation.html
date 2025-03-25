@@ -1172,35 +1172,59 @@
     // 页面初始事件
     $(document).ready(function () {
 
-      const scrollToTopButton = document.getElementById('scrollToTop');
+      const scrollToTopBtn = document.getElementById('scrollToTop');
+      let topBtnShowTime = null; // 用于控制隐藏按钮的定时器
 
       function checkScrollPosition() {
-        // 检查页面是否可以纵向滚动
-        if (document.documentElement.scrollHeight > window.innerHeight) {
-          scrollToTopButton.classList.add('show');
+        // 修改判断条件：使用 clientHeight 替代 window.innerHeight
+        const canScroll = document.documentElement.scrollHeight > document.documentElement.clientHeight;
+        
+        if (canScroll) {
+          scrollToTopBtn.classList.add('show');
         } else {
-          scrollToTopButton.classList.remove('show');
+          scrollToTopBtn.classList.remove('show');
+          // 清除定时器避免内存泄漏
+          clearTimeout(topBtnShowTime);
+          topBtnShowTime = null;
         }
       }
 
-      // 初始检查
+      function resetHideTimeout() {
+        // 只有当按钮可见时才重置定时器
+        if (scrollToTopBtn.classList.contains('show')) {
+          clearTimeout(topBtnShowTime);
+          topBtnShowTime = setTimeout(() => {
+            scrollToTopBtn.classList.remove('show');
+          }, 3000);
+        }
+      }
+
+      // 初始化检查
       checkScrollPosition();
 
       // 监听滚动事件
-      window.addEventListener('scroll', checkScrollPosition);
-      window.addEventListener('resize', checkScrollPosition); // 处理窗口大小调整
+      window.addEventListener('scroll', () => {
+        checkScrollPosition();
+        resetHideTimeout();
+      });
+
+      // 监听窗口大小变化
+      window.addEventListener('resize', () => {
+        checkScrollPosition();
+        resetHideTimeout();
+      });
+
+      // 滚动到顶部功能
+      scrollToTopBtn.addEventListener('click', () => {
+        window.scrollTo({
+          top: 0,
+          behavior: 'smooth'
+        });
+      });
 
       // 初始化和窗口大小变化时更新
       document.addEventListener("DOMContentLoaded", updateTabDisplay);
       window.addEventListener("resize", updateTabDisplay);
-
-      // 滚动到页面顶部的功能
-      scrollToTopButton.addEventListener('click', function () {
-        window.scrollTo({
-          top: 0,
-          behavior: 'smooth' // 平滑滚动
-        });
-      });
 
       // 监听页面状态
       window.addEventListener('popstate', function (e) {
