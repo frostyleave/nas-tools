@@ -6,6 +6,7 @@ from requests import Session, Response
 from urllib3.exceptions import InsecureRequestWarning
 
 from config import Config
+import log
 
 urllib3.disable_warnings(InsecureRequestWarning)
 
@@ -75,6 +76,7 @@ class RequestUtils:
         try:
             return req_method(method, url, **kwargs)
         except requests.exceptions.RequestException as e:
+            log.warn(f"【RequestUtils】请求{url} 错误: {str(e)}")
             if raise_exception:
                 raise
             return None

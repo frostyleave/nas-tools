@@ -253,7 +253,7 @@ class WebAction:
             "/tbl": {"func": self.truncate_blacklist, "desc": "清理转移缓存"},
             "/trh": {"func": self.truncate_rsshistory, "desc": "清理RSS缓存"},
             "/utf": {"func": self.unidentification, "desc": "重新识别"},
-            "/udt": {"func": self.update_system, "desc": "系统更新"},
+            # "/udt": {"func": self.update_system, "desc": "系统更新"},
             "/sta": {"func": self.user_statistics, "desc": "站点数据统计"}
         }
 
