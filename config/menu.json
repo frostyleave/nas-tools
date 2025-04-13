@@ -14,9 +14,14 @@
     "icon": "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\"fill=\"none\" stroke=\"currentColor\"stroke-width=\"2\"stroke-linecap=\"round\"stroke-linejoin=\"round\"class=\"icon icon-tabler icons-tabler-outline icon-tabler-star\"><path stroke=\"none\"d=\"M0 0h24v24H0z\"fill=\"none\"/><path d=\"M12 17.75l-6.172 3.245l1.179 -6.873l-5 -4.867l6.9 -1l3.086 -6.253l3.086 6.253l6.9 1l-5 4.867l1.179 6.873z\"/></svg>",
     "nav": [
       {
-        "name": "榜单",
+        "name": "豆瓣",
         "page": "ranking",
-        "icon": "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"24\"height=\"24\"viewBox=\"0 0 24 24\"fill=\"none\" stroke=\"currentColor\"stroke-width=\"2\"stroke-linecap=\"round\"stroke-linejoin=\"round\"class=\"icon icon-tabler icons-tabler-outline icon-tabler-star\"><path stroke=\"none\"d=\"M0 0h24v24H0z\"fill=\"none\"/><path d=\"M12 17.75l-6.172 3.245l1.179 -6.873l-5 -4.867l6.9 -1l3.086 -6.253l3.086 6.253l6.9 1l-5 4.867l1.179 6.873z\"/></svg>"
+        "icon": "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" class=\"icon icon-tabler icons-tabler-outline icon-tabler-brand-douban\"><path stroke=\"none\" d=\"M0 0h24v24H0z\" fill=\"none\"/><path d=\"M4 20h16\" /><path d=\"M5 4h14\" /><path d=\"M8 8h8a2 2 0 0 1 2 2v2a2 2 0 0 1 -2 2h-8a2 2 0 0 1 -2 -2v-2a2 2 0 0 1 2 -2z\" /><path d=\"M16 14l-2 6\" /><path d=\"M8 17l1 3\" /></svg>"
+      },
+      {
+        "name": "TMDB",
+        "page": "tmdb_ranking",
+        "icon": "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" class=\"icon icon-tabler icons-tabler-outline icon-tabler-brand-netflix\"><path stroke=\"none\" d=\"M0 0h24v24H0z\" fill=\"none\"/><path d=\"M9 3l10 18h-4l-10 -18z\" /><path d=\"M5 3v18h4v-10.5\" /><path d=\"M19 21v-18h-4v10.5\" /></svg>"
       },
       {
         "name": "BANGUMI",

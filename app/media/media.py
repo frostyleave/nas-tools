@@ -1398,6 +1398,26 @@ class Media:
             return []
         return self.__dict_tmdbinfos(self.trending.all_week(page=page))
 
+    def get_tmdb_trending_movie_week(self, page=1):
+        """
+        获取本周电影趋势榜单
+        :param page: 第几页
+        :return: TMDB信息列表
+        """
+        if not self.movie:
+            return []
+        return self.__dict_tmdbinfos(self.trending.movie_week(page=page))
+
+    def get_tmdb_trending_tv_week(self, page=1):
+        """
+        获取本周电视剧趋势榜单
+        :param page: 第几页
+        :return: TMDB信息列表
+        """
+        if not self.movie:
+            return []
+        return self.__dict_tmdbinfos(self.trending.tv_week(page=page))
+    
     def __get_tmdb_movie_detail(self, tmdbid, append_to_response=None):
         """
         获取电影的详情
