@@ -79,26 +79,13 @@
       border: 0;
     }
 
-    {
-      % for site_name,
-      site_icon in SiteFavicons.items() %
-    }
-
-    .siteicon- {
-        {
-        site_name|hash
-      }
-    }
-
-      {
+    {% for site_name, site_icon in SiteFavicons.items() -%}
+    .siteicon-{{ site_name|hash }} {
       background-image: url({{ site_icon }});
       background-size: cover;
       border: 0;
     }
-
-      {
-      % endfor %
-    }
+    {%- endfor %}
   </style>
 </head>
 
@@ -140,7 +127,7 @@
       <div class="wave-loading-item"></div>
       <div class="wave-loading-item"></div>
       <div class="wave-loading-item"></div>
-  </div>
+    </div>
     <div class="page-wrapper">
       <div class="input-group top-sub-navbar" id="top-sub-navbar">
         <ul class="nav nav-tabs card-header-tabs" data-bs-toggle="tabs" role="tablist"></ul>
@@ -707,7 +694,7 @@
             <div class="col-lg-3">
               <div class="mb-3">
                 <label class="form-label">过滤规则 <span class="form-help"
-                    title="质量、分辨率与过滤规则为“与”的关系，过滤规则不选择时将使用站点的过滤规则，站点也未设置过滤规则时将使用默认过滤规则"
+                    title="质量、分辨率与过滤规则为'与'的关系，过滤规则不选择时将使用站点的过滤规则，站点也未设置过滤规则时将使用默认过滤规则"
                     data-bs-toggle="tooltip">?</span></label>
                 <select class="form-select" id="rss_rule">
                 </select>
@@ -1172,35 +1159,60 @@
     // 页面初始事件
     $(document).ready(function () {
 
-      const scrollToTopButton = document.getElementById('scrollToTop');
+      const scrollToTopBtn = document.getElementById('scrollToTop');
+      let topBtnShowTime = null; // 用于控制隐藏按钮的定时器
 
+      // 检查滚动条位置
       function checkScrollPosition() {
-        // 检查页面是否可以纵向滚动
-        if (document.documentElement.scrollHeight > window.innerHeight) {
-          scrollToTopButton.classList.add('show');
+
+        const canScroll = document.documentElement.scrollHeight > document.documentElement.clientHeight;
+        
+        if (canScroll) {
+          scrollToTopBtn.classList.add('show');
         } else {
-          scrollToTopButton.classList.remove('show');
+          scrollToTopBtn.classList.remove('show');
+          // 清除定时器避免内存泄漏
+          clearTimeout(topBtnShowTime);
+          topBtnShowTime = null;
         }
       }
 
-      // 初始检查
+      function resetHideTimeout() {
+        // 只有当按钮可见时才重置定时器
+        if (scrollToTopBtn.classList.contains('show')) {
+          clearTimeout(topBtnShowTime);
+          topBtnShowTime = setTimeout(() => {
+            scrollToTopBtn.classList.remove('show');
+          }, 3000);
+        }
+      }
+
+      // 初始化检查
       checkScrollPosition();
 
       // 监听滚动事件
-      window.addEventListener('scroll', checkScrollPosition);
-      window.addEventListener('resize', checkScrollPosition); // 处理窗口大小调整
+      window.addEventListener('scroll', () => {
+        checkScrollPosition();
+        resetHideTimeout();
+      });
+
+      // 监听窗口大小变化
+      window.addEventListener('resize', () => {
+        checkScrollPosition();
+        resetHideTimeout();
+      });
+
+      // 滚动到顶部功能
+      scrollToTopBtn.addEventListener('click', () => {
+        window.scrollTo({
+          top: 0,
+          behavior: 'smooth'
+        });
+      });
 
       // 初始化和窗口大小变化时更新
       document.addEventListener("DOMContentLoaded", updateTabDisplay);
       window.addEventListener("resize", updateTabDisplay);
-
-      // 滚动到页面顶部的功能
-      scrollToTopButton.addEventListener('click', function () {
-        window.scrollTo({
-          top: 0,
-          behavior: 'smooth' // 平滑滚动
-        });
-      });
 
       // 监听页面状态
       window.addEventListener('popstate', function (e) {
@@ -1233,13 +1245,6 @@
         e.stopPropagation();
       });
 
-
-      // 导航菜单
-      // $("div#top-sub-navbar>ul>li>a").click(function () {
-      //   var link = $(this).data("id");
-      //   navmenu(link);
-      // });
-
       // 全局变量默认值
       DefaultTransferMode = '{{ SyncMod }}';
       DefaultPath = "{{ DefaultPath }}";
@@ -1253,9 +1258,6 @@
       {% if not TMDBFlag %}
       // 检查tmdb配置
       show_init_alert_modal();
-      {% elif current_user.level == 1 %}
-      // 用户认证
-      show_user_auth_modal();
       {% endif %}
 
     });
@@ -1269,33 +1271,19 @@
     if (theme) {
       dialog.theme = theme;
     }
-    dialog.actions = [
-      {% for Menu in Menus %}
-    {% if Menu.page %}
-    {
-      id: '{{ Menu.page }}',
-        title: '{{ Menu.name }}',
-          img: `{{ Menu.icon|safe }}`,
-            onAction() {
-        navmenu('{{ Menu.page }}');
-      },
-    },
-    {% elif Menu.list %}
-    {% for SubMenu in Menu.list %}
-    {% if SubMenu.page %}
-    {
-      id: '{{ SubMenu.page }}',
-        title: '{{ SubMenu.name }}',
-          img: `{{ SubMenu.icon|safe }}`,
-            onAction() {
-        navmenu('{{ SubMenu.page }}')
-      },
-    },
-    {% endif %}
-    {% endfor %}
-    {% endif %}
-    {% endfor %}
-  ];
+    dialog.actions = {{ Menus|tojson|safe }}.flatMap(menu => 
+      menu.page ? [{
+        id: menu.page,
+        title: menu.name,
+        img: `${menu.icon}`,
+        onAction() { navmenu(menu.page) }
+      }] : menu.list?.filter(m => m.page).map(sub => ({
+        id: sub.page,
+        title: sub.name,
+        img: `${sub.icon}`,
+        onAction() { navmenu(sub.page) }
+      })) || []
+    );
   </script>
 
   <!-- 用户自定义CSS -->

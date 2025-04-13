@@ -253,7 +253,7 @@ class WebAction:
             "/tbl": {"func": self.truncate_blacklist, "desc": "清理转移缓存"},
             "/trh": {"func": self.truncate_rsshistory, "desc": "清理RSS缓存"},
             "/utf": {"func": self.unidentification, "desc": "重新识别"},
-            "/udt": {"func": self.update_system, "desc": "系统更新"},
+            # "/udt": {"func": self.update_system, "desc": "系统更新"},
             "/sta": {"func": self.user_statistics, "desc": "站点数据统计"}
         }
 
@@ -2447,7 +2447,12 @@ class WebAction:
             }).get("Items")
         elif Type == "TRENDING":
             # TMDB流行趋势
-            res_list = Media().get_tmdb_trending_all_week(page=CurrentPage)
+            if SubType == "trendingmv":
+                res_list = Media().get_tmdb_trending_movie_week(page=CurrentPage)
+            elif SubType == "trendingtv":
+                res_list = Media().get_tmdb_trending_tv_week(page=CurrentPage)
+            else:
+                res_list = Media().get_tmdb_trending_all_week(page=CurrentPage)
         elif Type == "DISCOVER":
             # TMDB发现
             mtype = MediaType.MOVIE if SubType in MovieTypes else MediaType.TV

@@ -191,7 +191,7 @@ class MTorrentSpider:
         获取下载链接
         """
         headers={
-            "Content-Type": "application/json",
+            # "Content-Type": "application/json",
             "Accept": "application/json, text/plain, */*",
             "User-Agent": f"{self._ua}",
             "x-api-key": self._apikey

@@ -8,8 +8,8 @@ import zhconv
 import log
 
 
-from functools import lru_cache
 from lxml import etree
+from cachetools import TTLCache, cached
 
 from app.helper import MetaHelper
 from app.helper.openai_helper import OpenAiHelper
@@ -474,7 +474,7 @@ class Media:
             log.info("【Meta】%s 在TMDB中未找到媒体信息!" % file_media_name)
         return info
 
-    @lru_cache(maxsize=512)
+    @cached(cache=TTLCache(maxsize=512, ttl=3600))
     def __search_chatgpt(self, file_name, mtype: MediaType):
         """
         通过ChatGPT对话识别文件名和集数等信息，重新查询TMDB数据
@@ -521,7 +521,7 @@ class Media:
                 tmdb_info = self.__search_multi_tmdb(file_media_name=file_title)
             return mtype, file_info.get("season"), file_info.get("episode"), tmdb_info
 
-    @lru_cache(maxsize=512)
+    @cached(cache=TTLCache(maxsize=512, ttl=3600))
     def __search_tmdb_web(self, file_media_name, mtype: MediaType):
         """
         搜索TMDB网站，直接抓取结果，结果只有一条时才返回
@@ -1398,6 +1398,26 @@ class Media:
             return []
         return self.__dict_tmdbinfos(self.trending.all_week(page=page))
 
+    def get_tmdb_trending_movie_week(self, page=1):
+        """
+        获取本周电影趋势榜单
+        :param page: 第几页
+        :return: TMDB信息列表
+        """
+        if not self.movie:
+            return []
+        return self.__dict_tmdbinfos(self.trending.movie_week(page=page))
+
+    def get_tmdb_trending_tv_week(self, page=1):
+        """
+        获取本周电视剧趋势榜单
+        :param page: 第几页
+        :return: TMDB信息列表
+        """
+        if not self.movie:
+            return []
+        return self.__dict_tmdbinfos(self.trending.tv_week(page=page))
+    
     def __get_tmdb_movie_detail(self, tmdbid, append_to_response=None):
         """
         获取电影的详情

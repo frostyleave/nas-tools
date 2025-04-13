@@ -1,7 +1,6 @@
 import re
 import time
 from datetime import datetime, timedelta
-from multiprocessing.dummy import Pool as ThreadPool
 from threading import Event
 from typing import Tuple
 
@@ -57,7 +56,10 @@ class AutoSignIn(_IPluginModule):
     # 任务执行间隔
     _site_schema = []
     _cron = None
-    _sign_sites = None
+    """
+    配置需要签到的站点id
+    """
+    _config_sites = None
     _queue_cnt = None
     _retry_keyword = None
     _special_sites = None
@@ -191,7 +193,7 @@ class AutoSignIn(_IPluginModule):
             self._enabled = config.get("enabled")
             self._cron = config.get("cron")
             self._retry_keyword = config.get("retry_keyword")
-            self._sign_sites = config.get("sign_sites")
+            self._config_sites = config.get("sign_sites")
             self._special_sites = config.get("special_sites") or []
             self._notify = config.get("notify")
             self._queue_cnt = config.get("queue_cnt")
@@ -230,7 +232,7 @@ class AutoSignIn(_IPluginModule):
                     "enabled": self._enabled,
                     "cron": self._cron,
                     "retry_keyword": self._retry_keyword,
-                    "sign_sites": self._sign_sites,
+                    "sign_sites": self._config_sites,
                     "special_sites": self._special_sites,
                     "notify": self._notify,
                     "onlyonce": self._onlyonce,
@@ -279,79 +281,79 @@ class AutoSignIn(_IPluginModule):
         # 查看今天有没有签到历史
         today = today.strftime('%Y-%m-%d')
         today_history = self.get_history(key=today)
+        # 已签到站点
+        already_sign_sites = []
+
         # 今日没数据
         if not today_history:
-            sign_sites = self._sign_sites
+            wait_sign_sites = self._config_sites
             self.info(f"今日 {today} 未签到，开始签到已选站点")
         else:
-            # 今天已签到需要重签站点
-            retry_sites_id = today_history['retry']
             # 今天已签到站点
             already_sign_sites = today_history['sign']
+            # 今天需要重签站点
+            wait_retry_sites = today_history['retry']
             # 今日未签站点
-            no_sign_sites = [site_id for site_id in self._sign_sites if site_id not in already_sign_sites]
-            # 签到站点 = 需要重签+今日未签+特殊站点
-            sign_sites = list(set(retry_sites_id + no_sign_sites + self._special_sites))
-            if sign_sites:
+            no_sign_sites = [site_id for site_id in self._config_sites if site_id not in already_sign_sites]
+            # 待签到站点 = 需要重签+今日未签+特殊站点
+            wait_sign_sites = list(set(wait_retry_sites + no_sign_sites + self._special_sites))
+            if wait_sign_sites:
                 self.info(f"今日 {today} 已签到，开始重签重试站点、特殊站点、未签站点")
             else:
                 self.info(f"今日 {today} 已签到，无重新签到站点，本次任务结束")
                 return
 
-        # 查询签到站点
-        sign_sites = Sites().get_sites(siteids=sign_sites)
-        if not sign_sites:
+        # 查询待签到站点信息
+        sign_sites_info = Sites().get_sites(siteids=wait_sign_sites)
+        if not sign_sites_info:
             self.info("没有可签到站点，停止运行")
             return
 
         # 执行签到
         self.info("开始执行签到任务")
-
-        # with ThreadPool(min(len(sign_sites), int(self._queue_cnt) if self._queue_cnt else 10)) as p:
-        #     status = p.map(self.signin_site, sign_sites)
-
-        # 命中重试词的站点id
-        retry_sites_id = []
-        # 命中重试词的站点签到msg
-        retry_msg = []        
+   
         # 签到成功
         success_msg = []
+        success_sites_name = []
         # 失败｜错误
         failed_msg = []
-
-        success_sites = []
-        failed_sites = []
-        retry_sites = []
+        failed_sites_name = []
+        # 命中重试词的站点
+        retry_msg = []   
+        retry_sites_name = []
+        retry_sites_id = []
 
         # 遍历站点执行签到
-        for site_info in sign_sites:
+        for site_info in sign_sites_info:
             site_name = site_info.get('name')
+            site_id = str(site_info.get('id'))
             # 执行签到
             success, sign_msg = self.signin_site(site_info)
             # 签到成功
             if success:
                 success_msg.append(sign_msg)
-                success_sites.append(site_name)
+                success_sites_name.append(site_name)
+                already_sign_sites.append(site_id)
                 continue            
             # 失败重试检查
             if self._retry_keyword:
                 match = re.search(self._retry_keyword, sign_msg)
                 if match:
-                    self.debug(f"站点 {site_name} 命中重试关键词 {self._retry_keyword}")
-                    retry_sites_id.append(str(site_info.get('id')))
+                    self.info(f"站点 {site_name} 命中重试关键词 {self._retry_keyword}")
+                    retry_sites_id.append(site_id)
                     retry_msg.append(sign_msg)
-                    retry_sites.append(site_name)
+                    retry_sites_name.append(site_name)
                     continue
             # 记录失败
             failed_msg.append(sign_msg)
-            failed_sites.append(site_name)
+            failed_sites_name.append(site_name)
 
         self.info("站点签到任务完成！")        
 
         # 存入历史
-        history = { "sign": self._sign_sites, "retry": retry_sites_id }
+        history = { "sign": already_sign_sites, "retry": retry_sites_id }
         if not today_history:
-                self.history(key=today, value=history)
+            self.history(key=today, value=history)
         else:
             self.update_history(key=today,value=history)
 
@@ -368,9 +370,9 @@ class AutoSignIn(_IPluginModule):
             img_url, img_title, img_link = get_bing_wallpaper(today)
             # 签到汇总信息
             self.send_message(title="自动签到任务完成",
-                              text=f"签到成功站点: {','.join(success_sites)} \n"
-                                   f"签到失败站点: {','.join(failed_sites)} \n"
-                                   f"命中重试站点: {','.join(retry_sites)} \n"
+                              text=f"签到成功站点: {','.join(success_sites_name)} \n"
+                                   f"签到失败站点: {','.join(failed_sites_name)} \n"
+                                   f"命中重试站点: {','.join(retry_sites_name)} \n"
                                    f"强制签到数量: {len(self._special_sites)} \n"
                                    f"下次签到时间: {next_run_time}",
                               image=img_url)

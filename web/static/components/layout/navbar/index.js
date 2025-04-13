@@ -73,9 +73,9 @@ export class LayoutNavbar extends CustomElement {
     }, 200);
 
     // 检查更新
-    if (this.layout_useradmin === "1") {
-      this._check_new_version();
-    }
+    // if (this.layout_useradmin === "1") {
+    //   this._check_new_version();
+    // }
   }
 
   _check_new_version() {

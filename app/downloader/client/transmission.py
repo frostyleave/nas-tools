@@ -116,6 +116,9 @@ class Transmission(_IDownloadClient):
         for torrent in torrents:
             if status and torrent.status not in status:
                 continue
+            # 暂停做种的文件
+            if torrent.status == 'stopped' and torrent.percent_done >= 1.0:
+                continue
             labels = torrent.labels if hasattr(torrent, "labels") else []
             include_flag = True
             if tag:

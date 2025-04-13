@@ -551,6 +551,11 @@ def ranking():
     return render_template("discovery/ranking.html",
                            DiscoveryType="RANKING")
 
+@App.route('/tmdb_ranking', methods=['POST', 'GET'])
+@login_required
+def tmdb_ranking():
+    return render_template("discovery/ranking.html",
+                           DiscoveryType="TMDB")
 
 # 豆瓣电影
 @App.route('/douban_movie', methods=['POST', 'GET'])

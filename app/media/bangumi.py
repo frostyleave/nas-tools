@@ -1,6 +1,6 @@
 from datetime import datetime
-from functools import lru_cache
 
+from cachetools import TTLCache, cached
 import requests
 
 from app.utils import RequestUtils
@@ -24,7 +24,7 @@ class Bangumi(object):
         pass
 
     @classmethod
-    @lru_cache(maxsize=128)
+    @cached(cache=TTLCache(maxsize=128, ttl=3600))
     def __invoke(cls, url, **kwargs):
         req_url = cls._base_url + url
         params = {}

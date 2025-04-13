@@ -57,7 +57,7 @@ class TorrentSpider(object):
     torrents_info_array = []
     # 加载等待元素
     wait_element = None
-    timeout = 10
+    timeout = 20
 
     def __init__(self, indexer, referer=None):
 
@@ -112,9 +112,10 @@ class TorrentSpider(object):
         # 浏览器仿真
         if self.render:
             noGraphical = SystemUtils.is_windows() is False and SystemUtils.is_macos() is False
+            cookie_str = self._indexer.cookie
             page_source = PlaywrightHelper().get_page_source(
                 url=searchurl,
-                cookies=self.cookie,
+                cookies=cookie_str,
                 ua=self.ua,
                 proxy=True if self._indexer.proxy else False,
                 timeout=self.timeout,
