@@ -119,7 +119,7 @@ class WebUtils:
             media_info.begin_season = begin_season
             media_info.douban_id = doubanid
 
-            WebUtils.adjust_tv_search_name(mtype, title, media_info)
+            # WebUtils.adjust_tv_search_name(mtype, title, media_info)
 
             return media_info
         if str(mediaid).startswith("BG:"):
@@ -185,14 +185,14 @@ class WebUtils:
                 return
 
             # 豆瓣资源名和tmdb资源名不一致时调整
-            imdb_name = douban_info.get("title")
-            if StringUtils.contain_chinese(imdb_name):
-                WebUtils.adjust_tv_search_name(mtype, imdb_name, media_info)
-                return
+            # imdb_name = douban_info.get("title")
+            # if StringUtils.contain_chinese(imdb_name):
+            #     WebUtils.adjust_tv_search_name(mtype, imdb_name, media_info)
+            #     return
             
-            douban_info = doubanapi.get_douban_detail(doubanid=doubanid, mtype=mtype)
-            if douban_info:
-                WebUtils.adjust_tv_search_name(mtype, douban_info.get("title"), media_info)
+            # douban_info = doubanapi.get_douban_detail(doubanid=doubanid, mtype=mtype)
+            # if douban_info:
+            #     WebUtils.adjust_tv_search_name(mtype, douban_info.get("title"), media_info)
 
         except Exception as err:
             ExceptionUtils.exception_traceback(err)            
