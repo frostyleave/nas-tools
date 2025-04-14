@@ -109,6 +109,8 @@ class TorrentSpider(object):
         
         searchurl = self.build_search_url(keyword, page, mtype)
 
+        log.info(f"【Spider】[{self.indexername}]开始请求: {searchurl}")
+
         # 浏览器仿真
         if self.render:
             noGraphical = SystemUtils.is_windows() is False and SystemUtils.is_macos() is False
