@@ -78,21 +78,21 @@ def get_session_data(request: Request) -> dict:
     """
     从cookie中获取会话数据
     """
-    print(f"获取会话数据，请求路径: {request.url.path}")
-    print(f"请求cookies: {request.cookies}")
+    log.debug(f"获取会话数据，请求路径: {request.url.path}")
+    log.debug(f"请求cookies: {request.cookies}")
 
     session_cookie = request.cookies.get(SESSION_COOKIE_NAME)
     if not session_cookie:
-        print(f"未找到会话cookie: {SESSION_COOKIE_NAME}")
+        log.debug(f"未找到会话cookie: {SESSION_COOKIE_NAME}")
         return {}
 
     try:
         # 解析会话数据
         session_data = json.loads(base64.b64decode(session_cookie.encode()).decode())
-        print(f"解析会话数据成功: {session_data}")
+        log.debug(f"解析会话数据成功: {session_data}")
         return session_data
     except Exception as e:
-        print(f"解析会话数据失败: {str(e)}")
+        log.debug(f"解析会话数据失败: {str(e)}")
         return {}
 
 def set_session_cookie(response: Response, session_data: dict, max_age: int = None):
@@ -353,7 +353,7 @@ async def login_page(request: Request, next: str = ""):
 # 登录处理
 @app.post("/", response_class=HTMLResponse)
 async def login_process(request: Request):
-    print("处理登录请求...")
+    log.debug("处理登录请求...")
 
     # 获取表单数据
     form = await request.form()
@@ -362,7 +362,7 @@ async def login_process(request: Request):
     remember = form.get("remember", "") == "on"
     next_page = form.get("next", "")
 
-    print(f"登录表单数据: username={username}, remember={remember}, next_page={next_page}")
+    log.debug(f"登录表单数据: username={username}, remember={remember}, next_page={next_page}")
 
     if not username:
         image_code, img_title, img_link = get_login_wallpaper()
@@ -395,7 +395,7 @@ async def login_process(request: Request):
 
     # 校验密码
     if user_info.verify_password(password):
-        print(f"用户 {username} 密码验证成功")
+        log.debug(f"用户 {username} 密码验证成功")
 
         # 创建会话数据
         session_data = {
@@ -404,13 +404,13 @@ async def login_process(request: Request):
             "permanent": remember
         }
 
-        print(f"创建会话数据: user_id={user_info.id}, username={user_info.username}, permanent={remember}")
+        log.debug(f"创建会话数据: user_id={user_info.id}, username={user_info.username}, permanent={remember}")
 
         # 登录成功，重定向到导航页面
         Config().current_user = user_info.username
         MediaServer().init_config()
 
-        print(f"登录成功，准备重定向到: {next_page if next_page else '/web'}")
+        log.debug(f"登录成功，准备重定向到: {next_page if next_page else '/web'}")
 
         # 创建重定向响应
         if next_page and next_page != 'web':
@@ -420,8 +420,7 @@ async def login_process(request: Request):
 
         # 设置会话cookie
         set_session_cookie(response, session_data)
-        print(f"设置会话cookie: {session_data}")
-        print(f"Cookie名称: {SESSION_COOKIE_NAME}")
+        log.debug(f"设置会话cookie: {session_data}")
 
         return response
     else:
@@ -462,17 +461,17 @@ async def logout(request: Request):
 async def web_page(request: Request):
     # 获取当前用户
     session_data = get_session_data(request)
-    print(f"导航页面会话数据: {session_data}")
+    log.debug(f"导航页面会话数据: {session_data}")
 
     user_id = session_data.get("user_id")
-    print(f"导航页面用户ID: {user_id}, 类型: {type(user_id)}")
+    log.debug(f"导航页面用户ID: {user_id}, 类型: {type(user_id)}")
 
     # 特殊处理admin用户
     username = session_data.get("username")
     if username == "admin":
-        print("导航页面检测到admin用户，直接通过")
+        log.debug("导航页面检测到admin用户，直接通过")
         admin_user = User().get_user("admin")  # 使用get_user方法获取admin用户
-        print(f"Admin用户信息: {admin_user}")
+        log.debug(f"Admin用户信息: {admin_user}")
 
         # 创建一个模拟的admin用户对象
         class AdminUser:
@@ -493,12 +492,12 @@ async def web_page(request: Request):
         current_user = AdminUser()
     else:
         if not user_id:
-            print("导航页面未找到用户ID，重定向到登录页面")
+            log.debug("导航页面未找到用户ID，重定向到登录页面")
             return RedirectResponse(url="/?next=web", status_code=status.HTTP_302_FOUND)
 
         current_user = User().get(user_id)
         if not current_user:
-            print("导航页面未找到用户信息，重定向到登录页面")
+            log.debug("导航页面未找到用户信息，重定向到登录页面")
             return RedirectResponse(url="/?next=web", status_code=status.HTTP_302_FOUND)
 
     # 跳转页面
@@ -580,12 +579,10 @@ async def do(request: Request):
         content = await request.json()
         cmd = content.get("cmd")
         data = content.get("data") or {}
-        print(f"处理/do请求: cmd={cmd}, data={data}")
+        log.debug(f"处理/do请求: cmd={cmd}, data={data}")
         return WebAction().action(cmd, data)
     except Exception as e:
-        print(f"处理/do请求出错: {str(e)}")
-        import traceback
-        traceback.print_exc()
+        log.exception("处理/do请求出错: ", e)
         return {"code": -1, "msg": str(e)}
 
 # 事件响应 - GET方法
@@ -595,12 +592,10 @@ async def do_get(request: Request):
         cmd = request.query_params.get("cmd")
         data_str = request.query_params.get("data", "{}")
         data = json.loads(data_str) if data_str else {}
-        print(f"处理/do GET请求: cmd={cmd}, data={data}")
+        log.debug(f"处理/do GET请求: cmd={cmd}, data={data}")
         return WebAction().action(cmd, data)
     except Exception as e:
-        print(f"处理/do GET请求出错: {str(e)}")
-        import traceback
-        traceback.print_exc()
+        log.exception("处理/do GET请求出错: ", e)
         return {"code": -1, "msg": str(e)}
 
 
@@ -635,11 +630,11 @@ async def message_handler(websocket: WebSocket):
                 # 解析会话数据
                 session_data = json.loads(base64.b64decode(session_cookie.encode()).decode())
                 user_id = session_data.get("user_id")
-                print(f"WebSocket会话用户ID: {user_id}")
+                log.debug(f"[WebSocket-消息]会话用户ID: {user_id}")
             except Exception as e:
-                print(f"解析WebSocket会话数据失败: {str(e)}")
+                log.exception("[WebSockett-消息]解析会话数据失败: ", e)
     except Exception as e:
-        print(f"WebSocket会话获取失败: {str(e)}")
+        log.exception("[WebSockett-消息]会话获取失败: ", e)
 
     try:
         while True:
@@ -651,7 +646,7 @@ async def message_handler(websocket: WebSocket):
                 try:
                     msgbody = json.loads(data)
                 except Exception as err:
-                    print(str(err))
+                    log.exception("[WebSockett-消息]连接异常: ",err)
                     continue
 
                 if msgbody.get("text"):
@@ -692,13 +687,13 @@ async def message_handler(websocket: WebSocket):
                         "message": ret_messages
                     }))
             except Exception as e:
-                print(f"WebSocket处理消息失败: {str(e)}")
+                log.exception("[WebSockett-消息]处理消息失败: ", e)
                 await websocket.send_text(json.dumps({"error": str(e)}))
 
     except WebSocketDisconnect:
-        print("WebSocket连接已关闭！")
+        log.error("[WebSockett-消息]连接已关闭!")
     except Exception as e:
-        print(f"WebSocket连接异常: {str(e)}")
+        log.exception("[WebSockett-消息]连接异常: ", e)
 
 # 实时日志WebSocket
 @app.websocket("/stream-logging")
@@ -739,13 +734,13 @@ async def stream_logging(websocket: WebSocket):
                 await asyncio.sleep(1)
 
             except Exception as e:
-                print(f"日志WebSocket处理失败: {str(e)}")
+                log.exception("[WebSocket-日志]处理失败: ", e)
                 await websocket.send_text(json.dumps({"error": str(e)}))
 
     except WebSocketDisconnect:
-        print("日志WebSocket连接已关闭！")
+        log.error("[WebSocket-日志]连接已关闭!")
     except Exception as e:
-        print(f"日志WebSocket连接异常: {str(e)}")
+        log.exception("[WebSocket-日志]连接异常: ", e)
 
 # 进度WebSocket
 @app.websocket("/stream-progress")
@@ -772,13 +767,13 @@ async def stream_progress(websocket: WebSocket):
                 await asyncio.sleep(0.2)
 
             except Exception as e:
-                print(f"进度WebSocket处理失败: {str(e)}")
+                log.exception("[WebSocket-进度]处理失败: ", e)
                 await websocket.send_text(json.dumps({"error": str(e)}))
 
     except WebSocketDisconnect:
-        print("进度WebSocket连接已关闭！")
+        log.error("[WebSocket-进度]连接已关闭!")
     except Exception as e:
-        print(f"进度WebSocket连接异常: {str(e)}")
+        log.exception("[WebSocket-进度]连接异常: ", e)
 
 
 # 开始页面
@@ -1522,7 +1517,7 @@ async def mediafile(request: Request, current_user: User = Depends(get_current_u
             try:
                 DirD = os.path.commonpath(download_dirs).replace("\\", "/")
             except Exception as err:
-                print(str(err))
+                log.exception(f'管理目录转换异常: {download_dirs}', err)
                 DirD = "/"
         else:
             DirD = "/"
