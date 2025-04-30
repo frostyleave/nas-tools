@@ -38,7 +38,6 @@
   </div>
 </div>
 {% if ServerSucess %}
-{% with curdomainleft = request.host.split(':')[0] %}
 <div class="page-body">
   <div class="container-xl">
     <div class="d-grid gap-3 grid-normal-card">
@@ -153,7 +152,6 @@
   </div>
 </div>
 {% endif %}
-{% endwith %}
 {% else %}
 {{ OOPS.systemerror('媒体服务器连接失败！', '当前无法连接媒体服务器获取数据，请确认Emby/Jellyfin/Plex配置是否正确。') }}
 {% endif %}

@@ -1,11 +1,10 @@
-from flask_login import UserMixin
-from werkzeug.security import check_password_hash
-
 from app.helper import DbHelper
+
+from app.utils.password_hash import check_password_hash
 from config import Config
 
 
-class User(UserMixin):
+class User:
     """
     用户
     """
@@ -33,6 +32,7 @@ class User(UserMixin):
     def verify_password(self, password):
         if self.password_hash is None:
             return False
+
         return check_password_hash(self.password_hash, password)
 
     # 获取用户ID
@@ -114,4 +114,15 @@ class User(UserMixin):
     def check_user(self, site, param):
         return 1, ''
 
+    # 为FastAPI添加的方法
+    @property
+    def is_authenticated(self):
+        return True
 
+    @property
+    def is_active(self):
+        return True
+
+    @property
+    def is_anonymous(self):
+        return False

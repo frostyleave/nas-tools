@@ -3,13 +3,14 @@ import os
 import re
 import threading
 import time
+import traceback
+
 from collections import deque
 from html import escape
 from logging.handlers import RotatingFileHandler
 
 from config import Config
 
-logging.getLogger('werkzeug').setLevel(logging.ERROR)
 lock = threading.Lock()
 
 LOG_QUEUE = deque(maxlen=200)
@@ -103,6 +104,10 @@ def error(text, module=None):
     __append_log_queue("ERROR", text)
     return Logger.get_instance(module).logger.error(text)
 
+def exception(text, e, module=None):
+    text = f"{text}\nException: {str(e)}\nCallstack:\n{traceback.format_exc()}\n"
+    __append_log_queue("ERROR", text)
+    return Logger.get_instance(module).logger.error(text)
 
 def warn(text, module=None):
     __append_log_queue("WARN", text)

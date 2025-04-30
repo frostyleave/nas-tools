@@ -1,15 +1,15 @@
-name: NAStool Docker Dev
+name: NAStool Docker Beta
 on:
   workflow_dispatch:
   push:
     branches:
-      - dev
+      - dev_fastapi
     paths:
       - version.py
-      - .github/workflows/build-dev.yml
+      - .github/workflows/build-beta.yml
       - package_list.txt
       - requirements.txt
-      - docker/dev.Dockerfile
+      - docker/beta.Dockerfile
       - app/*
       - web/*
 
@@ -53,6 +53,6 @@ jobs:
             linux/arm64
           push: true
           build-args: |
-            BRANCH=dev
+            BRANCH=dev_fastapi
           tags: |
-            ${{ secrets.DOCKER_USERNAME }}/nas-tools:dev
+            ${{ secrets.DOCKER_USERNAME }}/nas-tools:beta

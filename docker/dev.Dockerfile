@@ -1,5 +1,8 @@
 FROM python:3.11-slim AS Builder
 
+# 定义构建参数，默认分支为dev
+ARG BRANCH=dev
+
 # 安装构建依赖和运行所需的依赖包
 RUN apt-get update -y \
      && apt-get upgrade -y \
@@ -54,7 +57,7 @@ RUN pip install --upgrade pip setuptools==70.1.1 wheel \
     && pip install cython \
     && pip install --no-cache-dir playwright \
     && python -m playwright install chromium \
-    && pip install -r https://raw.githubusercontent.com/frostyleave/nas-tools/dev/requirements.txt \
+    && pip install -r https://raw.githubusercontent.com/frostyleave/nas-tools/${BRANCH}/requirements.txt \
     && apt-get remove -y build-essential \
     && apt-get autoremove -y \
     && apt-get clean -y \
@@ -71,6 +74,9 @@ FROM scratch AS APP
 
 # 从 Builder 阶段复制文件
 COPY --from=Builder / /
+
+# 定义构建参数，默认分支为dev（需要在每个阶段都定义）
+ARG BRANCH=dev
 
 # 设置环境变量
 ENV S6_SERVICES_GRACETIME=30000 \
@@ -94,12 +100,14 @@ ENV S6_SERVICES_GRACETIME=30000 \
     PUID=0 \
     PGID=0 \
     UMASK=000 \
-    WORKDIR="/nas-tools"
+    WORKDIR="/nas-tools" \
+    BRANCH=${BRANCH}
 
 WORKDIR ${WORKDIR}
 
 # 创建用户和组
-RUN mkdir ${HOME} \
+RUN echo "Building with branch: ${BRANCH}" \
+    && mkdir ${HOME} \
     && addgroup --gid 911 nt \
     && adduser --uid 911 --gid 911 --home ${HOME} --shell /bin/bash --disabled-password nt \
     && python_ver=$(python3 -V | awk '{print $2}') \
@@ -108,7 +116,7 @@ RUN mkdir ${HOME} \
     && echo 'fs.inotify.max_user_instances=5242880' >> /etc/sysctl.conf \
     && echo "nt ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers \
     && git config --global pull.ff only \
-    && git clone -b dev ${REPO_URL} ${WORKDIR} --depth=1 --recurse-submodule \
+    && git clone -b ${BRANCH} ${REPO_URL} ${WORKDIR} --depth=1 --recurse-submodule \
     && git config --global --add safe.directory ${WORKDIR} \
     && cp -f /nas-tools/docker/entrypoint.sh /entrypoint.sh \
     && chmod +x /entrypoint.sh

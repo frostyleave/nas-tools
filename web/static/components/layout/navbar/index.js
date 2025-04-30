@@ -53,9 +53,15 @@ export class LayoutNavbar extends CustomElement {
         navmenu(page);
       } else {
         // 打开第一个页面
-        const page = this.navbar_list[0].page ?? this.navbar_list[0].list[0].page
-        this._add_page_to_url(page);
-        navmenu(page);
+        if (this.navbar_list && this.navbar_list.length > 0) {
+          const page = this.navbar_list[0].page ?? (this.navbar_list[0].list && this.navbar_list[0].list.length > 0 ? this.navbar_list[0].list[0].page : 'index');
+          this._add_page_to_url(page);
+          navmenu(page);
+        } else {
+          // 如果没有菜单项，默认打开首页
+          this._add_page_to_url('index');
+          navmenu('index');
+        }
       }
       // 默认展开探索
       if (!this._is_expand) {
@@ -141,9 +147,9 @@ export class LayoutNavbar extends CustomElement {
   render_v2() {
 
     const menuGroup = this.navbar_list.reduce((acc, item) => {
-      const group = item.group || "";      
+      const group = item.group || "";
       // 初始化分组数组
-      acc[group] = acc[group] || [];      
+      acc[group] = acc[group] || [];
       // 添加元素到分组
       acc[group].push(item);
       return acc;
@@ -152,13 +158,13 @@ export class LayoutNavbar extends CustomElement {
     const content = [];
 
     Object.keys(menuGroup).map(group => {
-      const groupTitle = group !== "" 
+      const groupTitle = group !== ""
       ? html`<div class="section-title-container">
            <div class="section-title">${group}</div>
            <div class="divider-line"></div>
          </div>`
       : html``;
-    
+
       // 遍历分组内的 items，调用 _render_page_item 生成每个 item 的 HTML
       const itemsContent = html`
         ${repeat(
@@ -167,7 +173,7 @@ export class LayoutNavbar extends CustomElement {
           item => this._render_page_item(item)
         )}
       `;
-    
+
       // 添加到 content 列表
       content.push(html`${groupTitle}${itemsContent}`);
 
@@ -293,11 +299,11 @@ export class LayoutNavbar extends CustomElement {
 
   _render_page_item(item, child) {
     return html`
-    <a class="nav-link lit-navbar-accordion-item${this._active_name === item.page ? "-active" : ""} my-1 p-2 ${child ? "ps-3" : "lit-navbar-accordion-button"}" 
+    <a class="nav-link lit-navbar-accordion-item${this._active_name === item.page ? "-active" : ""} my-1 p-2 ${child ? "ps-3" : "lit-navbar-accordion-button"}"
       href="#${item.page}" data-bs-dismiss="offcanvas" aria-label="Close"
       style="${child ? "font-size:1rem" : "font-size:1.1rem;"}"
       data-lit-page=${item.page}
-      @click=${ () => { 
+      @click=${ () => {
         this._add_page_to_url(item.page);
         navmenu(item.page);
       }}>
@@ -307,7 +313,7 @@ export class LayoutNavbar extends CustomElement {
       <span class="nav-link-title">
         ${item.also ?? item.name}
       </span>
-    </a>`    
+    </a>`
   }
 
 }

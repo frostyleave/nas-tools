@@ -14,8 +14,6 @@ from pathlib import Path
 from urllib.parse import unquote
 
 import cn2an
-from flask_login import logout_user, current_user
-from werkzeug.security import generate_password_hash
 
 import log
 from app.brushtask import BrushTask
@@ -45,6 +43,8 @@ from app.utils import StringUtils, EpisodeFormat, RequestUtils, PathUtils, \
     SystemUtils, ExceptionUtils
 from app.utils.types import RmtMode, OsType, SearchType, SyncType, MediaType, MovieTypes, TvTypes, \
     EventType, SystemConfigKey, RssType
+from app.utils.password_hash import generate_password_hash
+
 from config import RMT_MEDIAEXT, RMT_SUBEXT, RMT_AUDIO_TRACK_EXT, Config
 from web.backend.search_torrents import search_medias_for_web, search_media_by_message
 from web.backend.user import User
@@ -415,8 +415,8 @@ class WebAction:
         # 密码
         if cfg_key == "app.login_password":
             if cfg_value and not cfg_value.startswith("[hash]"):
-                cfg['app']['login_password'] = "[hash]%s" % generate_password_hash(
-                    cfg_value)
+                password_hash = "[hash]%s" % generate_password_hash(cfg_value)
+                cfg['app']['login_password'] = "[hash]%s" % password_hash
             else:
                 cfg['app']['login_password'] = cfg_value or "password"
             return cfg
@@ -567,10 +567,10 @@ class WebAction:
                 continue
             mtype = None
             if res.TYPE == 'MOV':
-                mtype = MediaType.MOVIE 
-            elif res.TYPE == 'ANI': 
+                mtype = MediaType.MOVIE
+            elif res.TYPE == 'ANI':
                 mtype = MediaType.ANIME
-            elif res.TYPE == 'TV': 
+            elif res.TYPE == 'TV':
                 mtype = MediaType.TV
 
             info = Media().get_tmdb_info(tmdbid=res.TMDBID, mtype=mtype, append_to_response="all")
@@ -591,7 +591,7 @@ class WebAction:
                                                     download_dir=dl_dir,
                                                     download_setting=dl_setting,
                                                     in_from=SearchType.WEB,
-                                                    user_name=current_user.username)
+                                                    user_name="admin")
             if not ret:
                 return {"retcode": -1, "retmsg": ret_msg}
         return {"retcode": 0, "retmsg": ""}
@@ -627,7 +627,7 @@ class WebAction:
                                                 download_dir=dl_dir,
                                                 download_setting=dl_setting,
                                                 in_from=SearchType.WEB,
-                                                user_name=current_user.username)
+                                                user_name="admin")
         if not ret:
             return {"code": 1, "msg": ret_msg or "如连接正常，请检查下载任务是否存在"}
         return {"code": 0, "msg": "下载成功"}
@@ -659,7 +659,7 @@ class WebAction:
                                   download_setting=dl_setting,
                                   torrent_file=file_path,
                                   in_from=SearchType.WEB,
-                                  user_name=current_user.username)
+                                  user_name="admin")
         # 下载链接
         if urls and not isinstance(urls, list):
             urls = [urls]
@@ -688,7 +688,7 @@ class WebAction:
                                   download_setting=dl_setting,
                                   torrent_file=file_path,
                                   in_from=SearchType.WEB,
-                                  user_name=current_user.username)
+                                  user_name="admin")
 
         return {"code": 0, "msg": "添加下载完成！"}
 
@@ -1328,7 +1328,7 @@ class WebAction:
         """
         注销
         """
-        logout_user()
+        # 不再使用Flask的logout_user
         return {"code": 0}
 
     def __update_config(self, data):
@@ -1841,7 +1841,7 @@ class WebAction:
             douban_info = DouBan().get_douban_detail(doubanid=doubanid, mtype=MediaType.MOVIE)
             if not douban_info:
                 return {"code": 1, "retmsg": "无法查询到豆瓣信息"}
-            
+
             poster_path = douban_info.get("images", {}).get('large') or ""
             title = douban_info.get("title")
             vote_average = douban_info.get("rating", {}).get("average") or "无"
@@ -1899,7 +1899,7 @@ class WebAction:
             douban_info = DouBan().get_douban_detail(doubanid=doubanid, mtype=MediaType.TV)
             if not douban_info:
                 return {"code": 1, "retmsg": "无法查询到豆瓣信息"}
-            
+
             poster_path = douban_info.get("images", {}).get('large') or ""
             title = douban_info.get("title")
             vote_average = douban_info.get("rating", {}).get("average") or "无"
@@ -3593,7 +3593,7 @@ class WebAction:
             # 只需要部分种子标签
             labels = [label for label in str(item.NOTE).split("|")
                       if label in ["官方", "官组", "中字", "国语", "特效", "特效字幕"]]
-            
+
             pubdate = item.PUBDATE or ''
             if pubdate.endswith(' 00:00:00'):
                 pubdate = pubdate[:-9]
@@ -3746,14 +3746,14 @@ class WebAction:
                     if len(parts) == 2:
                         return (parts[1], parts[0])  # 翻转顺序
                 return (k[0], "FF")
-            
+
             if re.match(r"^(E\d+)-E\d+$", k[1], flags=re.I):
                 parts = k[1].split('-')  # 按 '-' 拆分
                 if len(parts) == 2:
                     return (k[0], '{}-{}'.format(parts[1], parts[0]))
-            
+
             return (k[0], k[1])
-        
+
         # 开始排序季集顺序
         for title, item in SearchResults.items():
             # 排序筛选器 季
@@ -3825,7 +3825,7 @@ class WebAction:
                 title = "%s %s" % (name, se) if se else ( "%s(%s)" % (name, year) if year else name)
                 tpye_str = 'MOV' if download_info.TYPE == '电影' else 'TV'
                 vote = download_info.VOTE
-                    
+
                 torrent.update({
                     "tmdbid": download_info.TMDBID,
                     "title": title,
@@ -4823,7 +4823,7 @@ class WebAction:
         }
 
     @staticmethod
-    def get_user_menus():
+    def get_user_menus(current_user=None):
         """
         查询用户菜单
         """
@@ -4835,6 +4835,28 @@ class WebAction:
         #     ignore.append('brushtask')
 
         # 获取可用菜单
+        if not current_user:
+            # 如果没有传入用户，尝试获取admin用户
+            current_user = User().get_user("admin")
+            if not current_user:
+                # 如果无法获取admin用户，创建一个模拟的admin用户对象
+                class AdminUser:
+                    def __init__(self):
+                        self.id = 0
+                        self.username = "admin"
+                        self.pris = "我的媒体库,资源搜索,探索,站点管理,订阅管理,下载管理,媒体整理,服务,系统设置"
+                        self.search = 1
+                        self.level = 99
+                        self.admin = 1
+
+                    def get_usermenus(self):
+                        return Config().menu
+
+                    def get_topmenus(self):
+                        return self.pris.split(',')
+
+                current_user = AdminUser()
+
         menus = current_user.get_usermenus()
         return {
             "code": 0,
@@ -4843,10 +4865,32 @@ class WebAction:
         }
 
     @staticmethod
-    def get_top_menus():
+    def get_top_menus(current_user=None):
         """
         查询顶底菜单列表
         """
+        if not current_user:
+            # 如果没有传入用户，尝试获取admin用户
+            current_user = User().get_user("admin")
+            if not current_user:
+                # 如果无法获取admin用户，创建一个模拟的admin用户对象
+                class AdminUser:
+                    def __init__(self):
+                        self.id = 0
+                        self.username = "admin"
+                        self.pris = "我的媒体库,资源搜索,探索,站点管理,订阅管理,下载管理,媒体整理,服务,系统设置"
+                        self.search = 1
+                        self.level = 99
+                        self.admin = 1
+
+                    def get_usermenus(self):
+                        return Config().menu
+
+                    def get_topmenus(self):
+                        return self.pris.split(',')
+
+                current_user = AdminUser()
+
         return {
             "code": 0,
             "menus": current_user.get_topmenus()
@@ -5194,11 +5238,23 @@ class WebAction:
         return {"code": 0, "msg": "插件卸载功"}
 
     @staticmethod
-    def get_plugin_apps():
+    def get_plugin_apps(data=None):
         """
         获取插件列表
         """
-        plugins = PluginManager().get_plugin_apps(current_user.level)
+        # 使用默认admin用户级别
+        user_level = 0
+
+        # 如果传入了用户信息，则使用传入的用户级别
+        if data and isinstance(data, dict) and "user" in data and hasattr(data["user"], "level"):
+            user_level = data["user"].level
+        # 如果获取不到，使用admin用户级别
+        else:
+            admin_user = User().get_user("admin")
+            if admin_user:
+                user_level = admin_user.level
+
+        plugins = PluginManager().get_plugin_apps(user_level)
         statistic = PluginHelper.statistic()
         return {"code": 0, "result": plugins, "statistic": statistic}
 
@@ -5225,8 +5281,21 @@ class WebAction:
         return {"code": 0, "state": state}
 
     @staticmethod
-    def get_plugins_conf():
-        Plugins = PluginManager().get_plugins_conf(current_user.level)
+    def get_plugins_conf(data=None):
+        # 使用默认admin用户级别
+        user_level = 0
+
+        # 如果传入了用户信息，则使用传入的用户级别
+        if data and isinstance(data, dict) and "user" in data and hasattr(data["user"], "level"):
+            user_level = data["user"].level
+        # 如果获取不到，使用admin用户级别
+        else:
+            admin_user = User().get_user("admin")
+            if admin_user:
+                user_level = admin_user.level
+
+        # 获取插件配置
+        Plugins = PluginManager().get_plugins_conf(user_level)
         return {"code": 0, "result": Plugins}
 
     @staticmethod
@@ -5333,11 +5402,24 @@ class WebAction:
         return {"code": 0, "result": result}
 
     @staticmethod
-    def get_external_plugin_apps():
+    def get_external_plugin_apps(data=None):
         """
         获取第三方插件列表
         """
-        plugins = PluginManager().get_external_plugin_apps(current_user.level)
+        # 使用默认admin用户级别
+        user_level = 0
+
+        # 如果传入了用户信息，则使用传入的用户级别
+        if data and isinstance(data, dict) and "user" in data and hasattr(data["user"], "level"):
+            user_level = data["user"].level
+        # 如果获取不到，使用admin用户级别
+        else:
+            admin_user = User().get_user("admin")
+            if admin_user:
+                user_level = admin_user.level
+
+        # 获取插件列表
+        plugins = PluginManager().get_external_plugin_apps(user_level)
         statistic = PluginHelper.statistic()
         return {"code": 0, "result": plugins, "statistic": statistic}
 

@@ -4,7 +4,6 @@ import time
 
 from watchdog.events import FileSystemEventHandler
 from watchdog.observers import Observer
-from werkzeug.security import generate_password_hash
 
 import log
 from app.conf import SystemConfig
@@ -14,6 +13,8 @@ from app.media import Category
 from app.utils import ConfigLoadCache, CategoryLoadCache, ExceptionUtils, StringUtils
 from app.utils.commons import INSTANCES
 from app.utils.types import SystemConfigKey
+from app.utils.password_hash import generate_password_hash
+
 from config import Config
 from web.action import WebAction
 
