@@ -11,6 +11,13 @@ from logging.handlers import RotatingFileHandler
 
 from config import Config
 
+# 禁用uvicorn和fastapi的默认日志
+logging.getLogger("uvicorn").propagate = False
+logging.getLogger("uvicorn.access").propagate = False
+logging.getLogger("fastapi").propagate = False
+logging.getLogger("websockets").propagate = False
+logging.getLogger("websockets.protocol").propagate = False
+
 lock = threading.Lock()
 
 LOG_QUEUE = deque(maxlen=200)
@@ -117,3 +124,36 @@ def warn(text, module=None):
 def console(text):
     __append_log_queue("INFO", text)
     print(text)
+
+
+def setup_fastapi_logging():
+    """
+    配置FastAPI和Uvicorn的日志系统，使其使用我们的日志配置
+    """
+    # 获取配置
+    config = Config()
+    loglevel = config.get_config('app').get('loglevel') or "info"
+
+    # 直接映射日志级别，而不是使用Logger类的私有变量
+    log_levels = {
+        "info": logging.INFO,
+        "debug": logging.DEBUG,
+        "error": logging.ERROR
+    }
+    log_level = log_levels.get(loglevel, logging.INFO)
+
+    # 配置uvicorn和fastapi的日志
+    for logger_name in ["uvicorn", "uvicorn.access", "fastapi", "websockets", "websockets.protocol"]:
+        logger = logging.getLogger(logger_name)
+        logger.handlers.clear()  # 清除现有的处理器
+
+        # 对于websockets相关的日志，强制设置为INFO级别或更高
+        if logger_name.startswith("websockets"):
+            logger.setLevel(max(log_level, logging.INFO))
+        else:
+            logger.setLevel(log_level)
+
+        # 添加我们自己的处理器
+        handler = logging.StreamHandler()
+        handler.setFormatter(logging.Formatter('%(asctime)s\t%(levelname)s: [%(name)s] %(message)s'))
+        logger.addHandler(handler)

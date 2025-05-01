@@ -292,6 +292,17 @@ function start_logging() {
   LoggingES.onmessage = function (event) {
     render_logging(JSON.parse(event.data))
   };
+  LoggingES.onerror = function (event) {
+    console.error("日志服务连接错误:", event);
+    // 尝试重新连接
+    setTimeout(function() {
+      if (LoggingES) {
+        LoggingES.close();
+        LoggingES = undefined;
+        start_logging();
+      }
+    }, 3000);
+  };
 }
 
 // 刷新日志
@@ -561,6 +572,17 @@ function start_progress(type) {
   ProgressES.onmessage = function (event) {
     render_progress(JSON.parse(event.data))
   };
+  ProgressES.onerror = function (event) {
+    console.error("进度服务连接错误:", event);
+    // 尝试重新连接
+    setTimeout(function() {
+      if (ProgressES) {
+        ProgressES.close();
+        ProgressES = undefined;
+        start_progress(type);
+      }
+    }, 3000);
+  };
 }
 
 // 渲染进度条
@@ -586,8 +608,8 @@ function show_refresh_progress(title, type) {
   $("#modal_process_bar").attr("style", "width: 0%").attr("aria-valuenow", 0);
   $("#modal_process_text").text("请稍候...");
   $("#modal-process").modal("show");
-  // 开始刷新进度条
-  setTimeout(`start_progress('${type}')`, 1000);
+  // 立即开始刷新进度条
+  start_progress(type);
 }
 
 // 关闭全局进度框

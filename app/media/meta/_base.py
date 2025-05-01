@@ -870,7 +870,6 @@ class MetaBase(object):
 
         # 站点排序
         sort_str += str(self.site_order).rjust(3, '0')
-        print(sort_str)
         return sort_str
 
     def to_dict(self):

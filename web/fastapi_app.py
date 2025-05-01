@@ -7,26 +7,24 @@ import mimetypes
 import os.path
 import re
 import urllib
+
 from math import floor
 from pathlib import Path
+from pydantic import BaseModel
 from threading import Lock
-from urllib.parse import unquote
 from typing import Optional, Dict, Any
+from urllib.parse import unquote
 
-from fastapi import FastAPI, Request, Response, status, WebSocket, WebSocketDisconnect, Depends, HTTPException
-from fastapi.responses import HTMLResponse, RedirectResponse, FileResponse
+from fastapi import Body, FastAPI, Request, Response, status, WebSocket, WebSocketDisconnect, Depends, HTTPException
+from fastapi.responses import HTMLResponse, RedirectResponse, FileResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 from starlette.middleware.base import BaseHTTPMiddleware
-import json
-import base64
-from pydantic import BaseModel
 
 import log
 from app.conf import ModuleConf, SystemConfig
-from config import PT_TRANSFER_INTERVAL, TMDB_API_DOMAINS
 from app.rsschecker import RssChecker
 from app.sync import Sync
 from app.brushtask import BrushTask
@@ -43,7 +41,9 @@ from app.utils.types import *
 from app.helper import SecurityHelper, ThreadHelper
 from app.helper.meta_helper import MetaHelper
 from app.plugins import EventManager
-from config import Config
+
+from config import Config, PT_TRANSFER_INTERVAL, TMDB_API_DOMAINS
+
 from web.action import WebAction
 from web.backend.user import User
 from web.backend.wallpaper import get_login_wallpaper
@@ -59,6 +59,9 @@ TMDB_API_DOMAINS = [
     "api.tmdb.org",
     "tmdb.org"
 ]
+
+# 配置FastAPI日志
+log.setup_fastapi_logging()
 
 # FastAPI App
 app = FastAPI(
@@ -169,8 +172,6 @@ app.mount("/static", StaticFiles(directory="web/static"), name="static")
 
 # 注册API路由
 app.include_router(api_router)
-
-
 
 # fix Windows registry stuff
 mimetypes.add_type('application/javascript', '.js')
@@ -453,9 +454,6 @@ async def logout(request: Request):
     return response
 
 
-
-
-
 # 导航页面
 @app.get("/web", response_class=HTMLResponse)
 async def web_page(request: Request):
@@ -574,15 +572,14 @@ async def basic(request: Request, current_user: User = Depends(get_current_user_
 
 # 事件响应
 @app.post("/do")
-async def do(request: Request):
+def do(content: dict = Body(...)):
     try:
-        content = await request.json()
         cmd = content.get("cmd")
         data = content.get("data") or {}
         log.debug(f"处理/do请求: cmd={cmd}, data={data}")
         return WebAction().action(cmd, data)
     except Exception as e:
-        log.exception("处理/do请求出错: ", e)
+        log.exception("处理/do请求出错")  # 修正日志记录方式
         return {"code": -1, "msg": str(e)}
 
 # 事件响应 - GET方法
@@ -632,9 +629,9 @@ async def message_handler(websocket: WebSocket):
                 user_id = session_data.get("user_id")
                 log.debug(f"[WebSocket-消息]会话用户ID: {user_id}")
             except Exception as e:
-                log.exception("[WebSockett-消息]解析会话数据失败: ", e)
+                log.exception("[WebSocket-消息]解析会话数据失败: ", e)
     except Exception as e:
-        log.exception("[WebSockett-消息]会话获取失败: ", e)
+        log.exception("[WebSocket-消息]会话获取失败: ", e)
 
     try:
         while True:
@@ -646,7 +643,7 @@ async def message_handler(websocket: WebSocket):
                 try:
                     msgbody = json.loads(data)
                 except Exception as err:
-                    log.exception("[WebSockett-消息]连接异常: ",err)
+                    log.exception("[WebSocket-消息]连接异常: ", err)
                     continue
 
                 if msgbody.get("text"):
@@ -687,93 +684,79 @@ async def message_handler(websocket: WebSocket):
                         "message": ret_messages
                     }))
             except Exception as e:
-                log.exception("[WebSockett-消息]处理消息失败: ", e)
+                log.exception("[WebSocket-消息]处理消息失败: ", e)
                 await websocket.send_text(json.dumps({"error": str(e)}))
 
     except WebSocketDisconnect:
-        log.error("[WebSockett-消息]连接已关闭!")
+        log.error("[WebSocket-消息]连接已关闭!")
     except Exception as e:
-        log.exception("[WebSockett-消息]连接异常: ", e)
+        log.exception("[WebSocket-消息]连接异常: ", e)
 
-# 实时日志WebSocket
-@app.websocket("/stream-logging")
-async def stream_logging(websocket: WebSocket):
+# 实时日志SSE
+@app.get("/stream-logging")
+async def stream_logging(request: Request, source: str = ""):
     """
-    实时日志WebSocket
+    实时日志SSE
     """
-    await websocket.accept()
-
-    # 获取日志源
-    params = dict(websocket.query_params)
-    source = params.get("source", "")
-
     # 全局变量，用于跟踪日志源和索引
-    logging_source = ""
+    logging_source = source
 
-    try:
-        while True:
-            try:
-                # 如果日志源发生变化，重置索引
-                if source != logging_source:
-                    logging_source = source
-                    log.LOG_INDEX = len(log.LOG_QUEUE)
+    # 重置日志索引
+    log.LOG_INDEX = len(log.LOG_QUEUE)
 
-                # 获取新日志
-                if log.LOG_INDEX > 0:
-                    logs = list(log.LOG_QUEUE)[-log.LOG_INDEX:]
-                    log.LOG_INDEX = 0
-                    if source:
-                        logs = [lg for lg in logs if lg.get("source") == source]
-                else:
+    async def event_generator():
+        nonlocal logging_source
+        try:
+            while True:
+                try:
+                    # 获取新日志
                     logs = []
+                    if log.LOG_INDEX > 0:
+                        logs = list(log.LOG_QUEUE)[-log.LOG_INDEX:]
+                        log.LOG_INDEX = 0
+                        if logging_source:
+                            logs = [lg for lg in logs if lg.get("source") == logging_source]
 
-                # 发送日志
-                await websocket.send_text(json.dumps(logs))
+                    # 发送日志
+                    yield f"data: {json.dumps(logs)}\n\n"
+                    # 等待一段时间
+                    await asyncio.sleep(1)
 
-                # 等待一段时间
-                await asyncio.sleep(1)
+                except Exception as e:
+                    log.exception("[SSE-日志]处理失败: ", e)
+                    await asyncio.sleep(1)
 
-            except Exception as e:
-                log.exception("[WebSocket-日志]处理失败: ", e)
-                await websocket.send_text(json.dumps({"error": str(e)}))
+        except Exception as e:
+            log.exception("[SSE-日志]连接异常: ", e)
+            yield f"data: {json.dumps({'code': -1, 'value': 0, 'text': f'实时日志连接异常: {str(e)}'})}\n\n"
 
-    except WebSocketDisconnect:
-        log.error("[WebSocket-日志]连接已关闭!")
-    except Exception as e:
-        log.exception("[WebSocket-日志]连接异常: ", e)
+    return StreamingResponse(event_generator(), media_type="text/event-stream", headers={ "Content-Encoding": "identity" })
 
-# 进度WebSocket
-@app.websocket("/stream-progress")
-async def stream_progress(websocket: WebSocket):
+# 进度SSE
+@app.get("/stream-progress")
+async def stream_progress(request: Request, type: str = ""):
     """
-    进度WebSocket
+    进度SSE
     """
-    await websocket.accept()
+    print(f"[SSE-进度]开始连接，进度类型: {type}")
 
-    # 获取进度类型
-    params = dict(websocket.query_params)
-    progress_type = params.get("type", "")
-
-    try:
-        while True:
-            try:
+    async def event_generator():
+        try:
+            while True:                
                 # 获取进度
-                detail = WebAction().refresh_process({"type": progress_type})
-
+                detail = WebAction().refresh_process({"type": type})
                 # 发送进度
-                await websocket.send_text(json.dumps(detail))
-
+                yield f"data: {json.dumps(detail)}\n\n"
+                # 进度完成，结束
+                if detail['value'] >= 100:
+                    break
                 # 等待一段时间
-                await asyncio.sleep(0.2)
+                await asyncio.sleep(0.5)
+        except Exception as e:
+            log.exception("[SSE-进度]连接异常: ", e)
+            yield f"data: {json.dumps({'code': -1, 'value': 0, 'text': f'进度连接异常: {str(e)}'})}\n\n"
 
-            except Exception as e:
-                log.exception("[WebSocket-进度]处理失败: ", e)
-                await websocket.send_text(json.dumps({"error": str(e)}))
-
-    except WebSocketDisconnect:
-        log.error("[WebSocket-进度]连接已关闭!")
-    except Exception as e:
-        log.exception("[WebSocket-进度]连接异常: ", e)
+    return StreamingResponse(event_generator(), media_type="text/event-stream", headers={ "Content-Encoding": "identity" })
 
 
 # 开始页面
@@ -2823,39 +2806,6 @@ async def history(request: Request, current_user: User = Depends(get_current_use
             "current_user": current_user
         }
     )
-
-
-# 事件响应 - POST方法
-@app.post("/do")
-async def do_post(request: Request, current_user: User = Depends(get_current_user_required)):
-    """
-    事件响应
-    """
-    try:
-        content = await request.json()
-        cmd = content.get("cmd")
-        data = content.get("data") or {}
-        return WebAction().action(cmd, data)
-    except Exception as e:
-        ExceptionUtils.exception_traceback(e)
-        return {"code": -1, "msg": str(e)}
-
-
-# 事件响应 - GET方法
-@app.get("/do")
-async def do_get(request: Request, current_user: User = Depends(get_current_user_required)):
-    """
-    事件响应
-    """
-    try:
-        cmd = request.query_params.get("cmd")
-        data_str = request.query_params.get("data", "{}")
-        data = json.loads(data_str) if data_str else {}
-        return WebAction().action(cmd, data)
-    except Exception as e:
-        ExceptionUtils.exception_traceback(e)
-        return {"code": -1, "msg": str(e)}
-
 
 # 日历接口
 @app.get("/ical")
