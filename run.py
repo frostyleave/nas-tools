@@ -78,11 +78,14 @@ def get_run_config(forcev4=False):
         _ssl_key = app_conf.get('ssl_key')
         _debug = True if app_conf.get("debug") else False
 
+    # 获取日志级别配置
+    _log_level = app_conf.get('loglevel', 'info') if app_conf else 'info'
+
     # 为Uvicorn准备配置
     uvicorn_config = {
         "host": _web_host,
         "port": _web_port,
-        "log_level": "debug" if _debug else "info",
+        "log_level": _log_level,
         "reload": False
     }
 
