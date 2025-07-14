@@ -423,7 +423,7 @@
       "public": $('#is_public_site').val()
     };
 
-    ajax_post("add_indexer", data, function (ret) {
+    axios_post("add_indexer", data, function (ret) {
       if (ret.code === 0) {
         $("#modal-manual-indexer").modal("hide");
         show_success_modal("添加索引站点成功!");
@@ -441,7 +441,7 @@
     current_indexer = NaN
 
     // 根据ID查询详细信息
-    ajax_post("get_indexer", { "url": site_url }, function (ret) {
+    axios_post("get_indexer", { "url": site_url }, function (ret) {
       if (ret.data) {
         current_indexer = ret.data
 
@@ -602,7 +602,7 @@
       "category": zip_json(category_cfg)
     };
 
-    ajax_post("update_indexer", data, function (ret) {
+    axios_post("update_indexer", data, function (ret) {
       if (ret.code === 0) {
         $("#modal-manual-indexer").modal("hide");
         show_success_modal("更新索引站点成功!");
@@ -631,7 +631,7 @@
       "id": indexer_id
     };
 
-    ajax_post("delete_indexer", data, function (ret) {
+    axios_post("delete_indexer", data, function (ret) {
       if (ret.code === 0) {
         $("#modal-manual-indexer").modal("hide");
         window_history_refresh();
@@ -726,7 +726,7 @@
 
   function init_indexer_chart() {
     // 请求数据
-    ajax_post("get_indexer_statistics", {}, function (ret) {
+    axios_post("get_indexer_statistics", {}, function (ret) {
       // 饼图
       if (typeof (indexer_chat) != 'undefined')
         indexer_chat.dispose();
@@ -820,7 +820,7 @@
         key: "UserIndexerSites",
         value: check_sites
       }
-      ajax_post("set_system_config", params);
+      axios_post("set_system_config", params);
       
     });
 

@@ -194,7 +194,7 @@
 
   // 打开编辑窗口
   function show_edit_sync_path_modal(sid) {
-    ajax_post("get_sync_path", {sid: sid}, function (ret) {
+    axios_post("get_sync_path", {sid: sid}, function (ret) {
       if (ret.code === 0) {
         let sync_item = ret.result;
         $("#directory_modal_title").text('编辑同步目录');
@@ -229,7 +229,7 @@
       }
     }
     $("#modal-directory").modal('hide');
-    ajax_post("add_or_edit_sync_path", params, function (ret) {
+    axios_post("add_or_edit_sync_path", params, function (ret) {
       if (ret.code === 0) {
         window_history_refresh();
       } else {
@@ -242,7 +242,7 @@
 
   // 删除目录
   function delete_sync_path(sid) {
-    ajax_post("delete_sync_path", {sid: sid}, function (ret) {
+    axios_post("delete_sync_path", {sid: sid}, function (ret) {
       if (ret.code === 0) {
         window_history_refresh();
       }
@@ -251,7 +251,7 @@
 
   // 更新目录
   function check_sync_path(flag, sid, checked) {
-    ajax_post("check_sync_path", {flag: flag, sid: sid, checked: checked}, function (ret) {
+    axios_post("check_sync_path", {flag: flag, sid: sid, checked: checked}, function (ret) {
       if (ret.code === 0) {
         window_history_refresh();
       }

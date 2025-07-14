@@ -118,13 +118,13 @@
 
   // 下载控制
   function start_pt_download(id) {
-    ajax_post("pt_start", { "id": id }, function (ret) {
+    axios_post("pt_start", { "id": id }, function (ret) {
       get_torrent_info(ret.id)
     });
   }
 
   function stop_pt_download(id) {
-    ajax_post("pt_stop", { "id": id }, function (ret) {
+    axios_post("pt_stop", { "id": id }, function (ret) {
       get_torrent_info(ret.id)
     });
   }
@@ -135,7 +135,7 @@
       // 隐藏询问框
       hide_ask_modal();
       // 执行删除
-      ajax_post("pt_remove", { "id": id }, function (ret) {
+      axios_post("pt_remove", { "id": id }, function (ret) {
         window_history_refresh();
       });
     }, '');
@@ -152,7 +152,7 @@
       return;
     }
     let downloaderId = $('#downloaderId').val();
-    ajax_post("pt_info", { "downloaderId": downloaderId, "ids": ids }, function (ret) {
+    axios_post("pt_info", { "downloaderId": downloaderId, "ids": ids }, function (ret) {
       if (ret.retcode == "0") {
         for (let torrent of ret.torrents) {
           update_torrent_ui(torrent);
@@ -164,7 +164,7 @@
 
   //更新一个种子页面信息
   function get_torrent_info(id) {
-    ajax_post("pt_info", { "ids": id }, function (ret) {
+    axios_post("pt_info", { "ids": id }, function (ret) {
       if (ret.retcode == "0") {
         for (let torrent of ret.torrents) {
           update_torrent_ui(torrent);
@@ -202,7 +202,7 @@
         "dl_dir": get_savepath("search_download_dir", "search_download_dir_manual"),
         "dl_setting": $("#search_download_setting").val()
       }
-      ajax_post("download_torrent", params, function (ret) {
+      axios_post("download_torrent", params, function (ret) {
         $("#search_download_btn").attr("disabled", false).text("下载");
         $("#modal-search-download").modal('hide');
         if (ret.code == 0) {

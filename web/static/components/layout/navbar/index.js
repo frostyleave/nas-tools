@@ -36,8 +36,58 @@ export class LayoutNavbar extends CustomElement {
   }
 
   firstUpdated() {
-    // 初始化页面
-    this._init_page();
+    // 如果菜单已经加载，直接初始化页面
+    if (this.navbar_list && this.navbar_list.length > 0 && !this._pageInitialized) {
+      this._pageInitialized = true;
+      this._init_page();
+    }
+  }
+
+  connectedCallback() {
+    super.connectedCallback();
+    // 确保组件在重新连接时能够正确显示
+    this._ensureVisible();
+    // 如果菜单为空，重新加载菜单数据
+    if (!this.navbar_list || this.navbar_list.length === 0) {
+      this._loadMenus();
+    }
+  }
+
+  _loadMenus() {
+    // 直接使用axios_post，避免页面状态检查导致的请求丢弃
+    axios_post("get_user_menus", {}, (ret) => {
+      console.log('Menu response:', ret);
+      if (ret.code === 0) {
+        this.navbar_list = ret.menus;
+         console.log('Menu response:', ret);
+        // 菜单加载完成后，触发重新渲染
+        this.requestUpdate();
+        // 如果是首次加载且页面还没有初始化，现在初始化
+        if (!this._pageInitialized) {
+          this._pageInitialized = true;
+          console.log('Menu response:', ret);
+          this._init_page();
+        }
+      } else {
+        console.error('Failed to load menus:', ret);
+      }
+    }, false, false);
+  }
+
+  _ensureVisible() {
+    // 如果组件是隐藏的，延迟显示
+    if (this.hasAttribute('hidden')) {
+      setTimeout(() => {
+        this.removeAttribute("hidden");
+        const pageContent = document.querySelector("#page_content");
+        const searchbar = document.querySelector("layout-searchbar");
+        const logoAnimation = document.querySelector("#logo_animation");
+
+        if (pageContent) pageContent.removeAttribute("hidden");
+        if (searchbar) searchbar.removeAttribute("hidden");
+        if (logoAnimation) logoAnimation.remove();
+      }, 100);
+    }
   }
 
   _init_page() {
@@ -71,11 +121,7 @@ export class LayoutNavbar extends CustomElement {
 
     // 删除logo动画 加点延迟切换体验好
     setTimeout(() => {
-      document.querySelector("#logo_animation").remove();
-      this.removeAttribute("hidden");
-      document.querySelector("#page_content").removeAttribute("hidden");
-      // document.querySelector("#main_bottom_menubar").classList.remove('d-none');
-      document.querySelector("layout-searchbar").removeAttribute("hidden");
+      this._ensureVisible();
     }, 200);
 
     // 检查更新
@@ -85,7 +131,7 @@ export class LayoutNavbar extends CustomElement {
   }
 
   _check_new_version() {
-    ajax_post("version", {}, (ret) => {
+    axios_post("version", {}, (ret) => {
       if (ret.code === 0) {
         let url = null;
         switch (compareVersion(ret.version, this.layout_appversion)) {

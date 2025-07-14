@@ -182,7 +182,7 @@
     }
     const cmd = "del_unknown_path";
     const data = {"id": id};
-    ajax_post(cmd, data, function (ret) {
+    axios_post(cmd, data, function (ret) {
       window_history_refresh();
     });
   }
@@ -196,7 +196,7 @@
     }
     show_confirm_modal("是否确认删除所有选中的未识别记录？", function () {
       hide_confirm_modal();
-      ajax_post("del_unknown_path", {"id": logids}, function (ret) {
+      axios_post("del_unknown_path", {"id": logids}, function (ret) {
         window_history_refresh();
       });
     })

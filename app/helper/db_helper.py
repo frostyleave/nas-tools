@@ -1091,6 +1091,66 @@ class DbHelper:
         """
         self._db.query(CONFIGUSERS).filter(CONFIGUSERS.NAME == name).delete()
 
+
+    def get_refresh_tokens(self, user_id=None, token_hash=None, active_only=True):
+        """
+        查询refresh_token列表
+        """
+        query = self._db.query(CONFIGREFRESHTOKENS)
+        if user_id:
+            query = query.filter(CONFIGREFRESHTOKENS.USER_ID == user_id)
+        if token_hash:
+            query = query.filter(CONFIGREFRESHTOKENS.TOKEN_HASH == token_hash)
+        if active_only:
+            query = query.filter(CONFIGREFRESHTOKENS.IS_ACTIVE == 1)
+        return query.all()
+
+    @DbPersist(_db)
+    def insert_refresh_token(self, user_id, token_hash, device_info, created_at, expires_at):
+        """
+        新增refresh_token
+        """
+        self._db.insert(CONFIGREFRESHTOKENS(
+            USER_ID=user_id,
+            TOKEN_HASH=token_hash,
+            DEVICE_INFO=device_info,
+            CREATED_AT=created_at,
+            EXPIRES_AT=expires_at,
+            IS_ACTIVE=1
+        ))
+
+    @DbPersist(_db)
+    def update_refresh_token_last_used(self, token_hash, last_used):
+        """
+        更新refresh_token最后使用时间
+        """
+        self._db.query(CONFIGREFRESHTOKENS).filter(
+            CONFIGREFRESHTOKENS.TOKEN_HASH == token_hash
+        ).update({
+            CONFIGREFRESHTOKENS.LAST_USED: last_used
+        })
+
+    @DbPersist(_db)
+    def deactivate_refresh_tokens(self, user_id=None, token_hash=None):
+        """
+        使refresh_token失效
+        """
+        query = self._db.query(CONFIGREFRESHTOKENS)
+        if user_id:
+            query = query.filter(CONFIGREFRESHTOKENS.USER_ID == user_id)
+        if token_hash:
+            query = query.filter(CONFIGREFRESHTOKENS.TOKEN_HASH == token_hash)
+        query.update({CONFIGREFRESHTOKENS.IS_ACTIVE: 0})
+
+    @DbPersist(_db)
+    def cleanup_expired_refresh_tokens(self, current_time):
+        """
+        清理过期的refresh_token
+        """
+        self._db.query(CONFIGREFRESHTOKENS).filter(
+            CONFIGREFRESHTOKENS.EXPIRES_AT < current_time
+        ).update({CONFIGREFRESHTOKENS.IS_ACTIVE: 0})
+
     def get_transfer_statistics(self, days=30):
         """
         查询历史记录统计

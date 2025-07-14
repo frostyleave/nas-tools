@@ -6,8 +6,8 @@
   {{ HEAD.meta_link() }}
   <title>登录 - NAStool</title>
   <!-- CSS files -->
-  <link href="../static/css/tabler.min.css" rel="stylesheet"/>
-  <link href="../static/css/style.css" rel="stylesheet"/>
+  <link href="/static/css/tabler.min.css" rel="stylesheet"/>
+  <link href="/static/css/style.css" rel="stylesheet"/>
   <style>
     .login_background {
         position: fixed;
@@ -54,12 +54,12 @@
 {% endif %}
 <div class="page page-center">
   <div class="container-tight py-4">
-    <form class="card card-md border-0 {% if image_code %}login_window{% endif %}" action="/" method="post" autocomplete="off">
+    <form class="card card-md border-0 {% if image_code %}login_window{% endif %}" autocomplete="off" onsubmit="return false;">
       <input type="hidden" name="next" value="{{ GoPage }}"/>
       <div class="card-body">
         <div class="text-center mb-3">
           <h1 style="text-align:center;margin: 1.5rem 0">
-            <img src="../static/favicon.ico" style="vertical-align: bottom;">
+            <img src="/static/favicon.ico" style="vertical-align: bottom;">
             <label style="font-size: xx-large;color: white; text-shadow: 1px 1px 1px rgba(0, 0, 0, 0.5);">nastool</label>
           </h1>
         </div>
@@ -87,14 +87,155 @@
           </label>
         </div>
         <div class="form-footer">
-          <button type="submit" class="btn btn-primary w-100">登录</button>
+          <button type="button" class="btn btn-primary w-100" onclick="performLogin()">登录</button>
         </div>
       </div>
     </form>
   </div>
 </div>
-<script src="../static/js/tabler/tabler.min.js"></script>
-<script src="../static/js/tabler/demo.min.js"></script>
+<script src="/static/js/jquery-3.3.1.min.js"></script>
+<script src="/static/js/axios.min.js"></script>
+<script src="/static/js/auth-manager.js"></script>
+<script src="/static/js/tabler/tabler.min.js"></script>
+<script src="/static/js/tabler/demo.min.js"></script>
+<script>
+// 全局登录函数
+function performLogin() {
+    const username = $('input[name="username"]').val();
+    const password = $('input[name="password"]').val();
+    const remember = $('input[name="remember"]').is(':checked');
+
+    if (!username || !password) {
+        showError('请输入用户名和密码');
+        return;
+    }
+
+    // 显示加载状态
+    const submitBtn = $('button[type="button"]');
+    const originalText = submitBtn.text();
+    submitBtn.prop('disabled', true).text('登录中...');
+
+    // 调用登录API
+    axios.post('/api/user/login', {
+        username: username,
+        password: password,
+        remember: remember
+    })
+    .then(function(response) {
+        const data = response.data;
+        if (data.success && data.data) {
+            // 存储Token和用户信息
+            window.authManager.setTokens(
+                data.data.access_token,
+                data.data.refresh_token,
+                data.data.userinfo
+            );
+
+            // 重定向到目标页面
+            const nextPage = '{{ GoPage }}' || 'index';
+            const savedHash = sessionStorage.getItem('loginRedirectHash');
+
+            // 使用延迟跳转，确保认证状态完全设置
+            setTimeout(() => {
+                if (savedHash && savedHash !== '#') {
+                    // 优先使用保存的hash路由
+                    sessionStorage.removeItem('loginRedirectHash');
+                    window.location.href = `/web${savedHash}`;
+                } else if (nextPage && nextPage !== 'index' && nextPage !== 'web') {
+                    window.location.href = `/web#${nextPage}`;
+                } else {
+                    window.location.href = '/web#index';
+                }
+            }, 100);
+        } else {
+            showError(data.message || '登录失败');
+        }
+    })
+    .catch(function(error) {
+        console.error('Login error:', error);
+        if (error.response && error.response.data) {
+            showError(error.response.data.message || '登录失败');
+        } else {
+            showError('网络错误，请重试');
+        }
+    })
+    .finally(function() {
+        // 恢复按钮状态
+        submitBtn.prop('disabled', false).text(originalText);
+    });
+}
+
+function showError(message) {
+    const errorDiv = $('#login_retmsg');
+    errorDiv.text(message).show();
+    $('input').addClass('is-invalid');
+}
+
+// 登录处理
+$(document).ready(function() {
+    // 保存原始的hash路由（如果有的话）
+    const originalHash = window.location.hash;
+    if (originalHash && originalHash !== '#') {
+        // 将hash保存到sessionStorage，以便登录后恢复
+        sessionStorage.setItem('loginRedirectHash', originalHash);
+    }
+
+    // 延迟检查认证状态，确保authManager完全加载
+    setTimeout(() => {
+        checkAuthenticationStatus();
+    }, 100);
+
+    // 处理回车键登录
+    $('input[name="password"]').on('keypress', function(e) {
+        if (e.which === 13) { // Enter键
+            performLogin();
+        }
+    });
+});
+
+// 检查认证状态
+function checkAuthenticationStatus() {
+    // 检查是否已经有有效的Token认证状态
+    if (window.authManager && window.authManager.isAuthenticated()) {
+        console.log('检测到Token认证状态，验证有效性...');
+
+        // 验证Token是否真的有效
+        window.authManager.getValidAccessToken()
+            .then(token => {
+                if (token) {
+                    console.log('Token验证成功，重定向到主页');
+                    // Token有效，重定向到主页
+                    const nextPage = '{{ GoPage }}' || 'index';
+                    const savedHash = sessionStorage.getItem('loginRedirectHash');
+
+                    if (savedHash && savedHash !== '#') {
+                        // 优先使用保存的hash路由
+                        sessionStorage.removeItem('loginRedirectHash');
+                        window.location.href = `/web${savedHash}`;
+                    } else if (nextPage && nextPage !== 'index' && nextPage !== 'web') {
+                        window.location.href = `/web#${nextPage}`;
+                    } else {
+                        window.location.href = '/web#index';
+                    }
+                    return;
+                }
+                // Token无效，清除认证状态
+                console.log('Token验证失败，清除认证状态');
+                window.authManager.clearAuth();
+            })
+            .catch(error => {
+                console.log('Token验证出错，清除认证状态:', error);
+                window.authManager.clearAuth();
+            });
+    } else {
+        // 没有Token认证状态，清除可能存在的旧数据
+        if (window.authManager) {
+            window.authManager.clearAuth();
+        }
+        console.log('未检测到Token认证状态，显示登录页面');
+    }
+}
+</script>
 </body>
 
 </html>

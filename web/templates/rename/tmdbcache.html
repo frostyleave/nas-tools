@@ -226,7 +226,7 @@
       $("#tmdbcache_title").removeClass("is-invalid");
     }
     $("#modal-tmdbcache-modify").modal('hide');
-    ajax_post("modify_tmdb_cache", {"key": key, "title": title}, function () {
+    axios_post("modify_tmdb_cache", {"key": key, "title": title}, function () {
       window_history_refresh();
     });
   }
@@ -235,7 +235,7 @@
   function clear_tmdb_cache() {
     show_confirm_modal("清空TMDB缓存后，将会增加TMDB API的请求次数，增加搜索响应时间，但是可以一次性解决TMDB改名后本地缓存未更新的问题，是否确认？", function () {
       hide_confirm_modal();
-      ajax_post("clear_tmdb_cache", {}, function (ret) {
+      axios_post("clear_tmdb_cache", {}, function (ret) {
         show_success_modal("TMDB缓存清理完成！");
         window_history_refresh();
       });
@@ -246,7 +246,7 @@
   function manual_delete(key) {
     show_confirm_modal(key + " 对应的缓存TMDB条目将被删除，是否确认？", function () {
       hide_confirm_modal();
-      ajax_post("delete_tmdb_cache", {"cache_key": key}, function () {
+      axios_post("delete_tmdb_cache", {"cache_key": key}, function () {
         window_history_refresh();
       });
     });

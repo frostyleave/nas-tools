@@ -715,7 +715,7 @@
   // 显示编辑刷流任务
   function edit_brushtask_modal(brushid) {
     $("#brushtask_id").val(brushid);
-    ajax_post("brushtask_detail", {"id": brushid}, function (ret) {
+    axios_post("brushtask_detail", {"id": brushid}, function (ret) {
       if (ret.code == 0) {
         //赋值
         $("#brushtask_modal_title").text("编辑任务");
@@ -807,7 +807,7 @@
   // 批量暂停启动刷流任务
   function update_brushtask_state(state){
     let ids = select_GetSelectedVAL("burshtask");
-    ajax_post("update_brushtask_state", {'state': state, ids:ids }, function (ret){
+    axios_post("update_brushtask_state", {'state': state, ids:ids }, function (ret){
       window_history_refresh();
     });
   }
@@ -816,7 +816,7 @@
   function del_brushtask_modal(brushid, name) {
     show_confirm_modal("删除刷流任务 " + name + " ？", function () {
       hide_confirm_modal();
-      ajax_post("del_brushtask", {"id": brushid}, function (ret) {
+      axios_post("del_brushtask", {"id": brushid}, function (ret) {
         window_history_refresh();
       });
     });
@@ -827,7 +827,7 @@
     if (!site_id) {
       return;
     }
-    ajax_post("get_site", {"id": site_id}, function (ret) {
+    axios_post("get_site", {"id": site_id}, function (ret) {
       $("#brushtask_free").empty().append('<option value="" selected>全部</option>');
       if (ret.site_free) {
         $("#brushtask_free").append('<option value="FREE">免费</option>');
@@ -1099,7 +1099,7 @@
       brushtask_pubdate: brushtask_pubdate_do + "#" + brushtask_pubdate
     };
 
-    ajax_post("add_brushtask", params, function (ret) {
+    axios_post("add_brushtask", params, function (ret) {
       $("#modal-brushtask").modal('hide');
       window_history_refresh();
     });
@@ -1114,7 +1114,7 @@
 
   //立即运行任务
   function run_brushtask_now(id) {
-    ajax_post("run_brushtask", {"id": id}, function (ret) {
+    axios_post("run_brushtask", {"id": id}, function (ret) {
       show_success_modal("任务运行完成！", function () {
         window_history_refresh();
       });
@@ -1123,7 +1123,7 @@
 
   // 刷流种子下载记录
   function show_brushtask_torrents_modal(id) {
-    ajax_post("list_brushtask_torrents", { "id": id }, function (ret) {
+    axios_post("list_brushtask_torrents", { "id": id }, function (ret) {
       let content;
       if (ret.code == 0) {
         const downloads = ret.data;

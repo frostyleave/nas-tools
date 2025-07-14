@@ -376,7 +376,7 @@
     let init_rulegroups = {{ Init_RuleGroups | safe }};
     let need_init_groupid = select_GetSelectedVAL("init_rulegroup");
     $("#restore_rulegroup_btn").text("恢复中").attr("disabled", true);
-    ajax_post("restore_filtergroup", {
+    axios_post("restore_filtergroup", {
       "groupids": need_init_groupid,
       "init_rulegroups": init_rulegroups
     }, function (ret) {
@@ -387,7 +387,7 @@
 
   // 设置默认规则组
   function set_default_filtergroup(id) {
-    ajax_post("set_default_filtergroup", {"id": id}, function (ret) {
+    axios_post("set_default_filtergroup", {"id": id}, function (ret) {
       window_history_refresh();
     });
   }
@@ -398,7 +398,7 @@
     $("#filterrule_id").val(ruleid);
     $("#filtergroup_id").val(groupid);
     //获取数据
-    ajax_post("filterrule_detail", {"ruleid": ruleid, "groupid": groupid}, function (ret) {
+    axios_post("filterrule_detail", {"ruleid": ruleid, "groupid": groupid}, function (ret) {
       if (ret.info) {
         $("#rule_name").val(ret.info.name);
         $("#rule_pri").val(ret.info.pri);
@@ -431,7 +431,7 @@
       is_default = 'N';
     }
     const params = {"name": name, "default": is_default};
-    ajax_post("add_filtergroup", params, function (ret) {
+    axios_post("add_filtergroup", params, function (ret) {
       if (ret.code == 0) {
         $("#modal-add-filtergroup").modal('hide');
         window_history_refresh();
@@ -443,7 +443,7 @@
   function del_filtergroup_modal(id, name) {
     show_confirm_modal("删除规则组后，该组下所有的规则将会同时被删除，是否确认删除 " + name + " ？", function () {
       hide_confirm_modal();
-      ajax_post("del_filtergroup", {"id": id}, function (ret) {
+      axios_post("del_filtergroup", {"id": id}, function (ret) {
         window_history_refresh();
       });
     });
@@ -481,7 +481,7 @@
       rule_sizelimit: rule_sizelimit,
       rule_free: rule_free
     };
-    ajax_post("add_filterrule", params, function (ret) {
+    axios_post("add_filterrule", params, function (ret) {
       if (ret.code == 0) {
         $("#modal-add-filterrule").modal('hide');
         window_history_refresh();
@@ -492,7 +492,7 @@
   // 删除规则
   function delete_filterrule(id) {
     const params = {"id": id};
-    ajax_post("del_filterrule", params, function (ret) {
+    axios_post("del_filterrule", params, function (ret) {
       $("#modal-add-filterrule").modal('hide');
       window_history_refresh();
     });
@@ -510,7 +510,7 @@
 
   //分计规则组
   function share_filtergroup(id) {
-    ajax_post("share_filtergroup", {"id": id}, function (ret) {
+    axios_post("share_filtergroup", {"id": id}, function (ret) {
       if (ret.code == 0) {
         $("#share_filtergroup_code").text(ret.string);
         $("#modal-share-filtergroup").modal('show');
@@ -533,7 +533,7 @@
       return;
     }
     $("#modal-import-filtergroup").modal('hide');
-    ajax_post("import_filtergroup", {"content": content}, function (ret) {
+    axios_post("import_filtergroup", {"content": content}, function (ret) {
       if (ret.code == 0) {
         window_history_refresh();
       } else {

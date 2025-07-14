@@ -61,7 +61,7 @@ export class Golbal {
         if (media_type == "MOV" || media_type == "电影") {
           add_rss_media(title, year, media_type, mediaid, "", "", add_func);
         } else {
-          ajax_post("get_tvseason_list", {tmdbid: mediaid, title: title}, function (ret) {
+          axios_post("get_tvseason_list", {tmdbid: mediaid, title: title}, function (ret) {
             if (ret.seasons.length === 1) {
               add_rss_media(title, year, "TV", mediaid, "", ret.seasons[0].num, add_func);
             } else if (ret.seasons.length > 1) {
@@ -95,7 +95,7 @@ export class Golbal {
     return false;
   }
   
-  // 判断直接获取缓存或ajax_post
+  // 判断直接获取缓存或axios_post
   static get_cache_or_ajax(api, name, data, func, async=true) {
     const ret = Golbal.get_page_data(api + name);
     //console.log("读取:", api + name, ret);
@@ -103,7 +103,7 @@ export class Golbal {
       func(ret);
     } else {
       const page = window.history.state?.page;
-      ajax_post(api, data, (ret) => {
+      axios_post(api, data, (ret) => {
         // 页面已经变化, 丢弃该请求
         if (page !== window.history.state?.page) {
           //console.log("丢弃:", api + name, ret);
