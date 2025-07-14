@@ -643,8 +643,18 @@ async def message_handler(websocket: WebSocket):
                 try:
                     msgbody = json.loads(data)
                 except Exception as err:
-                    log.exception("[WebSocket-消息]连接异常: ", err)
+                    log.warn("[WebSocket-消息]连接出错: " + str(err))
                     continue
+            except WebSocketDisconnect:
+                # WebSocket正常断开，直接退出循环
+                log.debug("[WebSocket-消息]连接正常断开")
+                break
+            except Exception as e:
+                # 其他异常，记录日志并退出
+                log.warn(f"[WebSocket-消息]接收消息异常: {str(e)}")
+                break
+
+            try:
 
                 if msgbody.get("text"):
                     # 发送的消息
@@ -654,7 +664,11 @@ async def message_handler(websocket: WebSocket):
                         user_id=user_id or "anonymous",
                         user_name=user_id or "anonymous"
                     )
-                    await websocket.send_text(json.dumps({}))
+                    try:
+                        await websocket.send_text(json.dumps({}))
+                    except Exception:
+                        # 连接已关闭
+                        break
                 else:
                     # 拉取消息
                     system_msg = WebAction().get_system_message(lst_time=msgbody.get("lst_time"))
@@ -679,18 +693,26 @@ async def message_handler(websocket: WebSocket):
                             "time": message.get("time")
                         })
 
-                    await websocket.send_text(json.dumps({
-                        "lst_time": lst_time,
-                        "message": ret_messages
-                    }))
+                    try:
+                        await websocket.send_text(json.dumps({
+                            "lst_time": lst_time,
+                            "message": ret_messages
+                        }))
+                    except Exception:
+                        # 连接已关闭
+                        break
             except Exception as e:
                 log.exception("[WebSocket-消息]处理消息失败: ", e)
-                await websocket.send_text(json.dumps({"error": str(e)}))
+                # 检查连接状态，避免在连接已关闭时发送消息
+                try:
+                    await websocket.send_text(json.dumps({"error": str(e)}))
+                except Exception:
+                    # 连接已关闭，忽略发送错误
+                    break
 
-    except WebSocketDisconnect:
-        log.error("[WebSocket-消息]连接已关闭!")
     except Exception as e:
-        log.exception("[WebSocket-消息]连接异常: ", e)
+        log.warn(f"[WebSocket-消息]连接异常: {str(e)}")
+        # 不要在连接异常时尝试发送消息
 
 # 实时日志SSE
 @app.get("/stream-logging")

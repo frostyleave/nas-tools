@@ -142,18 +142,31 @@ def setup_fastapi_logging():
     }
     log_level = log_levels.get(loglevel, logging.INFO)
 
-    # 配置uvicorn和fastapi的日志
-    for logger_name in ["uvicorn", "uvicorn.access", "fastapi", "websockets", "websockets.protocol"]:
+    # 直接屏蔽uvicorn相关的噪音日志
+    loggers_to_configure = {
+        "uvicorn": logging.ERROR,           # 只显示错误
+        "uvicorn.access": None,             # 完全禁用访问日志
+        "uvicorn.error": logging.INFO,      # 保留错误日志器的基本信息
+        "fastapi": log_level,               # 保持FastAPI日志
+        "websockets": logging.ERROR,        # 只显示WebSocket错误
+        "websockets.protocol": logging.ERROR # 只显示协议错误
+    }
+
+    for logger_name, level in loggers_to_configure.items():
         logger = logging.getLogger(logger_name)
         logger.handlers.clear()  # 清除现有的处理器
 
-        # 对于websockets相关的日志，强制设置为INFO级别或更高
-        if logger_name.startswith("websockets"):
-            logger.setLevel(max(log_level, logging.INFO))
+        if level is None:
+            # 完全禁用此日志器
+            logger.disabled = True
+            logger.propagate = False
         else:
-            logger.setLevel(log_level)
+            logger.setLevel(level)
+            logger.propagate = False
 
-        # 添加我们自己的处理器
-        handler = logging.StreamHandler()
-        handler.setFormatter(logging.Formatter('%(asctime)s\t%(levelname)s: [%(name)s] %(message)s'))
-        logger.addHandler(handler)
+            # 只为非禁用的日志器添加处理器
+            handler = logging.StreamHandler()
+            handler.setFormatter(logging.Formatter('%(asctime)s\t%(levelname)s: [%(name)s] %(message)s'))
+            logger.addHandler(handler)
+
+    print("已屏蔽uvicorn访问日志和WebSocket调试日志")
