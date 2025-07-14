@@ -1,0 +1,219 @@
+/**
+ * Axios封装 - 替代ajax_post方法，包含自动Token管理和401错误处理
+ */
+
+// 检查是否已加载axios
+if (typeof axios === 'undefined') {
+    console.error('Axios library is required but not loaded');
+}
+
+/**
+ * 创建axios实例
+ */
+const apiClient = axios.create({
+    timeout: 30000,
+    headers: {
+        'Content-Type': 'application/json',
+    }
+});
+
+/**
+ * 请求拦截器 - 自动添加Authorization头
+ */
+apiClient.interceptors.request.use(
+    async (config) => {
+        try {
+            const accessToken = await window.authManager.getValidAccessToken();
+            if (accessToken) {
+                config.headers.Authorization = `Bearer ${accessToken}`;
+            }
+        } catch (error) {
+            console.warn('Failed to get access token:', error);
+        }
+        return config;
+    },
+    (error) => {
+        return Promise.reject(error);
+    }
+);
+
+/**
+ * 响应拦截器 - 处理401错误和自动刷新Token
+ */
+apiClient.interceptors.response.use(
+    (response) => {
+        return response;
+    },
+    async (error) => {
+        const originalRequest = error.config;
+
+        // 处理401错误
+        if (error.response && error.response.status === 401 && !originalRequest._retry) {
+            originalRequest._retry = true;
+
+            try {
+                // 尝试刷新Token
+                const newToken = await window.authManager.handle401Error();
+                
+                // 重新设置Authorization头
+                originalRequest.headers.Authorization = `Bearer ${newToken}`;
+                
+                // 重试原始请求
+                return apiClient(originalRequest);
+            } catch (refreshError) {
+                // 刷新失败，已经在authManager中处理了重定向
+                return Promise.reject(refreshError);
+            }
+        }
+
+        return Promise.reject(error);
+    }
+);
+
+/**
+ * axios_post方法 - 替代ajax_post
+ * @param {string} cmd - 命令
+ * @param {object} params - 参数
+ * @param {function} handler - 成功回调
+ * @param {boolean} async - 是否异步，默认true
+ * @param {boolean} show_progress - 是否显示进度，默认true
+ */
+function axios_post(cmd, params, handler, async = true, show_progress = true) {
+    if (show_progress) {
+        show_loading_wave();
+    }
+
+    const data = {
+        cmd: cmd,
+        data: params
+    };
+
+    const config = {
+        method: 'POST',
+        url: `do?random=${Math.random()}`,
+        data: data,
+        timeout: 0, // 与原ajax_post保持一致
+    };
+
+    // 发送请求
+    const request = apiClient(config);
+
+    request
+        .then(response => {
+            if (show_progress) {
+                hide_loading();
+            }
+            
+            if (handler) {
+                handler(response.data);
+            }
+        })
+        .catch(error => {
+            if (show_progress) {
+                hide_loading();
+            }
+
+            // 处理错误
+            if (error.response && error.response.status === 200) {
+                // 与原ajax_post的错误处理保持一致
+                if (handler) {
+                    handler({code: 0});
+                }
+            } else {
+                console.error('Request failed:', error);
+                if (handler) {
+                    handler({
+                        code: 1,
+                        message: error.message || '请求失败'
+                    });
+                }
+            }
+        });
+
+    return request;
+}
+
+/**
+ * API请求方法 - 用于调用RESTful API
+ * @param {string} url - API路径
+ * @param {object} data - 请求数据
+ * @param {string} method - HTTP方法，默认POST
+ * @param {boolean} show_progress - 是否显示进度，默认true
+ */
+function api_request(url, data = {}, method = 'POST', show_progress = true) {
+    if (show_progress) {
+        show_loading_wave();
+    }
+
+    const config = {
+        method: method,
+        url: url,
+        [method.toLowerCase() === 'get' ? 'params' : 'data']: data,
+    };
+
+    return apiClient(config)
+        .then(response => {
+            if (show_progress) {
+                hide_loading();
+            }
+            return response.data;
+        })
+        .catch(error => {
+            if (show_progress) {
+                hide_loading();
+            }
+            throw error;
+        });
+}
+
+/**
+ * 登录方法
+ * @param {string} username - 用户名
+ * @param {string} password - 密码
+ * @param {boolean} remember - 记住登录
+ */
+async function login(username, password, remember = false) {
+    try {
+        const response = await api_request('/api/user/login', {
+            username: username,
+            password: password,
+            remember: remember
+        });
+
+        if (response.success && response.data) {
+            // 存储Token和用户信息
+            window.authManager.setTokens(
+                response.data.access_token,
+                response.data.refresh_token,
+                response.data.userinfo
+            );
+            
+            return response;
+        } else {
+            throw new Error(response.message || '登录失败');
+        }
+    } catch (error) {
+        console.error('Login failed:', error);
+        throw error;
+    }
+}
+
+/**
+ * 登出方法
+ */
+async function logout() {
+    try {
+        await window.authManager.logout();
+    } catch (error) {
+        console.error('Logout failed:', error);
+        // 即使登出API失败，也要清除本地认证信息
+        window.authManager.clearAuth();
+        window.authManager.redirectToLogin();
+    }
+}
+
+// 导出方法到全局作用域
+window.axios_post = axios_post;
+window.api_request = api_request;
+window.login = login;
+window.logout = logout;

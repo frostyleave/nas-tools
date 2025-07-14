@@ -1,13 +1,18 @@
-from typing import Optional, Dict, Any
+import json
+import base64
+
 from fastapi import APIRouter, Depends, HTTPException, status, File, UploadFile
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel
+from typing import Optional, Dict, Any
 
 from app.utils import TokenCache
 from config import Config
 from web.action import WebAction
 from web.backend.user import User
-from web.security import generate_access_token
-from web.fastapi_security import jwt_auth, api_key_auth
+from web.security import generate_access_token, generate_refresh_token, refresh_access_token, revoke_refresh_token
+from web.fastapi_security import jwt_auth
+
 
 # API路由
 api_router = APIRouter(prefix="/api")
@@ -29,8 +34,35 @@ class LoginResponse(BaseModel):
     data: Optional[Dict[str, Any]] = None
 
 
+# 通用API请求模型
+class ApiRequest(BaseModel):
+    cmd: str
+    data: Optional[Dict[str, Any]] = None
+
+
+# 通用API响应模型
+class ApiResponse(BaseModel):
+    code: int
+    success: bool
+    message: Optional[str] = None
+    data: Optional[Any] = None
+
+
+# 刷新Token请求模型
+class RefreshTokenRequest(BaseModel):
+    refresh_token: str
+
+
+# 刷新Token响应模型
+class RefreshTokenResponse(BaseModel):
+    code: int
+    success: bool
+    message: Optional[str] = None
+    data: Optional[Dict[str, Any]] = None
+
+
 # API登录
-@api_router.post("/user/login", response_model=LoginResponse)
+@api_router.post("/user/login")
 async def api_login(login_data: LoginRequest):
     username = login_data.username
     password = login_data.password
@@ -58,15 +90,21 @@ async def api_login(login_data: LoginRequest):
             "message": "用户名或密码错误"
         }
 
-    # 缓存Token
-    token = generate_access_token(username)
-    TokenCache.set(token, token)
+    # 生成双Token
+    access_token = generate_access_token(username)
+    refresh_token = generate_refresh_token(user_info.id, device_info=login_data.remember)
 
-    return {
+    # 缓存access_token
+    TokenCache.set(access_token, access_token)
+
+    # 创建响应数据
+    response_data = {
         "code": 0,
         "success": True,
         "data": {
-            "token": token,
+            "access_token": access_token,
+            "refresh_token": refresh_token,
+            "token": access_token,  # 保持向后兼容
             "apikey": Config().get_config("security").get("api_key"),
             "userinfo": {
                 "userid": user_info.id,
@@ -75,53 +113,98 @@ async def api_login(login_data: LoginRequest):
         }
     }
 
+    # 创建响应对象
 
-# 用户信息
-@api_router.get("/user/info")
-async def api_user_info(username: str = Depends(jwt_auth)):
-    user_info = User().get_user(username)
-    if not user_info:
+    response = JSONResponse(content=response_data)
+
+    # 设置会话数据（为了兼容现有的/web路由）
+    session_data = {
+        "user_id": user_info.id,
+        "username": user_info.username
+    }
+
+    # 设置会话cookie
+    SESSION_COOKIE_NAME = "nastool_session"
+    SESSION_MAX_AGE = 14 * 24 * 60 * 60  # 14天
+    session_cookie = base64.b64encode(json.dumps(session_data).encode()).decode()
+
+    response.set_cookie(
+        key=SESSION_COOKIE_NAME,
+        value=session_cookie,
+        max_age=SESSION_MAX_AGE,
+        httponly=True,
+        samesite="lax",
+        path="/"
+    )
+
+    return response
+
+
+# 刷新授权
+@api_router.post("/auth/refresh", response_model=RefreshTokenResponse)
+async def api_refresh_token(request: RefreshTokenRequest):
+    """
+    使用refresh_token刷新access_token
+    """
+    try:
+        success, new_access_token, username = refresh_access_token(request.refresh_token)
+
+        if not success:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Refresh token无效或已过期",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+
+        # 缓存新的access_token
+        TokenCache.set(new_access_token, new_access_token)
+
+        # 获取用户信息
+        user_info = User().get_user(username)
+
+        return {
+            "code": 0,
+            "success": True,
+            "data": {
+                "access_token": new_access_token,
+                "userinfo": {
+                    "userid": user_info.id,
+                    "username": user_info.username,
+                }
+            }
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="用户不存在",
-            headers={"WWW-Authenticate": "Bearer"},
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"刷新token失败: {str(e)}"
         )
 
-    return {
-        "code": 0,
-        "success": True,
-        "data": {
-            "userid": user_info.id,
-            "username": user_info.username,
+
+# 登出（吊销refresh_token）
+@api_router.post("/auth/logout")
+async def api_logout(request: RefreshTokenRequest):
+    """
+    登出并吊销refresh_token
+    """
+    try:
+        success = revoke_refresh_token(request.refresh_token)
+
+        return {
+            "code": 0,
+            "success": True,
+            "message": "登出成功" if success else "登出失败"
         }
-    }
 
-
-# 需要API Key认证的接口示例
-@api_router.get("/system/info")
-async def api_system_info(_: bool = Depends(api_key_auth)):
-    return {
-        "code": 0,
-        "success": True,
-        "data": {
-            "version": "1.0.0",
-            "name": "NAStool",
+    except Exception as e:
+        return {
+            "code": 1,
+            "success": False,
+            "message": f"登出失败: {str(e)}"
         }
-    }
 
-
-# 通用API请求模型
-class ApiRequest(BaseModel):
-    cmd: str
-    data: Optional[Dict[str, Any]] = None
-
-
-# 通用API响应模型
-class ApiResponse(BaseModel):
-    code: int
-    success: bool
-    message: Optional[str] = None
-    data: Optional[Any] = None
 
 
 # 通用API处理
@@ -167,10 +250,7 @@ async def api_action(request: ApiRequest, auth: str = Depends(jwt_auth)):
 
 # 文件上传
 @api_router.post("/upload", response_model=ApiResponse)
-async def api_upload(
-    file: UploadFile = File(...),
-    auth: str = Depends(jwt_auth)
-):
+async def api_upload(file: UploadFile = File(...), auth: str = Depends(jwt_auth)):
     """
     文件上传
     """
@@ -203,145 +283,3 @@ async def api_upload(
             "message": "未知错误",
             "data": None
         }
-
-
-# 站点信息
-@api_router.get("/site/info", response_model=ApiResponse)
-async def api_site_info(auth: str = Depends(jwt_auth)):
-    """
-    获取站点信息
-    """
-    result = WebAction().get_site_statistics()
-
-    return {
-        "code": 0,
-        "success": True,
-        "data": result.get("data")
-    }
-
-
-# 媒体库信息
-@api_router.get("/library/info", response_model=ApiResponse)
-async def api_library_info(auth: str = Depends(jwt_auth)):
-    """
-    获取媒体库信息
-    """
-    result = WebAction().get_library_mediacount()
-
-    return {
-        "code": 0,
-        "success": True,
-        "data": result
-    }
-
-
-# 下载器信息
-@api_router.get("/download/info", response_model=ApiResponse)
-async def api_download_info(auth: str = Depends(jwt_auth)):
-    """
-    获取下载器信息
-    """
-    result = WebAction().get_downloading()
-
-    return {
-        "code": 0,
-        "success": True,
-        "data": result.get("result")
-    }
-
-
-# 搜索
-@api_router.post("/search", response_model=ApiResponse)
-async def api_search(request: ApiRequest, auth: str = Depends(jwt_auth)):
-    """
-    搜索资源
-    """
-    data = request.data or {}
-
-    # 执行搜索
-    result = WebAction().search(data)
-
-    # 处理结果
-    if isinstance(result, dict):
-        code = result.get("code", 0)
-        success = code == 0
-        message = result.get("message", "")
-        data = result.get("data") or result.get("result")
-
-        return {
-            "code": code,
-            "success": success,
-            "message": message,
-            "data": data
-        }
-    else:
-        return {
-            "code": -1,
-            "success": False,
-            "message": "未知错误",
-            "data": None
-        }
-
-
-# 识别媒体信息
-@api_router.post("/media/identify", response_model=ApiResponse)
-async def api_media_identify(request: ApiRequest, auth: str = Depends(jwt_auth)):
-    """
-    识别媒体信息
-    """
-    data = request.data or {}
-
-    # 执行识别
-    result = WebAction().media_info(data)
-
-    # 处理结果
-    if isinstance(result, dict):
-        code = result.get("code", 0)
-        success = code == 0
-        message = result.get("message", "")
-        data = result.get("data") or result.get("result")
-
-        return {
-            "code": code,
-            "success": success,
-            "message": message,
-            "data": data
-        }
-    else:
-        return {
-            "code": -1,
-            "success": False,
-            "message": "未知错误",
-            "data": None
-        }
-
-
-# 刷新配置
-@api_router.post("/system/refresh", response_model=ApiResponse)
-async def api_system_refresh(auth: str = Depends(api_key_auth)):
-    """
-    刷新系统配置
-    """
-    result = WebAction().refresh_process({"type": "restart"})
-
-    return {
-        "code": 0,
-        "success": True,
-        "message": "刷新成功",
-        "data": result
-    }
-
-
-# 获取系统进度
-@api_router.get("/system/progress", response_model=ApiResponse)
-async def api_system_progress(type: str, auth: str = Depends(api_key_auth)):
-    """
-    获取系统进度
-    """
-    result = WebAction().refresh_process({"type": type})
-
-    return {
-        "code": 0,
-        "success": True,
-        "data": result
-    }

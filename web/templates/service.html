@@ -308,7 +308,7 @@
       case "blacklist":
         show_confirm_modal("清理文件整理缓存后，已转移过的文件允许重新转移（包括识别错误的文件），是否确认？", function () {
           hide_confirm_modal();
-          ajax_post("truncate_blacklist", {}, function (ret) {
+          axios_post("truncate_blacklist", {}, function (ret) {
             show_success_modal("清理文件整理缓存成功");
           });
         });
@@ -316,7 +316,7 @@
       case "rsshistory":
         show_confirm_modal("清理RSS缓存后，已经订阅下载过但没有入库的文件可能会重新下载，是否确认？", function () {
           hide_confirm_modal();
-          ajax_post("truncate_rss_history", {}, function (ret) {
+          axios_post("truncate_rss_history", {}, function (ret) {
             show_success_modal("清理RSS历史记录成功");
           });
         });
@@ -338,7 +338,7 @@
   // 运行服务
   function run_scheduler(id, name) {
     const data = {"item": id};
-    ajax_post("sch", data, function (ret) {
+    axios_post("sch", data, function (ret) {
       show_success_modal(`${name} 服务启动成功，正在后台运行`);
     });
   }
@@ -386,7 +386,7 @@
       return;
     }
     $(this).text("恢复中...").attr("disabled", true);
-    ajax_post("restory_backup", { file_name: backup_dropzone.files[backup_dropzone.files.length - 1].name }, function (ret) {
+    axios_post("restory_backup", { file_name: backup_dropzone.files[backup_dropzone.files.length - 1].name }, function (ret) {
       $(this).attr("disabled", false).text("恢复配置");
       $("#modal-backup").modal('hide');
       if (ret.code === 0) {
@@ -450,7 +450,7 @@
       "rulegroup": rulegroup,
       "subtitle": subtitle
     };
-    ajax_post("rule_test", params, function (ret) {
+    axios_post("rule_test", params, function (ret) {
       btn_obj.text("测试").attr("disabled", false);
       if (ret.code === 0) {
         let content = "";
@@ -472,7 +472,7 @@
     }
     let url = url_index.split("|")[0];
     let index = url_index.split("|")[1];
-    ajax_post("net_test", decodeURI(url), function (ret) {
+    axios_post("net_test", decodeURI(url), function (ret) {
       if (ret.res) {
         $(`#nettest_item_res_${index}`).html('<span class="badge bg-green me-1 mb-1">是</span>');
         $(`#nettest_item_res_time_${index}`).html(`<span class="text-green">${ret.time}</span>`);
@@ -486,7 +486,7 @@
 
   // 刷新系统进程
   function refresh_system_process() {
-    ajax_post("get_system_processes", {}, function (ret) {
+    axios_post("get_system_processes", {}, function (ret) {
       if (ret.code === 0) {
         let content = "";
         for (let i = 0; i < ret.data.length; i++) {
@@ -508,7 +508,7 @@
   // 立即运行目录同步
   function run_sync_now() {
     let sids = select_GetSelectedVAL("service_sync_dir");
-    ajax_post("run_directory_sync", {sid: sids}, function (ret) {
+    axios_post("run_directory_sync", {sid: sids}, function (ret) {
       $("#modal-service-sync").modal('hide');
       if (ret.code === 0) {
         show_success_modal("目录同步已启动，正在后台运行");

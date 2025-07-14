@@ -504,7 +504,7 @@
     $("#site_id").val(tid);
     $("#site_close_btn").text("删除");
     //根据ID查询详细信息
-    ajax_post("get_site", { "id": tid }, function (ret) {
+    axios_post("get_site", { "id": tid }, function (ret) {
       if (ret.site) {
         $("#site_id").val(ret.site.id);
         $("#site_name").val(ret.site.name);
@@ -555,7 +555,7 @@
 
   //删除站点
   function del_site(tid) {
-    ajax_post("del_site", { "id": tid }, function (ret) {
+    axios_post("del_site", { "id": tid }, function (ret) {
       window_history_refresh();
     });
   }
@@ -666,7 +666,7 @@
 
     $("#add_or_edit_site_btn").text("处理中...").attr("disabled", true);
     // 发送请求
-    ajax_post("update_site", data, function (ret) {
+    axios_post("update_site", data, function (ret) {
       $("#add_or_edit_site_btn").attr("disabled", false).text("新增");
       $("#modal-site").modal("hide");
       //刷新页面
@@ -709,7 +709,7 @@
     if (!siteid) {
       return;
     }
-    ajax_post("test_site", { id: siteid }, function (ret) {
+    axios_post("test_site", { id: siteid }, function (ret) {
       if (ret.code === 0) {
         $(`#sitetest_item${siteid}`).html('<span class="badge bg-green me-1 mb-1">是</span>');
         $(`#sitetest_item${siteid}_time`).html(`<span class="text-green">${ret.time} 毫秒</span>`);
@@ -766,7 +766,7 @@
     }
 
     // 发送更新请求
-    ajax_post("update_sites_cookie_ua", req_data, function (ret) {
+    axios_post("update_sites_cookie_ua", req_data, function (ret) {
       $("#sitecookie_process_bar").attr("style", "width: 100%").attr("aria-valuenow", 100);
       $("#sitecookie_action_btn").attr("disabled", false).text("开始更新");
       if (ret.code === 0) {
@@ -857,7 +857,7 @@
     }else{
       $("#captcha_code").removeClass("is-invalid");
     }
-    ajax_post("set_site_captcha_code", {code: code, value: value}, function (ret) {
+    axios_post("set_site_captcha_code", {code: code, value: value}, function (ret) {
       if (ret.code === 0) {
         // 关闭框
         $("#modal-captcha-code").modal("hide");

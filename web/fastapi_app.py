@@ -10,9 +10,7 @@ import urllib
 
 from math import floor
 from pathlib import Path
-from pydantic import BaseModel
 from threading import Lock
-from typing import Optional, Dict, Any
 from urllib.parse import unquote
 
 from fastapi import Body, FastAPI, Request, Response, status, WebSocket, WebSocketDisconnect, Depends, HTTPException
@@ -170,6 +168,24 @@ templates.env.filters["hash"] = md5_hash
 # 静态文件
 app.mount("/static", StaticFiles(directory="web/static"), name="static")
 
+# favicon.ico
+@app.get("/favicon.ico")
+async def favicon():
+    """
+    网站图标
+    """
+    from fastapi.responses import FileResponse
+    import os
+    favicon_path = os.path.join("web", "static", "favicon.ico")
+    if os.path.exists(favicon_path):
+        return FileResponse(favicon_path)
+    else:
+        raise HTTPException(status_code=404, detail="Favicon not found")
+
+
+
+
+
 # 注册API路由
 app.include_router(api_router)
 
@@ -202,7 +218,7 @@ async def get_current_user(request: Request):
 # 用户认证依赖 - 必须登录
 async def get_current_user_required(request: Request):
     """
-    获取当前登录用户，如果未登录则重定向到登录页面
+    获取当前登录用户，如果未登录则返回401错误
     """
     # 获取会话数据
     session_data = get_session_data(request)
@@ -210,14 +226,22 @@ async def get_current_user_required(request: Request):
     # 获取用户ID
     user_id = session_data.get("user_id")
     if user_id is None:
-        # 重定向到登录页面
-        return RedirectResponse(url=f"/?next={request.url.path}", status_code=status.HTTP_302_FOUND)
+        # 返回401错误而不是重定向
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="用户未登录",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
 
     # 获取用户信息
     current_user = User().get(user_id)
     if not current_user:
-        # 重定向到登录页面
-        return RedirectResponse(url=f"/?next={request.url.path}", status_code=status.HTTP_302_FOUND)
+        # 返回401错误而不是重定向
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="用户不存在",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
 
     return current_user
 
@@ -253,14 +277,32 @@ class LoginRequiredMiddleware(BaseHTTPMiddleware):
                 return await call_next(request)
 
         if user_id is None:
-            # 重定向到登录页面
-            return RedirectResponse(url=f"/?next={path}", status_code=status.HTTP_302_FOUND)
+            # 重定向到登录页面，特殊处理/web路径
+            if path == "/web":
+                # 对于/web路径，从referer中提取hash部分
+                referer = request.headers.get("referer", "")
+                if "#" in referer:
+                    hash_part = referer.split("#")[-1]
+                    return RedirectResponse(url=f"/?next={hash_part}", status_code=status.HTTP_302_FOUND)
+                else:
+                    return RedirectResponse(url="/?next=index", status_code=status.HTTP_302_FOUND)
+            else:
+                return RedirectResponse(url=f"/?next={path.lstrip('/')}", status_code=status.HTTP_302_FOUND)
 
         # 获取用户信息
         current_user = User().get(user_id)
         if not current_user:
-            # 重定向到登录页面
-            return RedirectResponse(url=f"/?next={path}", status_code=status.HTTP_302_FOUND)
+            # 重定向到登录页面，特殊处理/web路径
+            if path == "/web":
+                # 对于/web路径，从referer中提取hash部分
+                referer = request.headers.get("referer", "")
+                if "#" in referer:
+                    hash_part = referer.split("#")[-1]
+                    return RedirectResponse(url=f"/?next={hash_part}", status_code=status.HTTP_302_FOUND)
+                else:
+                    return RedirectResponse(url="/?next=index", status_code=status.HTTP_302_FOUND)
+            else:
+                return RedirectResponse(url=f"/?next={path.lstrip('/')}", status_code=status.HTTP_302_FOUND)
 
         # 将用户信息添加到请求状态中
         request.state.current_user = current_user
@@ -278,165 +320,52 @@ async def get_current_user_from_request(request: Request):
 # 添加登录保护中间件
 app.add_middleware(LoginRequiredMiddleware)
 
-
-# API认证依赖
-async def get_api_auth(request: Request):
-    """
-    API认证，如果认证失败则返回401错误
-    """
-    # 从请求头获取API Key
-    auth = request.headers.get("Authorization")
-    if auth:
-        auth = str(auth).split()[-1]
-        if auth == Config().get_config("security").get("api_key"):
-            return {"type": "api"}
-
-    # 从查询参数获取API Key
-    auth = request.query_params.get("apikey")
-    if auth and auth == Config().get_config("security").get("api_key"):
-        return {"type": "api"}
-
-    # 认证失败
-    raise HTTPException(
-        status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="安全认证未通过，请检查ApiKey"
-    )
-
-
-# 登录请求模型
-class LoginRequest(BaseModel):
-    username: str
-    password: str
-    remember: Optional[bool] = False
-    next: Optional[str] = ""
-
-
-# 登录响应模型
-class LoginResponse(BaseModel):
-    code: int
-    success: bool
-    message: Optional[str] = None
-    data: Optional[Dict[str, Any]] = None
-
-
-# 主页面 - 登录
+# 主页面 - 智能登录检查
 @app.get("/", response_class=HTMLResponse)
-async def login_page(request: Request, next: str = ""):
-    # 检查是否已登录
+async def index_page(request: Request, next: str = ""):
+    """
+    主页面处理：智能检查用户认证状态
+    - 优先检查会话认证（session cookie）
+    - 如果会话有效，直接重定向到主页
+    - 如果会话无效，显示登录页面（前端会检查Token认证）
+    """
+
+    # 1. 检查会话认证状态
     session_data = get_session_data(request)
     user_id = session_data.get("user_id")
     username = session_data.get("username")
 
     if user_id and username:
-        # 已登录，重定向到导航页面
+        # 会话认证有效，直接重定向到主页
+        log.info(f"检测到有效会话认证，用户: {username}，重定向到主页")
         Config().current_user = username
         MediaServer().init_config()
-        if next and next != 'web':
-            return RedirectResponse(url=f"/web#{next}")
-        else:
-            return RedirectResponse(url="/web")
 
-    # 未登录，显示登录页面
+        # 构建重定向URL
+        if next and next not in ['web', 'index', '']:
+            redirect_url = f"/web#{next}"
+        else:
+            redirect_url = "/web#index"
+
+        log.debug(f"重定向到: {redirect_url}")
+        return RedirectResponse(url=redirect_url, status_code=status.HTTP_302_FOUND)
+
+    # 2. 会话认证无效，显示登录页面
+
+    # 获取登录页面背景
     image_code, img_title, img_link = get_login_wallpaper()
+
     return templates.TemplateResponse(
         "login.html",
         {
             "request": request,
-            "GoPage": next,
+            "GoPage": next or "index",  # 默认跳转到index页面
             "image_code": image_code,
             "img_title": img_title,
             "img_link": img_link,
             "err_msg": ""
         }
     )
-
-
-# 登录处理
-@app.post("/", response_class=HTMLResponse)
-async def login_process(request: Request):
-    log.debug("处理登录请求...")
-
-    # 获取表单数据
-    form = await request.form()
-    username = form.get("username", "")
-    password = form.get("password", "")
-    remember = form.get("remember", "") == "on"
-    next_page = form.get("next", "")
-
-    log.debug(f"登录表单数据: username={username}, remember={remember}, next_page={next_page}")
-
-    if not username:
-        image_code, img_title, img_link = get_login_wallpaper()
-        return templates.TemplateResponse(
-            "login.html",
-            {
-                "request": request,
-                "GoPage": next_page,
-                "image_code": image_code,
-                "img_title": img_title,
-                "img_link": img_link,
-                "err_msg": "请输入用户名"
-            }
-        )
-
-    user_info = User().get_user(username)
-    if not user_info:
-        image_code, img_title, img_link = get_login_wallpaper()
-        return templates.TemplateResponse(
-            "login.html",
-            {
-                "request": request,
-                "GoPage": next_page,
-                "image_code": image_code,
-                "img_title": img_title,
-                "img_link": img_link,
-                "err_msg": "用户名或密码错误"
-            }
-        )
-
-    # 校验密码
-    if user_info.verify_password(password):
-        log.debug(f"用户 {username} 密码验证成功")
-
-        # 创建会话数据
-        session_data = {
-            "user_id": user_info.id,
-            "username": user_info.username,
-            "permanent": remember
-        }
-
-        log.debug(f"创建会话数据: user_id={user_info.id}, username={user_info.username}, permanent={remember}")
-
-        # 登录成功，重定向到导航页面
-        Config().current_user = user_info.username
-        MediaServer().init_config()
-
-        log.debug(f"登录成功，准备重定向到: {next_page if next_page else '/web'}")
-
-        # 创建重定向响应
-        if next_page and next_page != 'web':
-            response = RedirectResponse(url=f"/web#{next_page}", status_code=status.HTTP_302_FOUND)
-        else:
-            response = RedirectResponse(url="/web", status_code=status.HTTP_302_FOUND)
-
-        # 设置会话cookie
-        set_session_cookie(response, session_data)
-        log.debug(f"设置会话cookie: {session_data}")
-
-        return response
-    else:
-        image_code, img_title, img_link = get_login_wallpaper()
-        return templates.TemplateResponse(
-            "login.html",
-            {
-                "request": request,
-                "GoPage": next_page,
-                "image_code": image_code,
-                "img_title": img_title,
-                "img_link": img_link,
-                "err_msg": "用户名或密码错误"
-            }
-        )
 
 
 # 退出登录
@@ -1378,11 +1307,7 @@ async def service(request: Request, current_user: User = Depends(get_current_use
     # 所有同步目录
     SyncPaths = Sync().get_sync_path_conf()
 
-    # 所有服务
-    if not current_user:
-        # 如果用户未登录，重定向到登录页面
-        return RedirectResponse(url=f"/?next=service", status_code=status.HTTP_302_FOUND)
-
+    # 获取用户服务（get_current_user_required已经保证current_user不为空）
     Services = current_user.get_services()
     pt = Config().get_config('pt')
     # RSS订阅
@@ -2895,54 +2820,7 @@ async def logout(request: Request):
     return response
 
 
-# 导航页面
-@app.get("/web", response_model=None)
-async def web(request: Request, current_user: User = Depends(get_current_user_required)):
-    """
-    导航页面
-    """
-    # 跳转页面
-    GoPage = request.query_params.get("next") or ""
-    # 判断当前的运营环境
-    SystemFlag = SystemUtils.get_system()
-    SyncMod = Config().get_config('media').get('default_rmt_mode')
-    TMDBFlag = 1 if Config().get_config('app').get('rmt_tmdbkey') else 0
-    DefaultPath = Config().get_config('media').get('media_default_path')
-    if not SyncMod:
-        SyncMod = "link"
-    RmtModeDict = WebAction().get_rmt_modes()
-    RestypeDict = ModuleConf.TORRENT_SEARCH_PARAMS.get("restype")
-    PixDict = ModuleConf.TORRENT_SEARCH_PARAMS.get("pix")
-    SiteFavicons = Sites().get_site_favicon()
-    Indexers = Indexer().get_indexers()
-    SearchSource = "douban" if Config().get_config("laboratory").get("use_douban_titles") else "tmdb"
-    CustomScriptCfg = SystemConfig().get(SystemConfigKey.CustomScript)
-    Menus = WebAction().get_user_menus(current_user=current_user).get("menus") or []
-    Commands = WebAction().get_commands()
 
-    return templates.TemplateResponse(
-        "navigation.html",
-        {
-            "request": request,
-            "GoPage": GoPage,
-            "CurrentUser": current_user,
-            "SystemFlag": SystemFlag.value,
-            "TMDBFlag": TMDBFlag,
-            "AppVersion": WebUtils.get_current_version(),
-            "RestypeDict": RestypeDict,
-            "PixDict": PixDict,
-            "SyncMod": SyncMod,
-            "SiteFavicons": SiteFavicons,
-            "RmtModeDict": RmtModeDict,
-            "Indexers": Indexers,
-            "SearchSource": SearchSource,
-            "CustomScriptCfg": CustomScriptCfg,
-            "DefaultPath": DefaultPath,
-            "Menus": Menus,
-            "Commands": Commands,
-            "current_user": current_user
-        }
-    )
 
 
 # 媒体库页面

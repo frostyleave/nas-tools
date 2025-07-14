@@ -8,73 +8,73 @@
   {{ HEAD.meta_link() }}
   <title>NAStool</title>
   <!-- CSS files -->
-  <link href="../static/css/tabler.min.css" rel="stylesheet" />
-  <link href="../static/css/demo.min.css" rel="stylesheet" />
-  <link href="../static/css/tabler-vendors.min.css" rel="stylesheet" />
-  <link href="../static/css/fullcalendar.min.css" rel="stylesheet" />
-  <link href="../static/css/jquery.filetree.css" rel="stylesheet" />
-  <link href="../static/css/dropzone.css" rel="stylesheet" />
-  <link href="../static/css/nprogress.css" rel="stylesheet" />
+  <link href="/static/css/tabler.min.css" rel="stylesheet" />
+  <link href="/static/css/demo.min.css" rel="stylesheet" />
+  <link href="/static/css/tabler-vendors.min.css" rel="stylesheet" />
+  <link href="/static/css/fullcalendar.min.css" rel="stylesheet" />
+  <link href="/static/css/jquery.filetree.css" rel="stylesheet" />
+  <link href="/static/css/dropzone.css" rel="stylesheet" />
+  <link href="/static/css/nprogress.css" rel="stylesheet" />
   <!-- 附加样式 -->
-  <link href="../static/css/style.css" rel="stylesheet" />
+  <link href="/static/css/style.css" rel="stylesheet" />
   <!-- 站点图标 -->
   <style>
     .siteicon-acgrip {
-      background: url(../static/img/sites/acgrip.ico);
+      background: url(/static/img/sites/acgrip.ico);
       background-size: cover;
       border: 0;
     }
 
     .siteicon-dmhy {
-      background: url(../static/img/sites/dmhy.ico);
+      background: url(/static/img/sites/dmhy.ico);
       background-size: cover;
       border: 0;
     }
 
     .siteicon-eztv {
-      background: url(../static/img/sites/eztv.ico);
+      background: url(/static/img/sites/eztv.ico);
       background-size: cover;
       border: 0;
     }
 
     .siteicon-mikanani {
-      background: url(../static/img/sites/mikanani.ico);
+      background: url(/static/img/sites/mikanani.ico);
       background-size: cover;
       border: 0;
     }
 
     .siteicon-nyaa {
-      background: url(../static/img/sites/nyaa.png);
+      background: url(/static/img/sites/nyaa.png);
       background-size: cover;
       border: 0;
     }
 
     .siteicon-rarbg {
-      background: url(../static/img/sites/rarbg.ico);
+      background: url(/static/img/sites/rarbg.ico);
       background-size: cover;
       border: 0;
     }
 
     .siteicon-torrentgalaxy {
-      background: url(../static/img/sites/torrentgalaxy.png);
+      background: url(/static/img/sites/torrentgalaxy.png);
       background-size: cover;
       border: 0;
     }
 
     .siteicon-comicat {
-      background: url(../static/img/sites/comicat.ico);
+      background: url(/static/img/sites/comicat.ico);
       background-size: cover;
       border: 0;
     }
 
     .siteicon-btsow {
-      background: url(../static/img/sites/btsow.ico);
+      background: url(/static/img/sites/btsow.ico);
       background-size: cover;
       border: 0;
     }
 
     .siteicon-bt0 {
-      background: url(../static/img/sites/bt0.png);
+      background: url(/static/img/sites/bt0.png);
       background-size: cover;
       border: 0;
     }
@@ -92,22 +92,24 @@
 <body class="layout-fluid">
   <div class="page">
     <!-- jquery -->
-    <script src="../static/js/jquery-3.3.1.min.js"></script>
-    <script src="../static/js/tabler/demo-theme.min.js"></script>
+    <script src="/static/js/jquery-3.3.1.min.js"></script>
+    <script src="/static/js/tabler/demo-theme.min.js"></script>
     <!-- 第三方组件 -->
-    <script src="../static/js/modules/echarts.min.js"></script>
-    <script src="../static/js/modules/nprogress.js"></script>
-    <script src="../static/js/modules/dom-to-image.min.js"></script>
-    <script src="../static/js/modules/FileSaver.min.js"></script>
-    <script src="../static/js/modules/numeral.min.js"></script>
-    <script src="../static/js/modules/moment.min.js"></script>
-    <script src="../static/js/modules/jquery.filetree.js"></script>
-    <script src="../static/js/ace/ace.js"></script>
-    <script src="../static/js/fullcalendar/fullcalendar.min.js"></script>
-    <script src="../static/js/fullcalendar/locales/zh-cn.js"></script>
-    <script src="../static/js/modules/reconnecting-websocket.js"></script>
+    <script src="/static/js/modules/echarts.min.js"></script>
+    <script src="/static/js/modules/nprogress.js"></script>
+    <script src="/static/js/modules/dom-to-image.min.js"></script>
+    <script src="/static/js/modules/FileSaver.min.js"></script>
+    <script src="/static/js/modules/numeral.min.js"></script>
+    <script src="/static/js/modules/moment.min.js"></script>
+    <script src="/static/js/modules/jquery.filetree.js"></script>
+    <script src="/static/js/ace/ace.js"></script>
+    <script src="/static/js/fullcalendar/fullcalendar.min.js"></script>
+    <script src="/static/js/fullcalendar/locales/zh-cn.js"></script>
+    <script src="/static/js/modules/reconnecting-websocket.js"></script>
+    <!-- axios -->
+    <script src="/static/js/axios.min.js"></script>
     <!-- lit -->
-    <script type="module" src="../static/components/lit-index.js"></script>
+    <script type="module" src="/static/components/lit-index.js"></script>
     <!-- 解决密码填充问题 -->
     <span hidden><input type="text" aria-label=""><input type="password" aria-label=""></span>
     <layout-navbar id="navbar-menu" hidden layout-useradmin="{{ CurrentUser.admin }}" layout-gopage="{{ GoPage }}"
@@ -1143,16 +1145,19 @@
   </div>
   <cmd-dialog theme="light"></cmd-dialog>
   <!-- 载入tabler组件 -->
-  <script src="../static/js/tabler/tabler.min.js"></script>
-  <script src="../static/js/tabler/libs/dropzone-min.js"></script>
-  <script src="../static/js/tabler/libs/list.min.js"></script>
-  <script src="../static/js/tabler/libs/tom-select.base.min.js"></script>
-  <script src="../static/js/tabler/demo.min.js"></script>
+  <script src="/static/js/tabler/tabler.min.js"></script>
+  <script src="/static/js/tabler/libs/dropzone-min.js"></script>
+  <script src="/static/js/tabler/libs/list.min.js"></script>
+  <script src="/static/js/tabler/libs/tom-select.base.min.js"></script>
+  <script src="/static/js/tabler/demo.min.js"></script>
   <!-- 载入业务脚本 -->
-  <script src="../static/js/util.js"></script>
-  <script src="../static/js/functions.js"></script>
+  <script src="/static/js/util.js"></script>
+  <script src="/static/js/functions.js"></script>
+  <!-- 认证管理和axios封装 -->
+  <script src="/static/js/auth-manager.js"></script>
+  <script src="/static/js/axios-wrapper.js"></script>
   <!-- 载入自定义组件 -->
-  <script src="../static/components/index.js"></script>
+  <script src="/static/components/index.js"></script>
   <!-- 首页事件  -->
   <script type="text/javascript">
 

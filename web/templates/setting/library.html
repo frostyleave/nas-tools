@@ -297,7 +297,7 @@
     const params = input_select_GetVal(`modal-${type}`);
     params['test'] = test || false;
     params['media.media_server'] = type;
-    ajax_post("update_config", params, func);
+    axios_post("update_config", params, func);
   }
 
   //保存配置、关闭和刷新页面
@@ -318,7 +318,7 @@
         command = "{{ MediaServer.test_command }}";
       }
       {% endfor %}
-      ajax_post("test_connection", {"command": command}, function (ret) {
+      axios_post("test_connection", {"command": command}, function (ret) {
         if (ret.code === 0) {
           $("#" + currType + "_test_btn").text("测试成功").attr("disabled", false);
         } else {
@@ -339,7 +339,7 @@
     const value = $("#path_str").val();
     const params = {"oper": "add", "key": "media." + type + "_path", "value": value};
     $("#modal-dirctory").modal('hide');
-    ajax_post("update_directory", params, function (ret) {
+    axios_post("update_directory", params, function (ret) {
       window_history_refresh();
     });
   }
@@ -347,7 +347,7 @@
   // 删除目录
   function sub_directory_config(type, value) {
     const params = {"oper": "sub", "key": "media." + type + "_path", "value": value};
-    ajax_post("update_directory", params, function (ret) {
+    axios_post("update_directory", params, function (ret) {
       window_history_refresh();
     });
   }
