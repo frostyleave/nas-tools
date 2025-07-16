@@ -1458,24 +1458,24 @@ class Downloader:
         torrent_files = self.get_files(tid=tid, downloader_id=downloader_id)
         if not torrent_files:
             return []
+        
         if downloader_conf.get("type") == "transmission":
-            files_info = {}
+            # 找出不需要下载的文件
+            files_unwanted = []
             for torrent_file in torrent_files:
                 file_id = torrent_file.get("id")
                 file_name = torrent_file.get("name")
                 meta_info = MetaInfo(file_name)
                 if not meta_info.get_episode_list():
-                    selected = False
+                    files_unwanted.append(file_id)
                 else:
                     selected = set(meta_info.get_episode_list()).issubset(set(need_episodes))
-                    if selected:
+                    if not selected:
+                        files_unwanted.append(file_id)
+                    else:
                         sucess_epidised = list(set(sucess_epidised).union(set(meta_info.get_episode_list())))
-                if not files_info.get(tid):
-                    files_info[tid] = {file_id: {'priority': 'normal', 'selected': selected}}
-                else:
-                    files_info[tid][file_id] = {'priority': 'normal', 'selected': selected}
-            if sucess_epidised and files_info:
-                _client.set_files(file_info=files_info)
+            if files_unwanted:
+                _client.set_files(tid, files_unwanted)
         elif downloader_conf.get("type") == "qbittorrent":
             file_ids = []
             for torrent_file in torrent_files:
