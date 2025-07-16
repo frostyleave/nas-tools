@@ -277,30 +277,20 @@ class LoginRequiredMiddleware(BaseHTTPMiddleware):
                 return await call_next(request)
 
         if user_id is None:
-            # 重定向到登录页面，特殊处理/web路径
+            # 重定向到登录页面
             if path == "/web":
-                # 对于/web路径，从referer中提取hash部分
-                referer = request.headers.get("referer", "")
-                if "#" in referer:
-                    hash_part = referer.split("#")[-1]
-                    return RedirectResponse(url=f"/?next={hash_part}", status_code=status.HTTP_302_FOUND)
-                else:
-                    return RedirectResponse(url="/?next=index", status_code=status.HTTP_302_FOUND)
+                # 对于/web路径，默认重定向到index
+                return RedirectResponse(url="/?next=index", status_code=status.HTTP_302_FOUND)
             else:
                 return RedirectResponse(url=f"/?next={path.lstrip('/')}", status_code=status.HTTP_302_FOUND)
 
         # 获取用户信息
         current_user = User().get(user_id)
         if not current_user:
-            # 重定向到登录页面，特殊处理/web路径
+            # 重定向到登录页面
             if path == "/web":
-                # 对于/web路径，从referer中提取hash部分
-                referer = request.headers.get("referer", "")
-                if "#" in referer:
-                    hash_part = referer.split("#")[-1]
-                    return RedirectResponse(url=f"/?next={hash_part}", status_code=status.HTTP_302_FOUND)
-                else:
-                    return RedirectResponse(url="/?next=index", status_code=status.HTTP_302_FOUND)
+                # 对于/web路径，默认重定向到index
+                return RedirectResponse(url="/?next=index", status_code=status.HTTP_302_FOUND)
             else:
                 return RedirectResponse(url=f"/?next={path.lstrip('/')}", status_code=status.HTTP_302_FOUND)
 
