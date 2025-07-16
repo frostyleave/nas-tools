@@ -183,9 +183,6 @@ async def favicon():
         raise HTTPException(status_code=404, detail="Favicon not found")
 
 
-
-
-
 # 注册API路由
 app.include_router(api_router)
 
@@ -325,7 +322,7 @@ async def index_page(request: Request, next: str = ""):
     user_id = session_data.get("user_id")
     username = session_data.get("username")
 
-    if user_id and username:
+    if user_id is not None and username:
         # 会话认证有效，直接重定向到主页
         log.info(f"检测到有效会话认证，用户: {username}，重定向到主页")
         Config().current_user = username
@@ -340,8 +337,20 @@ async def index_page(request: Request, next: str = ""):
         log.debug(f"重定向到: {redirect_url}")
         return RedirectResponse(url=redirect_url, status_code=status.HTTP_302_FOUND)
 
-    # 2. 会话认证无效，显示登录页面
+    # 2. 会话认证无效，跳转登录页面
+    redirect_url = 'login'
+    if next and next not in ['web', 'index', '', 'login']:
+         redirect_url = 'login?next=' + next
 
+    return RedirectResponse(url=redirect_url, status_code=status.HTTP_302_FOUND)
+
+
+# 登录
+@app.get("/login")
+async def login(request: Request, next: str = ""):
+    """
+    登录
+    """
     # 获取登录页面背景
     image_code, img_title, img_link = get_login_wallpaper()
 
@@ -383,6 +392,16 @@ async def web_page(request: Request):
     user_id = session_data.get("user_id")
     log.debug(f"导航页面用户ID: {user_id}, 类型: {type(user_id)}")
 
+    # 跳转页面
+    next_page = request.query_params.get("next", "")
+
+    # 没有登录数据, 跳转到登录页
+    if user_id is None:
+        redirect_url = 'login'
+        if next_page and next_page not in ['web', 'index', '', 'login']:
+            redirect_url = 'login?next=' + next_page
+        return RedirectResponse(url=redirect_url, status_code=status.HTTP_302_FOUND)
+    
     # 特殊处理admin用户
     username = session_data.get("username")
     if username == "admin":
@@ -417,8 +436,6 @@ async def web_page(request: Request):
             log.debug("导航页面未找到用户信息，重定向到登录页面")
             return RedirectResponse(url="/?next=web", status_code=status.HTTP_302_FOUND)
 
-    # 跳转页面
-    next_page = request.query_params.get("next", "")
 
     # 判断当前的运营环境
     system_flag = SystemUtils.get_system()

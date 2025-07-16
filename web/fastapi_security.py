@@ -10,12 +10,6 @@ from web.security import identify, generate_access_token
 bearer_scheme = HTTPBearer(auto_error=False)
 
 
-
-
-
-
-
-
 # JWT认证依赖项
 async def jwt_auth(credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme)) -> str:
     """
