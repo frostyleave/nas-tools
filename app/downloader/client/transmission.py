@@ -2,6 +2,7 @@ import os.path
 import re
 import time
 from datetime import datetime
+from typing import Iterable
 
 import transmission_rpc
 
@@ -442,28 +443,18 @@ class Transmission(_IDownloadClient):
             ExceptionUtils.exception_traceback(err)
             return None
         if torrent:
-            return torrent.files()
+            return torrent.get_files()
         else:
             return None
 
-    def set_files(self, **kwargs):
+    def set_files(self, tid, files_unwanted: Iterable[int]):
         """
-        设置下载文件的状态
-        {
-            <torrent id>: {
-                <file id>: {
-                    'priority': <priority ('high'|'normal'|'low')>,
-                    'selected': <selected for download (True|False)>
-                },
-                ...
-            },
-            ...
-        }
+        设置不需要下载的文件
         """
-        if not kwargs.get("file_info"):
+        if not files_unwanted or not tid:
             return False
         try:
-            self.trc.set_files(kwargs.get("file_info"))
+            self.trc.change_torrent(ids=tid, files_unwanted=files_unwanted)
             return True
         except Exception as err:
             ExceptionUtils.exception_traceback(err)
