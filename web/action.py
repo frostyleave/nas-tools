@@ -3832,7 +3832,8 @@ class WebAction:
                     "image": poster_path or "",
                     "backdrop" : backdrop or "",
                     "type": tpye_str,
-                    "vote": vote
+                    "vote": vote,
+                    "site": download_info.SITE
                 })
 
         return {"code": 0, "result": torrents}

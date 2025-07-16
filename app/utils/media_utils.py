@@ -150,9 +150,10 @@ class MediaUtils:
         episode_match = list(re.finditer(episode_pattern, filename, flags=re.IGNORECASE))
         if episode_match:
             # 清除集信息
-            cleaned_filename = re.sub(episode_pattern, '', filename).strip('.')
-            last_one = episode_match[-1].group()
-            episode_rindex = (episode_match[-1]).regs[0][0] - sum(len(s.group()) for s in episode_match) + len(last_one)
+            cleaned_filename = filename[:episode_match[0].start()] + filename[episode_match[-1].end():]
+            # cleaned_filename = re.sub(episode_pattern, '', filename).strip('.')
+            # last_one = episode_match[-1].group()
+            episode_rindex = episode_match[0].start()
 
         season_match = list(re.finditer(season_pattern, cleaned_filename, flags=re.IGNORECASE))        
         if len(season_match) == 1:

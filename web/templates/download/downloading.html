@@ -73,8 +73,11 @@
                   class="text-reset card-text">{{
                   Torrent.title }}</a>
               </h3>
-              <div id="speed_text_{{ Torrent.id }}">
-                {{ Torrent.speed }}
+              <div class="col-auto">
+                <span class="badge badge-outline text-teal" title="站点">{{ Torrent.site }}</span>
+                <span id="speed_text_{{ Torrent.id }}">
+                  {{ Torrent.speed }}
+                </span>
               </div>
               <div class="mt-4">
                 <div class="space-between-box">
