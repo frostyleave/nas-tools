@@ -168,12 +168,7 @@ class AuthManager {
      * 重定向到登录页
      */
     redirectToLogin() {
-        const currentPath = window.location.pathname;
-        if (currentPath !== '/' && currentPath !== '/login') {
-            window.location.href = `/?next=${encodeURIComponent(currentPath)}`;
-        } else {
-            window.location.href = '/';
-        }
+        window.location.href = '/login';
     }
 
     /**
