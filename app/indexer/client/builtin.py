@@ -182,5 +182,5 @@ class BuiltinIndexer(_IIndexClient):
                                               order_seq=order_seq,
                                               indexer=indexer,
                                               filter_args=filter_args,
-                                              match_media=match_media,
+                                              search_media=match_media,
                                               start_time=start_time)

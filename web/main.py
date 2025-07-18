@@ -376,6 +376,8 @@ def rss_calendar():
 def indexer():
     indexers = Indexer().get_indexers(check=False)
     indexer_sites = SystemConfig().get(SystemConfigKey.UserIndexerSites)
+    if not indexer_sites:
+        indexer_sites = []
 
     SearchTypes = { "title":'关键字', "en_name":'英文名', "douban_id":'豆瓣id', "imdb":'imdb id' }
 
@@ -417,7 +419,9 @@ def indexer():
 def ptindexer():
     indexers = Indexer().get_indexers(check=False)
     indexer_sites = SystemConfig().get(SystemConfigKey.UserIndexerSites)
-
+    if not indexer_sites:
+        indexer_sites = []
+        
     SearchTypes = { "title":'关键字', "en_name":'英文名', "douban_id":'豆瓣id', "imdb":'imdb id' }
 
     private_indexers = []
