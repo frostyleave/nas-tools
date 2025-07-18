@@ -1,3 +1,4 @@
+import regex as re
 import datetime
 from abc import ABCMeta, abstractmethod
 from typing import List
@@ -9,6 +10,7 @@ from app.media import Media
 from app.media.meta import MetaInfo
 from app.utils import StringUtils
 from app.utils.types import MediaType, SearchType, ProgressKey
+from config import SPLIT_CHARS
 
 
 class _IIndexClient(metaclass=ABCMeta):
@@ -72,7 +74,7 @@ class _IIndexClient(metaclass=ABCMeta):
                               order_seq,
                               indexer,
                               filter_args: dict,
-                              match_media,
+                              search_media,
                               start_time) -> List[MetaInfo]:
         """
         从搜索结果中匹配符合资源条件的记录
@@ -111,16 +113,17 @@ class _IIndexClient(metaclass=ABCMeta):
             labels = item.get("labels") if item.get("labels") else ''
             # 描述
             description = item.get('description') if item.get('description') else ''
-
-            mtype = match_media.type if match_media else None
+            # 目标资源类型
+            mtype = search_media.type if search_media else None
             # 识别种子名称
-            meta_info = MetaInfo(title=torrent_name, subtitle=f"{labels} {description}".strip(), mtype=mtype)
-            if not meta_info.get_name():
+            log.info(f"【{self.client_name}】开始识别资源: {torrent_name} {description}")
+            item_meta = MetaInfo(title=torrent_name, subtitle=f"{labels} {description}".strip(), mtype=mtype)
+            if not item_meta.get_name():
                 log.info(f"【{self.client_name}】{torrent_name} 无法识别到名称")
                 index_match_fail += 1
                 continue
             # 大小及促销等
-            meta_info.set_torrent_info(size=size,
+            item_meta.set_torrent_info(size=size,
                                        imdbid=imdbid,
                                        upload_volume_factor=uploadvolumefactor,
                                        download_volume_factor=downloadvolumefactor,
@@ -128,15 +131,15 @@ class _IIndexClient(metaclass=ABCMeta):
                                        pubdate=item.get("pubdate"))
 
             # 先过滤掉可以明确的类型
-            if meta_info.type == MediaType.TV and filter_args.get("type") == MediaType.MOVIE:
+            if item_meta.type == MediaType.TV and filter_args.get("type") == MediaType.MOVIE:
                 log.info(
-                    f"【{self.client_name}】{torrent_name} 是 {meta_info.type.value}，"
+                    f"【{self.client_name}】{torrent_name} 是 {item_meta.type.value}，"
                     f"不匹配类型：{filter_args.get('type').value}")
                 index_rule_fail += 1
                 continue
             # 检查订阅过滤规则匹配
             match_flag, res_order, match_msg = self.filter.check_torrent_filter(
-                meta_info=meta_info,
+                meta_info=item_meta,
                 filter_args=filter_args,
                 uploadvolumefactor=uploadvolumefactor,
                 downloadvolumefactor=downloadvolumefactor)
@@ -145,48 +148,61 @@ class _IIndexClient(metaclass=ABCMeta):
                 index_rule_fail += 1
                 continue
             # 识别媒体信息
-            if not match_media:
+            if not search_media:
                 # 不过滤
-                media_info = meta_info
+                media_info = item_meta
             else:
                 # 0-识别并模糊匹配；1-识别并精确匹配
-                if meta_info.imdb_id \
-                        and match_media.imdb_id \
-                        and str(meta_info.imdb_id) == str(match_media.imdb_id):
+                if item_meta.imdb_id \
+                        and search_media.imdb_id \
+                        and str(item_meta.imdb_id) == str(search_media.imdb_id):
                     # IMDBID匹配，合并媒体数据
-                    media_info = self.media.merge_media_info(meta_info, match_media)
+                    media_info = self.media.merge_media_info(item_meta, search_media)
                 else:
                     # 查询缓存
-                    cache_info = self.media.get_cache_info(meta_info)
-                    if match_media \
-                            and str(cache_info.get("id")) == str(match_media.tmdb_id):
+                    cache_info = self.media.get_cache_info(item_meta)
+                    if search_media \
+                            and str(cache_info.get("id")) == str(search_media.tmdb_id):
                         # 缓存匹配，合并媒体数据
-                        media_info = self.media.merge_media_info(meta_info, match_media)
+                        media_info = self.media.merge_media_info(item_meta, search_media)
                     else:
-                        # 重新识别
-                        kw = meta_info.cn_name if meta_info.cn_name else torrent_name
-                        media_info = self.media.get_media_info(title=kw, subtitle=description,
-                                                               mtype=meta_info.type,
-                                                               chinese=StringUtils.contain_chinese(kw), meta_info=meta_info)
-                        if not media_info:
-                            log.warn(f"【{self.client_name}】{kw} 识别媒体信息出错！")
+
+                        item_tmdb_info = search_media.tmdb_info
+                        # 年份不匹配
+                        if item_tmdb_info.release_date and not self.is_result_item_year_match(item_tmdb_info, item_meta):
+                            log.warn(f"【{self.client_name}】{item_meta.get_name()} 资源年份不匹配")
                             index_error += 1
-                            continue
-                        elif not media_info.tmdb_info:
-                            log.info(
-                                f"【{self.client_name}】{kw} 识别为 {media_info.get_name()} 未匹配到媒体信息")
-                            index_match_fail += 1
-                            continue
-                        # TMDBID是否匹配
-                        if str(media_info.tmdb_id) != str(match_media.tmdb_id):
-                            log.info(
-                                f"【{self.client_name}】{kw} 识别为 "
-                                f"{media_info.type.value}/{media_info.get_title_string()}/{media_info.tmdb_id} "
-                                f"与 {match_media.type.value}/{match_media.get_title_string()}/{match_media.tmdb_id} 不匹配")
-                            index_match_fail += 1
-                            continue
-                        # 合并媒体数据
-                        media_info = self.media.merge_media_info(media_info, match_media)
+                            continue                   
+
+                        # 名称、年份 都匹配时，不再额外请求tmdb进行比对
+                        if self.is_result_item_name_match(item_tmdb_info, item_meta):
+                            media_info = self.media.merge_media_info(item_meta, search_media)
+                        else:
+                            # 识别搜索结果的tmdb信息
+                            search_kw = item_meta.get_name()
+                            en_name = item_meta.get_en_name()
+                            # 没有年份、但有英文名时, 结合英文名搜索
+                            if not item_meta.year and en_name and en_name != search_kw:
+                                search_kw = '{} {}'.format(search_kw, en_name)
+                            # 查询tmdb数据
+                            file_tmdb_info = self.media.query_tmdb_info(search_kw, item_meta.type, item_meta.year,
+                                               item_meta.begin_season, append_to_response=None, chinese=StringUtils.contain_chinese(search_kw))
+                            # 查询失败
+                            if not file_tmdb_info:
+                                log.warn(f"【{self.client_name}】{search_kw} 识别媒体信息出错！")
+                                index_error += 1
+                                continue
+
+                            # TMDBID是否匹配
+                            if str(file_tmdb_info.id) != str(search_media.tmdb_id):
+                                log.info(
+                                    f"【{self.client_name}】{search_kw} 识别为 "
+                                    f"{item_meta.type.value}/{item_meta.get_title_string()}/{file_tmdb_info.id} "
+                                    f"与 {search_media.type.value}/{search_media.get_title_string()}/{search_media.tmdb_id} 不匹配")
+                                index_match_fail += 1
+                                continue
+                            # 资源匹配，合并媒体数据
+                            media_info = self.media.merge_media_info(item_meta, search_media)
                 # 过滤类型
                 if filter_args.get("type"):
                     if (filter_args.get("type") == MediaType.TV and media_info.type == MediaType.MOVIE) \
@@ -197,7 +213,7 @@ class _IIndexClient(metaclass=ABCMeta):
                         index_rule_fail += 1
                         continue
                 # 洗版
-                if match_media.over_edition:
+                if search_media.over_edition:
                     # 季集不完整的资源不要
                     if media_info.type != MediaType.MOVIE \
                             and media_info.get_episode_list():
@@ -206,12 +222,12 @@ class _IIndexClient(metaclass=ABCMeta):
                                  f"正在洗版，过滤掉季集不完整的资源：{torrent_name} {description}")
                         continue
                     # 检查优先级是否更好
-                    if match_media.res_order \
-                            and int(res_order) <= int(match_media.res_order):
+                    if search_media.res_order \
+                            and int(res_order) <= int(search_media.res_order):
                         log.info(
                             f"【{self.client_name}】"
                             f"{media_info.get_title_string()}{media_info.get_season_string()} "
-                            f"正在洗版，已洗版优先级：{100 - int(match_media.res_order)}，"
+                            f"正在洗版，已洗版优先级：{100 - int(search_media.res_order)}，"
                             f"当前资源优先级：{100 - int(res_order)}，"
                             f"跳过低优先级或同优先级资源：{torrent_name}"
                         )
@@ -280,3 +296,42 @@ class _IIndexClient(metaclass=ABCMeta):
                                   f"耗时 {(end_time - start_time).seconds} 秒")
         return ret_array
 
+
+    def is_result_item_name_match(self, item_tmdb_info, item_meta : MetaInfo):
+        """
+        检查名称是否完全匹配
+        """
+        if not item_tmdb_info:
+            return False
+        
+        target_names = [item_tmdb_info.title, item_tmdb_info.original_title]
+
+        # 名称完全匹配
+        if item_meta.cn_name and item_meta.cn_name in target_names:
+            return True
+        
+        # 没有中文名时，检查原始名称是否匹配
+        if not item_meta.cn_name and item_meta.en_name and item_meta.en_name in target_names:
+            return True
+        
+        if item_meta.subtitle:
+            splited_text = re.split(r'%s' % SPLIT_CHARS, item_meta.subtitle)
+            for splited_item in splited_text:
+                if not splited_item:
+                    continue
+                if splited_item in target_names:
+                    return True
+
+        return False
+    
+    def is_result_item_year_match(self, item_tmdb_info, item_meta : MetaInfo):
+        """
+        检查年份是否匹配
+        """
+        if not item_tmdb_info:
+            return False
+        
+        if not item_meta.year or not item_tmdb_info.release_date:
+            return False
+        
+        return item_tmdb_info.release_date.startswith(item_meta.year)
