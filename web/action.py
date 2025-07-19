@@ -2366,85 +2366,18 @@ class WebAction:
 
         res_list = []
         if Type in ['MOV', 'TV', 'ALL']:
-            if SubType == "hm":
-                # TMDB热门电影
-                res_list = Media().get_tmdb_hot_movies(CurrentPage)
-            elif SubType == "ht":
-                # TMDB热门电视剧
-                res_list = Media().get_tmdb_hot_tvs(CurrentPage)
-            elif SubType == "nm":
-                # TMDB最新电影
-                res_list = Media().get_tmdb_new_movies(CurrentPage)
-            elif SubType == "nt":
-                # TMDB最新电视剧
-                res_list = Media().get_tmdb_new_tvs(CurrentPage)
-            elif SubType == "dbom":
-                # 豆瓣正在上映
-                res_list = DouBan().get_douban_online_movie(CurrentPage)
-            elif SubType == "dbhm":
-                # 豆瓣热门电影
-                res_list = DouBan().get_douban_hot_movie(CurrentPage)
-            elif SubType == "dbht":
-                # 豆瓣热门电视剧
-                res_list = DouBan().get_douban_hot_tv(CurrentPage)
-            elif SubType == "dbdh":
-                # 豆瓣热门动画
-                res_list = DouBan().get_douban_hot_anime(CurrentPage)
-            elif SubType == "dbnm":
-                # 豆瓣最新电影
-                res_list = DouBan().get_douban_new_movie(CurrentPage)
-            elif SubType == "dbtop":
-                # 豆瓣TOP250电影
-                res_list = DouBan().get_douban_top250_movie(CurrentPage)
-            elif SubType == "dbzy":
-                # 豆瓣热门综艺
-                res_list = DouBan().get_douban_hot_show(CurrentPage)
-            elif SubType == "dbct":
-                # 华语口碑剧集榜
-                res_list = DouBan().get_douban_chinese_weekly_tv(CurrentPage)
-            elif SubType == "dbgt":
-                # 全球口碑剧集榜
-                res_list = DouBan().get_douban_weekly_tv_global(CurrentPage)
-            elif SubType == "sim":
-                # 相似推荐
-                TmdbId = data.get("tmdbid")
-                res_list = self.__media_similar({
-                    "tmdbid": TmdbId,
-                    "page": CurrentPage,
-                    "type": Type
-                }).get("data")
-            elif SubType == "more":
-                # 更多推荐
-                TmdbId = data.get("tmdbid")
-                res_list = self.__media_recommendations({
-                    "tmdbid": TmdbId,
-                    "page": CurrentPage,
-                    "type": Type
-                }).get("data")
-            elif SubType == "person":
-                # 人物作品
-                PersonId = data.get("personid")
-                res_list = self.__person_medias({
-                    "personid": PersonId,
-                    "type": None if Type == 'ALL' else Type,
-                    "page": CurrentPage
-                }).get("data")
-            elif SubType == "bangumi":
-                # Bangumi每日放送
-                Week = data.get("week")
-                res_list = Bangumi().get_bangumi_calendar(page=CurrentPage, week=Week)
+            res_list = self.get_randking_data(data, Type, SubType, CurrentPage)
         elif Type == "SEARCH":
             # 搜索词条
             Keyword = data.get("keyword")
             Source = data.get("source")
-            medias = WebUtils.search_media_infos(
-                keyword=Keyword, source=Source, page=CurrentPage)
+            medias = WebUtils.search_media_infos(keyword=Keyword, source=Source, page=CurrentPage)
             res_list = [media.to_dict() for media in medias]
+            # 相关性排序
+            res_list = self.sort_search_results(res_list, Keyword)
         elif Type == "DOWNLOADED":
             # 近期下载
-            res_list = self.get_downloaded({
-                "page": CurrentPage
-            }).get("Items")
+            res_list = self.get_downloaded({"page": CurrentPage}).get("Items")
         elif Type == "TRENDING":
             # TMDB流行趋势
             if SubType == "trendingmv":
@@ -2486,6 +2419,124 @@ class WebAction:
                 'rssid': rssid
             })
         return {"code": 0, "Items": res_list}
+
+    def get_randking_data(self, data, Type, SubType, CurrentPage):
+        
+        if SubType == "hm":
+            # TMDB热门电影
+            return Media().get_tmdb_hot_movies(CurrentPage)
+        
+        if SubType == "ht":
+            # TMDB热门电视剧
+            return Media().get_tmdb_hot_tvs(CurrentPage)
+        
+        if SubType == "nm":
+            # TMDB最新电影
+            return Media().get_tmdb_new_movies(CurrentPage)
+        
+        if SubType == "nt":
+            # TMDB最新电视剧
+            return Media().get_tmdb_new_tvs(CurrentPage)
+        
+        if SubType == "dbom":
+                # 豆瓣正在上映
+            return DouBan().get_douban_online_movie(CurrentPage)
+        
+        if SubType == "dbhm":
+            # 豆瓣热门电影
+            return DouBan().get_douban_hot_movie(CurrentPage)
+        
+        if SubType == "dbht":
+            # 豆瓣热门电视剧
+            return DouBan().get_douban_hot_tv(CurrentPage)
+        
+        if SubType == "dbdh":
+            # 豆瓣热门动画
+            return DouBan().get_douban_hot_anime(CurrentPage)
+        
+        if SubType == "dbnm":
+            # 豆瓣最新电影
+            return DouBan().get_douban_new_movie(CurrentPage)
+        
+        if SubType == "dbtop":
+            # 豆瓣TOP250电影
+            return DouBan().get_douban_top250_movie(CurrentPage)
+        
+        if SubType == "dbzy":
+            # 豆瓣热门综艺
+            return DouBan().get_douban_hot_show(CurrentPage)
+        
+        if SubType == "dbct":
+            # 华语口碑剧集榜
+            return DouBan().get_douban_chinese_weekly_tv(CurrentPage)
+        
+        if SubType == "dbgt":
+            # 全球口碑剧集榜
+            return DouBan().get_douban_weekly_tv_global(CurrentPage)
+        
+        if SubType == "sim":
+            # 相似推荐
+            TmdbId = data.get("tmdbid")
+            return self.__media_similar({
+                    "tmdbid": TmdbId,
+                    "page": CurrentPage,
+                    "type": Type
+                }).get("data")
+        
+        if SubType == "more":
+            # 更多推荐
+            TmdbId = data.get("tmdbid")
+            return self.__media_recommendations({
+                    "tmdbid": TmdbId,
+                    "page": CurrentPage,
+                    "type": Type
+                }).get("data")
+        
+        if SubType == "person":
+            # 人物作品
+            PersonId = data.get("personid")
+            return self.__person_medias({
+                    "personid": PersonId,
+                    "type": None if Type == 'ALL' else Type,
+                    "page": CurrentPage
+                }).get("data")
+        
+        if SubType == "bangumi":
+            # Bangumi每日放送
+            Week = data.get("week")
+            return Bangumi().get_bangumi_calendar(page=CurrentPage, week=Week)
+        
+        return []
+    
+    def sort_search_results(self, results, kw):
+        # 计算相关性级别
+        def compute_relevance_level(title):
+            title_lower = title.lower()
+            kw_lower = kw.lower()
+            
+            # 完全匹配（标题等于关键词）
+            if title_lower == kw_lower:
+                return 3  # 最高优先级
+            # 前缀匹配（标题以关键词开头）
+            elif title_lower.startswith(kw_lower):
+                return 2  # 次高优先级
+            # 包含关键词
+            elif kw_lower in title_lower:
+                return 1  # 基础优先级
+            # 不相关
+            else:
+                return 0  # 最低优先级
+        
+        # 排序处理
+        sorted_results = sorted(
+            results,
+            key=lambda x: (
+                compute_relevance_level(x['title']),  # 相关性级别（降序）
+                x['release_date']  # 发布日期（降序）
+            ),
+            reverse=True
+        )
+        return sorted_results
 
     @staticmethod
     def get_downloaded(data):
