@@ -65,7 +65,7 @@
             {% if Torrent.image %}
             <div class="col-auto p-0 card">
               {% if Torrent.vote %}
-              <span class="badge badge-pill bg-purple text-white" style="position: absolute;">{{Torrent.vote}}</span>
+              <span class="badge badge-pill bg-purple text-white tiny-top-left">{{Torrent.vote}}</span>
               {% endif %}
               <img src="{{ Torrent.image }}" class="rounded" alt="" style="max-width: 80px;">
             </div>

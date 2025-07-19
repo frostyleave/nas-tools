@@ -691,13 +691,16 @@ body, .page {
   
 
   .right-top-box {
-    right: 1rem;
     position: absolute;
-    z-index: 999;
     top: 1rem;
+    right: 1.5rem;
+    z-index: 99;
   }
   
-  .ribbon-bookmark.ribbon-left {
-    z-index: 9;
-    top: 0.5rem;
-}
+  .tiny-top-left {
+    position: absolute;
+    left: 5px;
+    top: 5px;
+    font-size: xx-small;
+  }
+  
