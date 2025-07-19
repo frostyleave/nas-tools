@@ -58,26 +58,26 @@
       {% for Torrent in Torrents %}
       <div class="card p-0">
         <div class="card-body media-box" style="background-image: url({{ Torrent.backdrop }});">
-          {% if Torrent.vote %}
-          <div class="ribbon ribbon-top ribbon-bookmark bg-purple">{{Torrent.vote}}</div>
-          {% endif %}
+          <div class="right-top-box">
+            <a href="javascript:remove_pt_download('{{ Torrent.id }}', '{{ Torrent.title }}')" class="text-danger">{{ SVG.x() }}</a>
+          </div>
           <div class="row align-items-stretch media-content card-text">
             {% if Torrent.image %}
             <div class="col-auto p-0 card">
+              {% if Torrent.vote %}
+              <span class="badge badge-pill bg-purple text-white" style="position: absolute;">{{Torrent.vote}}</span>
+              {% endif %}
               <img src="{{ Torrent.image }}" class="rounded" alt="" style="max-width: 80px;">
             </div>
             {% endif %}
             <div class="col">
-              <h3 class="card-title mb-1">
+              <h3 class="card-title mb-1">               
                 <a href='javascript:navmenu("media_detail?type={{ Torrent.type }}&id={{ Torrent.tmdbid }}")'
                   class="text-reset card-text">{{
                   Torrent.title }}</a>
               </h3>
-              <div class="col-auto">
-                <span class="badge badge-outline text-teal" title="站点">{{ Torrent.site }}</span>
-                <span id="speed_text_{{ Torrent.id }}">
-                  {{ Torrent.speed }}
-                </span>
+              <div id="speed_text_{{ Torrent.id }}">
+                {{ Torrent.speed }}
               </div>
               <div class="mt-4">
                 <div class="space-between-box">
@@ -91,9 +91,6 @@
                     <a href="javascript:stop_pt_download('{{ Torrent.id }}')" id="stop_btn_{{ Torrent.id }}"
                       style="{% if Torrent.state == 'Stoped' %}display:none{% endif %}">{{
                       SVG.player_pause() }}</a>
-                    <a href="javascript:remove_pt_download('{{ Torrent.id }}', '{{ Torrent.title }}')"
-                      class="text-danger">{{
-                      SVG.x() }}</a>
                   </div>
                 </div>
               </div>

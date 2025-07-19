@@ -689,3 +689,15 @@ body, .page {
     margin: 0 0.1rem;
   }
   
+
+  .right-top-box {
+    right: 1rem;
+    position: absolute;
+    z-index: 999;
+    top: 1rem;
+  }
+  
+  .ribbon-bookmark.ribbon-left {
+    z-index: 9;
+    top: 0.5rem;
+}
