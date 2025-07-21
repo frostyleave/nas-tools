@@ -208,8 +208,7 @@ class Media:
                 year_range.append(str(int(first_media_year) + 1))
                 year_range.append(str(int(first_media_year) - 1))
             for year in year_range:
-                log.debug(
-                    f"【Meta】正在识别{search_type.value}：{file_media_name}, 年份={year} ...")
+                log.debug(f"【Meta】正在识别{search_type.value}：{file_media_name}, 年份={year} ...")
                 info = self.__search_movie_by_name(file_media_name, year)
                 if info:
                     info['media_type'] = MediaType.MOVIE

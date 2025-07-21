@@ -47,7 +47,7 @@ export class NormalCard extends observeState(CustomElement) {
         text = this.res_type;
       }
       return html`
-        <span class="badge badge-pill ${color}" style="position: absolute; top: 10px; left: 10px">
+        <span class="badge badge-pill ${color}" style="position: absolute; top: 10px; left: 10px; z-index: 9;">
           ${text}
         </span>`;
     } else {
@@ -59,7 +59,7 @@ export class NormalCard extends observeState(CustomElement) {
 
      var has_vote = this.vote && this.vote != "0.0" && this.vote != "0";
      var vote_html = html`
-                      <div class="badge badge-pill bg-purple" style="position: absolute; top: 10px; right: 10px">
+                      <div class="badge badge-pill bg-purple" style="position: absolute; top: 10px; right: 10px; z-index: 9;">
                         ${this.vote}
                       </div>`;
 
@@ -131,29 +131,28 @@ export class NormalCard extends observeState(CustomElement) {
              @error=${() => { if (this.lazy != "1") {this.image = Golbal.noImage; this._card_image_error = true} }}
              @load=${() => { this._placeholder = false }}/>
             ${this.fav == "2" ? html`
-            <div style="position: absolute; bottom: 0; right: 0; width: 30px; height: 30px; padding: 12px; background-color: var(--tblr-success); clip-path: polygon(100% 0, 100% 100%, 0 100%); border-radius: 0 0 8px 0;">
+            <div style="position: absolute; bottom: 0; right: 0; width: 30px; height: 30px; padding: 12px; background-color: var(--tblr-success); clip-path: polygon(100% 0, 100% 100%, 0 100%); border-radius: 0 0 8px 0;z-index: 9;">
               <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-check" width="15" height="15" viewBox="0 0 30 30" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round" >
                 <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
                 <path d="M5 12l5 5l10 -10"></path>
               </svg>
-            </div>
+            </div> 
             ` : null}
           ${this._render_left_up()}
           ${this._render_right_up()}
         </div>
-        <div ?hidden=${cardState.more_id != this._card_id && this._card_image_error == false}
-             class="card-img-overlay rounded-3 ms-auto"
-             style="background-color: rgba(0, 0, 0, 0.5); box-shadow:0 0 0 1px #dddddd;"
+        <div class="card-img-overlay rounded-3 ms-auto" style="background-color: rgba(0, 0, 0, 0.4);"
              @click=${() => { navmenu(`media_detail?type=${this.media_type}&id=${this.tmdb_id}`) }}>
-          <div style="cursor: pointer">
-            ${this.year ? html`<div class="text-white" 
-                style="-webkit-line-clamp:1; display: -webkit-box; -webkit-box-orient:vertical; overflow:hidden; text-overflow: ellipsis;"><strong>${this.site ? this.site : this.year}</strong></div>` : nothing }
+          <div style="cursor: pointer;">
+            ${this.year && !this.overview.startsWith(this.year)
+              ? html`<div class="text-white" style="-webkit-line-clamp:1; display: -webkit-box; -webkit-box-orient:vertical; overflow:hidden; text-overflow: ellipsis;"><strong>${this.site ? this.site : this.year}</strong></div>` 
+              : nothing 
+            }
             ${this.title
             ? html`
-              <h2 class="lh-sm text-white"
-                  style="margin-bottom: 5px; -webkit-line-clamp:2; display: -webkit-box; -webkit-box-orient:vertical; overflow:hidden; text-overflow: ellipsis;">
+              <h3 class="lh-sm text-white" style="margin-bottom: 5px; -webkit-line-clamp:2; display: -webkit-box; -webkit-box-orient:vertical; overflow:hidden; text-overflow: ellipsis;">
                 <strong>${this.title}</strong>
-              </h2>`
+              </h3>`
             : nothing }
             ${this.overview
             ? html`
@@ -173,7 +172,7 @@ export class NormalCard extends observeState(CustomElement) {
           ${this._render_bottom()}
         </div>
       </div>
-      <div class="m-2 text-center" style="-webkit-line-clamp:1; display: -webkit-box; -webkit-box-orient:vertical; overflow:hidden; text-overflow: ellipsis;">${this.title}</div>
+      <div class="m-2 text-center" style="-webkit-line-clamp:1; display: -webkit-box; -webkit-box-orient:vertical; overflow:hidden; text-overflow: ellipsis;font-weight: bold;">${this.title}</div>
     `;
   }
 
