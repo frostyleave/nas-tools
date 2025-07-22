@@ -689,3 +689,18 @@ body, .page {
     margin: 0 0.1rem;
   }
   
+
+  .right-top-box {
+    position: absolute;
+    top: 1rem;
+    right: 1.5rem;
+    z-index: 99;
+  }
+  
+  .tiny-top-left {
+    position: absolute;
+    left: 5px;
+    top: 5px;
+    font-size: xx-small;
+  }
+  

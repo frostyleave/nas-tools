@@ -48,9 +48,16 @@
       {% for Id, Attr in Items.items() %}
       <div class="card p-0">
         <div class="card-body media-box" style="background-image: url({{ Attr.image }});">
-          <div class="ribbon ribbon-top ribbon-bookmark bg-purple">{{Attr.vote}}</div>
+          <!-- <div class="ribbon ribbon-top ribbon-bookmark bg-purple">{{Attr.vote}}</div> -->
+          <div class="right-top-box">
+            <a href="javascript:remove_rss_media('{{Attr.name}}','{{Attr.year}}', '{{Type}}','{{ Id }}', 'movie_rss')"
+                  title="取消订阅" class="text-danger">{{ SVG.x() }}</a>
+          </div>
           <div class="row align-items-stretch media-content card-text">
             <div class="col-auto p-0 card">
+              {% if Attr.vote %}
+              <span class="badge badge-pill bg-purple text-white tiny-top-left">{{Attr.vote}}</span>
+              {% endif %}
               <img src="{{ Attr.poster }}" class="rounded" alt="" style="max-width: 80px;">
             </div>
             <div class="col" style="display: flex;flex-direction: column;overflow: hidden;">
@@ -149,9 +156,6 @@
                 <a href="javascript:refresh_rss_media('{{Type}}', '{{ Id }}', 'movie_rss')" title="刷新"
                   id="stop_btn_{{ Id }}">{{
                   SVG.refresh() }}</a>
-                <a href="javascript:remove_rss_media('{{Attr.name}}','{{Attr.year}}', '{{Type}}','{{ Id }}', 'movie_rss')"
-                  title="取消订阅" class="text-danger">{{
-                  SVG.x() }}</a>
               </div>
             </div>
           </div>
