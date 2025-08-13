@@ -3873,13 +3873,14 @@ class WebAction:
                 poster_path = download_info.POSTER
                 backdrop = download_info.BACKDROP
                 se = download_info.SE
-                title = "%s %s" % (name, se) if se else ( "%s(%s)" % (name, year) if year else name)
+                title = "%s(%s)" % (name, year) if year and download_info.TYPE == '电影' else name
                 tpye_str = 'MOV' if download_info.TYPE == '电影' else 'TV'
                 vote = download_info.VOTE
                     
                 torrent.update({
                     "tmdbid": download_info.TMDBID,
                     "title": title,
+                    "se": se,
                     "image": poster_path or "",
                     "backdrop" : backdrop or "",
                     "type": tpye_str,
