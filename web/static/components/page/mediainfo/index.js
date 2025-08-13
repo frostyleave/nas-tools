@@ -27,6 +27,7 @@ export class PageMediainfo extends CustomElement {
     this.seasons_data = [];
     this.fav = undefined;
     this.item_url = undefined;
+    this.crews = []
   }
 
   firstUpdated() {
@@ -39,6 +40,15 @@ export class PageMediainfo extends CustomElement {
           this.fav = ret.data.fav;
           this.item_url = ret.data.item_url
           this.seasons_data = ret.data.seasons;
+          
+          if (this.media_info.crews && this.media_info.crews.length) {
+            this.crews = this.crews.concat(this.media_info.crews)
+          }
+
+          if (this.media_info.actors && this.media_info.actors.length) {
+            this.crews = this.crews.concat(this.media_info.actors)
+          }
+
           // 类似
           Golbal.get_cache_or_ajax("get_recommend", "sim", { "type": this.media_type, "subtype": "sim", "tmdbid": ret.data.tmdbid, "page": 1},
             (ret) => {
@@ -71,14 +81,14 @@ export class PageMediainfo extends CustomElement {
     `);
   }
 
-  _render_html(douban_id) {
+  _render_douban_a_link(douban_id) {
     var content = html``
     if (!douban_id){
         return content
     }
     var id_arr = douban_id.split(',')
     for (var id of id_arr) {
-        content = html`${content}<a href="https://movie.douban.com/subject/${id}" target="_blank">${id}</a>  `;
+        content = html`${content}<a class="text-reset" href="https://movie.douban.com/subject/${id}" target="_blank">${id}</a>  `;
     }
     return content
   }
@@ -98,8 +108,7 @@ export class PageMediainfo extends CustomElement {
           </custom-img>
           <div class="card-img-overlay rounded-0 lit-media-info-background">
             <div class="d-md-flex flex-md-row mb-4">
-              <custom-img class="d-flex justify-content-center"
-                div-style="position:relative;"
+              <custom-img class="d-flex justify-content-center" div-style="position:relative;"
                 img-class="rounded-3 object-cover lit-media-info-image"
                 img-error=${Object.keys(this.media_info).length === 0 ? "0" : "1"}
                 img_vote=${this.media_info.vote}
@@ -109,53 +118,53 @@ export class PageMediainfo extends CustomElement {
               <div class="d-flex justify-content-center">
                 <div class="d-flex flex-column justify-content-end div-media-detail-margin mt-2">
                   <div>
-                    <h1 class="align-self-center align-self-md-start display-6 text-center">
-                      <strong>${this.media_info.title ?? this._render_placeholder("200px")}</strong>
-                      <strong class="h1" ?hidden=${!this.media_info.year}>(${this.media_info.year})</strong>
+                    <h1 class="display-6 text-center text-md-start">
+                      <strong calss="d-block d-md-inline">${this.media_info.title ?? this._render_placeholder("200px")}</strong>
+                      <strong class="d-block h3 ${!this.media_info.year ? 'd-none' : 'd-md-inline'} ">(${this.media_info.year})</strong>
                     </h1>
                   </div>
-                  <!-- <div class="align-self-center text-center">
-                      ${this.media_info.vote ? html`<strong class="badge badge-pill bg-purple text-white">${this.media_info.vote}</strong>` : nothing }
-                      ${this.fav == "2" ? html`<strong class="badge badge-pill bg-green text-white">已入库</strong>` : nothing }
-                    </div> -->
-                  <div class="align-self-center align-self-md-start text-center">
-                    <span class="h3 ms-1" ?hidden=${!this.media_info.runtime}>${this.media_info.runtime}</span>
-                    <span class="h3" ?hidden=${!this.media_info.genres}>| ${this.media_info.genres}</span>
-                    <span class="h3" ?hidden=${!this.seasons_data.length}>| 共 ${this.seasons_data.length} 季</span>
-                    <span class="h3" ?hidden=${!this.media_info.link}>| TMDB: <a href="${this.media_info.link}" target="_blank">${this.media_info.tmdbid}</a></span>
-                    <span class="h3" ?hidden=${!this.media_info.douban_id}>| 豆瓣: ${this._render_html(this.media_info.douban_id)}
+                  <div class="text-center text-md-start">
+                    ${this.media_info.genres ? this.media_info.genres.map((element) => (
+                      html`
+                      <span class="badge bg-indigo mb-1"> ${element}</span>
+                      `
+                    )) : nothing}
+                    <span class="mb-1 ${!this.media_info.runtime ? 'd-none' : 'd-inline-flex'}"><i class="ti ti-clock fs-2 me-1"></i>&nbsp;${this.media_info.runtime}</span>
+                    <span class="mb-1 ${!this.seasons_data.length ? 'd-none' : 'd-inline-flex'}"><i class="ti ti-stack-2 fs-2 me-1"></i>&nbsp;共${this.seasons_data.length}季</span>
+                    <span class="mb-1 ${!this.media_info.link ? 'd-none' : 'd-inline-flex'}"><i class="ti ti-badge-tm fs-2 text-blue"></i> <a class="text-reset" href="${this.media_info.link}" target="_blank">${this.media_info.tmdbid}</a></span>
+                    <span class="mb-1 ${!this.media_info.douban_id ? 'd-none' : 'd-inline-flex'}"><i class="ti ti-brand-douban fs-2 text-green"></i> ${this._render_douban_a_link(this.media_info.douban_id)}
                     ${Object.keys(this.media_info).length === 0 ? this._render_placeholder("205px") : nothing }
                   </div>
-                  <div class="align-self-center text-center mt-1">
+                  <div class="text-md-start text-center mt-1">
                     ${Object.keys(this.media_info).length !== 0
                     ? html`
-                      <span class="btn btn-primary btn-pill mt-1"
+                      <span class="btn btn-primary mt-1"
                         @click=${(e) => {
                           e.stopPropagation();
                           media_search(this.tmdbid + "", this.media_info.title, this.media_type);
                         }}>
-                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-search" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path><circle cx="10" cy="10" r="7"></circle><line x1="21" y1="21" x2="15" y2="15"></line></svg>
+                        <i class="ti ti-search fs-2 text-white"></i>
                         搜索资源
                       </span>
                       ${this.fav == "1"
                       ? html`
-                        <span class="btn btn-pill btn-pinterest mt-1"
+                        <span class="btn btn-pinterest mt-1"
                           @click=${this._loveClick}>
-                          <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><line x1="4" y1="7" x2="20" y2="7" /><line x1="10" y1="11" x2="10" y2="17" /><line x1="14" y1="11" x2="14" y2="17" /><path d="M5 7l1 12a2 2 0 0 0 2 2h8a2 2 0 0 0 2 -2l1 -12" /><path d="M9 7v-3a1 1 0 0 1 1 -1h4a1 1 0 0 1 1 1v3" /></svg>
+                          <i class="ti ti-heart-filled fs-2 text-purple"></i>
                           删除订阅
                         </span>`
                       : html`
                         ${this.fav != "2"
                         ? html`
-                          <span class="btn btn-pill btn-purple mt-1"
+                          <span class="btn btn-purple mt-1"
                             @click=${this._loveClick}>
-                            <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M19.5 12.572l-7.5 7.428l-7.5 -7.428m0 0a5 5 0 1 1 7.5 -6.566a5 5 0 1 1 7.5 6.572" /></svg>
+                            <i class="ti ti-heart fs-2 text-white"></i>
                             添加订阅
                           </span>`: nothing }`
                         }
                       ${this.item_url ? html`
-                      <span class="btn btn-pill btn-green mt-1" @click=${this._openItemUrl}>
-                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-device-tv-old" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path><path d="M3 7m0 2a2 2 0 0 1 2 -2h14a2 2 0 0 1 2 2v9a2 2 0 0 1 -2 2h-14a2 2 0 0 1 -2 -2z"></path><path d="M16 3l-4 4l-4 -4"></path><path d="M15 7v13"></path><path d="M18 15v.01"></path><path d="M18 12v.01"></path></svg>
+                      <span class="btn btn-green mt-1" @click=${this._openItemUrl}>
+                        <i class="ti ti-device-tv-old fs-2 text-white"></i>
                         在线观看
                       </span>
                       ` : nothing }`
@@ -187,35 +196,14 @@ export class PageMediainfo extends CustomElement {
           </div>
         </div>
 
-        ${this.media_info.crews && this.media_info.crews.length
-        ? html`
-          <custom-slide
-            slide-title="导演"
-            slide-click='javascript:navmenu("discovery_person?tmdbid=${this.tmdbid}&type=${this.media_type}&title=导演&subtitle=${this.media_info.title}")'
-            lazy="person-card"
-            .slide_card=${this.media_info.crews.map((item) => ( html`
-              <person-card
-                lazy=1
-                person-id=${item.id}
-                person-image=${item.image}
-                person-name=${item.original_name}
-                person-role=${item.role}
-                @click=${() => {
-                  navmenu("recommend?type="+this.media_type+"&subtype=person&personid="+item.id+"&title=参与作品&subtitle="+item.original_name)
-                }}
-              ></person-card>`))
-            }
-          ></custom-slide>`
-        : nothing }
-
         <!-- 渲染演员阵容 -->
-        ${this.media_info.actors && this.media_info.actors.length
+        ${this.crews && this.crews.length
         ? html`
           <custom-slide
-            slide-title="演员阵容"
-            slide-click='javascript:navmenu("discovery_person?tmdbid=${this.tmdbid}&type=${this.media_type}&title=演员&subtitle=${this.media_info.title}")'
+            slide-title="演职人员"
+            slide-click='javascript:navmenu("discovery_person?tmdbid=${this.tmdbid}&type=${this.media_type}&title=演职人员&subtitle=${this.media_info.title}")'
             lazy="person-card"
-            .slide_card=${this.media_info.actors.map((item) => ( html`
+            .slide_card=${this.crews.map((item) => ( html`
               <person-card
                 lazy=1
                 person-id=${item.id}

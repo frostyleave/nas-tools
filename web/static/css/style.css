@@ -5,6 +5,7 @@ html {
 
 body, .page {
     min-height: 100%;
+    overflow-y: auto;
 }
 
 .theme-light .page {
@@ -428,7 +429,6 @@ body, .page {
     border-bottom: var(--tblr-nav-tabs-border-width) solid var(--tblr-nav-tabs-border-color);
     background: transparent;
     justify-content: flex-start;
-    /* 电脑模式下靠左对齐 */
   }
 
   div.top-sub-navbar>ul>li {
@@ -577,8 +577,8 @@ body, .page {
     left: 0;
     right: 0;
     bottom: 0;
-    background: linear-gradient(to right, rgba(0, 0, 0, 0.5) 0%, var(--tblr-dark) 100%);
-    z-index: 0;
+    /* background: linear-gradient(to right, rgba(0, 0, 0, 0.5) 0%, var(--tblr-dark) 100%); */
+    background: linear-gradient(to right, rgba(0, 0, 0, 0.8) 0%, rgba(0, 0, 0, 0.4) 50%, rgba(0, 0, 0, 0.8) 100%);
     border-radius: var(--tblr-card-border-radius);
   }
 
@@ -607,20 +607,23 @@ body, .page {
     justify-content: center;
     align-items: center;
 }
+
 /* 小竖条 */
 .wave-loading-item {
-    height: 50px;
-    width: 5px;
-    background: var(--tblr-body-color);
-    /* 加margin，使竖条之间有空隙 */
-    margin: 0px 3px;
-    /* 圆角 */
-    border-radius: 10px;
-    /* 动画：名称、时间、循环 */
-    animation: loading 1s infinite;
+    height: 56px;
+    width: 12px;
+    background: var(--tblr-primary);
+    margin: 0px 4px;
+    border-radius: 4px;
+    animation: wave 1.2s infinite ease-in-out;
+    box-shadow: 0 0 1px 1px rgba(255, 255, 255, 0.5);
 }
 
-/* 设置动画 */
+@keyframes wave {
+      0%, 40%, 100% { transform: scaleY(0.6); }
+      20% { transform: scaleY(1); }
+    }
+
 @keyframes loading {
     0% {
         height: 0px;
@@ -633,34 +636,11 @@ body, .page {
     }
 }
 
-/* 为每一个竖条设置延时 */
-.wave-loading-item:nth-child(2) {
-    animation-delay: 0.1s;
-}
-
-.wave-loading-item:nth-child(3) {
-    animation-delay: 0.2s;
-}
-
-.wave-loading-item:nth-child(4) {
-    animation-delay: 0.3s;
-}
-
-.wave-loading-item:nth-child(5) {
-    animation-delay: 0.4s;
-}
-
-.wave-loading-item:nth-child(6) {
-    animation-delay: 0.5s;
-}
-
-.wave-loading-item:nth-child(7) {
-    animation-delay: 0.6s;
-}
-
-.wave-loading-item:nth-child(8) {
-    animation-delay: 0.7s;
-}
+.wave-loading-item:nth-child(1) { animation-delay: -0.4s; }
+.wave-loading-item:nth-child(2) { animation-delay: -0.3s; }
+.wave-loading-item:nth-child(3) { animation-delay: -0.2s; }
+.wave-loading-item:nth-child(4) { animation-delay: -0.1s; }
+.wave-loading-item:nth-child(5) { animation-delay: 0s; }
 
 .top-nav-link {
     display: flex;
@@ -703,4 +683,62 @@ body, .page {
     top: 5px;
     font-size: xx-small;
   }
+
+  .download-speed-indicator {
+    padding: 8px 0;
+  }
   
+  .txt-download-speed {
+    color: greenyellow;
+    font-weight: 600;
+    padding: 0 5px;
+  }
+  
+  .txt-upload-speed {
+    color: #ffa726;
+    font-weight: 600;
+    padding: 0 5px;
+  }
+
+  .cover-container img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+  }
+
+  a:hover {
+    text-decoration: none;
+  }
+
+  /* 自定义图标 jellyfin */
+  .ti.ti-jellyfin::before {
+    content: "";
+    display: inline-block;
+    width: 1em;
+    height: 1em;
+    background-color: currentColor;
+    -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cg %3E%3Cpath d='M12.001 9.663c-.877 0-3.704 5.127-3.275 5.99.43.865 6.125.856 6.55 0 .425-.854-2.394-5.99-3.275-5.99z'/%3E%3Cpath d='M12.001 2C9.354 2 .836 17.446 2.134 20.055c1.298 2.608 18.45 2.578 19.735 0C23.154 17.476 14.649 2 12 2Zm6.468 15.794c-.842 1.69-12.08 1.71-12.932 0-.85-1.71 4.732-11.832 6.464-11.832 1.732 0 7.31 10.139 6.468 11.832z'/%3E%3C/g%3E%3C/svg%3E") no-repeat center / contain;
+    mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cg %3E%3Cpath d='M12.001 9.663c-.877 0-3.704 5.127-3.275 5.99.43.865 6.125.856 6.55 0 .425-.854-2.394-5.99-3.275-5.99z'/%3E%3Cpath d='M12.001 2C9.354 2 .836 17.446 2.134 20.055c1.298 2.608 18.45 2.578 19.735 0C23.154 17.476 14.649 2 12 2Zm6.468 15.794c-.842 1.69-12.08 1.71-12.932 0-.85-1.71 4.732-11.832 6.464-11.832 1.732 0 7.31 10.139 6.468 11.832z'/%3E%3C/g%3E%3C/svg%3E") no-repeat center / contain;
+  }
+
+  .ribbon-bookmark.ribbon-top.ribbon-left {
+    left: .75rem;
+    right: auto;
+    border-radius: var(--tblr-ribbon-border-radius) 0 0 0;
+    z-index: 10;
+  }
+
+  .ribbon-bookmark.ribbon-top.ribbon-left:before {
+    left: 100%;
+    right: auto;
+    border-top-color: transparent;
+    border-right-color: transparent;
+    border-left-color: inherit !important;
+  }
+
+  .card-progress {
+    position: absolute;
+    width: 100%;
+    bottom: 0;
+  }

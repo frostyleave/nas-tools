@@ -330,7 +330,7 @@ class IYUUAutoSeed(_IPluginModule):
                 $("#iyuuautoseed_passkey").removeClass("is-invalid");
             }
             // 认证
-            ajax_post("run_plugin_method", {"plugin_id": 'IYUUAutoSeed', 'method': 'iyuu_bind_site', "site": site, "uid": uid, "passkey": passkey}, function (ret) {
+            axios_post_do("run_plugin_method", {"plugin_id": 'IYUUAutoSeed', 'method': 'iyuu_bind_site', "site": site, "uid": uid, "passkey": passkey}, function (ret) {
                 $("#modal-plugin-page").modal('hide');
                 if (ret.result.code === 0) {
                     show_success_modal("IYUU用户认证成功！", function () {

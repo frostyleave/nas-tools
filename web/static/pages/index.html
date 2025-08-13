@@ -1,0 +1,671 @@
+<div class="container-xl">
+  <!-- Page title -->
+  <div class="page-header d-print-none">
+    <div class="row align-items-center">
+      <div class="col">
+        <h2 class="page-title">
+          我的媒体库
+        </h2>
+      </div>
+      <div class="col-auto ms-auto d-print-none">
+        <div class="btn-list">
+          <a href="javascript:show_mediasync_modal()" class="btn btn-primary d-none d-sm-inline-flex">
+            <i class="ti ti-refresh fs-2 me-1"></i>
+            媒体库同步
+          </a>
+          <a href="javascript:show_mediasync_modal()" class="btn btn-primary d-sm-none btn-icon">
+            <i class="ti ti-refresh fs-2 me-1"></i>
+          </a>
+          <button class="btn btn-cyan d-none d-sm-inline-flex" data-bs-toggle="modal" data-bs-target="#modal-index-statistics">
+            <i class="ti ti-chart-pie fs-2 me-1"></i>
+            统计数据
+          </button>
+          <button class="btn btn-cyan d-sm-none btn-icon" data-bs-toggle="modal" data-bs-target="#modal-index-statistics">
+            <i class="ti ti-chart-pie fs-2 me-1"></i>
+          </button>
+          <button class="btn d-none d-sm-inline-flex" data-bs-toggle="modal" data-bs-target="#modal-index-playhistory">
+            <i class="ti ti-history fs-2 me-1"></i>
+            播放记录
+          </button>
+          <button class="btn d-sm-none btn-icon" data-bs-toggle="modal" data-bs-target="#modal-index-playhistory">
+            <i class="ti ti-history fs-2 me-1"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 媒体库内容容器 -->
+<div id="media-libraries-container"></div>
+
+<!-- 正在观看内容容器 -->
+<div id="resume-watching-container"></div>
+
+<!-- 最新入库内容容器 -->
+<div id="latest-media-container"></div>
+
+<!-- 错误信息容器 -->
+<div id="error-container"></div>
+<!-- 媒体库同步模态框 -->
+<div class="modal modal-blur fade" id="index-mediasync-modal" tabindex="-1" role="dialog" aria-hidden="true">
+  <div class="modal-dialog modal-md modal-dialog-centered" role="document">
+    <div class="modal-content">
+      <div class="card border-0">
+        <div class="card-body text-center">
+          <div class="mb-3">
+            <span class="avatar avatar-xl avatar-rounded" id="media-server-avatar"></span>
+          </div>
+          <div class="card-title mb-1" id="media-server-type"></div>
+          <div id="mediasync_status"></div>
+        </div>
+        <details class="m-3">
+            <summary class="summary">
+              媒体库列表
+            </summary>
+            <div class="row mt-2">
+              <div class="form-selectgroup" id="sync-library-list">
+                <!-- 媒体库列表将通过 JavaScript 动态生成 -->
+              </div>
+            </div>
+          </details>
+        <div class="card-progress">
+          <div class="progress-bar bg-green" id="mediasync_process_bar" style="width: 0" role="progressbar"
+               aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+        </div>
+        <div class="d-flex">
+          <a href="javascript:save_media_config()" id="save_mediasync_btn" class="card-btn">保存</a>
+          <a href="javascript:start_media_sync(true)" id="mediasync_btn" class="card-btn">开始同步</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 播放记录模态框 -->
+<div class="modal modal-blur fade" id="modal-index-playhistory" tabindex="-1" role="dialog" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">播放记录</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div class="card-body card-body-scrollable card-body-scrollable-shadow p-0 overflow-hidden">
+          <div class="divide-y" id="activity-list">
+            <!-- 播放记录将通过 JavaScript 动态生成 -->
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-primary" data-bs-dismiss="modal">确定</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 统计数据模态框 -->
+<div class="modal modal-blur fade" id="modal-index-statistics" tabindex="-1" role="dialog" aria-hidden="true">
+  <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">统计数据</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body py-0">
+        <div class="row">
+          <div class="col-lg-4 mt-3">
+            <div class="card">
+              <div class="card-body">
+                <div class="d-flex align-items-center">
+                  <div class="subheader">电影</div>
+                </div>
+                <div class="d-flex align-items-baseline">
+                  <div class="h1 mb-0 me-2" id="movie-count">0</div>
+                </div>
+              </div>
+              <div class="card-progress" style="overflow: hidden">
+                <div class="progress-bar bg-green" style="width:0%" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+              </div>
+            </div>
+          </div>
+          <div class="col-lg-4 mt-3">
+            <div class="card">
+              <div class="card-body">
+                <div class="d-flex align-items-center">
+                  <div class="subheader">电视剧/动漫</div>
+                </div>
+                <div class="d-flex align-items-baseline">
+                  <div class="h1 mb-0 me-2" id="series-count">0</div>
+                  <div class="me-auto">
+                  <span class="text-green d-inline-flex align-items-center lh-1" id="episode-count">0</span>
+                  </div>
+                </div>
+              </div>
+              <div class="card-progress" style="overflow: hidden">
+                <div class="progress-bar bg-green" style="width:0%" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+              </div>
+            </div>
+          </div>
+          <div class="col-lg-4 mt-3">
+            <div class="card">
+              <div class="card-body">
+                <div class="d-flex align-items-center">
+                  <div class="subheader">存储空间</div>
+                </div>
+                <div class="d-flex align-items-baseline">
+                  <div class="h1 mb-0 me-2" id="total-space">0</div>
+                </div>
+              </div>
+              <div class="card-progress" style="overflow: hidden">
+                <div class="progress-bar bg-green" id="used-space-bar" style="width:0%" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="row mt-3">
+          <div id="index_statistics_chart" style="height: 20rem"></div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-primary" data-bs-dismiss="modal">确定</button>
+      </div>
+    </div>
+  </div>
+</div>
+<script type="text/javascript">
+
+  var currentDomain = window.location.hostname;
+
+  // 页面加载完成后初始化
+  $(document).ready(function () {
+    loadIndexData();
+
+    // 响应大小调整
+    window.onresize = function () {
+      if(chart_statistics) {
+        chart_statistics.resize();
+      }
+    };
+  });
+
+  // 加载首页数据
+  function loadIndexData() {
+    axios_post("/data/index", {}, function (ret) {
+      if (ret.code === 0) {
+        var pageData = ret.data;
+        renderPage(pageData);
+      } else {
+        showError("加载数据失败：" + ret.msg);
+      }
+    }, true, true);
+  }
+
+  // 渲染页面内容
+  function renderPage(pageData) {
+    if (!pageData) return;
+
+    if (pageData.ServerSucess) {
+      renderMediaLibraries(pageData);
+      renderResumeWatching(pageData);
+      renderLatestMedia(pageData);
+      hideError();
+    } else {
+      showError("媒体服务器连接失败！", "当前无法连接媒体服务器获取数据，请确认Emby/Jellyfin/Plex配置是否正确。");
+    }
+
+    // 更新模态框数据
+    updateModalData(pageData);
+  }
+
+  // 渲染媒体库
+  function renderMediaLibraries(pageData) {
+    const container = $("#media-libraries-container");
+    if (!pageData.Librarys || pageData.Librarys.length === 0) {
+      container.empty();
+      return;
+    }
+
+    let html = `
+      <div class="page-body">
+        <div class="container-xl">
+          <div class="d-grid gap-3 grid-normal-card">
+    `;
+
+    pageData.Librarys.forEach(library => {
+      if (pageData.LibrarySyncConf && pageData.LibrarySyncConf.includes(library.id.toString())) {
+        let theLibLink = library.link;
+        // 替换 127.0.0.1 和 localhost
+        if (theLibLink && theLibLink.substring(0, 16).includes("127.0.0.1")) {
+          theLibLink = theLibLink.replace("127.0.0.1", currentDomain);
+        } else if (theLibLink && theLibLink.substring(0, 16).includes("localhost")) {
+          theLibLink = theLibLink.replace("localhost", currentDomain);
+        }
+
+        html += `
+          <a class="card card-link-pop rounded-3 overflow-hidden library-${library.id}" href="${theLibLink}" target="_blank">
+        `;
+
+        if (library.image) {
+          html += `
+            <custom-img img-class="w-100"
+                        img-src="${library.image}"
+                        img-ratio="50%"
+                        img-style="object-fit: cover;">
+            </custom-img>
+          `;
+        } else if (library.image_list) {
+          html += `<custom-plex-library-img img-src-list='${library.image_list}'></custom-plex-library-img>`;
+        }
+
+        html += `
+            <div class="m-2 text-center">
+              ${library.name}
+            </div>
+          </a>
+        `;
+      }
+    });
+
+    html += `
+          </div>
+        </div>
+      </div>
+    `;
+
+    container.html(html);
+  }
+
+  // 渲染正在观看
+  function renderResumeWatching(pageData) {
+    const container = $("#resume-watching-container");
+    if (!pageData.Resumes || pageData.Resumes.length === 0) {
+      container.empty();
+      return;
+    }
+
+    let html = `
+      <div class="container-xl">
+        <div class="page-header d-print-none">
+          <div class="row align-items-center">
+            <div class="col">
+              <h2 class="page-title">正在观看</h2>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="page-body">
+        <div class="container-xl">
+          <div class="d-grid gap-3 grid-normal-card align-items-start">
+    `;
+
+    pageData.Resumes.forEach(resume => {
+      let theLibLink = resume.link;
+      // 替换 127.0.0.1 和 localhost
+      if (theLibLink && theLibLink.substring(0, 16).includes("127.0.0.1")) {
+        theLibLink = theLibLink.replace("127.0.0.1", currentDomain);
+      } else if (theLibLink && theLibLink.substring(0, 16).includes("localhost")) {
+        theLibLink = theLibLink.replace("localhost", currentDomain);
+      }
+
+      html += `
+        <a class="card card-link-pop rounded-3 overflow-hidden resume-${resume.id}" href="${theLibLink}" target="_blank">
+          <custom-img img-class="w-100"
+                      img-src="${resume.image}"
+                      img-ratio="50%"
+                      img-style="object-fit: cover;">
+          </custom-img>
+          <span class="badge badge-pill ${resume.type === '电影' ? 'bg-green' : 'bg-blue'}" style="position: absolute; top: 10px; left: 10px">
+            ${resume.type}
+          </span>
+      `;
+
+      if (resume.percent) {
+        html += `
+          <div class="card-progress" style="overflow: hidden">
+            <div class="progress-bar bg-green" style="width:${resume.percent}%" role="progressbar" aria-valuenow="${resume.percent}" aria-valuemin="0" aria-valuemax="100">
+            </div>
+          </div>
+        `;
+      }
+
+      html += `
+          <div class="m-2 text-center" style="-webkit-line-clamp:1; display: -webkit-box; -webkit-box-orient:vertical; overflow:hidden; text-overflow: ellipsis;">
+            ${resume.name}
+          </div>
+        </a>
+      `;
+    });
+
+    html += `
+          </div>
+        </div>
+      </div>
+    `;
+
+    container.html(html);
+  }
+
+  //显示媒体库同步框
+  function show_mediasync_modal() {
+    //获取同步状态
+    axios_post_do("refresh_process", {type: "mediasync"}, function (ret) {
+      if (ret.code === 0 && ret.value < 100) {
+        //同步中
+        $("#index-mediasync-modal").modal('show');
+        start_media_sync(false);
+      } else {
+        //没有在同步，获取目前同步的数据情况
+        axios_post_do("mediasync_state", {}, function (ret) {
+          if (ret.code === 0) {
+            $("#mediasync_status").text(ret.text);
+          }
+          $("#mediasync_btn").text("开始同步")
+              .attr("href", "javascript:start_media_sync(true)");
+          $("#save_mediasync_btn").show();
+          $("#index-mediasync-modal").modal('show');
+        }, true, false);
+      }
+    }, true, false);
+  }
+
+  // 渲染最新入库
+  function renderLatestMedia(pageData) {
+    const container = $("#latest-media-container");
+    if (!pageData.Latests || pageData.Latests.length === 0) {
+      container.empty();
+      return;
+    }
+
+    let html = `
+      <div class="container-xl">
+        <div class="page-header d-print-none">
+          <div class="row align-items-center">
+            <div class="col">
+              <h2 class="page-title">最新入库</h2>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="page-body">
+        <div class="container-xl">
+          <div class="d-grid gap-3 grid-media-card align-items-start">
+    `;
+
+    pageData.Latests.forEach(latest => {
+      let theLibLink = latest.link;
+      // 替换 127.0.0.1 和 localhost
+      if (theLibLink && theLibLink.substring(0, 16).includes("127.0.0.1")) {
+        theLibLink = theLibLink.replace("127.0.0.1", currentDomain);
+      } else if (theLibLink && theLibLink.substring(0, 16).includes("localhost")) {
+        theLibLink = theLibLink.replace("localhost", currentDomain);
+      }
+
+      html += `
+        <a class="card card-link-pop overflow-hidden rounded-3 latest-${latest.id}" href="${theLibLink}" target="_blank">
+          <custom-img img-class="w-100"
+                      img-src="${latest.image}"
+                      img-ratio="150%"
+                      img-style="object-fit: cover;">
+          </custom-img>
+          <span class="badge badge-pill ${latest.type === '电影' ? 'bg-green' : 'bg-blue'}" style="position: absolute; top: 10px; left: 10px">
+            ${latest.type}
+          </span>
+          <div class="m-2 text-center" style="-webkit-line-clamp:1; display: -webkit-box; -webkit-box-orient:vertical; overflow:hidden; text-overflow: ellipsis;">
+            ${latest.name}
+          </div>
+        </a>
+      `;
+    });
+
+    html += `
+          </div>
+        </div>
+      </div>
+    `;
+
+    container.html(html);
+  }
+
+  // 更新模态框数据
+  function updateModalData(pageData) {
+    // 更新媒体服务器类型
+    if (pageData.MediaServerType) {
+      $("#media-server-type").text(pageData.MediaServerType.charAt(0).toUpperCase() + pageData.MediaServerType.slice(1));
+      $("#media-server-avatar").attr("style", `background-image: url('../static/img/mediaserver/${pageData.MediaServerType}.png')`);
+    }
+
+    // 更新媒体库同步列表
+    if (pageData.Librarys) {
+      let syncLibraryHtml = '';
+      pageData.Librarys.forEach(library => {
+        const checked = pageData.LibrarySyncConf && pageData.LibrarySyncConf.includes(library.id.toString()) ? 'checked' : '';
+        syncLibraryHtml += `
+          <label class="form-selectgroup-item">
+            <input type="checkbox" name="sync_library" value="${library.id}" class="form-selectgroup-input" ${checked}>
+            <span class="form-selectgroup-label">${library.name}</span>
+          </label>
+        `;
+      });
+      $("#sync-library-list").html(syncLibraryHtml);
+    }
+
+    // 更新播放记录
+    if (pageData.Activitys) {
+      let activityHtml = '';
+      pageData.Activitys.forEach(activity => {
+        activityHtml += `
+          <div>
+            <div class="row">
+              <div class="col-auto">
+                <span class="avatar">
+                  ${activity.type === "LG" ? '<i class="ti ti-user fs-2 me-1"></i>' : '<i class="ti ti-player-play fs-2 me-1"></i>'}
+                </span>
+              </div>
+              <div class="col">
+                <div class="text-truncate">${activity.event}</div>
+                <div class="text-muted">${activity.date}</div>
+              </div>
+              <div class="col-auto align-self-center">
+                <div class="bg-primary"></div>
+              </div>
+            </div>
+          </div>
+        `;
+      });
+      $("#activity-list").html(activityHtml);
+    }
+
+    // 更新统计数据
+    if (pageData.MediaCount) {
+      $("#movie-count").text(pageData.MediaCount.MovieCount || 0);
+      $("#series-count").text(pageData.MediaCount.SeriesCount || 0);
+      $("#episode-count").text(pageData.MediaCount.EpisodeCount || 0);
+    }
+
+    if (pageData.TotalSpace) {
+      $("#total-space").text(pageData.TotalSpace);
+    }
+
+    if (pageData.UsedPercent) {
+      $("#used-space-bar").attr("style", `width:${pageData.UsedPercent}%`)
+                          .attr("aria-valuenow", pageData.UsedPercent);
+    }
+  }
+
+  // 显示错误信息
+  function showError(title, text) {
+    const container = $("#error-container");
+    container.html(`<system-error title="${title}" text="${text || ''}"></system-error>`);
+
+    // 隐藏其他容器
+    $("#media-libraries-container").empty();
+    $("#resume-watching-container").empty();
+    $("#latest-media-container").empty();
+  }
+
+  // 隐藏错误信息
+  function hideError() {
+    $("#error-container").empty();
+  }
+
+  //关闭媒体库同步框
+  function close_mediasync_modal() {
+    $("#index-mediasync-modal").modal('hide');
+  }
+
+  //开始媒体库同步
+  function start_media_sync(flag) {
+    $("#mediasync_btn").text("关闭")
+        .attr("href", "javascript:close_mediasync_modal()");
+    $("#save_mediasync_btn").hide();
+    if (flag) {
+      axios_post_do("start_mediasync", {
+        "librarys": select_GetSelectedVAL("sync_library")
+      }, function (ret) {
+        setTimeout("start_mediasync_progress()", 1000);
+      }, true, false);
+    } else {
+      setTimeout("start_mediasync_progress()", 1000);
+    }
+  }
+
+  // 保存媒体库配置
+  function save_media_config(){
+    let params = {
+      "key": "SyncLibrary",
+      "value": select_GetSelectedVAL("sync_library")
+    };
+    axios_post_do("set_system_config", params, function (ret) {
+      $("#index-mediasync-modal").modal('hide');
+      window_history_refresh();
+    });
+  }
+
+  // 停止刷新进度
+  function stop_mediasync_progress() {
+    if (MediaSyncProgressEs) {
+      MediaSyncProgressEs.close();
+      MediaSyncProgressEs = undefined;
+    }
+  }
+
+  //刷新进度
+  var MediaSyncProgressEs;
+  function start_mediasync_progress() {
+    stop_mediasync_progress();
+    MediaSyncProgressEs = new EventSource(`stream-progress?type=mediasync`);
+    MediaSyncProgressEs.onmessage = function (event) {
+      let ret = JSON.parse(event.data);
+      if (ret.code === 0) {
+        $("#mediasync_process_bar").attr("style", "width: " + ret.value + "%")
+            .attr("aria-valuenow", ret.value);
+        $("#mediasync_status").text(ret.text);
+      }
+      if ($("#index-mediasync-modal").is(":hidden")) {
+        stop_mediasync_progress();
+      }
+    }
+  }
+
+</script>
+<script type="text/javascript">
+
+  var chart_statistics = undefined;
+
+  // 加载图表
+  $('#modal-index-statistics').off('shown.bs.modal').on('shown.bs.modal', function (e) {
+    // 请求数据
+    axios_post_do("get_transfer_statistics", {}, function(ret){
+
+      // 电影变化图
+      if (typeof (chart_statistics) != 'undefined')
+        chart_statistics.dispose();
+
+      chart_statistics = echarts.init(document.getElementById("index_statistics_chart"), null, {
+        renderer: 'canvas',
+        useDirtyRect: false
+      });
+
+      const option = {
+        title: {
+          text: ''
+        },
+        tooltip: {
+          trigger: 'axis',
+          axisPointer: {
+            type: 'cross',
+            label: {
+              backgroundColor: '#6a7985'
+            }
+          }
+        },
+        legend: {
+          data: ['电影', '电视剧', '动漫'],
+          textStyle: {
+            color: '#206bc4'
+          }
+        },
+        toolbox: {
+          feature: {
+
+          }
+        },
+        grid: {
+          left: '3%',
+          right: '4%',
+          bottom: '3%',
+          containLabel: true
+        },
+        xAxis: [
+          {
+            type: 'category',
+            boundaryGap: false,
+            data: ret.Labels
+          }
+        ],
+        yAxis: [
+          {
+            type: 'value'
+          }
+        ],
+        series: [
+          {
+            name: '电影',
+            type: 'line',
+            stack: 'Total',
+            areaStyle: {},
+            emphasis: {
+              focus: 'series'
+            },
+            data: ret.MovieNums
+          },
+          {
+            name: '电视剧',
+            type: 'line',
+            stack: 'Total',
+            areaStyle: {},
+            emphasis: {
+              focus: 'series'
+            },
+            data: ret.TvNums
+          },
+          {
+            name: '动漫',
+            type: 'line',
+            stack: 'Total',
+            areaStyle: {},
+            emphasis: {
+              focus: 'series'
+            },
+            data: ret.AnimeNums
+          }
+        ]
+      };
+      chart_statistics.setOption(option);
+    });
+  });
+
+
+
+</script>

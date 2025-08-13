@@ -1,0 +1,27 @@
+<script type="text/javascript">
+
+  $(document).ready(function () {
+    // 获取URL参数
+    const [path, queryString] = window.location.hash.split("?");
+    const urlParams = new URLSearchParams(queryString);
+    const title = urlParams.get('title') || '';
+    const subtitle = urlParams.get('subtitle') || '';
+    const tmdbId = urlParams.get('tmdbid') || '';
+    const type = urlParams.get('type') || '';
+    const keyword = urlParams.get('keyword') || '';
+
+
+    // 创建并挂载组件
+    const $page = $('<page-person>', {
+      'page-title': title,
+      'page-subtitle': subtitle,
+      'media-tmdbid': tmdbId,
+      'media-type': type,
+      'keyword': keyword
+    });
+
+    $("#page_content").html($page);
+
+  });
+
+</script>

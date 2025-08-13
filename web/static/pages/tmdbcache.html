@@ -1,0 +1,335 @@
+<div class="container-xl">
+  <!-- Page title -->
+  <div class="page-header d-print-none">
+    <div class="row align-items-center">
+      <div class="col">
+      </div>
+      <div class="col-auto ms-auto d-print-none">
+        <div class="btn-list">
+          <a href="javascript:clear_tmdb_cache()" class="btn btn-danger d-none d-sm-inline-block">
+            <i class="ti ti-eraser fs-2 me-1"></i>
+            清空TMDB缓存
+          </a>
+          <a href="javascript:clear_tmdb_cache()" class="btn btn-danger d-sm-none btn-icon" title="清空TMDB缓存">
+            <i class="ti ti-eraser fs-2 me-1"></i>
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<!-- 业务页面代码 -->
+<div class="page-body">
+  <div class="container-xl">
+    <div class="row row-cards">
+      <div class="col-12">
+        <div class="card">
+          <div class="card-body border-bottom py-3">
+            <div class="d-flex">
+              <div class="text-muted">
+                共 <span id="total-count">0</span> 条记录
+              </div>
+              <div class="ms-auto text-muted">
+                搜索:
+                <div class="ms-2 d-inline-block">
+                  <input id="search_word" value="" type="text"
+                         class="form-control form-control-sm" aria-label="搜索">
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="table-responsive" id="table-container">
+            <table class="table table-vcenter card-table table-hover table-striped">
+              <thead>
+              <tr>
+                <th>索引</th>
+                <th>标题</th>
+                <th>TMDB</th>
+                <th></th>
+                <th></th>
+              </tr>
+              </thead>
+              <tbody id="tmdb-cache-table-body">
+                <tr>
+                  <td colspan="5" align="center">加载中...</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="card-footer d-flex align-items-center" id="pagination-container" style="display: none;">
+            <p class="m-0 text-muted">当前页 <span id="current-count">0</span> 条</p>
+            <ul class="pagination m-0 ms-auto" id="pagination-list">
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="modal modal-blur fade" id="tmdb_cache_detail" tabindex="-1" role="dialog" aria-hidden="true"
+     data-bs-backdrop="static" data-bs-keyboard="false">
+  <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="tmdb_cache_title">缓存条目</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <pre class="modal-body" id="tmdb_cache_content"
+           style="display:flex; flex-direction:column-reverse;font-size:12px;">
+            </pre>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-primary" data-bs-dismiss="modal">取消</button>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="modal modal-blur fade" id="modal-tmdbcache-modify" tabindex="-1" role="dialog" aria-hidden="true"
+     data-bs-backdrop="static" data-bs-keyboard="false">
+  <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">修改TMDB缓存</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div class="row">
+          <label class="form-label required">标题</label>
+          <div class="row mb-3">
+            <input type="hidden" id="tmdbcache_key">
+            <input type="text" value="" id="tmdbcache_title" class="form-control" placeholder="标题">
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-link me-auto" data-bs-dismiss="modal">取消</button>
+        <a href="javascript:modify_title()" id="tmdbcache_modify_btn" class="btn btn-primary">确定</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script type="text/javascript">
+
+  // 上一页
+  function go_pre_page(search, page) {
+    navmenu("tmdbcache?s=" + search + "&page=" + (page - 1))
+  }
+
+  // 下一页
+  function go_next_page(search, page) {
+    navmenu("tmdbcache?s=" + search + "&page=" + (page + 1))
+  }
+
+  // 显示修改
+  function show_modify(key, title) {
+    $("#tmdbcache_key").val(key);
+    $("#tmdbcache_title").val(title);
+    $("#modal-tmdbcache-modify").modal('show');
+  }
+
+  // 修改标题
+  function modify_title() {
+    const key = $("#tmdbcache_key").val();
+    if (!key) {
+      return;
+    }
+    const title = $("#tmdbcache_title").val();
+    if (!title) {
+      $("#tmdbcache_title").addClass("is-invalid");
+      return;
+    } else {
+      $("#tmdbcache_title").removeClass("is-invalid");
+    }
+    $("#modal-tmdbcache-modify").modal('hide');
+    axios_post_do("modify_tmdb_cache", {"key": key, "title": title}, function () {
+      window_history_refresh();
+    });
+  }
+
+  //清空TMDB缓存
+  function clear_tmdb_cache() {
+    show_confirm_modal("清空TMDB缓存后，将会增加TMDB API的请求次数，增加搜索响应时间，但是可以一次性解决TMDB改名后本地缓存未更新的问题，是否确认？", function () {
+      hide_confirm_modal();
+      axios_post_do("clear_tmdb_cache", {}, function (ret) {
+        show_success_modal("TMDB缓存清理完成！");
+        window_history_refresh();
+      });
+    });
+  }
+
+  //删除提示
+  function manual_delete(key) {
+    show_confirm_modal(key + " 对应的缓存TMDB条目将被删除，是否确认？", function () {
+      hide_confirm_modal();
+      axios_post_do("delete_tmdb_cache", {"cache_key": key}, function () {
+        window_history_refresh();
+      });
+    });
+  }
+
+  // 搜索按钮
+  $('#search_word').bind('keypress', function (event) {
+    if (event.keyCode == "13") {
+      let keyword = $("#search_word").val();
+      navmenu("tmdbcache?s=" + keyword);
+    }
+  });
+
+</script>
+
+<script type="text/javascript">
+
+  // 页面加载完成后，使用axios_post请求/data/tmdbcache接口获取数据并填充页面
+  $(document).ready(function() {
+
+    // 获取URL参数
+    const [path, queryString] = window.location.hash.split("?");
+    const urlParams = new URLSearchParams(queryString);
+    const searchKeyword = urlParams.get('s') || '';
+    const currentPage = urlParams.get('page') || 1;
+    const pageNum = 20;
+
+    // 设置搜索框的值
+    $('#search_word').val(searchKeyword);
+
+    const requestData = {};
+    requestData.pagenum = pageNum;
+    requestData.s = searchKeyword;
+    requestData.page = currentPage;
+
+    axios_post('/data/tmdbcache', requestData, function(response) {
+
+      if (response.code === 0 && response.data) {
+        
+        const data = response.data;
+
+        // 生成TMDB缓存表格
+        const tableBody = $('#tmdb-cache-table-body');
+        const tableContainer = $('#table-container');
+        const paginationContainer = $('#pagination-container');
+
+        tableBody.empty();
+
+        if (data.TmdbCaches && data.TmdbCaches.length > 0) {
+
+          $('#current-count').text(data.TmdbCaches.length);
+
+          // 添加表格样式
+          if (data.TotalCount > 0) {
+            tableContainer.addClass('table-page-mini-body');
+          }
+
+          data.TmdbCaches.forEach(tmdbCache => {
+
+            var cacheKey = tmdbCache.key;
+            var cacheData = tmdbCache.meta;
+            var indexKey = tmdbCache.key.replace("[电影]", "").replace("[电视剧]", "").replace("[未知]", "").replace("-None", "");
+            var mediaIcon = cacheData.media_type === '电影' ? 'ti-movie' : 'ti-device-tv';
+            var mediaType = cacheData.media_type === '电影' ? 'movie' : 'tv';
+
+            var posterImg = cacheData.poster_path ?
+              `<img class="rounded shadow-sm w-5"
+                   src="https://image.tmdb.org/t/p/w500${cacheData.poster_path}"
+                   onerror="this.src='../static/img/no-image.svg'" alt=""
+                   style="min-width: 50px"/>` : '';
+
+            var row = `
+              <tr>
+                <td>
+                  <div class="d-flex py-1 align-items-center">
+                    <span class="avatar me-2 text-nowrap">
+                      <i class="ti ${mediaIcon} fs-2 me-1"></i>
+                    </span>
+                    <div class="flex-fill">
+                      <div class="font-weight-medium">${indexKey}</div>
+                    </div>
+                  </div>
+                </td>
+                <td>
+                  <div>${cacheData.title}</div>
+                </td>
+                <td>
+                  <div class="text-muted text-nowrap">${cacheData.id}
+                    <a class="ms-1" href="https://www.themoviedb.org/${mediaType}/${cacheData.id}" target="_blank">
+                      <i class="ti ti-link fs-2 me-1"></i>
+                    </a>
+                  </div>
+                </td>
+                <td>
+                  ${posterImg}
+                </td>
+                <td>
+                  <div class="dropdown">
+                    <a href="#" class="btn-action" data-bs-toggle="dropdown" aria-expanded="false">
+                      <i class="ti ti-dots-vertical fs-2 me-1"></i>
+                    </a>
+                    <div class="dropdown-menu dropdown-menu-end">
+                      <a class="dropdown-item" href='javascript:show_modify("${indexKey}", "${cacheData.title}")'>
+                        修改
+                      </a>
+                      <a class="dropdown-item text-danger" href='javascript:manual_delete("${cacheKey}")'>
+                        删除
+                      </a>
+                    </div>
+                  </div>
+                </td>
+              </tr>
+            `;
+            tableBody.append(row);
+          });
+
+          // 生成分页
+          if (data.TotalCount > 0) {
+            const paginationList = $('#pagination-list');
+            paginationList.empty();
+
+            // 上一页
+            const prevDisabled = data.CurrentPage == 1 ? 'disabled' : '';
+            paginationList.append(`
+              <li class="page-item ${prevDisabled}">
+                <a class="page-link" href="javascript:go_pre_page('${data.Search || ''}', ${data.CurrentPage})" tabindex="-1" aria-disabled="true">
+                  <i class="ti ti-chevron-left fs-2 me-1"></i>
+                </a>
+              </li>
+            `);
+
+            var total_page = (data.TotalCount + pageNum - 1) / pageNum;
+            var page_range = get_page_range(data.CurrentPage, total_page);
+            // 页码
+            page_range.forEach(page => {
+              const active = page == data.CurrentPage ? 'active' : '';
+              paginationList.append(`
+                <li class="page-item ${active}">
+                  <a class="page-link" href="javascript:navmenu('tmdbcache?s=${data.Search || ''}&page=${page}')">${page}</a>
+                </li>
+              `);
+            });
+
+            // 下一页
+            const nextDisabled = data.CurrentPage >= total_page ? 'disabled' : '';
+            const nextHref = data.CurrentPage < total_page ?
+              `javascript:go_next_page('${data.Search || ''}', ${data.CurrentPage})` :
+              'javascript:void(0)';
+            paginationList.append(`
+              <li class="page-item ${nextDisabled}">
+                <a class="page-link" href="${nextHref}">
+                  <i class="ti ti-chevron-right fs-2 me-1"></i>
+                </a>
+              </li>
+            `);
+
+            paginationContainer.show();
+          }
+        } else {
+          // 没有数据
+          tableBody.append(`
+            <tr>
+              <td colspan="5" align="center">没有数据</td>
+            </tr>
+          `);
+        }
+      }
+    }, true, true);
+  });
+
+</script>

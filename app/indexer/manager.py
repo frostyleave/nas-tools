@@ -1,4 +1,5 @@
-from typing import Dict, Optional
+from typing import Dict, List, Optional
+from pydantic import BaseModel
 
 import log
 
@@ -8,78 +9,43 @@ from app.utils import SiteUtils
 from app.utils.commons import singleton
 
 
-class IndexerConf(object):
+class IndexerConf(BaseModel):
 
-    def __init__(self,
-                 datas=None,
-                 name=None,
-                 public=True,
-                 proxy=None,
-                 parser=None,
-                 render=None,
-                 builtin=True,
-                 ua=None,
-                 siteid=None,
-                 cookie=None,
-                 token=None,
-                 apikey=None,
-                 rule=None,
-                 pri=None):
-        
-        if not datas:
-            return
-        
-        # 索引ID
-        self.id = datas.get('id')
-        # 名称
-        self.name = name if name else datas.get('name')
-        # 域名
-        self.domain = datas.get('domain')
-        # 搜索
-        self.search = datas.get('search', {})
-        # 批量搜索，如果为空对象则表示不支持批量搜索
-        self.batch = self.search.get("batch", {}) if builtin else {}
-        # 是否启用渲染
-        self.render = render if render is not None else datas.get("render", False)
-        # 解析器
-        self.parser = parser if parser is not None else datas.get('parser')
-        if self.parser == 'RenderSpider':
-            self.render = True
-            self.parser = ''
-        # 浏览
-        self.browse = datas.get('browse', {})
-        # 种子过滤
-        self.torrents = datas.get('torrents', {})
-        # 分类
-        self.category = datas.get('category')
-        # 网站资源类型
-        self.source_type = datas.get('source_type', ['MOVIE', 'TV', 'ANIME'])
-        # 支持的搜索类型, 为空默认为标题、英文名
-        self.search_type = datas.get('search_type', 'title')
-        # 是否公开站点
-        self.public = datas.get('public', public)
-        # 是否使用英文名进行扩展搜索
-        self.en_expand = datas.get('en_expand', False)
-        # 是否使用代理
-        self.proxy = proxy if proxy is not None else datas.get('proxy', False)
-        # 指定下载器
-        self.downloader = datas.get('downloader')
-        # 是否内置站点
-        self.builtin = builtin
-        # 站点ID
-        self.siteid = siteid
-        # Cookie
-        self.cookie = cookie
-        self.token = token
-        self.apikey = apikey
-        # User-Agent
-        self.ua = ua
-        # 过滤规则
-        self.rule = rule
-        # 索引器优先级
-        self.pri = pri if pri else 0
-        # 超时时间
-        self.timeout = 15
+    id: Optional[str] = None
+    name: Optional[str] = None
+    domain: Optional[str] = None
+    search: dict
+    torrents: dict
+    batch:  Optional[dict] = None
+    render: bool = False
+    parser: Optional[str] = None
+    browse: Optional[dict] = None
+    category: Optional[dict] = None
+    source_type: List[str]
+    search_type: str
+    public: bool = True
+    en_expand: bool = False
+    proxy: bool = False
+    downloader: Optional[int] = None
+    builtin: bool = True
+    siteid: Optional[int] = None
+    cookie: Optional[str] = None
+    token: Optional[str] = None
+    apikey: Optional[str] = None
+    ua: Optional[str] = None
+    rule: Optional[str] = None
+    pri: Optional[int] = None
+    timeout : int = 15
+
+
+    @classmethod
+    def from_datas(cls, datas: Optional[dict] = None, **kwargs):
+        merged = {}
+        if datas:
+            merged.update(datas)
+        merged.update(kwargs)
+        return cls(**merged)
+
 
 
 @singleton
@@ -160,7 +126,7 @@ class IndexerManager:
             if not indexer.get("domain"):
                 continue
             if SiteUtils.url_equal(indexer.get("domain"), url):
-                return IndexerConf(datas=indexer,
+                conf_data = self.prepare_datas(datas=indexer,
                                    siteid=siteid,
                                    cookie=cookie,
                                    token=token,
@@ -174,4 +140,76 @@ class IndexerManager:
                                    render=render,
                                    builtin=True,
                                    pri=pri)
+                return IndexerConf.from_datas(conf_data)
         return None
+
+    def prepare_datas(self,
+                      datas=None,
+                      name=None,
+                      public=True,
+                      proxy=None,
+                      parser=None,
+                      render=None,
+                      builtin=True,
+                      ua=None,
+                      siteid=None,
+                      cookie=None,
+                      token=None,
+                      apikey=None,
+                      rule=None,
+                      pri=None):
+
+        result = {}
+
+        if datas:
+            # 索引ID
+            result["id"] = datas.get('id')
+            # 名称
+            result["name"] = name if name else datas.get('name')
+            # 域名
+            result["domain"] = datas.get('domain')
+            # 搜索
+            result["search"] = datas.get('search', {})
+            # 批量搜索，如果为空对象则表示不支持批量搜索
+            result["batch"] = result["search"].get("batch", {}) if builtin else {}
+            # 是否启用渲染
+            result["render"] = render if render is not None else datas.get("render", False)
+            # 解析器
+            result["parser"] = parser if parser is not None else datas.get('parser')
+            if result["parser"] == 'RenderSpider':
+                result["render"] = True
+                result["parser"] = ''
+            # 浏览
+            result["browse"] = datas.get('browse', {})
+            # 种子过滤
+            result["torrents"] = datas.get('torrents', {})
+            # 分类
+            result["category"] = datas.get('category')
+            # 网站资源类型
+            result["source_type"] = datas.get('source_type', ['MOVIE', 'TV', 'ANIME'])
+            # 支持的搜索类型, 为空默认为标题、英文名
+            result["search_type"] = datas.get('search_type', 'title')
+            # 是否公开站点
+            result["public"] = datas.get('public', public)
+            # 是否使用英文名进行扩展搜索
+            result["en_expand"] = datas.get('en_expand', False)
+            # 是否使用代理
+            result["proxy"] = proxy if proxy is not None else datas.get('proxy', False)
+            # 指定下载器
+            result["downloader"] = datas.get('downloader')
+            # 是否内置站点
+            result["builtin"] = builtin
+            # 站点ID
+            result["siteid"] = siteid
+            # Cookie
+            result["cookie"] = cookie
+            result["token"] = token
+            result["apikey"] = apikey
+            # User-Agent
+            result["ua"] = ua
+            # 过滤规则
+            result["rule"] = rule
+            # 索引器优先级
+            result["pri"] = pri if pri else 0
+
+        return result

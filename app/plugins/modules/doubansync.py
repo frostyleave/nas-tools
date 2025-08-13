@@ -320,7 +320,7 @@ class DoubanSync(_IPluginModule):
                   <tr id="douban_history_{{ Item.id }}">
                     <td class="w-5">
                       <img class="rounded w-5" src="{{ Item.image }}"
-                           onerror="this.src='../static/img/no-image.png'" alt=""
+                           onerror="this.src='../static/img/no-image.svg'" alt=""
                            style="min-width: 50px"/>
                     </td>
                     <td>
@@ -391,7 +391,7 @@ class DoubanSync(_IPluginModule):
         return """
           // 删除豆瓣历史记录
           function DoubanSync_delete_douban_history(id){
-            ajax_post("run_plugin_method", {"plugin_id": 'DoubanSync', 'method': 'delete_sync_history', 'douban_id': id}, function (ret) {
+            axios_post_do("run_plugin_method", {"plugin_id": 'DoubanSync', 'method': 'delete_sync_history', 'douban_id': id}, function (ret) {
               $("#douban_history_" + id).remove();
             });
           }

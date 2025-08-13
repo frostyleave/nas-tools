@@ -1,0 +1,276 @@
+<div class="container-xl">
+  <div class="page-header d-print-none">
+    <div class="row align-items-center">
+      <div class="col">
+      </div>
+      <div class="col-auto ms-auto d-print-none">
+        <div class="btn-list">
+          <a href="javascript:show_add_rss_media_modal(getCurrentType())" class="btn btn-primary d-none d-sm-inline-block">
+            <i class="ti ti-plus"></i>
+            新增订阅
+          </a>
+          <a href="javascript:show_add_rss_media_modal(getCurrentType())" class="btn btn-primary d-sm-none btn-icon">
+            <i class="ti ti-plus"></i>
+          </a>
+          <a href="javascript:show_default_rss_setting_modal(getCurrentType())"
+            class="btn btn-twitter d-none d-sm-inline-block">
+            <i class="ti ti-server-2"></i>
+            默认设置
+          </a>
+          <a href="javascript:show_default_rss_setting_modal(getCurrentType())" class="btn btn-twitter d-sm-none btn-icon">
+            <i class="ti ti-server-2"></i>
+          </a>
+          <a href="javascript:navmenu('rss_history?t=' + getCurrentType())" class="btn d-none d-sm-inline-block">
+            <i class="ti ti-history"></i>
+            订阅历史
+          </a>
+          <a href="javascript:navmenu('rss_history?t=' + getCurrentType())" class="btn d-sm-none btn-icon" title="RSS解析器">
+            <i class="ti ti-history"></i>
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="page-body" id="rss-container">
+  <div class="container-xl">
+    <div class="d-grid gap-3 grid-info-card" id="rss-list">
+      <!-- 动态生成的内容将在这里显示 -->
+    </div>
+  </div>
+</div>
+
+<script type="text/javascript">
+
+  $(document).ready(function() {
+    
+    const container = document.getElementById("page_content");
+    const urlParams = $(container).data("params");
+    var typeParam = urlParams.t || 'MOV';
+
+    // 设置页面数据
+    const pageData = {
+      currentType: typeParam,
+      currentTypeName: typeParam === 'TV' ? '电视剧' : '电影'
+    };
+
+    // 将数据存储在页面容器中
+    $("#rss-container").data('pageData', pageData);
+
+    // 请求数据并生成页面
+    axios_post("/data/rss?t=" + typeParam, {}, function(ret) {
+      if (ret.code === 0) {
+        generateRssPage(ret.data);
+      } else {
+        show_fail_modal("加载RSS订阅失败");
+      }
+    });
+
+  });
+
+  // 获取当前类型的函数
+  function getCurrentType() {
+    const pageData = $("#rss-container").data('pageData');
+    return pageData ? pageData.currentType : 'MOV';
+  }
+
+  // 生成RSS订阅页面内容
+  function generateRssPage(data) {
+    
+    const container = $("#rss-list");
+    container.empty();
+
+    if (!data.Items || Object.keys(data.Items).length === 0) {
+      const noDataText = data.Type === 'TV' ? '当前没有正在订阅的电视剧' : '当前没有正在订阅的电影';
+      container.parent().parent().html(`<nodata-found title="没有订阅" text="${noDataText}"></nodata-found>`);
+      return;
+    }
+
+    $.each(data.Items, function (id, item) {
+
+      const itemHtml = generateRssItemHtml(item, id, data);
+      container.append(itemHtml);
+
+    });
+
+  }
+
+  // 生成单个RSS项目HTML
+  function generateRssItemHtml(item, id, data) {
+
+    const dataAttr = item;
+    const type = data.Type;
+    const typeName = data.TypeName;
+
+    // 生成标题
+    let title = '';
+    if (type === 'MOV') {
+      title = `${dataAttr.name}(${dataAttr.year})`;
+    } else {
+      title = dataAttr.name;
+      if (dataAttr.season && dataAttr.season !== "S00") {
+        title += ` - ${dataAttr.season}`;
+      }
+    }
+
+    // 生成标签
+    const badges = generateBadges(dataAttr, data);
+
+    // 生成站点标签
+    const siteBadges = generateSiteBadges(dataAttr);
+
+    // 生成状态
+    const statusInfo = generateStatusInfo(dataAttr);
+
+    // 生成进度条（仅TV）
+    const progressBar = type === 'TV' ? generateProgressBar(dataAttr) : '';
+
+    return `
+      <div class="card p-0">
+        <div class="card-body media-box" style="background-image: url(${dataAttr.image});">
+          <div class="ribbon ribbon-top ribbon-left ribbon-bookmark bg-purple">${dataAttr.vote}</div>
+          <div class="right-top-box">
+            <a href="javascript:remove_rss_click('${dataAttr.name}','${dataAttr.year}', '${type}','${id}', 'movie_rss')" title="取消订阅" class="text-danger"><i class="ti ti-x fs-2"></i></a>
+          </div>
+          <div class="row align-items-stretch media-content card-text">
+            <div class="col-auto p-0 d-flex align-items-center">
+              <img src="${dataAttr.poster}" class="rounded" alt="" style="max-width: 80px;">
+            </div>
+            <div class="col" style="display: flex; flex-direction: column; overflow: hidden;">
+              <h3 class="card-title mb-1 border-bottom">
+                <a href='javascript:navmenu("media_detail?type=${type}&id=${dataAttr.tmdbid}")'
+                  class="text-reset card-text">
+                  ${title}
+                </a>
+              </h3>
+              <div class="card-body text-center border-bottom" style="padding: 0;flex-grow: 1;">
+                <div class="${badges ? 'text-muted pt-1 mt-1' : 'text-muted'}">
+                  <small>
+                    ${badges}
+                  </small>
+                </div>
+                <div class="text-muted">
+                  <small>
+                    ${siteBadges}
+                  </small>
+                </div>
+              </div>
+              <div class="space-between-box">
+                <div>
+                  ${statusInfo}
+                </div>
+                <div class="col-auto">
+                  <a href="javascript:show_edit_rss_media_modal('${id}', '${typeName}')" title="编辑"
+                    id="start_btn_${id}"><i class="ti ti-edit fs-2 me-1"></i></a>
+                  <a href="javascript:search_mediainfo_media('${dataAttr.tmdbid}','${dataAttr.name}', '${typeName}')"
+                    title="搜索" id="stop_btn_${id}"><i class="ti ti-search fs-2 me-1"></i></a>
+                  <a href="javascript:refresh_rss_media('${type}', '${id}', 'movie_rss')" title="刷新"
+                    id="stop_btn_${id}"><i class="ti ti-refresh fs-2 me-1"></i></a>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        ${progressBar}
+      </div>
+    `;
+  }
+
+  // 生成标签
+  function generateBadges(attr, data) {
+    const badges = [];
+
+    if (attr.over_edition) {
+      badges.push('<span class="badge me-1 mb-1" title="已开启洗版">洗版</span>');
+    }
+
+    if (attr.download_setting && attr.download_setting !== -1 && data.DownloadSettings[attr.download_setting.toString()]) {
+      badges.push(`<span class="badge me-1 mb-1" title="下载设置">${data.DownloadSettings[attr.download_setting.toString()].name}</span>`);
+    }
+
+    if (attr.filter_restype) {
+      badges.push(`<span class="badge bg-yellow me-1 mb-1" title="质量">${attr.filter_restype}</span>`);
+    }
+
+    if (attr.filter_pix) {
+      badges.push(`<span class="badge bg-yellow me-1 mb-1" title="分辨率">${attr.filter_pix}</span>`);
+    }
+
+    if (attr.filter_team) {
+      badges.push(`<span class="badge bg-cyan me-1 mb-1 text-wrap text-start" title="制作组/字幕组">${attr.filter_team}</span>`);
+    }
+
+    if (attr.filter_rule && data.RuleGroups[attr.filter_rule.toString()]) {
+      badges.push(`<span class="badge bg-orange me-1 mb-1" title="过滤规则">${data.RuleGroups[attr.filter_rule.toString()]}</span>`);
+    }
+
+    if (attr.filter_include) {
+      badges.push(`<span class="badge bg-green me-1 mb-1 text-wrap text-start" title="包含">${attr.filter_include}</span>`);
+    }
+
+    if (attr.filter_exclude) {
+      badges.push(`<span class="badge bg-red me-1 mb-1 text-wrap text-start" title="排除">${attr.filter_exclude}</span>`);
+    }
+
+    return badges.join('');
+  }
+
+  // 生成站点标签
+  function generateSiteBadges(attr) {
+    const badges = [];
+
+    if (attr.rss_sites && Array.isArray(attr.rss_sites)) {
+      attr.rss_sites.forEach(site => {
+        badges.push(`<span class="badge badge-outline text-azure me-1 mb-1" title="订阅站点">${site}</span>`);
+      });
+    }
+
+    if (attr.search_sites && Array.isArray(attr.search_sites)) {
+      attr.search_sites.forEach(site => {
+        badges.push(`<span class="badge badge-outline text-teal me-1 mb-1" title="搜索站点">${site}</span>`);
+      });
+    }
+
+    return badges.join('');
+  }
+
+  // 生成状态信息
+  function generateStatusInfo(attr) {
+    switch (attr.state) {
+      case 'D':
+        return '<span class="badge bg-gray"></span> 队列中';
+      case 'S':
+        return '<span class="badge bg-orange"></span> 正在搜索';
+      case 'R':
+        let status = '<span class="badge bg-green"></span> 正在订阅';
+        if ((attr.total || -1) > 0) {
+          const completed = (attr.total || -1) - (attr.lack || -1);
+          status += ` (${completed}/${attr.total || -1})`;
+        }
+        return status;
+      default:
+        return '<span class="badge bg-blue"></span> 完成';
+    }
+  }
+
+  // 生成进度条（仅TV）
+  function generateProgressBar(attr) {
+
+    if ((attr.total || -1) <= 0) return '';
+
+    const completed = (attr.total || -1) - (attr.lack || -1);
+    const percentage = (completed * 100) / (attr.total || -1);
+
+    return `
+      <div class="card-progress" style="overflow: hidden">
+        <div class="progress-bar bg-green"
+          style="width:${percentage}%"
+          role="progressbar"
+          aria-valuenow="${percentage}"
+          aria-valuemin="0" aria-valuemax="100">
+        </div>
+      </div>
+    `;
+  }
+
+</script>

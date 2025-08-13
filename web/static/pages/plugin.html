@@ -1,0 +1,1111 @@
+<div id="downloaders-div" class="card components-div">
+  <div class="card-header">
+    <h2 class="page-title">下载器</h2>
+    <div class="col-auto ms-auto d-print-none">
+      <div class="btn-list">
+        <a href="javascript:show_add_downloader_modal()" class="btn btn-primary d-none d-sm-inline-flex">
+          <i class="ti ti-plus fs-2 me-1"></i>
+          新增下载器
+        </a>
+        <a href="javascript:show_add_downloader_modal()" class="btn btn-primary d-sm-none btn-icon" title="下载目录">
+          <i class="ti ti-plus fs-2 me-1"></i>
+        </a>
+        <a href="javascript:goto_download_setting()" class="btn d-none d-sm-inline-flex">
+          <i class="ti ti-settings fs-2 me-1"></i>
+          下载设置
+        </a>
+        <a href="javascript:goto_download_setting()" class="btn d-sm-none btn-icon" title="下载设置">
+          <i class="ti ti-settings fs-2 me-1"></i>
+        </a>
+      </div>
+    </div>
+  </div>
+  <div class="page-body" id="downloaders-container">
+    <!-- 组件展示 -->
+    <div class="container-xl">
+      <!-- 下载器 -->
+      <div class="d-grid gap-3 grid-normal-card" id="downloaders-list" style="display: none;">
+      </div>
+    </div>
+  </div>
+  <empty-content id="no-downloaders" title="没有下载器" text='没有配置下载器，请添加并设置默认下载器' style="display: none;"></empty-content>
+</div>
+
+<div id="plugin-div" class="card components-div">
+  <div class="card-header">
+    <h2 class="page-title">插件</h2>
+    <div class="col-auto ms-auto d-print-none">
+      <div class="btn-list">
+        <a href="javascript:show_plugin_apps_modal()" class="btn btn-primary d-none d-sm-inline-flex">
+          <i class="ti ti-apps fs-2 me-1"></i>
+          插件市场
+        </a>
+        <a href="javascript:show_plugin_apps_modal()" class="btn btn-primary d-sm-none btn-icon">
+          <i class="ti ti-apps fs-2 me-1"></i>
+        </a>
+      </div>
+    </div>
+  </div>
+  <div class="page-body" id="plugins-container" style="display: none;">
+    <!-- 组件展示 -->
+    <div class="container-xl">
+      <div class="d-grid gap-3 grid-normal-card" id="plugins-list">
+      </div>
+    </div>
+  </div>
+  <empty-content id="no-plugins" title="没有插件" text='没有安装任何插件，请前往插件市场选择安装。' style="display: none;" ></empty-content>
+</div>
+
+<div class="page-body">
+  <!-- 弹窗 -->
+  <!-- 下载器部分 -->
+  <div class="modal modal-blur fade" id="modal-downloader" tabindex="-1" role="dialog" aria-hidden="true"
+       data-bs-backdrop="static" data-bs-keyboard="false">
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable" role="document">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="downloader_modal_title">新增下载器</h5>
+          <input type="hidden" id="downloader_id">
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <div class="row" id="div_downloader_normal">
+            <div class="col-lg-9">
+              <div class="mb-3">
+                <label class="form-label required">名称</label>
+                <input type="text" id="downloader_name" class="form-control" placeholder="别名">
+              </div>
+            </div>
+            <div class="col-lg-3">
+              <div class="mb-3">
+                <label class="form-label required">状态</label>
+                <select class="form-select" id="downloader_enabled">
+                  <option value="1" selected>启用</option>
+                  <option value="0">停用</option>
+                </select>
+              </div>
+            </div>
+          </div>
+          <div class="form-selectgroup-boxes row mb-3" id="downloader-type-list">
+            <label class="form-label required">类型 <span class="form-help" data-bs-toggle="tooltip"
+                                                          data-bs-original-title="QB版本要求>=4.3.9，TR版本要求>=3.0，其它版本可能存在适配问题">?</span></label>
+            <!-- 下载器类型选项将通过JavaScript动态生成 -->
+          </div>
+          <div id="downloader_config_box"></div>
+          <div class="row" id="div_downloader_transfer">
+            <div class="col-lg">
+              <div class="mb-3">
+                <label class="form-label required">监控 <span class="form-help" data-bs-toggle="tooltip"
+                                                          data-bs-original-title="监控下载软件，下载完成后自动进行文件转移，与目录同步监控下载目录二选一开启">?</span></label>
+                <select class="form-select" id="downloader_transfer">
+                  <option value="1">是</option>
+                  <option value="0" selected>否</option>
+                </select>
+              </div>
+            </div>
+            <div class="col-lg">
+              <div class="mb-3">
+                <label class="form-label required">转移方式</label>
+                <select class="form-select" id="downloader_rmt_mode">
+                  <!-- 转移方式选项将通过JavaScript动态生成 -->
+                </select>
+              </div>
+            </div>
+            <div class="col-lg">
+              <div class="mb-3">
+                <label class="form-label required">标签隔离 <span class="form-help" data-bs-toggle="tooltip"
+                                                          data-bs-original-title="启用后只有含NASTOOL标签的下载任务才会被自动转移和显示，关闭则下载软件中所有的任务都会转移和显示">?</span></label>
+                <select class="form-select" id="downloader_only_nastool">
+                  <option value="1">是</option>
+                  <option value="0" selected>否</option>
+                </select>
+              </div>
+            </div>
+            <div class="col-lg">
+              <div class="mb-3">
+                <label class="form-label required">目录隔离 <span class="form-help" data-bs-toggle="tooltip" data-bs-original-title="启用后只有在下载目录中的下载任务才会被自动转移和显示">?</span></label>
+                <select class="form-select" id="downloader_match_path">
+                  <option value="1">是</option>
+                  <option value="0" selected>否</option>
+                </select>
+              </div>
+            </div>
+          </div>
+          <details class="mb-3">
+            <summary class="summary required">下载目录设置
+            <span class="form-help" title="根据类型及二级分类自动选择下载目录，按优先级从前往后依次匹配，直到找到符合条件及空间要求的目录下载；二级分类从基础设置->二级分类策略的配置中读取，如未配置二级分类则无法配置下载目录二级分类"
+                  data-bs-toggle="tooltip">?</span>
+            </summary>
+            <div class="row mt-2" id="div_downloader_downloaddir"></div>
+            <div class="ms-2 mt-2">
+              <a href="javascript:add_downloaddir()" class="btn-icon" title="增加目录"><i class="ti ti-folder-plus fs-2 me-1"></i></a>
+            </div>
+          </details>
+        </div>
+        <div class="modal-footer">
+          <button onclick="add_or_edit_or_test_downloader('test')" id="test_downloader_btn" class="btn me-auto">
+            测试
+          </button>
+          <button onclick="delete_downloader()" id="delete_downloader_client_btn"
+             class="btn btn-link text-danger">
+            删除
+          </button>
+          <button onclick="add_or_edit_or_test_downloader('save')" id="add_or_edit_downloader_btn" class="btn btn-primary">
+            确定
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- 插件部分 -->
+  <div id="plugin-modals-container">
+    <!-- 插件模态框将通过JavaScript动态生成 -->
+  </div>
+  <!-- 插件市场容器 -->
+  <div class="modal modal-blur fade" id="modal-plugin-apps" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable" id="modal-plugin-apps-content" role="document">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">插件市场</h5>
+          <button type="button" class="btn-action" aria-label="Settings" onclick="show_external_settings_page()"><i class="ti ti-settings fs-2 me-1"></i></button>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div>
+          <ul class="nav nav-fill card-header-tabs nav-tabs rounded-3" data-bs-toggle="tabs" role="tablist">
+            <li class="nav-item" role="presentation">
+              <a href="javascript:void(0)" onclick="load_plugin_apps_modal()" class="nav-link active" style="justify-content: center" data-bs-toggle="tab" aria-selected="true" role="tab">官方插件</a>
+            </li>
+            <li class="nav-item" role="presentation">
+              <a href="javascript:void(0)" onclick="load_external_plugin_apps_modal()" class="nav-link" style="justify-content: center" data-bs-toggle="tab" aria-selected="false" role="tab" tabindex="-1">第三方插件</a>
+            </li>
+          </ul>
+        </div>
+        <div class="modal-body" style="min-height:800px;">
+          <div class="d-grid gap-3 grid-normal-card align-items-start" id="plugin_apps_content" style="display:none;"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- 第三方插件设置页 -->
+  <div class="modal modal-blur fade" id="modal-external-source-settings" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable" role="document">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">第三方源管理</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div id="plugin_external_page_content">
+          <div class="modal-body" style="overflow-y: auto">
+              <div class="row mb-2">
+                  <div class="col-12 col-lg" style="display:block">
+                    <div class="mb-1">
+                      <label class="form-label false">
+                      第三方源
+                      <span class="form-help" data-bs-toggle="tooltip" data-bs-original-title="配置正确的第三方源以后将会显示再第三方插件仓库中，安装以后会进入插件市场。">?</span></label>
+                      <textarea class="form-control" id="external_source_content" rows="10" placeholder="每行一个源地址，可以同时添加多个源 ... &#10;https://ip:prot/route/xxx.json &#10;https://ip:prot/route/xxx.json"></textarea>
+                    </div>
+                  </div>
+              </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-primary" id="modal_external_settings_btn">保存</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- 插件详情页 -->
+  <div class="modal modal-blur fade" id="modal-plugin-page" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable" role="document">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="plugin_page_title"></h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div id="plugin_page_content">
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-primary" id="modal_plugin_page_btn">确定</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script id="div_downloader_downloaddir_template" type="text/html">
+  <div class="row mt-2" id="dirdiv_{DIRDIV_LEVEL}">
+    <div class="col-lg-12">
+      <div class="row">
+        <div class="col-12 col-lg mb-1">
+          <select class="form-select" name="dir_type" id="dir_type_{DIRDIV_LEVEL}" onchange="get_categories($(this).attr('id').replace('dir_type_', ''))">
+            <option value="" selected>全部</option>
+            <option value="电影">电影</option>
+            <option value="电视剧">电视剧</option>
+            <option value="动漫">动漫</option>
+          </select>
+        </div>
+        <div class="col-12 col-lg mb-1">
+          <select class="form-select" name="dir_subtype" id="dir_subtype_{DIRDIV_LEVEL}">
+            <option value="" selected>全部</option>
+          </select>
+        </div>
+        <div class="col-12 col-lg mb-1">
+          <input type="text" value="" id="path_label_{DIRDIV_LEVEL}" class="form-control" placeholder="分类标签，仅QB有效" autocomplete="off">
+        </div>
+      </div>
+      <div class="row">
+        <div class="col-12 col-lg mb-1">
+          <input type="text" value="" id="save_path_{DIRDIV_LEVEL}" class="form-control" placeholder="下载保存目录" autocomplete="off">
+        </div>
+        <div class="col-12 col-lg mb-1">
+          <input type="text" value="" id="container_path_{DIRDIV_LEVEL}" class="form-control" placeholder="NAStool访问目录" autocomplete="off">
+        </div>
+        <div class="col-12 col-lg mb-1 align-self-center" style="text-align: center">
+          <a href="javascript:del_downloaddir('{DIRDIV_LEVEL}')" class="btn-icon text-red" title="删除目录">
+            <i class="ti ti-circle-minus fs-2 me-1"></i>
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+</script>
+
+<script type="text/javascript">
+
+  // 页面数据存储 - 使用条件检查避免重复声明
+  var _downloader_conf_dict = null;
+
+  var _downloaders = null;
+
+  var _categories = null;
+
+  var CURRENT_DIRDIV_LEVEL = 0;
+
+  // 恢复输入项为默认值
+  function reset_downloader_config_fields() {
+    if (!_downloader_conf_dict) return;
+
+    Object.entries(_downloader_conf_dict).forEach(([id, attr]) => {
+      if (attr.config) {
+        Object.entries(attr.config).forEach(([fieldId, fieldAttr]) => {
+          const element = $("#" + fieldAttr.id);
+          if (element.length) {
+            if (fieldAttr.type === "switch") {
+              element.prop('checked', fieldAttr.default || false);
+            } else {
+              element.val(fieldAttr.default || '');
+            }
+          }
+        });
+      }
+    });
+  }
+
+  // 显示新增下载器
+  function show_add_downloader_modal() {
+    $("#downloader_id").val('');
+    $("#downloader_modal_title").text("新增下载器");
+    reset_downloader_config_fields();
+    if (_downloader_conf_dict) {
+      const firstKey = Object.keys(_downloader_conf_dict)[0];
+      if (firstKey) {
+        show_downloader_type(firstKey);
+      }
+    }
+    $("#downloader_transfer").val("0");
+    $("#downloader_only_nastool").val("0");
+    $("#downloader_match_path").val("0");
+    $("#downloader_rmt_mode").val("link");
+    CURRENT_DIRDIV_LEVEL = 0;
+    $("#div_downloader_downloaddir").empty();
+    add_downloaddir();
+    $("#test_downloader_btn").text("测试").attr("disabled", false);
+    $("#delete_downloader_client_btn").hide();
+    $("#modal-downloader").modal("show");
+  }
+
+  // 显示编辑下载器
+  function show_edit_downloader_modal(did){
+    $("#downloader_id").val(did);
+    $("#downloader_modal_title").text("编辑下载器");
+    axios_post_do("get_downloaders", {did: did}, function (ret) {
+      if (ret.code === 0) {
+        let detail = ret.detail;
+        $("#downloader_name").val(detail.name);
+        $("#downloader_enabled").val(detail.enabled);
+        // 清空输入项
+        reset_downloader_config_fields();
+        let type = detail.type;
+        // 动态加载下载器配置
+        if (_downloader_conf_dict && _downloader_conf_dict[type]) {
+          const downloaderConfig = _downloader_conf_dict[type];
+          if (downloaderConfig.config) {
+            Object.entries(downloaderConfig.config).forEach(([fieldId, fieldAttr]) => {
+              const element = $("#" + fieldAttr.id);
+              if (element.length && detail.config) {
+                if (fieldAttr.type === "switch") {
+                  element.prop("checked", detail.config[fieldId] || false);
+                } else {
+                  element.val(detail.config[fieldId] || '');
+                }
+              }
+            });
+          }
+        }
+        show_downloader_type(type);
+        $("#downloader_transfer").val(detail.transfer);
+        $("#downloader_only_nastool").val(detail.only_nastool);
+        $("#downloader_match_path").val(detail.match_path);
+        $("#downloader_rmt_mode").val(detail.rmt_mode);
+        $("#test_message_client_btn").text("测试").attr("disabled", false);
+        let download_dirs = detail.download_dir
+        CURRENT_DIRDIV_LEVEL = 0;
+        $("#div_downloader_downloaddir").empty();
+        for (let download_dir of download_dirs) {
+          add_downloaddir(download_dir.type, download_dir.category, download_dir.save_path, download_dir.container_path, download_dir.label);
+        }
+        $("#delete_downloader_client_btn").show();
+        $("#modal-downloader").modal("show");
+      }
+    });
+  }
+
+  // 检查下载器
+  function check_downloader(flag, did, checked){
+    axios_post_do("check_downloader", {flag: flag, did: did, checked: checked}, function (ret) {
+      if (ret.code === 0) {
+        window_history_refresh();
+      }
+    });
+  }
+
+  // 删除下载器
+  function delete_downloader(){
+    let did = $("#downloader_id").val();
+    let name = $("#downloader_name").val();
+    $("#modal-downloader").modal('hide');
+    show_confirm_modal("删除下载器 " + name + " ?", function () {
+      hide_confirm_modal();
+      axios_post_do("del_downloader", { "did": did }, function (ret) {
+        window_history_refresh();
+      });
+    });
+  }
+
+  // 新增/编辑下载器
+  function add_or_edit_or_test_downloader(action) {
+    let type = $('input:radio[name=downloader_type]:checked').val();
+    let config = {};
+    let transfer = 0;
+    let only_nastool = 0;
+    let match_path = 0;
+    let rmt_mode = "";
+    // 动态处理下载器配置
+    if (_downloader_conf_dict && _downloader_conf_dict[type]) {
+      const downloaderConfig = _downloader_conf_dict[type];
+      if (downloaderConfig.config) {
+        Object.entries(downloaderConfig.config).forEach(([fieldId, fieldAttr]) => {
+          const element = $("#" + fieldAttr.id);
+          if (element.length) {
+            if (fieldAttr.type === "switch") {
+              config[fieldId] = element.prop("checked") ? 1 : 0;
+            } else {
+              config[fieldId] = element.val();
+              if (fieldAttr.required && !config[fieldId]) {
+                element.addClass("is-invalid");
+                return;
+              } else {
+                element.removeClass("is-invalid");
+              }
+            }
+          }
+        });
+      }
+
+      // 处理监控相关设置
+      if (downloaderConfig.monitor_enable) {
+        transfer = $("#downloader_transfer").val();
+        only_nastool = $("#downloader_only_nastool").val();
+        match_path = $("#downloader_match_path").val();
+        rmt_mode = $("#downloader_rmt_mode").val();
+      } else {
+        transfer = 0;
+        only_nastool = 0;
+        match_path = 0;
+        rmt_mode = "";
+      }
+    }
+    let name_obj = $("#downloader_name");
+    let name = name_obj.val();
+    if (!name) {
+      name_obj.addClass("is-invalid");
+      return;
+    } else {
+      name_obj.removeClass("is-invalid");
+    }
+    // 下载目录设置
+    let download_dir = [];
+    $("[id^='dirdiv_']").each(function () {
+      let suffix = $(this).attr('id').replace("dirdiv_", "");
+      download_dir.push({
+        save_path: $(`#save_path_${suffix}`).val(),
+        type: $(`#dir_type_${suffix}`).val(),
+        category: $(`#dir_subtype_${suffix}`).val(),
+        container_path: $(`#container_path_${suffix}`).val(),
+        label: $(`#path_label_${suffix}`).val()
+      });
+    });
+    const params = {
+      did: $("#downloader_id").val(),
+      name: name,
+      enabled: $("#downloader_enabled").val(),
+      transfer: transfer,
+      only_nastool: only_nastool,
+      match_path: match_path,
+      rmt_mode: rmt_mode,
+      type: type,
+      config: JSON.stringify(config),
+      download_dir: JSON.stringify(download_dir)
+    };
+    switch (action) {
+      case "save":
+        let save_btn = $("#add_or_edit_downloader_btn");
+        save_btn.text("保存中").attr("disabled", true);
+        axios_post_do("update_downloader", params, function (ret) {
+          $("#modal-downloader").modal('hide');
+          save_btn.attr("disabled", false);
+          window_history_refresh();
+        });
+        break;
+      case "test":
+        let test_btn = $("#test_downloader_btn");
+        test_btn.text("测试中").attr("disabled", true);
+        axios_post_do("test_downloader", params, function (ret) {
+          if (ret.code === 0) {
+            test_btn.text("测试成功").attr("disabled", false);
+          } else {
+            test_btn.text("测试失败！").attr("disabled", false);
+          }
+        });
+        break;
+      default:
+        break;
+    }
+  }
+
+  //添加下载目录
+  function add_downloaddir(dir_type, dir_subtype, save_path, container_path, label) {
+    let html = $("#div_downloader_downloaddir_template").text();
+    $("#div_downloader_downloaddir").append(html.replaceAll('{DIRDIV_LEVEL}', CURRENT_DIRDIV_LEVEL));
+    $(`#container_path_${CURRENT_DIRDIV_LEVEL}`).attr("onclick", "openFileBrowser(this,$(this).val(),'',true,false);");
+    if (dir_type) {
+      $(`#dir_type_${CURRENT_DIRDIV_LEVEL}`).val(dir_type);
+      get_categories(CURRENT_DIRDIV_LEVEL.toString())
+    }
+    if (dir_subtype) {
+      $(`#dir_subtype_${CURRENT_DIRDIV_LEVEL}`).val(dir_subtype);
+    }
+    if (save_path) {
+      $(`#save_path_${CURRENT_DIRDIV_LEVEL}`).val(save_path);
+    }
+    if (container_path) {
+      $(`#container_path_${CURRENT_DIRDIV_LEVEL}`).val(container_path);
+    }
+    if (label) {
+      $(`#path_label_${CURRENT_DIRDIV_LEVEL}`).val(label);
+    }
+    CURRENT_DIRDIV_LEVEL = CURRENT_DIRDIV_LEVEL + 1;
+  }
+
+  //删除下载目录
+  function del_downloaddir(id) {
+    if (id) {
+      $(`#dirdiv_${id}`).remove();
+    }
+  }
+
+  //获取二级分类
+  function get_categories(id) {
+    if (!id) {
+      return;
+    }
+    let dir_type = $(`#dir_type_${id}`).val();
+    let subtype_obj = $(`#dir_subtype_${id}`);
+    if (!dir_type || !subtype_obj) {
+      return;
+    }
+    let sub_types = _categories ? _categories[dir_type] : [];
+    let subtypes_used = [];
+    $("[id^='dirdiv_']").each(function () {
+      let suffix = $(this).attr('id').replace("dirdiv_", "");
+      let type = $(`#dir_type_${suffix}`).val();
+      let subtype = $(`#dir_subtype_${suffix}`).val();
+      if (type === dir_type && subtype) {
+        subtypes_used.push(subtype);
+      }
+    });
+    let subtype_content = `<option value="" selected>全部</option>`;
+    for (let sub_type of sub_types) {
+      if (!subtypes_used.includes(sub_type)) {
+        subtype_content += `<option value="${sub_type}">${sub_type}</option>`;
+      }
+    }
+    subtype_obj.empty().append(subtype_content);
+  }
+
+  // 下载器类型类型
+  function show_downloader_type(type) {
+
+    // 隐藏所有配置面板
+    $("div[id^='div_downloader_config_']").each(function () {
+      $(this).hide();
+    });
+
+    // 显示选中类型的配置面板
+    $("#div_downloader_config_" + type).show();
+
+    // 根据配置决定是否显示传输设置
+    const downloaderConfig = _downloader_conf_dict[type];
+    if (downloaderConfig && downloaderConfig.monitor_enable) {
+      $("#div_downloader_transfer").show();
+    } else {
+      $("#div_downloader_transfer").hide();
+    }
+
+    // 设置单选框选中状态
+    $("#type_" + type).prop("checked", true);
+  }
+
+  // 设置默认下载器
+  function set_default_downloader(did) {
+    
+    let params = {
+      'key': "DefaultDownloader",
+      'value': did
+    };
+    axios_post_do("set_system_config", params, function (ret) {
+      window_history_refresh();
+    });
+  }
+
+  // 跳转下载设置
+  function goto_download_setting(){
+    var downloaders = _downloaders ? _downloaders : {};
+    if (!Object.keys(downloaders).length) {
+      show_fail_modal("请先添加下载器！");
+    } else {
+      navmenu('download_setting');
+    }
+  }
+
+</script>
+
+<!-- 插件业务函数 -->
+<script type="text/javascript">
+  // 保存配置
+  function save_config_plugin(id, prefix, func) {
+    let params = input_select_GetVal(`modal-plugin-${id}`, prefix);
+    let selectgroup_config = {};
+    $(`#modal-plugin-${id} div[class^='form-selectgroup']`).each(function(){
+      let name = $(this).attr("id");
+      selectgroup_config[name.replace(prefix, "")] = select_GetSelectedVAL(name);
+    })
+    params = {...params, ...selectgroup_config}
+    console.log(params)
+    axios_post_do("update_plugin_config", {plugin: id, config: params}, func);
+  }
+
+  //保存配置、关闭和刷新页面
+  function save_plugin_config(plugin, prefix) {
+    $("#modal-plugin-" + plugin).modal('hide');
+    save_config_plugin(plugin, prefix, function (ret) {
+      window_history_refresh();
+    });
+  }
+
+  // 显示插件市场页面
+  function show_plugin_apps_modal() {
+    $("#modal-plugin-apps").modal('show');
+    load_plugin_apps_modal();
+  }
+
+  // 绘制插件表格
+  function draw_plugin_table(plugin_query_result, is_external) {
+
+    if (!plugin_query_result.result) {
+      return;
+    }
+
+    for (let pid in plugin_query_result.result) {
+      let plugin = plugin_query_result.result[pid];
+      let count = plugin_query_result.statistic[pid];
+
+      let plugin_html = `
+        <div class="card card-link-pop card-borderless p-0 shadow-sm rounded-3 overflow-hidden" href="javascript:void(0)">
+          <div class="card-cover card-cover-blurred text-center ${plugin.color.startsWith('bg-') ? plugin.color:''}"
+            ${plugin.color.startsWith('#') ? `style="background-color: ${plugin.color}"` : ''}
+          >
+            <span class="avatar avatar-xl avatar-thumb avatar-rounded"
+                style="background-image: url('../static/img/plugins/${plugin.icon.split('/').pop()}')"
+            >
+            </span>
+            ${count ? `<span class="badge bg-dark position-absolute" style="top: 10px; right: 10px;">${count.toLocaleString()}</span>` : ''}
+          </div>
+          <div class="card-body text-start">
+            <div class="card-title mb-1">${plugin.name}</div>
+            <div class="text-muted">${plugin.desc}</div>
+            <div class="text-muted mt-1"><strong>作者：</strong>
+            ${plugin.author_url ? `<a href="${plugin.author_url}" target="_blank">${plugin.author}</a>`
+              : `<span class="text-muted">${plugin.author}</span>`}
+            </div>
+          </div>
+          <div class="d-flex">
+      `;
+
+      if (is_external) {
+        plugin_html += `
+            ${plugin.installed ? `
+              <a href="javascript:uninstall_external_plugin('${pid}', '${plugin.name}')" class="card-btn text-danger">
+                <i class="ti ti-trash fs-2 me-1"></i>
+                卸载
+              </a>
+              ` : `
+              <a href="javascript:install_external_plugin('${pid}', '${plugin.name}', '${plugin.download_url}', '${plugin.file_md5}')" class="card-btn">
+                <i class="ti ti-cloud-download fs-2 me-1"></i>
+                安装
+              </a>
+              `}
+            ${ plugin.update ? `
+              <a href="javascript:update_external_plugin('${pid}', '${plugin.name}', '${plugin.download_url}', '${plugin.file_md5}')" class="card-btn">
+                <i class="ti ti-cloud-download fs-2 me-1"></i>
+                更新
+              </a>
+              ` : ``}
+        `;
+      } else {
+        plugin_html += `
+            ${plugin.installed ? `
+              <a href="javascript:uninstall_plugin('${pid}', '${plugin.name}')" class="card-btn text-danger">
+                <i class="ti ti-trash fs-2 me-1"></i>
+                 卸载
+              </a>
+              ` : `
+              <a href="javascript:install_plugin('${pid}', '${plugin.name}')" class="card-btn">
+                <i class="ti ti-cloud-download fs-2 me-1"></i>
+                 安装
+              </a>
+            `}
+        `;
+      }
+
+      plugin_html += `
+          </div>
+        </div>
+      `;
+ 
+      $("#plugin_apps_content").append(plugin_html);
+
+    }
+    
+    $("#plugin_apps_content").show();
+  }
+
+  // 加载官方插件
+  function load_plugin_apps_modal() {
+    $("#plugin_apps_content").empty();
+    // 获取插件列表
+    axios_post_do("get_plugin_apps", {}, function(ret) {
+      draw_plugin_table(ret, true)
+    });
+  }
+
+  // 加载第三方插件
+  function load_external_plugin_apps_modal() {
+
+    $("#plugin_apps_content").empty();
+
+    // 获取插件列表
+    axios_post_do("get_external_plugin_apps", {}, function(ret) {
+      draw_plugin_table(ret, false)
+    });
+
+  }
+
+  // 显示第三方插件设置页面
+  function show_external_settings_page() {
+      $("#modal-external-source-settings").modal('show');
+      $("#modal_external_settings_btn").click(function (){
+          var value = $("#external_source_content").val();
+          axios_post_do("save_external_source_settings", {value: value}, function(ret){
+            if (ret.code === 0) {
+                show_success_modal(ret.msg, function (){
+                  $("#modal-external-source-settings").modal('hide');
+                });
+            } else {
+                show_fail_modal(ret.msg)
+            }
+          })
+      })
+  }
+
+  // 显示插件页面
+  function show_plugin_extra_page(id) {
+    axios_post_do("get_plugin_page", {id: id}, function(ret){
+      if (ret.code === 0) {
+        $("#modal-plugin-" + id).modal('hide');
+        $("#plugin_page_title").text(ret.title);
+        $("#plugin_page_content").html(ret.content);
+        if (ret.func) {
+          $("#modal_plugin_page_btn").unbind('click').click(function(){
+            eval(ret.func);
+          });
+        } else {
+          $("#modal_plugin_page_btn").unbind('click').click(function(){
+            $('#modal-plugin-page').modal('hide');
+          });
+        }
+        $("#modal-plugin-page").modal('show');
+      }
+    });
+  }
+
+  // 安装插件
+  function install_plugin(id, name) {
+    axios_post_do("install_plugin", {id: id}, function(ret){
+      $("#modal-plugin-apps").modal('hide');
+      if (ret.code === 0) {
+        show_success_modal(name + " 插件安装成功！", function (){
+          window_history_refresh();
+        });
+      } else {
+        show_fail_modal(ret.msg, function (){
+          $("#modal-plugin-apps").modal('show');
+        });
+      }
+    });
+  }
+
+  // 卸载插件
+  function uninstall_plugin(id, name) {
+    axios_post_do("uninstall_plugin", {id: id}, function(ret){
+      $("#modal-plugin-apps").modal('hide');
+      if (ret.code === 0) {
+        show_warning_modal(name + " 插件已卸载！", function (){
+          window_history_refresh();
+        });
+      } else {
+        show_fail_modal(ret.msg, function (){
+          $("#modal-plugin-apps").modal('show');
+        });
+      }
+    });
+  }
+
+  // 安装第三方插件
+  function install_external_plugin(id, name, download_url, file_md5) {
+    var params = {
+        id: id,
+        file_md5: file_md5,
+        download_url: download_url
+    }
+    axios_post_do("install_external_plugin", params, function(ret) {
+      $("#modal-external-plugin-apps").modal('hide');
+      if (ret.code === 0) {
+        show_success_modal(name + " 插件安装成功！", function (){
+          window_history_refresh();
+        });
+      } else {
+        show_fail_modal(ret.msg, function (){
+          $("#modal-external-plugin-apps").modal('show');
+        });
+      }
+    });
+  }
+
+  // 卸载第三方插件
+  function uninstall_external_plugin(id, name) {
+      var params = {
+          id: id,
+      }
+      axios_post_do("uninstall_external_plugin", params, function(ret){
+      $("#modal-external-plugin-apps").modal('hide');
+      if (ret.code === 0) {
+        show_warning_modal(name + " 插件已卸载！", function (){
+          window_history_refresh();
+        });
+      } else {
+        show_fail_modal(ret.msg, function (){
+          $("#modal-external-plugin-apps").modal('show');
+        });
+      }
+    });
+  }
+
+  // 更新第三方插件
+  function update_external_plugin(id, name, download_url, file_md5) {
+    var params = {
+        id: id,
+        file_md5: file_md5,
+        download_url: download_url
+    }
+    axios_post_do("install_external_plugin", params, function(ret){
+        $("#modal-external-plugin-apps").modal('hide');
+        if (ret.code === 0) {
+          show_success_modal(name + " 插件更新成功！更新的插件需要重启生效!", function (){
+            window_history_refresh();
+          });
+        } else {
+          show_fail_modal(ret.msg, function (){
+            $("#modal-external-plugin-apps").modal('show');
+          });
+        }
+    })
+}
+
+</script>
+
+<script type="text/javascript">
+
+  // 生成下载器类型选项、下载器配置
+  function generateDownloaderTypes(downloaderConf) {
+    if (!downloaderConf) return;
+
+    var downloader_container = $("#downloader-type-list");
+    downloader_container.empty();
+
+    // 下载器配置
+    var $conf_container = $("#downloader_config_box");
+    $conf_container.empty();
+
+    $.each(downloaderConf, function (id, itemAttr) {
+      var html = `
+        <div class="col-lg">
+          <div class="mb-1">
+            <label class="form-selectgroup-item" for="type_${id}">
+              <input type="radio" name="downloader_type" id="type_${id}" value="${id}"
+                     class="form-selectgroup-input">
+              <span class="form-selectgroup-label d-flex align-items-center p-2">
+                <span class="me-2">
+                  <span class="form-selectgroup-check"></span>
+                </span>
+                <span class="form-selectgroup-label-content d-flex align-items-center">
+                  <span class="avatar avatar-sm avatar-thumb avatar-rounded"
+                        style="background-image: url(${itemAttr.img_url})"></span>
+                  <span class="form-selectgroup-title strong ms-1">${itemAttr.name}</span>
+                </span>
+              </span>
+            </label>
+          </div>
+        </div>
+      `;
+      downloader_container.append(html);
+
+      $conf_container.append(`
+        <div id="div_downloader_config_${id}">
+          ${gen_form_empty_elements(itemAttr.config)}
+        </div>
+      `);
+
+    });
+
+    // 单选框事件
+    $('input[type=radio][name=downloader_type]').change(function () {
+      show_downloader_type(this.value);
+    });
+
+  }
+
+  // 生成转移方式选项
+  function generateRmtModeOptions(rmtModeDict) {
+    if (!rmtModeDict) return;
+
+    const select = $("#downloader_rmt_mode");
+    select.empty();
+
+    Object.entries(rmtModeDict).forEach(([key, mode]) => {
+      const option = `<option value="${mode.value}">${mode.name}</option>`;
+      select.append(option);
+    });
+  }
+
+  // 生成插件模态框
+  function generatePluginModals(plugins) {
+    if (!plugins) return;
+
+    const container = $("#plugin-modals-container");
+    container.empty();
+
+    Object.entries(plugins).forEach(([id, plugin]) => {
+      const modal = `
+        <plugin-modal
+          plugin-id="${id}"
+          plugin-name="${plugin.name}"
+          plugin-config='${JSON.stringify(plugin.config)}'
+          plugin-fields='${JSON.stringify(plugin.fields)}'
+          plugin-prefix="${plugin.prefix}"
+          plugin-page="${plugin.page}">
+        </plugin-modal>
+      `;
+      container.append(modal);
+    });
+  }
+
+  // 绘制下载器列表
+  function drawDownloaders(downloaderList, downloaderConfDict, defaultDownloaderId) {
+
+    if (!downloaderList) {
+      $('#downloaders-container').hide();
+      $('#no-downloaders').show();
+      return;
+    }
+
+    $('#no-downloaders').hide();
+    $('#downloaders-container').show();
+
+    $.each(downloaderList, function (id, dAttr) {
+
+      var downloaderConf = downloaderConfDict[dAttr.type];
+
+      var cardBgcolor = downloaderConf.color ? `style="background-color: ${downloaderConf.color}"` : '';
+      var downloaderAddr = dAttr.config.host ? dAttr.config.host + ':' + dAttr.config.port : '';
+
+      var cardHtml =  `
+      <a class="card card-link-pop p-0 overflow-hidden rounded-3" href="javascript:void(0)" onclick="show_edit_downloader_modal('${id}')">
+          <div class="card-cover card-cover-blurred text-center" ${cardBgcolor}>
+              <span onclick="event.stopPropagation();set_default_downloader('${id}')"
+                    class="btn-action p-1 d-inline-flex"
+                    title="设置默认" style="position:absolute;top:5px;right:5px;z-index:1;"
+                    data-bs-toggle="tooltip"
+              >
+                ${ defaultDownloaderId == id  ? `<i class="ti ti-star-filled fs-2 text-purple"></i>` :  `<i class="ti ti-star fs-2 text-muted"></i>`}
+              </span>
+            <span class="avatar avatar-xl avatar-thumb avatar-rounded" style="background-image: url('${downloaderConf.img_url}')"></span>
+          </div>
+          <div class="card-body text-center">
+            <div class="card-title mb-1">${ dAttr.enabled == 1 ? `<span class="badge bg-green" title="已启用" data-bs-toggle="tooltip"></span>` : ''} ${dAttr.name}</div>
+            <div class="text-muted">
+              ${downloaderAddr}
+            </div>
+            <div class="text-muted mt-2">
+              <small>
+      `;
+
+      if (dAttr.transfer == 1) {
+        cardHtml += `<span class="badge bg-green me-1 mb-1" title="转移方式">${dAttr.rmt_mode_name}</span>`;
+      }
+      if (dAttr.only_nastool == 1) {
+        cardHtml += `<span class="badge badge-outline text-orange me-1 mb-1" title="标签隔离">标签隔离</span>`;
+      }
+      if (dAttr.match_path == 1) {
+        cardHtml += `<span class="badge badge-outline text-yellow me-1 mb-1" title="目录隔离">目录隔离</span>`;
+      }
+
+      cardHtml += `
+              </small>
+            </div>
+          </div>
+        </a>
+      `;
+
+      $('#downloaders-list').append(cardHtml)
+
+    });
+    
+  }
+
+  // 绘制已安装插件列表
+  function drawPluginList(pluginList) {
+
+    if (!pluginList) {
+      $('#plugins-container').hide();
+      $('#no-plugins').show();
+      return;
+    }
+
+    $('#no-plugins').hide();
+    $('#plugins-container').show();
+
+    $.each(pluginList, function (id, itemAttr) {
+
+      var cardBgcolor = itemAttr.color.startsWith('#') ? `style="background-color: ${itemAttr.color}"` : '';
+      var icon = ''
+      if (itemAttr.icon) {
+        if (!itemAttr.icon.startsWith('http')) {
+          icon = `style="background-image: url('../static/img/plugins/${itemAttr.icon}')"`;
+        } else {
+          icon = `style="background-image: url('${itemAttr.icon}')"`;
+        }
+      }
+
+      var html =  `
+      <a class="card card-link-pop p-0 rounded-3 overflow-hidden" href="#" data-bs-toggle="modal" data-bs-target="#modal-plugin-${id}">
+        <div class="card-cover card-cover-blurred text-center ${ itemAttr.color.startsWith('bg-') ? `${itemAttr.color}` : '' }" ${cardBgcolor} >
+          <span class="avatar avatar-xl avatar-thumb avatar-rounded" ${icon}>
+             ${ !itemAttr.icon ? itemAttr.name : ''}
+          </span>
+        </div>
+        <div class="card-body text-center">
+          <div class="card-title mb-1">${ itemAttr.state ? '<span class="badge bg-green"></span>' : '' } ${itemAttr.name}</div>
+          <div class="text-muted">${itemAttr.desc}</div>
+        </div>
+      </a>
+      `;
+      
+      $('#plugins-list').append(html)
+    });
+
+  }
+
+  // 页面加载完成后初始化
+  $(document).ready(function() {
+
+    axios_post('/data/plugin', {}, function(response) {
+
+      if (response.code === 0 && response.data) {
+
+        var pageData = response.data;
+
+        // 存储数据到局部变量
+        _downloader_conf_dict = pageData.DownloaderConf;
+
+        _downloaders = pageData.Downloaders;
+        
+        _categories = pageData.Categories;
+
+        drawDownloaders(pageData.Downloaders, pageData.DownloaderConf, pageData.DefaultDownloader);
+
+        drawPluginList(pageData.Plugins);
+
+        // 生成下载器类型选项
+        generateDownloaderTypes(pageData.DownloaderConf);
+
+        // 生成转移方式选项
+        generateRmtModeOptions(pageData.RmtModeDict);
+
+        // 生成插件模态框
+        generatePluginModals(pageData.Plugins);
+
+        // 设置第三方源内容
+        if (pageData.Settings) {
+          $("#external_source_content").val(pageData.Settings);
+        }
+
+        // 插件自带脚本函数
+        if (pageData.Plugins) {
+          Object.entries(pageData.Plugins).forEach(([id, plugin]) => {
+            if (plugin.script) {
+              try {
+                eval(plugin.script);
+              } catch (e) {
+                console.error('插件脚本执行错误:', id, e);
+              }
+            }
+          });
+        }
+      }
+
+    });
+    
+  });
+
+</script>

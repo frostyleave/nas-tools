@@ -1,57 +1,10 @@
-import base64
 import datetime
 import hashlib
-import hmac
-import json
-import os
-import log
-from functools import wraps, partial
-
-from Crypto.Cipher import AES
-from Crypto.Util.Padding import pad
-from cryptography.fernet import Fernet
-from base64 import b64encode
+import secrets
 import jwt
-from flask import request
 
-from app.utils import TokenCache
 from config import Config
-
-
-def require_auth(func=None, force=True):
-    """
-    API安全认证
-    force 是否强制检查apikey，为False时，会检查 check_apikey 配置值
-    """
-    if func is None:
-        return partial(require_auth, force=force)
-
-    @wraps(func)
-    def wrapper(*args, **kwargs):
-        if not force and \
-                not Config().get_config("security").get("check_apikey"):
-            return func(*args, **kwargs)
-        log.debug(f"【Security】{func.__name__} 认证检查")
-        # 允许在请求头Authorization中添加apikey
-        auth = request.headers.get("Authorization")
-        if auth:
-            auth = str(auth).split()[-1]
-            if auth == Config().get_config("security").get("api_key"):
-                return func(*args, **kwargs)
-        # 允许使用在api后面拼接 ?apikey=xxx 的方式进行验证
-        # 从query中获取apikey
-        auth = request.args.get("apikey")
-        if auth:
-            if auth == Config().get_config("security").get("api_key"):
-                return func(*args, **kwargs)
-        log.warn(f"【Security】{func.__name__} 认证未通过，请检查API Key")
-        return {
-            "code": 401,
-            "success": False,
-            "message": "安全认证未通过，请检查ApiKey"
-        }
-
-    return wrapper
+from app.helper.db_helper import DbHelper
 
 
 def generate_access_token(username: str, algorithm: str = 'HS256', exp: float = 2):
@@ -68,12 +21,55 @@ def generate_access_token(username: str, algorithm: str = 'HS256', exp: float = 
     access_payload = {
         'exp': exp_datetime,
         'iat': now,
-        'username': username
+        'username': username,
+        'type': 'access'
     }
     access_token = jwt.encode(access_payload,
                               Config().get_config("security").get("api_key"),
                               algorithm=algorithm)
     return access_token
+
+
+def generate_refresh_token(user_id: int, device_info: str = None, algorithm: str = 'HS256', exp_days: int = 30):
+    """
+    生成refresh_token
+    :param user_id: 用户ID
+    :param device_info: 设备信息
+    :param algorithm: 加密算法
+    :param exp_days: 过期时间，默认30天
+    :return: refresh_token
+    """
+    now = datetime.datetime.utcnow()
+    exp_datetime = now + datetime.timedelta(days=exp_days)
+
+    # 生成随机字符串作为jti
+    jti = secrets.token_urlsafe(32)
+
+    refresh_payload = {
+        'exp': exp_datetime,
+        'iat': now,
+        'user_id': user_id,
+        'jti': jti,
+        'type': 'refresh'
+    }
+
+    refresh_token = jwt.encode(refresh_payload,
+                              Config().get_config("security").get("api_key"),
+                              algorithm=algorithm)
+
+    # 将refresh_token存储到数据库
+    db_helper = DbHelper()
+    token_hash = hashlib.sha256(refresh_token.encode()).hexdigest()
+
+    db_helper.insert_refresh_token(
+        user_id=user_id,
+        token_hash=token_hash,
+        device_info=device_info,
+        created_at=now.strftime("%Y-%m-%d %H:%M:%S"),
+        expires_at=exp_datetime.strftime("%Y-%m-%d %H:%M:%S")
+    )
+
+    return refresh_token
 
 
 def __decode_auth_token(token: str, algorithms='HS256'):
@@ -110,112 +106,97 @@ def identify(auth_header: str):
     return flag, ""
 
 
-def login_required(func):
+def verify_refresh_token(refresh_token: str):
     """
-    登录保护，验证用户是否登录
-    :param func:
-    :return:
+    验证refresh_token
+    :param refresh_token: refresh_token字符串
+    :return: (是否有效, user_id)
     """
+    try:
+        # 解码token
+        flag, payload = __decode_auth_token(refresh_token)
+        if not payload or payload.get('type') != 'refresh':
+            return False, None
 
-    @wraps(func)
-    def wrapper(*args, **kwargs):
+        user_id = payload.get('user_id')
+        if not user_id:
+            return False, None
 
-        def auth_failed():
-            return {
-                "code": 403,
-                "success": False,
-                "message": "安全认证未通过，请检查Token"
-            }
+        # 检查数据库中的token是否有效
+        db_helper = DbHelper()
+        token_hash = hashlib.sha256(refresh_token.encode()).hexdigest()
 
-        token = request.headers.get("Authorization", default=None)
-        if not token:
-            return auth_failed()
-        latest_token = TokenCache.get(token)
-        if not latest_token:
-            return auth_failed()
-        flag, username = identify(latest_token)
-        if not username:
-            return auth_failed()
-        if not flag and username:
-            TokenCache.set(token, generate_access_token(username))
-        return func(*args, **kwargs)
+        # 清理过期token
+        current_time = datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
+        db_helper.cleanup_expired_refresh_tokens(current_time)
 
-    return wrapper
+        # 查找token
+        tokens = db_helper.get_refresh_tokens(token_hash=token_hash, active_only=True)
+        if not tokens:
+            return False, None
+
+        # 检查用户是否存在
+        from web.backend.user import UserManager
+        user = UserManager().get_user_by_id(user_id)
+        if not user:
+            return False, None
+
+        # 更新最后使用时间
+        db_helper.update_refresh_token_last_used(token_hash, current_time)
+
+        return flag, user_id
+
+    except Exception as e:
+        return False, None
 
 
-def encrypt_message(message, key):
+def refresh_access_token(refresh_token: str):
     """
-    使用给定的key对消息进行加密，并返回加密后的字符串
+    使用refresh_token刷新access_token
+    :param refresh_token: refresh_token字符串
+    :return: (是否成功, new_access_token, username)
     """
-    f = Fernet(key)
-    encrypted_message = f.encrypt(message.encode())
-    return encrypted_message.decode()
+    is_valid, user_id = verify_refresh_token(refresh_token)
+    if not is_valid or not user_id:
+        return False, None, None
+
+    # 获取用户信息
+    from web.backend.user import UserManager
+    user = UserManager().get_user_by_id(user_id)
+    if not user:
+        return False, None, None
+
+    # 生成新的access_token
+    new_access_token = generate_access_token(user.username)
+
+    return True, new_access_token, user.username
 
 
-def hash_sha256(message):
+def revoke_refresh_token(refresh_token: str):
     """
-    对字符串做hash运算
+    吊销refresh_token
+    :param refresh_token: refresh_token字符串
+    :return: 是否成功
     """
-    return hashlib.sha256(message.encode()).hexdigest()
+    try:
+        db_helper = DbHelper()
+        token_hash = hashlib.sha256(refresh_token.encode()).hexdigest()
+        db_helper.deactivate_refresh_tokens(token_hash=token_hash)
+        return True
+    except:
+        return False
 
 
-def aes_decrypt(data, key):
+def revoke_user_refresh_tokens(user_id: int):
     """
-    AES解密
+    吊销用户的所有refresh_token（用于登出所有设备）
+    :param user_id: 用户ID
+    :return: 是否成功
     """
-    if not data:
-        return ""
-    data = base64.b64decode(data)
-    iv = data[:16]
-    encrypted = data[16:]
-    # 使用AES-256-CBC解密
-    cipher = AES.new(key.encode('utf-8'), AES.MODE_CBC, iv)
-    result = cipher.decrypt(encrypted)
-    # 去除填充
-    padding = result[-1]
-    if padding < 1 or padding > AES.block_size:
-        return ""
-    result = result[:-padding]
-    return result.decode('utf-8')
+    try:
+        db_helper = DbHelper()
+        db_helper.deactivate_refresh_tokens(user_id=user_id)
+        return True
+    except:
+        return False
 
-
-def aes_encrypt(data, key):
-    """
-    AES加密
-    """
-    if not data:
-        return ""
-    # 使用AES-256-CBC加密
-    cipher = AES.new(key.encode('utf-8'), AES.MODE_CBC)
-    # 填充
-    padding = AES.block_size - len(data) % AES.block_size
-    data += chr(padding) * padding
-    result = cipher.encrypt(data.encode('utf-8'))
-    # 使用base64编码
-    return b64encode(cipher.iv + result).decode('utf-8')
-
-
-def nexusphp_encrypt(data_str: str, key):
-    """
-    NexusPHP加密
-    """
-    # 生成16字节长的随机字符串
-    iv = os.urandom(16)
-    # 对向量进行 Base64 编码
-    iv_base64 = base64.b64encode(iv)
-    # 加密数据
-    cipher = AES.new(key, AES.MODE_CBC, iv)
-    ciphertext = cipher.encrypt(pad(data_str.encode(), AES.block_size))
-    ciphertext_base64 = base64.b64encode(ciphertext)
-    # 对向量的字符串表示进行签名
-    mac = hmac.new(key, msg=iv_base64 + ciphertext_base64, digestmod=hashlib.sha256).hexdigest()
-    # 构造 JSON 字符串
-    json_str = json.dumps({
-        'iv': iv_base64.decode(),
-        'value': ciphertext_base64.decode(),
-        'mac': mac,
-        'tag': ''
-    })
-
-    # 对 JSON 字符串进行 Base64 编码
-    return base64.b64encode(json_str.encode()).decode()

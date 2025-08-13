@@ -12,7 +12,6 @@ from lxml import etree
 from cachetools import TTLCache, cached
 
 from app.helper import MetaHelper
-from app.helper.openai_helper import OpenAiHelper
 from app.media.doubanapi.apiv2 import DoubanApi
 from app.media.meta._base import MetaBase
 from app.media.meta.metainfo import MetaInfo
@@ -86,8 +85,6 @@ class Media:
             self.genre = Genre()
         # 元数据缓存
         self.meta = MetaHelper()
-        # ChatGPT
-        self.openai = OpenAiHelper()
         # 匹配模式
         rmt_match_mode = app.get('rmt_match_mode', 'normal')
         if rmt_match_mode:
@@ -474,53 +471,6 @@ class Media:
         return info
 
     @cached(cache=TTLCache(maxsize=512, ttl=3600))
-    def __search_chatgpt(self, file_name, mtype: MediaType):
-        """
-        通过ChatGPT对话识别文件名和集数等信息，重新查询TMDB数据
-        :param file_name: 名称
-        :param mtype: 媒体类型
-        :return: 类型、季、集、TMDBINFO
-        """
-
-        def __failed():
-            return mtype, None, None, {}
-
-        def __failed_none():
-            return mtype, None, None, None
-
-        if not file_name:
-            return __failed_none()
-        log.info("【Meta】正在通过ChatGPT识别文件名：%s" % file_name)
-        file_info = self.openai.get_media_name(file_name)
-        if file_info is None:
-            log.info("【Meta】ChatGPT识别出错，请检查是否设置OpenAI ApiKey！")
-            return __failed_none()
-        if not file_info:
-            log.info("【Meta】ChatGPT识别失败！")
-            return __failed()
-        else:
-            log.info("【Meta】ChatGPT识别结果：%s" % file_info)
-            if file_info.get("season") or file_info.get("episode"):
-                mtype = MediaType.TV
-            # 处理标题和年份
-            file_title, file_year, season_number = None, None, None
-            if file_info.get("title"):
-                file_title = str(file_info.get("title")).split("/")[0].strip().replace(".", " ")
-            if file_info.get("year"):
-                file_year = str(file_info.get("year")).split("/")[0].strip()
-            if not file_title:
-                return __failed()
-            if not str(file_year).isdigit():
-                file_year = None
-            if mtype != MediaType.MOVIE or file_info.get("year"):
-                tmdb_info = self.__search_tmdb(file_media_name=file_title,
-                                               search_type=mtype,
-                                               first_media_year=file_year)
-            else:
-                tmdb_info = self.__search_multi_tmdb(file_media_name=file_title)
-            return mtype, file_info.get("season"), file_info.get("episode"), tmdb_info
-
-    @cached(cache=TTLCache(maxsize=512, ttl=3600))
     def __search_tmdb_web(self, file_media_name, mtype: MediaType):
         """
         搜索TMDB网站，直接抓取结果，结果只有一条时才返回
@@ -789,18 +739,7 @@ class Media:
         # 查询tmdb数据
         file_media_info = self.query_tmdb_info(search_name, meta_info.type, meta_info.year,
                                                meta_info.begin_season, append_to_response, chinese, strict, cache)
-        
-       # 通过ChatGPT查询
-        if not file_media_info and self._chatgpt_enable:
-            mtype, seasons, episodes, file_media_info = self.__search_chatgpt(file_name=meta_info.get_name(),
-                                                                              mtype=mtype)
-            # 修正类型和集数
-            meta_info.type = mtype
-            if not meta_info.get_season_string():
-                meta_info.set_season(seasons)
-            if not meta_info.get_episode_string():
-                meta_info.set_episode(episodes)
-        
+                
         # 赋值TMDB信息并返回
         meta_info.set_tmdb_info(file_media_info)
         # 根据TMDB信息修正文件剧集信息
@@ -1192,16 +1131,6 @@ class Media:
                                 # 去掉年份再查一次，有可能是年份错误
                                 file_media_info = self.__search_tmdb(file_media_name=meta_info.get_name(),
                                                                      search_type=meta_info.type)
-                        if not file_media_info and self._chatgpt_enable:
-                            # 从ChatGPT查询
-                            mtype, seaons, episodes, file_media_info = self.__search_chatgpt(file_name=file_path,
-                                                                                             mtype=meta_info.type)
-                            # 修正类型和集数
-                            meta_info.type = mtype
-                            if not meta_info.get_season_string():
-                                meta_info.set_season(seaons)
-                            if not meta_info.get_episode_string():
-                                meta_info.set_episode(episodes)
                         if not file_media_info and self._search_keyword:
                             cache_name = cacheman["tmdb_supply"].get(meta_info.get_name())
                             is_movie = False
@@ -2120,7 +2049,7 @@ class Media:
             return ""
         genres = tmdbinfo.get("genres") or []
         genres_list = [genre.get("name") for genre in genres]
-        return ", ".join(genres_list) if genres_list else ""
+        return genres_list if genres_list else []
 
     def get_tmdb_genres(self, mtype):
         """

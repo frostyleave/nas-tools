@@ -9,13 +9,13 @@ import shutil
 import signal
 import sqlite3
 import time
+
 from math import floor
 from pathlib import Path
+from typing import Optional
 from urllib.parse import unquote
 
 import cn2an
-from flask_login import logout_user, current_user
-from werkzeug.security import generate_password_hash
 
 import log
 from app.brushtask import BrushTask
@@ -45,17 +45,20 @@ from app.utils import StringUtils, EpisodeFormat, RequestUtils, PathUtils, \
     SystemUtils, ExceptionUtils
 from app.utils.types import RmtMode, OsType, SearchType, SyncType, MediaType, MovieTypes, TvTypes, \
     EventType, SystemConfigKey, RssType
+from app.utils.password_hash import generate_password_hash
+
 from config import RMT_MEDIAEXT, RMT_SUBEXT, RMT_AUDIO_TRACK_EXT, Config
-from web.backend.search_torrents import search_medias_for_web, search_media_by_message
-from web.backend.user import User
+from web.backend.search import search_medias_for_web, search_media_by_message
+from web.backend.user import User, UserManager
 from web.backend.web_utils import WebUtils
 
 
 class WebAction:
     _actions = {}
     _commands = {}
+    _current_user : Optional[User] = None
 
-    def __init__(self):
+    def __init__(self, current_user=None):
         # WEB请求响应
         self._actions = {
             "sch": self.__sch,
@@ -164,9 +167,7 @@ class WebAction:
             "get_movie_rss_list": self.get_movie_rss_list,
             "get_tv_rss_list": self.get_tv_rss_list,
             "get_rss_history": self.get_rss_history,
-            "get_transfer_history": self.get_transfer_history,
             "get_unknown_list": self.get_unknown_list,
-            "get_unknown_list_by_page": self.get_unknown_list_by_page,
             "get_customwords": self.get_customwords,
             "get_users": self.get_users,
             "get_filterrules": self.get_filterrules,
@@ -212,7 +213,6 @@ class WebAction:
             "get_season_episodes": self.__get_season_episodes,
             "get_user_menus": self.get_user_menus,
             "get_top_menus": self.get_top_menus,
-            "auth_user_level": self.auth_user_level,
             "update_downloader": self.__update_downloader,
             "del_downloader": self.__del_downloader,
             "check_downloader": self.__check_downloader,
@@ -240,6 +240,7 @@ class WebAction:
             "run_plugin_method": self.run_plugin_method,
             "get_external_plugin_apps": self.get_external_plugin_apps,
             "save_external_source_settings": self.save_external_source_settings,
+            "refresh_pt_statistics": self.refresh_pt_statistics,
             "install_external_plugin": self.install_external_plugin,
             "uninstall_external_plugin": self.uninstall_external_plugin
         }
@@ -253,9 +254,10 @@ class WebAction:
             "/tbl": {"func": self.truncate_blacklist, "desc": "清理转移缓存"},
             "/trh": {"func": self.truncate_rsshistory, "desc": "清理RSS缓存"},
             "/utf": {"func": self.unidentification, "desc": "重新识别"},
-            # "/udt": {"func": self.update_system, "desc": "系统更新"},
             "/sta": {"func": self.user_statistics, "desc": "站点数据统计"}
         }
+        # 用户绑定
+        self._current_user = current_user
 
     def action(self, cmd, data):
         """
@@ -263,7 +265,7 @@ class WebAction:
         """
         func = self._actions.get(cmd)
         if not func:
-            return {"code": -1, "msg": "非授权访问！"}
+            return {"code": -1, "msg": "无效请求！"}
         elif inspect.signature(func).parameters:
             return func(data)
         else:
@@ -407,16 +409,15 @@ class WebAction:
         ThreadHelper().start_thread(search_media_by_message,
                                     (msg, in_from, user_id, user_name))
 
-    @staticmethod
-    def set_config_value(cfg, cfg_key, cfg_value):
+    def set_config_value(self, cfg, cfg_key, cfg_value):
         """
         根据Key设置配置值
         """
         # 密码
         if cfg_key == "app.login_password":
             if cfg_value and not cfg_value.startswith("[hash]"):
-                cfg['app']['login_password'] = "[hash]%s" % generate_password_hash(
-                    cfg_value)
+                password_hash = "[hash]%s" % generate_password_hash(cfg_value)
+                cfg['app']['login_password'] = "[hash]%s" % password_hash
             else:
                 cfg['app']['login_password'] = cfg_value or "password"
             return cfg
@@ -453,8 +454,7 @@ class WebAction:
 
         return cfg
 
-    @staticmethod
-    def set_config_directory(cfg, oper, cfg_key, cfg_value, update_value=None):
+    def set_config_directory(self, cfg, oper, cfg_key, cfg_value, update_value=None):
         """
         更新目录数据
         """
@@ -512,8 +512,7 @@ class WebAction:
                     cfg[keys[0]][keys[1]] = cfg_value.replace("\\", "/")
         return cfg
 
-    @staticmethod
-    def __sch(data):
+    def __sch(self, data):
         """
         启动服务
         """
@@ -528,8 +527,7 @@ class WebAction:
             ThreadHelper().start_thread(commands.get(sch_item), ())
         return {"retmsg": "服务已启动", "item": sch_item}
 
-    @staticmethod
-    def __search(data):
+    def __search(self, data):
         """
         WEB搜索资源
         """
@@ -553,8 +551,7 @@ class WebAction:
                 return {"code": ret, "msg": ret_msg}
         return {"code": 0}
 
-    @staticmethod
-    def __download(data):
+    def __download(self, data):
         """
         从WEB添加下载
         """
@@ -567,10 +564,10 @@ class WebAction:
                 continue
             mtype = None
             if res.TYPE == 'MOV':
-                mtype = MediaType.MOVIE 
-            elif res.TYPE == 'ANI': 
+                mtype = MediaType.MOVIE
+            elif res.TYPE == 'ANI':
                 mtype = MediaType.ANIME
-            elif res.TYPE == 'TV': 
+            elif res.TYPE == 'TV':
                 mtype = MediaType.TV
 
             info = Media().get_tmdb_info(tmdbid=res.TMDBID, mtype=mtype, append_to_response="all")
@@ -591,13 +588,12 @@ class WebAction:
                                                     download_dir=dl_dir,
                                                     download_setting=dl_setting,
                                                     in_from=SearchType.WEB,
-                                                    user_name=current_user.username)
+                                                    user_name="admin")
             if not ret:
                 return {"retcode": -1, "retmsg": ret_msg}
         return {"retcode": 0, "retmsg": ""}
 
-    @staticmethod
-    def __download_link(data):
+    def __download_link(self, data):
         """
         从WEB添加下载链接
         """
@@ -627,13 +623,12 @@ class WebAction:
                                                 download_dir=dl_dir,
                                                 download_setting=dl_setting,
                                                 in_from=SearchType.WEB,
-                                                user_name=current_user.username)
+                                                user_name="admin")
         if not ret:
             return {"code": 1, "msg": ret_msg or "如连接正常，请检查下载任务是否存在"}
         return {"code": 0, "msg": "下载成功"}
 
-    @staticmethod
-    def __download_torrent(data):
+    def __download_torrent(self, data):
         """
         从种子文件或者URL链接添加下载
         files：文件地址的列表，urls：种子链接地址列表或者单个链接地址
@@ -659,7 +654,7 @@ class WebAction:
                                   download_setting=dl_setting,
                                   torrent_file=file_path,
                                   in_from=SearchType.WEB,
-                                  user_name=current_user.username)
+                                  user_name="admin")
         # 下载链接
         if urls and not isinstance(urls, list):
             urls = [urls]
@@ -688,12 +683,11 @@ class WebAction:
                                   download_setting=dl_setting,
                                   torrent_file=file_path,
                                   in_from=SearchType.WEB,
-                                  user_name=current_user.username)
+                                  user_name="admin")
 
         return {"code": 0, "msg": "添加下载完成！"}
 
-    @staticmethod
-    def __pt_start(data):
+    def __pt_start(self, data):
         """
         开始下载
         """
@@ -702,8 +696,7 @@ class WebAction:
             Downloader().start_torrents(ids=tid)
         return {"retcode": 0, "id": tid}
 
-    @staticmethod
-    def __pt_stop(data):
+    def __pt_stop(self, data):
         """
         停止下载
         """
@@ -712,8 +705,7 @@ class WebAction:
             Downloader().stop_torrents(ids=tid)
         return {"retcode": 0, "id": tid}
 
-    @staticmethod
-    def __pt_remove(data):
+    def __pt_remove(self, data):
         """
         删除下载
         """
@@ -722,8 +714,7 @@ class WebAction:
             Downloader().delete_torrents(ids=tid, delete_file=True)
         return {"retcode": 0, "id": tid}
 
-    @staticmethod
-    def __pt_info(data):
+    def __pt_info(self, data):
         """
         查询具体种子的信息
         """
@@ -732,8 +723,7 @@ class WebAction:
         torrents = Downloader().get_downloading_progress(downloader_id=downloader_id,ids=ids)
         return {"retcode": 0, "torrents": torrents}
 
-    @staticmethod
-    def __del_unknown_path(data):
+    def __del_unknown_path(self, data):
         """
         删除路径
         """
@@ -856,8 +846,7 @@ class WebAction:
         else:
             return {"retcode": 2, "retmsg": ret_msg}
 
-    @staticmethod
-    def __manual_transfer(inpath,
+    def __manual_transfer(self, inpath,
                           syncmod,
                           outpath=None,
                           media_type=None,
@@ -1040,8 +1029,7 @@ class WebAction:
                                     ExceptionUtils.exception_traceback(e)
         return {"retcode": 0}
 
-    @staticmethod
-    def delete_media_file(filedir, filename):
+    def delete_media_file(self, filedir, filename):
         """
         删除媒体文件，空目录也会被删除
         """
@@ -1076,8 +1064,7 @@ class WebAction:
             ExceptionUtils.exception_traceback(e)
             return True, f"{file} 删除失败"
 
-    @staticmethod
-    def __version():
+    def __version(self):
         """
         检查新版本
         """
@@ -1086,8 +1073,7 @@ class WebAction:
             return {"code": 0, "version": version, "url": url}
         return {"code": -1, "version": "", "url": ""}
 
-    @staticmethod
-    def __update_site(data):
+    def __update_site(self, data):
         """
         维护站点信息
         """
@@ -1150,8 +1136,7 @@ class WebAction:
 
         return {"code": ret}
 
-    @staticmethod
-    def __get_site(data):
+    def __get_site(self, data):
         """
         查询单个站点信息
         """
@@ -1173,8 +1158,7 @@ class WebAction:
             ret = []
         return {"code": 0, "site": ret, "site_free": site_free, "site_2xfree": site_2xfree, "site_hr": site_hr}
 
-    @staticmethod
-    def __get_sites(data):
+    def __get_sites(self, data):
         """
         查询多个站点信息
         """
@@ -1192,8 +1176,7 @@ class WebAction:
                                       statistic=statistic)
         return {"code": 0, "sites": sites}
 
-    @staticmethod
-    def __del_site(data):
+    def __del_site(self, data):
         """
         删除单个站点信息
         """
@@ -1311,8 +1294,7 @@ class WebAction:
             self.restart_server()
         return {"code": 0}
 
-    @staticmethod
-    def __reset_db_version():
+    def __reset_db_version(self):
         """
         重置数据库版本
         """
@@ -1323,12 +1305,11 @@ class WebAction:
             ExceptionUtils.exception_traceback(e)
             return {"code": 1, "msg": str(e)}
 
-    @staticmethod
-    def __logout():
+    def __logout(self):
         """
         注销
         """
-        logout_user()
+        # 不再使用Flask的logout_user
         return {"code": 0}
 
     def __update_config(self, data):
@@ -1353,8 +1334,7 @@ class WebAction:
 
         return {"code": 0}
 
-    @staticmethod
-    def __add_or_edit_sync_path(data):
+    def __add_or_edit_sync_path(self, data):
         """
         维护同步目录
         """
@@ -1406,8 +1386,7 @@ class WebAction:
                                enabled=enabled)
         return {"code": 0, "msg": ""}
 
-    @staticmethod
-    def get_sync_path(data=None):
+    def get_sync_path(self, data=None):
         """
         查询同步目录
         """
@@ -1417,8 +1396,7 @@ class WebAction:
             sync_path = Sync().get_sync_path_conf()
         return {"code": 0, "result": sync_path}
 
-    @staticmethod
-    def __delete_sync_path(data):
+    def __delete_sync_path(self, data):
         """
         移出同步目录
         """
@@ -1426,8 +1404,7 @@ class WebAction:
         Sync().delete_sync_path(sid)
         return {"code": 0}
 
-    @staticmethod
-    def __check_sync_path(data):
+    def __check_sync_path(self, data):
         """
         维护同步目录
         """
@@ -1452,8 +1429,7 @@ class WebAction:
         else:
             return {"code": 1}
 
-    @staticmethod
-    def __remove_rss_media(data):
+    def __remove_rss_media(self, data):
         """
         移除RSS订阅
         """
@@ -1483,8 +1459,7 @@ class WebAction:
                                              tmdbid=tmdbid)
         return {"code": 0, "page": page, "name": name}
 
-    @staticmethod
-    def __add_rss_media(data):
+    def __add_rss_media(self, data):
         """
         添加RSS订阅
         """
@@ -1570,8 +1545,7 @@ class WebAction:
                                                 tmdbid=media_info.tmdb_id)
         return {"code": code, "msg": msg, "page": page, "name": name, "rssid": rssid}
 
-    @staticmethod
-    def re_identification(data):
+    def re_identification(self, data):
         """
         未识别的重新识别
         """
@@ -1632,8 +1606,7 @@ class WebAction:
         else:
             return {"retcode": 2, "retmsg": "、".join(ret_msg)}
 
-    @staticmethod
-    def __media_info(data):
+    def __media_info(self, data):
         """
         查询媒体信息
         """
@@ -1737,8 +1710,7 @@ class WebAction:
             "seasons": seasons
         }
 
-    @staticmethod
-    def __test_connection(data):
+    def __test_connection(self, data):
         """
         测试连通性
         """
@@ -1775,8 +1747,7 @@ class WebAction:
             return {"code": 0 if ret else 1}
         return {"code": 0}
 
-    @staticmethod
-    def __user_manager(data):
+    def __user_manager(self, data):
         """
         用户管理
         """
@@ -1787,16 +1758,15 @@ class WebAction:
             pris = data.get("pris")
             if isinstance(pris, list):
                 pris = ",".join(pris)
-            ret = User().add_user(name, password, pris)
+            ret = UserManager().add_user(name, password, pris)
         else:
-            ret = User().delete_user(name)
+            ret = UserManager().delete_user(name)
 
         if ret == 1 or ret:
             return {"code": 0, "success": False}
         return {"code": -1, "success": False, 'message': '操作失败'}
 
-    @staticmethod
-    def __refresh_rss(data):
+    def __refresh_rss(self, data):
         """
         重新搜索RSS
         """
@@ -1809,8 +1779,7 @@ class WebAction:
             ThreadHelper().start_thread(Subscribe().subscribe_search_tv, (rssid,))
         return {"code": 0, "page": page}
 
-    @staticmethod
-    def get_system_message(lst_time):
+    def get_system_message(self, lst_time):
         messages = MessageCenter().get_system_messages(lst_time=lst_time)
         if messages:
             lst_time = messages[0].get("time")
@@ -1820,8 +1789,7 @@ class WebAction:
             "lst_time": lst_time
         }
 
-    @staticmethod
-    def __delete_tmdb_cache(data):
+    def __delete_tmdb_cache(self, data):
         """
         删除tmdb缓存
         """
@@ -1829,8 +1797,7 @@ class WebAction:
             MetaHelper().save_meta_data()
         return {"code": 0}
 
-    @staticmethod
-    def __movie_calendar_data(data):
+    def __movie_calendar_data(self, data):
         """
         查询电影上映日期
         """
@@ -1841,7 +1808,7 @@ class WebAction:
             douban_info = DouBan().get_douban_detail(doubanid=doubanid, mtype=MediaType.MOVIE)
             if not douban_info:
                 return {"code": 1, "retmsg": "无法查询到豆瓣信息"}
-            
+
             poster_path = douban_info.get("images", {}).get('large') or ""
             title = douban_info.get("title")
             vote_average = douban_info.get("rating", {}).get("average") or "无"
@@ -1885,8 +1852,7 @@ class WebAction:
                         "rssid": rssid
                         }
 
-    @staticmethod
-    def __tv_calendar_data(data):
+    def __tv_calendar_data(self, data):
         """
         查询电视剧上映日期
         """
@@ -1899,7 +1865,7 @@ class WebAction:
             douban_info = DouBan().get_douban_detail(doubanid=doubanid, mtype=MediaType.TV)
             if not douban_info:
                 return {"code": 1, "retmsg": "无法查询到豆瓣信息"}
-            
+
             poster_path = douban_info.get("images", {}).get('large') or ""
             title = douban_info.get("title")
             vote_average = douban_info.get("rating", {}).get("average") or "无"
@@ -1958,8 +1924,7 @@ class WebAction:
                 })
             return {"code": 0, "events": episode_events}
 
-    @staticmethod
-    def __rss_detail(data):
+    def __rss_detail(self, data):
         rid = data.get("rssid")
         mtype = data.get("rsstype")
         if mtype in MovieTypes:
@@ -1976,8 +1941,7 @@ class WebAction:
             rssdetail["type"] = "TV"
         return {"code": 0, "detail": rssdetail}
 
-    @staticmethod
-    def __modify_tmdb_cache(data):
+    def __modify_tmdb_cache(self, data):
         """
         修改TMDB缓存的标题
         """
@@ -1985,16 +1949,14 @@ class WebAction:
             MetaHelper().save_meta_data(force=True)
         return {"code": 0}
 
-    @staticmethod
-    def truncate_blacklist():
+    def truncate_blacklist(self):
         """
         清空文件转移黑名单记录
         """
         FileTransfer().truncate_transfer_blacklist()
         return {"code": 0}
 
-    @staticmethod
-    def truncate_rsshistory():
+    def truncate_rsshistory(self):
         """
         清空RSS历史记录
         """
@@ -2002,8 +1964,7 @@ class WebAction:
         Subscribe().truncate_rss_episodes()
         return {"code": 0}
 
-    @staticmethod
-    def __add_brushtask(data):
+    def __add_brushtask(self, data):
         """
         新增刷流任务
         """
@@ -2079,8 +2040,7 @@ class WebAction:
         BrushTask().update_brushtask(brushtask_id, item)
         return {"code": 0}
 
-    @staticmethod
-    def __del_brushtask(data):
+    def __del_brushtask(self, data):
         """
         删除刷流任务
         """
@@ -2090,8 +2050,7 @@ class WebAction:
             return {"code": 0}
         return {"code": 1}
 
-    @staticmethod
-    def __brushtask_detail(data):
+    def __brushtask_detail(self, data):
         """
         查询刷流任务详情
         """
@@ -2102,8 +2061,7 @@ class WebAction:
 
         return {"code": 0, "task": brushtask}
 
-    @staticmethod
-    def __update_brushtask_state(data):
+    def __update_brushtask_state(self, data):
         """
         批量暂停/开始刷流任务
         """
@@ -2135,8 +2093,7 @@ class WebAction:
             return {"code": 0, "data": {"name": "无法识别"}}
         return {"code": 0, "data": self.mediainfo_dict(media_info)}
 
-    @staticmethod
-    def mediainfo_dict(media_info):
+    def mediainfo_dict(self, media_info):
         if not media_info:
             return {}
         tmdb_id = media_info.tmdb_id
@@ -2174,8 +2131,7 @@ class WebAction:
             "offset_words": media_info.offset_words
         }
 
-    @staticmethod
-    def __rule_test(data):
+    def __rule_test(self, data):
         title = data.get("title")
         subtitle = data.get("subtitle")
         size = data.get("size")
@@ -2194,8 +2150,7 @@ class WebAction:
             "order": 100 - res_order if res_order else 0
         }
 
-    @staticmethod
-    def __net_test(data):
+    def __net_test(self, data):
         target = data
         if target == "image.tmdb.org":
             target = target + "/t/p/w500/wwemzKWzjKYJFfCeiB57q3r4Bcm.png"
@@ -2220,8 +2175,7 @@ class WebAction:
         else:
             return {"res": False, "time": "%s 毫秒" % seconds}
 
-    @staticmethod
-    def __get_site_activity(data):
+    def __get_site_activity(self, data):
         """
         查询site活动[上传，下载，魔力值]
         :param data: {"name":site_name}
@@ -2236,8 +2190,7 @@ class WebAction:
             {"dataset": SiteUserInfo().get_pt_site_activity_history(data["name"])})
         return resp
 
-    @staticmethod
-    def __get_site_history(data):
+    def __get_site_history(self, data):
         """
         查询site 历史[上传，下载]
         :param data: {"days":累计时间}
@@ -2258,8 +2211,7 @@ class WebAction:
         resp.update({"dataset": dataset})
         return resp
 
-    @staticmethod
-    def __get_site_seeding_info(data):
+    def __get_site_seeding_info(self, data):
         """
         查询site 做种分布信息 大小，做种数
         :param data: {"name":site_name}
@@ -2279,8 +2231,7 @@ class WebAction:
         resp.update({"dataset": dataset})
         return resp
 
-    @staticmethod
-    def __add_filtergroup(data):
+    def __add_filtergroup(self, data):
         """
         新增规则组
         """
@@ -2291,8 +2242,7 @@ class WebAction:
         Filter().add_group(name, default)
         return {"code": 0}
 
-    @staticmethod
-    def __restore_filtergroup(data):
+    def __restore_filtergroup(self, data):
         """
         恢复初始规则组
         """
@@ -2310,22 +2260,19 @@ class WebAction:
                         DbHelper().excute(sql)
         return {"code": 0}
 
-    @staticmethod
-    def __set_default_filtergroup(data):
+    def __set_default_filtergroup(self, data):
         groupid = data.get("id")
         if not groupid:
             return {"code": -1}
         Filter().set_default_filtergroup(groupid)
         return {"code": 0}
 
-    @staticmethod
-    def __del_filtergroup(data):
+    def __del_filtergroup(self, data):
         groupid = data.get("id")
         Filter().delete_filtergroup(groupid)
         return {"code": 0}
 
-    @staticmethod
-    def __add_filterrule(data):
+    def __add_filterrule(self, data):
         rule_id = data.get("rule_id")
         item = {
             "group": data.get("group_id"),
@@ -2339,14 +2286,12 @@ class WebAction:
         Filter().add_filter_rule(ruleid=rule_id, item=item)
         return {"code": 0}
 
-    @staticmethod
-    def __del_filterrule(data):
+    def __del_filterrule(self, data):
         ruleid = data.get("id")
         Filter().delete_filterrule(ruleid)
         return {"code": 0}
 
-    @staticmethod
-    def __filterrule_detail(data):
+    def __filterrule_detail(self, data):
         rid = data.get("ruleid")
         groupid = data.get("groupid")
         ruleinfo = Filter().get_rules(groupid=groupid, ruleid=rid)
@@ -2538,8 +2483,7 @@ class WebAction:
         )
         return sorted_results
 
-    @staticmethod
-    def get_downloaded(data):
+    def get_downloaded(self, data):
         page = data.get("page")
         Items = Downloader().get_download_history(page=page)
         if Items:
@@ -2561,8 +2505,7 @@ class WebAction:
         else:
             return {"code": 0, "Items": []}
 
-    @staticmethod
-    def parse_brush_rule_string(rules: dict):
+    def parse_brush_rule_string(self, rules: dict):
         if not rules:
             return ""
         rule_filter_string = {"gt": ">", "lt": "<", "bw": ""}
@@ -2661,8 +2604,7 @@ class WebAction:
 
         return "<br>".join(rule_htmls)
 
-    @staticmethod
-    def __clear_tmdb_cache():
+    def __clear_tmdb_cache(self):
         """
         清空TMDB缓存
         """
@@ -2674,8 +2616,7 @@ class WebAction:
             return {"code": 0, "msg": str(e)}
         return {"code": 0}
 
-    @staticmethod
-    def __check_site_attr(data):
+    def __check_site_attr(self, data):
         """
         检查站点标识
         """
@@ -2689,8 +2630,7 @@ class WebAction:
             site_hr = True
         return {"code": 0, "site_free": site_free, "site_2xfree": site_2xfree, "site_hr": site_hr}
 
-    @staticmethod
-    def refresh_process(data):
+    def refresh_process(self, data):
         """
         刷新进度条
         """
@@ -2700,8 +2640,7 @@ class WebAction:
         else:
             return {"code": 1, "value": 0, "text": "正在处理..."}
 
-    @staticmethod
-    def __restory_backup(data):
+    def __restory_backup(self, data):
         """
         解压恢复备份文件
         """
@@ -2722,8 +2661,7 @@ class WebAction:
 
         return {"code": 1, "msg": "文件不存在"}
 
-    @staticmethod
-    def __start_mediasync(data):
+    def __start_mediasync(self, data):
         """
         开始媒体库同步
         """
@@ -2732,8 +2670,7 @@ class WebAction:
         ThreadHelper().start_thread(MediaServer().sync_mediaserver, ())
         return {"code": 0}
 
-    @staticmethod
-    def __mediasync_state():
+    def __mediasync_state(self):
         """
         获取媒体库同步数据情况
         """
@@ -2746,8 +2683,7 @@ class WebAction:
                                         status.get("tv_count"),
                                         status.get("time"))}
 
-    @staticmethod
-    def __get_tvseason_list(data):
+    def __get_tvseason_list(self, data):
         """
         获取剧集季列表
         """
@@ -2779,16 +2715,14 @@ class WebAction:
             ]
         return {"code": 0, "seasons": seasons}
 
-    @staticmethod
-    def __get_userrss_task(data):
+    def __get_userrss_task(self, data):
         """
         获取自定义订阅详情
         """
         taskid = data.get("id")
         return {"code": 0, "detail": RssChecker().get_rsstask_info(taskid=taskid)}
 
-    @staticmethod
-    def __delete_userrss_task(data):
+    def __delete_userrss_task(self, data):
         """
         删除自定义订阅
         """
@@ -2797,8 +2731,7 @@ class WebAction:
         else:
             return {"code": 1}
 
-    @staticmethod
-    def __update_userrss_task(data):
+    def __update_userrss_task(self, data):
         """
         新增或修改自定义订阅
         """
@@ -2850,8 +2783,7 @@ class WebAction:
         else:
             return {"code": 1}
 
-    @staticmethod
-    def __check_userrss_task(data):
+    def __check_userrss_task(self, data):
         """
         检测自定义订阅
         """
@@ -2871,16 +2803,14 @@ class WebAction:
             ExceptionUtils.exception_traceback(e)
             return {"code": 1, "msg": "自定义订阅状态设置失败"}
 
-    @staticmethod
-    def __get_rssparser(data):
+    def __get_rssparser(self, data):
         """
         获取订阅解析器详情
         """
         pid = data.get("id")
         return {"code": 0, "detail": RssChecker().get_userrss_parser(pid=pid)}
 
-    @staticmethod
-    def __delete_rssparser(data):
+    def __delete_rssparser(self, data):
         """
         删除订阅解析器
         """
@@ -2889,8 +2819,7 @@ class WebAction:
         else:
             return {"code": 1}
 
-    @staticmethod
-    def __update_rssparser(data):
+    def __update_rssparser(self, data):
         """
         新增或更新订阅解析器
         """
@@ -2906,18 +2835,15 @@ class WebAction:
         else:
             return {"code": 1}
 
-    @staticmethod
-    def __run_userrss(data):
+    def __run_userrss(self, data):
         RssChecker().check_task_rss(data.get("id"))
         return {"code": 0}
 
-    @staticmethod
-    def __run_brushtask(data):
+    def __run_brushtask(self, data):
         BrushTask().check_task_rss(data.get("id"))
         return {"code": 0}
 
-    @staticmethod
-    def list_site_resources(data):
+    def list_site_resources(self, data):
         resources = Indexer().list_resources(index_id=data.get("id"),
                                              page=data.get("page"),
                                              keyword=data.get("keyword"))
@@ -2926,8 +2852,7 @@ class WebAction:
         else:
             return {"code": 0, "data": resources}
 
-    @staticmethod
-    def __list_rss_articles(data):
+    def __list_rss_articles(self, data):
         task_info = RssChecker().get_rsstask_info(taskid=data.get("id"))
         uses = task_info.get("uses")
         address_count = len(task_info.get("address"))
@@ -2953,8 +2878,7 @@ class WebAction:
         media_dict.update({"match_flag": match_flag, "exist_flag": exist_flag})
         return {"code": 0, "data": media_dict}
 
-    @staticmethod
-    def __list_rss_history(data):
+    def __list_rss_history(self, data):
         downloads = []
         historys = RssChecker().get_userrss_task_history(data.get("id"))
         count = len(historys)
@@ -2970,8 +2894,7 @@ class WebAction:
         else:
             return {"code": 1, "msg": "无下载记录"}
 
-    @staticmethod
-    def __rss_articles_check(data):
+    def __rss_articles_check(self, data):
         if not data.get("articles"):
             return {"code": 2}
         res = RssChecker().check_rss_articles(
@@ -2984,8 +2907,7 @@ class WebAction:
         else:
             return {"code": 1}
 
-    @staticmethod
-    def __rss_articles_download(data):
+    def __rss_articles_download(self, data):
         if not data.get("articles"):
             return {"code": 2}
         res = RssChecker().download_rss_articles(
@@ -2995,8 +2917,7 @@ class WebAction:
         else:
             return {"code": 1}
 
-    @staticmethod
-    def __add_custom_word_group(data):
+    def __add_custom_word_group(self, data):
         try:
             tmdb_id = data.get("tmdb_id")
             tmdb_type = data.get("tmdb_type")
@@ -3036,8 +2957,7 @@ class WebAction:
             ExceptionUtils.exception_traceback(e)
             return {"code": 1, "msg": str(e)}
 
-    @staticmethod
-    def __delete_custom_word_group(data):
+    def __delete_custom_word_group(self, data):
         try:
             gid = data.get("gid")
             WordsHelper().delete_custom_word_group(gid=gid)
@@ -3046,8 +2966,7 @@ class WebAction:
             ExceptionUtils.exception_traceback(e)
             return {"code": 1, "msg": str(e)}
 
-    @staticmethod
-    def __add_or_edit_custom_word(data):
+    def __add_or_edit_custom_word(self, data):
         try:
             wid = data.get("id")
             gid = data.get("gid")
@@ -3150,8 +3069,7 @@ class WebAction:
             ExceptionUtils.exception_traceback(e)
             return {"code": 1, "msg": str(e)}
 
-    @staticmethod
-    def __get_custom_word(data):
+    def __get_custom_word(self, data):
         try:
             wid = data.get("wid")
             word_info = WordsHelper().get_custom_words(wid=wid)
@@ -3176,8 +3094,7 @@ class WebAction:
             ExceptionUtils.exception_traceback(e)
             return {"code": 1, "msg": "查询识别词失败"}
 
-    @staticmethod
-    def __delete_custom_words(data):
+    def __delete_custom_words(self, data):
         try:
             _wordshelper = WordsHelper()
             ids_info = data.get("ids_info")
@@ -3192,8 +3109,7 @@ class WebAction:
             ExceptionUtils.exception_traceback(e)
             return {"code": 1, "msg": str(e)}
 
-    @staticmethod
-    def __check_custom_words(data):
+    def __check_custom_words(self, data):
         try:
             flag_dict = {"enable": 1, "disable": 0}
             ids_info = data.get("ids_info")
@@ -3210,8 +3126,7 @@ class WebAction:
             ExceptionUtils.exception_traceback(e)
             return {"code": 1, "msg": "识别词状态设置失败"}
 
-    @staticmethod
-    def __export_custom_words(data):
+    def __export_custom_words(self, data):
         try:
             note = data.get("note")
             ids_info = data.get("ids_info")
@@ -3273,8 +3188,7 @@ class WebAction:
             ExceptionUtils.exception_traceback(e)
             return {"code": 1, "msg": str(e)}
 
-    @staticmethod
-    def __analyse_import_custom_words_code(data):
+    def __analyse_import_custom_words_code(self, data):
         try:
             import_code = data.get('import_code')
             string = base64.b64decode(import_code.encode(
@@ -3306,8 +3220,7 @@ class WebAction:
             ExceptionUtils.exception_traceback(e)
             return {"code": 1, "msg": str(e)}
 
-    @staticmethod
-    def __import_custom_words(data):
+    def __import_custom_words(self, data):
         try:
             _wordshelper = WordsHelper()
             import_code = data.get('import_code')
@@ -3377,8 +3290,7 @@ class WebAction:
             ExceptionUtils.exception_traceback(e)
             return {"code": 1, "msg": str(e)}
 
-    @staticmethod
-    def get_categories(data):
+    def get_categories(self, data):
         if data.get("type") == "电影":
             categories = Category().movie_categorys
         elif data.get("type") == "电视剧":
@@ -3387,14 +3299,12 @@ class WebAction:
             categories = Category().anime_categorys
         return {"code": 0, "category": list(categories), "id": data.get("id"), "value": data.get("value")}
 
-    @staticmethod
-    def __delete_rss_history(data):
+    def __delete_rss_history(self, data):
         rssid = data.get("rssid")
         Rss().delete_rss_history(rssid=rssid)
         return {"code": 0}
 
-    @staticmethod
-    def __re_rss_history(data):
+    def __re_rss_history(self, data):
         rssid = data.get("rssid")
         rtype = data.get("type")
         rssinfo = Rss().get_rss_history(rtype=rtype, rid=rssid)
@@ -3419,8 +3329,7 @@ class WebAction:
         else:
             return {"code": 1, "msg": "订阅历史记录不存在"}
 
-    @staticmethod
-    def __share_filtergroup(data):
+    def __share_filtergroup(self, data):
         gid = data.get("id")
         _filter = Filter()
         group_info = _filter.get_filter_group(gid=gid)
@@ -3447,8 +3356,7 @@ class WebAction:
             rule_json).encode("utf-8")).decode('utf-8')
         return {"code": 0, "string": json_string}
 
-    @staticmethod
-    def __import_filtergroup(data):
+    def __import_filtergroup(self, data):
         content = data.get("content")
         try:
             _filter = Filter()
@@ -3480,8 +3388,7 @@ class WebAction:
             ExceptionUtils.exception_traceback(err)
             return {"code": 1, "msg": "数据格式不正确，%s" % str(err)}
 
-    @staticmethod
-    def get_library_spacesize():
+    def get_library_spacesize(self):
         """
         查询媒体库存储空间
         """
@@ -3530,8 +3437,7 @@ class WebAction:
                 "UsedSapce": UsedSapce,
                 "TotalSpace": TotalSpace}
 
-    @staticmethod
-    def get_transfer_statistics():
+    def get_transfer_statistics(self):
         """
         查询转移历史统计数据
         """
@@ -3564,8 +3470,7 @@ class WebAction:
             "AnimeNums": AnimeNums
         }
 
-    @staticmethod
-    def get_library_mediacount():
+    def get_library_mediacount(self):
         """
         查询媒体库统计数据
         """
@@ -3585,8 +3490,7 @@ class WebAction:
         else:
             return {"code": -1, "msg": "媒体库服务器连接失败"}
 
-    @staticmethod
-    def get_library_playhistory():
+    def get_library_playhistory(self):
         """
         查询媒体库播放记录
         """
@@ -3644,7 +3548,7 @@ class WebAction:
             # 只需要部分种子标签
             labels = [label for label in str(item.NOTE).split("|")
                       if label in ["官方", "官组", "中字", "国语", "特效", "特效字幕"]]
-            
+
             pubdate = item.PUBDATE or ''
             if pubdate.endswith(' 00:00:00'):
                 pubdate = pubdate[:-9]
@@ -3797,14 +3701,14 @@ class WebAction:
                     if len(parts) == 2:
                         return (parts[1], parts[0])  # 翻转顺序
                 return (k[0], "FF")
-            
+
             if re.match(r"^(E\d+)-E\d+$", k[1], flags=re.I):
                 parts = k[1].split('-')  # 按 '-' 拆分
                 if len(parts) == 2:
                     return (k[0], '{}-{}'.format(parts[1], parts[0]))
-            
+
             return (k[0], k[1])
-        
+
         # 开始排序季集顺序
         for title, item in SearchResults.items():
             # 排序筛选器 季
@@ -3817,8 +3721,7 @@ class WebAction:
                                           reverse=True)
         return {"code": 0, "total": total, "result": SearchResults}
 
-    @staticmethod
-    def search_media_infos(data):
+    def search_media_infos(self, data):
         """
         根据关键字搜索相似词条
         """
@@ -3831,30 +3734,26 @@ class WebAction:
 
         return {"code": 0, "result": [media.to_dict() for media in medias]}
 
-    @staticmethod
-    def get_movie_rss_list():
+    def get_movie_rss_list(self):
         """
         查询所有电影订阅
         """
         return {"code": 0, "result": Subscribe().get_subscribe_movies()}
 
-    @staticmethod
-    def get_tv_rss_list():
+    def get_tv_rss_list(self):
         """
         查询所有电视剧订阅
         """
         return {"code": 0, "result": Subscribe().get_subscribe_tvs()}
 
-    @staticmethod
-    def get_rss_history(data):
+    def get_rss_history(self, data):
         """
         查询所有订阅历史
         """
         mtype = data.get("type")
         return {"code": 0, "result": [rec.as_dict() for rec in Rss().get_rss_history(rtype=mtype)]}
 
-    @staticmethod
-    def get_downloading(downloader_id=None):
+    def get_downloading(self, downloader_id=None):
         """
         查询正在下载的任务
         """
@@ -3873,13 +3772,14 @@ class WebAction:
                 poster_path = download_info.POSTER
                 backdrop = download_info.BACKDROP
                 se = download_info.SE
-                title = "%s %s" % (name, se) if se else ( "%s(%s)" % (name, year) if year else name)
+                title = "%s(%s)" % (name, year) if year and download_info.TYPE == '电影' else name
                 tpye_str = 'MOV' if download_info.TYPE == '电影' else 'TV'
                 vote = download_info.VOTE
-                    
+
                 torrent.update({
                     "tmdbid": download_info.TMDBID,
                     "title": title,
+                    "se": se,
                     "image": poster_path or "",
                     "backdrop" : backdrop or "",
                     "type": tpye_str,
@@ -3889,21 +3789,11 @@ class WebAction:
 
         return {"code": 0, "result": torrents}
 
-    @staticmethod
-    def get_transfer_history(data):
+    def get_transfer_history(self, sarchKw, currentPage=1, pageNum=20):
         """
         查询媒体整理历史记录
         """
-        PageNum = data.get("pagenum")
-        if not PageNum:
-            PageNum = 30
-        SearchStr = data.get("keyword")
-        CurrentPage = data.get("page")
-        if not CurrentPage:
-            CurrentPage = 1
-        else:
-            CurrentPage = int(CurrentPage)
-        totalCount, historys = FileTransfer().get_transfer_history(SearchStr, CurrentPage, PageNum)
+        totalCount, historys = FileTransfer().get_transfer_history(sarchKw, currentPage, pageNum)
         historys_list = []
         for history in historys:
             history = history.as_dict()
@@ -3915,19 +3805,18 @@ class WebAction:
                 "RMT_MODE": rmt_mode
             })
             historys_list.append(history)
-        TotalPage = floor(totalCount / PageNum) + 1
+        TotalPage = floor(totalCount / pageNum) + 1
 
         return {
             "code": 0,
             "total": totalCount,
             "result": historys_list,
             "totalPage": TotalPage,
-            "pageNum": PageNum,
-            "currentPage": CurrentPage
+            "pageNum": currentPage,
+            "currentPage": currentPage
         }
 
-    @staticmethod
-    def get_unknown_list():
+    def get_unknown_list(self):
         """
         查询所有未识别记录
         """
@@ -3952,22 +3841,12 @@ class WebAction:
 
         return {"code": 0, "items": Items}
 
-    @staticmethod
-    def get_unknown_list_by_page(data):
+    def get_unknown_list_by_page(self, sarchKw, currentPage=1, pageNum=20):
         """
         查询所有未识别记录
         """
-        PageNum = data.get("pagenum")
-        if not PageNum:
-            PageNum = 30
-        SearchStr = data.get("keyword")
-        CurrentPage = data.get("page")
-        if not CurrentPage:
-            CurrentPage = 1
-        else:
-            CurrentPage = int(CurrentPage)
         totalCount, Records = FileTransfer().get_transfer_unknown_paths_by_page(
-            SearchStr, CurrentPage, PageNum)
+            sarchKw, currentPage, pageNum)
         Items = []
         for rec in Records:
             if not rec.PATH:
@@ -3985,19 +3864,18 @@ class WebAction:
                 "sync_mode": sync_mode,
                 "rmt_mode": rmt_mode,
             })
-        TotalPage = floor(totalCount / PageNum) + 1
+        TotalPage = floor(totalCount / pageNum) + 1
 
         return {
             "code": 0,
             "total": totalCount,
             "items": Items,
             "totalPage": TotalPage,
-            "pageNum": PageNum,
-            "currentPage": CurrentPage
+            "pageNum": pageNum,
+            "currentPage": currentPage
         }
 
-    @staticmethod
-    def unidentification():
+    def unidentification(self):
         """
         重新识别所有未识别记录
         """
@@ -4009,10 +3887,9 @@ class WebAction:
             ItemIds.append(rec.ID)
 
         if len(ItemIds) > 0:
-            WebAction.re_identification({"flag": "unidentification", "ids": ItemIds})
+            self.re_identification({"flag": "unidentification", "ids": ItemIds})
 
-    @staticmethod
-    def get_customwords():
+    def get_customwords(self):
         _wordshelper = WordsHelper()
         words = []
         words_info = _wordshelper.get_custom_words(gid=-1)
@@ -4070,20 +3947,18 @@ class WebAction:
             "result": groups
         }
 
-    @staticmethod
-    def get_users():
+    def get_users(self):
         """
         查询所有用户
         """
-        user_list = User().get_users()
+        user_list = UserManager().get_users()
         Users = []
         for user in user_list:
-            pris = str(user.PRIS).split(",")
-            Users.append({"id": user.ID, "name": user.NAME, "pris": pris})
+            pris = str(user.pris).split(",")
+            Users.append({"id": user.id, "name": user.username, "pris": pris})
         return {"code": 0, "result": Users}
 
-    @staticmethod
-    def get_filterrules():
+    def get_filterrules(self):
         """
         查询所有过滤规则
         """
@@ -4133,8 +4008,7 @@ class WebAction:
         Config().save_config(cfg)
         return {"code": 0}
 
-    @staticmethod
-    def __test_site(data):
+    def __test_site(self, data):
         """
         测试站点连通性
         """
@@ -4142,8 +4016,7 @@ class WebAction:
         code = 0 if flag else -1
         return {"code": code, "msg": msg, "time": times}
 
-    @staticmethod
-    def __get_sub_path(data):
+    def __get_sub_path(self, data):
         """
         查询下级子目录
         """
@@ -4210,8 +4083,7 @@ class WebAction:
             "data": r
         }
 
-    @staticmethod
-    def __rename_file(data):
+    def __rename_file(self, data):
         """
         文件重命名
         """
@@ -4241,8 +4113,7 @@ class WebAction:
                     log.info(del_msg)
         return {"code": 0}
 
-    @staticmethod
-    def __download_subtitle(data):
+    def __download_subtitle(self, data):
         """
         从配置的字幕服务下载单个文件的字幕
         """
@@ -4263,8 +4134,7 @@ class WebAction:
         })
         return {"code": 0, "msg": "字幕下载任务已提交，正在后台运行。"}
 
-    @staticmethod
-    def __media_path_scrap(data):
+    def __media_path_scrap(self, data):
         """
         刮削媒体文件夹或文件
         """
@@ -4274,8 +4144,7 @@ class WebAction:
         ThreadHelper().start_thread(Scraper().folder_scraper, (path, None, 'force_all'))
         return {"code": 0, "msg": "刮削任务已提交，正在后台运行。"}
 
-    @staticmethod
-    def __get_download_setting(data):
+    def __get_download_setting(self, data):
         sid = data.get("sid")
         if sid:
             download_setting = Downloader().get_download_setting(sid=sid)
@@ -4284,8 +4153,7 @@ class WebAction:
                 Downloader().get_download_setting().values())
         return {"code": 0, "data": download_setting}
 
-    @staticmethod
-    def __update_download_setting(data):
+    def __update_download_setting(self, data):
         sid = data.get("sid")
         name = data.get("name")
         category = data.get("category")
@@ -4308,14 +4176,12 @@ class WebAction:
                                              downloader=downloader)
         return {"code": 0}
 
-    @staticmethod
-    def __delete_download_setting(data):
+    def __delete_download_setting(self, data):
         sid = data.get("sid")
         Downloader().delete_download_setting(sid=sid)
         return {"code": 0}
 
-    @staticmethod
-    def __update_message_client(data):
+    def __update_message_client(self, data):
         """
         更新消息设置
         """
@@ -4339,8 +4205,7 @@ class WebAction:
                                        enabled=enabled)
         return {"code": 0}
 
-    @staticmethod
-    def __delete_message_client(data):
+    def __delete_message_client(self, data):
         """
         删除消息设置
         """
@@ -4349,8 +4214,7 @@ class WebAction:
         else:
             return {"code": 1}
 
-    @staticmethod
-    def __check_message_client(data):
+    def __check_message_client(self, data):
         """
         维护消息设置
         """
@@ -4373,16 +4237,14 @@ class WebAction:
         else:
             return {"code": 1}
 
-    @staticmethod
-    def __get_message_client(data):
+    def __get_message_client(self, data):
         """
         获取消息设置
         """
         cid = data.get("cid")
         return {"code": 0, "detail": Message().get_message_client_info(cid=cid)}
 
-    @staticmethod
-    def __test_message_client(data):
+    def __test_message_client(self, data):
         """
         测试消息设置
         """
@@ -4394,15 +4256,13 @@ class WebAction:
         else:
             return {"code": 1}
 
-    @staticmethod
-    def __get_indexers():
+    def __get_indexers(self):
         """
         获取索引器
         """
         return {"code": 0, "indexers": Indexer().get_user_indexer_dict()}
 
-    @staticmethod
-    def __get_download_dirs(data):
+    def __get_download_dirs(self, data):
         """
         获取下载目录
         """
@@ -4413,8 +4273,7 @@ class WebAction:
         dirs = Downloader().get_download_dirs(setting=sid)
         return {"code": 0, "paths": dirs}
 
-    @staticmethod
-    def __find_hardlinks(data):
+    def __find_hardlinks(self, data):
         files = data.get("files")
         file_dir = data.get("dir")
         if not files:
@@ -4437,8 +4296,7 @@ class WebAction:
                 return {"code": 1}
         return {"code": 0, "data": hardlinks}
 
-    @staticmethod
-    def __update_sites_cookie_ua(data):
+    def __update_sites_cookie_ua(self, data):
         """
         更新所有站点的Cookie和UA
         """
@@ -4461,8 +4319,7 @@ class WebAction:
                                                                 ocrflag=ocrflag)
         return {"code": retcode, "messages": messages}
 
-    @staticmethod
-    def __update_site_cookie_ua(data):
+    def __update_site_cookie_ua(self, data):
         """
         更新单个站点的Cookie和UA
         """
@@ -4472,8 +4329,7 @@ class WebAction:
         Sites().update_site_cookie(siteid=siteid, cookie=cookie, ua=ua)
         return {"code": 0, "messages": "请求发送成功"}
 
-    @staticmethod
-    def __set_site_captcha_code(data):
+    def __set_site_captcha_code(self, data):
         """
         设置站点验证码
         """
@@ -4482,8 +4338,7 @@ class WebAction:
         SiteCookie().set_code(code=code, value=value)
         return {"code": 0}
 
-    @staticmethod
-    def __update_torrent_remove_task(data):
+    def __update_torrent_remove_task(self, data):
         """
         更新自动删种任务
         """
@@ -4493,8 +4348,7 @@ class WebAction:
         else:
             return {"code": 0}
 
-    @staticmethod
-    def __get_torrent_remove_task(data=None):
+    def __get_torrent_remove_task(self, data=None):
         """
         获取自动删种任务
         """
@@ -4504,8 +4358,7 @@ class WebAction:
             tid = None
         return {"code": 0, "detail": TorrentRemover().get_torrent_remove_tasks(taskid=tid)}
 
-    @staticmethod
-    def __delete_torrent_remove_task(data):
+    def __delete_torrent_remove_task(self, data):
         """
         删除自动删种任务
         """
@@ -4516,8 +4369,7 @@ class WebAction:
         else:
             return {"code": 1}
 
-    @staticmethod
-    def __get_remove_torrents(data):
+    def __get_remove_torrents(self, data):
         """
         获取满足自动删种任务的种子
         """
@@ -4527,8 +4379,7 @@ class WebAction:
             return {"code": 1, "msg": "未获取到符合处理条件种子"}
         return {"code": 0, "data": torrents}
 
-    @staticmethod
-    def __auto_remove_torrents(data):
+    def __auto_remove_torrents(self, data):
         """
         执行自动删种任务
         """
@@ -4536,16 +4387,14 @@ class WebAction:
         TorrentRemover().auto_remove_torrents(taskids=tid)
         return {"code": 0}
 
-    @staticmethod
-    def __get_site_favicon(data):
+    def __get_site_favicon(self, data):
         """
         获取站点图标
         """
         sitename = data.get("name")
         return {"code": 0, "icon": Sites().get_site_favicon(site_name=sitename)}
 
-    @staticmethod
-    def __list_brushtask_torrents(data):
+    def __list_brushtask_torrents(self, data):
         """
         获取刷流任务的种子明细
         """
@@ -4555,8 +4404,7 @@ class WebAction:
             return {"code": 1, "msg": "未下载种子或未获取到种子明细"}
         return {"code": 0, "data": [item.as_dict() for item in results]}
 
-    @staticmethod
-    def __set_system_config(data):
+    def __set_system_config(self, data):
         """
         设置系统设置（数据库）
         """
@@ -4571,8 +4419,7 @@ class WebAction:
             ExceptionUtils.exception_traceback(e)
             return {"code": 1}
 
-    @staticmethod
-    def get_site_user_statistics(data):
+    def get_site_user_statistics(self, data):
         """
         获取站点用户统计信息
         """
@@ -4592,8 +4439,7 @@ class WebAction:
                 item["site_hash"] = StringUtils.md5_hash(item.get("site"))
         return {"code": 0, "data": statistics}
 
-    @staticmethod
-    def send_plugin_message(data):
+    def send_plugin_message(self, data):
         """
         发送插件消息
         """
@@ -4603,8 +4449,7 @@ class WebAction:
         Message().send_plugin_message(title=title, text=text, image=image)
         return {"code": 0}
 
-    @staticmethod
-    def send_custom_message(data):
+    def send_custom_message(self, data):
         """
         发送自定义消息
         """
@@ -4617,10 +4462,8 @@ class WebAction:
         Message().send_custom_message(clients=message_clients, title=title, text=text, image=image)
         return {"code": 0}
 
-    @staticmethod
-    def get_rmt_modes():
-        RmtModes = ModuleConf.RMT_MODES_LITE if SystemUtils.is_lite_version(
-        ) else ModuleConf.RMT_MODES
+    def get_rmt_modes(self):
+        RmtModes = ModuleConf.RMT_MODES
         return [{
             "value": value,
             "name": name.value
@@ -4694,8 +4537,7 @@ class WebAction:
             }
         }
 
-    @staticmethod
-    def __media_similar(data):
+    def __media_similar(self, data):
         """
         查询TMDB相似媒体
         """
@@ -4711,8 +4553,7 @@ class WebAction:
             result = Media().get_tv_similar(tmdbid=tmdbid, page=page)
         return {"code": 0, "data": result}
 
-    @staticmethod
-    def __media_recommendations(data):
+    def __media_recommendations(self, data):
         """
         查询TMDB同类推荐媒体
         """
@@ -4728,8 +4569,7 @@ class WebAction:
             result = Media().get_tv_recommendations(tmdbid=tmdbid, page=page)
         return {"code": 0, "data": result}
 
-    @staticmethod
-    def __media_person(data):
+    def __media_person(self, data):
         """
         根据TMDBID或关键字查询TMDB演员
         """
@@ -4744,8 +4584,7 @@ class WebAction:
             result = Media().search_tmdb_person(name=keyword)
         return {"code": 0, "data": result}
 
-    @staticmethod
-    def __person_medias(data):
+    def __person_medias(self, data):
         """
         查询演员参演作品
         """
@@ -4761,8 +4600,7 @@ class WebAction:
                                                              mtype=mtype,
                                                              page=page)}
 
-    @staticmethod
-    def __save_user_script(data):
+    def __save_user_script(self, data):
         """
         保存用户自定义脚本
         """
@@ -4775,16 +4613,14 @@ class WebAction:
                            })
         return {"code": 0, "msg": "保存成功"}
 
-    @staticmethod
-    def __run_directory_sync(data):
+    def __run_directory_sync(self, data):
         """
         执行单个目录的目录同步
         """
         ThreadHelper().start_thread(Sync().transfer_sync, (data.get("sid"),))
         return {"code": 0, "msg": "执行成功"}
 
-    @staticmethod
-    def __update_plugin_config(data):
+    def __update_plugin_config(self, data):
         """
         保存插件配置
         """
@@ -4796,8 +4632,7 @@ class WebAction:
         PluginManager().reload_plugin(plugin_id)
         return {"code": 0, "msg": "保存成功"}
 
-    @staticmethod
-    def get_media_exists_info(mtype, title, year, mediaid):
+    def get_media_exists_info(self, mtype, title, year, mediaid):
         """
         获取媒体存在标记：是否存在、是否订阅
         :param: mtype 媒体类型
@@ -4845,8 +4680,7 @@ class WebAction:
                 fav = "0"
         return fav, rssid, item_url
 
-    @staticmethod
-    def __get_season_episodes(data=None):
+    def __get_season_episodes(self, data=None):
         """
         查询TMDB剧集情况
         """
@@ -4874,8 +4708,7 @@ class WebAction:
             "episodes": episodes
         }
 
-    @staticmethod
-    def get_user_menus():
+    def get_user_menus(self):
         """
         查询用户菜单
         """
@@ -4886,52 +4719,36 @@ class WebAction:
         # if not first_pt_site or not StringUtils.is_one_month_ago(first_pt_site):
         #     ignore.append('brushtask')
 
-        # 获取可用菜单
-        menus = current_user.get_usermenus()
+        if not self._current_user:
+            return {
+                "code": 0,
+                "menus": [],
+                "level": 0
+            }
+
+        menus = self._current_user.get_usermenus()
         return {
             "code": 0,
             "menus": menus,
-            "level": current_user.level
+            "level": self._current_user.level
         }
 
-    @staticmethod
-    def get_top_menus():
+    def get_top_menus(self):
         """
         查询顶底菜单列表
         """
+        if not self._current_user:
+            return {
+                "code": 0,
+                "menus": []
+            }
+
         return {
             "code": 0,
-            "menus": current_user.get_topmenus()
+            "menus": self._current_user.get_topmenus()
         }
 
-    @staticmethod
-    def auth_user_level(data=None):
-        """
-        用户认证
-        """
-        if data:
-            site = data.get("site")
-            params = data.get("params")
-        else:
-            UserSiteAuthParams = SystemConfig().get(SystemConfigKey.UserSiteAuthParams)
-            if UserSiteAuthParams:
-                site = UserSiteAuthParams.get("site")
-                params = UserSiteAuthParams.get("params")
-            else:
-                return {"code": 1, "msg": "参数错误"}
-        state, msg = User().check_user(site, params)
-        if state:
-            # 保存认证数据
-            SystemConfig().set(key=SystemConfigKey.UserSiteAuthParams,
-                               value={
-                                   "site": site,
-                                   "params": params
-                               })
-            return {"code": 0, "msg": "认证成功"}
-        return {"code": 1, "msg": f"{msg or '认证失败，请检查合作站点账号是否正常！'}"}
-
-    @staticmethod
-    def __update_downloader(data):
+    def __update_downloader(self, data):
         """
         更新下载器
         """
@@ -4961,8 +4778,7 @@ class WebAction:
                                        download_dir=download_dir)
         return {"code": 0}
 
-    @staticmethod
-    def __del_downloader(data):
+    def __del_downloader(self, data):
         """
         删除下载器
         """
@@ -4970,8 +4786,7 @@ class WebAction:
         Downloader().delete_downloader(did=did)
         return {"code": 0}
 
-    @staticmethod
-    def __check_downloader(data):
+    def __check_downloader(self, data):
         """
         检查下载器
         """
@@ -4996,16 +4811,14 @@ class WebAction:
                                       match_path=match_path)
         return {"code": 0}
 
-    @staticmethod
-    def __get_downloaders(data):
+    def __get_downloaders(self, data):
         """
         获取下载器
         """
         did = data.get("did")
         return {"code": 0, "detail": Downloader().get_downloader_conf(did=did)}
 
-    @staticmethod
-    def __test_downloader(data):
+    def __test_downloader(self, data):
         """
         测试下载器
         """
@@ -5017,8 +4830,7 @@ class WebAction:
         else:
             return {"code": 1}
 
-    @staticmethod
-    def __get_indexer(data):
+    def __get_indexer(self, data):
         """
         查询索引站点数据
         """
@@ -5051,8 +4863,7 @@ class WebAction:
             }
         }
 
-    @staticmethod
-    def __add_indexer(data):
+    def __add_indexer(self, data):
         DbHelper().add_indexer(
             data.get('id'),
             data.get('name'),
@@ -5073,8 +4884,7 @@ class WebAction:
         IndexerManager().init_config()
         return {"code": 0, "msg": "已插入"}
 
-    @staticmethod
-    def __update_indexer(data):
+    def __update_indexer(self, data):
         success = DbHelper().update_indexer(
             data.get('id'),
             data.get('domain'),
@@ -5095,14 +4905,12 @@ class WebAction:
             return {"code": 0, "msg": "更新成功"}
         return {"code": 1, "msg": "更新失败，请检查"}
 
-    @staticmethod
-    def __delete_indexer(data):
+    def __delete_indexer(self, data):
         DbHelper().delete_indexer(data.get('id'))
         IndexerManager().init_config()
         return {"code": 0, "msg": "更新成功"}
 
-    @staticmethod
-    def __get_indexer_statistics():
+    def __get_indexer_statistics(self):
         """
         获取索引器统计数据
         """
@@ -5121,16 +4929,25 @@ class WebAction:
             "dataset": dataset
         }
 
-    @staticmethod
-    def user_statistics():
+    def refresh_pt_statistics(self):
+        """
+        刷新站点数据
+        """
+        if not self._current_user:
+            return {"code": 1, "msg": "未登录"}
+
+        # 刷新站点数据
+        self.handle_message_job("/sta", in_from=SearchType.WEB, user_id=self._current_user.id, user_name=self._current_user.username)
+        return {"code": 0, "msg": "已提交"}
+
+    def user_statistics(self):
         """
         强制刷新站点数据,并发送站点统计的消息
         """
         # 强制刷新站点数据,并发送站点统计的消息
         SiteUserInfo().refresh_site_data_now()
 
-    @staticmethod
-    def get_default_rss_setting(data):
+    def get_default_rss_setting(self, data):
         """
         获取默认订阅设置
         """
@@ -5145,8 +4962,7 @@ class WebAction:
             return {"code": 0, "data": default_rss_setting}
         return {"code": 1}
 
-    @staticmethod
-    def get_movie_rss_items():
+    def get_movie_rss_items(self):
         """
         获取所有电影订阅项目
         """
@@ -5158,8 +4974,7 @@ class WebAction:
         ]
         return {"code": 0, "result": RssMovieItems}
 
-    @staticmethod
-    def get_tv_rss_items():
+    def get_tv_rss_items(self):
         """
         获取所有电视剧订阅项目
         """
@@ -5207,8 +5022,7 @@ class WebAction:
 
         return {"code": 0, "result": Events}
 
-    @staticmethod
-    def install_plugin(data, reload=True):
+    def install_plugin(self, data, reload=True):
         """
         安装插件
         """
@@ -5227,8 +5041,7 @@ class WebAction:
             PluginManager().init_config()
         return {"code": 0, "msg": "插件安装成功"}
 
-    @staticmethod
-    def uninstall_plugin(data):
+    def uninstall_plugin(self, data):
         """
         卸载插件
         """
@@ -5245,17 +5058,27 @@ class WebAction:
         PluginManager().init_config()
         return {"code": 0, "msg": "插件卸载功"}
 
-    @staticmethod
-    def get_plugin_apps():
+    def get_plugin_apps(self, data=None):
         """
         获取插件列表
         """
-        plugins = PluginManager().get_plugin_apps(current_user.level)
+        # 使用默认admin用户级别
+        user_level = 0
+
+        # 如果传入了用户信息，则使用传入的用户级别
+        if data and isinstance(data, dict) and "user" in data and hasattr(data["user"], "level"):
+            user_level = data["user"].level
+        # 如果获取不到，使用admin用户级别
+        else:
+            admin_user = UserManager().get_user_by_name("admin")
+            if admin_user:
+                user_level = admin_user.level
+
+        plugins = PluginManager().get_plugin_apps(user_level)
         statistic = PluginHelper.statistic()
         return {"code": 0, "result": plugins, "statistic": statistic}
 
-    @staticmethod
-    def get_plugin_page(data):
+    def get_plugin_page(self, data):
         """
         查询插件的额外数据
         """
@@ -5265,8 +5088,7 @@ class WebAction:
         title, content, func = PluginManager().get_plugin_page(pid=plugin_id)
         return {"code": 0, "title": title, "content": content, "func": func}
 
-    @staticmethod
-    def get_plugin_state(data):
+    def get_plugin_state(self, data):
         """
         获取插件状态
         """
@@ -5276,13 +5098,24 @@ class WebAction:
         state = PluginManager().get_plugin_state(plugin_id)
         return {"code": 0, "state": state}
 
-    @staticmethod
-    def get_plugins_conf():
-        Plugins = PluginManager().get_plugins_conf(current_user.level)
+    def get_plugins_conf(self, data=None):
+        # 使用默认admin用户级别
+        user_level = 0
+
+        # 如果传入了用户信息，则使用传入的用户级别
+        if data and isinstance(data, dict) and "user" in data and hasattr(data["user"], "level"):
+            user_level = data["user"].level
+        # 如果获取不到，使用admin用户级别
+        else:
+            admin_user = UserManager().get_user_by_name("admin")
+            if admin_user:
+                user_level = admin_user.level
+
+        # 获取插件配置
+        Plugins = PluginManager().get_plugins_conf(user_level)
         return {"code": 0, "result": Plugins}
 
-    @staticmethod
-    def update_category_config(data):
+    def update_category_config(self, data):
         """
         保存二级分类配置
         """
@@ -5294,8 +5127,7 @@ class WebAction:
                 f.write(text)
         return {"code": 0, "msg": "保存成功"}
 
-    @staticmethod
-    def get_category_config(data):
+    def get_category_config(self, data):
         """
         获取二级分类配置
         """
@@ -5312,8 +5144,7 @@ class WebAction:
             category_text = f.read()
         return {"code": 0, "text": category_text}
 
-    @staticmethod
-    def backup(full_backup=False, bk_path=None):
+    def backup(self, full_backup=False, bk_path=None):
         """
         @param full_backup  是否完整备份
         @param bk_path     自定义备份路径
@@ -5363,15 +5194,13 @@ class WebAction:
             ExceptionUtils.exception_traceback(e)
             return None
 
-    @staticmethod
-    def get_system_processes():
+    def get_system_processes(self):
         """
         获取系统进程
         """
         return {"code": 0, "data": SystemUtils.get_all_processes()}
 
-    @staticmethod
-    def run_plugin_method(data):
+    def run_plugin_method(self, data):
         """
         运行插件方法
         """
@@ -5384,25 +5213,35 @@ class WebAction:
         result = PluginManager().run_plugin_method(pid=plugin_id, method=method, **data)
         return {"code": 0, "result": result}
 
-    @staticmethod
-    def get_external_plugin_apps():
+    def get_external_plugin_apps(self, data=None):
         """
         获取第三方插件列表
         """
-        plugins = PluginManager().get_external_plugin_apps(current_user.level)
+        # 使用默认admin用户级别
+        user_level = 0
+
+        # 如果传入了用户信息，则使用传入的用户级别
+        if data and isinstance(data, dict) and "user" in data and hasattr(data["user"], "level"):
+            user_level = data["user"].level
+        # 如果获取不到，使用admin用户级别
+        else:
+            admin_user = UserManager().get_user_by_name("admin")
+            if admin_user:
+                user_level = admin_user.level
+
+        # 获取插件列表
+        plugins = PluginManager().get_external_plugin_apps(user_level)
         statistic = PluginHelper.statistic()
         return {"code": 0, "result": plugins, "statistic": statistic}
 
-    @staticmethod
-    def save_external_source_settings(data):
+    def save_external_source_settings(self, data):
 
         content = data.get("value").split("\n")
         SystemConfig().set(SystemConfigKey.ExternalPluginsSource, content)
 
         return {"code": 0, "msg": "保存成功"}
 
-    @staticmethod
-    def install_external_plugin(data, reload=True):
+    def install_external_plugin(self, data, reload=True):
         """
         安装第三方插件（先下载到本地后再进行本地安装）
         """
@@ -5459,8 +5298,7 @@ class WebAction:
 
         return {"code": 0, "msg": "插件安装成功"}
 
-    @staticmethod
-    def uninstall_external_plugin(data):
+    def uninstall_external_plugin(self, data):
         """
         卸载第三方插件（从库中卸载完成后还需要删除插件）
         """

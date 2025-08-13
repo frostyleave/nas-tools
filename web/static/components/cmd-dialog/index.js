@@ -1,6 +1,6 @@
 import {html, LitElement, unsafeCSS, live, repeat, unsafeHTML} from "../utility/lit-core.min.js";
-import Fuse from '../../js/modules/fuse.esm.min.js';
-import hotkeys from '../../js/modules/hotkeys.esm.js';
+import Fuse from '../../libs/modules/fuse.esm.min.js';
+import hotkeys from '../../libs/modules/hotkeys.esm.js';
 
 import './cmd-action.js'; // eslint-disable-line import/no-unassigned-import
 import style from './style.js';

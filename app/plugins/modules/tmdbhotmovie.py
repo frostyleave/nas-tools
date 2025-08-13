@@ -176,7 +176,7 @@ class TmdbHotMovieRank(_IPluginModule):
                      <tr id="movie_rank_history_{{ Item.id }}">
                        <td class="w-5">
                          <img class="rounded w-5" src="{{ Item.image }}"
-                              onerror="this.src='../static/img/no-image.png'" alt=""
+                              onerror="this.src='../static/img/no-image.svg'" alt=""
                               style="min-width: 50px"/>
                        </td>
                        <td>
@@ -246,7 +246,7 @@ class TmdbHotMovieRank(_IPluginModule):
         return """
           // 删除榜单订阅历史记录
           function TmdbHotMovie_delete_history(id){
-            ajax_post("run_plugin_method", {"plugin_id": 'TmdbHotMovie', 'method': 'delete_rank_history', 'tmdb_id': id}, function (ret) {
+            axios_post_do("run_plugin_method", {"plugin_id": 'TmdbHotMovie', 'method': 'delete_rank_history', 'tmdb_id': id}, function (ret) {
               $("#movie_rank_history_" + id).remove();
             });
 

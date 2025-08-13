@@ -130,6 +130,9 @@ export class PageDiscovery extends CustomElement {
   }
 
   firstUpdated() {
+    if (!this.discovery_type) {
+      return;
+    }
     for (const item of this._media_type_list[this.discovery_type]) {
       Golbal.get_cache_or_ajax(
           "get_recommend",

@@ -2,34 +2,9 @@ import { html, nothing } from "../../utility/lit-core.min.js";
 import { CustomElement } from "../../utility/utility.js";
 
 const search_source_icon = {
-  tmdb: html`
-    <!-- http://tabler-icons.io/i/square-letter-t -->
-    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-square-letter-t text-blue" width="24" height="24"
-       viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round"
-       stroke-linejoin="round">
-      <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
-      <path d="M4 4m0 2a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v12a2 2 0 0 1 -2 2h-12a2 2 0 0 1 -2 -2z"></path>
-      <path d="M10 8h4"></path>
-      <path d="M12 8v8"></path>
-    </svg>`,
-  douban: html`
-    <!-- http://tabler-icons.io/i/circle-letter-d -->
-    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-circle-letter-d text-green" width="24" height="24"
-        viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round"
-        stroke-linejoin="round">
-      <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
-      <path d="M12 12m-9 0a9 9 0 1 0 18 0a9 9 0 1 0 -18 0"></path>
-      <path d="M10 8v8h2a2 2 0 0 0 2 -2v-4a2 2 0 0 0 -2 -2h-2z"></path>
-    </svg>
-  `,
-  person: html`
-    <!-- https://tabler-icons.io/i/square-rounded-letter-p -->
-    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-square-rounded-letter-p text-purple" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
-       <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
-       <path d="M10 12h2a2 2 0 1 0 0 -4h-2v8"></path>
-       <path d="M12 3c7.2 0 9 1.8 9 9s-1.8 9 -9 9s-9 -1.8 -9 -9s1.8 -9 9 -9z"></path>
-    </svg>
-  `
+  tmdb: html`<i class="ti ti-circle-letter-t fs-2 text-blue"></i>`,
+  douban: html`<i class="ti ti-circle-letter-d fs-2 text-green"></i>`,
+  person: html`<i class="ti ti-circle-letter-p fs-2 text-purple"></i>`
 }
 
 export class LayoutSearchbar extends CustomElement {
@@ -88,7 +63,7 @@ export class LayoutSearchbar extends CustomElement {
           <!-- 搜索栏 -->
           <div class="input-group input-group-flat mx-2" >
             <span class="input-group-text form-control-rounded">
-              <a href="#" class="link-secondary"
+              <a href="javascript:void(0)" class="link-secondary d-sm-inline-flex"
                 @click=${ () => {
                   let source_dict = {
                     tmdb: "douban",
@@ -113,39 +88,19 @@ export class LayoutSearchbar extends CustomElement {
                 }
               }}>
             <span class="input-group-text form-control-rounded">
-              <a href="${this.layout_search > 0 ? "javascript:show_search_advanced_modal()":"javascript:void(0)"}" class="link-secondary">
-                <!-- http://tabler-icons.io/i/adjustments -->
-                <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2"
-                    stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
-                  <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
-                  <circle cx="6" cy="10" r="2"></circle>
-                  <line x1="6" y1="4" x2="6" y2="8"></line>
-                  <line x1="6" y1="12" x2="6" y2="20"></line>
-                  <circle cx="12" cy="16" r="2"></circle>
-                  <line x1="12" y1="4" x2="12" y2="14"></line>
-                  <line x1="12" y1="18" x2="12" y2="20"></line>
-                  <circle cx="18" cy="7" r="2"></circle>
-                  <line x1="18" y1="4" x2="18" y2="5"></line>
-                  <line x1="18" y1="9" x2="18" y2="20"></line>
-                </svg>
+              <a href="${this.layout_search > 0 ? "javascript:show_search_advanced_modal()":"javascript:void(0)"}" class="link-secondary d-sm-inline-flex">
+                <i class="ti ti-adjustments fs-2 me-1"></i>
               </a>
             </span>
           </div>
           <!-- 头像 -->
           <div class="nav-item dropdown me-2">
-              <a href="#" class="nav-link d-flex lh-1 text-reset ms-1 p-0" data-bs-toggle="dropdown">
-                <!-- http://tabler-icons.io/i/user -->
-                <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-user"
-                    width="24" height="24" viewBox="0 0 24 24"
-                    stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
-                  <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
-                  <circle cx="12" cy="7" r="4"></circle>
-                  <path d="M6 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2"></path>
-                </svg>
+              <a href="#" class="nav-link d-flex lh-1 text-reset ms-1 p-0 d-sm-inline-flex" data-bs-toggle="dropdown">
+                <i class="ti ti-user fs-2 me-1"></i>
               </a>
               <div class="dropdown-menu dropdown-menu-end dropdown-menu-arrow">
-                <a class="dropdown-item hide-theme-dark" href="?theme=dark" role="button">暗黑风格</a>
-                <a class="dropdown-item hide-theme-light" href="?theme=light" role="button">明亮风格</a>
+                <a class="dropdown-item hide-theme-dark" href="javascript:theme_toggle()" role="button">暗黑风格</a>
+                <a class="dropdown-item hide-theme-light" href="javascript:theme_toggle()" role="button">明亮风格</a>
                 <div class="dropdown-divider"></div>
                 ${this.layout_useradmin === "1"
                 ? html`

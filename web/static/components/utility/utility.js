@@ -23,7 +23,7 @@ export class CustomElement extends LitElement {
 export class Golbal {
 
   // 没有图片时
-  static noImage = "../static/img/no-image.png";
+  static noImage = "../static/img/no-image.svg";
   static noImage_person = "../static/img/person.png";
 
   // 转换传值的空字符情况
@@ -61,7 +61,7 @@ export class Golbal {
         if (media_type == "MOV" || media_type == "电影") {
           add_rss_media(title, year, media_type, mediaid, "", "", add_func);
         } else {
-          ajax_post("get_tvseason_list", {tmdbid: mediaid, title: title}, function (ret) {
+          axios_post_do("get_tvseason_list", {tmdbid: mediaid, title: title}, function (ret) {
             if (ret.seasons.length === 1) {
               add_rss_media(title, year, "TV", mediaid, "", ret.seasons[0].num, add_func);
             } else if (ret.seasons.length > 1) {
@@ -79,7 +79,6 @@ export class Golbal {
   static save_page_data(name, value) {
     const extra = window.history.state?.extra ?? {};
     extra[name] = value;
-    window_history(false, extra);
   }
 
   // 获取额外的页面数据
@@ -95,25 +94,19 @@ export class Golbal {
     return false;
   }
   
-  // 判断直接获取缓存或ajax_post
-  static get_cache_or_ajax(api, name, data, func, async=true) {
-    const ret = Golbal.get_page_data(api + name);
-    //console.log("读取:", api + name, ret);
-    if (ret) {
-      func(ret);
-    } else {
-      const page = window.history.state?.page;
-      ajax_post(api, data, (ret) => {
-        // 页面已经变化, 丢弃该请求
-        if (page !== window.history.state?.page) {
-          //console.log("丢弃:", api + name, ret);
-          return
-        }
-        Golbal.save_page_data(api + name, ret);
-        //console.log("缓存:", api + name, ret);
-        func(ret)
-      }, async);
-    }
+  // 判断直接获取缓存或axios_post
+  static get_cache_or_ajax(api, name, data, func, async = true) {
+    const page = window.history.state?.page;
+    axios_post_do(api, data, (ret) => {
+      // 页面已经变化, 丢弃该请求
+      if (page !== window.history.state?.page) {
+        //console.log("丢弃:", api + name, ret);
+        return
+      }
+      Golbal.save_page_data(api + name, ret);
+      //console.log("缓存:", api + name, ret);
+      func(ret)
+    }, async);
   }
 
   // 共用的fav数据更改时刷新缓存

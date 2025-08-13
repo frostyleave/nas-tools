@@ -81,17 +81,51 @@ class MetaHelper(object):
         else:
             begin_pos = (page - 1) * num
 
+        page_metas = []
+        total_count = 0
+
         with lock:
-            search_metas = [(k, {
-                "id": v.get("id"),
-                "title": v.get("title"),
-                "year": v.get("year"),
-                "media_type": v.get("type").value if isinstance(v.get("type"), Enum) else v.get("type"),
-                "poster_path": v.get("poster_path"),
-                "backdrop_path": v.get("backdrop_path")
-            },  str(k).replace("[电影]", "").replace("[电视剧]", "").replace("[未知]", "").replace("-None", ""))
-                for k, v in self._meta_data.items() if search.lower() in k.lower() and v.get("id") != 0]
-            return len(search_metas), search_metas[begin_pos: begin_pos + num]
+            if not search:  # search 为空，直接按分页取数据
+                total_count = len(self._meta_data)
+                items = list(self._meta_data.items())[begin_pos: begin_pos + num]
+                for k, v in items:
+                    if v.get("id") == 0:
+                        continue
+                    page_metas.append({
+                        "key": k,
+                        "meta": {
+                            "id": v.get("id"),
+                            "title": v.get("title"),
+                            "year": v.get("year"),
+                            "media_type": v.get("type").value,
+                            "poster_path": v.get("poster_path"),
+                            "backdrop_path": v.get("backdrop_path")
+                        }
+                    })
+            else:  # search 不为空，按匹配处理
+                current_index = 0
+                start_index = begin_pos
+                end_index = begin_pos + num
+                search_key = search.lower()
+
+                for k, v in self._meta_data.items():
+                    if search_key in k.lower() and v.get("id") != 0:
+                        total_count += 1
+                        if start_index <= current_index < end_index:
+                            page_metas.append({
+                                "key": k,
+                                "meta": {
+                                    "id": v.get("id"),
+                                    "title": v.get("title"),
+                                    "year": v.get("year"),
+                                    "media_type": v.get("type").value,
+                                    "poster_path": v.get("poster_path"),
+                                    "backdrop_path": v.get("backdrop_path")
+                                }
+                            })
+                        current_index += 1
+
+        return total_count, page_metas
 
     def delete_meta_data(self, key):
         """

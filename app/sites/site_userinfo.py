@@ -166,30 +166,10 @@ class SiteUserInfo(object):
 
                 # 获取不到数据时，仅返回错误信息，不做历史数据更新
                 if site_user_info.err_msg:
-                    self._sites_data.update({site_name: {"err_msg": site_user_info.err_msg}})
                     return
 
                 # 发送通知，存在未读消息
                 self.__notify_unread_msg(site_name, site_user_info, unread_msg_notify)
-
-                self._sites_data.update(
-                    {
-                        site_name: {
-                            "upload": site_user_info.upload,
-                            "username": site_user_info.username,
-                            "user_level": site_user_info.user_level,
-                            "join_at": site_user_info.join_at,
-                            "download": site_user_info.download,
-                            "ratio": site_user_info.ratio,
-                            "seeding": site_user_info.seeding,
-                            "seeding_size": site_user_info.seeding_size,
-                            "leeching": site_user_info.leeching,
-                            "bonus": site_user_info.bonus,
-                            "url": site_url,
-                            "err_msg": site_user_info.err_msg,
-                            "message_unread": site_user_info.message_unread
-                        }
-                    })
 
                 return site_user_info
 
@@ -251,13 +231,6 @@ class SiteUserInfo(object):
                                   f"\n————————————")
 
             self.message.send_user_statistics_message(string_list)
-
-    def get_site_data(self, specify_sites=None, force=False):
-        """
-        获取站点上传下载量
-        """
-        self.__refresh_all_site_data(force=force, specify_sites=specify_sites)
-        return self._sites_data
 
     def __refresh_all_site_data(self, force=False, specify_sites=None):
         """

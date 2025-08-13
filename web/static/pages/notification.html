@@ -1,0 +1,619 @@
+<div class="container-xl">
+  <!-- Page title -->
+  <div class="page-header d-print-none">
+    <div class="row align-items-center">
+      <div class="col">
+      </div>
+      <div class="col-auto ms-auto d-print-none">
+        <div class="btn-list">
+          <a href="javascript:show_add_message_client_modal()" class="btn btn-primary d-none d-sm-inline-flex">
+            <i class="ti ti-plus fs-2 me-1"></i>
+            新增消息通知
+          </a>
+          <a href="javascript:show_add_message_client_modal()" class="btn btn-primary d-sm-none btn-icon">
+            <i class="ti ti-plus fs-2 me-1"></i>
+          </a>
+          <a href="javascript:show_send_custom_message_modal()" class="btn btn-twitter d-none d-sm-inline-flex" id="send-custom-message-btn" style="display: none !important;">
+            <i class="ti ti-send fs-2 me-1"></i>
+            发送自定义消息
+          </a>
+          <a href="javascript:show_send_custom_message_modal()" class="btn btn-twitter d-sm-none btn-icon" id="send-custom-message-btn-mobile" style="display: none !important;">
+            <i class="ti ti-send fs-2 me-1"></i>
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<!-- 业务页面代码 -->
+<div class="page-body" id="notification-container" style="display: none;">
+  <div class="container-xl">
+    <div class="d-grid gap-3 grid-normal-card align-items-start" id="notification-list">
+    </div>
+  </div>
+</div>
+
+<empty-content title="没有通知渠道" id="no-data-card" text='没有添加任何消息通知渠道，请点击”新增消息通知“按钮。' style="display: none;" ></empty-content>
+
+<div class="modal modal-blur fade" id="modal-message-client" tabindex="-1" role="dialog" aria-hidden="true"
+     data-bs-backdrop="static" data-bs-keyboard="false">
+  <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="client_modal_title"></h5>
+        <input type="hidden" id="client_id">
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div class="row">
+          <div class="col-lg-9" id="div_client_name">
+            <div class="mb-3">
+              <label class="form-label required">名称</label>
+              <input type="text" id="client_name" class="form-control" placeholder="别名">
+            </div>
+          </div>
+          <div class="col-lg-3">
+            <div class="mb-3">
+              <label class="form-label required">状态</label>
+              <select class="form-select" id="client_enabled">
+                <option value="1" selected>启用</option>
+                <option value="0">停用</option>
+              </select>
+            </div>
+          </div>
+          <div class="col-lg-3" id="div_client_interactive">
+            <div class="mb-3">
+              <label class="form-label required">交互</label>
+              <select class="form-select" id="client_interactive">
+                <option value="1" selected>是</option>
+                <option value="0">否</option>
+              </select>
+            </div>
+          </div>
+        </div>
+        <div class="form-selectgroup-boxes row mb-3" id="client_type_container">
+          <label class="form-label required">类型</label>
+        </div>
+        <div id="client_config_box"></div>
+        <details>
+          <summary class="summary inline-flex">
+            推送设置
+            <a href="javascript:void(0)" class="float-end" onclick="select_btn_SelectALL(this, 'message_switchs')">全选</a>
+          </summary>
+          <div class="row mt-2">
+            <div class="form-selectgroup" id="message-switchs-container">
+              <!-- 消息开关选项将通过JavaScript动态生成 -->
+            </div>
+          </div>
+        </details>
+      </div>
+      <div class="modal-footer">
+        <button onclick="add_or_edit_or_test_message_client('test')" id="test_message_client_btn"
+           class="btn me-auto">
+          测试
+        </button>
+        <button onclick="delete_message_client()" id="delete_message_client_btn"
+           class="btn btn-link text-danger">
+          删除
+        </button>
+        <button onclick="add_or_edit_or_test_message_client('save')" id="add_or_edit_message_client_btn"
+           class="btn btn-primary">
+          确定
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="modal modal-blur fade" id="modal-send-custom-message" tabindex="-1" role="dialog" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
+  <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">发送自定义消息</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div class='row'>
+          <div class="col-lg-12">
+            <div class="mb-3">
+              <label class="form-label required">标题</label>
+              <input type="text" value="" id="custom_message_title" class="form-control">
+            </div>
+          </div>
+          <div class="col-lg-12">
+            <div class="mb-3">
+              <label class="form-label">图片</label>
+              <input type="text" value="" id="custom_message_image" class="form-control"  placeholder="url">
+            </div>
+          </div>
+          <div class="col-lg-12">
+            <div class="mb-3">
+              <label class="form-label">内容</label>
+              <textarea class="form-control" id="custom_message_text" rows="4"></textarea>
+            </div>
+          </div>
+        </div>
+        <div class="row rss_sites_container">
+          <div class="mb-3">
+            <div class="btn-list">
+              <label class="form-label">消息服务</label>
+              <a href="javascript:void(0)" class="ms-auto" onclick="select_btn_SelectALL(this, 'custom_message_client')">全选</a>
+            </div>
+            <div class="form-selectgroup" id="custom-message-client-container">
+              <!-- 自定义消息客户端选项将通过JavaScript动态生成 -->
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-link me-auto" data-bs-dismiss="modal">取消</button>
+        <button id="send_custom_message_btn" onclick="send_custom_message()" class="btn btn-primary">
+          发送
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+<script type="text/javascript">
+
+  // 页面数据存储 - 使用条件检查避免重复声明
+  var notificationPageData = null;
+
+  // 恢复输入项为默认值
+  function reset_message_config_fields() {
+    if (!notificationPageData || !notificationPageData.Channels) return;
+
+    Object.entries(notificationPageData.Channels).forEach(([clientId, clientAttr]) => {
+      if (clientAttr.config) {
+        Object.entries(clientAttr.config).forEach(([fieldId, fieldAttr]) => {
+          if (fieldAttr.type === "switch") {
+            if (fieldAttr.default) {
+              $("#" + fieldAttr.id).prop('checked', true);
+            } else {
+              $("#" + fieldAttr.id).prop('checked', false);
+            }
+          } else {
+            if (fieldAttr.default) {
+              $("#" + fieldAttr.id).val(fieldAttr.default);
+            } else {
+              $("#" + fieldAttr.id).val('');
+            }
+          }
+        });
+      }
+    });
+  }
+
+  // 显示新增消息服务
+  function show_add_message_client_modal() {
+    $("#client_id").val('');
+    $("#client_modal_title").text("新增消息通知");
+    reset_message_config_fields();
+    // 显示第一个可用的客户端类型
+    if (notificationPageData && notificationPageData.Channels) {
+      const firstChannelKey = Object.keys(notificationPageData.Channels)[0];
+      if (firstChannelKey) {
+        show_client_type(firstChannelKey);
+      }
+    }
+    $("#test_message_client_btn").text("测试").attr("disabled", false);
+    select_SelectALL(true, "message_switchs")
+    $("#delete_message_client_btn").hide();
+    $("#modal-message-client").modal("show");
+  }
+
+  // 显示编辑消息服务
+  function show_edit_message_client_modal(cid) {
+    $("#client_id").val(cid);
+    $("#client_modal_title").text("编辑消息通知");
+    axios_post_do("get_message_client", {cid: cid}, function (ret) {
+      if (ret.code === 0) {
+        $("#client_name").val(ret.detail.name);
+        $("#client_enabled").val(ret.detail.enabled);
+        $("#client_interactive").val(ret.detail.interactive);
+        // 清空输入项
+        reset_message_config_fields();
+        let type = ret.detail.type;
+        // 填充客户端配置字段
+        fillClientConfigFields(type, ret.detail.config);
+        show_client_type(type);
+        $("#test_message_client_btn").text("测试").attr("disabled", false);
+        if (ret.detail.switchs.length === 0) {
+          select_SelectALL(true, "message_switchs");
+        } else {
+          select_SelectPart(ret.detail.switchs, "message_switchs");
+        }
+        $("#delete_message_client_btn").show();
+        $("#modal-message-client").modal("show");
+      }
+    });
+  }
+
+  // 新增/编辑消息
+  function add_or_edit_or_test_message_client(action) {
+    let type = $('input:radio[name=client_type]:checked').val();
+    let interactive = $("#client_interactive").val();
+    let config = {};
+    // 收集并验证客户端配置
+    const configResult = collectAndValidateClientConfig(type);
+    if (!configResult.valid) {
+      return;
+    }
+    config = configResult.config;
+    let cid = $("#client_id").val();
+    let name = $("#client_name").val();
+    let enabled = $("#client_enabled").val();
+    // 推送设置
+    let switchs = select_GetSelectedVAL("message_switchs")
+    const params = {
+      cid: cid,
+      name: name,
+      type: type,
+      config: config,
+      switchs: switchs,
+      enabled: enabled,
+      interactive: interactive
+    };
+    if (action === "save") {
+      $("#add_or_edit_message_client_btn").text("保存中").attr("disabled", true);
+      axios_post_do("update_message_client", params, function (ret) {
+        $("#modal-message-client").modal('hide');
+        $("#add_or_edit_message_client_btn").attr("disabled", false);
+        window_history_refresh();
+      });
+    } else if (action === "test") {
+      $("#test_message_client_btn").text("测试中").attr("disabled", true);
+      axios_post_do("test_message_client", params, function (ret) {
+        if (ret.code === 0) {
+          $("#test_message_client_btn").text("测试成功").attr("disabled", false);
+        } else {
+          $("#test_message_client_btn").text("测试失败！").attr("disabled", false);
+        }
+      });
+    }
+  }
+
+
+  // 打开推送设置框
+  function check_message_client(flag, cid, checked, type) {
+    axios_post_do("check_message_client", {flag: flag, cid: cid, checked: checked, type: type}, function (ret) {
+      if (ret.code === 0) {
+        window_history_refresh();
+      }
+    });
+  }
+
+  // 打开推送设置框
+  function delete_message_client() {
+    let cid = $("#client_id").val();
+    let name = $("#client_name").val();
+    $("#modal-message-client").modal('hide');
+    show_confirm_modal("删除消息服务 " + name + " ？", function () {
+      hide_confirm_modal();
+      axios_post_do("delete_message_client", {"cid": cid}, function (ret) {
+        window_history_refresh();
+      });
+    });
+  }
+
+  // 消息服务端类型
+  function show_client_type(type) {
+    if (!notificationPageData || !notificationPageData.Channels) return;
+
+    const channels = notificationPageData.Channels;
+    const clientConfig = channels[type];
+
+    if (clientConfig) {
+      // 隐藏所有配置区域
+      $("div[id^='div_client_config']").each(function () {
+        $(this).hide();
+      });
+
+      // 显示当前类型的配置区域
+      $("#div_client_config_" + type).show();
+
+      // 根据是否有搜索类型调整布局
+      if (clientConfig.search_type) {
+        $("#div_client_name").attr('class', 'col-lg-6');
+        $("#div_client_interactive").show();
+      } else {
+        $("#div_client_name").attr('class', 'col-lg-9');
+        $("#div_client_interactive").hide();
+      }
+
+      // 选中对应的单选按钮
+      $("#type_" + type).prop("checked", true);
+    }
+  }
+
+  // 显示自定义消息
+  function show_send_custom_message_modal() {
+    $("#custom_message_title").val("");
+    $("#custom_message_text").val("");
+    $("#custom_message_image").val("");
+    select_SelectALL(false, "custom_message_client")
+    $("#modal-send-custom-message").modal("show");
+  }
+
+    // 发送自定义消息
+  function send_custom_message(){
+    $("#send_custom_message_btn").text("发送中").attr("disabled", true);
+    let custom_message_title_obj = $("#custom_message_title");
+    let title = custom_message_title_obj.val();
+    if (!title) {
+      custom_message_title_obj.addClass("is-invalid");
+      return;
+    } else {
+      custom_message_title_obj.removeClass("is-invalid");
+    }
+    let message_clients = select_GetSelectedVAL("custom_message_client");
+    if (!message_clients.length) {
+      show_warning_modal("请选择要发送的消息服务");
+      return;
+    }
+    let params = {
+      title: title,
+      text: $("#custom_message_text").val(),
+      image: $("#custom_message_image").val(),
+      message_clients: select_GetSelectedVAL("custom_message_client"),
+    };
+    axios_post_do("send_custom_message", params, function (ret) {
+      if (ret.code === 0) {
+        $("#modal-send-custom-message").modal("hide");
+        show_success_modal("自定义消息已发送");
+        $("#send_custom_message_btn").text("发送").attr("disabled", false);
+      }
+    });
+  }
+
+</script>
+
+<script type="text/javascript">
+
+  var channelsDict = {};
+  var channelsList = [];
+
+  // 生成消息开关选项
+  function generateMessageSwitches(switchs) {
+      const container = $("#message-switchs-container");
+      container.empty();
+
+      if (switchs && typeof switchs === 'object') {
+        Object.entries(switchs).forEach(([switchId, switchData]) => {
+          const switchItem = `
+            <label class="form-selectgroup-item">
+              <input type="checkbox" name="message_switchs" value="${switchId}" class="form-selectgroup-input">
+              <span class="form-selectgroup-label">${switchData.name}</span>
+            </label>
+          `;
+          container.append(switchItem);
+        });
+      }
+    }
+
+  // 生成自定义消息客户端选项
+  function generateCustomMessageClients(messageClients) {
+
+      const container = $("#custom-message-client-container");
+      container.empty();
+
+      if (messageClients && typeof messageClients === 'object') {
+        Object.entries(messageClients).forEach(([id, attr]) => {
+          if (attr && attr.name) {
+            const clientItem = `
+              <label class="form-selectgroup-item">
+                <input type="checkbox" name="custom_message_client" value="${id}" class="form-selectgroup-input">
+                <span class="form-selectgroup-label">${attr.name}</span>
+              </label>
+            `;
+            container.append(clientItem);
+          }
+        });
+      }
+    }
+
+  function genChannelConfElements() {
+    var $typeBox = $("#client_type_container");
+    var $configBox = $("#client_config_box");
+
+    $.each(channelsList, function (index, clientId) {
+
+      clientAttr = channelsDict[clientId];
+
+      $typeBox.append(`
+        <div class="col-lg-4">
+          <div class="mb-1">
+            <label class="form-selectgroup-item" for="type_${clientId}">
+              <input type="radio" name="client_type" id="type_${clientId}" value="${clientId}"
+                     class="form-selectgroup-input" checked>
+              <span class="form-selectgroup-label d-flex align-items-center p-3">
+              <span class="me-3">
+                <span class="form-selectgroup-check"></span>
+              </span>
+              <span class="form-selectgroup-label-content d-flex align-items-center">
+                <span class="avatar avatar-sm avatar-thumb avatar-rounded"
+                      style="background-image: url(${clientAttr.img_url})"></span>
+                <span class="form-selectgroup-title strong ms-1">${clientAttr.name }</span>
+              </span>
+            </span>
+            </label>
+          </div>
+        </div>
+      `);
+
+      $configBox.append(`
+        <div id="div_client_config_${clientId}">
+          ${gen_form_empty_elements(clientAttr.config)}
+        </div>
+      `);
+
+    });
+  }
+
+  $(document).ready(function() {
+    // 使用axios_post请求/data/notification接口获取数据并填充页面
+    axios_post('/data/notification', {}, function(response) {
+      if (response.code === 0 && response.data) {
+        const data = response.data;
+
+        // 存储数据到局部变量
+        notificationPageData = data;
+
+        // 生成消息开关选项
+        generateMessageSwitches(data.Switchs);
+
+        // 生成自定义消息客户端选项
+        generateCustomMessageClients(data.MessageClients);
+
+        // 更新全局变量
+        if (data.Channels) {
+          channelsDict = data.Channels;
+        }
+        if (data.ChannelsTpyes) {
+          channelsList = data.ChannelsTpyes;
+        }
+
+        // 生成通道配置元素
+        genChannelConfElements();
+
+        // 生成通知列表
+        const notificationList = $('#notification-list');
+        notificationList.empty();
+
+        if (data.MessageClients && Object.keys(data.MessageClients).length > 0) {
+
+          $('#no-data-card').hide();
+          $('#notification-container').show();
+
+          Object.entries(data.MessageClients).forEach(([id, clientAttr]) => {
+
+            var channelInfo = data.Channels[clientAttr.type];
+
+            var enabledBadge = clientAttr.enabled ? '<span class="badge bg-green" title="已启用" data-bs-toggle="tooltip"></span>' : '';
+
+            var interactiveBadge = clientAttr.interactive == 1 && channelInfo.search_type ? '<span class="badge bg-green me-1 mb-1" title="已开启交互">交互</span>' : '';
+            
+            var bgcolor = channelInfo.color ? `style="background-color: ${channelInfo.color} "` : ''
+
+            var addrInfo = clientAttr.config["host"] ? clientAttr.config["host"] + ':' + clientAttr.config["port"] : ''
+
+            var tagHtml = "";
+            clientAttr.switchs.forEach(swid => {
+              let badgeClass = "bg-muted-lt";
+
+              if (swid.includes("download")) {
+                badgeClass = "bg-blue-lt";
+              } else if (swid.includes("transfer")) {
+                badgeClass = "bg-azure-lt";
+              } else if (swid.includes("rss")) {
+                badgeClass = "bg-indigo-lt";
+              } else if (swid.includes("site")) {
+                badgeClass = "bg-purple-lt";
+              } else if (swid.includes("brushtask")) {
+                badgeClass = "bg-pink-lt";
+              } else if (swid.includes("mediaserver")) {
+                badgeClass = "bg-orange-lt";
+              } else if (swid.includes("torrent")) {
+                badgeClass = "bg-green-lt";
+              } else if (swid.includes("ptrefresh")) {
+                badgeClass = "bg-teal-lt";
+              }
+
+              tagHtml += `<span class="badge ${badgeClass} me-1 mb-0">${data.Switchs[swid].name}</span>`;
+            });
+
+            var clientCard = `
+              <a class="card card-link-pop p-0 rounded-3 overflow-hidden" href="javascript:void(0)" onclick="show_edit_message_client_modal('${id}')">
+                <div class="card-cover card-cover-blurred text-center" ${bgcolor}>
+                  <span class="avatar avatar-xl avatar-thumb avatar-rounded" style="background-image: url('${channelInfo.img_url}')"></span>
+                </div>
+                <div class="card-body text-center">
+                  <div class="card-title mb-1">${enabledBadge} ${clientAttr.name}</div>
+                  <div class="text-muted">${addrInfo}</div>
+                  <div class="text-muted mt-1">${interactiveBadge}</div>
+                  <div class="text-muted"><small>${tagHtml}</small></div>
+                </div>
+              </a>
+            `;
+            notificationList.append(clientCard);
+          });
+
+          // 显示发送自定义消息按钮
+          $('#send-custom-message-btn').show();
+          $('#send-custom-message-btn-mobile').show();
+        } else {
+          $('#notification-container').hide();
+          $('#no-data-card').show();
+        } 
+      }
+    }, true, true);
+
+    // 单选框事件 - 使用事件委托处理动态生成的元素
+    $(document).on('change', 'input[type=radio][name=client_type]', function () {
+      show_client_type(this.value);
+    });
+
+  });
+
+
+  // 填充客户端配置字段
+  function fillClientConfigFields(clientType, configData) {
+    if (!notificationPageData || !notificationPageData.Channels) return;
+
+    const channels = notificationPageData.Channels;
+    if (channels[clientType] && channels[clientType].config) {
+      Object.entries(channels[clientType].config).forEach(([fieldId, fieldAttr]) => {
+        if (fieldAttr.type === "switch") {
+          if (configData[fieldId]) {
+            $("#" + fieldAttr.id).prop("checked", true);
+          } else {
+            $("#" + fieldAttr.id).prop("checked", false);
+          }
+        } else {
+          $("#" + fieldAttr.id).val(configData[fieldId] || '');
+        }
+      });
+    }
+  }
+
+  // 收集并验证客户端配置
+  function collectAndValidateClientConfig(clientType) {
+    if (!notificationPageData || !notificationPageData.Channels) {
+      return { valid: false, config: null };
+    }
+
+    const channels = notificationPageData.Channels;
+    const clientConfig = channels[clientType];
+    if (!clientConfig || !clientConfig.config) {
+      return { valid: false, config: null };
+    }
+
+    const configData = {};
+    let isValid = true;
+
+    // 收集字段值
+    Object.entries(clientConfig.config).forEach(([fieldId, fieldAttr]) => {
+      if (fieldAttr.type === "switch") {
+        configData[fieldId] = $("#" + fieldAttr.id).prop("checked") ? 1 : 0;
+      } else {
+        configData[fieldId] = $("#" + fieldAttr.id).val();
+      }
+    });
+
+    // 验证必填字段
+    Object.entries(clientConfig.config).forEach(([fieldId, fieldAttr]) => {
+      if (fieldAttr.type !== "switch" && fieldAttr.required) {
+        if (!configData[fieldId]) {
+          $("#" + fieldAttr.id).addClass("is-invalid");
+          isValid = false;
+        } else {
+          $("#" + fieldAttr.id).removeClass("is-invalid");
+        }
+      }
+    });
+
+    return {
+      valid: isValid,
+      config: isValid ? JSON.stringify(configData) : null
+    };
+  }
+</script>

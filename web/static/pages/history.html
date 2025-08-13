@@ -1,0 +1,345 @@
+<div class="container-xl">
+  <!-- Page title -->
+  <div class="page-header d-print-none">
+    <div class="row align-items-center">
+      <div class="col">
+      </div>
+      <div class="col-auto ms-auto d-print-none">
+        <div class="btn-list">
+          <a href="javascript:batch_check_action('reidentification')" class="btn btn-primary ms-auto d-none d-sm-inline-flex">
+            <i class="ti ti-refresh fs-2 me-1"></i>
+            重新识别
+          </a>
+          <a href="javascript:batch_check_action('reidentification')" class="btn btn-primary d-sm-none btn-icon" >
+            <i class="ti ti-refresh fs-2 me-1"></i>
+          </a>
+          <div class="dropdown">
+            <a href="#" class="btn btn-danger ms-auto d-none d-sm-inline-flex dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+              <i class="ti ti-trash fs-2 me-1"></i>
+              批量删除
+            </a>
+            <a href="#" class="btn btn-danger d-sm-none btn-icon"
+               data-bs-toggle="dropdown" aria-expanded="false">
+              <i class="ti ti-trash fs-2 me-1"></i>
+            </a>
+            <div class="dropdown-menu dropdown-menu-end">
+              <a class="dropdown-item text-danger" href="javascript:batch_check_action('del_source')" >
+                删除源文件
+              </a>
+              <a class="dropdown-item text-danger" href="javascript:batch_check_action('del_dest')" >
+                删除媒体库文件
+              </a>
+              <a class="dropdown-item text-danger" href="javascript:batch_check_action('del_all')" >
+                删除源及媒体库文件
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+      <!-- Page title actions -->
+    </div>
+  </div>
+</div>
+<!-- 业务页面代码 -->
+<div class="page-body">
+  <div class="container-xl">
+    <div class="row row-cards">
+      <div class="col-12">
+        <div class="card">
+          <div class="card-body border-bottom py-3">
+            <div class="d-flex">
+              <div class="text-muted" id="total-count">
+                共 0 条记录
+              </div>
+              <div class="ms-auto text-muted">
+                搜索:
+                <div class="ms-2 d-inline-block">
+                  <input id="search_word" value="" type="text" class="form-control form-control-sm"
+                         aria-label="搜索">
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="table-responsive" id="history-table-container">
+            <table class="table table-vcenter card-table table-hover table-striped">
+              <thead>
+              <tr id="history-table-header">
+                <th>媒体信息</th>
+                <th>文件信息</th>
+                <th>时间</th>
+                <th></th>
+              </tr>
+              </thead>
+              <tbody id="history-table-body">
+
+              </tbody>
+            </table>
+          </div>
+          <div class="card-footer d-flex align-items-center" id="pagination-container" style="display: none;">
+            <p class="m-0 text-muted">当前页 <span id="current-count">0</span> 条</p>
+            <ul class="pagination m-0 ms-auto" id="pagination-list">
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<script type="text/javascript">
+  // 上一页
+  function go_pre_page(search, page) {
+    navmenu("history?s=" + search + "&page=" + (page - 1))
+  }
+
+  // 下一页
+  function go_next_page(search, page) {
+    navmenu("history?s=" + search + "&page=" + (page + 1))
+  }
+
+  //手动重新识别
+  function rename_history(type, path, id, rmt_mode) {
+    show_manual_transfer_modal(2, path, rmt_mode, type, '', id);
+  }
+
+  //删除
+  function delete_history(flag, logids, name) {
+    let msg = "";
+    if (flag === 'del_all') {
+      msg = '源文件及媒体库';
+    } else if (flag === 'del_source') {
+      msg = '源';
+    } else if  (flag === 'del_dest') {
+      msg = '媒体库';
+    }
+    show_confirm_modal(`${name} 对应${msg}文件将被同步删除，是否确认？`, function () {
+      hide_confirm_modal();
+      axios_post_do("delete_history", {"flag": flag, "logids": logids}, function (ret) {
+        window_history_refresh();
+      });
+    });
+  }
+
+  // 搜索按钮
+  $('#search_word').bind('keypress', function (event) {
+    if (event.keyCode == "13") {
+      const keyword = $("#search_word").val();
+      navmenu("history?s=" + keyword);
+    }
+  });
+
+  // 批量删除/重新识别
+  function batch_check_action(flag) {
+    let logids = select_GetSelectedVAL("transfer_history")
+    if (logids.length === 0) {
+      return;
+    }
+    if (flag.startsWith("del")) {
+      delete_history(flag, logids, "");
+    } else if (flag === "reidentification") {
+      re_identification("history", logids);
+    }
+  }
+
+  //单条记录删除
+  function single_delete_history(flag, logid, name) {
+    const logids = [logid];
+    delete_history(flag, logids, name);
+  }
+
+  // 页面加载完成后，使用axios_post请求/data/history接口获取数据并填充页面
+  $(document).ready(function() {
+
+    // 获取URL参数
+    const [path, queryString] = window.location.hash.split("?");
+    const urlParams = new URLSearchParams(queryString);
+    const searchKeyword = urlParams.get('s') || '';
+    const currentPage = urlParams.get('page') || 1;
+    const pageNum = urlParams.get('pagenum') || 20;
+
+    // 设置搜索框的值
+    $('#search_word').val(searchKeyword);
+
+    const requestData = {};
+    requestData.s = searchKeyword;
+    requestData.page = currentPage;
+    requestData.pagenum = pageNum;
+
+    axios_post('/data/history', requestData, function(response) {
+
+      if (response.code === 0 && response.data) {
+
+        const data = response.data;
+
+        // 更新总记录数
+        $('#total-count').text(`共 ${data.TotalCount || 0} 条记录`);
+        $('#current-count').text(data.Count || 0);
+
+        // 生成历史记录表格
+        const tableBody = $('#history-table-body');
+        const tableHeader = $('#history-table-header');
+        const paginationContainer = $('#pagination-container');
+
+        tableBody.empty();
+
+        if (data.Historys && data.Historys.length > 0) {
+          // 添加复选框列头
+          if (data.TotalCount > 0) {
+            tableHeader.prepend(`
+              <th class="w-1">
+                <input class="form-check-input m-0 align-middle" type="checkbox" aria-label="全选"
+                       onclick="select_SelectALL($(this).prop('checked'), 'transfer_history')">
+              </th>
+            `);
+            $('#history-table-container').addClass('table-page-body');
+          }
+
+          data.Historys.forEach(history => {
+            const mediaIcon = history.TYPE === '电影' ? 'ti-movie' : 'ti-device-tv';
+            const mediaType = history.TYPE === '电影' ? 'movie' : 'tv';
+
+            let titleHtml = '';
+            if (history.TMDBID) {
+              titleHtml = `<a href="https://www.themoviedb.org/${mediaType}/${history.TMDBID}" target="_blank">
+                ${history.TITLE} (${history.YEAR})
+              </a>`;
+              if (history.SEASON_EPISODE) {
+                const episodeUrl = history.SEASON_EPISODE.replace('S', '/season/').replace('E', '/episode/');
+                titleHtml += `<br><a href="https://www.themoviedb.org/tv/${history.TMDBID}${episodeUrl}" target="_blank">
+                  <span class="text-orange">${history.SEASON_EPISODE}</span>
+                </a>`;
+              }
+            } else {
+              titleHtml = `${history.TITLE} (${history.YEAR})`;
+              if (history.SEASON_EPISODE) {
+                titleHtml += ` <span class="text-orange">${history.SEASON_EPISODE}</span>`;
+              }
+            }
+
+            const sourcePathEncoded = history.SOURCE_PATH ? history.SOURCE_PATH.replace(/\\/g, '/') : '';
+            const destPathEncoded = history.DEST_PATH ? history.DEST_PATH.replace(/\\/g, '/') : '';
+
+            const row = `
+              <tr>
+                <td class="w-1">
+                  <input class="form-check-input m-0 align-middle" name="transfer_history" value="${history.ID}" type="checkbox">
+                </td>
+                <td>
+                  <div class="d-flex py-1 align-items-center">
+                    <span class="avatar me-2 text-nowrap">
+                      <i class="ti ${mediaIcon} fs-2 me-1"></i>
+                    </span>
+                    <div class="flex-fill">
+                      <div class="font-weight-medium text-nowrap">
+                        ${titleHtml}
+                      </div>
+                      ${history.CATEGORY ? `<div class="text-muted">类别：${history.CATEGORY}</div>` : ''}
+                    </div>
+                  </div>
+                </td>
+                <td>
+                  <div class="text-wrap">
+                    <a href='javascript:navmenu("mediafile?dir=${sourcePathEncoded}")'>
+                      ${history.SOURCE_FILENAME || ''}
+                    </a>
+                  </div>
+                  <div class="text-wrap">
+                    ${history.DEST_PATH || history.DEST_FILENAME ? '<span class="text-muted">=> </span>' : ''}
+                    ${history.DEST_PATH ?
+                      `<a class="text-green" href='javascript:navmenu("mediafile?dir=${destPathEncoded}")'>
+                        ${history.DEST_FILENAME || ''}
+                      </a>` :
+                      (history.DEST_FILENAME || '')
+                    }
+                  </div>
+                </td>
+                <td>
+                  <div class="text-nowrap">
+                    <small>${history.DATE}</small>
+                    <div class="text-muted"><small>来自：${history.SOURCE || ''}</small></div>
+                    <div class="text-muted"><small>转移方式：${history.SYNC_MODE}</small></div>
+                  </div>
+                </td>
+                <td>
+                  <div class="dropdown">
+                    <a href="#" class="btn-action" data-bs-toggle="dropdown" aria-expanded="false">
+                      <i class="ti ti-dots-vertical fs-2 me-1"></i>
+                    </a>
+                    <div class="dropdown-menu dropdown-menu-end">
+                      <a class="dropdown-item" href='javascript:re_identification("history", ["${history.ID}"])'>
+                        重新识别
+                      </a>
+                      <a class="dropdown-item" href='javascript:rename_history("${history.TYPE}", "${history.SOURCE_FILENAME}", "${history.ID}", "${history.RMT_MODE}")'>
+                        手动识别
+                      </a>
+                      <a class="dropdown-item text-danger" href='javascript:single_delete_history("del_source", "${history.ID}", "${history.TITLE} (${history.YEAR}) ${history.SEASON_EPISODE || ''}")'>
+                        删除源文件
+                      </a>
+                      <a class="dropdown-item text-danger" href='javascript:single_delete_history("del_dest", "${history.ID}", "${history.TITLE} (${history.YEAR}) ${history.SEASON_EPISODE || ''}")'>
+                        删除媒体库文件
+                      </a>
+                      <a class="dropdown-item text-danger" href='javascript:single_delete_history("del_all", "${history.ID}", "${history.TITLE} (${history.YEAR}) ${history.SEASON_EPISODE || ''}")'>
+                        删除源及媒体库文件
+                      </a>
+                    </div>
+                  </div>
+                </td>
+              </tr>
+            `;
+            tableBody.append(row);
+          });
+
+          // 生成分页
+          if (data.TotalCount > 0) {
+            const paginationList = $('#pagination-list');
+            paginationList.empty();
+
+            // 上一页
+            const prevDisabled = data.CurrentPage == 1 ? 'disabled' : '';
+            paginationList.append(`
+              <li class="page-item ${prevDisabled}">
+                <a class="page-link" href="javascript:go_pre_page('${data.Search || ''}', ${data.CurrentPage})" tabindex="-1" aria-disabled="true">
+                  <i class="ti ti-chevron-left fs-2 me-1"></i>
+                </a>
+              </li>
+            `);
+
+            var total_page = (data.TotalCount + pageNum - 1) / pageNum;
+            var page_range = get_page_range(data.CurrentPage, total_page);
+            // 页码
+            page_range.forEach(page => {
+              const active = page == data.CurrentPage ? 'active' : '';
+              paginationList.append(`
+                <li class="page-item ${active}">
+                  <a class="page-link" href="javascript:navmenu('history?s=${data.Search || ''}&page=${page}')">${page}</a>
+                </li>
+              `);
+            });
+            
+            // 下一页
+            const nextDisabled = data.CurrentPage >= data.TotalPage ? 'disabled' : '';
+            const nextHref = data.CurrentPage < data.TotalPage ?
+              `javascript:go_next_page('${data.Search || ''}', ${data.CurrentPage})` :
+              'javascript:void(0)';
+            paginationList.append(`
+              <li class="page-item ${nextDisabled}">
+                <a class="page-link" href="${nextHref}">
+                  <i class="ti ti-chevron-right fs-2 me-1"></i>
+                </a>
+              </li>
+            `);
+
+            paginationContainer.show();
+          }
+        } else {
+          // 没有数据
+          tableBody.append(`
+            <tr>
+              <td colspan="4" align="center">没有数据</td>
+            </tr>
+          `);
+        }
+      }
+    }, true, true);
+  });
+
+</script>

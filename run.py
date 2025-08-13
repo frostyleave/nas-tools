@@ -2,12 +2,14 @@ import os
 import signal
 import sys
 import warnings
+import uvicorn
 
 warnings.filterwarnings('ignore')
 
 # 运行环境判断
 is_executable = getattr(sys, 'frozen', False)
 is_windows_exe = is_executable and (os.name == "nt")
+
 if is_windows_exe:
     # 托盘相关库
     import threading
@@ -27,7 +29,7 @@ if is_executable:
 from config import Config
 
 from web.action import WebAction
-from web.main import App
+
 from app.db import init_db, update_db, init_data
 
 from initializer import update_config, check_config,  start_config_monitor, stop_config_monitor
@@ -72,13 +74,25 @@ def get_run_config(forcev4=False):
         _web_port = int(app_conf.get('web_port')) if str(app_conf.get('web_port', '')).isdigit() else 3000
         _ssl_cert = app_conf.get('ssl_cert')
         _ssl_key = app_conf.get('ssl_key')
-        _ssl_key = app_conf.get('ssl_key')
         _debug = True if app_conf.get("debug") else False
 
-    app_arg = dict(host=_web_host, port=_web_port, debug=_debug, threaded=True, use_reloader=False)
-    if _ssl_cert:
-        app_arg['ssl_context'] = (_ssl_cert, _ssl_key)
-    return app_arg
+    # 获取日志级别配置
+    _log_level = app_conf.get('loglevel', 'info') if app_conf else 'info'
+
+    # 为Uvicorn准备配置
+    uvicorn_config = {
+        "host": _web_host,
+        "port": _web_port,
+        "log_level": _log_level,
+        "reload": False
+    }
+
+    # SSL配置
+    if _ssl_cert and _ssl_key:
+        uvicorn_config["ssl_certfile"] = _ssl_cert
+        uvicorn_config["ssl_keyfile"] = _ssl_key
+
+    return uvicorn_config
 
 
 # 退出事件
@@ -123,6 +137,7 @@ if __name__ == '__main__':
         homepage = Config().get_config('app').get('domain')
         if not homepage:
             homepage = "http://localhost:%s" % str(Config().get_config('app').get('web_port'))
+            
         log_path = os.environ.get("NASTOOL_LOG")
 
         sys.stdout = NullWriter()
@@ -135,5 +150,18 @@ if __name__ == '__main__':
             p1 = threading.Thread(target=traystart, daemon=True)
             p1.start()
 
-    # Flask启动
-    App.run(**get_run_config(is_windows_exe))
+    # 在这里导入app实例，确保所有初始化工作已完成
+    try:
+        # 导入FastAPI应用
+        from web.app import app as fastapi_app
+
+        # 获取运行配置
+        run_config = get_run_config(is_windows_exe)
+
+        # 打印调试信息
+        log.console(f"正在启动FastAPI应用...使用配置: {run_config}")
+
+        # 启动应用
+        uvicorn.run(fastapi_app, **run_config)
+    except Exception as e:
+        log.exception('启动FastAPI应用时出错', e)

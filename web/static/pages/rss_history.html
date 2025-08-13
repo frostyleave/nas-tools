@@ -1,0 +1,175 @@
+<div class="container-xl" id="rss-history-container">
+  <!-- Page title -->
+  <div class="page-header d-print-none">
+    <div class="row align-items-center">
+      <div class="col">
+      </div>
+      <div class="col-auto ms-auto d-print-none">
+        <a href="javascript:void(0)" id="back-btn"
+           class="btn d-none d-sm-inline-block" title="返回">
+          <i class="ti ti-arrow-back-up"></i>
+          返回
+        </a>
+        <a href="javascript:void(0)" id="back-btn-mobile"
+           class="btn d-sm-none btn-icon" title="返回">
+          <i class="ti ti-arrow-back-up"></i>
+        </a>
+      </div>
+      <!-- Page title actions -->
+    </div>
+  </div>
+</div>
+<!-- 业务页面代码 -->
+<!-- 业务页面代码 -->
+<div class="page-body">
+  <div class="container-xl">
+    <div class="row row-cards">
+      <div class="col-12">
+        <div class="card">
+          <div class="card-body border-bottom py-3">
+            <div class="d-flex">
+              <div class="text-muted">
+                共 <span id="total-count">0</span> 条记录
+              </div>
+            </div>
+          </div>
+          <div class="table-responsive" id="table-container">
+            <table class="table table-vcenter card-table table-hover table-striped">
+              <thead>
+              <tr>
+                <th></th>
+                <th>标题</th>
+                <th><span class="d-none d-md-block">简介</span></th>
+                <th>完成时间</th>
+                <th></th>
+              </tr>
+              </thead>
+              <tbody id="rss-history-table-body">
+                <tr>
+                  <td colspan="5" align="center">加载中...</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script type="text/javascript">
+  //重新订阅
+  function re_rss_history(rssid) {
+    const pageData = $("#rss-history-container").data('pageData');
+    const currentType = pageData ? pageData.currentType : 'TV';
+    axios_post_do("re_rss_history", {"rssid": rssid, "type": currentType}, function (ret) {
+      if (ret.code == 0) {
+        show_success_modal("重新订阅成功！");
+      } else {
+        show_fail_modal(`重新订阅失败：${ret.msg}`);
+      }
+    });
+  }
+
+  //删除订阅历史
+  function delete_rss_history(rssid) {
+    axios_post_do("delete_rss_history", {"rssid": rssid}, function (ret) {
+      window_history_refresh();
+    });
+  }
+
+</script>
+
+<script type="text/javascript">
+
+  // 页面加载完成后，使用axios_post请求/data/rss_history接口获取数据并填充页面
+  $(document).ready(function() {
+    // 获取URL参数中的类型
+    const [path, queryString] = window.location.hash.split("?");
+    const urlParams = new URLSearchParams(queryString);
+    const type = urlParams.get('t') || urlParams.get('type') || 'TV';
+
+    // 设置页面数据，避免污染window对象
+    const pageData = {
+      currentType: type,
+      currentTypeName: type === 'TV' ? '电视剧' : '电影'
+    };
+
+    // 将数据存储在页面容器中
+    $("#rss-history-container").data('pageData', pageData);
+
+    // 设置返回按钮链接
+    const backUrl = type === 'MOV' ? 'movie_rss' : 'tv_rss';
+    $('#back-btn').attr('href', `javascript:navmenu('${backUrl}')`);
+    $('#back-btn-mobile').attr('href', `javascript:navmenu('${backUrl}')`);
+
+    axios_post('/data/rss_history', {type: type}, function(response) {
+      if (response.code === 0 && response.data) {
+        const data = response.data;
+
+        // 更新记录数
+        $('#total-count').text(data.Count || 0);
+
+        // 设置表格样式
+        if (data.Count > 0) {
+          $('#table-container').addClass('table-page-mini-body');
+        }
+
+        // 生成表格内容
+        const tableBody = $('#rss-history-table-body');
+        tableBody.empty();
+
+        if (data.Items && data.Items.length > 0) {
+          data.Items.forEach(item => {
+            const mediaType = item.TYPE === 'MOV' ? 'movie' : 'tv';
+            const seasonText = item.SEASON || '';
+            const totalEpisodes = item.TOTAL ? item.TOTAL - (item.START || 0) : '';
+
+            const row = `
+              <tr>
+                <td>
+                  <img class="rounded shadow-sm w-5" src="${item.IMAGE}"
+                      onerror="this.src='../static/img/no-image.svg'" alt=""
+                      style="min-width: 50px"/>
+                </td>
+                <td>
+                  <div>${item.NAME} (${item.YEAR}) ${seasonText}</div>
+                  <span title="TMDB ID">
+                    <a class="badge badge-outline text-green me-1 mb-1"
+                       href="https://www.themoviedb.org/${mediaType}/${item.TMDBID}"
+                       target="_blank">${item.TMDBID}</a>
+                  </span>
+                  ${totalEpisodes ? `<div class="text-muted text-nowrap"><small>共 ${totalEpisodes} 集</small></div>` : ''}
+                </td>
+                <td>
+                  <span class="d-none d-md-block">${item.DESC}</span>
+                </td>
+                <td>
+                  ${item.FINISH_TIME}
+                </td>
+                <td>
+                  <div class="dropdown">
+                    <a href="#" class="btn-action" data-bs-toggle="dropdown" aria-expanded="false">
+                      <i class="ti ti-dots-vertical"></i>
+                    </a>
+                    <div class="dropdown-menu dropdown-menu-end">
+                      <a class="dropdown-item" href='javascript:re_rss_history("${item.ID}")'>
+                        重新订阅
+                      </a>
+                      <a class="dropdown-item text-danger" href='javascript:delete_rss_history("${item.ID}")'>
+                        删除
+                      </a>
+                    </div>
+                  </div>
+                </td>
+              </tr>
+            `;
+            tableBody.append(row);
+          });
+        } else {
+          tableBody.html('<tr><td colspan="5" align="center">没有完成的订阅</td></tr>');
+        }
+      }
+    }, true, true);
+  });
+</script>

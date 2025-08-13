@@ -1,0 +1,621 @@
+<div class="container-xl">
+  <!-- Page title -->
+  <div class="page-header d-print-none d-none d-md-block">
+    <div class="row align-items-center">
+      <div class="col">
+        <h2 class="page-title text-nowrap">
+          资源搜索
+        </h2>
+        <div id="search_count" class="text-muted mt-1"></div>
+      </div>
+    </div>
+  </div>
+</div>
+<!-- 业务页面代码 -->
+<div class="page-body" id="page-body-div">
+  <div class="container-xl">
+    <div class="d-grid gap-3" id="media_cards"></div>
+  </div>
+</div>
+<empty-content id="no-data-card" title="没有搜索结果" text="输入想看的电影、电视剧名称，点击搜索试试看吧。" style="display: none;" ></empty-content>
+
+<!-- 搜索结果过滤弹窗 -->
+<div id="modal-box"></div>
+
+<script type="text/javascript">
+
+  // 计算各分组的种子数量
+  function sub_group_total(group, key, se) {
+    let total_obj = $(`#search_results_group_total_${group}_${key}_${se}`)
+    let current_num = parseInt(total_obj.text());
+    if (current_num < 1) {
+      current_num = 1;
+    }
+    total_obj.text(current_num-1);
+    if (current_num===1) {
+      $(`#search_results_accordion_item_${group}_${key}_${se}`).hide();
+    }
+  }
+
+  // 执行过滤
+  function filter_do(key, modal) {
+    let filter_obj;
+    if (modal) {
+      filter_obj = `#search_results_filter_${key}_modal`;
+    } else {
+      filter_obj = `#search_results_filter_${key}`;
+    }
+    let torrent_obj = `#search_results_accordion_${key}`;
+    let season_obj = `.search_results_season_${key}`;
+    // 全部显示
+    $(`${torrent_obj} .accordion-item`).each(function () {
+      $(this).show();
+    });
+    $(`${torrent_obj} .search_results_torrent`).each(function () {
+      $(this).show();
+    });
+    $(season_obj).each(function () {
+      $(this).show();
+    });
+    // 恢复总条数
+    $(`${torrent_obj} .search_results_group_total`).each(function () {
+      $(this).text($(this).attr("data-total"));
+    });
+    // 过滤站点
+    let filter_site = select_GetSelectedVAL("filter_site")[0];
+    // 过滤制作组
+    let filter_releasegroup = select_GetSelectedVAL("filter_releasegroup")[0];
+    // 过滤促销
+    let filter_free = select_GetSelectedVAL("filter_free")[0];
+    // 过滤编码
+    let filter_video = select_GetSelectedVAL("filter_video")[0];
+    //过滤剧集
+    let filter_season = select_GetSelectedVAL("filter_season")[0];
+    // 有过滤则展开，无过滤则收起
+    if (filter_site || filter_free || filter_video|| filter_releasegroup) {
+      $(`${torrent_obj} .accordion-button`).each(function () {
+        $(this).removeClass("collapsed");
+      });
+      $(`${torrent_obj} .accordion-collapse`).each(function () {
+        $(this).addClass("show");
+      });
+    } else {
+      $(`${torrent_obj} .accordion-button`).each(function () {
+        $(this).addClass("collapsed");
+      });
+      $(`${torrent_obj} .accordion-collapse`).each(function () {
+        $(this).removeClass("show");
+      });
+    }
+    // 执行过滤
+    if (filter_site) {
+      $(`${torrent_obj} .search_results_torrent`).each(function () {
+        if ($(this).attr("data-site") !== filter_site) {
+          if($(this).is(":visible")){
+            sub_group_total($(this).attr("data-group"), key, $(this).attr("data-season"));
+            $(this).hide();
+          }
+        }
+      });
+    }
+    if (filter_releasegroup) {
+      $(`${torrent_obj} .search_results_torrent`).each(function () {
+        if ($(this).attr("data-releasegroup") !== filter_releasegroup) {
+          if($(this).is(":visible")){
+            sub_group_total($(this).attr("data-group"), key, $(this).attr("data-season"));
+            $(this).hide();
+          }
+        }
+      });
+    }
+    if (filter_free) {
+      $(`${torrent_obj} .search_results_torrent`).each(function () {
+        if ($(this).attr("data-free") !== filter_free) {
+          if($(this).is(":visible")){
+            $(this).hide();
+            sub_group_total($(this).attr("data-group"), key, $(this).attr("data-season"));
+          }
+        }
+      });
+    }
+    if (filter_video) {
+      $(`${torrent_obj} .search_results_torrent`).each(function () {
+        if ($(this).attr("data-video") !== filter_video) {
+          if($(this).is(":visible")) {
+            $(this).hide();
+            sub_group_total($(this).attr("data-group"), key, $(this).attr("data-season"));
+          }
+        }
+      });
+    }
+    if (filter_season) {
+      $(season_obj).each(function () {
+        let season = $(this).attr("data-season").split(" ")[0];
+        let se_key = $(this).attr("data-season").replace(" ", "");
+        if ( season !== filter_season) {
+          $(this).hide();
+          $(`#search_se_accordion_${se_key}_${key}`).hide();
+        }else{
+          $(this).show();
+          $(`#search_se_accordion_${se_key}_${key}`).show();
+        }
+      });
+    }
+  }
+
+  // 过滤媒体展示
+  function filter_medias(obj, key, modal) {
+    // 当前项未选中则选中,已选中则取消选中
+    check_selectgroup_raido(obj)
+    // 开始过滤
+    filter_do(key, modal);
+  }
+
+  // 重置过滤条件
+  function filter_reset() {
+    // 过滤站点
+    select_SelectALL(false, "filter_site");
+    // 过滤促销
+    select_SelectALL(false, "filter_free");
+    // 过滤编码
+    select_SelectALL(false, "filter_video");
+    //过滤剧集
+    select_SelectALL(false, "filter_season");
+    //过滤制作组
+    select_SelectALL(false, "filter_releasegroup");
+  }
+
+  // 重置过滤条件
+  function reset_filter(obj, key, modal) {
+    filter_reset()
+    // 开始过滤
+    filter_do(key, modal);
+  }
+
+  // 显示过滤器弹窗
+  function show_search_filter_modal(key) {
+    $(`#search-filter-modal-${key}`).modal("show");
+  }
+
+  //下载按钮
+  function download_search_resource(id) {
+    const title = $(`#title_${id}`).val();
+    const site = $(`#site_${id}`).val();
+    show_download_modal(id, `【${site}】${title}`, site)
+  }
+
+  //名称测试
+  function nametest(id) {
+    let title = $(`#title_${id}`).val();
+    let subtitle = $(`#description_${id}`).val();
+    media_name_test(title, `testresults_${id}`, function () {}, subtitle);
+  }
+
+</script>
+
+<script>
+
+  function drawPoster(mediaItem) {
+
+    if (!mediaItem.poster) {
+      return '';
+    }
+
+    var checkTagLfet = mediaItem.fav == "2"
+      ? '<div style="position: absolute; bottom: 0; right: 0; width: 30px; height: 30px; padding: 12px; background-color: var(--tblr-success); clip-path: polygon(100% 0, 100% 100%, 0 100%); border-radius: 0 0 8px 0;z-index: 9;"><i class="ti ti-check fs-2 me-1"></i></div>'
+      : '';
+
+    return `
+          <div class="card card-sm lit-normal-card rounded-3 cursor-pointer ratio shadow-sm">
+            <div class="rounded-3">
+              <img class="card-img rounded-3" alt="" style="box-shadow:0 0 0 1px #888888; display: block; min-width: 100%; max-width: 100%; min-height: 100%; max-height: 100%; object-fit: cover;" src="${mediaItem.poster}">
+              ${checkTagLfet}
+              <span style="position: absolute; top: 10px; left: 10px; z-index: 9;" class="badge badge-pill bg-lime">${mediaItem.type}</span>
+              <div class="badge badge-pill bg-purple" style="position: absolute; top: 10px; right: 10px; z-index: 9;">${mediaItem.vote}</div>
+            </div>
+            <div class="card-img-overlay rounded-3 ms-auto" >
+              <div class="d-flex justify-content-between">
+                <a class="text-muted" title="搜索资源" href='javascript:media_search("${mediaItem.tmdbid}", "${mediaItem.title}", "${mediaItem.type_key}")'>
+                  <i class="ti ti-search fs-2 text-white"></i>
+                </a>
+                <div class="ms-auto">
+                  <a class="text-muted" title="加入/取消订阅" href='javascript:rss_love_click("${mediaItem.title}", "${mediaItem.year}", "${mediaItem.type_key}", "${mediaItem.tmdbid}", "${mediaItem.fav}")'>
+                    ${mediaItem.fav == "1" ? `<i class="ti ti-heart-filled fs-2 text-purple"></i>` : `<i class="ti ti-heart fs-2 text-white"></i>`}
+                  </a>
+                </div>
+              </div>
+            </div>
+          </div>
+      `;
+
+  }
+
+  function drawFilterLabels(mediaItemKey, filterTag, filterCellction, modal) {
+
+    var html = '';
+    filterCellction.forEach(filter_item => {
+      html += `<label class="form-selectgroup-item">
+                     <input type="checkbox" name="filter_${filterTag}" value="${filter_item}" class="form-selectgroup-input" onclick="filter_medias(this, '${mediaItemKey}', ${modal})">
+                     <span class="form-selectgroup-label">${filter_item}</span>
+                   </label>`;
+    });
+    return html;
+  }
+
+  function drawFreeFilter(mediaItemKey, filterCellction, modal) {
+
+    var html = '';
+    filterCellction.forEach(filter_item => {
+      html += `<label class="form-selectgroup-item">
+                     <input type="checkbox" name="filter_free" value="${filter_item.value}" class="form-selectgroup-input" onclick="filter_medias(this, '${mediaItemKey}', ${modal})">
+                     <span class="form-selectgroup-label">${filter_item.name}</span>
+                   </label>`;
+    });
+    return html;
+  }
+
+  function drawSeasonFilter(mediaItem, modal) {
+
+    if (!mediaItem.filter.season || mediaItem.filter.season.length == 0) {
+      return '';
+    }
+
+    var html = `<div class="subheader mb-2 mt-2">季</div>
+                  <div class="form-selectgroup form-selectgroup-pills">`;
+    html += drawFilterLabels(mediaItem.key, 'season', mediaItem.filter.season, modal);
+    html += '</div>';
+    return html;
+  }
+
+  function drawVideoFilter(mediaItem, modal) {
+
+    if (!mediaItem.filter.video || mediaItem.filter.video.length == 0) {
+      return '';
+    }
+
+    var html = `<div class="subheader mb-2 mt-2">视频编码</div>
+                  <div class="form-selectgroup form-selectgroup-pills">`;
+    html += drawFilterLabels(mediaItem.key, 'video', mediaItem.filter.video, modal);
+    html += '</div>';
+    return html;
+  }
+
+  function drawTorrentList(mediaItem, seKey, groupKey, groupItem) {
+
+    var html = '';
+    $.each(groupItem.group_torrents, function (uniqKey, uniq) {
+      uniq.torrent_list.forEach(torrent => {
+        html += `
+          <div class="list-group-item p-1 search_results_torrent"
+              data-site="${torrent.site}"
+              data-releasegroup="${torrent.releasegroup || '未知'}"
+              data-free="${torrent.uploadvalue + ' ' + torrent.downloadvalue}"
+              data-video="${torrent.video_encode}"
+              data-group="${groupKey}"
+              data-season="${seKey}">
+            <input type="hidden" id="title_${torrent.id}" value="${torrent.torrent_name}">
+            <input type="hidden" id="description_${torrent.id}" value="${torrent.description}">
+            <input type="hidden" id="site_${torrent.id}" value="${torrent.site}">
+            <div class="row g-2 align-items-center">
+              <div class="col">
+                <a href='javascript:download_search_resource("${torrent.id}")'>${torrent.torrent_name}</a>
+          `;
+
+        if (!mediaItem.tmdbid || mediaItem.tmdbid == '0') {
+          html += `
+            <a class="ms-2 mb-1" title="名称测试" href='javascript:nametest("${torrent.id}")' data-bs-toggle="tooltip">
+              <i class="ti ti-text-recognition"></i>
+            </a>`;
+        }
+
+        // labels
+        html += `<div class="mb-1">`;
+        $.each(torrent.labels || [], function (_, label) {
+          html += `<span class="badge badge-outline text-purple">${label}</span>`;
+        });
+        html += `<span class="text-muted">${torrent.description || ''}</span></div>`;
+
+        // badges
+        html += `<div>`;
+        html += `<span class="badge bg-black text-dark-fg mb-1 me-1">${torrent.site}</span>`;
+        if (torrent.video_encode) {
+          html += `<span class="badge text-white bg-orange mb-1 me-1">${torrent.video_encode}</span>`;
+        }
+        if (torrent.reseffect) {
+          html += `<span class="badge text-white bg-purple mb-1 me-1">${torrent.reseffect}</span>`;
+        }
+        if (torrent.size) {
+          html += `<span class="badge text-white bg-yellow mb-1 me-1">${torrent.size}</span>`;
+        }
+        if (torrent.releasegroup) {
+          html += `<span class="badge text-white bg-cyan mb-1 me-1">${torrent.releasegroup}</span>`;
+        }
+        if (torrent.uploadvalue !== 1.0) {
+          html += `<span class="badge text-white bg-azure mb-1 me-1">${parseInt(torrent.uploadvalue * 100)}%UL</span>`;
+        }
+        if (torrent.downloadvalue !== 1.0) {
+          if (torrent.downloadvalue === 0.0) {
+            html += `<span class="badge text-white bg-lime mb-1 me-1">FREE</span>`;
+          } else {
+            html += `<span class="badge text-white bg-indigo mb-1 me-1">${parseInt(torrent.downloadvalue * 100)}%DL</span>`;
+          }
+        }
+        if (torrent.seeders) {
+          html += `<span class="badge text-white mb-1 me-1">${torrent.seeders}↑</span>`;
+        }
+        if (torrent.pubdate) {
+          html += `<span class="badge text-white bg-lime mb-1">${torrent.pubdate}</span>`;
+        }
+        html += `</div>`;
+
+        // custom chips
+        if (!mediaItem.tmdbid || mediaItem.tmdbid === "0") {
+          html += `<custom-chips class="mt-1" id="testresults_${torrent.id}"></custom-chips>`;
+        }
+
+        html += `
+                </div>
+                <div class="col-auto ms-2 d-none d-md-inline-block">
+                  <a href="javascript:download_search_resource('${torrent.id}')" class="link-secondary" title="下载">
+                    <i class="ti ti-download fs-2 me-1"></i>
+                  </a>
+                </div>
+                <div class="col-auto lh-1 ms-2 d-none d-md-inline-block">
+                  <div class="dropdown">
+                    <a href="#" class="link-secondary" data-bs-toggle="dropdown" aria-expanded="false">
+                      <i class="ti ti-dots fs-2 me-1"></i>
+                    </a>
+                    <div class="dropdown-menu dropdown-menu-end">
+          `;
+
+        if (torrent.enclosure && torrent.enclosure.startsWith("http")) {
+          html += `<a class="dropdown-item" href="${torrent.enclosure}" target="_blank">下载种子文件</a>`;
+        }
+        html += `<a class="dropdown-item" href="${torrent.pageurl}" target="_blank">查看种子详情</a>`;
+        html += `
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          `;
+
+      });
+    });
+
+    return html;
+
+  }
+
+  function drawResAccordionCard(title, item) {
+
+    var html = '';
+    $.each(item.torrent_dict, function (i, pair) {
+
+      var seKey = pair[0].replace(' ', '');   // 真实 key，比如 "S01"、"MOV"
+      var seDict = pair[1];  // 真实 value，对应的 dict
+      var seId = seKey.replace(/\s+/g, "");
+
+      if (seKey != 'MOV') {
+        html += `
+          <a href="javascript:$('#search_se_accordion_${seKey}_${item.key}').slideToggle()"
+            class="search_results_season_${item.key}" data-season="${seKey}">
+            <div class="row mt-2">
+              <h3 class="mb-0">
+              <strong>${seKey}</strong>
+              </h3>
+            </div>
+          </a>
+          `;
+      }
+
+      html += `
+        <div id="search_se_accordion_${seKey}_${item.key}">
+          <div class="accordion mt-2" id="search_results_accordion_${item.key}">`;
+
+      var loopIndex = 0;
+      $.each(seDict, function (group_key, group) {
+        html += `
+          <div class="accordion-item" id="search_results_accordion_item_${group_key}_${item.key}_${seKey}">
+            <h2 class="accordion-header">
+              <button
+                              class="accordion-button p-2 ${loopIndex != 0 ? 'collapsed' : ''}"
+                              type="button"
+                              data-bs-toggle="collapse"
+                              data-bs-target="#search_results_group_${group_key}_${item.key}_${seKey}"
+                              aria-expanded="true">
+                              <span class="text-red">${group.group_info.restype || '其他'}</span>
+                                &nbsp;/&nbsp;
+                              <span class="text-orange">${group.group_info.respix || "未知分辨率"}</span>
+                                &nbsp;/&nbsp;
+                              <span class="text">共 <span id="search_results_group_total_${group_key}_${item.key}_${seKey}"
+                                                       class="search_results_group_total"
+                                                       data-total="${group.group_total}">${group.group_total}</span> 个种子 </span>
+                          </button>
+            </h2>
+            <div id="search_results_group_${group_key}_${item.key}_${seKey}"
+                 class="accordion-collapse collapse ${loopIndex == 0 ? 'show' : ''}"
+                 data-bs-parent="#search_results_accordion_${item.key}">
+              <div class="accordion-body p-1">
+                <div class="card-list-group mt-1">
+                  <!-- 种子列表 -->
+                  ${drawTorrentList(item, seKey, group_key, group)}
+                </div>
+              </div>
+            </div>
+          </div>`
+        loopIndex++;
+      });
+
+      html += `</div>
+          </div>`;
+
+    });
+
+    return html;
+  }
+
+  $(document).ready(function () {
+
+    axios_post("/data/search", {}, function (res) {
+
+      if (res.data && res.data.data && res.data.data.Count > 0) {
+
+        $("#no-data-card").hide();
+        $('#page-body-div').show();
+
+        var data = res.data.data;
+        var count = data.Count;
+        var results = data.Results;
+        $("#search_count").text(`共搜索到 ${count} 条记录`);
+
+        $.each(results, function (title, item) {
+
+          // 主内容
+
+          var checkTagMedia = item.fav == "2"
+            ? '<div class="badge badge-pill bg-green d-md-none" style="position:absolute;top:20px;right:50px;padding:0;"><i class="ti ti-check fs-2 me-1"></i></div>'
+            : '';
+
+          var posterCard = drawPoster(item);
+          var seasonCard = drawSeasonFilter(item);
+          var sitesCard = drawFilterLabels(item.key, 'site', item.filter.site);
+          var rGroupCard = drawFilterLabels(item.key, 'releasegroup', item.filter.releasegroup);
+
+          var freeCard = drawFreeFilter(item.key, item.filter.free);
+          var videoCard = drawVideoFilter(item);
+
+          var tmdbLink = item.type == '电影' ? 'https://www.themoviedb.org/movie/' + item.tmdbid : 'https://www.themoviedb.org/tv/' + item.tmdbid
+
+          var displayHtml = $(`
+            <div class="card bg-transparent border-0">
+              <div class="ribbon g-cyan d-md-none">
+                <a class="text-white" href="javascript:show_search_filter_modal('${item.key}')">
+                  <i class="ti ti-filter fs-2 me-1"></i>
+                </a>
+              </div>
+              ${checkTagMedia}
+              <div class="card-body ps-1 pe-1">
+                <div class="row">
+                  <div class="col-2 ps-3 d-none d-md-block" id="search_results_filter_${item.key}" style="max-width: 15rem">
+                    <!-- 图片 -->
+                    ${posterCard}
+                    <!-- 过滤条件 -->
+                    ${seasonCard}
+                    <div class="subheader mb-2 mt-3">站点</div>
+                    <div class="form-selectgroup form-selectgroup-pills">
+                      ${sitesCard}
+                    </div>
+                    <div class="subheader mb-2 mt-3">制作组</div>
+                    <div class="form-selectgroup form-selectgroup-pills">
+                      ${rGroupCard}
+                    </div>
+                    <div class="subheader mb-2 mt-2">促销</div>
+                    <div class="form-selectgroup form-selectgroup-pills">
+                      ${freeCard}
+                    </div>
+                    ${videoCard}
+                    <div class="mt-3">
+                      <button class="btn w-100" onclick="reset_filter(this, '${item.key}')">
+                        重置
+                      </button>
+                    </div>
+                  </div>
+                  <div class="col">
+                    <!-- 标题 -->
+                    <div class="row">
+                      <div class="col" onclick='navmenu("media_detail?type=${item.type_key}&id=${item.tmdbid}")'>
+                        <h2 class="mb-0" style="cursor: pointer;" >
+                          <strong>${title}</strong>
+                        </h2>
+                      </div>
+                    </div>
+                    <!-- 媒体属性 -->
+                    <div class="row mt-2 d-md-none">
+                      <div class="col-md">
+                        <div class="list-inline list-inline-dots mb-0 text-muted">
+                          <div class="list-inline-item">
+                            <i class="ti ti-video"></i>
+                            ${item.type}
+                          </div>
+                          <div class="list-inline-item">
+                            <i class="ti ti-star"></i>
+                            ${item.vote}
+                          </div>
+                          <div class="list-inline-item">
+                            <i class="ti ti-info-circle"></i>
+                            <a href="${tmdbLink}" target="_blank">${item.tmdbid}</a>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    <!-- 简介 -->
+                    <div class="text-muted mt-2 d-none d-md-block">
+                      ${item.overview}
+                    </div>
+                    <!-- 资源分组 -->
+                    ${drawResAccordionCard(title, item)}
+                  </div>
+                </div>
+              </div>
+            </div>
+            `);
+
+          // 添加展示
+          $("#media_cards").append(displayHtml);
+
+          // 弹窗
+          var modalCard = $(`
+            <div class="modal modal-blur fade" id="search-filter-modal-${item.key}" tabindex="-1" role="dialog" aria-hidden="true"
+                data-bs-backdrop="static" data-bs-keyboard="false">
+              <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
+                <div class="modal-content">
+                  <div class="modal-header">
+                    <h5 class="modal-title">过滤: ${title}</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                  </div>
+                  <div class="modal-body">
+                    <div class="row">
+                      <div class="col" id="search_results_filter_${item.key}_modal">
+                       <!-- 过滤条件 -->
+                      ${drawSeasonFilter(item, true)}
+                      <div class="subheader mb-2 mt-3">站点</div>
+                      <div class="form-selectgroup form-selectgroup-pills">
+                        ${drawFilterLabels(item.key, 'site', item.filter.site, true)}
+                      </div>
+                      <div class="subheader mb-2 mt-3">制作组</div>
+                      <div class="form-selectgroup form-selectgroup-pills">
+                        ${drawFilterLabels(item.key, 'releasegroup', item.filter.releasegroup, true)}
+                      </div>
+                      <div class="subheader mb-2 mt-2">促销</div>
+                      <div class="form-selectgroup form-selectgroup-pills">
+                        ${drawFreeFilter(item.key, item.filter.free, true)}
+                      </div>
+                      ${drawVideoFilter(item, true)}
+                      </div>
+                    </div>
+                  </div>
+                  <div class="modal-footer">
+                    <button type="button" class="btn me-auto" onclick="reset_filter(this, '${item.key}', true)">重置</button>
+                    <button type="button" class="btn btn-primary" data-bs-dismiss="modal">确定</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+            `);
+
+          $("#modal-box").append(modalCard);
+
+        });
+
+        return;
+      }
+
+      $('#page-body-div').hide();
+      $("#no-data-card").show();
+
+    });
+
+  });
+
+</script>

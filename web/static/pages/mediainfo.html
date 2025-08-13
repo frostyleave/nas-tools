@@ -1,0 +1,19 @@
+<script type="text/javascript">
+  $(document).ready(function () {
+
+    // 获取URL参数
+    const [path, queryString] = window.location.hash.split("?");
+    const urlParams = new URLSearchParams(queryString);
+    const type = urlParams.get('type') || '';
+    const tmdbId = urlParams.get('id') || '';
+
+    // 创建并挂载组件
+    const $page = $('<page-mediainfo>', {
+      id: 'page-mediainfo',
+      'media-type': type,
+      'media-tmdbid': tmdbId
+    });
+
+    $("#page_content").html($page);
+  });
+</script>

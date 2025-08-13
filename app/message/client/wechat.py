@@ -3,7 +3,9 @@ import threading
 from datetime import datetime
 
 from app.message.client._base import _IMessageClient
-from app.utils import RequestUtils, ExceptionUtils
+from app.utils import RequestUtils
+
+import log
 
 lock = threading.Lock()
 
@@ -13,7 +15,7 @@ class WeChat(_IMessageClient):
 
     _instance = None
     _access_token = None
-    _expires_in = None
+    _expires_in = None # token 有效期（秒）
     _access_token_time = None
     _default_proxy = False
     _default_proxy_url = 'https://wechat.nastool.org'
@@ -54,16 +56,20 @@ class WeChat(_IMessageClient):
     def __get_access_token(self, force=False):
         """
         获取微信Token
-        :return： 微信Token
+        :return: 微信Token
         """
-        token_flag = True
+        token_valid = True # token 有效
         if not self._access_token:
-            token_flag = False
+            token_valid = False
         else:
-            if (datetime.now() - self._access_token_time).seconds >= self._expires_in:
-                token_flag = False
+            log.info("[微信]Token申请时间: " + str(self._access_token_time))
+            # 计算token已申请时间
+            token_life_seconds = (datetime.now() - self._access_token_time).seconds
+            # token 已过期, 或有效期小于5分钟
+            if token_life_seconds >= self._expires_in - 300:
+                token_valid = False
 
-        if not token_flag or force:
+        if not token_valid or force:
             if not self._corpid or not self._corpsecret:
                 return None
             try:
@@ -71,12 +77,13 @@ class WeChat(_IMessageClient):
                 res = RequestUtils().get_res(token_url)
                 if res:
                     ret_json = res.json()
+                    log.info("[微信]获取微信Token: " + json.dumps(ret_json))
                     if ret_json.get('errcode') == 0:
                         self._access_token = ret_json.get('access_token')
                         self._expires_in = ret_json.get('expires_in')
                         self._access_token_time = datetime.now()
             except Exception as e:
-                ExceptionUtils.exception_traceback(e)
+                log.exception("[微信]获取微信Token异常: ", e)
                 return None
         return self._access_token
 
@@ -221,5 +228,5 @@ class WeChat(_IMessageClient):
             else:
                 return False, "未获取到返回信息"
         except Exception as err:
-            ExceptionUtils.exception_traceback(err)
+            log.exception("[微信]发送请求异常: ", err)
             return False, str(err)

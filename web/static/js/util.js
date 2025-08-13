@@ -1,6 +1,3 @@
-// 进度条配置
-NProgress.configure({showSpinner: false});
-
 // replaceAll浏览器兼容
 String.prototype.replaceAll = function (s1, s2) {
   return this.replace(new RegExp(s1, "gm"), s2)
@@ -28,8 +25,8 @@ Date.prototype.format = function (format) {
 }
 
 function menu_swith_wait() {
-  $("#loading_tips").show();
   $("#page_content").hide();
+  $("#loading_tips").show();
 }
 
 /**
@@ -418,34 +415,15 @@ function set_user_agent(id) {
 
 // 页面刷新
 function window_history_refresh() {
-  if (window.history.state?.page) {
-    navmenu(window.history.state.page, true);
+  var hash = window.location.hash;
+  var page = hash.replace(/^#\//, "");
+  if (page) {
+    navmenu(page);
   }
 }
 
 //当前页面地址
 let CurrentPageUri = "";
-
-// 保存页面历史
-function window_history(newflag = false, extra = undefined) {
-  const state = {
-    title: document.title,
-    html: $("#page_content").html(),         // 页面内容
-    scroll: $(".page").scrollTop(),  // 页面滚动位置
-    CurrentPage: sessionStorage.CurrentPage, // 页面当前页码
-    page: CurrentPageUri,                  // 当前页面地址
-    extra: extra,                            // 额外的保存数据
-  };
-  if (newflag) {
-    window.history.pushState(state, "");
-  } else {
-    // 当未传递extra时的页面缓存刷新, 应当重新保留extra数据
-    if (!extra && window.history.state?.extra) {
-      state.extra = window.history.state.extra;
-    }
-    window.history.replaceState(state, "");
-  }
-}
 
 // selectgroup控制单选
 function check_selectgroup_raido(obj) {

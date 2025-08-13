@@ -80,6 +80,19 @@ class CONFIGUSERS(Base):
     PRIS = Column(Text)
 
 
+class CONFIGREFRESHTOKENS(Base):
+    __tablename__ = 'CONFIG_REFRESH_TOKENS'
+
+    ID = Column(Integer, Sequence('ID'), primary_key=True)
+    USER_ID = Column(Integer, index=True)  # 关联用户ID
+    TOKEN_HASH = Column(Text, index=True)  # refresh_token的哈希值
+    DEVICE_INFO = Column(Text)  # 设备信息（可选）
+    CREATED_AT = Column(Text)  # 创建时间
+    EXPIRES_AT = Column(Text)  # 过期时间
+    IS_ACTIVE = Column(Integer, default=1)  # 是否有效 1=有效 0=无效
+    LAST_USED = Column(Text)  # 最后使用时间
+
+
 class CONFIGUSERRSS(Base):
     __tablename__ = 'CONFIG_USER_RSS'
 

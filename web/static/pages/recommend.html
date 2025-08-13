@@ -1,0 +1,180 @@
+<div class="container-xl">
+  <!-- Page title -->
+  <div class="page-header d-print-none">
+    <div class="row align-items-center">
+      <div class="col">
+        <h2 class="page-title" id="recommend_title"></h2>
+        <div class="text-muted mt-1" id="recommend_subtitle"></div>
+      </div>
+    </div>
+  </div>
+</div>
+<!-- 业务页面代码 -->
+<div class="page-body">
+  <div class="container-xl">
+    <div class="d-grid gap-3 grid-media-card" id="recommend_content">
+    </div>
+  </div>
+</div>
+
+<script type="text/javascript">
+
+  // 获取URL参数
+  var [path, queryString] = window.location.hash.split("?");
+  var urlParams = new URLSearchParams(queryString);
+
+  // 从URL参数中获取各种参数
+  // 当前页码
+  CurrentPage = parseInt(urlParams.get('page')) || 1;
+  // 类型
+  // MOV/TV/BANGUMI/SEARCH/DOWNLOADED/TRENDING/DISCOVER/DOUBANTAG
+  Type = urlParams.get('type') || '';
+  // 子类型
+  SubType = urlParams.get('subtype') || '';
+  // 标题
+  Title = urlParams.get('title') || '';
+  // 子标题
+  SubTitle = urlParams.get('subtitle') || '';
+  // 星期
+  Week = urlParams.get('week') || '';
+  // TMDBID
+  TmdbId = urlParams.get('tmdbid') || '';
+  // 演员ID
+  PersonId = urlParams.get('personid') || '';
+  // 关键字
+  Keyword = urlParams.get('keyword') || '';
+  // 来源
+  Source = urlParams.get('source') || '';
+  // 过滤器
+  Filter = urlParams.get('filter') || '';
+  // 过滤参数
+  paramsStr = urlParams.get('params');
+  Params = JSON.parse(decodeURIComponent(paramsStr));
+
+  // 插入N个占位卡片 代替loading动画
+  var page_card_num = 20;
+  function add_loading_card_placeholder() {
+    for (let i = 0; i < page_card_num; i++) {
+      let html = '<div id="loading_card_placeholder_' + i + '"><normal-card-placeholder></normal-card-placeholder></div>';
+      $("#recommend_content").append(html);
+    }
+  }
+
+  // 移除占位卡片
+  function del_loading_card_placeholder() {
+    $("div[id^='loading_card_placeholder_']").each(function () {
+      $(this).remove();
+    })
+  }
+
+  // 状态标记
+  var loading = false;
+
+  function loading_data(callback) {
+
+    if (loading || CurrentPage > 10) {
+      return;
+    }
+
+    loading = true;
+
+    var reqData = {
+      "type": Type,
+      "subtype": SubType,
+      "page": CurrentPage,
+      "week": Week,
+      "tmdbid": TmdbId,
+      "personid": PersonId,
+      "keyword": Keyword,
+      "source": Source,
+      "params": Params
+    };
+
+    axios_post_do("get_recommend", reqData, function (ret) {
+
+      if (ret.Items.length > 0) {
+        // 记录页码
+        CurrentPage++;
+        sessionStorage.CurrentPage = CurrentPage;
+        loading = false;
+        page_card_num = ret.Items.length;
+      } else {
+        if (CurrentPage === 1) {
+          $("#recommend_content").removeClass("grid-media-card").html($("#no_recommend_html").text());
+        }
+        // 没有数据，不继续执行回调
+        return;
+      }
+
+      // 插入HTML
+      for (let i = 0; i < ret.Items.length; i++) {
+        let item = ret.Items[i];
+        let html = `<normal-card
+                      card-tmdbId="${item.id}"
+                      card-mediatype="${item.type}"
+                      card-showSub="1"
+                      card-image="${item.image}"
+                      card-weekday="${item.weekday}"
+                      card-fav="${item.fav}"
+                      card-vote="${item.vote}"
+                      card-year="${item.year}"
+                      card-title="${item.title}"
+                      card-overview="${item.overview}"
+                      card-restype="${item.media_type}"
+                      card-date="${item.date}"
+                      card-site="${item.site}"
+                    ></normal-card>`;
+        $("#recommend_content").append(html);
+      }
+
+      if (callback) {
+        callback();
+      }        
+
+    });
+
+  }
+
+  // 如果没有滚动条则继续加载
+  function loading_data_max() {
+    loading_data(() => {
+      if (!hasScrollbar()) {
+        loading_data_max();
+      }
+    });
+  }
+
+  // 带过滤参数刷新页面
+  function filter_refresh(filterkey, value) {
+    Params[filterkey] = value;
+    navmenu(`recommend?type=${Type}&subtype=${SubType}&title=${Title}&subtitle=${SubTitle}&filter=${Filter}&params=${JSON.stringify(Params)}`)
+  }
+
+  // 滚动加载事件
+  $(document).ready(function ($) {
+    
+    $("#recommend_title").text(Title);
+    // 子标题
+    if (SubTitle) {
+      $("#recommend_subtitle").text(SubTitle).show();
+    } else {
+      $("#recommend_subtitle").hide();
+    }
+
+    // 开始加载数据
+    loading_data_max();
+
+    // 滚动事件绑定
+    $(window).scroll(function () {
+      if (getScrollRate() < 0.01) {
+        loading_data();
+      }
+    });
+
+  });
+
+</script>
+
+<script type="text/html" id="no_recommend_html">
+  <empty-content title="没有数据" text=""></empty-content>
+</script>
