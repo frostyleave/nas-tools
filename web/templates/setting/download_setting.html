@@ -1,4 +1,3 @@
-{% import 'macro/svg.html' as SVG %}
 <div class="container-xl">
   <!-- Page title -->
   <div class="page-header d-print-none">
@@ -11,18 +10,18 @@
       <div class="col-auto ms-auto d-print-none">
         <div class="btn-list">
           <a href="javascript:show_add_download_setting_modal()" class="btn btn-primary d-none d-sm-inline-block">
-            {{ SVG.plus() }}
+            <i class="ti ti-plus"></i>
             新增下载设置
           </a>
           <a href="javascript:show_add_download_setting_modal()" class="btn btn-primary d-sm-none btn-icon">
-            {{ SVG.plus() }}
+            <i class="ti ti-plus"></i>
           </a>
           <a href="javascript:navmenu('plugin')" class="btn d-none d-sm-inline-block" title="返回">
-            {{ SVG.arrow_back_up() }}
+            <i class="ti ti-arrow-back-up"></i>
             返回
           </a>
           <a href="javascript:navmenu('plugin')" class="btn d-sm-none btn-icon" title="返回">
-            {{ SVG.arrow_back_up() }}
+            <i class="ti ti-arrow-back-up"></i>
           </a>
         </div>
       </div>
@@ -44,19 +43,19 @@
           <div class="ms-2">
             <a href="javascript:void(0)" onclick="show_download_setting_detail('{{ Attr.id }}')" class="btn-action"
                title="展开/折叠" data-bs-toggle="tooltip">
-              <span class="text-purple">{{ SVG.star('icon-filled') }}</span>
+              <span class="text-purple"><i class="ti ti-star icon-filled"></i></span>
             </a>
           </div>
           {% else %}
           <div class="ms-2 d-none d-sm-block">
             <a href="javascript:set_default_download_setting('{{ Attr.id }}')" class="btn-action"
                title="设为默认" data-bs-toggle="tooltip">
-              {{ SVG.star() }}
+              <i class="ti ti-star"></i>
             </a>
           </div>
           {% endif %}
           <a href="#" class="link-secondary ms-auto d-sm-none" data-bs-toggle="dropdown" aria-expanded="false">
-                  {{ SVG.dots() }}
+                  <i class="ti ti-dots"></i>
                 </a>
           <div class="dropdown-menu dropdown-menu-end">
             <button class="dropdown-item text-info" onclick="set_default_download_setting('{{ Attr.id }}')">
@@ -74,16 +73,16 @@
           <div class="card-actions btn-actions d-none d-sm-block">
             <a href="javascript:void(0)" onclick="show_download_setting_detail('{{ Attr.id }}')" class="btn-action ms-1"
                title="展开/折叠">
-              {{ SVG.menu_2() }}
+              <i class="ti ti-menu-2"></i>
             </a>
             {% if Attr.id > 0 %}
             <a href="javascript:show_edit_download_setting_modal('{{ Attr.id }}')" class="btn-action ms-1"
                title="编辑设置">
-              {{ SVG.edit() }}
+              <i class="ti ti-edit"></i>
             </a>
             <a href="javascript:delete_download_setting('{{ Attr.id }}', '{{ Attr.name }}')" class="btn-action ms-1"
                title="删除设置">
-              {{ SVG.x() }}
+              <i class="ti ti-x"></i>
             </a>
             {% endif %}
           </div>

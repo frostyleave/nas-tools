@@ -1,4 +1,3 @@
-{% import 'macro/svg.html' as SVG %}
 <div class="container-xl">
   <div class="page-header d-print-none">
     <div class="row align-items-center">
@@ -10,18 +9,18 @@
       <div class="col-auto ms-auto d-print-none">
         <div class="btn-list">
           <a href="javascript:batch_download()" class="btn btn-primary d-none d-sm-inline-block">
-            {{ SVG.arrow_big_down() }}
+            <i class="ti ti-arrow-big-down"></i>
             一键下载
           </a>
           <a href="javascript:batch_download()" class="btn btn-primary d-sm-none btn-icon">
-            {{ SVG.arrow_big_down() }}
+            <i class="ti ti-arrow-big-down"></i>
           </a>
           <a href="javascript:navmenu('sitelist')" class="btn d-none d-sm-inline-block" title="返回">
-            {{ SVG.arrow_back_up() }}
+            <i class="ti ti-arrow-back-up"></i>
             返回
           </a>
           <a href="javascript:navmenu('sitelist')" class="btn d-sm-none btn-icon" title="返回">
-            {{ SVG.arrow_back_up() }}
+            <i class="ti ti-arrow-back-up"></i>
           </a>
         </div>
       </div>
@@ -107,7 +106,7 @@
                         <a class="ms-2 mb-1" title="名称测试"
                            href='javascript:nametest("{{ loop.index0 }}")'
                            data-bs-toggle="tooltip">
-                          {{ SVG.text_recognition() }}
+                          <i class="ti ti-text-recognition"></i>
                         </a>
                       </div>
                       <div>
@@ -134,7 +133,7 @@
                     <td>
                       <a href='javascript:download_site_resource({{ loop.index0 }})'
                          title="下载">
-                        {{ SVG.download() }}
+                        <i class="ti ti-download"></i>
                       </a>
                     </td>
                   </tr>
@@ -154,7 +153,7 @@
                 <li class="page-item {% if CurrentPage == 0 %} disabled {% endif %}">
                   <a class="page-link" href='javascript:go_pre_page({{ CurrentPage }})' tabindex="-1"
                      aria-disabled="true">
-                    {{ SVG.chevron_left() }}
+                    <i class="ti ti-chevron-left"></i>
                   </a>
                 </li>
                 {% for page in PageRange %}
@@ -165,7 +164,7 @@
                 <li class="page-item {% if CurrentPage + 1 >= TotalPage %} disabled {% endif %}">
                   <a class="page-link"
                      href='{% if CurrentPage < TotalPage %}javascript:go_next_page({{ CurrentPage }}){% else %}javascript:void(0){% endif %}'>
-                    {{ SVG.chevron_right() }}
+                    <i class="ti ti-chevron-right"></i>
                   </a>
                 </li>
               </ul>

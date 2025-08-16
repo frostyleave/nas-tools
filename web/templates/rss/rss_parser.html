@@ -1,4 +1,3 @@
-{% import 'macro/svg.html' as SVG %}
 <div class="container-xl">
   <!-- Page title -->
   <div class="page-header d-print-none">
@@ -8,18 +7,18 @@
       <div class="col-auto ms-auto d-print-none">
         <div class="btn-list">
           <a href="javascript:show_add_rssparser_modal()" class="btn btn-primary d-none d-sm-inline-block">
-            {{ SVG.plus() }}
+            <i class="ti ti-plus"></i>
             新增解析器
           </a>
           <a href="javascript:show_add_rssparser_modal()" class="btn btn-primary d-sm-none btn-icon">
-            {{ SVG.plus() }}
+            <i class="ti ti-plus"></i>
           </a>
           <a href="javascript:navmenu('user_rss')" class="btn d-none d-sm-inline-block" title="返回">
-            {{ SVG.arrow_back_up() }}
+            <i class="ti ti-arrow-back-up"></i>
             返回
           </a>
           <a href="javascript:navmenu('user_rss')" class="btn d-sm-none btn-icon" title="返回">
-            {{ SVG.arrow_back_up() }}
+            <i class="ti ti-arrow-back-up"></i>
           </a>
         </div>
       </div>
@@ -60,10 +59,10 @@
                       <div class="d-flex">
                         <a href="javascript:show_edit_rssparser_modal('{{ RssParser.id }}')" class="btn-action ms-1"
                            title="编辑解析器">
-                          {{ SVG.edit() }}
+                          <i class="ti ti-edit"></i>
                         </a>
                         <a href="javascript:delete_rssparser('{{ RssParser.id }}')" class="btn-action ms-1" title="删除解析器">
-                          {{ SVG.x() }}
+                          <i class="ti ti-x"></i>
                         </a>
                       </div>
                     </td>

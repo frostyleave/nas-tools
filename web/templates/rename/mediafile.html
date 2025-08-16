@@ -1,10 +1,9 @@
-{% import 'macro/svg.html' as SVG %}
 <div class="page-body">
   <div class="container-xl">
     <div class="card bg-transparent border-0">
       <div class="ribbon ribbon-top g-cyan d-md-none">
         <a class="text-white" href="javascript:js_change_card()">
-          {{ SVG.switch_horizontal() }}
+          <i class="ti ti-switch-horizontal"></i>
         </a>
       </div>
       <div class="row g-0">
@@ -13,13 +12,13 @@
             <h4 class="subheader">目录</h4>
             <div class="input-icon mb-2">
               <span class="input-icon-addon">
-                {{ SVG.folders() }}
+                <i class="ti ti-folders"></i>
               </span>
               <input type="text" id="mediafile_path" value="{{ Dir }}" class="form-control" placeholder="/"
                      aria-label="目录路径">
             </div>
             <a href="javascript:return_to_parentdir()">
-              {{ SVG.arrow_back_up() }}
+              <i class="ti ti-arrow-back-up"></i>
               上级目录
             </a>
             <div id="mediafile_tree" style="overflow-y: auto; overflow-x: hidden"></div>
@@ -33,15 +32,15 @@
               </div>
               <div class="align-self-center">
                 <a href="javascript:mediafile_transfer_all()" class="btn btn-primary" title="转移当前目录">
-                  {{ SVG.transform() }}
+                  <i class="ti ti-transform"></i>
                   转移
                 </a>
                 <a href="javascript:mediafile_findlinks_all()" class="btn btn-cyan" title="查询所有文件硬链接">
-                  {{ SVG.link() }}
+                  <i class="ti ti-link"></i>
                   硬链接
                 </a>
                 <a href="javascript:mediafile_scraper_all()" class="btn" title="刮削当前目录">
-                  {{ SVG.link() }}
+                  <i class="ti ti-link"></i>
                   刮削
                 </a>
               </div>
@@ -440,7 +439,7 @@
             <div class="col">
               <div class="mt-1 list-inline list-inline-dots mb-0 text-muted">
                 <div class="list-inline-item">
-                    {{ SVG.file_info() }}
+                    <i class="ti ti-file-info"></i>
                     {FILESIZE}
                 </div>
               </div>
@@ -483,7 +482,7 @@
   </td>
   <td>
     <div class="ms-3">
-      <span class="text-muted">{{ SVG.link() }}</span>
+      <span class="text-muted"><i class="ti ti-link"></i></span>
       {HARDLINK_FILENAME}
     </div>
     <div class="ms-3"><span class="text-muted">{HARDLINK_FILEPATH}</span></div>

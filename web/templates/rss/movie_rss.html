@@ -1,4 +1,3 @@
-{% import 'macro/svg.html' as SVG %}
 {% import 'macro/oops.html' as OOPS %}
 <style>
   .card-progress {
@@ -15,26 +14,26 @@
       <div class="col-auto ms-auto d-print-none">
         <div class="btn-list">
           <a href="javascript:show_add_rss_media_modal('{{Type}}')" class="btn btn-primary d-none d-sm-inline-block">
-            {{ SVG.plus() }}
+            <i class="ti ti-plus"></i>
             新增订阅
           </a>
           <a href="javascript:show_add_rss_media_modal('{{Type}}')" class="btn btn-primary d-sm-none btn-icon">
-            {{ SVG.plus() }}
+            <i class="ti ti-plus"></i>
           </a>
           <a href="javascript:show_default_rss_setting_modal('{{Type}}')"
             class="btn btn-twitter d-none d-sm-inline-block">
-            {{ SVG.server_2() }}
+            <i class="ti ti-server-2"></i>
             默认设置
           </a>
           <a href="javascript:show_default_rss_setting_modal('{{Type}}')" class="btn btn-twitter d-sm-none btn-icon">
-            {{ SVG.server_2() }}
+            <i class="ti ti-server-2"></i>
           </a>
           <a href="javascript:navmenu('rss_history?t={{Type}}')" class="btn d-none d-sm-inline-block">
-            {{ SVG.history() }}
+            <i class="ti ti-history"></i>
             订阅历史
           </a>
           <a href="javascript:navmenu('rss_history?t={{Type}}')" class="btn d-sm-none btn-icon" title="RSS解析器">
-            {{ SVG.history() }}
+            <i class="ti ti-history"></i>
           </a>
         </div>
       </div>
@@ -51,7 +50,7 @@
           <!-- <div class="ribbon ribbon-top ribbon-bookmark bg-purple">{{Attr.vote}}</div> -->
           <div class="right-top-box">
             <a href="javascript:remove_rss_media('{{Attr.name}}','{{Attr.year}}', '{{Type}}','{{ Id }}', 'movie_rss')"
-                  title="取消订阅" class="text-danger">{{ SVG.x() }}</a>
+                  title="取消订阅" class="text-danger"><i class="ti ti-x"></i></a>
           </div>
           <div class="row align-items-stretch media-content card-text">
             <div class="col-auto p-0 card">
@@ -148,14 +147,11 @@
               </div>
               <div class="col-auto">
                 <a href="javascript:show_edit_rss_media_modal('{{ Id }}', '{{TypeName}}')" title="编辑"
-                  id="start_btn_{{ Id }}">{{
-                  SVG.edit() }}</a>
+                  id="start_btn_{{ Id }}"><i class="ti ti-edit"></i></a>
                 <a href="javascript:search_mediainfo_media('{{ Attr.tmdbid }}','{{ Attr.name }}', '{{TypeName}}')"
-                  title="搜索" id="stop_btn_{{ Id }}">{{
-                  SVG.search() }}</a>
+                  title="搜索" id="stop_btn_{{ Id }}"><i class="ti ti-search"></i></a>
                 <a href="javascript:refresh_rss_media('{{Type}}', '{{ Id }}', 'movie_rss')" title="刷新"
-                  id="stop_btn_{{ Id }}">{{
-                  SVG.refresh() }}</a>
+                  id="stop_btn_{{ Id }}"><i class="ti ti-refresh"></i></a>
               </div>
             </div>
           </div>

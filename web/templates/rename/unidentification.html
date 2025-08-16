@@ -1,4 +1,3 @@
-{% import 'macro/svg.html' as SVG %}
 <div class="container-xl">
   <div class="page-header d-print-none">
     <div class="row align-items-center">
@@ -7,11 +6,11 @@
       <div class="col-auto ms-auto d-print-none">
         <div class="btn-list">
           <a href="javascript:show_rename_udf_modal()" class="btn btn-primary d-none d-sm-inline-block">
-            {{ SVG.transform() }}
+            <i class="ti ti-transform"></i>
             自定义识别
           </a>
           <a href="javascript:show_rename_udf_modal()" class="btn btn-primary d-sm-none btn-icon">
-            {{ SVG.transform() }}
+            <i class="ti ti-transform"></i>
           </a>
         </div>
       </div>
@@ -38,18 +37,18 @@
             </div>
             <div class="card-actions">
               <a href="javascript:reidentification_all()" class="btn d-none d-md-inline-block" title="重新识别">
-                {{ SVG.refresh() }}
+                <i class="ti ti-refresh"></i>
                 重新识别
               </a>
               <a href="javascript:reidentification_all()" class="btn-action d-md-none" title="重新识别">
-                {{ SVG.refresh() }}
+                <i class="ti ti-refresh"></i>
               </a>
               <a href="javascript:delete_checked_unknown()" class="btn text-danger d-none d-md-inline-block" title="批量删除">
-                {{ SVG.trash() }}
+                <i class="ti ti-trash"></i>
                 批量删除
               </a>
               <a href="javascript:delete_checked_unknown()" class="btn-action text-danger d-md-none" title="批量删除">
-                {{ SVG.trash() }}
+                <i class="ti ti-trash"></i>
               </a>
             </div>
           </div>
@@ -90,7 +89,7 @@
                     <td>
                       <div class="dropdown">
                         <a href="#" class="btn-action" data-bs-toggle="dropdown" aria-expanded="false">
-                          {{ SVG.dots_vertical() }}
+                          <i class="ti ti-dots-vertical"></i>
                         </a>
                         <div class="dropdown-menu dropdown-menu-end">
                           <a class="dropdown-item" href='javascript:re_identification("unidentification", ["{{ Path.id }}"])'>
@@ -123,7 +122,7 @@
                 <li class="page-item {% if CurrentPage==1 %} disabled {% endif %}">
                   <a class="page-link" href="javascript:go_pre_page('{{ Search }}', {{ CurrentPage }})" tabindex="-1"
                      aria-disabled="true">
-                    {{ SVG.chevron_left() }}
+                    <i class="ti ti-chevron-left"></i>
                   </a>
                 </li>
                 {% for page in PageRange %}
@@ -135,7 +134,7 @@
                 <li class="page-item {% if CurrentPage >= TotalPage %} disabled {% endif %}">
                   <a class="page-link"
                      href="{% if CurrentPage < TotalPage %}javascript:go_next_page('{{ Search }}', {{ CurrentPage }}){% else %}javascript:void(0){% endif %}">
-                    {{ SVG.chevron_right() }}
+                    <i class="ti ti-chevron-right"></i>
                   </a>
                 </li>
               </ul>

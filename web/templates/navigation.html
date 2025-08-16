@@ -1,5 +1,4 @@
 <!doctype html>
-{% import 'macro/svg.html' as SVG %}
 {% import 'macro/oops.html' as OOPS %}
 {% import 'macro/head.html' as HEAD %}
 <html lang="en">
@@ -15,7 +14,8 @@
   <link rel="stylesheet" href="../static/css/jquery.filetree.css" />
   <link rel="stylesheet" href="../static/css/dropzone.css" />
   <link rel="stylesheet" href="../static/css/nprogress.css" />
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  <link rel="stylesheet" href="../static/tabler/3.34.1/tabler-icons.min.css">
+  <!-- <link rel="stylesheet" href="https://cdn.bootcdn.net/ajax/libs/tabler-icons/3.34.1/tabler-icons.min.css"> -->
   <!-- 附加样式 -->
   <link rel="stylesheet" href="../static/css/style.css" />
   <!-- 站点图标 -->
@@ -141,7 +141,7 @@
     </div>
   </div>
   <button id="scrollToTop" class="scroll-to-top" aria-label="Back to top">
-    {{ SVG.arrow_big_up_lines() }}
+    <i class="ti ti-arrow-big-up-lines"></i>
   </button>
   <div class="offcanvas offcanvas-end" tabindex="-1" id="offcanvasEnd" aria-labelledby="消息中心">
     <div class="offcanvas-header">
@@ -204,7 +204,7 @@
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         <div class="modal-status bg-danger"></div>
         <div class="modal-body text-center py-4">
-          <span class="mb-2 text-danger">{{ SVG.alert_triangle('icon-lg') }}</span>
+          <span class="mb-2 text-danger"><i class="ti ti-alert-triangle icon-lg"></i></span>
           <h3>确认</h3>
           <div class="text-muted text-wrap" id="system_confirm_message">是否确定？</div>
         </div>
@@ -234,7 +234,7 @@
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         <div class="modal-status bg-success"></div>
         <div class="modal-body text-center py-4">
-          <span class="mb-2 text-green">{{ SVG.circle_check('icon-lg') }}</span>
+          <span class="mb-2 text-green"><i class="ti ti-circle-check icon-lg"></i></span>
           <h3>成功</h3>
           <div class="text-muted text-wrap" id="system_success_action_message">操作成功！</div>
         </div>
@@ -279,7 +279,7 @@
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         <div class="modal-status bg-success"></div>
         <div class="modal-body text-center py-4">
-          <span class="mb-2 text-green">{{ SVG.circle_check('icon-lg') }}</span>
+          <span class="mb-2 text-green"><i class="ti ti-circle-check icon-lg"></i></span>
           <h3>成功</h3>
           <div class="text-muted text-wrap" id="system_success_message">成功！</div>
         </div>
@@ -305,7 +305,7 @@
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         <div class="modal-status bg-danger"></div>
         <div class="modal-body text-center py-4">
-          <span class="mb-2 text-danger">{{ SVG.alert_triangle('icon-lg') }}</span>
+          <span class="mb-2 text-danger"><i class="ti ti-alert-triangle icon-lg"></i></span>
           <h3>失败</h3>
           <div class="text-muted text-wrap" id="system_fail_message">错误信息</div>
         </div>
@@ -330,7 +330,7 @@
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         <div class="modal-status bg-warning"></div>
         <div class="modal-body text-center py-4">
-          <span class="mb-2 text-warning">{{ SVG.alert_triangle('icon-lg') }}</span>
+          <span class="mb-2 text-warning"><i class="ti ti-alert-triangle icon-lg"></i></span>
           <h3>注意</h3>
           <div class="text-muted text-wrap" id="system_warning_message">警告信息</div>
         </div>
@@ -407,7 +407,7 @@
             <h5 class="modal-title">实时日志</h5>
             <div class="dropdown">
               <button class="btn-action" data-bs-toggle="dropdown" aria-expanded="false">
-                {{ SVG.log_select() }}
+                <i class="ti ti-filter-2-cog"></i>
               </button>
               <div class="dropdown-menu dropdown-menu-end" id="dropdown-menu-logger">
                 {% with Loggers = ['All', 'System', 'Rss', 'RssChecker', 'Rmt', 'Meta', 'Sync', 'Sites', 'Brush',
@@ -1018,7 +1018,7 @@
             <div class="col-auto">
               <button onclick="search_tmdbid_by_name('search_tmdbid_name', 'search_tmdbid_list')"
                 class="btn btn-primary btn-icon" aria-label="Button">
-                {{ SVG.search() }}
+                <i class="ti ti-search"></i>
               </button>
             </div>
           </div>

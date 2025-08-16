@@ -32,11 +32,11 @@
       <div class="col-auto ms-auto d-print-none">
         <div class="btn-list">
           <button data-bs-toggle="dropdown" type="button" class="btn btn-primary d-none d-sm-inline-block dropdown-toggle">
-            <i class="fas fa-plus"></i>
+            <i class="ti ti-plus"></i>
             新增下载
           </button>
           <button data-bs-toggle="dropdown" type="button" class="btn btn-primary d-sm-none btn-icon">
-            <i class="fas fa-plus"></i>
+            <i class="ti ti-plus"></i>
           </button>
           <div class="dropdown-menu dropdown-menu-end">
             <button class="dropdown-item" onclick="show_torrent_download_modal('torrent')">
@@ -59,7 +59,7 @@
       <div class="card p-0">
         <div class="card-body media-box" style="background-image: url({{ Torrent.backdrop }});">
           <div class="right-top-box">
-            <a href="javascript:remove_pt_download('{{ Torrent.id }}', '{{ Torrent.title }}')" class="text-danger"><i class="fas fa-times"></i></a>
+            <a href="javascript:remove_pt_download('{{ Torrent.id }}', '{{ Torrent.title }}')" class="text-danger"><i class="ti ti-x fs-2"></i></a>
           </div>
           <div class="row align-items-stretch media-content card-text">
             {% if Torrent.image %}
@@ -81,8 +81,8 @@
                 {% endif %}
               </div>
               <div class="download-speed-indicator">
-                <i class="fas fa-arrow-down"></i><span class="txt-download-speed" id="dlspeed_txt_{{ Torrent.id }}">{{Torrent.dlspeed}}</span> 
-                <i class="fas fa-arrow-up"></i><span class="txt-upload-speed" id="upspeed_txt_{{ Torrent.id }}">{{Torrent.upspeed}}</span>
+                <i class="ti ti-arrow-down"></i><span class="txt-download-speed" id="dlspeed_txt_{{ Torrent.id }}">{{Torrent.dlspeed}}</span> 
+                <i class="ti ti-arrow-up"></i><span class="txt-upload-speed" id="upspeed_txt_{{ Torrent.id }}">{{Torrent.upspeed}}</span>
               </div>
               <div class="space-between-box">
                 <div class="col-auto" id="progress_text_{{ Torrent.id }}">
@@ -90,9 +90,9 @@
                 </div>
                 <div class="col-auto">
                   <a href="javascript:start_pt_download('{{ Torrent.id }}')" id="start_btn_{{ Torrent.id }}"
-                    style="{% if Torrent.state == 'Downloading' %}display:none{% endif %}"><i class="fas fa-play"></i></a>
+                    style="{% if Torrent.state == 'Downloading' %}display:none{% endif %}"><i class="ti ti-player-play fs-2"></i></a>
                   <a href="javascript:stop_pt_download('{{ Torrent.id }}')" id="stop_btn_{{ Torrent.id }}"
-                    style="{% if Torrent.state == 'Stoped' %}display:none{% endif %}"><i class="fas fa-pause"></i></a>
+                    style="{% if Torrent.state == 'Stoped' %}display:none{% endif %}"><i class="ti ti-player-pause fs-2"></i></a>
                 </div>
               </div>
               <div class="progress progress-sm progress-bottom">
