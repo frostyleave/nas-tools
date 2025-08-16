@@ -4079,8 +4079,8 @@ class WebAction:
         user_list = User().get_users()
         Users = []
         for user in user_list:
-            pris = str(user.PRIS).split(",")
-            Users.append({"id": user.ID, "name": user.NAME, "pris": pris})
+            pris = str(user.pris).split(",")
+            Users.append({"id": user.id, "name": user.username, "pris": pris})
         return {"code": 0, "result": Users}
 
     @staticmethod

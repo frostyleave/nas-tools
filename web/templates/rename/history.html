@@ -6,23 +6,21 @@
       </div>
       <div class="col-auto ms-auto d-print-none">
         <div class="btn-list">
-          <a href="javascript:batch_check_action('reidentification')"
-             class="btn btn-primary ms-auto d-none d-sm-inline-block">
-            <i class="ti ti-refresh"></i>
+          <a href="javascript:batch_check_action('reidentification')" class="btn btn-primary ms-auto d-none d-sm-inline-flex">
+            <i class="ti ti-refresh fs-2"></i>
             重新识别
           </a>
           <a href="javascript:batch_check_action('reidentification')" class="btn btn-primary d-sm-none btn-icon" >
-            <i class="ti ti-refresh"></i>
+            <i class="ti ti-refresh fs-2"></i>
           </a>
           <div class="dropdown">
-            <a href="#" class="btn btn-danger ms-auto d-none d-sm-inline-block dropdown-toggle"
-               data-bs-toggle="dropdown" aria-expanded="false">
-              <i class="ti ti-trash"></i>
+            <a href="#" class="btn btn-danger ms-auto d-none d-sm-inline-flex dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+              <i class="ti ti-trash fs-2"></i>
               批量删除
             </a>
             <a href="#" class="btn btn-danger d-sm-none btn-icon"
                data-bs-toggle="dropdown" aria-expanded="false">
-              <i class="ti ti-trash"></i>
+              <i class="ti ti-trash fs-2"></i>
             </a>
             <div class="dropdown-menu dropdown-menu-end">
               <a class="dropdown-item text-danger" href="javascript:batch_check_action('del_source')" >
@@ -89,9 +87,9 @@
                       <div class="d-flex py-1 align-items-center">
                       <span class="avatar me-2 text-nowrap">
                         {% if History.TYPE == "电影" %}
-                          <i class="ti ti-movie"></i>
+                          <i class="ti ti-movie fs-2"></i>
                         {% else %}
-                          <i class="ti ti-device-tv"></i>
+                          <i class="ti ti-device-tv fs-2"></i>
                         {% endif %}
                       </span>
                         <div class="flex-fill">
@@ -148,7 +146,7 @@
                     <td>
                       <div class="dropdown">
                         <a href="#" class="btn-action" data-bs-toggle="dropdown" aria-expanded="false">
-                          <i class="ti ti-dots-vertical"></i>
+                          <i class="ti ti-dots-vertical fs-2"></i>
                         </a>
                         <div class="dropdown-menu dropdown-menu-end">
                           <a class="dropdown-item"
@@ -191,7 +189,7 @@
                 <li class="page-item {% if CurrentPage==1 %} disabled {% endif %}">
                   <a class="page-link" href="javascript:go_pre_page('{{ Search }}', {{ CurrentPage }})" tabindex="-1"
                      aria-disabled="true">
-                    <i class="ti ti-chevron-left"></i>
+                    <i class="ti ti-chevron-left fs-2"></i>
                   </a>
                 </li>
                 {% for page in PageRange %}
@@ -203,7 +201,7 @@
                 <li class="page-item {% if CurrentPage >= TotalPage %} disabled {% endif %}">
                   <a class="page-link"
                      href="{% if CurrentPage < TotalPage %}javascript:go_next_page('{{ Search }}', {{ CurrentPage }}){% else %}javascript:void(0){% endif %}">
-                    <i class="ti ti-chevron-right"></i>
+                    <i class="ti ti-chevron-right fs-2"></i>
                   </a>
                 </li>
               </ul>

@@ -8,19 +8,19 @@
       </div>
       <div class="col-auto ms-auto d-print-none">
         <div class="btn-list">
-          <a href="javascript:batch_download()" class="btn btn-primary d-none d-sm-inline-block">
-            <i class="ti ti-arrow-big-down"></i>
+          <a href="javascript:batch_download()" class="btn btn-primary d-none d-sm-inline-flex">
+            <i class="ti ti-arrow-big-down fs-2"></i>
             一键下载
           </a>
           <a href="javascript:batch_download()" class="btn btn-primary d-sm-none btn-icon">
-            <i class="ti ti-arrow-big-down"></i>
+            <i class="ti ti-arrow-big-down fs-2"></i>
           </a>
-          <a href="javascript:navmenu('sitelist')" class="btn d-none d-sm-inline-block" title="返回">
-            <i class="ti ti-arrow-back-up"></i>
+          <a href="javascript:navmenu('sitelist')" class="btn d-none d-sm-inline-flex" title="返回">
+            <i class="ti ti-arrow-back-up fs-2"></i>
             返回
           </a>
           <a href="javascript:navmenu('sitelist')" class="btn d-sm-none btn-icon" title="返回">
-            <i class="ti ti-arrow-back-up"></i>
+            <i class="ti ti-arrow-back-up fs-2"></i>
           </a>
         </div>
       </div>
@@ -103,10 +103,8 @@
                             <span class="badge text-white bg-blue">{{ (Result.downloadvolumefactor * 100) | int }}%DL</span>
                           {% endif %}
                         {% endif %}
-                        <a class="ms-2 mb-1" title="名称测试"
-                           href='javascript:nametest("{{ loop.index0 }}")'
-                           data-bs-toggle="tooltip">
-                          <i class="ti ti-text-recognition"></i>
+                        <a class="ms-2 mb-1" title="名称测试" href='javascript:nametest("{{ loop.index0 }}")' data-bs-toggle="tooltip">
+                          <i class="ti ti-text-recognition fs-2"></i>
                         </a>
                       </div>
                       <div>
@@ -131,9 +129,8 @@
                     <td class="sort-peers" data-peers="{{ Result.peers }}">{{ Result.peers }}</td>
                     <td class="sort-grabs" data-grabs="{{ Result.grabs }}">{{ Result.grabs }}</td>
                     <td>
-                      <a href='javascript:download_site_resource({{ loop.index0 }})'
-                         title="下载">
-                        <i class="ti ti-download"></i>
+                      <a href='javascript:download_site_resource({{ loop.index0 }})' title="下载">
+                        <i class="ti ti-download fs-2"></i>
                       </a>
                     </td>
                   </tr>
@@ -151,8 +148,7 @@
               <p class="m-0 text-muted"></p>
               <ul class="pagination m-0 ms-auto">
                 <li class="page-item {% if CurrentPage == 0 %} disabled {% endif %}">
-                  <a class="page-link" href='javascript:go_pre_page({{ CurrentPage }})' tabindex="-1"
-                     aria-disabled="true">
+                  <a class="page-link" href='javascript:go_pre_page({{ CurrentPage }})' tabindex="-1" aria-disabled="true">
                     <i class="ti ti-chevron-left"></i>
                   </a>
                 </li>

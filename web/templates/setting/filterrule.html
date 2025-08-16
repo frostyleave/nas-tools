@@ -7,26 +7,26 @@
       </div>
       <div class="col-auto ms-auto d-print-none">
         <div class="btn-list">
-          <a href="javascript:show_add_filtergroup_modal()" class="btn btn-primary d-none d-sm-inline-block">
-            <i class="ti ti-plus"></i>
+          <a href="javascript:show_add_filtergroup_modal()" class="btn btn-primary d-none d-sm-inline-flex">
+            <i class="ti ti-plus fs-2"></i>
             新增
           </a>
           <a href="javascript:show_add_filtergroup_modal()" class="btn btn-primary d-sm-none btn-icon">
-            <i class="ti ti-plus"></i>
+            <i class="ti ti-plus fs-2"></i>
           </a>
-          <a href="javascript:show_restore_filtergroup_modal()" class="btn btn-twitter d-none d-sm-inline-block">
-            <i class="ti ti-reload"></i>
+          <a href="javascript:show_restore_filtergroup_modal()" class="btn btn-twitter d-none d-sm-inline-flex">
+            <i class="ti ti-reload fs-2"></i>
             恢复
           </a>
           <a href="javascript:show_restore_filtergroup_modal()" class="btn btn-twitter d-sm-none btn-icon">
-            <i class="ti ti-reload"></i>
+            <i class="ti ti-reload fs-2"></i>
           </a>
-          <a href="javascript:show_import_filtergroup_modal()" class="btn d-none d-sm-inline-block">
-            <i class="ti ti-transfer-in"></i>
+          <a href="javascript:show_import_filtergroup_modal()" class="btn d-none d-sm-inline-flex">
+            <i class="ti ti-transfer-in fs-2"></i>
             导入
           </a>
           <a href="javascript:show_import_filtergroup_modal()" class="btn d-sm-none btn-icon">
-            <i class="ti ti-transfer-in"></i>
+            <i class="ti ti-transfer-in fs-2"></i>
           </a>
         </div>
       </div>
@@ -44,26 +44,26 @@
               <h3 class="card-title"><strong>{{ RuleGroup.name }}</strong></h3>
               <div class="card-actions btn-actions">
                 <a href="javascript:void(0)" onclick="show_filterrule_detail('{{ RuleGroup.id }}')" class="btn-action ms-1" title="折叠">
-                  <i class="ti ti-menu-2"></i>
+                  <i class="ti ti-menu-2 fs-2"></i>
                 </a>
                 <a href="javascript:share_filtergroup('{{ RuleGroup.id }}')" class="btn-action" title="分享规则组">
-                  <i class="ti ti-share"></i>
+                  <i class="ti ti-share fs-2"></i>
                 </a>
                 <a href="javascript:set_default_filtergroup('{{ RuleGroup.id }}')" class="btn-action"
                    title="设置/取消默认">
                   {% if RuleGroup.default == 'Y' %}
-                    <span class="text-purple"><i class="ti ti-star icon-filled"></i></span>
+                    <i class="ti ti-star-filled fs-2 text-purple"></i>
                   {% else %}
-                    <i class="ti ti-star"></i>
+                    <i class="ti ti-star fs-2"></i>
                   {% endif %}
                 </a>
                 <a href="javascript:show_add_filterrule_modal('{{ RuleGroup.id }}', '{{ RuleGroup.name }}')"
                    class="btn-action" title="增加规则">
-                  <i class="ti ti-plus"></i>
+                  <i class="ti ti-plus fs-2"></i>
                 </a>
                 <a href="javascript:del_filtergroup_modal('{{ RuleGroup.id }}', '{{ RuleGroup.name }}')"
                    class="btn-action" title="删除规则组">
-                  <i class="ti ti-x"></i>
+                  <i class="ti ti-x fs-2"></i>
                 </a>
               </div>
             </div>

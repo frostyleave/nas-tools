@@ -9,7 +9,7 @@
               <div class="row align-items-center">
                 <div class="col-auto">
                 <span class="bg-blue avatar text-white">
-                  <i class="ti ti-cloud-up"></i>
+                  <i class="ti ti-cloud-up fs-2"></i>
                 </span>
                 </div>
                 <div class="col">
@@ -30,7 +30,7 @@
               <div class="row align-items-center">
                 <div class="col-auto">
                 <span class="bg-red avatar text-white">
-                  <i class="ti ti-cloud-down"></i>
+                  <i class="ti ti-cloud-down fs-2"></i>
                 </span>
                 </div>
                 <div class="col">
@@ -51,7 +51,7 @@
               <div class="row align-items-center">
                 <div class="col-auto">
                 <span class="bg-green avatar text-white">
-                  <i class="ti ti-seedling"></i>
+                  <i class="ti ti-seedling fs-2"></i>
                 </span>
                 </div>
                 <div class="col">
@@ -72,7 +72,7 @@
               <div class="row align-items-center">
                 <div class="col-auto">
                 <span class="bg-green avatar text-white">
-                  <i class="ti ti-database"></i>
+                  <i class="ti ti-database fs-2"></i>
                 </span>
                 </div>
                 <div class="col">
@@ -94,9 +94,9 @@
             <div class="card-body">
               <div class="d-flex">
                 <h3 class="card-title d-flex align-items-center w-100">
-                  <button class="btn btn-link btn-icon" onclick="switch_date(-1)"><i class="ti ti-chevron-left"></i></button>
+                  <button class="btn btn-link btn-icon" onclick="switch_date(-1)"><i class="ti ti-chevron-left fs-2"></i></button>
                   <span id="chart-recent-upload-title" class="w-100 chart-title">今日上传量</span>
-                  <button class="btn btn-link btn-icon" onclick="switch_date(1)"><i class="ti ti-chevron-right"></i></button>
+                  <button class="btn btn-link btn-icon" onclick="switch_date(1)"><i class="ti ti-chevron-right fs-2"></i></button>
                 </h3>
               </div>
               <div id="chart-recent-upload"></div>
@@ -108,9 +108,9 @@
             <div class="card-body">
               <div class="d-flex">
                 <h3 class="card-title d-flex align-items-center w-100">
-                  <button class="btn btn-link btn-icon" onclick="switch_date(-1)"><i class="ti ti-chevron-left"></i></button>
+                  <button class="btn btn-link btn-icon" onclick="switch_date(-1)"><i class="ti ti-chevron-left fs-2"></i></button>
                   <span id="chart-recent-download-title" class="w-100 chart-title">今日下载量</span>
-                  <button class="btn btn-link btn-icon" onclick="switch_date(1)"><i class="ti ti-chevron-right"></i></button>
+                  <button class="btn btn-link btn-icon" onclick="switch_date(1)"><i class="ti ti-chevron-right fs-2"></i></button>
                 </h3>
               </div>
               <div id="chart-recent-download"></div>
@@ -150,7 +150,7 @@
                 {% if SiteUserStatistics | count > 0 %}
                 <div class="ms-auto">
                 <a href="javascript:show_statistics_pic_setting_moadl()" class="btn-icon">
-                  <i class="ti ti-share"></i>
+                  <i class="ti ti-share fs-2"></i>
                 </a>
                 </div>
                 {% endif %}
@@ -159,7 +159,7 @@
                 </div>
                 <a href="javascript:void(0)" class="btn-icon ms-3"
                 {% if SiteUserStatistics | count> 0 %}onclick="navmenu('statistics?refresh_force=1')"{% endif %}>
-                  <i class="ti ti-refresh"></i>
+                  <i class="ti ti-refresh fs-2"></i>
                 </a>
               </div>
             </div>
@@ -207,7 +207,7 @@
                           <div class="flex-fill">
                             <div class="font-weight-medium"><a href="{{ item.url }}" target="_blank">{{ item.site }}</a>
                               {% if item.msg_unread > 0 %}
-                                <i class="ti ti-message"></i>
+                                <i class="ti ti-message fs-2"></i>
                               {% endif %}
                             </div>
                             <div class="text-muted">{{ item.username }}</div>
@@ -219,11 +219,11 @@
                       </td>
                       <td class="sort-data" data-data="{{ item.upload }}">
                         <div class="flex-fill">
-                          <span class="text-green"><i class="ti ti-arrow-narrow-up"></i></span>
+                          <span class="text-green"><i class="ti ti-arrow-narrow-up fs-2"></i></span>
                           <small>{{ item.upload | filesizeformat(true) }}</small>
                         </div>
                         <div class="flex-fill">
-                          <span class="text-red"><i class="ti ti-arrow-narrow-down"></i></span>
+                          <span class="text-red"><i class="ti ti-arrow-narrow-down fs-2"></i></span>
                           <small>{{ item.download | filesizeformat(true) }}</small>
                         </div>
                       </td>
@@ -247,10 +247,10 @@
                       </td>
                       <td class="activity">
                         <a href="javascript:show_site_activity('{{ item.site }}')" class="btn-icon" title="查看历史数据"  aria-label="activity">
-                          <i class="ti ti-activity"></i>
+                          <i class="ti ti-activity fs-2"></i>
                         </a>
                         <a href="javascript:void(0)" class="btn-icon ms-3" title="刷新站点数据" onclick="navmenu('statistics?refresh_site={{ item.site }}')" >
-                          <i class="ti ti-refresh"></i>
+                          <i class="ti ti-refresh fs-2"></i>
                         </a>
                       </td>
                     </tr>
