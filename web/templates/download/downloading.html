@@ -81,6 +81,7 @@
                 {% endif %}
               </div>
               <div class="download-speed-indicator">
+                <span class="badge badge-outline text-teal" title="站点">{{ Torrent.site }}</span>
                 <i class="ti ti-arrow-down"></i><span class="txt-download-speed" id="dlspeed_txt_{{ Torrent.id }}">{{Torrent.dlspeed}}</span> 
                 <i class="ti ti-arrow-up"></i><span class="txt-upload-speed" id="upspeed_txt_{{ Torrent.id }}">{{Torrent.upspeed}}</span>
               </div>
