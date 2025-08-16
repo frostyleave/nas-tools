@@ -1,4 +1,3 @@
-{% import 'macro/oops.html' as OOPS %}
 <div class="container-xl">
   <!-- Page title -->
   <div class="page-header d-print-none d-none d-md-block">
@@ -291,7 +290,7 @@
     </div>
   </div>
 {% else %}
-{{ OOPS.empty('没有搜索结果', '输入想看的电影、电视剧名称，点击搜索试试看吧。') }}
+<empty-content title="没有搜索结果" text="输入想看的电影、电视剧名称，点击搜索试试看吧。"></empty-content>
 {% endif %}
 <!-- 搜索结果过滤弹窗 -->
 {% for Title, Item in Results.items() %}

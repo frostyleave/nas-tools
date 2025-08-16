@@ -1,4 +1,3 @@
-{% import 'macro/oops.html' as OOPS %}
 <div class="container-xl">
   <!-- Page title -->
   <div class="page-header d-print-none">
@@ -101,7 +100,7 @@
                     </div>
                   {% endfor %}
                 {% else %}
-                  {{ OOPS.empty('没有规则', '请点击"+"添加规则。') }}
+                  <empty-content title="没有规则" text='请点击"+"添加规则。'></empty-content>
                 {% endif %}
               </div>
             </div>
@@ -111,7 +110,7 @@
     </div>
   </div>
 {% else %}
-  {{ OOPS.empty('没有规则', '没有配置任何规则，请点击“新增规则组“按钮。') }}
+   <empty-content title="没有规则" text='没有配置任何规则，请点击“新增规则组“按钮。'></empty-content>
 {% endif %}
 <div class="modal modal-blur fade" id="modal-add-filterrule" tabindex="-1" role="dialog" aria-hidden="true"
      data-bs-backdrop="static" data-bs-keyboard="false">

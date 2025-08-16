@@ -1,4 +1,3 @@
-{% import 'macro/oops.html' as OOPS %}
 <div class="container-xl">
   <!-- Page title -->
   <div class="page-header d-print-none">
@@ -233,7 +232,7 @@
     </div>
   </div>
 {% else %}
-{{ OOPS.nodatafound('没有任务', '当前没有正在运行的刷流任务。') }}
+<nodata-found title="没有任务" text="当前没有正在运行的刷流任务。"></nodata-found>
 {% endif %}
 <div class="modal modal-blur fade" id="modal-brushtask" tabindex="-1" role="dialog" aria-hidden="true"
      data-bs-backdrop="static" data-bs-keyboard="false">

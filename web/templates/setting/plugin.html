@@ -1,5 +1,4 @@
 {% import 'macro/form.html' as FORM %}
-{% import 'macro/oops.html' as OOPS %}
 
 <style>
 
@@ -153,7 +152,7 @@
     </div>
   </div>
   {% else %}
-  {{ OOPS.empty('没有插件', '没有安装任何插件，请前往插件市场选择安装。') }}
+  <empty-content title="没有插件" text='没有安装任何插件，请前往插件市场选择安装。'></empty-content>
   {% endif %}
 </div>
 

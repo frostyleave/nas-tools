@@ -1,4 +1,3 @@
-{% import 'macro/oops.html' as OOPS %}
 {% if SiteNames %}
   <div class="page-body">
     <div class="container-xl">
@@ -1103,5 +1102,5 @@
 
   </script>
 {% else %}
-{{ OOPS.nodatafound('没有数据', '没有生成站点统计数据，请确认是否正确配置站点信息。') }}
+<nodata-found title="没有数据" text="没有生成站点统计数据，请确认是否正确配置站点信息。"></nodata-found>
 {% endif %}

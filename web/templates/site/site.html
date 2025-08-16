@@ -1,4 +1,3 @@
-{% import 'macro/oops.html' as OOPS %}
 <div class="container-xl">
   <!-- Page title -->
   <div class="page-header d-print-none">
@@ -110,7 +109,7 @@
   </div>
 </div>
 {% else %}
-{{ OOPS.nodatafound('没有站点', '没有添加任何站点，请点击”新增站点“按钮。') }}
+<nodata-found title="没有站点" text='没有添加任何站点，请点击”新增站点“按钮。'></nodata-found>
 {% endif %}
 <div class="modal modal-blur fade" id="modal-site" tabindex="-1" role="dialog" aria-hidden="true"
   data-bs-backdrop="static" data-bs-keyboard="false">

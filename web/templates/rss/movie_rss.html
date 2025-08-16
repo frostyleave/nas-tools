@@ -1,4 +1,3 @@
-{% import 'macro/oops.html' as OOPS %}
 <style>
   .card-progress {
     position: absolute;
@@ -173,5 +172,9 @@
 </div>
 </div>
 {% else %}
-{{ OOPS.nodatafound('没有订阅', '当前没有正在订阅的' + TypeName) }}
+  {% if Type == 'TV' %}
+  <nodata-found title="没有订阅" text="当前没有正在订阅的电视剧"></nodata-found>
+  {% else %}
+  <nodata-found title="没有订阅" text="当前没有正在订阅的电影"></nodata-found>
+  {% endif %}
 {% endif %}

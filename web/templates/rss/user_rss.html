@@ -1,4 +1,3 @@
-{% import 'macro/oops.html' as OOPS %}
 <div class="container-xl">
   <!-- Page title -->
   <div class="page-header d-print-none">
@@ -204,7 +203,7 @@
   </div>
 </div>
 {% else %}
-{{ OOPS.nodatafound('没有订阅任务', '当前没有自定义订阅任何内容。') }}
+<nodata-found title="没有订阅任务" text="当前没有任何自定义订阅内容。"></nodata-found>
 {% endif %}
 <div class="modal modal-blur fade" id="modal-userrss" tabindex="-1" role="dialog" aria-hidden="true"
   data-bs-backdrop="static" data-bs-keyboard="false">

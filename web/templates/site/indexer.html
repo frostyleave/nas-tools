@@ -1,5 +1,3 @@
-{% import 'macro/oops.html' as OOPS %}
-
 <style>
   .tab-title>ul {
     font-size: 1.0rem;
@@ -131,9 +129,9 @@
 </div>
 {% else %}
 {% if IsPublic == 1 %}
-{{ OOPS.nodatafound('没有数据', '没有可以用的公共索引站点') }}
+<nodata-found title="没有数据" text="没有可以用的公共索引站点"></nodata-found>
 {% else %}
-{{ OOPS.nodatafound('没有数据', '没有认证成功的PT站点信息') }}
+<nodata-found title="没有数据" text="没有认证成功的PT站点信息"></nodata-found>
 {% endif %}
 {% endif %}
 <div class="modal modal-blur fade" id="modal-indexer-statistics" tabindex="-1" role="dialog" aria-hidden="true">
