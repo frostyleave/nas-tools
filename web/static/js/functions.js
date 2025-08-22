@@ -142,7 +142,7 @@ function navmenu(page, newflag = false) {
                 const aElement = document.createElement('a');
                 aElement.className = 'nav-link top-nav-link';
                 aElement.href = '#';
-                aElement.innerHTML = `<span class="tab-icon" style="color:var(--tblr-body-color);">${item.icon}</span><span class="tab-text">${item.name}</span>`;
+                aElement.innerHTML = `<span class="tab-icon" style="color:var(--tblr-body-color);display: inline-flex;align-items: anchor-center;">${item.icon}</span><span class="tab-text">${item.name}</span>`;
                 aElement.setAttribute('data-bs-toggle', 'tab');
                 aElement.setAttribute('data-id', item.page);
                 aElement.onclick = () => navmenu(item.page); // 根据 item.page 设定点击行为
@@ -209,9 +209,9 @@ function updateTabDisplay() {
     // 测量模式函数（返回总宽度）
     function measureMode(mode) {
       textElements.forEach(el => el.style.display = 
-        mode === 'ICON' ? 'none' : 'inline-block');
+        mode === 'ICON' ? 'none' : 'inline-flex');
       iconElements.forEach(el => el.style.display = 
-        mode === 'TEXT' ? 'none' : 'inline-block');
+        mode === 'TEXT' ? 'none' : 'inline-flex');
       
       return Array.from(clone.querySelectorAll('.nav-item'))
         .reduce((sum, item) => sum + item.offsetWidth, 0);
@@ -241,9 +241,9 @@ function updateTabDisplay() {
     // 应用最终模式
     menu.querySelectorAll('.nav-item').forEach((item, index) => {
       item.querySelector('.tab-text').style.display = 
-        bestMode === 'ICON' ? 'none' : 'inline-block';
+        bestMode === 'ICON' ? 'none' : 'inline-flex';
       item.querySelector('.tab-icon').style.display = 
-        bestMode === 'TEXT' ? 'none' : 'inline-block';
+        bestMode === 'TEXT' ? 'none' : 'inline-flex';
     });
 }
 
@@ -808,6 +808,14 @@ function remove_rss_media(name, year, type, rssid, page, tmdbid, func) {
     } else {
       show_success_modal(ret.name + " 已从订阅中移除！");
     }
+  });
+}
+
+// 询问取消订阅
+function remove_rss_click(title, year, media_type, rssid, page, tmdb_id, remove_func) {
+  show_ask_modal("是否确定将 " + title + " 从订阅中移除？", function () {
+    hide_ask_modal();
+    remove_rss_media(title, year, media_type, rssid, page, tmdb_id, remove_func);
   });
 }
 

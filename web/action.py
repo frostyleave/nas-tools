@@ -3873,13 +3873,14 @@ class WebAction:
                 poster_path = download_info.POSTER
                 backdrop = download_info.BACKDROP
                 se = download_info.SE
-                title = "%s %s" % (name, se) if se else ( "%s(%s)" % (name, year) if year else name)
+                title = "%s(%s)" % (name, year) if year and download_info.TYPE == '电影' else name
                 tpye_str = 'MOV' if download_info.TYPE == '电影' else 'TV'
                 vote = download_info.VOTE
                     
                 torrent.update({
                     "tmdbid": download_info.TMDBID,
                     "title": title,
+                    "se": se,
                     "image": poster_path or "",
                     "backdrop" : backdrop or "",
                     "type": tpye_str,
@@ -4078,8 +4079,8 @@ class WebAction:
         user_list = User().get_users()
         Users = []
         for user in user_list:
-            pris = str(user.PRIS).split(",")
-            Users.append({"id": user.ID, "name": user.NAME, "pris": pris})
+            pris = str(user.pris).split(",")
+            Users.append({"id": user.id, "name": user.username, "pris": pris})
         return {"code": 0, "result": Users}
 
     @staticmethod

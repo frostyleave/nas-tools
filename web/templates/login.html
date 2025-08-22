@@ -1,9 +1,10 @@
-{% import 'macro/svg.html' as SVG %}
-{% import 'macro/head.html' as HEAD %}
 <!doctype html>
 <html lang="en">
 <head>
-  {{ HEAD.meta_link() }}
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="icon" type="image/png" href="../static/img/logo/logo.png">
+  <link rel="shortcut icon" href="../static/favicon.ico" type="image/x-icon">
   <title>登录 - NAStool</title>
   <!-- CSS files -->
   <link href="../static/css/tabler.min.css" rel="stylesheet"/>
@@ -47,7 +48,7 @@
 {% if image_code and img_title %}
 <div class="image-desc card card-md border-0 rounded-3">
   <a class="image-link" href="{{ img_link }}" target="_blank">
-    {{ SVG.link() }}
+    <i class="ti ti-link"></i>
     {{ img_title }}
   </a>
 </div>
@@ -66,7 +67,7 @@
         <label class="form-label">用户名</label>
         <div class="input-icon mb-3">
             <span class="input-icon-addon">
-              {{ SVG.user() }}
+              <i class="ti ti-user"></i>
             </span>
           <input type="text" name="username" class="form-control {% if err_msg %}is-invalid{% endif %}"
                  placeholder="admin" value="" autocomplete="off">
@@ -74,7 +75,7 @@
         <label class="form-label">密码</label>
         <div class="input-icon">
             <span class="input-icon-addon">
-              {{ SVG.keyboard() }}
+              <i class="ti ti-keyboard"></i>
             </span>
           <input type="password" class="form-control {% if err_msg %}is-invalid{% endif %}" name="password"
                  placeholder="password" autocomplete="off">

@@ -1,4 +1,3 @@
-{% import 'macro/oops.html' as OOPS %}
 <div class="container-xl">
   <!-- Page title -->
   <div class="page-header d-print-none">
@@ -37,7 +36,7 @@
     </div>
   </div>
 {% else %}
-{{ OOPS.nodatafound('没有站点', '没有找到任何站点，请正确维护站点信息。') }}
+<nodata-found title="没有站点" text="没有找到任何站点，请正确维护站点信息。"></nodata-found>
 {% endif %}
 <script type="text/javascript">
   function open_site_resources(self, url) {

@@ -1,5 +1,3 @@
-{% import 'macro/svg.html' as SVG %}
-{% import 'macro/oops.html' as OOPS %}
 {% if SiteNames %}
   <div class="page-body">
     <div class="container-xl">
@@ -10,7 +8,7 @@
               <div class="row align-items-center">
                 <div class="col-auto">
                 <span class="bg-blue avatar text-white">
-                  {{ SVG.world_upload() }}
+                  <i class="ti ti-cloud-up fs-2"></i>
                 </span>
                 </div>
                 <div class="col">
@@ -31,7 +29,7 @@
               <div class="row align-items-center">
                 <div class="col-auto">
                 <span class="bg-red avatar text-white">
-                  {{ SVG.world_download() }}
+                  <i class="ti ti-cloud-down fs-2"></i>
                 </span>
                 </div>
                 <div class="col">
@@ -52,7 +50,7 @@
               <div class="row align-items-center">
                 <div class="col-auto">
                 <span class="bg-green avatar text-white">
-                  {{ SVG.seeding() }}
+                  <i class="ti ti-seedling fs-2"></i>
                 </span>
                 </div>
                 <div class="col">
@@ -73,7 +71,7 @@
               <div class="row align-items-center">
                 <div class="col-auto">
                 <span class="bg-green avatar text-white">
-                  {{ SVG.database() }}
+                  <i class="ti ti-database fs-2"></i>
                 </span>
                 </div>
                 <div class="col">
@@ -95,9 +93,9 @@
             <div class="card-body">
               <div class="d-flex">
                 <h3 class="card-title d-flex align-items-center w-100">
-                  <button class="btn btn-link btn-icon" onclick="switch_date(-1)">{{ SVG.chevron_left() }}</button>
+                  <button class="btn btn-link btn-icon" onclick="switch_date(-1)"><i class="ti ti-chevron-left fs-2"></i></button>
                   <span id="chart-recent-upload-title" class="w-100 chart-title">今日上传量</span>
-                  <button class="btn btn-link btn-icon" onclick="switch_date(1)">{{ SVG.chevron_right() }}</button>
+                  <button class="btn btn-link btn-icon" onclick="switch_date(1)"><i class="ti ti-chevron-right fs-2"></i></button>
                 </h3>
               </div>
               <div id="chart-recent-upload"></div>
@@ -109,9 +107,9 @@
             <div class="card-body">
               <div class="d-flex">
                 <h3 class="card-title d-flex align-items-center w-100">
-                  <button class="btn btn-link btn-icon" onclick="switch_date(-1)">{{ SVG.chevron_left() }}</button>
+                  <button class="btn btn-link btn-icon" onclick="switch_date(-1)"><i class="ti ti-chevron-left fs-2"></i></button>
                   <span id="chart-recent-download-title" class="w-100 chart-title">今日下载量</span>
-                  <button class="btn btn-link btn-icon" onclick="switch_date(1)">{{ SVG.chevron_right() }}</button>
+                  <button class="btn btn-link btn-icon" onclick="switch_date(1)"><i class="ti ti-chevron-right fs-2"></i></button>
                 </h3>
               </div>
               <div id="chart-recent-download"></div>
@@ -151,7 +149,7 @@
                 {% if SiteUserStatistics | count > 0 %}
                 <div class="ms-auto">
                 <a href="javascript:show_statistics_pic_setting_moadl()" class="btn-icon">
-                  {{ SVG.share() }}
+                  <i class="ti ti-share fs-2"></i>
                 </a>
                 </div>
                 {% endif %}
@@ -160,7 +158,7 @@
                 </div>
                 <a href="javascript:void(0)" class="btn-icon ms-3"
                 {% if SiteUserStatistics | count> 0 %}onclick="navmenu('statistics?refresh_force=1')"{% endif %}>
-                  {{ SVG.refresh() }}
+                  <i class="ti ti-refresh fs-2"></i>
                 </a>
               </div>
             </div>
@@ -208,7 +206,7 @@
                           <div class="flex-fill">
                             <div class="font-weight-medium"><a href="{{ item.url }}" target="_blank">{{ item.site }}</a>
                               {% if item.msg_unread > 0 %}
-                                {{ SVG.message() }}
+                                <i class="ti ti-message fs-2"></i>
                               {% endif %}
                             </div>
                             <div class="text-muted">{{ item.username }}</div>
@@ -220,11 +218,11 @@
                       </td>
                       <td class="sort-data" data-data="{{ item.upload }}">
                         <div class="flex-fill">
-                          <span class="text-green">{{ SVG.arrow_narrow_up() }}</span>
+                          <span class="text-green"><i class="ti ti-arrow-narrow-up fs-2"></i></span>
                           <small>{{ item.upload | filesizeformat(true) }}</small>
                         </div>
                         <div class="flex-fill">
-                          <span class="text-red">{{ SVG.arrow_narrow_down() }}</span>
+                          <span class="text-red"><i class="ti ti-arrow-narrow-down fs-2"></i></span>
                           <small>{{ item.download | filesizeformat(true) }}</small>
                         </div>
                       </td>
@@ -248,10 +246,10 @@
                       </td>
                       <td class="activity">
                         <a href="javascript:show_site_activity('{{ item.site }}')" class="btn-icon" title="查看历史数据"  aria-label="activity">
-                          {{ SVG.activity() }}
+                          <i class="ti ti-activity fs-2"></i>
                         </a>
                         <a href="javascript:void(0)" class="btn-icon ms-3" title="刷新站点数据" onclick="navmenu('statistics?refresh_site={{ item.site }}')" >
-                          {{ SVG.refresh() }}
+                          <i class="ti ti-refresh fs-2"></i>
                         </a>
                       </td>
                     </tr>
@@ -1005,7 +1003,7 @@
         <div class="card card-sm" style="background-color: {BGCOLOR}">
           <div class="card-body">
             <div class="row align-items-center">
-              <div class="col-auto bg-blue avatar text-white">{{ SVG.world_upload() }}</div>
+              <div class="col-auto bg-blue avatar text-white"><i class="ti ti-cloud-up"></i></div>
               <div class="col">
                 <div class="d-flex align-items-center subheader">总上传量</div>
                 <div class="d-flex align-items-baseline h2 mb-0 me-2">{TOTALUPLOAD}</div>
@@ -1018,7 +1016,7 @@
         <div class="card card-sm" style="background-color: {BGCOLOR}">
           <div class="card-body">
             <div class="row align-items-center">
-              <div class="col-auto bg-red avatar text-white">{{ SVG.world_download() }}</div>
+              <div class="col-auto bg-red avatar text-white"><i class="ti ti-cloud-down"></i></div>
               <div class="col">
                 <div class="d-flex align-items-center subheader">总下载量</div>
                 <div class="d-flex align-items-baseline h2 mb-0 me-2">{TOTALDOWNLOAD}</div>
@@ -1031,7 +1029,7 @@
         <div class="card card-sm" style="background-color: {BGCOLOR}">
           <div class="card-body">
             <div class="row align-items-center">
-              <div class="col-auto bg-green avatar text-white">{{ SVG.arrow_big_up_lines() }}</div>
+              <div class="col-auto bg-green avatar text-white"><i class="ti ti-arrow-big-up-lines"></i></div>
               <div class="col">
                 <div class="d-flex align-items-center subheader">总做种数</div>
                 <div class="d-flex align-items-baseline h2 mb-0 me-2">{TOTALSEEDING}</div>
@@ -1044,7 +1042,7 @@
         <div class="card card-sm" style="background-color: {BGCOLOR}">
           <div class="card-body">
             <div class="row align-items-center">
-              <div class="col-auto bg-green avatar text-white">{{ SVG.cloud_upload() }}</div>
+              <div class="col-auto bg-green avatar text-white"><i class="ti ti-cloud-upload"></i></div>
               <div class="col">
                 <div class="d-flex align-items-center subheader">总做种体积</div>
                 <div class="d-flex align-items-baseline h2 mb-0 me-2">{TOTALSEEDINGSIZE}</div>
@@ -1088,12 +1086,12 @@
     </td>
     <td>
       <div class="flex-fill">
-        <span class="text-green">{{ SVG.arrow_narrow_up() }}</span>
+        <span class="text-green"><i class="ti ti-arrow-narrow-up"></i></span>
         <strong>{UPLOAD}</strong>
       </div>
     <td>
       <div class="flex-fill">
-        <span class="text-red">{{ SVG.arrow_narrow_down() }}</span>
+        <span class="text-red"><i class="ti ti-arrow-narrow-down"></i></span>
         {DOWNLOAD}
       </div>
     </td>
@@ -1104,5 +1102,5 @@
 
   </script>
 {% else %}
-{{ OOPS.nodatafound('没有数据', '没有生成站点统计数据，请确认是否正确配置站点信息。') }}
+<nodata-found title="没有数据" text="没有生成站点统计数据，请确认是否正确配置站点信息。"></nodata-found>
 {% endif %}
