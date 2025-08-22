@@ -1949,3 +1949,92 @@ function init_dropzone() {
   TorrentDropZone = new Dropzone("#torrent_files");
   TorrentDropZone.options.acceptedFiles = ".torrent";
 }
+
+// 生成空的表单元素
+function gen_form_empty_elements(obj_fileds) {
+
+  let $container = $("<div>");
+
+  let row;
+  let index = 0;
+
+  $.each(obj_fileds, function(fieldId, fieldAttr) {
+    if (index % 2 === 0) {
+      row = $('<div class="row"></div>');
+      $container.append(row);
+    }
+
+    let colClass = (fieldAttr.type === "switch") ? "col-12" : "col-lg-6";
+    let $col = $('<div>').addClass(colClass);
+    let $mb = $('<div class="mb-3"></div>');
+
+    if (fieldAttr.type === "switch") {
+      let $label = $('<label class="form-check form-switch"></label>');
+      let $input = $('<input type="checkbox" class="form-check-input">')
+        .attr("id", fieldAttr.id);
+
+      if (fieldAttr.default) {
+        $input.prop("checked", true);
+      }
+
+      let $span = $('<span class="form-check-label"></span>').text(fieldAttr.title);
+
+      if (fieldAttr.tooltip) {
+        let $help = $('<span class="form-help">?</span>')
+          .attr("title", fieldAttr.tooltip)
+          .attr("data-bs-toggle", "tooltip")
+          .attr("data-bs-html", "true");
+        $span.append($help);
+      }
+
+      $label.append($input).append($span);
+      $mb.append($label);
+    } else {
+      let $label = $('<label class="form-label"></label>')
+        .text(fieldAttr.title);
+      if (fieldAttr.required) $label.addClass("required");
+
+      if (fieldAttr.tooltip) {
+        let $help = $('<span class="form-help">?</span>')
+          .attr("title", fieldAttr.tooltip)
+          .attr("data-bs-toggle", "tooltip")
+          .attr("data-bs-html", "true");
+        $label.append($help);
+      }
+
+      $mb.append($label);
+
+      if (fieldAttr.type === "select") {
+        let $select = $('<select class="form-select"></select>')
+          .attr("id", fieldAttr.id);
+
+        $.each(fieldAttr.options, function(OptionValue, OptionTitle) {
+          let $opt = $('<option></option>')
+            .attr("value", OptionValue)
+            .text(OptionTitle);
+          if (fieldAttr.default === OptionValue) {
+            $opt.prop("selected", true);
+          }
+          $select.append($opt);
+        });
+
+        $mb.append($select);
+      } else {
+        let $input = $('<input class="form-control">')
+          .attr("type", fieldAttr.type)
+          .attr("id", fieldAttr.id)
+          .attr("placeholder", fieldAttr.placeholder || "")
+          .val(fieldAttr.default || "");
+        $mb.append($input);
+      }
+    }
+
+    $col.append($mb);
+    row.append($col);
+
+    index++;
+  });
+
+  return $container.html();
+
+}

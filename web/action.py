@@ -4620,8 +4620,7 @@ class WebAction:
 
     @staticmethod
     def get_rmt_modes():
-        RmtModes = ModuleConf.RMT_MODES_LITE if SystemUtils.is_lite_version(
-        ) else ModuleConf.RMT_MODES
+        RmtModes = ModuleConf.RMT_MODES
         return [{
             "value": value,
             "name": name.value

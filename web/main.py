@@ -1,4 +1,5 @@
 import base64
+import copy
 import datetime
 import hashlib
 import mimetypes
@@ -8,6 +9,7 @@ import time
 import traceback
 import urllib
 import xml.dom.minidom
+
 from functools import wraps
 from math import floor
 from pathlib import Path
@@ -61,6 +63,8 @@ App.config['JSON_SORT_KEYS'] = False
 App.config['SOCK_SERVER_OPTIONS'] = {'ping_interval': 25}
 App.secret_key = os.urandom(24)
 App.permanent_session_lifetime = datetime.timedelta(days=30)
+
+App.json.sort_keys = False  # 关键配置：禁用键排序
 
 # Flask Socket
 Sock = Sock(App)
@@ -1017,11 +1021,19 @@ def library():
 @login_required
 def notification():
     MessageClients = Message().get_message_client_info()
-    Channels = ModuleConf.MESSAGE_CONF.get("client")
+    Channels = copy.deepcopy(ModuleConf.MESSAGE_CONF.get("client"))
+    ChannelsTpyes = []
+    # 遍历修改
+    for key, conf in Channels.items():
+        if "search_type" in conf:
+            conf["search_type"] = str(conf["search_type"])
+        ChannelsTpyes.append(key)
+    
     Switchs = ModuleConf.MESSAGE_CONF.get("switch")
     return render_template("setting/notification.html",
                            Channels=Channels,
                            Switchs=Switchs,
+                           ChannelsTpyes=ChannelsTpyes,
                            ClientCount=len(MessageClients),
                            MessageClients=MessageClients)
 
