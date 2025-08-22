@@ -811,6 +811,14 @@ function remove_rss_media(name, year, type, rssid, page, tmdbid, func) {
   });
 }
 
+// 询问取消订阅
+function remove_rss_click(title, year, media_type, rssid, page, tmdb_id, remove_func) {
+  show_ask_modal("是否确定将 " + title + " 从订阅中移除？", function () {
+    hide_ask_modal();
+    remove_rss_media(title, year, media_type, rssid, page, tmdb_id, remove_func);
+  });
+}
+
 // 刷新订阅
 function refresh_rss_media(type, rssid, page) {
   hide_mediainfo_modal();
