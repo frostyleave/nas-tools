@@ -1,5 +1,3 @@
-{% import 'macro/svg.html' as SVG %}
-{% import 'macro/oops.html' as OOPS %}
 <div class="container-xl">
   <!-- Page title -->
   <div class="page-header d-print-none">
@@ -8,33 +6,33 @@
       </div>
       <div class="col-auto ms-auto d-print-none">
         <div class="btn-list">
-          <a href="javascript:show_userrss_modal()" class="btn btn-primary d-none d-sm-inline-block">
-            {{ SVG.plus() }}
+          <a href="javascript:show_userrss_modal()" class="btn btn-primary d-none d-sm-inline-flex">
+            <i class="ti ti-plus fs-2"></i>
             新建订阅任务
           </a>
           <a href="javascript:show_userrss_modal()" class="btn btn-primary d-sm-none btn-icon">
-            {{ SVG.plus() }}
+            <i class="ti ti-plus fs-2"></i>
           </a>
-          <a href="javascript:batch_check_action('enable')" class="btn btn-success ms-auto d-none d-sm-inline-block">
-            {{ SVG.player_play() }}
+          <a href="javascript:batch_check_action('enable')" class="btn btn-success ms-auto d-none d-sm-inline-flex">
+            <i class="ti ti-player-play fs-2"></i>
             启用
           </a>
           <a href="javascript:batch_check_action('enable')" class="btn btn-success d-sm-none btn-icon">
-            {{ SVG.player_play() }}
+            <i class="ti ti-player-play fs-2"></i>
           </a>
-          <a href="javascript:batch_check_action('disable')" class="btn btn-secondary ms-auto d-none d-sm-inline-block">
-            {{ SVG.player_stop() }}
+          <a href="javascript:batch_check_action('disable')" class="btn btn-secondary ms-auto d-none d-sm-inline-flex">
+            <i class="ti ti-player-stop fs-2"></i>
             停用
           </a>
           <a href="javascript:batch_check_action('disable')" class="btn btn-secondary d-sm-none btn-icon">
-            {{ SVG.player_stop() }}
+            <i class="ti ti-player-stop fs-2"></i>
           </a>
-          <a href="javascript:navmenu('rss_parser')" class="btn d-none d-sm-inline-block">
-            {{ SVG.cpu() }}
+          <a href="javascript:navmenu('rss_parser')" class="btn d-none d-sm-inline-flex">
+            <i class="ti ti-cpu fs-2"></i>
             RSS解析器
           </a>
           <a href="javascript:navmenu('rss_parser')" class="btn d-sm-none btn-icon" title="RSS解析器">
-            {{ SVG.cpu() }}
+            <i class="ti ti-cpu fs-2"></i>
           </a>
         </div>
       </div>
@@ -65,17 +63,17 @@
           <div class="ms-2 me-auto d-none d-sm-block">
             <a href="javascript:run_userrss_now('{{ Task.id }}')" class="btn-icon" title="立即运行任务"
               data-bs-toggle="tooltip">
-              {{ SVG.bolt('icon-filled') }}
+              <i class="ti ti-bolt fs-2"></i>
             </a>
           </div>
           {% if Task.uses == 'D' and Task.recognization == "Y" %}
           <span class="badge bg-azure ms-auto">TMDB</span>
           <a href="#" class="link-secondary ms-2 d-sm-none" data-bs-toggle="dropdown" aria-expanded="false">
-            {{ SVG.dots() }}
+            <i class="ti ti-dots fs-2"></i>
           </a>
           {% else %}
           <a href="#" class="link-secondary ms-auto d-sm-none" data-bs-toggle="dropdown" aria-expanded="false">
-            {{ SVG.dots() }}
+            <i class="ti ti-dots fs-2"></i>
           </a>
           {% endif %}
           <div class="dropdown-menu dropdown-menu-end">
@@ -95,19 +93,19 @@
           <div class="card-actions btn-actions ms-1 d-none d-sm-block">
             <a href="javascript:void(0)" onclick="show_userrss_detail({{ Task.id }})" class="btn-action"
                title="展开/折叠">
-              {{ SVG.menu_2() }}
+              <i class="ti ti-menu-2 fs-2"></i>
             </a>
             <a href="javascript:show_rss_articles_modal('{{ Task.id }}')" class="btn-action"
                title="预览报文">
-              {{ SVG.eye() }}
+              <i class="ti ti-eye fs-2"></i>
             </a>
             <a href="javascript:edit_userrss_modal('{{ Task.id }}')" class="btn-action"
                title="编辑任务">
-              {{ SVG.edit() }}
+              <i class="ti ti-edit fs-2"></i>
             </a>
             <a href="javascript:del_userrss_modal('{{ Task.id }}', '{{ Task.name }}')" class="btn-action"
                title="删除任务">
-              {{ SVG.x() }}
+              <i class="ti ti-x fs-2"></i>
             </a>
           </div>
         </div>
@@ -205,7 +203,7 @@
   </div>
 </div>
 {% else %}
-{{ OOPS.nodatafound('没有订阅任务', '当前没有自定义订阅任何内容。') }}
+<nodata-found title="没有订阅任务" text="当前没有任何自定义订阅内容。"></nodata-found>
 {% endif %}
 <div class="modal modal-blur fade" id="modal-userrss" tabindex="-1" role="dialog" aria-hidden="true"
   data-bs-backdrop="static" data-bs-keyboard="false">
@@ -258,7 +256,7 @@
             <span class="form-help" title="RSS订阅的链接地址及对应使用的解析器" data-bs-toggle="tooltip">?</span>
           </summary>
           <div class="row mt-2" id="userrss_address_parser_div"></div>
-          <div class="ms-2 mt-2"><a href="javascript:add_address_parser()" class="btn-icon" title="增加目录">{{ SVG.folder_plus() }}</a></div>
+          <div class="ms-2 mt-2"><a href="javascript:add_address_parser()" class="btn-icon" title="增加目录"><i class="ti ti-folder-plus fs-2"></i></a></div>
         </details>
         <div id="userrss_common_div_2">
           <div class="row">
@@ -489,7 +487,7 @@
         <div class="ms-2 d-flex align-items-center">
           <h5 class="modal-title me-2">订阅预览</h5>
           <button class="btn-action" data-bs-toggle="collapse" data-bs-target="#search-bar" aria-expanded="false" aria-controls="search-bar">
-            {{ SVG.list_search() }}
+            <i class="ti ti-list-search fs-2"></i>
           </button>
           <input type="hidden" id="article_check_id" value="">
         </div>
@@ -514,33 +512,27 @@
       </div>
       <div class="modal-footer">
         <span class="rss_articles_download_btn me-auto">
-          <a href="javascript:batch_articles_action('download')"
-            class="btn btn-primary d-none d-sm-inline-block ">
-            {{ SVG.download() }}
+          <a href="javascript:batch_articles_action('download')" class="btn btn-primary d-none d-sm-inline-flex ">
+            <i class="ti ti-download fs-2"></i>
             批量下载
           </a>
-          <a href="javascript:batch_articles_action('download')"
-            class="btn btn-primary btn-icon d-sm-none">
-            {{ SVG.download() }}
+          <a href="javascript:batch_articles_action('download')" class="btn btn-primary btn-icon d-sm-none">
+            <i class="ti ti-download fs-2"></i>
           </a>
         </span>
-        <a href="javascript:batch_articles_action('set_finished')"
-          class="btn btn-green d-none d-sm-inline-block">
-          {{ SVG.circle_check() }}
+        <a href="javascript:batch_articles_action('set_finished')" class="btn btn-green d-none d-sm-inline-flex">
+          <i class="ti ti-circle-check fs-2"></i>
           已处理
         </a>
-        <a href="javascript:batch_articles_action('set_finished')"
-          class="btn btn-green btn-icon d-sm-none">
-          {{ SVG.circle_check() }}
+        <a href="javascript:batch_articles_action('set_finished')" class="btn btn-green btn-icon d-sm-none">
+          <i class="ti ti-circle-check fs-2"></i>
         </a>
-        <a href="javascript:batch_articles_action('set_unfinish')"
-          class="btn btn-yellow d-none d-sm-inline-block">
-          {{ SVG.circle_x() }}
+        <a href="javascript:batch_articles_action('set_unfinish')" class="btn btn-yellow d-none d-sm-inline-flex">
+          <i class="ti ti-circle-x fs-2"></i>
           未处理
         </a>
-        <a href="javascript:batch_articles_action('set_unfinish')"
-          class="btn btn-yellow btn-icon d-sm-none">
-          {{ SVG.circle_x() }}
+        <a href="javascript:batch_articles_action('set_unfinish')" class="btn btn-yellow btn-icon d-sm-none">
+          <i class="ti ti-circle-x fs-2"></i>
         </a>
       </div>
     </div>
@@ -796,7 +788,7 @@
                               <input type="hidden" id="filter_flag_${i}" name="filter_flag" value= "${article.finish_flag ? 1: 0}_${article.address_index}">`;
             title = `<span style="word-break: keep-all">${article.year ? `${article.title} (${article.year})` : article.title}</span>`;
             recognization = `<a title="识别匹配" href='javascript:rss_article_test("${i}", "${id}", "${title_param}")' data-bs-toggle="tooltip">
-                              {{ SVG.text_recognition() }}
+                              <i class="ti ti-text-recognition fs-2"></i>
                               </a>`;
             if (article.link) {
               title = `<a href="${article.link}" target="_blank">${title}</a>`;
@@ -816,7 +808,7 @@
           }
           let download_btn = '';
           if (ret.uses === "D") {
-            download_btn = `<a href='javascript:single_article_download("${id}", "${i}")' title="下载">{{ SVG.download() }}</a>`
+            download_btn = `<a href='javascript:single_article_download("${id}", "${i}")' title="下载"><i class="ti ti-download fs-2"></i></a>`
           }
           content_td= `${content_td}<tr><td>${input_checkbox}</td><td>${title}${size}${recognization}<custom-chips class="mt-1" id='info_${i}'></custom-chips></td>><td>${finish_flag}<a id='flag_${i}'></a></td><td class="text-nowrap">${date}</td><td>${download_btn}</td></tr>`;
           let content_tb = `<tbody>${content_td}</tbody>`;
@@ -1092,7 +1084,7 @@
       </div>
       <div class="col-12 col-lg-1 mb-1 align-self-center" style="text-align: center">
         <a href="javascript:del_address_parser('{ADDDIV_LEVEL}')" class="btn-icon text-red" title="删除目录">
-        {{ SVG.circle_minus() }}
+        <i class="ti ti-circle-minus fs-2"></i>
         </a>
       </div>
     </div>

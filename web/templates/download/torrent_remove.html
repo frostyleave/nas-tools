@@ -1,5 +1,3 @@
-{% import 'macro/svg.html' as SVG %}
-{% import 'macro/oops.html' as OOPS %}
 <div class="container-xl">
   <!-- Page title -->
   <div class="page-header d-print-none">
@@ -8,12 +6,12 @@
       </div>
       <div class="col-auto ms-auto d-print-none">
         <div class="btn-list">
-          <a href="javascript:show_add_torrent_remove_task_modal()" class="btn btn-primary d-none d-sm-inline-block">
-            {{ SVG.plus() }}
+          <a href="javascript:show_add_torrent_remove_task_modal()" class="btn btn-primary d-none d-sm-inline-flex">
+            <i class="ti ti-plus fs-2"></i>
             新增删种任务
           </a>
           <a href="javascript:show_add_torrent_remove_task_modal()" class="btn btn-primary d-sm-none btn-icon">
-            {{ SVG.plus() }}
+            <i class="ti ti-plus"></i>
           </a>
         </div>
       </div>
@@ -44,11 +42,11 @@
           <div class="ms-2 d-none d-sm-block">
             <a href="javascript:void(0)" onclick="run_torrent_remove_now('{{ Attr.id }}')" class="btn-icon" title="立即运行任务"
               data-bs-toggle="tooltip">
-              {{ SVG.bolt('icon-filled') }}
+              <i class="ti ti-bolt fs-2"></i>
             </a>
           </div>
           <a href="#" class="link-secondary ms-auto d-sm-none" data-bs-toggle="dropdown" aria-expanded="false">
-            {{ SVG.dots() }}
+            <i class="ti ti-dots fs-2"></i>
           </a>
           <div class="dropdown-menu dropdown-menu-end">
             <button class="dropdown-item text-info" onclick="run_torrent_remove_now('{{ Attr.id }}')">
@@ -67,19 +65,19 @@
           <div class="card-actions btn-actions d-none d-sm-block">
             <a href="javascript:void(0)" onclick="show_torrentremove_detail({{ Attr.id }})" class="btn-action"
                title="展开/折叠" data-bs-toggle="tooltip">
-              {{ SVG.menu_2() }}
+              <i class="ti ti-menu-2 fs-2"></i>
             </a>
             <a href="javascript:show_remove_torrents_modal('{{ Attr.id }}')" class="btn-action"
                title="预览删种" data-bs-toggle="tooltip">
-              {{ SVG.eye() }}
+              <i class="ti ti-eye fs-2"></i>
             </a>
             <a href="javascript:show_edit_torrent_remove_task_modal('{{ Attr.id }}')" class="btn-action"
                title="编辑设置" data-bs-toggle="tooltip">
-              {{ SVG.edit() }}
+              <i class="ti ti-edit fs-2"></i>
             </a>
             <a href="javascript:delete_torrent_remove_task('{{ Attr.id }}', '{{ Attr.name }}')" class="btn-action"
                title="删除设置" data-bs-toggle="tooltip">
-              {{ SVG.x() }}
+              <i class="ti ti-x fs-2"></i>
             </a>
           </div>
         </div>
@@ -238,7 +236,7 @@
   </div>
 </div>
 {% else %}
-{{ OOPS.nodatafound('没有任务', '当前没有正在运行的自动删种任务。') }}
+<nodata-found title="没有任务" text="当前没有正在运行的自动删种任务。"></nodata-found>
 {% endif %}
 <div class="modal modal-blur fade" id="modal-torrent-remove-task" tabindex="-1" role="dialog" aria-hidden="true"
   data-bs-backdrop="static" data-bs-keyboard="false">

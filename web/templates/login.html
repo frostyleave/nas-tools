@@ -1,10 +1,11 @@
-{% import 'macro/svg.html' as SVG %}
-{% import 'macro/head.html' as HEAD %}
 <!doctype html>
 <html lang="en">
 
 <head>
-  {{ HEAD.meta_link() }}
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="icon" type="image/png" href="../static/img/logo/logo.png">
+  <link rel="shortcut icon" href="../static/favicon.ico" type="image/x-icon">
   <title>登录 - NAStool</title>
   <!-- CSS files -->
   <link href="/static/css/tabler.min.css" rel="stylesheet"/>
@@ -153,57 +154,57 @@
 </script>
 
 <body class="d-flex flex-column login_background">
-    {% if image_code and img_title %}
-    <div class="image-desc card card-md border-0 rounded-3">
-        <a class="image-link" href="{{ img_link }}" target="_blank">
-            {{ SVG.link() }}
-            {{ img_title }}
-        </a>
-    </div>
-    {% endif %}
-    <div class="page page-center">
-        <div class="container-tight py-4">
-            <form id="loginForm" class="card card-md border-0 {% if image_code %}login_window{% endif %}"
-                autocomplete="off">
-                <input type="hidden" name="next" value="{{ GoPage }}" />
-                <div class="card-body">
-                    <div class="text-center mb-3">
-                        <h1 style="text-align:center;margin: 1.5rem 0">
-                            <img src="/static/favicon.ico" style="vertical-align: bottom;">
-                            <label
-                                style="font-size: xx-large;color: white; text-shadow: 1px 1px 1px rgba(0, 0, 0, 0.5);">nastool</label>
-                        </h1>
-                    </div>
-                    <label class="form-label">用户名</label>
-                    <div class="input-icon mb-3">
-                        <span class="input-icon-addon">
-                            {{ SVG.user() }}
-                        </span>
-                        <input type="text" name="username" class="form-control {% if err_msg %}is-invalid{% endif %}"
-                            placeholder="admin" value="" autocomplete="off">
-                    </div>
-                    <label class="form-label">密码</label>
-                    <div class="input-icon">
-                        <span class="input-icon-addon">
-                            {{ SVG.keyboard() }}
-                        </span>
-                        <input type="password" class="form-control {% if err_msg %}is-invalid{% endif %}"
-                            name="password" placeholder="password" autocomplete="off">
-                    </div>
-                    <div class="invalid-feedback mb-3" id="login_retmsg" style="display:block">{{ err_msg }}</div>
-                    <div class="mb-3">
-                        <label class="form-check">
-                            <input type="checkbox" name="remember" class="form-check-input" checked />
-                            <span class="form-check-label">保持登录</span>
-                        </label>
-                    </div>
-                    <div class="form-footer">
-                        <button type="submit" class="btn btn-primary w-100">登录</button>
-                    </div>
-                </div>
-            </form>
+{% if image_code and img_title %}
+<div class="image-desc card card-md border-0 rounded-3">
+  <a class="image-link" href="{{ img_link }}" target="_blank">
+    <i class="ti ti-link"></i>
+    {{ img_title }}
+  </a>
+</div>
+{% endif %}
+<div class="page page-center">
+  <div class="container-tight py-4">
+    <form class="card card-md border-0 {% if image_code %}login_window{% endif %}" action="/" method="post" autocomplete="off">
+      <input type="hidden" name="next" value="{{ GoPage }}"/>
+      <div class="card-body">
+        <div class="text-center mb-3">
+          <h1 style="text-align:center;margin: 1.5rem 0">
+            <img src="../static/favicon.ico" style="vertical-align: bottom;">
+            <label style="font-size: xx-large;color: white; text-shadow: 1px 1px 1px rgba(0, 0, 0, 0.5);">nastool</label>
+          </h1>
         </div>
-    </div>
+        <label class="form-label">用户名</label>
+        <div class="input-icon mb-3">
+            <span class="input-icon-addon">
+              <i class="ti ti-user"></i>
+            </span>
+          <input type="text" name="username" class="form-control {% if err_msg %}is-invalid{% endif %}"
+                 placeholder="admin" value="" autocomplete="off">
+        </div>
+        <label class="form-label">密码</label>
+        <div class="input-icon">
+            <span class="input-icon-addon">
+              <i class="ti ti-keyboard"></i>
+            </span>
+          <input type="password" class="form-control {% if err_msg %}is-invalid{% endif %}" name="password"
+                 placeholder="password" autocomplete="off">
+        </div>
+        <div class="invalid-feedback mb-3" id="login_retmsg" style="display:block">{{ err_msg }}</div>
+        <div class="mb-3">
+          <label class="form-check">
+            <input type="checkbox" name="remember" class="form-check-input" checked/>
+            <span class="form-check-label">保持登录</span>
+          </label>
+        </div>
+        <div class="form-footer">
+          <button type="submit" class="btn btn-primary w-100">登录</button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+<script src="../static/js/tabler/tabler.min.js"></script>
+<script src="../static/js/tabler/demo.min.js"></script>
 </body>
 
 </html>

@@ -4,29 +4,29 @@
     "page": "index",
     "level": 1,
     "group": "",
-    "icon": "<svg xmlns=\"http://www.w3.org/2000/svg\" class=\"icon icon-tabler icon-tabler-home\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" stroke-width=\"2\" stroke=\"currentColor\" fill=\"none\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path stroke=\"none\" d=\"M0 0h24v24H0z\" fill=\"none\"></path><polyline points=\"5 12 3 12 12 3 21 12 19 12\"></polyline><path d=\"M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-7\"></path><path d=\"M9 21v-6a2 2 0 0 1 2 -2h2a2 2 0 0 1 2 2v6\"></path></svg>"
+    "icon": "<i class=\"ti ti-home fs-2 \"></i>"
   },
   {
     "name": "探索",
     "level": 1,
     "page": "ranking",
     "group": "发现",
-    "icon": "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\"fill=\"none\" stroke=\"currentColor\"stroke-width=\"2\"stroke-linecap=\"round\"stroke-linejoin=\"round\"class=\"icon icon-tabler icons-tabler-outline icon-tabler-star\"><path stroke=\"none\"d=\"M0 0h24v24H0z\"fill=\"none\"/><path d=\"M12 17.75l-6.172 3.245l1.179 -6.873l-5 -4.867l6.9 -1l3.086 -6.253l3.086 6.253l6.9 1l-5 4.867l1.179 6.873z\"/></svg>",
+    "icon": "<i class=\"ti ti-carambola fs-2 \"></i>",
     "nav": [
       {
         "name": "电影",
         "page": "ranking",
-        "icon": "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" class=\"icon icon-tabler icons-tabler-outline icon-tabler-movie\"><path stroke=\"none\" d=\"M0 0h24v24H0z\" fill=\"none\"/><path d=\"M4 4m0 2a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v12a2 2 0 0 1 -2 2h-12a2 2 0 0 1 -2 -2z\" /><path d=\"M8 4l0 16\" /><path d=\"M16 4l0 16\" /><path d=\"M4 8l4 0\" /><path d=\"M4 16l4 0\" /><path d=\"M4 12l16 0\" /><path d=\"M16 8l4 0\" /><path d=\"M16 16l4 0\" /></svg>"
+        "icon": "<i class=\"ti ti-movie fs-2 \"></i>"
       },
       {
         "name": "剧集",
         "page": "tv_ranking",
-        "icon": "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" class=\"icon icon-tabler icons-tabler-outline icon-tabler-device-tv\"><path stroke=\"none\" d=\"M0 0h24v24H0z\" fill=\"none\"/><path d=\"M3 7m0 2a2 2 0 0 1 2 -2h14a2 2 0 0 1 2 2v9a2 2 0 0 1 -2 2h-14a2 2 0 0 1 -2 -2z\" /><path d=\"M16 3l-4 4l-4 -4\" /></svg>"
+        "icon": "<i class=\"ti ti-device-tv fs-2 \"></i>"
       },
       {
         "name": "BANGUMI",
         "page": "bangumi",
-        "icon": "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"24\" height=\"24\"viewBox=\"0 0 1024 1024\" class=\"icon\" ><path d=\"M228.115268 615.399298a12.300795 12.300795 0 0 0 11.35458 7.569719 12.471113 12.471113 0 0 0 4.749999-0.965139l147.609537-61.882459a12.300795 12.300795 0 0 0 0.26494-22.557765l-147.609537-66.235049a12.300795 12.300795 0 1 0-10.067727 22.444219l121.740019 54.634453-121.456155 50.906366a12.300795 12.300795 0 0 0-6.585656 16.085655zM399.020617 627.965033H239.469848a12.300795 12.300795 0 0 0 0 24.601589h159.550769a12.300795 12.300795 0 0 0 0-24.601589zM399.020617 667.460046H239.469848a12.300795 12.300795 0 0 0 0 24.601589h159.550769a12.300795 12.300795 0 0 0 0-24.601589zM872.941851 476.892349l-133.283841 58.381464a12.300795 12.300795 0 0 0-0.397411 22.349598l133.302766 64.058754a12.073703 12.073703 0 0 0 5.317729 1.23008 12.300795 12.300795 0 0 0 5.336652-23.390435l-109.15536-52.42031L882.896033 499.469038a12.300795 12.300795 0 1 0-9.954182-22.576689zM877.881094 627.965033h-148.101569a12.300795 12.300795 0 0 0 0 24.601589h148.101569a12.300795 12.300795 0 0 0 0-24.601589zM877.881094 667.460046h-148.101569a12.300795 12.300795 0 0 0 0 24.601589h148.101569a12.300795 12.300795 0 0 0 0-24.601589zM644.866193 537.128395h-162.919295a12.28187 12.28187 0 0 0-10.711153 18.318722l81.374488 145.130453a12.300795 12.300795 0 0 0 21.460155 0l81.374489-145.130453a12.300795 12.300795 0 0 0-10.730078-18.318722z m-81.374488 132.299778l-60.444213-107.698189h120.888426z\" fill=\"#F9389E\"></path>  <path d=\"M891.411968 334.960102H648.405037c-6.812748-15.13944-19.813742-28.386449-36.864535-38.018917L803.092262 19.283861a12.300795 12.300795 0 0 0-20.249001-13.966133L588.566402 286.873457a147.723082 147.723082 0 0 0-45.418319-7.001991 151.507942 151.507942 0 0 0-31.887445 3.368526L239.980804 4.712151A12.300795 12.300795 0 0 0 222.437978 21.87649l262.726051 269.803739c-22.14143 9.821711-39.116527 25.112546-47.310749 43.242025H132.547555A91.763929 91.763929 0 0 0 40.764702 426.705107v414.44216A91.763929 91.763929 0 0 0 132.547555 932.967969h268.024855l-19.908363 46.989036c-12.641432 29.881469 22.614538 57.094612 48.294812 37.299794L538.473781 932.967969h352.938187a91.763929 91.763929 0 0 0 91.782853-91.782853v-414.442161a91.763929 91.763929 0 0 0-91.782853-91.782853z m34.839635 463.815658a60.709153 60.709153 0 0 1-60.709153 60.709153H585.670984L487.870204 932.967969l-77.002975 57.851583 24.412346-57.851583 31.016927-73.483056H198.082405A60.728077 60.728077 0 0 1 137.27863 798.737912V440.330602a60.728077 60.728077 0 0 1 60.728077-60.728077h667.460046a60.709153 60.709153 0 0 1 60.709153 60.728077z\" fill=\"#F9389E\"></path></svg>"
+        "icon": "<i class=\"ti ti-brand-bilibili fs-2 \"></i>"
       }
     ]
   },
@@ -35,34 +35,34 @@
     "level": 1,
     "page": "search",
     "group": "发现",
-    "icon": "<svg xmlns=\"http://www.w3.org/2000/svg\" class=\"icon icon-tabler icon-tabler-search\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" stroke-width=\"2\" stroke=\"currentColor\" fill=\"none\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path stroke=\"none\" d=\"M0 0h24v24H0z\" fill=\"none\"></path><circle cx=\"10\" cy=\"10\" r=\"7\"></circle><line x1=\"21\" y1=\"21\" x2=\"15\" y2=\"15\"></line></svg>"
+    "icon": "<i class=\"ti ti-cloud-search fs-2 \"></i>"
   },
   {
     "name": "订阅",
     "level": 1,
     "page": "movie_rss",
     "group": "服务",
-    "icon": "  <svg xmlns=\"http://www.w3.org/2000/svg\" class=\"icon icon-tabler icon-tabler-rss\" width=\"24\" height=\"24\"  viewBox=\"0 0 24 24\" stroke-width=\"2\" stroke=\"currentColor\" fill=\"none\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path stroke=\"none\" d=\"M0 0h24v24H0z\" fill=\"none\"></path><circle cx=\"5\" cy=\"19\" r=\"1\"></circle><path d=\"M4 4a16 16 0 0 1 16 16\"></path><path d=\"M4 11a9 9 0 0 1 9 9\"></path></svg>",
+    "icon": "<i class=\"ti ti-rss fs-2 \"></i>",
     "nav": [
       {
         "name": "电影订阅",
         "page": "movie_rss",
-        "icon": "<svg xmlns=\"http://www.w3.org/2000/svg\" class=\"icon icon-tabler icon-tabler-movie\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" stroke-width=\"2\" stroke=\"currentColor\" fill=\"none\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path stroke=\"none\" d=\"M0 0h24v24H0z\" fill=\"none\"></path><path d=\"M4 4m0 2a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v12a2 2 0 0 1 -2 2h-12a2 2 0 0 1 -2 -2z\"></path><path d=\"M8 4l0 16\"></path><path d=\"M16 4l0 16\"></path><path d=\"M4 8l4 0\"></path><path d=\"M4 16l4 0\"></path><path d=\"M4 12l16 0\"></path><path d=\"M16 8l4 0\"></path><path d=\"M16 16l4 0\"></path></svg>"
+        "icon": "<i class=\"ti ti-movie fs-2 \"></i>"
       },
       {
         "name": "电视剧订阅",
         "page": "tv_rss",
-        "icon": "<svg xmlns=\"http://www.w3.org/2000/svg\" class=\"icon icon-tabler icon-tabler-device-tv\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" stroke-width=\"2\" stroke=\"currentColor\" fill=\"none\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path stroke=\"none\" d=\"M0 0h24v24H0z\" fill=\"none\"></path><path d=\"M3 7m0 2a2 2 0 0 1 2 -2h14a2 2 0 0 1 2 2v9a2 2 0 0 1 -2 2h-14a2 2 0 0 1 -2 -2z\"></path><path d=\"M16 3l-4 4l-4 -4\"></path></svg>"
+        "icon": "<i class=\"ti ti-device-tv fs-2 \"></i>"
       },
       {
         "name": "自定义订阅",
         "page": "user_rss",
-        "icon": "<svg xmlns=\"http://www.w3.org/2000/svg\" class=\"icon icon-tabler icon-tabler-file-rss\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" stroke-width=\"2\" stroke=\"currentColor\" fill=\"none\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path stroke=\"none\" d=\"M0 0h24v24H0z\" fill=\"none\"></path><path d=\"M14 3v4a1 1 0 0 0 1 1h4\"></path><path d=\"M17 21h-10a2 2 0 0 1 -2 -2v-14a2 2 0 0 1 2 -2h7l5 5v11a2 2 0 0 1 -2 2z\"></path><path d=\"M12 17a3 3 0 0 0 -3 -3\"></path><path d=\"M15 17a6 6 0 0 0 -6 -6\"></path><path d=\"M9 17h.01\"></path></svg>"
+        "icon": "<i class=\"ti ti-file-rss fs-2 \"></i>"
       },
       {
         "name": "订阅日历",
         "page": "rss_calendar",
-        "icon": "<svg xmlns=\"http://www.w3.org/2000/svg\" class=\"icon icon-tabler icon-tabler-calendar\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" stroke-width=\"2\" stroke=\"currentColor\" fill=\"none\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path stroke=\"none\" d=\"M0 0h24v24H0z\" fill=\"none\"></path><path d=\"M4 5m0 2a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v12a2 2 0 0 1 -2 2h-12a2 2 0 0 1 -2 -2z\"></path><path d=\"M16 3l0 4\"></path><path d=\"M8 3l0 4\"></path><path d=\"M4 11l16 0\"></path><path d=\"M11 15l1 0\"></path><path d=\"M12 15l0 3\"></path></svg>"
+        "icon": "<i class=\"ti ti-calendar-month fs-2 \"></i>"
       }
     ]
   },
@@ -71,46 +71,46 @@
     "level": 1,
     "page": "service",
     "group": "服务",
-    "icon": "<svg xmlns=\"http://www.w3.org/2000/svg\" class=\"icon icon-tabler icon-tabler-apps\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" stroke-width=\"2\" stroke=\"currentColor\" fill=\"none\" stroke-linecap=\"round\" stroke-linejoin=\"round\"> <path stroke=\"none\" d=\"M0 0h24v24H0z\" fill=\"none\"></path> <rect x=\"4\" y=\"4\" width=\"6\" height=\"6\" rx=\"1\"></rect> <rect x=\"4\" y=\"14\" width=\"6\" height=\"6\" rx=\"1\"></rect> <rect x=\"14\" y=\"14\" width=\"6\" height=\"6\" rx=\"1\"></rect> <line x1=\"14\" y1=\"7\" x2=\"20\" y2=\"7\"></line> <line x1=\"17\" y1=\"4\" x2=\"17\" y2=\"10\"></line>  </svg>"
+    "icon": "<i class=\"ti ti-blocks fs-2 \"></i>"
   },
   {
     "name": "下载",
     "level": 1,
     "page": "downloading",
     "group": "整理",
-    "icon": "<svg xmlns=\"http://www.w3.org/2000/svg\" class=\"icon icon-tabler icon-tabler-download {{ class }}\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" stroke-width=\"2\" stroke=\"currentColor\" fill=\"none\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path stroke=\"none\" d=\"M0 0h24v24H0z\" fill=\"none\"></path><path d=\"M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2 -2v-2\"></path><polyline points=\"7 11 12 16 17 11\"></polyline><line x1=\"12\" y1=\"4\" x2=\"12\" y2=\"16\"></line></svg>"
+    "icon": "<i class=\"ti ti-download fs-2 \"></i>"
   },
   {
     "name": "文件",
     "level": 1,
     "page": "mediafile",
     "group": "整理",
-    "icon": "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"24\"height=\"24\"viewBox=\"0 0 24 24\"fill=\"none\" stroke=\"currentColor\"stroke-width=\"2\"stroke-linecap=\"round\"stroke-linejoin=\"round\"class=\"icon icon-tabler icons-tabler-outline icon-tabler-files\"><path stroke=\"none\"d=\"M0 0h24v24H0z\"fill=\"none\"/><path d=\"M15 3v4a1 1 0 0 0 1 1h4\"/><path d=\"M18 17h-7a2 2 0 0 1 -2 -2v-10a2 2 0 0 1 2 -2h4l5 5v7a2 2 0 0 1 -2 2z\"/><path d=\"M16 17v2a2 2 0 0 1 -2 2h-7a2 2 0 0 1 -2 -2v-10a2 2 0 0 1 2 -2h2\"/></svg>",
+    "icon": "<i class=\"ti ti-books fs-2 \"></i>",
     "nav": [
       {
         "name": "文件管理",
         "page": "mediafile",
-        "icon": "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"24\"height=\"24\"viewBox=\"0 0 24 24\"fill=\"none\" stroke=\"currentColor\"stroke-width=\"2\"stroke-linecap=\"round\"stroke-linejoin=\"round\"class=\"icon icon-tabler icons-tabler-outline icon-tabler-files\"><path stroke=\"none\"d=\"M0 0h24v24H0z\"fill=\"none\"/><path d=\"M15 3v4a1 1 0 0 0 1 1h4\"/><path d=\"M18 17h-7a2 2 0 0 1 -2 -2v-10a2 2 0 0 1 2 -2h4l5 5v7a2 2 0 0 1 -2 2z\"/><path d=\"M16 17v2a2 2 0 0 1 -2 2h-7a2 2 0 0 1 -2 -2v-10a2 2 0 0 1 2 -2h2\"/></svg>"
+        "icon": "<i class=\"ti ti-files fs-2 \"></i>"
       },
       {
         "name": "自动删种",
         "page": "torrent_remove",
-        "icon": "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" class=\"icon icon-tabler icons-tabler-outline icon-tabler-trash\">  <path stroke=\"none\" d=\"M0 0h24v24H0z\" fill=\"none\" />  <path d=\"M4 7l16 0\" />  <path d=\"M10 11l0 6\" />  <path d=\"M14 11l0 6\" />  <path d=\"M5 7l1 12a2 2 0 0 0 2 2h8a2 2 0 0 0 2 -2l1 -12\" />  <path d=\"M9 7v-3a1 1 0 0 1 1 -1h4a1 1 0 0 1 1 1v3\" /></svg>"
+        "icon": "<i class=\"ti ti-http-delete fs-2 \"></i>"
       },
       {
         "name": "转移记录",
         "page": "history",
-        "icon": "<svg xmlns=\"http://www.w3.org/2000/svg\" class=\"icon icon-tabler icon-tabler-history\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" stroke-width=\"2\" stroke=\"currentColor\" fill=\"none\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path stroke=\"none\" d=\"M0 0h24v24H0z\" fill=\"none\"></path><path d=\"M12 8l0 4l2 2\"></path><path d=\"M3.05 11a9 9 0 1 1 .5 4m-.5 5v-5h5\"></path></svg>"
+        "icon": "<i class=\"ti ti-history fs-2 \"></i>"
       },
       {
         "name": "手动识别",
         "page": "unidentification",
-        "icon": "<svg xmlns=\"http://www.w3.org/2000/svg\" class=\"icon icon-tabler icon-tabler-accessible\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" stroke-width=\"2\" stroke=\"currentColor\" fill=\"none\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path stroke=\"none\" d=\"M0 0h24v24H0z\" fill=\"none\"></path><path d=\"M12 12m-9 0a9 9 0 1 0 18 0a9 9 0 1 0 -18 0\"></path><path d=\"M10 16.5l2 -3l2 3m-2 -3v-2l3 -1m-6 0l3 1\"></path><circle cx=\"12\" cy=\"7.5\" r=\".5\" fill=\"none\"></circle></svg>"
+        "icon": "<i class=\"ti ti-user-scan fs-2 \"></i>"
       },
       {
         "name": "TMDB缓存",
         "page": "tmdbcache",
-        "icon": "<svg xmlns=\"http://www.w3.org/2000/svg\" stroke-linejoin=\"round\" stroke-linecap=\"round\" stroke=\"currentColor\" stroke-width=\"2\" class=\"icon icon-tabler\" viewBox=\"0 0 24 24\" height=\"24px\" width=\"24px\" fill=\"none\" width=\"24px\" height=\"24px\" viewBox=\"0 0 24 24\"><path d=\"M10.5 2.661l.54.997-1.797.644 2.409.218.748 1.246.467-1.121 2.077-.208-1.61-.613.426-1.017-1.578.519zm6.905 2.077L13.76 6.182l3.292 1.298.353-.146 3.293-1.298zm-10.51.312a2.97 1.153 0 0 0-2.97 1.152 2.97 1.153 0 0 0 2.97 1.153 2.97 1.153 0 0 0 2.97-1.153 2.97 1.153 0 0 0-2.97-1.152zM24 6.805s-8.983 4.278-10.395 4.953c-1.226.561-1.901.561-3.261.094C8.318 11.022 0 7.241 0 7.241v1.038c0 .24.332.499.966.8 1.277.613 8.34 3.677 9.45 4.206 1.112.53 1.9.54 3.313-.197 1.412-.738 8.049-3.905 9.326-4.57.654-.342.945-.602.945-.84zm-10.042.602L8.39 8.26l3.884 1.61zM24 10.637s-8.983 4.279-10.395 4.954c-1.226.56-1.901.56-3.261.093C8.318 14.854 0 11.074 0 11.074v1.038c0 .238.332.498.966.8 1.277.612 8.34 3.676 9.45 4.205 1.112.53 1.9.54 3.313-.197 1.412-.737 8.049-3.905 9.326-4.57.654-.332.945-.602.945-.84zm0 3.842l-10.395 4.954c-1.226.56-1.901.56-3.261.094C8.318 18.696 0 14.916 0 14.916v1.038c0 .239.332.499.966.8 1.277.613 8.34 3.676 9.45 4.206 1.112.53 1.9.54 3.313-.198 1.412-.737 8.049-3.904 9.326-4.569.654-.343.945-.613.945-.841z\"/></svg>"
+        "icon": "<i class=\"ti ti-keyframes fs-2 \"></i>"
       }
     ]
   },
@@ -118,37 +118,37 @@
     "name": "设置",
     "page": "basic",
     "group": "系统",
-    "icon": "<svg xmlns=\"http://www.w3.org/2000/svg\" class=\"icon icon-tabler icon-tabler-settings\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" stroke-width=\"2\" stroke=\"currentColor\" fill=\"none\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path stroke=\"none\" d=\"M0 0h24v24H0z\" fill=\"none\"></path><path d=\"M10.325 4.317c.426 -1.756 2.924 -1.756 3.35 0a1.724 1.724 0 0 0 2.573 1.066c1.543 -.94 3.31 .826 2.37 2.37a1.724 1.724 0 0 0 1.065 2.572c1.756 .426 1.756 2.924 0 3.35a1.724 1.724 0 0 0 -1.066 2.573c.94 1.543 -.826 3.31 -2.37 2.37a1.724 1.724 0 0 0 -2.572 1.065c-.426 1.756 -2.924 1.756 -3.35 0a1.724 1.724 0 0 0 -2.573 -1.066c-1.543 .94 -3.31 -.826 -2.37 -2.37a1.724 1.724 0 0 0 -1.065 -2.572c-1.756 -.426 -1.756 -2.924 0 -3.35a1.724 1.724 0 0 0 1.066 -2.573c-.94 -1.543 .826 -3.31 2.37 -2.37c1 .608 2.296 .07 2.572 -1.065z\"></path><circle cx=\"12\" cy=\"12\" r=\"3\"></circle></svg>",
+    "icon": "<i class=\"ti ti-settings fs-2 \"></i>",
     "nav": [
       {
         "name": "基础设置",
         "page": "basic",
-        "icon": "<svg xmlns=\"http://www.w3.org/2000/svg\" class=\"icon icon-tabler icon-tabler-settings\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" stroke-width=\"2\" stroke=\"currentColor\" fill=\"none\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path stroke=\"none\" d=\"M0 0h24v24H0z\" fill=\"none\"></path><path d=\"M10.325 4.317c.426 -1.756 2.924 -1.756 3.35 0a1.724 1.724 0 0 0 2.573 1.066c1.543 -.94 3.31 .826 2.37 2.37a1.724 1.724 0 0 0 1.065 2.572c1.756 .426 1.756 2.924 0 3.35a1.724 1.724 0 0 0 -1.066 2.573c.94 1.543 -.826 3.31 -2.37 2.37a1.724 1.724 0 0 0 -2.572 1.065c-.426 1.756 -2.924 1.756 -3.35 0a1.724 1.724 0 0 0 -2.573 -1.066c-1.543 .94 -3.31 -.826 -2.37 -2.37a1.724 1.724 0 0 0 -1.065 -2.572c-1.756 -.426 -1.756 -2.924 0 -3.35a1.724 1.724 0 0 0 1.066 -2.573c-.94 -1.543 .826 -3.31 2.37 -2.37c1 .608 2.296 .07 2.572 -1.065z\"></path><circle cx=\"12\" cy=\"12\" r=\"3\"></circle></svg>"
+        "icon": "<i class=\"ti ti-settings-2 fs-2 \"></i>"
       },
       {
         "name": "媒体库",
         "page": "library",
-        "icon": "<svg xmlns=\"http://www.w3.org/2000/svg\" stroke-linejoin=\"round\" stroke-linecap=\"round\" stroke=\"currentColor\" stroke-width=\"2\" class=\"icon icon-tabler\" viewBox=\"0 0 24 24\" height=\"24px\" width=\"24px\" fill=\"none\" viewBox=\"0 0 24 24\"><g fill=\"#000000\"><path d=\"M12.001 9.663c-.877 0-3.704 5.127-3.275 5.99.43.865 6.125.856 6.55 0 .425-.854-2.394-5.99-3.275-5.99z\"/><path d=\"M12.001 2C9.354 2 .836 17.446 2.134 20.055c1.298 2.608 18.45 2.578 19.735 0C23.154 17.476 14.649 2 12 2Zm6.468 15.794c-.842 1.69-12.08 1.71-12.932 0-.85-1.71 4.732-11.832 6.464-11.832 1.732 0 7.31 10.139 6.468 11.832z\"/></g></svg>"
+        "icon": "<i class=\"ti ti-jellyfin fs-2 \"></i>"
       },
       {
         "name": "消息通知",
         "page": "notification",
-        "icon": "<svg xmlns=\"http://www.w3.org/2000/svg\" class=\"icon icon-tabler icon-tabler-bell\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" stroke-width=\"2\" stroke=\"currentColor\" fill=\"none\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path stroke=\"none\" d=\"M0 0h24v24H0z\" fill=\"none\"></path><path d=\"M10 5a2 2 0 0 1 4 0a7 7 0 0 1 4 6v3a4 4 0 0 0 2 3h-16a4 4 0 0 0 2 -3v-3a7 7 0 0 1 4 -6\"></path><path d=\"M9 17v1a3 3 0 0 0 6 0v-1\"></path></svg>"
+        "icon": "<i class=\"ti ti-bell fs-2 \"></i>"
       },
       {
         "name": "目录同步",
         "page": "directorysync",
-        "icon": "<svg xmlns=\"http://www.w3.org/2000/svg\" class=\"icon icon-tabler icon-tabler-refresh\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" stroke-width=\"2\" stroke=\"currentColor\" fill=\"none\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path stroke=\"none\" d=\"M0 0h24v24H0z\" fill=\"none\"></path><path d=\"M20 11a8.1 8.1 0 0 0 -15.5 -2m-.5 -4v4h4\"></path><path d=\"M4 13a8.1 8.1 0 0 0 15.5 2m.5 4v-4h-4\"></path></svg>"
+        "icon": "<i class=\"ti ti-refresh fs-2 \"></i>"
       },
       {
         "name": "过滤规则",
         "page": "filterrule",
-        "icon": "<svg xmlns=\"http://www.w3.org/2000/svg\" class=\"icon icon-tabler icon-tabler-filter\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" stroke-width=\"2\" stroke=\"currentColor\" fill=\"none\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path stroke=\"none\" d=\"M0 0h24v24H0z\" fill=\"none\"></path><path d=\"M5.5 5h13a1 1 0 0 1 .5 1.5l-5 5.5l0 7l-4 -3l0 -4l-5 -5.5a1 1 0 0 1 .5 -1.5\"></path></svg>"
+        "icon": "<i class=\"ti ti-filter-pause fs-2 \"></i>"
       },
       {
         "name": "自定义识别词",
         "page": "customwords",
-        "icon": "<svg xmlns=\"http://www.w3.org/2000/svg\" class=\"icon icon-tabler icon-tabler-a-b\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" stroke-width=\"2\" stroke=\"currentColor\" fill=\"none\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path stroke=\"none\" d=\"M0 0h24v24H0z\" fill=\"none\"></path><path d=\"M3 16v-5.5a2.5 2.5 0 0 1 5 0v5.5m0 -4h-5\"></path><path d=\"M12 6l0 12\"></path><path d=\"M16 16v-8h3a2 2 0 0 1 0 4h-3m3 0a2 2 0 0 1 0 4h-3\"></path></svg>"
+        "icon": "<i class=\"ti ti-text-grammar fs-2 \"></i>"
       }
     ]
   },
@@ -157,32 +157,32 @@
     "level": 1,
     "page": "indexer",
     "group": "系统",
-    "icon": "<svg xmlns=\"http://www.w3.org/2000/svg\" class=\"icon icon-tabler icon-tabler-world-www\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" stroke-width=\"2\" stroke=\"currentColor\" fill=\"none\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path stroke=\"none\" d=\"M0 0h24v24H0z\" fill=\"none\"></path><path d=\"M19.5 7a9 9 0 0 0 -7.5 -4a8.991 8.991 0 0 0 -7.484 4\"></path><path d=\"M11.5 3a16.989 16.989 0 0 0 -1.826 4\"></path><path d=\"M12.5 3a16.989 16.989 0 0 1 1.828 4\"></path><path d=\"M19.5 17a9 9 0 0 1 -7.5 4a8.991 8.991 0 0 1 -7.484 -4\"></path><path d=\"M11.5 21a16.989 16.989 0 0 1 -1.826 -4\"></path><path d=\"M12.5 21a16.989 16.989 0 0 0 1.828 -4\"></path><path d=\"M2 10l1 4l1.5 -4l1.5 4l1 -4\"></path><path d=\"M17 10l1 4l1.5 -4l1.5 4l1 -4\"></path><path d=\"M9.5 10l1 4l1.5 -4l1.5 4l1 -4\"></path></svg>",
+    "icon": "<i class=\"ti ti-world-www fs-2 \"></i>",
     "nav": [
       {
         "name": "BT索引",
         "page": "indexer",
-        "icon": "<svg xmlns=\"http://www.w3.org/2000/svg\" class=\"icon icon-tabler icon-tabler-list-search\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" stroke-width=\"2\" stroke=\"currentColor\" fill=\"none\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path stroke=\"none\" d=\"M0 0h24v24H0z\" fill=\"none\"></path><path d=\"M15 15m-4 0a4 4 0 1 0 8 0a4 4 0 1 0 -8 0\"></path><path d=\"M18.5 18.5l2.5 2.5\"></path><path d=\"M4 6h16\"></path><path d=\"M4 12h4\"></path><path d=\"M4 18h4\"></path></svg>"
+        "icon": "<i class=\"ti ti-world-search fs-2 \"></i>"
       },
       {
         "name": "PT索引",
         "page": "ptindexer",
-        "icon": "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"24\"height=\"24\"viewBox=\"0 0 24 24\"fill=\"none\" stroke=\"currentColor\"stroke-width=\"2\"stroke-linecap=\"round\"stroke-linejoin=\"round\"class=\"icon icon-tabler icons-tabler-outline icon-tabler-vip\"><path stroke=\"none\"d=\"M0 0h24v24H0z\"fill=\"none\"/><path d=\"M3 5h18\"/><path d=\"M3 19h18\"/><path d=\"M4 9l2 6h1l2 -6\"/><path d=\"M12 9v6\"/><path d=\"M16 15v-6h2a2 2 0 1 1 0 4h-2\"/></svg>"
+        "icon": "<i class=\"ti ti-shield-search fs-2 \"></i>"
       },
       {
         "name": "站点维护",
         "page": "site",
-        "icon": "<svg xmlns=\"http://www.w3.org/2000/svg\" class=\"icon icon-tabler icon-tabler-server-2\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" stroke-width=\"2\" stroke=\"currentColor\" fill=\"none\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path stroke=\"none\" d=\"M0 0h24v24H0z\" fill=\"none\"></path><rect x=\"3\" y=\"4\" width=\"18\" height=\"8\" rx=\"3\"></rect><rect x=\"3\" y=\"12\" width=\"18\" height=\"8\" rx=\"3\"></rect><line x1=\"7\" y1=\"8\" x2=\"7\" y2=\"8.01\"></line><line x1=\"7\" y1=\"16\" x2=\"7\" y2=\"16.01\"></line><path d=\"M11 8h6\"></path><path d=\"M11 16h6\"></path></svg>"
+        "icon": "<i class=\"ti ti-settings-search fs-2 \"></i>"
       },
       {
         "name": "数据统计",
         "page": "statistics",
-        "icon": "<svg xmlns=\"http://www.w3.org/2000/svg\" class=\"icon icon-tabler icon-tabler-chart-pie\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" stroke-width=\"2\" stroke=\"currentColor\" fill=\"none\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path stroke=\"none\" d=\"M0 0h24v24H0z\" fill=\"none\"></path><path d=\"M10 3.2a9 9 0 1 0 10.8 10.8a1 1 0 0 0 -1 -1h-6.8a2 2 0 0 1 -2 -2v-7a.9 .9 0 0 0 -1 -.8\"></path><path d=\"M15 3.5a9 9 0 0 1 5.5 5.5h-4.5a1 1 0 0 1 -1 -1v-4.5\"></path> </svg>"
+        "icon": "<i class=\"ti ti-chart-column fs-2 \"></i>"
       },
       {
         "name": "PT刷流",
         "page": "brushtask",
-        "icon": "<svg xmlns=\"http://www.w3.org/2000/svg\" class=\"icon icon-tabler icon-tabler-checklist\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" stroke-width=\"2\" stroke=\"currentColor\" fill=\"none\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path stroke=\"none\" d=\"M0 0h24v24H0z\" fill=\"none\"></path><path d=\"M9.615 20h-2.615a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2h8a2 2 0 0 1 2 2v8\"></path><path d=\"M14 19l2 2l4 -4\"></path><path d=\"M9 8h4\"></path><path d=\"M9 12h2\"></path></svg>"
+        "icon": "<i class=\"ti ti-list-check fs-2 \"></i>"
       }
     ]
   },
@@ -190,12 +190,12 @@
     "name": "插件",
     "page": "plugin",
     "group": "系统",
-    "icon": "<svg xmlns=\"http://www.w3.org/2000/svg\" class=\"icon icon-tabler icon-tabler-brand-codesandbox\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" stroke-width=\"2\" stroke=\"currentColor\" fill=\"none\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path stroke=\"none\" d=\"M0 0h24v24H0z\" fill=\"none\"></path><path d=\"M20 7.5v9l-4 2.25l-4 2.25l-4 -2.25l-4 -2.25v-9l4 -2.25l4 -2.25l4 2.25z\"></path><path d=\"M12 12l4 -2.25l4 -2.25\"></path><path d=\"M12 12l0 9\"></path><path d=\"M12 12l-4 -2.25l-4 -2.25\"></path><path d=\"M20 12l-4 2v4.75\"></path><path d=\"M4 12l4 2l0 4.75\"></path><path d=\"M8 5.25l4 2.25l4 -2.25\"></path></svg>"
+    "icon": "<i class=\"ti ti-chart-grid-dots fs-2 \"></i>"
   },
   {
     "name": "用户",
     "page": "users",
     "group": "系统",
-    "icon": "<svg xmlns=\"http://www.w3.org/2000/svg\" class=\"icon icon-tabler icon-tabler-users\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" stroke-width=\"2\" stroke=\"currentColor\" fill=\"none\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path stroke=\"none\" d=\"M0 0h24v24H0z\" fill=\"none\"></path><path d=\"M9 7m-4 0a4 4 0 1 0 8 0a4 4 0 1 0 -8 0\"></path><path d=\"M3 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2\"></path><path d=\"M16 3.13a4 4 0 0 1 0 7.75\"></path><path d=\"M21 21v-2a4 4 0 0 0 -3 -3.85\"></path></svg>"
+    "icon": "<i class=\"ti ti-users fs-2 \"></i>"
   }
 ]

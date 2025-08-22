@@ -1,13 +1,12 @@
-{% import 'macro/svg.html' as SVG %}
-{% import 'macro/oops.html' as OOPS %}
-
 <style>
   .space-between-box a:hover {
     text-decoration: none;
   }
+
   div.top-sub-navbar>ul>li {
-      margin: 0 1em;
+    margin: 0 1em;
   }
+
 </style>
 <div class="input-group top-sub-navbar" id="downloader-navbar">
   <input type="hidden" id="downloaderId" value="{{ DownloaderId }}">
@@ -30,13 +29,12 @@
       </div>
       <div class="col-auto ms-auto d-print-none">
         <div class="btn-list">
-          <button data-bs-toggle="dropdown" type="button"
-            class="btn btn-primary d-none d-sm-inline-block dropdown-toggle">
-            {{ SVG.plus() }}
+          <button data-bs-toggle="dropdown" type="button" class="btn btn-primary d-none d-sm-inline-flex dropdown-toggle">
+            <i class="ti ti-plus fs-2"></i>
             新增下载
           </button>
           <button data-bs-toggle="dropdown" type="button" class="btn btn-primary d-sm-none btn-icon">
-            {{ SVG.plus() }}
+            <i class="ti ti-plus fs-2"></i>
           </button>
           <div class="dropdown-menu dropdown-menu-end">
             <button class="dropdown-item" onclick="show_torrent_download_modal('torrent')">
@@ -59,39 +57,41 @@
       <div class="card p-0">
         <div class="card-body media-box" style="background-image: url({{ Torrent.backdrop }});">
           <div class="right-top-box">
-            <a href="javascript:remove_pt_download('{{ Torrent.id }}', '{{ Torrent.title }}')" class="text-danger">{{ SVG.x() }}</a>
+            <a href="javascript:remove_pt_download('{{ Torrent.id }}', '{{ Torrent.title }}')" class="text-danger"><i class="ti ti-x fs-2"></i></a>
           </div>
           <div class="row align-items-stretch media-content card-text">
             {% if Torrent.image %}
-            <div class="col-auto p-0 card">
-              {% if Torrent.vote %}
-              <span class="badge badge-pill bg-purple text-white tiny-top-left">{{Torrent.vote}}</span>
-              {% endif %}
+            <div class="col-auto p-0 card cover-container">
               <img src="{{ Torrent.image }}" class="rounded" alt="" style="max-width: 80px;">
             </div>
             {% endif %}
             <div class="col">
               <h3 class="card-title mb-1">               
                 <a href='javascript:navmenu("media_detail?type={{ Torrent.type }}&id={{ Torrent.tmdbid }}")'
-                  class="text-reset card-text">{{
-                  Torrent.title }}</a>
+                  class="text-reset card-text">{{ Torrent.title }}</a>
               </h3>
-              <div id="speed_text_{{ Torrent.id }}">
-                {{ Torrent.speed }}
+              <div>
+                {% if Torrent.vote %}
+                <span class="badge badge-pill bg-purple text-white">{{Torrent.vote}}</span>
+                {% endif %}
+                {% if Torrent.se %}
+                <span class="badge badge-pill bg-gray text-white">{{Torrent.se}}</span>
+                {% endif %}
               </div>
-              <div class="mt-4">
-                <div class="space-between-box">
-                  <div class="col-auto" id="progress_text_{{ Torrent.id }}">
-                    {{ Torrent.sizeprogress }}
-                  </div>
-                  <div class="col-auto">
-                    <a href="javascript:start_pt_download('{{ Torrent.id }}')" id="start_btn_{{ Torrent.id }}"
-                      style="{% if Torrent.state == 'Downloading' %}display:none{% endif %}">{{
-                      SVG.player_play() }}</a>
-                    <a href="javascript:stop_pt_download('{{ Torrent.id }}')" id="stop_btn_{{ Torrent.id }}"
-                      style="{% if Torrent.state == 'Stoped' %}display:none{% endif %}">{{
-                      SVG.player_pause() }}</a>
-                  </div>
+              <div class="download-speed-indicator">
+                <span class="badge badge-outline text-teal" title="站点">{{ Torrent.site }}</span>
+                <i class="ti ti-arrow-down"></i><span class="txt-download-speed" id="dlspeed_txt_{{ Torrent.id }}">{{Torrent.dlspeed}}</span> 
+                <i class="ti ti-arrow-up"></i><span class="txt-upload-speed" id="upspeed_txt_{{ Torrent.id }}">{{Torrent.upspeed}}</span>
+              </div>
+              <div class="space-between-box">
+                <div class="col-auto" id="progress_text_{{ Torrent.id }}">
+                  {{ Torrent.sizeprogress }}
+                </div>
+                <div class="col-auto">
+                  <a href="javascript:start_pt_download('{{ Torrent.id }}')" id="start_btn_{{ Torrent.id }}"
+                    style="{% if Torrent.state == 'Downloading' %}display:none{% endif %}"><i class="ti ti-player-play fs-2"></i></a>
+                  <a href="javascript:stop_pt_download('{{ Torrent.id }}')" id="stop_btn_{{ Torrent.id }}"
+                    style="{% if Torrent.state == 'Stoped' %}display:none{% endif %}"><i class="ti ti-player-pause fs-2"></i></a>
                 </div>
               </div>
               <div class="progress progress-sm progress-bottom">
@@ -110,7 +110,7 @@
   </div>
 </div>
 {% else %}
-{{ OOPS.nodatafound('没有下载任务', '当前下载器中没有正在下载的任务。') }}
+<nodata-found title="没有下载任务" text="当前下载器中没有正在下载的任务。"></nodata-found>
 {% endif %}
 <script type="text/javascript">
 
@@ -175,7 +175,9 @@
 
   //更新单个种子的页面信息
   function update_torrent_ui(info) {
-    $(`#speed_text_${info.id}`).text(info.speed);
+    // $(`#speed_text_${info.id}`).text(info.speed);
+    $(`#dlspeed_txt_${info.id}`).text(info.dlspeed);
+    $(`#upspeed_txt_${info.id}`).text(info.upspeed);
     $(`#progress_text_${info.id}`).text(`${info.sizeprogress}`);
     $(`#progress_${info.id}`).attr("style", `width: ${info.progress}%`)
       .attr("aria-valuenow", info.progress);

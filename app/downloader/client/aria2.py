@@ -169,6 +169,8 @@ class Aria2(_IDownloadClient):
             if torrent.get('status') in ['paused']:
                 state = "Stoped"
                 speed = "已暂停"
+                _dlspeed = '0'
+                _upspeed = '0'
             else:
                 state = "Downloading"
                 _dlspeed = StringUtils.str_filesize(torrent.get('downloadSpeed'))
@@ -179,6 +181,8 @@ class Aria2(_IDownloadClient):
                 'id': torrent.get('gid'),
                 'name': torrent.get('bittorrent', {}).get('info', {}).get("name"),
                 'speed': speed,
+                'dlspeed': _dlspeed,
+                'upspeed': _upspeed,
                 'state': state,
                 'progress': progress,
                  "sizeprogress": ("%sB / %sB" % (StringUtils.str_filesize(downloaded), StringUtils.str_filesize(total_size))).replace('BB', 'B')

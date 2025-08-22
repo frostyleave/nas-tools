@@ -498,6 +498,8 @@ class Transmission(_IDownloadClient):
         Torrents = self.get_downloading_torrents(tag=tag, ids=ids) or []
         DispTorrents = []
         for torrent in Torrents:
+            _dlspeed = '0'
+            _upspeed = '0'
             if torrent.status in ['stopped']:
                 state = "Stoped"
                 speed = "已暂停"
@@ -522,6 +524,8 @@ class Transmission(_IDownloadClient):
                 'id': torrent.hashString,
                 'name': torrent.name,
                 'speed': speed,
+                'dlspeed': _dlspeed,
+                'upspeed': _upspeed,
                 'state': state,
                 'progress': progress,
                 'sizeprogress': sizeprogress

@@ -215,7 +215,8 @@ class Gopeed(_IDownloadClient):
 
                 total_size = res_info.get("size", 1)
                 downloaded = progress_info.get("downloaded", 0)
-
+                _dlspeed = '0'
+                _upspeed = '0'
                 try:
                     progress = round(int(downloaded) / int(total_size), 1) * 100
                 except:  # noqa: E722
@@ -248,6 +249,8 @@ class Gopeed(_IDownloadClient):
                         "id": torrent.get("id"),
                         "name": name,
                         "speed": speed,
+                        'dlspeed': _dlspeed,
+                        'upspeed': _upspeed,
                         "state": state,
                         "progress": progress,
                         "sizeprogress": ("%sB / %sB" % (StringUtils.str_filesize(downloaded), StringUtils.str_filesize(total_size))).replace('BB', 'B')

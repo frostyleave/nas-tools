@@ -371,7 +371,7 @@ class AutoSignIn(_IPluginModule):
             # 签到汇总信息
             self.send_message(title="自动签到任务完成",
                               text=f"签到成功站点: {','.join(success_sites_name)} \n"
-                                   f"签到失败站点: {'\n'.join(failed_sites_info)} \n"
+                                   f"签到失败站点: {','.join(failed_sites_info)} \n"
                                    f"命中重试站点: {','.join(retry_sites_name)} \n"
                                    f"强制签到数量: {len(self._special_sites)} \n"
                                    f"下次签到时间: {next_run_time}",

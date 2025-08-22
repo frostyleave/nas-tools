@@ -1,4 +1,3 @@
-{% import 'macro/svg.html' as SVG %}
 {% import 'macro/form.html' as FORM %}
 
 <style>
@@ -94,7 +93,7 @@
             <div class="card-header">
               <h3 class="card-title"><strong>电影</strong></h3>
               <a href="javascript:show_directory_modal('movie')" class="btn btn-primary btn-icon ms-auto">
-                {{ SVG.plus() }}
+                <i class="ti ti-plus fs-2"></i>
               </a>
             </div>
             <div class="table-responsive">
@@ -115,7 +114,7 @@
                       </td>
                       <td>
                         <a href="javascript:sub_directory_config('movie', '{{ path }}')" title="删除目录">
-                          {{ SVG.x() }}
+                          <i class="ti ti-x fs-2"></i>
                         </a>
                       </td>
                     </tr>
@@ -135,7 +134,7 @@
             <div class="card-header">
               <h3 class="card-title"><strong>电视剧</strong></h3>
               <a href="javascript:show_directory_modal('tv')" class="btn btn-primary btn-icon ms-auto">
-                {{ SVG.plus() }}
+                <i class="ti ti-plus fs-2"></i>
               </a>
             </div>
             <div class="table-responsive">
@@ -156,7 +155,7 @@
                       </td>
                       <td>
                         <a href="javascript:sub_directory_config('tv', '{{ path }}')" title="删除目录">
-                          {{ SVG.x() }}
+                          <i class="ti ti-x fs-2"></i>
                         </a>
                       </td>
                     </tr>
@@ -176,7 +175,7 @@
             <div class="card-header">
               <h3 class="card-title"><strong>动漫</strong></h3>
               <a href="javascript:show_directory_modal('anime')" class="btn btn-primary btn-icon ms-auto">
-                {{ SVG.plus() }}
+                <i class="ti ti-plus fs-2"></i>
               </a>
             </div>
             <div class="table-responsive">
@@ -197,7 +196,7 @@
                       </td>
                       <td>
                         <a href="javascript:sub_directory_config('anime', '{{ path }}')" title="删除目录">
-                          {{ SVG.x() }}
+                          <i class="ti ti-x fs-2"></i>
                         </a>
                       </td>
                     </tr>
@@ -217,7 +216,7 @@
             <div class="card-header">
               <h3 class="card-title"><strong>未识别</strong></h3>
               <a href="javascript:show_directory_modal('unknown')" class="btn btn-primary btn-icon ms-auto">
-                {{ SVG.plus() }}
+                <i class="ti ti-plus fs-2"></i>
               </a>
             </div>
             <div class="table-responsive">
@@ -238,7 +237,7 @@
                       </td>
                       <td>
                         <a href="javascript:sub_directory_config('unknown', '{{ path }}')" title="删除目录">
-                          {{ SVG.x() }}
+                          <i class="ti ti-x fs-2"></i>
                         </a>
                       </td>
                     </tr>
