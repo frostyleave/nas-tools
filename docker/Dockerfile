@@ -1,10 +1,12 @@
-FROM python:3.11-slim AS Builder
+FROM python:3.11-slim-bookworm AS base
+
+# 设置环境变量避免 tzdata 等交互
+ENV DEBIAN_FRONTEND=noninteractive
 
 # 安装构建依赖和运行所需的依赖包
 RUN apt-get update -y \
-     && apt-get upgrade -y \
-     && apt-get install -y build-essential \
      && apt-get install -y --no-install-recommends \
+        build-essential \
         gosu \
         bash \
         busybox \
@@ -50,11 +52,11 @@ RUN mkdir -p /ms-playwright
 ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
 
 # 升级 pip、setuptools、 wheel, 
-RUN pip install --upgrade pip setuptools==70.1.1 wheel \
-    && pip install cython \
+RUN pip install --no-cache-dir --upgrade pip setuptools==70.1.1 wheel \
+    && pip install --no-cache-dir cython \
     && pip install --no-cache-dir playwright \
     && python -m playwright install chromium \
-    && pip install -r https://raw.githubusercontent.com/frostyleave/nas-tools/dev/requirements.txt \
+    && pip install -r https://raw.githubusercontent.com/frostyleave/nas-tools/master/requirements.txt \
     && apt-get remove -y build-essential \
     && apt-get autoremove -y \
     && apt-get clean -y \
@@ -67,10 +69,10 @@ RUN pip install --upgrade pip setuptools==70.1.1 wheel \
 # 复制 rootfs
 COPY --chmod=755 ./rootfs /
 
-FROM scratch AS APP
+FROM base AS final
 
-# 从 Builder 阶段复制文件
-COPY --from=Builder / /
+# 从 base 阶段复制文件
+COPY --from=base / /
 
 # 设置环境变量
 ENV S6_SERVICES_GRACETIME=30000 \
@@ -86,7 +88,7 @@ ENV S6_SERVICES_GRACETIME=30000 \
     NASTOOL_CONFIG="/config/config.yaml" \
     NASTOOL_AUTO_UPDATE=false \
     NASTOOL_CN_UPDATE=false \
-    NASTOOL_VERSION=dev \
+    NASTOOL_VERSION=master \
     PS1="\u@\h:\w \$ " \
     REPO_URL="https://github.com/frostyleave/nas-tools.git" \
     PYPI_MIRROR="https://pypi.tuna.tsinghua.edu.cn/simple" \
@@ -108,7 +110,7 @@ RUN mkdir ${HOME} \
     && echo 'fs.inotify.max_user_instances=5242880' >> /etc/sysctl.conf \
     && echo "nt ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers \
     && git config --global pull.ff only \
-    && git clone -b dev ${REPO_URL} ${WORKDIR} --depth=1 --recurse-submodule \
+    && git clone -b master ${REPO_URL} ${WORKDIR} --depth=1 --recurse-submodule \
     && git config --global --add safe.directory ${WORKDIR} \
     && cp -f /nas-tools/docker/entrypoint.sh /entrypoint.sh \
     && chmod +x /entrypoint.sh
