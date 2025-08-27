@@ -390,14 +390,14 @@ class AutoSignIn(_IPluginModule):
         """
         签到一个站点
         """
-        try:
-            site_module = self.__build_class(site_info.get("signurl"))
-            if site_module and hasattr(site_module, "signin"):
+        site_module = self.__build_class(site_info.get("signurl"))
+        if site_module and hasattr(site_module, "signin"):
+            try:
                 return site_module().signin(site_info)
-            else:
-                return self.__signin_base(site_info)
-        except Exception as e:
-            return False, f"[{site_info.get('name')}]签到失败：{str(e)}"
+            except Exception as e:
+                return False, f"[{site_info.get('name')}]签到失败：{str(e)}"
+        else:
+            return self.__signin_base(site_info)
 
     def __signin_base(self, site_info) -> Tuple[bool, str]:
         """
