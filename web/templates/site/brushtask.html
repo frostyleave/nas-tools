@@ -1,5 +1,3 @@
-{% import 'macro/svg.html' as SVG %}
-{% import 'macro/oops.html' as OOPS %}
 <div class="container-xl">
   <!-- Page title -->
   <div class="page-header d-print-none">
@@ -8,26 +6,26 @@
       </div>
       <div class="col-auto ms-auto d-print-none">
         <div class="btn-list">
-          <a href="javascript:show_brushtask_modal()" class="btn btn-primary d-none d-sm-inline-block">
-            {{ SVG.plus() }}
+          <a href="javascript:show_brushtask_modal()" class="btn btn-primary d-none d-sm-inline-flex">
+            <i class="ti ti-plus fs-2"></i>
             新建任务
           </a>
           <a href="javascript:show_brushtask_modal()" class="btn btn-primary d-sm-none btn-icon">
-            {{ SVG.plus() }}
+            <i class="ti ti-plus fs-2"></i>
           </a>
-          <a href="javascript:update_brushtask_state('Y')" class="btn btn-success ms-auto d-none d-sm-inline-block">
-            {{ SVG.player_play() }}
+          <a href="javascript:update_brushtask_state('Y')" class="btn btn-success ms-auto d-none d-sm-inline-flex">
+            <i class="ti ti-player-play fs-2"></i>
             启动
           </a>
           <a href="javascript:update_brushtask_state('Y')" class="btn btn-success d-sm-none btn-icon">
-            {{ SVG.player_play() }}
+            <i class="ti ti-player-play fs-2"></i>
           </a>
-          <a href="javascript:update_brushtask_state('N')" class="btn btn-secondary ms-auto d-none d-sm-inline-block">
-            {{ SVG.player_stop() }}
+          <a href="javascript:update_brushtask_state('N')" class="btn btn-secondary ms-auto d-none d-sm-inline-flex">
+            <i class="ti ti-player-stop fs-2"></i>
             停止
           </a>
           <a href="javascript:update_brushtask_state('N')" class="btn btn-secondary d-sm-none btn-icon">
-            {{ SVG.player_stop() }}
+            <i class="ti ti-player-stop fs-2"></i>
           </a>
         </div>
       </div>
@@ -60,15 +58,14 @@
                 </div>
               </a>
               <div class="ms-2 d-none d-sm-block">
-                <a href="javascript:run_brushtask_now('{{ Task.id }}')" class="btn-icon" title="立即运行任务"
-                   data-bs-toggle="tooltip">
-                  {{ SVG.bolt('icon-filled') }}
+                <a href="javascript:run_brushtask_now('{{ Task.id }}')" class="btn-icon" title="立即运行任务" data-bs-toggle="tooltip">
+                  <i class="ti ti-bolt fs-2"></i>
                 </a>
               </div>
               <div class="text-muted ms-3" id="detail_size_{{ Task.id }}"
                 style="display: {% if Count > 2 %}block{% else %}none{% endif %};">↑{{ Task.upload_size }}  ↓{{ Task.download_size }}</div>
               <a href="#" class="link-secondary ms-auto d-sm-none" data-bs-toggle="dropdown" aria-expanded="false">
-                {{ SVG.dots() }}
+                <i class="ti ti-dots fs-2"></i>
               </a>
               <div class="dropdown-menu dropdown-menu-end">
                 <button class="dropdown-item text-info" onclick="run_brushtask_now('{{ Task.id }}')">
@@ -85,21 +82,17 @@
                 </button>
               </div>
               <div class="card-actions btn-actions d-none d-sm-block">
-                <a href="javascript:void(0)" onclick="show_brushtask_detail('{{ Task.id }}')" class="btn-action"
-                   title="展开/折叠">
-                  {{ SVG.menu_2() }}
+                <a href="javascript:void(0)" onclick="show_brushtask_detail('{{ Task.id }}')" class="btn-action" title="展开/折叠">
+                  <i class="ti ti-menu-2 fs-2"></i>
                 </a>
-                <a href="javascript:show_brushtask_torrents_modal('{{ Task.id }}')" class="btn-action"
-                   title="查看种子明细">
-                  {{ SVG.eye() }}
+                <a href="javascript:show_brushtask_torrents_modal('{{ Task.id }}')" class="btn-action" title="查看种子明细">
+                  <i class="ti ti-eye fs-2"></i>
                 </a>
-                <a href="javascript:edit_brushtask_modal('{{ Task.id }}')" class="btn-action"
-                  title="编辑任务">
-                  {{ SVG.edit() }}
+                <a href="javascript:edit_brushtask_modal('{{ Task.id }}')" class="btn-action" title="编辑任务">
+                  <i class="ti ti-edit fs-2"></i>
                 </a>
-                <a href="javascript:del_brushtask_modal('{{ Task.id }}', '{{ Task.name }}')" class="btn-action"
-                   title="删除任务">
-                  {{ SVG.x() }}
+                <a href="javascript:del_brushtask_modal('{{ Task.id }}', '{{ Task.name }}')" class="btn-action" title="删除任务">
+                  <i class="ti ti-x fs-2"></i>
                 </a>
               </div>
             </div>
@@ -239,7 +232,7 @@
     </div>
   </div>
 {% else %}
-{{ OOPS.nodatafound('没有任务', '当前没有正在运行的刷流任务。') }}
+<nodata-found title="没有任务" text="当前没有正在运行的刷流任务。"></nodata-found>
 {% endif %}
 <div class="modal modal-blur fade" id="modal-brushtask" tabindex="-1" role="dialog" aria-hidden="true"
      data-bs-backdrop="static" data-bs-keyboard="false">

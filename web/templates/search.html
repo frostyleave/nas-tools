@@ -1,5 +1,3 @@
-{% import 'macro/svg.html' as SVG %}
-{% import 'macro/oops.html' as OOPS %}
 <div class="container-xl">
   <!-- Page title -->
   <div class="page-header d-print-none d-none d-md-block">
@@ -24,12 +22,12 @@
           <div class="card bg-transparent border-0">
             <div class="ribbon g-cyan d-md-none">
               <a class="text-white" href="javascript:show_search_filter_modal('{{ Item.key }}')">
-                {{ SVG.filter() }}
+                <i class="ti ti-filter fs-2"></i>
               </a>
             </div>
             {% if Item.fav == "2" %}
             <div class="badge badge-pill bg-green d-md-none" style="position:absolute;top:20px;right:50px;padding:0;">
-              {{ SVG.check() }}
+              <i class="ti ti-check fs-2"></i>
             </div>
             {% endif %}
             <div class="card-body ps-1 pe-1">
@@ -126,15 +124,15 @@
                       {% if Item.tmdbid and Item.tmdbid != '0' %}
                       <div class="list-inline list-inline-dots mb-0 text-muted">
                         <div class="list-inline-item">
-                          {{ SVG.video() }}
+                          <i class="ti ti-video"></i>
                           {{ Item.type }}
                         </div>
                         <div class="list-inline-item">
-                          {{ SVG.star() }}
+                          <i class="ti ti-star"></i>
                           {{ Item.vote or '暂无评分' }}
                         </div>
                         <div class="list-inline-item">
-                          {{ SVG.info_circle() }}
+                          <i class="ti ti-info-circle"></i>
                           <a href="{% if Item.type == '电影' %}https://www.themoviedb.org/movie/{{ Item.tmdbid }}{% else %}https://www.themoviedb.org/tv/{{ Item.tmdbid }}{% endif %}" target="_blank">{{ Item.tmdbid }}</a>
                         </div>
                       </div>
@@ -205,7 +203,7 @@
                                       </a>
                                       {% if Item.tmdbid == '0' or not Item.tmdbid %}
                                       <a class="ms-2 mb-1" title="名称测试" href='javascript:nametest("{{ torrent.id }}")' data-bs-toggle="tooltip">
-                                        {{ SVG.text_recognition() }}
+                                        <i class="ti ti-text-recognition"></i>
                                       </a>
                                       {% endif %}
                                       <div class="mb-1">
@@ -251,13 +249,13 @@
                                     </div>
                                     <div class="col-auto ms-2 d-none d-md-inline-block">
                                       <a href='javascript:download_search_resource("{{ torrent.id }}")' class="link-secondary" title="下载">
-                                        {{ SVG.download() }}
+                                        <i class="ti ti-download fs-2"></i>
                                       </a>
                                     </div>
                                     <div class="col-auto lh-1 ms-2 d-none d-md-inline-block">
                                       <div class="dropdown">
                                         <a href="#" class="link-secondary" data-bs-toggle="dropdown" aria-expanded="false">
-                                          {{ SVG.dots() }}
+                                          <i class="ti ti-dots fs-2"></i>
                                         </a>
                                         <div class="dropdown-menu dropdown-menu-end" style="">
                                           {% if torrent.enclosure and torrent.enclosure.startswith('http') %}
@@ -292,7 +290,7 @@
     </div>
   </div>
 {% else %}
-{{ OOPS.empty('没有搜索结果', '输入想看的电影、电视剧名称，点击搜索试试看吧。') }}
+<empty-content title="没有搜索结果" text="输入想看的电影、电视剧名称，点击搜索试试看吧。"></empty-content>
 {% endif %}
 <!-- 搜索结果过滤弹窗 -->
 {% for Title, Item in Results.items() %}

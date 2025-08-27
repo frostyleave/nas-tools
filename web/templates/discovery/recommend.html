@@ -1,7 +1,3 @@
-{% import 'macro/oops.html' as OOPS %}
-{% import 'macro/form.html' as FORM %}
-{% import 'macro/svg.html' as SVG %}
-
 <div class="container-xl">
   <!-- Page title -->
   <div class="page-header d-print-none">
@@ -9,11 +5,6 @@
       <div class="col">
         <h2 class="page-title" id="recommend_title"></h2>
         <div class="text-muted mt-1" id="recommend_subtitle"></div>
-      </div>
-      <div class="col-auto ms-auto d-print-none">
-        <div class="btn-list">
-          {{ FORM.gen_recommend_filter_dropdown(FilterConf, Params) }}
-        </div>
       </div>
     </div>
   </div>
@@ -179,5 +170,5 @@
 
 </script>
 <script type="text/html" id="no_recommend_html">
-{{ OOPS.empty('没有数据。', '') }}
+<empty-content title="没有数据" text=""></empty-content>
 </script>

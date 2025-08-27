@@ -1,5 +1,3 @@
-{% import 'macro/svg.html' as SVG %}
-{% import 'macro/oops.html' as OOPS %}
 <div class="container-xl">
   <!-- Page title -->
   <div class="page-header d-print-none">
@@ -11,26 +9,26 @@
       </div>
       <div class="col-auto ms-auto d-print-none">
         <div class="btn-list">
-          <a href="javascript:show_mediasync_modal()" class="btn btn-primary d-none d-sm-inline-block">
-            {{ SVG.refresh() }}
+          <a href="javascript:show_mediasync_modal()" class="btn btn-primary d-none d-sm-inline-flex">
+            <i class="ti ti-refresh fs-2"></i>
             媒体库同步
           </a>
           <a href="javascript:show_mediasync_modal()" class="btn btn-primary d-sm-none btn-icon">
-            {{ SVG.refresh() }}
+            <i class="ti ti-refresh fs-2"></i>
           </a>
-          <button class="btn btn-cyan d-none d-sm-inline-block" data-bs-toggle="modal" data-bs-target="#modal-index-statistics">
-            {{ SVG.pie() }}
+          <button class="btn btn-cyan d-none d-sm-inline-flex" data-bs-toggle="modal" data-bs-target="#modal-index-statistics">
+            <i class="ti ti-chart-pie fs-2"></i>
             统计数据
           </button>
           <button class="btn btn-cyan d-sm-none btn-icon" data-bs-toggle="modal" data-bs-target="#modal-index-statistics">
-            {{ SVG.pie() }}
+            <i class="ti ti-chart-pie fs-2"></i>
           </button>
-          <button class="btn d-none d-sm-inline-block" data-bs-toggle="modal" data-bs-target="#modal-index-playhistory">
-            {{ SVG.history() }}
+          <button class="btn d-none d-sm-inline-flex" data-bs-toggle="modal" data-bs-target="#modal-index-playhistory">
+            <i class="ti ti-history fs-2"></i>
             播放记录
           </button>
           <button class="btn d-sm-none btn-icon" data-bs-toggle="modal" data-bs-target="#modal-index-playhistory">
-            {{ SVG.history() }}
+            <i class="ti ti-history fs-2"></i>
           </button>
         </div>
       </div>
@@ -155,7 +153,7 @@
 {% endif %}
 {% endwith %}
 {% else %}
-{{ OOPS.systemerror('媒体服务器连接失败！', '当前无法连接媒体服务器获取数据，请确认Emby/Jellyfin/Plex配置是否正确。') }}
+<system-error title="媒体服务器连接失败！" text="当前无法连接媒体服务器获取数据，请确认Emby/Jellyfin/Plex配置是否正确。"></system-error>
 {% endif %}
 <div class="modal modal-blur fade" id="index-mediasync-modal" tabindex="-1" role="dialog" aria-hidden="true">
   <div class="modal-dialog modal-md modal-dialog-centered" role="document">
@@ -214,9 +212,9 @@
                   <div class="col-auto">
                 <span class="avatar">
                   {% if Activity.type == "LG" %}
-                    {{ SVG.user() }}
+                    <i class="ti ti-user fs-2"></i>
                   {% else %}
-                    {{ SVG.player_play() }}
+                    <i class="ti ti-player-play fs-2"></i>
                   {% endif %}
                 </span>
                   </div>

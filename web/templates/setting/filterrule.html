@@ -1,5 +1,3 @@
-{% import 'macro/svg.html' as SVG %}
-{% import 'macro/oops.html' as OOPS %}
 <div class="container-xl">
   <!-- Page title -->
   <div class="page-header d-print-none">
@@ -8,26 +6,26 @@
       </div>
       <div class="col-auto ms-auto d-print-none">
         <div class="btn-list">
-          <a href="javascript:show_add_filtergroup_modal()" class="btn btn-primary d-none d-sm-inline-block">
-            {{ SVG.plus() }}
+          <a href="javascript:show_add_filtergroup_modal()" class="btn btn-primary d-none d-sm-inline-flex">
+            <i class="ti ti-plus fs-2"></i>
             新增
           </a>
           <a href="javascript:show_add_filtergroup_modal()" class="btn btn-primary d-sm-none btn-icon">
-            {{ SVG.plus() }}
+            <i class="ti ti-plus fs-2"></i>
           </a>
-          <a href="javascript:show_restore_filtergroup_modal()" class="btn btn-twitter d-none d-sm-inline-block">
-            {{ SVG.reload() }}
+          <a href="javascript:show_restore_filtergroup_modal()" class="btn btn-twitter d-none d-sm-inline-flex">
+            <i class="ti ti-reload fs-2"></i>
             恢复
           </a>
           <a href="javascript:show_restore_filtergroup_modal()" class="btn btn-twitter d-sm-none btn-icon">
-            {{ SVG.reload() }}
+            <i class="ti ti-reload fs-2"></i>
           </a>
-          <a href="javascript:show_import_filtergroup_modal()" class="btn d-none d-sm-inline-block">
-            {{ SVG.transfer_in() }}
+          <a href="javascript:show_import_filtergroup_modal()" class="btn d-none d-sm-inline-flex">
+            <i class="ti ti-transfer-in fs-2"></i>
             导入
           </a>
           <a href="javascript:show_import_filtergroup_modal()" class="btn d-sm-none btn-icon">
-            {{ SVG.transfer_in() }}
+            <i class="ti ti-transfer-in fs-2"></i>
           </a>
         </div>
       </div>
@@ -45,26 +43,26 @@
               <h3 class="card-title"><strong>{{ RuleGroup.name }}</strong></h3>
               <div class="card-actions btn-actions">
                 <a href="javascript:void(0)" onclick="show_filterrule_detail('{{ RuleGroup.id }}')" class="btn-action ms-1" title="折叠">
-                  {{ SVG.menu_2() }}
+                  <i class="ti ti-menu-2 fs-2"></i>
                 </a>
                 <a href="javascript:share_filtergroup('{{ RuleGroup.id }}')" class="btn-action" title="分享规则组">
-                  {{ SVG.share() }}
+                  <i class="ti ti-share fs-2"></i>
                 </a>
                 <a href="javascript:set_default_filtergroup('{{ RuleGroup.id }}')" class="btn-action"
                    title="设置/取消默认">
                   {% if RuleGroup.default == 'Y' %}
-                    <span class="text-purple">{{ SVG.star('icon-filled') }}</span>
+                    <i class="ti ti-star-filled fs-2 text-purple"></i>
                   {% else %}
-                    {{ SVG.star() }}
+                    <i class="ti ti-star fs-2"></i>
                   {% endif %}
                 </a>
                 <a href="javascript:show_add_filterrule_modal('{{ RuleGroup.id }}', '{{ RuleGroup.name }}')"
                    class="btn-action" title="增加规则">
-                  {{ SVG.plus() }}
+                  <i class="ti ti-plus fs-2"></i>
                 </a>
                 <a href="javascript:del_filtergroup_modal('{{ RuleGroup.id }}', '{{ RuleGroup.name }}')"
                    class="btn-action" title="删除规则组">
-                  {{ SVG.x() }}
+                  <i class="ti ti-x fs-2"></i>
                 </a>
               </div>
             </div>
@@ -102,7 +100,7 @@
                     </div>
                   {% endfor %}
                 {% else %}
-                  {{ OOPS.empty('没有规则', '请点击"+"添加规则。') }}
+                  <empty-content title="没有规则" text='请点击"+"添加规则。'></empty-content>
                 {% endif %}
               </div>
             </div>
@@ -112,7 +110,7 @@
     </div>
   </div>
 {% else %}
-  {{ OOPS.empty('没有规则', '没有配置任何规则，请点击“新增规则组“按钮。') }}
+   <empty-content title="没有规则" text='没有配置任何规则，请点击“新增规则组“按钮。'></empty-content>
 {% endif %}
 <div class="modal modal-blur fade" id="modal-add-filterrule" tabindex="-1" role="dialog" aria-hidden="true"
      data-bs-backdrop="static" data-bs-keyboard="false">

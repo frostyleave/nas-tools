@@ -703,4 +703,41 @@ body, .page {
     top: 5px;
     font-size: xx-small;
   }
+
+  .download-speed-indicator {
+    padding: 8px 0;
+  }
   
+  .txt-download-speed {
+    color: greenyellow;
+    font-weight: 600;
+    padding: 0 5px;
+  }
+  
+  .txt-upload-speed {
+    color: #ffa726;
+    font-weight: 600;
+    padding: 0 5px;
+  }
+
+  .cover-container img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+  }
+
+  a:hover {
+    text-decoration: none;
+  }
+
+  /* 自定义图标 jellyfin */
+  .ti.ti-jellyfin::before {
+    content: "";
+    display: inline-block;
+    width: 1em;
+    height: 1em;
+    background-color: currentColor;
+    -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cg %3E%3Cpath d='M12.001 9.663c-.877 0-3.704 5.127-3.275 5.99.43.865 6.125.856 6.55 0 .425-.854-2.394-5.99-3.275-5.99z'/%3E%3Cpath d='M12.001 2C9.354 2 .836 17.446 2.134 20.055c1.298 2.608 18.45 2.578 19.735 0C23.154 17.476 14.649 2 12 2Zm6.468 15.794c-.842 1.69-12.08 1.71-12.932 0-.85-1.71 4.732-11.832 6.464-11.832 1.732 0 7.31 10.139 6.468 11.832z'/%3E%3C/g%3E%3C/svg%3E") no-repeat center / contain;
+    mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cg %3E%3Cpath d='M12.001 9.663c-.877 0-3.704 5.127-3.275 5.99.43.865 6.125.856 6.55 0 .425-.854-2.394-5.99-3.275-5.99z'/%3E%3Cpath d='M12.001 2C9.354 2 .836 17.446 2.134 20.055c1.298 2.608 18.45 2.578 19.735 0C23.154 17.476 14.649 2 12 2Zm6.468 15.794c-.842 1.69-12.08 1.71-12.932 0-.85-1.71 4.732-11.832 6.464-11.832 1.732 0 7.31 10.139 6.468 11.832z'/%3E%3C/g%3E%3C/svg%3E") no-repeat center / contain;
+  }

@@ -1,7 +1,3 @@
-{% import 'macro/svg.html' as SVG %}
-{% import 'macro/form.html' as FORM %}
-{% import 'macro/oops.html' as OOPS %}
-
 <style>
 
   .text-desc {
@@ -33,19 +29,19 @@
     <h2 class="page-title">下载器</h2>
     <div class="col-auto ms-auto d-print-none">
       <div class="btn-list">
-        <a href="javascript:show_add_downloader_modal()" class="btn btn-primary d-none d-sm-inline-block">
-          {{ SVG.plus() }}
+        <a href="javascript:show_add_downloader_modal()" class="btn btn-primary d-none d-sm-inline-flex">
+          <i class="ti ti-plus fs-2"></i>
           新增下载器
         </a>
         <a href="javascript:show_add_downloader_modal()" class="btn btn-primary d-sm-none btn-icon" title="下载目录">
-          {{ SVG.plus() }}
+          <i class="ti ti-plus fs-2"></i>
         </a>
-        <a href="javascript:goto_download_setting()" class="btn d-none d-sm-inline-block">
-          {{ SVG.settings() }}
+        <a href="javascript:goto_download_setting()" class="btn d-none d-sm-inline-flex">
+          <i class="ti ti-settings fs-2"></i>
           下载设置
         </a>
         <a href="javascript:goto_download_setting()" class="btn d-sm-none btn-icon" title="下载设置">
-          {{ SVG.settings() }}
+          <i class="ti ti-settings fs-2"></i>
         </a>
       </div>
     </div>
@@ -61,14 +57,14 @@
           <div class="card-cover card-cover-blurred text-center"
                {% if DownloaderConf[Attr.type].color %}style="background-color: {{ DownloaderConf[Attr.type].color }}"{% endif %}>
               <span onclick="event.stopPropagation();set_default_downloader('{{ Attr.id }}')"
-                    class="btn-action p-1"
+                    class="btn-action p-1 d-inline-flex"
                     title="设置默认" style="position:absolute;top:5px;right:5px;z-index:1;"
                     data-bs-toggle="tooltip"
               >
                 {% if DefaultDownloader == Id %}
-                  {{ SVG.star('icon-filled w-100 h-100 text-purple') }}
+                  <i class="ti ti-star-filled fs-2 text-purple"></i>
                 {% else %}
-                  {{ SVG.star('w-100 h-100 text-muted') }}
+                  <i class="ti ti-star fs-2 text-muted"></i>
                 {% endif %}
               </span>
             <span class="avatar avatar-xl avatar-thumb avatar-rounded" style="background-image: url('{{ DownloaderConf[Attr.type].img_url }}')"></span>
@@ -113,12 +109,12 @@
     <h2 class="page-title">插件</h2>
     <div class="col-auto ms-auto d-print-none">
       <div class="btn-list">
-        <a href="javascript:show_plugin_apps_modal()" class="btn btn-primary d-none d-sm-inline-block">
-          {{ SVG.apps() }}
+        <a href="javascript:show_plugin_apps_modal()" class="btn btn-primary d-none d-sm-inline-flex">
+          <i class="ti ti-apps fs-2"></i>
           插件市场
         </a>
         <a href="javascript:show_plugin_apps_modal()" class="btn btn-primary d-sm-none btn-icon">
-          {{ SVG.apps() }}
+          <i class="ti ti-apps fs-2"></i>
         </a>
       </div>
     </div>
@@ -154,7 +150,7 @@
     </div>
   </div>
   {% else %}
-  {{ OOPS.empty('没有插件', '没有安装任何插件，请前往插件市场选择安装。') }}
+  <empty-content title="没有插件" text='没有安装任何插件，请前往插件市场选择安装。'></empty-content>
   {% endif %}
 </div>
 
@@ -212,11 +208,7 @@
               </div>
             {% endfor %}
           </div>
-          {% for Id, Attr in DownloaderConf.items() %}
-          <div id="div_downloader_config_{{ Id }}">
-            {{ FORM.gen_form_empty_elements(Attr.config) }}
-          </div>
-          {% endfor %}
+          <div id="downloader_config_box"></div>
           <div class="row" id="div_downloader_transfer">
             <div class="col-lg">
               <div class="mb-3">
@@ -265,7 +257,7 @@
             </summary>
             <div class="row mt-2" id="div_downloader_downloaddir"></div>
             <div class="ms-2 mt-2">
-              <a href="javascript:add_downloaddir()" class="btn-icon" title="增加目录">{{ SVG.folder_plus() }}</a>
+              <a href="javascript:add_downloaddir()" class="btn-icon" title="增加目录"><i class="ti ti-folder-plus fs-2"></i></a>
             </div>
           </details>
         </div>
@@ -302,7 +294,7 @@
       <div class="modal-content">
         <div class="modal-header">
           <h5 class="modal-title">插件市场</h5>
-          <button type="button" class="btn-action" aria-label="Settings" onclick="show_external_settings_page()">{{ SVG.settings() }}</button>
+          <button type="button" class="btn-action" aria-label="Settings" onclick="show_external_settings_page()"><i class="ti ti-settings fs-2"></i></button>
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
         <div>
@@ -397,7 +389,7 @@
         </div>
         <div class="col-12 col-lg mb-1 align-self-center" style="text-align: center">
           <a href="javascript:del_downloaddir('{DIRDIV_LEVEL}')" class="btn-icon text-red" title="删除目录">
-            {{ SVG.circle_minus() }}
+            <i class="ti ti-circle-minus fs-2"></i>
           </a>
         </div>
       </div>
@@ -791,12 +783,12 @@
               <div class="d-flex">
                 ${plugin.installed ? `
                   <a href="javascript:uninstall_plugin('${pid}', '${plugin.name}')" class="card-btn text-danger">
-                    {{ SVG.trash('me-2') }}
+                    <i class="ti ti-trash fs-2"></i>
                      卸载
                   </a>
                   ` : `
                   <a href="javascript:install_plugin('${pid}', '${plugin.name}')" class="card-btn">
-                    {{ SVG.cloud_download('me-2') }}
+                    <i class="ti ti-cloud-download fs-2"></i>
                      安装
                   </a>
                   `}
@@ -842,18 +834,18 @@
               <div class="d-flex">
                 ${plugin.installed ? `
                   <a href="javascript:uninstall_external_plugin('${pid}', '${plugin.name}')" class="card-btn text-danger">
-                    {{ SVG.trash('me-2') }}
+                    <i class="ti ti-trash me-2"></i>
                     卸载
                   </a>
                   ` : `
                   <a href="javascript:install_external_plugin('${pid}', '${plugin.name}', '${plugin.download_url}', '${plugin.file_md5}')" class="card-btn">
-                    {{ SVG.cloud_download('me-2') }}
+                    <i class="ti ti-cloud-download me-2"></i>
                     安装
                   </a>
                   `}
                 ${ plugin.update ? `
                   <a href="javascript:update_external_plugin('${pid}', '${plugin.name}', '${plugin.download_url}', '${plugin.file_md5}')" class="card-btn">
-                    {{ SVG.cloud_download('me-2') }}
+                    <i class="ti ti-cloud-download me-2"></i>
                     更新
                   </a>
                   ` : ``}
@@ -1000,10 +992,26 @@
 </script>
 
 <script type="text/javascript">
-  $(document).ready(function(){
+
+  var downloaderConf = {{ DownloaderConf | tojson }};
+
+  function genDownloaderConfElements() {
+    let $list = $("#downloader_config_box");
+    $.each(downloaderConf, function (id, attr) {
+      $list.append(`
+        <div id="div_downloader_config_${id}">
+          ${gen_form_empty_elements(attr.config)}
+        </div>
+      `);
+    });
+  }
+
+  $(document).ready(function() {
     fresh_tooltip();
+    genDownloaderConfElements();
   });
 </script>
+
 <script type="text/javascript">
   // 插件自带脚本函数
   {% for Id, Plugin in Plugins.items() %}

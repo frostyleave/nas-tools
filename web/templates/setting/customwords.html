@@ -1,4 +1,3 @@
-{% import 'macro/svg.html' as SVG %}
 <div class="container-xl">
   <!-- Page title -->
   <div class="page-header d-print-none">
@@ -6,30 +5,27 @@
       <div class="col"></div>
       <div class="col-auto ms-auto d-print-none">
         <div class="btn-list">
-          <a href="javascript:show_add_custom_word_group_modal()" class="btn btn-primary d-none d-sm-inline-block">
-            {{ SVG.plus() }}
+          <a href="javascript:show_add_custom_word_group_modal()" class="btn btn-primary d-none d-sm-inline-flex">
+            <i class="ti ti-plus fs-2"></i>
             新增
           </a>
           <a href="javascript:show_add_custom_word_group_modal()" class="btn btn-twitter d-sm-none btn-icon">
-            {{ SVG.plus() }}
+            <i class="ti ti-plus fs-2"></i>
           </a>
-          <a href="javascript:show_import_custom_words_modal()"
-            class="btn btn-twitter ms-auto d-none d-sm-inline-block">
-            {{ SVG.transfer_in() }}
+          <a href="javascript:show_import_custom_words_modal()" class="btn btn-twitter ms-auto d-none d-sm-inline-flex">
+            <i class="ti ti-transfer-in fs-2"></i>
             导入
           </a>
           <a href="javascript:show_import_custom_words_modal()" class="btn btn-twitter d-sm-none btn-icon">
-            {{ SVG.transfer_in() }}
+            <i class="ti ti-transfer-in fs-2"></i>
           </a>
           <div class="dropdown">
-            <a href="#" class="btn ms-auto d-none d-sm-inline-block dropdown-toggle"
-               data-bs-toggle="dropdown" aria-expanded="false">
-              {{ SVG.menu_2() }}
+            <a href="#" class="btn ms-auto d-none d-sm-inline-flex dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+              <i class="ti ti-menu-2 fs-2"></i>
               批量管理
             </a>
-            <a href="#" class="btn d-sm-none btn-icon"
-               data-bs-toggle="dropdown" aria-expanded="false">
-              {{ SVG.menu_2() }}
+            <a href="#" class="btn d-sm-none btn-icon" data-bs-toggle="dropdown" aria-expanded="false">
+              <i class="ti ti-menu-2 fs-2"></i>
             </a>
             <div class="dropdown-menu dropdown-menu-end">
               <a class="dropdown-item text-mute" href="javascript:batch_check_action('enable')" >
@@ -64,15 +60,15 @@
             </a>
             <div class="card-actions btn-actions">
               <a href="javascript:void(0)" onclick="show_customwords_detail('{{ Group.id }}')" class="btn-action ms-1" title="折叠">
-                {{ SVG.menu_2() }}
+                <i class="ti ti-menu-2 fs-2"></i>
               </a>
               <a href="javascript:show_add_custom_word_modal('{{ Group.id }}', {{ Group.type }}, {{ Group.seasons }})"
                 class="btn-action ms-1" title="增加识别词">
-                {{ SVG.plus() }}
+                <i class="ti ti-plus fs-2"></i>
               </a>
               {% if Group.id != "-1" %}
               <a href="javascript:delete_custom_word_group('{{ Group.id }}')" class="btn-action ms-1" title="删除识别词组">
-                {{ SVG.x() }}
+                <i class="ti ti-x fs-2"></i>
               </a>
               {% endif %}
             </div>
@@ -139,7 +135,7 @@
                     <div class="d-flex">
                       <a href="javascript:show_edit_custom_word_modal('{{ Word.id }}', '{{ Group.id }}', {{ Group.type }}, {{ Group.seasons }})"
                         title="编辑" class='ms-1'>
-                        {{ SVG.edit() }}
+                        <i class="ti ti-edit fs-2"></i>
                       </a>
                     </div>
                   </td>
