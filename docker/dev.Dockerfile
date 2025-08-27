@@ -1,17 +1,16 @@
-FROM python:3.11-slim AS Builder
+FROM python:3.11-slim-bookworm AS base
+
+# 设置环境变量避免 tzdata 等交互
+ENV DEBIAN_FRONTEND=noninteractive
 
 # 定义构建参数，默认分支为dev
 ARG BRANCH=dev
 
 # 安装构建依赖和运行所需的依赖包
 RUN apt-get update -y \
-     && apt-get upgrade -y \
-     && apt-get install -y build-essential \
      && apt-get install -y --no-install-recommends \
-        gosu \
+        build-essential \
         bash \
-        busybox \
-        dumb-init \
         gcc \
         libffi-dev \
         libxml2-dev \
@@ -20,24 +19,20 @@ RUN apt-get update -y \
         curl \
         git \
         unzip \
-        wget \
-        gnupg \
+        ca-certificates \
         libnss3 \
         libxss1 \
         libasound2 \
         libxshmfence1 \
-        libxrandr2 \
         libxcomposite1 \
         libxdamage1 \
+        libxrandr2 \
         libfontconfig1 \
         libgbm1 \
-        libgtk-3-0 \
         libdrm2 \
-        ca-certificates \
-        fonts-liberation \
-        libappindicator3-1 \
         libx11-xcb1 \
-        xdg-utils \
+        libgtk-3-0 \
+        libappindicator3-1 \
     && \
     if [ "$(uname -m)" = "x86_64" ]; \
         then ln -s /usr/lib/x86_64-linux-musl/libc.so /lib/libc.musl-x86_64.so.1; \
@@ -52,9 +47,12 @@ RUN apt-get update -y \
 RUN mkdir -p /ms-playwright
 ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
 
+# 在 final 阶段之前添加 ARG 指令
+ARG BRANCH=master  # 默认值设为 master
+
 # 升级 pip、setuptools、 wheel, 
-RUN pip install --upgrade pip setuptools==70.1.1 wheel \
-    && pip install cython \
+RUN pip install --no-cache-dir --upgrade pip setuptools==70.1.1 wheel \
+    && pip install --no-cache-dir cython \
     && pip install --no-cache-dir playwright \
     && python -m playwright install chromium \
     && pip install -r https://raw.githubusercontent.com/frostyleave/nas-tools/${BRANCH}/requirements.txt \
@@ -70,10 +68,10 @@ RUN pip install --upgrade pip setuptools==70.1.1 wheel \
 # 复制 rootfs
 COPY --chmod=755 ./rootfs /
 
-FROM scratch AS APP
+FROM base AS final
 
-# 从 Builder 阶段复制文件
-COPY --from=Builder / /
+# 从 base 阶段复制文件
+COPY --from=base / /
 
 # 定义构建参数，默认分支为dev（需要在每个阶段都定义）
 ARG BRANCH=dev
@@ -92,7 +90,7 @@ ENV S6_SERVICES_GRACETIME=30000 \
     NASTOOL_CONFIG="/config/config.yaml" \
     NASTOOL_AUTO_UPDATE=false \
     NASTOOL_CN_UPDATE=false \
-    NASTOOL_VERSION=dev \
+    NASTOOL_VERSION=${BRANCH} \
     PS1="\u@\h:\w \$ " \
     REPO_URL="https://github.com/frostyleave/nas-tools.git" \
     PYPI_MIRROR="https://pypi.tuna.tsinghua.edu.cn/simple" \

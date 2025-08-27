@@ -1,4 +1,3 @@
-{% import 'macro/form.html' as FORM %}
 <div class="container-xl">
   <!-- Page title -->
   <div class="page-header d-print-none">
@@ -126,34 +125,10 @@
             </div>
           </div>
         </div>
-        <div class="form-selectgroup-boxes row mb-3">
+        <div class="form-selectgroup-boxes row mb-3" id="client_type_container">
           <label class="form-label required">类型</label>
-          {% for Id, Attr in Channels.items() %}
-            <div class="col-lg-4">
-              <div class="mb-1">
-                <label class="form-selectgroup-item" for="type_{{ Id }}">
-                  <input type="radio" name="client_type" id="type_{{ Id }}" value="{{ Id }}"
-                         class="form-selectgroup-input" checked>
-                  <span class="form-selectgroup-label d-flex align-items-center p-3">
-                  <span class="me-3">
-                    <span class="form-selectgroup-check"></span>
-                  </span>
-                  <span class="form-selectgroup-label-content d-flex align-items-center">
-                    <span class="avatar avatar-sm avatar-thumb avatar-rounded"
-                          style="background-image: url({{ Attr.img_url }})"></span>
-                    <span class="form-selectgroup-title strong ms-1">{{ Attr.name }}</span>
-                  </span>
-                </span>
-                </label>
-              </div>
-            </div>
-          {% endfor %}
         </div>
-        {% for ClientId, ClientAttr in Channels.items() %}
-        <div id="div_client_config_{{ ClientId }}">
-          {{ FORM.gen_form_empty_elements(ClientAttr.config) }}
-        </div>
-        {% endfor %}
+        <div id="client_config_box"></div>
         <details>
           <summary class="summary inline-flex">
             推送设置
@@ -411,11 +386,6 @@
     });
   }
 
-  // 单选框事件
-  $('input[type=radio][name=client_type]').change(function () {
-    show_client_type(this.value);
-  });
-
   // 消息服务端类型
   function show_client_type(type) {
     switch (type) {
@@ -480,4 +450,58 @@
     });
   }
 
+</script>
+
+<script type="text/javascript">
+
+  var channelsDict = {{ Channels | tojson }};
+  var channelsList = {{ ChannelsTpyes | tojson }};
+
+  function genChannelConfElements() {
+    let $typeBox = $("#client_type_container");
+    let $configBox = $("#client_config_box");
+
+    $.each(channelsList, function (index, clientId) {
+
+      clientAttr = channelsDict[clientId];
+
+      $typeBox.append(`
+        <div class="col-lg-4">
+          <div class="mb-1">
+            <label class="form-selectgroup-item" for="type_${clientId}">
+              <input type="radio" name="client_type" id="type_${clientId}" value="${clientId}"
+                     class="form-selectgroup-input" checked>
+              <span class="form-selectgroup-label d-flex align-items-center p-3">
+              <span class="me-3">
+                <span class="form-selectgroup-check"></span>
+              </span>
+              <span class="form-selectgroup-label-content d-flex align-items-center">
+                <span class="avatar avatar-sm avatar-thumb avatar-rounded"
+                      style="background-image: url(${clientAttr.img_url})"></span>
+                <span class="form-selectgroup-title strong ms-1">${clientAttr.name }</span>
+              </span>
+            </span>
+            </label>
+          </div>
+        </div>
+      `);
+
+      $configBox.append(`
+        <div id="div_client_config_${clientId}">
+          ${gen_form_empty_elements(clientAttr.config)}
+        </div>
+      `);
+
+    });
+  }
+
+  $(document).ready(function() {
+    genChannelConfElements();
+
+    // 单选框事件
+    $('input[type=radio][name=client_type]').change(function () {
+      show_client_type(this.value);
+    });
+
+  });
 </script>

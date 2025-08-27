@@ -53,6 +53,6 @@ jobs:
             linux/arm64
           push: true
           build-args: |
-            BRANCH=dev
+            BRANCH=dev-fastapi
           tags: |
-            ${{ secrets.DOCKER_USERNAME }}/nas-tools:dev
+            ${{ secrets.DOCKER_USERNAME }}/nas-tools:beta

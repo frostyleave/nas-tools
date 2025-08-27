@@ -390,14 +390,14 @@ class AutoSignIn(_IPluginModule):
         """
         签到一个站点
         """
-        try:
-            site_module = self.__build_class(site_info.get("signurl"))
-            if site_module and hasattr(site_module, "signin"):
+        site_module = self.__build_class(site_info.get("signurl"))
+        if site_module and hasattr(site_module, "signin"):
+            try:
                 return site_module().signin(site_info)
-            else:
-                return self.__signin_base(site_info)
-        except Exception as e:
-            return False, f"[{site_info.get('name')}]签到失败：{str(e)}"
+            except Exception as e:
+                return False, f"[{site_info.get('name')}]签到失败：{str(e)}"
+        else:
+            return self.__signin_base(site_info)
 
     def __signin_base(self, site_info) -> Tuple[bool, str]:
         """
@@ -469,11 +469,15 @@ class AutoSignIn(_IPluginModule):
                     
                     return False, f"[{site_name}]仿真签到异常: 无法获取签到结果"
                 
-                return PlaywrightHelper().action(url=home_url, 
+                result = PlaywrightHelper().action(url=home_url, 
                                                  ua=ua, 
                                                  cookies=site_cookie, 
                                                  proxy=True if site_info.get("proxy") else False,
                                                  callback=_click_sign)
+                if result is None:
+                    return False, f"[{site_name}]仿真签到失败: 请求网页异常"
+                
+                return result
             else:
                 
                 checkin_url = site_url if "pttime" in home_url else urljoin(home_url, "attendance.php")

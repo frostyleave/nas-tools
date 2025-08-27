@@ -157,6 +157,62 @@ class ModuleConf(object):
                     }
                 }
             },
+            "slack": {
+                "name": "Slack",
+                "img_url": "../static/img/message/slack.png",
+                "color": "#E01D5A",
+                "search_type": SearchType.SLACK,
+                "config": {
+                    "bot_token": {
+                        "id": "slack_bot_token",
+                        "required": True,
+                        "title": "Bot User OAuth Token",
+                        "tooltip": "在Slack中创建应用，获取Bot User OAuth Token",
+                        "type": "text",
+                        "placeholder": "xoxb-xxxxxxxxxxxx-xxxxxxxxxxxxxxxxxxxxxxxx"
+                    },
+                    "app_token": {
+                        "id": "slack_app_token",
+                        "required": True,
+                        "title": "App-Level Token",
+                        "tooltip": "在Slack中创建应用，获取App-Level Token",
+                        "type": "text",
+                        "placeholder": "xapp-xxxxxxxxxxxx-xxxxxxxxxxxxxxxxxxxxxxxx"
+                    },
+                    "channel": {
+                        "id": "slack_channel",
+                        "required": False,
+                        "title": "频道名称",
+                        "tooltip": "Slack中的频道名称，默认为全体；需要将机器人添加到该频道，以接收非交互类的通知消息",
+                        "type": "text",
+                        "placeholder": "全体"
+                    }
+                }
+            },
+            "synologychat": {
+                "name": "Synology Chat",
+                "img_url": "../static/img/message/synologychat.png",
+                "color": "#26C07A",
+                "search_type": SearchType.SYNOLOGY,
+                "config": {
+                    "webhook_url": {
+                        "id": "synologychat_webhook_url",
+                        "required": True,
+                        "title": "机器人传入URL",
+                        "tooltip": "在Synology Chat中创建机器人，获取机器人传入URL",
+                        "type": "text",
+                        "placeholder": "https://xxx/webapi/entry.cgi?api=xxx"
+                    },
+                    "token": {
+                        "id": "synologychat_token",
+                        "required": True,
+                        "title": "令牌",
+                        "tooltip": "在Synology Chat中创建机器人，获取机器人令牌",
+                        "type": "text",
+                        "placeholder": ""
+                    }
+                }
+            },
             "serverchan": {
                 "name": "Server酱",
                 "img_url": "../static/img/message/serverchan.png",
@@ -281,38 +337,6 @@ class ModuleConf(object):
                     }
                 }
             },
-            "slack": {
-                "name": "Slack",
-                "img_url": "../static/img/message/slack.png",
-                "color": "#E01D5A",
-                "search_type": SearchType.SLACK,
-                "config": {
-                    "bot_token": {
-                        "id": "slack_bot_token",
-                        "required": True,
-                        "title": "Bot User OAuth Token",
-                        "tooltip": "在Slack中创建应用，获取Bot User OAuth Token",
-                        "type": "text",
-                        "placeholder": "xoxb-xxxxxxxxxxxx-xxxxxxxxxxxxxxxxxxxxxxxx"
-                    },
-                    "app_token": {
-                        "id": "slack_app_token",
-                        "required": True,
-                        "title": "App-Level Token",
-                        "tooltip": "在Slack中创建应用，获取App-Level Token",
-                        "type": "text",
-                        "placeholder": "xapp-xxxxxxxxxxxx-xxxxxxxxxxxxxxxxxxxxxxxx"
-                    },
-                    "channel": {
-                        "id": "slack_channel",
-                        "required": False,
-                        "title": "频道名称",
-                        "tooltip": "Slack中的频道名称，默认为全体；需要将机器人添加到该频道，以接收非交互类的通知消息",
-                        "type": "text",
-                        "placeholder": "全体"
-                    }
-                }
-            },
             "gotify": {
                 "name": "Gotify",
                 "img_url": "../static/img/message/gotify.png",
@@ -343,7 +367,7 @@ class ModuleConf(object):
                     }
                 }
             },
-             "ntfy": {
+            "ntfy": {
                 "name": "ntfy",
                 "img_url": "../static/img/message/ntfy.webp",
                 "color": "#409D8A",
@@ -416,30 +440,6 @@ class ModuleConf(object):
                         "tooltip": "添加到Chanify通知中的附加参数，可用于自定义通知特性",
                         "type": "text",
                         "placeholder": "sound=0&interruption-level=active"
-                    }
-                }
-            },
-            "synologychat": {
-                "name": "Synology Chat",
-                "img_url": "../static/img/message/synologychat.png",
-                "color": "#26C07A",
-                "search_type": SearchType.SYNOLOGY,
-                "config": {
-                    "webhook_url": {
-                        "id": "synologychat_webhook_url",
-                        "required": True,
-                        "title": "机器人传入URL",
-                        "tooltip": "在Synology Chat中创建机器人，获取机器人传入URL",
-                        "type": "text",
-                        "placeholder": "https://xxx/webapi/entry.cgi?api=xxx"
-                    },
-                    "token": {
-                        "id": "synologychat_token",
-                        "required": True,
-                        "title": "令牌",
-                        "tooltip": "在Synology Chat中创建机器人，获取机器人令牌",
-                        "type": "text",
-                        "placeholder": ""
                     }
                 }
             },
