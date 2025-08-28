@@ -19,6 +19,7 @@ RUN apt-get update -y \
         curl \
         git \
         unzip \
+        gosu \
         ca-certificates \
         libnss3 \
         libxss1 \
