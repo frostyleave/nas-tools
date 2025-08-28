@@ -469,11 +469,15 @@ class AutoSignIn(_IPluginModule):
                     
                     return False, f"[{site_name}]仿真签到异常: 无法获取签到结果"
                 
-                return PlaywrightHelper().action(url=home_url, 
+                result = PlaywrightHelper().action(url=home_url, 
                                                  ua=ua, 
                                                  cookies=site_cookie, 
                                                  proxy=True if site_info.get("proxy") else False,
                                                  callback=_click_sign)
+                if result is None:
+                    return False, f"[{site_name}]仿真签到失败: 请求网页异常"
+                
+                return result
             else:
                 
                 checkin_url = site_url if "pttime" in home_url else urljoin(home_url, "attendance.php")
