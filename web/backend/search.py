@@ -1,8 +1,8 @@
 import os.path
 import re
 
-from app.utils.media_utils import MediaUtils
 import log
+
 from app.downloader import Downloader
 from app.helper import ProgressHelper
 from app.helper.openai_helper import OpenAiHelper
@@ -14,7 +14,9 @@ from app.sites import Sites
 from app.subscribe import Subscribe
 from app.utils import StringUtils
 from app.utils.types import SearchType, IndexerType, ProgressKey, RssType
+
 from config import Config
+
 from web.backend.web_utils import WebUtils
 
 SEARCH_MEDIA_CACHE = {}

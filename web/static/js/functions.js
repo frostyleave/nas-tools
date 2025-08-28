@@ -487,15 +487,10 @@ function check_system_online() {
 
 //注销
 function logout() {
-  // 使用新的认证管理器进行登出
-  if (window.authManager) {
-    window.authManager.logout();
-  } else {
-    // 兼容旧的登出方式
-    axios_post("logout", {}, function (ret) {
-      window.location.href = "/";
-    });
-  }
+  // 兼容旧的登出方式
+  axios_post("logout", {}, function (ret) {
+    window.location.href = '/login';
+  });
 }
 
 //重启
@@ -539,22 +534,6 @@ function update_system() {
   })
 }
 
-// 用户认证
-function user_auth() {
-  $("#user_auth_btn").text("认证中...").prop("disabled", true);
-  let siteid = $("#user_auth_site").val();
-  let params = input_select_GetVal(`user_auth_${siteid}_params`, `${siteid}_`);
-  axios_post("auth_user_level", { site: siteid, params: params }, function (ret) {
-    GlobalModalAbort = true;
-    $("#modal-user-auth").modal("hide");
-    $("#user_auth_btn").prop("disabled", false).text("认证");
-    if (ret.code === 0) {
-      window.location.reload();
-    } else {
-      show_fail_modal(ret.msg);
-    }
-  }, true, false);
-}
 
 // TomSelect响应事件
 function switch_cooperation_sites(obj) {

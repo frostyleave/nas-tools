@@ -91,6 +91,11 @@ def update_config():
         _config['security']['api_key'] = StringUtils.generate_random_str(32)
         overwrite_cofig = True
 
+    # jwt_secret
+    if not _config.get("security", {}).get("jwt_secret"):
+        _config['security']['jwt_secret'] = StringUtils.generate_random_str(32)
+        overwrite_cofig = True
+
     # 字幕兼容旧配置
     try:
         subtitle = Config().get_config('subtitle') or {}

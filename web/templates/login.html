@@ -105,13 +105,13 @@
             <input type="password" class="form-control {% if err_msg %}is-invalid{% endif %}" name="password"
               placeholder="password" autocomplete="off">
           </div>
-          <div class="invalid-feedback mb-3" id="login_retmsg" style="display:block">{{ err_msg }}</div>
+          <!-- <div class="invalid-feedback mb-3" id="login_retmsg" style="display:block">{{ err_msg }}</div>
           <div class="mb-3">
             <label class="form-check">
               <input type="checkbox" name="remember" class="form-check-input" checked />
               <span class="form-check-label">保持登录</span>
             </label>
-          </div>
+          </div> -->
           <div class="form-footer">
             <button type="submit" class="btn btn-primary w-100">登录</button>
           </div>
@@ -122,7 +122,7 @@
 
   <script src="/static/js/jquery-3.3.1.min.js"></script>
   <script src="/static/js/axios.min.js"></script>
-  <script src="/static/js/auth-manager.js"></script>
+  <script src="/static/js/axios-wrapper.js"></script>
   <script src="/static/js/tabler/tabler.min.js"></script>
   <script src="/static/js/tabler/demo.min.js"></script>
   <script>
@@ -145,23 +145,18 @@
       submitBtn.prop('disabled', true).text('登录中...');
 
       // 调用登录API
-      axios.post('/api/user/login', {
-        username: username,
-        password: password,
-        remember: remember
-      })
-        .then(function (response) {
+      axios_client.post("/auth/token",
+      new URLSearchParams({
+        username,
+        password,
+      }),
+      {
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      }).then(function (response) {
           // 恢复按钮状态
           submitBtn.prop('disabled', false).text(originalText);
 
-          const data = response.data;
-          if (data.success && data.data) {
-            // 存储Token和用户信息
-            window.authManager.setTokens(
-              data.data.access_token,
-              data.data.refresh_token,
-              data.data.userinfo
-            );
+          if (response.status === 200) {
 
             // 重定向到目标页面
             const nextPage = '{{ GoPage }}' || 'index';

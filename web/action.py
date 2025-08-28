@@ -46,8 +46,8 @@ from app.utils.types import RmtMode, OsType, SearchType, SyncType, MediaType, Mo
 from app.utils.password_hash import generate_password_hash
 
 from config import RMT_MEDIAEXT, RMT_SUBEXT, RMT_AUDIO_TRACK_EXT, Config
-from web.backend.search_torrents import search_medias_for_web, search_media_by_message
-from web.backend.user import User
+from web.backend.search import search_medias_for_web, search_media_by_message
+from web.backend.user import User, UserManager
 from web.backend.web_utils import WebUtils
 
 
@@ -212,7 +212,6 @@ class WebAction:
             "get_season_episodes": self.__get_season_episodes,
             "get_user_menus": self.get_user_menus,
             "get_top_menus": self.get_top_menus,
-            "auth_user_level": self.auth_user_level,
             "update_downloader": self.__update_downloader,
             "del_downloader": self.__del_downloader,
             "check_downloader": self.__check_downloader,
@@ -1787,9 +1786,9 @@ class WebAction:
             pris = data.get("pris")
             if isinstance(pris, list):
                 pris = ",".join(pris)
-            ret = User().add_user(name, password, pris)
+            ret = UserManager().add_user(name, password, pris)
         else:
-            ret = User().delete_user(name)
+            ret = UserManager().delete_user(name)
 
         if ret == 1 or ret:
             return {"code": 0, "success": False}
@@ -4076,7 +4075,7 @@ class WebAction:
         """
         查询所有用户
         """
-        user_list = User().get_users()
+        user_list = UserManager().get_users()
         Users = []
         for user in user_list:
             pris = str(user.pris).split(",")
@@ -4889,7 +4888,7 @@ class WebAction:
         # 获取可用菜单
         if not current_user:
             # 如果没有传入用户，尝试获取admin用户
-            current_user = User().get_user("admin")
+            current_user = UserManager().get_user_by_name("admin")
             if not current_user:
                 # 如果无法获取admin用户，创建一个模拟的admin用户对象
                 class AdminUser:
@@ -4923,7 +4922,7 @@ class WebAction:
         """
         if not current_user:
             # 如果没有传入用户，尝试获取admin用户
-            current_user = User().get_user("admin")
+            current_user = UserManager().get_user_by_name("admin")
             if not current_user:
                 # 如果无法获取admin用户，创建一个模拟的admin用户对象
                 class AdminUser:
@@ -4947,32 +4946,6 @@ class WebAction:
             "code": 0,
             "menus": current_user.get_topmenus()
         }
-
-    @staticmethod
-    def auth_user_level(data=None):
-        """
-        用户认证
-        """
-        if data:
-            site = data.get("site")
-            params = data.get("params")
-        else:
-            UserSiteAuthParams = SystemConfig().get(SystemConfigKey.UserSiteAuthParams)
-            if UserSiteAuthParams:
-                site = UserSiteAuthParams.get("site")
-                params = UserSiteAuthParams.get("params")
-            else:
-                return {"code": 1, "msg": "参数错误"}
-        state, msg = User().check_user(site, params)
-        if state:
-            # 保存认证数据
-            SystemConfig().set(key=SystemConfigKey.UserSiteAuthParams,
-                               value={
-                                   "site": site,
-                                   "params": params
-                               })
-            return {"code": 0, "msg": "认证成功"}
-        return {"code": 1, "msg": f"{msg or '认证失败，请检查合作站点账号是否正常！'}"}
 
     @staticmethod
     def __update_downloader(data):
@@ -5302,7 +5275,7 @@ class WebAction:
             user_level = data["user"].level
         # 如果获取不到，使用admin用户级别
         else:
-            admin_user = User().get_user("admin")
+            admin_user = UserManager().get_user_by_name("admin")
             if admin_user:
                 user_level = admin_user.level
 
@@ -5342,7 +5315,7 @@ class WebAction:
             user_level = data["user"].level
         # 如果获取不到，使用admin用户级别
         else:
-            admin_user = User().get_user("admin")
+            admin_user = UserManager().get_user_by_name("admin")
             if admin_user:
                 user_level = admin_user.level
 
@@ -5466,7 +5439,7 @@ class WebAction:
             user_level = data["user"].level
         # 如果获取不到，使用admin用户级别
         else:
-            admin_user = User().get_user("admin")
+            admin_user = UserManager().get_user_by_name("admin")
             if admin_user:
                 user_level = admin_user.level
 

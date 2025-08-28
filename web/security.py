@@ -136,8 +136,8 @@ def verify_refresh_token(refresh_token: str):
             return False, None
 
         # 检查用户是否存在
-        from web.backend.user import User
-        user = User().get(user_id)
+        from web.backend.user import UserManager
+        user = UserManager().get_user_by_id(user_id)
         if not user:
             return False, None
 
@@ -161,8 +161,8 @@ def refresh_access_token(refresh_token: str):
         return False, None, None
 
     # 获取用户信息
-    from web.backend.user import User
-    user = User().get(user_id)
+    from web.backend.user import UserManager
+    user = UserManager().get_user_by_id(user_id)
     if not user:
         return False, None, None
 

@@ -155,7 +155,7 @@ if __name__ == '__main__':
     # 在这里导入app实例，确保所有初始化工作已完成
     try:
         # 导入FastAPI应用
-        from web.fastapi_app import app as fastapi_app
+        from web.app import app as fastapi_app
 
         # 获取运行配置
         run_config = get_run_config(is_windows_exe)
