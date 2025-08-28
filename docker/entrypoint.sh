@@ -90,4 +90,4 @@ exec "$@"
 umask "${UMASK}"
 
 # 启动主程序
-exec gosu nt:nt dumb-init python3 run.py -n NAStool
+exec dumb-init gosu nt:nt python3 run.py -n NAStool

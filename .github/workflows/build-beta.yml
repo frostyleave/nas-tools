@@ -9,7 +9,7 @@ on:
       - .github/workflows/build-beta.yml
       - package_list.txt
       - requirements.txt
-      - docker/beta.Dockerfile
+      - docker/dev.Dockerfile
       - app/*
       - web/*
 

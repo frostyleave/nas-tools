@@ -3,9 +3,6 @@ FROM python:3.11-slim-bookworm AS base
 # 设置环境变量避免 tzdata 等交互
 ENV DEBIAN_FRONTEND=noninteractive
 
-# 定义构建参数，默认分支为dev
-ARG BRANCH=dev
-
 # 安装构建依赖和运行所需的依赖包
 RUN apt-get update -y \
      && apt-get install -y --no-install-recommends \
@@ -20,7 +17,7 @@ RUN apt-get update -y \
         git \
         unzip \
         gosu \
-        dumb-init \        
+        dumb-init \
         ca-certificates \
         libnss3 \
         libxss1 \
@@ -75,9 +72,6 @@ FROM base AS final
 # 从 base 阶段复制文件
 COPY --from=base / /
 
-# 定义构建参数，默认分支为dev（需要在每个阶段都定义）
-ARG BRANCH=dev
-
 # 设置环境变量
 ENV S6_SERVICES_GRACETIME=30000 \
     S6_KILL_GRACETIME=60000 \
@@ -100,14 +94,12 @@ ENV S6_SERVICES_GRACETIME=30000 \
     PUID=0 \
     PGID=0 \
     UMASK=000 \
-    WORKDIR="/nas-tools" \
-    BRANCH=${BRANCH}
+    WORKDIR="/nas-tools"
 
 WORKDIR ${WORKDIR}
 
 # 创建用户和组
-RUN echo "Building with branch: ${BRANCH}" \
-    && mkdir ${HOME} \
+RUN mkdir ${HOME} \
     && addgroup --gid 911 nt \
     && adduser --uid 911 --gid 911 --home ${HOME} --shell /bin/bash --disabled-password nt \
     && python_ver=$(python3 -V | awk '{print $2}') \
