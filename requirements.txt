@@ -15,8 +15,10 @@ cssselect==1.2.0
 dateparser==1.1.8
 fast-bencode==1.1.4
 fastapi==0.116.1
+python-jose[cryptography]
 uvicorn[standard]
-python-multipart==0.0.9
+passlib[bcrypt]
+python-multipart==0.0.20
 anyio==4.9.0
 starlette==0.46.2
 pydantic==2.6.1

@@ -153,7 +153,7 @@ async def robots():
 # 登录接口
 # ------------------------
 @app.post("/auth/token")
-async def login(form_data: OAuth2PasswordRequestForm = Depends()):
+async def login(request: Request, form_data: OAuth2PasswordRequestForm = Depends()):
     user = authenticate_user(form_data.username, form_data.password)
     if not user:
         raise HTTPException(
@@ -172,10 +172,13 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends()):
         data={"sub": username, "type": "refresh"},
         expires_delta=timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS)
     )
+
+    scheme = request.headers.get("x-forwarded-proto", request.url.scheme)
+    secure_flag = scheme == "https"
     
     response = JSONResponse(content={"msg": "登录成功"})
-    response.set_cookie("access_token", access_token, httponly=True, samesite="Lax", secure=True)
-    response.set_cookie("refresh_token", refresh_token, httponly=True, samesite="Lax", secure=True)
+    response.set_cookie("access_token", access_token, httponly=True, samesite="Lax", secure=secure_flag)
+    response.set_cookie("refresh_token", refresh_token, httponly=True, samesite="Lax", secure=secure_flag)
     return response
 
 @app.post("/logout")
@@ -211,9 +214,12 @@ async def refresh_token(request: Request):
         expires_delta=timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS)
     )
 
+    scheme = request.headers.get("x-forwarded-proto", request.url.scheme)
+    secure_flag = scheme == "https"
+
     response = JSONResponse(content={"msg": "刷新成功"})
-    response.set_cookie("access_token", new_access_token, httponly=True, samesite="Lax", secure=True)
-    response.set_cookie("refresh_token", new_refresh_token, httponly=True, samesite="Lax", secure=True)
+    response.set_cookie("access_token", new_access_token, httponly=True, samesite="Lax", secure=secure_flag)
+    response.set_cookie("refresh_token", new_refresh_token, httponly=True, samesite="Lax", secure=secure_flag)
     return response
 
 # ------------------------
@@ -258,7 +264,7 @@ async def login_page(request: Request):
         "login.html",
         {
             "request": request,
-            "GoPage": next or "index",  # 默认跳转到index页面
+            "GoPage": "index",  # 默认跳转到index页面
             "image_code": image_code,
             "img_title": img_title,
             "img_link": img_link,

@@ -145,14 +145,14 @@
       submitBtn.prop('disabled', true).text('登录中...');
 
       // 调用登录API
-      axios_client.post("/auth/token",
-      new URLSearchParams({
-        username,
-        password,
-      }),
-      {
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-      }).then(function (response) {
+      window.axios_client.post("/auth/token",
+        new URLSearchParams({
+          username,
+          password,
+        }),
+        {
+          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        }).then(function (response) {
           // 恢复按钮状态
           submitBtn.prop('disabled', false).text(originalText);
 
@@ -160,15 +160,10 @@
 
             // 重定向到目标页面
             const nextPage = '{{ GoPage }}' || 'index';
-            const savedHash = sessionStorage.getItem('loginRedirectHash');
 
             // 使用延迟跳转，确保认证状态完全设置
             setTimeout(() => {
-              if (savedHash && savedHash !== '#') {
-                // 优先使用保存的hash路由
-                sessionStorage.removeItem('loginRedirectHash');
-                window.location.href = `/web${savedHash}`;
-              } else if (nextPage && nextPage !== 'index' && nextPage !== 'web') {
+              if (nextPage && nextPage !== 'index' && nextPage !== 'web') {
                 window.location.href = `/web#${nextPage}`;
               } else {
                 window.location.href = '/web#index';
@@ -199,13 +194,6 @@
 
     // 登录处理
     $(document).ready(function () {
-
-      // 保存原始的hash路由（如果有的话）
-      const originalHash = window.location.hash;
-      if (originalHash && originalHash !== '#') {
-        // 将hash保存到sessionStorage，以便登录后恢复
-        sessionStorage.setItem('loginRedirectHash', originalHash);
-      }
 
       // 处理回车键登录
       $('input[name="password"]').on('keypress', function (e) {
