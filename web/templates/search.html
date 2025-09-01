@@ -35,18 +35,34 @@
                 <div class="col-2 ps-3 d-none d-md-block" id="search_results_filter_{{ Item.key }}" style="max-width: 15rem">
                   <!-- 图片 -->
                   {% if Item.poster %}
-                    <normal-card
-                        card-tmdbId="{{ Item.tmdbid }}"
-                        card-mediatype="{{ Item.type }}"
-                        card-showSub="1"
-                        card-image="{{ Item.poster }}"
-                        card-fav="{{ Item.fav }}"
-                        card-vote="{{ Item.vote }}"
-                        card-year="{{ Item.year }}"
-                        card-title="{{ Item.title }}"
-                        card-overview="{{ Item.overview }}"
-                        card-restype="{{ Item.type }}"
-                      ></normal-card>
+                    <div class="card card-sm lit-normal-card rounded-3 cursor-pointer ratio shadow-sm">
+                      <div class="rounded-3">
+                        <img class="card-img rounded-3" alt=""
+                          style="box-shadow:0 0 0 1px #888888; display: block; min-width: 100%; max-width: 100%; min-height: 100%; max-height: 100%; object-fit: cover;"
+                          src="{{ Item.poster }}">
+                        <div style="position: absolute; bottom: 0; right: 0; width: 30px; height: 30px; padding: 12px; background-color: var(--tblr-success); clip-path: polygon(100% 0, 100% 100%, 0 100%); border-radius: 0 0 8px 0;z-index: 9;">
+                          <i class="ti ti-check"></i>
+                        </div>
+                        <span style="position: absolute; top: 10px; left: 10px; z-index: 9;" class="badge badge-pill bg-lime">{{ Item.type }}</span>
+                        <div class="badge badge-pill bg-purple" style="position: absolute; top: 10px; right: 10px; z-index: 9;">{{ Item.vote }}</div>
+                      </div>
+                      <div class="card-img-overlay rounded-3 ms-auto" >
+                        <div class="d-flex justify-content-between">
+                          <a class="text-muted" title="搜索资源" href='javascript:media_search("{{ Item.tmdbid }}", "{{ Item.title }}", "{{ Item.type_key }}")'>
+                            <i class="ti ti-search fs-2 text-white"></i>
+                          </a>
+                          <div class="ms-auto">
+                            <a class="text-muted" title="加入/取消订阅" href='javascript:rss_love_click("{{ Item.title }}", "{{ Item.year }}", "{{ Item.type_key }}", "{{ Item.tmdbid }}", "{{Item.fav}}")'>
+                              {% if Item.fav == "2" %}
+                                <i class="ti ti-heart fs-2 text-white"></i>
+                              {% else %}
+                                <i class="ti ti-heart-filled fs-2 text-purple"></i>
+                              {% endif %}
+                            </a>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
                   {% endif %}
                   <!-- 过滤条件 -->
                   {% if Item.filter.season %}
@@ -112,8 +128,8 @@
                 <div class="col">
                   <!-- 标题 -->
                   <div class="row">
-                    <div class="col">
-                      <h2 class="mb-0">
+                    <div class="col" onclick='navmenu(`media_detail?type={{ Item.type_key }}&id={{ Item.tmdbid }}`)'>
+                      <h2 class="mb-0" style="cursor: pointer;" >
                         <strong>{{ Title }}</strong>
                       </h2>
                     </div>
