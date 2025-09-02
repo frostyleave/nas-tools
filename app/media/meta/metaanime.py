@@ -4,7 +4,6 @@ import re
 import zhconv
 
 import anitopy
-from app.helper.openai_helper import OpenAiHelper
 from app.media.meta._base import MetaBase
 from app.utils.release_groups import ReleaseGroupsMatcher
 from app.media.meta.customization import CustomizationMatcher
@@ -31,7 +30,7 @@ class MetaAnime(MetaBase):
             release_group = anitopy_info_origin.get("release_group") if anitopy_info_origin.get('release_group') else ''
             # 标题信息预处理
             title = self.__prepare_title(title)
-            anitopy_info = self.prepare_anime_from_title(title)
+            anitopy_info = anitopy.parse(title)
             if anitopy_info:
                 # 字幕组
                 release_group = anitopy_info.get('release_group') if anitopy_info.get('release_group') else release_group
@@ -177,24 +176,6 @@ class MetaAnime(MetaBase):
                 self.type = MediaType.TV
         except Exception as e:
             ExceptionUtils.exception_traceback(e)
-
-    def prepare_anime_from_title(self, title):
-        # 尝试openAi解析
-        file_info = OpenAiHelper().get_media_name(title)
-        anitopy_info = anitopy.parse(title)
-        if not file_info or not anitopy_info:
-            return anitopy_info
-        if file_info.get('title'):
-            anitopy_info['anime_title'] = file_info.get('title')
-        if file_info.get('release_group'):
-            anitopy_info['release_group'] = file_info.get('release_group')
-        if file_info.get('year'):
-            anitopy_info['anime_year'] = file_info.get('year')
-        if file_info.get('episode'):
-            anitopy_info['episode_number'] = file_info.get('episode')
-        if file_info.get('resolution'):
-            anitopy_info['video_resolution'] = file_info.get('resolution')
-        return anitopy_info
 
     def __prepare_title(self, title):
         """
