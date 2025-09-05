@@ -240,7 +240,7 @@
     }
     show_confirm_modal(`${name} 对应${msg}文件将被同步删除，是否确认？`, function () {
       hide_confirm_modal();
-      axios_post("delete_history", {"flag": flag, "logids": logids}, function (ret) {
+      axios_post_do("delete_history", {"flag": flag, "logids": logids}, function (ret) {
         window_history_refresh();
       });
     });

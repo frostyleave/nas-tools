@@ -1,0 +1,59 @@
+<page-person
+    id="page-person"
+    page-title=""
+    page-subtitle=""
+    media-tmdbid=""
+    media-type=""
+    keyword="">
+</page-person>
+
+<script type="text/javascript">
+$(document).ready(function() {
+  // 获取URL参数
+  const urlParams = new URLSearchParams(window.location.search);
+  const title = urlParams.get('title') || '';
+  const subtitle = urlParams.get('subtitle') || '';
+  const tmdbId = urlParams.get('tmdbid') || '';
+  const type = urlParams.get('type') || '';
+  const keyword = urlParams.get('keyword') || '';
+
+  // 设置属性
+  $('#page-person').attr('page-title', title);
+  $('#page-person').attr('page-subtitle', subtitle);
+  $('#page-person').attr('media-tmdbid', tmdbId);
+  $('#page-person').attr('media-type', type);
+  $('#page-person').attr('keyword', keyword);
+
+  // 使用axios_post请求/data/person接口获取数据并填充页面
+  const requestData = {
+    title: title,
+    subtitle: subtitle,
+    tmdbid: tmdbId,
+    type: type,
+    keyword: keyword
+  };
+
+  axios_post('/data/person', requestData, function(response) {
+    if (response.code === 0 && response.data) {
+      const data = response.data;
+
+      // 更新属性
+      if (data.Title) {
+        $('#page-person').attr('page-title', data.Title);
+      }
+      if (data.SubTitle) {
+        $('#page-person').attr('page-subtitle', data.SubTitle);
+      }
+      if (data.TmdbId) {
+        $('#page-person').attr('media-tmdbid', data.TmdbId);
+      }
+      if (data.Type) {
+        $('#page-person').attr('media-type', data.Type);
+      }
+      if (data.Keyword) {
+        $('#page-person').attr('keyword', data.Keyword);
+      }
+    }
+  }, true, true);
+});
+</script>

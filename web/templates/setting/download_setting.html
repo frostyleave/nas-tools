@@ -273,7 +273,7 @@
   // 显示编辑下载设置
   function show_edit_download_setting_modal(sid){
     $("#download_setting_id").val(sid);
-    axios_post("get_download_setting", { sid: sid }, function (ret) {
+    axios_post_do("get_download_setting", { sid: sid }, function (ret) {
       if (ret.code == 0) {
         $("#modal-download-setting-title").val('编辑下载设置');
         $("#download_setting_name").val(ret.data.name);
@@ -331,7 +331,7 @@
     }
     let params = {...{sid: $("#download_setting_id").val()}, ...config};
     $("#add_or_edit_download_setting_btn").text("保存中").attr("disabled", true);
-    axios_post("update_download_setting", params, function (ret) {
+    axios_post_do("update_download_setting", params, function (ret) {
       $("#modal-download-setting").modal('hide');
       $("#add_or_edit_download_setting_btn").text("保存").attr("disabled", false);
       window_history_refresh();
@@ -342,7 +342,7 @@
   function delete_download_setting(sid, name){
     show_confirm_modal(`删除下载设置 ${name} ？`, function () {
       hide_confirm_modal();
-      axios_post("delete_download_setting", { "sid": sid }, function (ret) {
+      axios_post_do("delete_download_setting", { "sid": sid }, function (ret) {
         window_history_refresh();
       });
     });
@@ -354,7 +354,7 @@
       'key': "DefaultDownloadSetting",
       'value': sid
     };
-    axios_post("set_system_config", params, function (ret) {
+    axios_post_do("set_system_config", params, function (ret) {
       window_history_refresh();
     });
   }

@@ -442,7 +442,7 @@
   function show_edit_downloader_modal(did){
     $("#downloader_id").val(did);
     $("#downloader_modal_title").text("编辑下载器");
-    axios_post("get_downloaders", {did: did}, function (ret) {
+    axios_post_do("get_downloaders", {did: did}, function (ret) {
       if (ret.code === 0) {
         let detail = ret.detail;
         $("#downloader_name").val(detail.name);
@@ -489,7 +489,7 @@
 
   // 检查下载器
   function check_downloader(flag, did, checked){
-    axios_post("check_downloader", {flag: flag, did: did, checked: checked}, function (ret) {
+    axios_post_do("check_downloader", {flag: flag, did: did, checked: checked}, function (ret) {
       if (ret.code === 0) {
         window_history_refresh();
       }
@@ -503,7 +503,7 @@
     $("#modal-downloader").modal('hide');
     show_confirm_modal("删除下载器 " + name + " ？", function () {
       hide_confirm_modal();
-      axios_post("del_downloader", { "did": did }, function (ret) {
+      axios_post_do("del_downloader", { "did": did }, function (ret) {
         window_history_refresh();
       });
     });
@@ -591,7 +591,7 @@
       case "save":
         let save_btn = $("#add_or_edit_downloader_btn");
         save_btn.text("保存中").attr("disabled", true);
-        axios_post("update_downloader", params, function (ret) {
+        axios_post_do("update_downloader", params, function (ret) {
           $("#modal-downloader").modal('hide');
           save_btn.attr("disabled", false);
           window_history_refresh();
@@ -600,7 +600,7 @@
       case "test":
         let test_btn = $("#test_downloader_btn");
         test_btn.text("测试中").attr("disabled", true);
-        axios_post("test_downloader", params, function (ret) {
+        axios_post_do("test_downloader", params, function (ret) {
           if (ret.code === 0) {
             test_btn.text("测试成功").attr("disabled", false);
           } else {
@@ -707,7 +707,7 @@
       'key': "DefaultDownloader",
       'value': did
     };
-    axios_post("set_system_config", params, function (ret) {
+    axios_post_do("set_system_config", params, function (ret) {
       window_history_refresh();
     });
   }
@@ -735,7 +735,7 @@
     })
     params = {...params, ...selectgroup_config}
     console.log(params)
-    axios_post("update_plugin_config", {plugin: id, config: params}, func);
+    axios_post_do("update_plugin_config", {plugin: id, config: params}, func);
   }
 
   //保存配置、关闭和刷新页面
@@ -756,7 +756,7 @@
   function load_plugin_apps_modal() {
     $("#plugin_apps_content").empty();
     // 获取插件列表
-    axios_post("get_plugin_apps", {}, function(ret) {
+    axios_post_do("get_plugin_apps", {}, function(ret) {
       if (ret.result) {
         for (let pid in ret.result) {
           let plugin = ret.result[pid];
@@ -806,7 +806,7 @@
   function load_external_plugin_apps_modal() {
     $("#plugin_apps_content").empty();
     // 获取插件列表
-    axios_post("get_external_plugin_apps", {}, function(ret) {
+    axios_post_do("get_external_plugin_apps", {}, function(ret) {
       if (ret.result) {
         for (let pid in ret.result) {
           let plugin = ret.result[pid];
@@ -864,7 +864,7 @@
       $("#modal-external-source-settings").modal('show');
       $("#modal_external_settings_btn").click(function (){
           var value = $("#external_source_content").val();
-          axios_post("save_external_source_settings", {value: value}, function(ret){
+          axios_post_do("save_external_source_settings", {value: value}, function(ret){
             if (ret.code === 0) {
                 show_success_modal(ret.msg, function (){
                   $("#modal-external-source-settings").modal('hide');
@@ -878,7 +878,7 @@
 
   // 显示插件页面
   function show_plugin_extra_page(id) {
-    axios_post("get_plugin_page", {id: id}, function(ret){
+    axios_post_do("get_plugin_page", {id: id}, function(ret){
       if (ret.code === 0) {
         $("#modal-plugin-" + id).modal('hide');
         $("#plugin_page_title").text(ret.title);
@@ -899,7 +899,7 @@
 
   // 安装插件
   function install_plugin(id, name) {
-    axios_post("install_plugin", {id: id}, function(ret){
+    axios_post_do("install_plugin", {id: id}, function(ret){
       $("#modal-plugin-apps").modal('hide');
       if (ret.code === 0) {
         show_success_modal(name + " 插件安装成功！", function (){
@@ -915,7 +915,7 @@
 
   // 卸载插件
   function uninstall_plugin(id, name) {
-    axios_post("uninstall_plugin", {id: id}, function(ret){
+    axios_post_do("uninstall_plugin", {id: id}, function(ret){
       $("#modal-plugin-apps").modal('hide');
       if (ret.code === 0) {
         show_warning_modal(name + " 插件已卸载！", function (){
@@ -936,7 +936,7 @@
         file_md5: file_md5,
         download_url: download_url
     }
-    axios_post("install_external_plugin", params, function(ret) {
+    axios_post_do("install_external_plugin", params, function(ret) {
       $("#modal-external-plugin-apps").modal('hide');
       if (ret.code === 0) {
         show_success_modal(name + " 插件安装成功！", function (){
@@ -955,7 +955,7 @@
       var params = {
           id: id,
       }
-      axios_post("uninstall_external_plugin", params, function(ret){
+      axios_post_do("uninstall_external_plugin", params, function(ret){
       $("#modal-external-plugin-apps").modal('hide');
       if (ret.code === 0) {
         show_warning_modal(name + " 插件已卸载！", function (){
@@ -976,7 +976,7 @@
         file_md5: file_md5,
         download_url: download_url
     }
-    axios_post("install_external_plugin", params, function(ret){
+    axios_post_do("install_external_plugin", params, function(ret){
         $("#modal-external-plugin-apps").modal('hide');
         if (ret.code === 0) {
           show_success_modal(name + " 插件更新成功！更新的插件需要重启生效!", function (){

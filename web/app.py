@@ -49,6 +49,7 @@ from web.backend.wallpaper import get_login_wallpaper
 from web.backend.web_utils import WebUtils
 
 from web.api import api_router
+from web.data_api import data_router
 
 from version import APP_VERSION
 
@@ -76,6 +77,7 @@ app.add_middleware(GZipMiddleware, minimum_size=1000)
 
 # 注册路由
 app.include_router(api_router)
+app.include_router(data_router)
 
 # 静态文件
 app.mount("/static", StaticFiles(directory="web/static"), name="static")
@@ -149,9 +151,7 @@ async def robots():
     """
     return FileResponse("robots.txt")
 
-# ------------------------
-# 登录接口
-# ------------------------
+
 @app.post("/auth/token")
 async def login(request: Request, form_data: OAuth2PasswordRequestForm = Depends()):
     user = authenticate_user(form_data.username, form_data.password)
@@ -191,9 +191,7 @@ async def logout():
     response.delete_cookie("refresh_token")
     return response
 
-# ------------------------
-# 刷新 token 接口
-# ------------------------
+
 @app.post("/auth/refresh")
 async def refresh_token(request: Request):
     refresh_token = request.cookies.get("refresh_token")
@@ -222,9 +220,7 @@ async def refresh_token(request: Request):
     response.set_cookie("refresh_token", new_refresh_token, httponly=True, samesite="Lax", secure=secure_flag)
     return response
 
-# ------------------------
-# 获取当前用户
-# ------------------------
+
 async def get_current_user(request: Request):
     token = request.cookies.get("access_token")
     if not token:
@@ -241,6 +237,9 @@ async def get_current_user(request: Request):
         raise HTTPException(status_code=404, detail="用户不存在")
     return user
 
+@app.post("/health")
+async def health(user: User = Depends(get_current_user)):
+    return 'ok'
 
 # 如果没有登录，重定向到登录页面
 @app.get("/login", response_class=HTMLResponse)
@@ -271,38 +270,12 @@ async def login_page(request: Request):
             "err_msg": "",
         }
     )
-    
+
 
 # 主页面
 @app.get("/", response_class=HTMLResponse)
-async def index_page(request: Request, next: str = ""):
-    """
-    主页面
-    """
-    token = request.cookies.get("access_token")
-    if not token:
-        return RedirectResponse(url='/login', status_code=status.HTTP_302_FOUND)
-    
-    username = decode_access_token(token)
-    if not username:
-        return RedirectResponse(url='/login', status_code=status.HTTP_302_FOUND)
-    
-    user = UserManager().get_user_by_name(username)
-    if not user:
-        return RedirectResponse(url='/login', status_code=status.HTTP_302_FOUND)
-
-    # 会话认证有效，直接重定向到主页
-    log.info(f"检测到有效会话认证，用户: {username}，重定向到主页")
-    Config().current_user = username
-    MediaServer().init_config()
-
-    # 构建重定向URL
-    if next and next not in ['web', 'index', '']:
-        redirect_url = f"/web#{next}"
-    else:
-        redirect_url = "/web#index"
-
-    return RedirectResponse(url=redirect_url, status_code=status.HTTP_302_FOUND)
+async def home_page(request: Request):
+    return FileResponse("web/static/index.html")
 
 
 # 导航页面
@@ -367,14 +340,16 @@ async def web_page(request: Request, user: User = Depends(get_current_user)):
     if not sync_mod:
         sync_mod = "link"
 
-    rmt_mode_dict = WebAction().get_rmt_modes()
     restype_dict = ModuleConf.TORRENT_SEARCH_PARAMS.get("restype")
     pix_dict = ModuleConf.TORRENT_SEARCH_PARAMS.get("pix")
     indexers = Indexer().get_indexers()
     search_source = "douban" if Config().get_config("laboratory").get("use_douban_titles") else "tmdb"
     custom_script_cfg = SystemConfig().get(SystemConfigKey.CustomScript)
-    menus = WebAction().get_user_menus(current_user=current_user).get("menus") or []
-    commands = WebAction().get_commands()
+
+    webAction = WebAction(current_user)
+    menus = webAction.get_user_menus().get("menus") or []
+    commands = webAction.get_commands()
+    rmt_mode_dict = webAction.get_rmt_modes()
 
     return templates.TemplateResponse(
         "navigation.html",
@@ -1782,12 +1757,12 @@ async def img(request: Request, url: str, current_user: User = Depends(get_curre
 
 # 事件响应
 @app.post("/do")
-def do(content: dict = Body(...)):
+def do(content: dict = Body(...), current_user: User = Depends(get_current_user)):
     try:
         cmd = content.get("cmd")
         data = content.get("data") or {}
         log.debug(f"处理/do请求: cmd={cmd}, data={data}")
-        return WebAction().action(cmd, data)
+        return WebAction(current_user).action(cmd, data)
     except Exception as e:
         log.exception("处理/do请求出错")  # 修正日志记录方式
         return {"code": -1, "msg": str(e)}
@@ -1823,8 +1798,10 @@ async def message_handler(websocket: WebSocket):
         if token:
             try:
                 username = decode_access_token(token)
-                user_id = UserManager().get_user_by_name(username).id
-                log.debug(f"[WebSocket-消息]会话用户ID: {user_id}")
+                user_info = UserManager().get_user_by_name(username)
+                if user_info:
+                    user_id = user_info.id
+                    log.debug(f"[WebSocket-消息]会话用户ID: {user_id}")
             except Exception as e:
                 log.exception("[WebSocket-消息]解析会话数据失败: ", e)
     except Exception as e:

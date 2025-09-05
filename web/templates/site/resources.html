@@ -233,7 +233,7 @@
       uploadvolumefactor: uploadvolumefactor,
       downloadvolumefactor: downloadvolumefactor
     };
-    axios_post("download_link", params, function (ret) {
+    axios_post_do("download_link", params, function (ret) {
       if (!batch) {
         if (ret.code === 0) {
           show_success_modal(`${title} 添加下载成功！`);

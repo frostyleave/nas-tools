@@ -55,6 +55,7 @@ window.addEventListener('popstate', function (event) {
 
 // 导航菜单点击
 function navmenu(page, newflag = false) {
+
   if (!newflag) {
     // 更新当前历史记录
     window_history();
@@ -78,6 +79,16 @@ function navmenu(page, newflag = false) {
 
   // 加载新页面
   NavPageLoading = true;
+
+  // 新函数
+  if (window.navigateTo) {
+    // 页面切换
+    window.navigateTo(page);
+    // 加载完成
+    render_other($("#page_content"), page, newflag);
+    return;
+  }
+
   NavPageXhr = $.ajax({
     url: page,
     dataType: 'html',
@@ -85,108 +96,120 @@ function navmenu(page, newflag = false) {
       // 演染
       let page_content = $("#page_content");
       page_content.html(data);
+      
       // 加载完成
-      NavPageLoading = false;
-      // 隐藏进度条
-      NProgress.done();
-      // 隐藏等待动画
-      hide_loading();
-      // 修复登录页面刷新问题
-      if (page_content.find("title").first().text() === "登录 - NAStool") {
-        // 刷新页面
-        window.location.reload();
-      } else {
-        // 关掉已经打开的弹窗
-        if (GlobalModalAbort) {
-          $(".modal").modal("hide");
-        }
-        // 刷新tooltip
-        fresh_tooltip();
-        // 刷新filetree控件
-        init_filetree_element();
-      }
-
-      let pageMenu = page;
-      let paramIndex = page.indexOf('?')
-      if (paramIndex > 0) {
-        pageMenu = pageMenu.substring(0, paramIndex);
-      }
-
-      if (page !== CurrentPageUri) {
-        // 切换页面时滚动到顶部
-        $(window).scrollTop(0);
-        // 记录当前页面ID
-        CurrentPageUri = page;
-
-        let navLinks = document.querySelectorAll('#top-sub-navbar a');
-        let selectNav = Array.from(navLinks).find(link => link.getAttribute('data-id') === pageMenu);
-        // 当前菜单不在子菜单中
-        if (!selectNav) {
-          // 激活当前菜单
-          navbarMenu.update_active(pageMenu);
-          // 如果当前菜单有子菜单, 重绘子菜单
-          let menuList = navbarMenu.navbar_list;
-          if (menuList) {
-            const selMenu = menuList.find(item => item.page === pageMenu);
-            const navList = selMenu ? selMenu.nav : null;
-            if (navList) {
-
-              // 获取ul元素
-              const ulElement = document.querySelector('#top-sub-navbar ul');
-              // 清空现有的li元素
-              ulElement.innerHTML = '';
-
-              // 生成li元素
-              navList.forEach(item => {
-
-                const aElement = document.createElement('a');
-                aElement.className = 'nav-link top-nav-link';
-                aElement.href = '#';
-                aElement.innerHTML = `<span class="tab-icon" style="color:var(--tblr-body-color);display: inline-flex;align-items: anchor-center;">${item.icon}</span><span class="tab-text">${item.name}</span>`;
-                aElement.setAttribute('data-bs-toggle', 'tab');
-                aElement.setAttribute('data-id', item.page);
-                aElement.onclick = () => navmenu(item.page); // 根据 item.page 设定点击行为
-
-                const liElement = document.createElement('li');
-                liElement.className = 'nav-item';
-                liElement.appendChild(aElement);
-                ulElement.appendChild(liElement);
-
-              });
-
-              // 第一个a标签增加选中状态
-              ulElement.firstChild.firstChild.classList.add('active');
-
-              $('#top-sub-navbar').show();
-            } else {
-              $('#top-sub-navbar').hide();
-            }
-          }
-        } else {
-          // 如果子菜单可见, 说明是同页面切换, 否则需要激活第一个标签
-          if (!$('#top-sub-navbar').is(':visible')) {
-            $('#top-sub-navbar').show();
-            // 激活当前菜单
-            navbarMenu.update_active(pageMenu);
-          }
-          $(navLinks).removeClass('active');
-          $(selectNav).addClass('active');
-        }
-      } else {
-        let navLinks = document.querySelectorAll('#top-sub-navbar a');
-        $(navLinks).removeClass('active');
-        let selectNav = Array.from(navLinks).find(link => link.getAttribute('data-id') === pageMenu);
-        $(selectNav).addClass('active');
-      }
-      // 并记录当前历史记录
-      window_history(!newflag);
-      // 更新元素菜单显隐
-      updateTabDisplay();
+      render_other(page_content, page, newflag);
     }
   });
+
 }
 
-function updateTabDisplay() {
+function render_other(page_content, page, newflag) {
+
+  NavPageLoading = false;
+  // 隐藏进度条
+  NProgress.done();
+
+  // 隐藏等待动画
+  hide_loading();
+  // 修复登录页面刷新问题
+  if (page_content.find("title").first().text() === "登录 - NAStool") {
+    // 刷新页面
+    window.location.reload();
+  } else {
+    // 关掉已经打开的弹窗
+    if (GlobalModalAbort) {
+      $(".modal").modal("hide");
+    }
+    // 刷新tooltip
+    fresh_tooltip();
+    // 刷新filetree控件
+    init_filetree_element();
+  }
+
+  let pageMenu = page;
+  let paramIndex = page.indexOf('?');
+  if (paramIndex > 0) {
+    pageMenu = pageMenu.substring(0, paramIndex);
+  }
+
+  if (page !== CurrentPageUri) {
+
+    // 切换页面时滚动到顶部
+    $(window).scrollTop(0);
+    // 记录当前页面ID
+    CurrentPageUri = page;
+
+    let navLinks = document.querySelectorAll('#top-sub-navbar a');
+    let selectNav = Array.from(navLinks).find(link => link.getAttribute('data-id') === pageMenu);
+    // 当前菜单不在子菜单中
+    if (!selectNav) {
+      // 激活当前菜单
+      navbarMenu.update_active(pageMenu);
+      // 如果当前菜单有子菜单, 重绘子菜单
+      let menuList = navbarMenu.navbar_list;
+      if (menuList) {
+        const selMenu = menuList.find(item => item.page === pageMenu);
+        const navList = selMenu ? selMenu.nav : null;
+        if (navList) {
+
+          // 获取ul元素
+          const ulElement = document.querySelector('#top-sub-navbar ul');
+          // 清空现有的li元素
+          ulElement.innerHTML = '';
+
+          // 生成li元素
+          navList.forEach(item => {
+
+            const aElement = document.createElement('a');
+            aElement.className = 'nav-link top-nav-link';
+            aElement.href = '#';
+            aElement.innerHTML = `<span class="tab-icon" style="color:var(--tblr-body-color);display: inline-flex;align-items: anchor-center;">${item.icon}</span><span class="tab-text">${item.name}</span>`;
+            aElement.setAttribute('data-bs-toggle', 'tab');
+            aElement.setAttribute('data-id', item.page);
+            aElement.onclick = () => navmenu(item.page); // 根据 item.page 设定点击行为
+
+            const liElement = document.createElement('li');
+            liElement.className = 'nav-item';
+            liElement.appendChild(aElement);
+            ulElement.appendChild(liElement);
+
+          });
+
+          // 第一个a标签增加选中状态
+          ulElement.firstChild.firstChild.classList.add('active');
+
+          $('#top-sub-navbar').show();
+        } else {
+          $('#top-sub-navbar').hide();
+        }
+      }
+    } else {
+      // 如果子菜单可见, 说明是同页面切换, 否则需要激活第一个标签
+      if (!$('#top-sub-navbar').is(':visible')) {
+        $('#top-sub-navbar').show();
+        // 激活当前菜单
+        navbarMenu.update_active(pageMenu);
+      }
+      $(navLinks).removeClass('active');
+      $(selectNav).addClass('active');
+    }
+  } else {
+    let navLinks = document.querySelectorAll('#top-sub-navbar a');
+    $(navLinks).removeClass('active');
+    let selectNav = Array.from(navLinks).find(link => link.getAttribute('data-id') === pageMenu);
+    $(selectNav).addClass('active');
+  }
+
+  // 并记录当前历史记录
+  window_history(!newflag);
+  // 更新元素菜单显隐
+  update_tab_display();
+
+}
+
+
+function update_tab_display() {
 
     if (!$('#top-sub-navbar').is(':visible')) {
       return;
@@ -252,7 +275,7 @@ function updateTabDisplay() {
 function media_search(tmdbid, title, type) {
   const param = { "tmdbid": tmdbid, "search_word": title, "media_type": type };
   show_refresh_progress("正在搜索 " + title + " ...", "search");
-  axios_post("search", param, function (ret) {
+  axios_post_do("search", param, function (ret) {
     hide_refresh_process();
     if (ret.code === 0) {
       navmenu('search?s=' + title)
@@ -476,7 +499,7 @@ function get_message(lst_time) {
 
 //检查系统是否在线
 function check_system_online() {
-  axios_post("refresh_process", { type: "restart" }, function (ret) {
+  axios_post_do("refresh_process", { type: "restart" }, function (ret) {
     if (ret.code === -1) {
       logout();
     } else {
@@ -488,7 +511,7 @@ function check_system_online() {
 //注销
 function logout() {
   // 兼容旧的登出方式
-  axios_post("logout", {}, function (ret) {
+  axios_post_do("logout", {}, function (ret) {
     window.location.href = '/login';
   });
 }
@@ -497,7 +520,7 @@ function logout() {
 function restart() {
   show_confirm_modal("立即重启系统？", function () {
     hide_confirm_modal();
-    axios_post("restart", {}, function (ret) {
+    axios_post_do("restart", {}, function (ret) {
     }, true, false);
     show_wait_modal(true);
     setTimeout("check_system_online()", 5000);
@@ -526,7 +549,7 @@ function update_system() {
     // 显示实时日志
     logger_select("UpdateSystem");
     show_logging_modal();
-    axios_post("update_system", {}, function (ret) {
+    axios_post_do("update_system", {}, function (ret) {
       // 关闭浮层
       hide_wait_modal();
       return ret;
@@ -668,7 +691,7 @@ function show_mediainfo_modal(rtype, name, year, mediaid, page, rssid) {
   if (!rssid) {
     rssid = "";
   }
-  axios_post("media_info", {
+  axios_post_do("media_info", {
     "id": mediaid,
     "title": name,
     "year": year,
@@ -787,7 +810,7 @@ function add_rss_media(name, year, type, mediaid, page, season, func) {
     "page": page,
     "season": season
   };
-  axios_post("add_rss_media", data, function (ret) {
+  axios_post_do("add_rss_media", data, function (ret) {
     if (ret.code === 0) {
       if (ret.page) {
         navmenu(ret.page);
@@ -807,7 +830,7 @@ function add_rss_media(name, year, type, mediaid, page, season, func) {
 function remove_rss_media(name, year, type, rssid, page, tmdbid, func) {
   hide_mediainfo_modal();
   let data = { "name": name, "type": type, "year": year, "rssid": rssid, "page": page, "tmdbid": tmdbid };
-  axios_post("remove_rss_media", data, function (ret) {
+  axios_post_do("remove_rss_media", data, function (ret) {
     if (func) {
       func();
     } else if (ret.page) {
@@ -829,7 +852,7 @@ function remove_rss_click(title, year, media_type, rssid, page, tmdb_id, remove_
 // 刷新订阅
 function refresh_rss_media(type, rssid, page) {
   hide_mediainfo_modal();
-  axios_post("refresh_rss", { "type": type, "rssid": rssid, "page": page }, function (ret) {
+  axios_post_do("refresh_rss", { "type": type, "rssid": rssid, "page": page }, function (ret) {
     if (ret.page) {
       window_history_refresh();
     } else {
@@ -863,7 +886,7 @@ function search_mediainfo_media(tmdbid, title, typestr) {
   hide_mediainfo_modal();
   const param = { "tmdbid": tmdbid, "search_word": title, "media_type": typestr };
   show_refresh_progress("正在搜索 " + title + " ...", "search");
-  axios_post("search", param, function (ret) {
+  axios_post_do("search", param, function (ret) {
     hide_refresh_process();
     if (ret.code === 0) {
       navmenu('search?s=' + title);
@@ -972,7 +995,7 @@ function add_rss_manual(flag) {
     }, ...rss_setting
   };
   $("#modal-manual-rss").modal("hide");
-  axios_post("add_rss_media", data, function (ret) {
+  axios_post_do("add_rss_media", data, function (ret) {
     if (ret.code === 0) {
       if (CurrentPageUri.startsWith("tv_rss") || CurrentPageUri.startsWith("movie_rss")) {
         window_history_refresh();
@@ -1100,7 +1123,7 @@ function show_default_rss_setting_modal(mtype) {
   refresh_downloadsetting_select("default_rss_setting_download_setting", false)
 
   // 查询已保存配置
-  axios_post("get_default_rss_setting", { mtype: mtype }, function (ret) {
+  axios_post_do("get_default_rss_setting", { mtype: mtype }, function (ret) {
     if (ret.code === 0 && ret.data) {
       $("#default_rss_setting_restype").val(ret.data.restype);
       $("#default_rss_setting_pix").val(ret.data.pix);
@@ -1149,7 +1172,7 @@ function save_default_rss_setting() {
   const key = common.mtype === "MOV" ? "DefaultRssSettingMOV" : "DefaultRssSettingTV";
   const value = { ...common, ...sites };
   $("#modal-default-rss-setting").modal("hide");
-  axios_post("set_system_config", { key: key, value: value }, function (ret) {
+  axios_post_do("set_system_config", { key: key, value: value }, function (ret) {
     if (ret.code === 0) {
       show_success_modal("设置订阅默认配置成功！");
     } else {
@@ -1169,7 +1192,7 @@ function show_edit_rss_media_modal(rssid, type) {
   refresh_rss_download_setting_dirs();
 
   // 获取订阅信息
-  axios_post("rss_detail", { "rssid": rssid, "rsstype": type }, function (ret) {
+  axios_post_do("rss_detail", { "rssid": rssid, "rsstype": type }, function (ret) {
     if (ret.code === 0) {
       $("#rss_tmdbid").val(ret.detail.tmdbid);
       $("#rss_name").val(ret.detail.name).attr("readonly", true);
@@ -1258,7 +1281,7 @@ function show_rss_success_modal(rssid, type, text) {
 
 // 刷新规则下拉框
 function refresh_filter_select(obj_id, aync = true) {
-  axios_post("get_filterrules", {}, function (ret) {
+  axios_post_do("get_filterrules", {}, function (ret) {
     if (ret.code === 0) {
       let rule_select = $(`#${obj_id}`);
       let rule_select_content = `<option value="">站点规则</option>`;
@@ -1272,7 +1295,7 @@ function refresh_filter_select(obj_id, aync = true) {
 
 // 刷新RSS站点下拉框
 function refresh_rsssites_select(obj_id, item_name, aync = true) {
-  axios_post("get_sites", { rss: true, basic: true }, function (ret) {
+  axios_post_do("get_sites", { rss: true, basic: true }, function (ret) {
     if (ret.code === 0) {
       let rsssites_select = $(`#${obj_id}`);
       let rsssites_select_content = "";
@@ -1296,7 +1319,7 @@ function refresh_rsssites_select(obj_id, item_name, aync = true) {
 
 // 刷新搜索站点列表
 function refresh_searchsites_select(obj_id, item_name, aync = true) {
-  axios_post("get_indexers", { check: true, basic: true }, function (ret) {
+  axios_post_do("get_indexers", { check: true, basic: true }, function (ret) {
     if (ret.code === 0) {
       let searchsites_select = $(`#${obj_id}`);
       let searchsites_select_content = "";
@@ -1320,7 +1343,7 @@ function refresh_searchsites_select(obj_id, item_name, aync = true) {
 
 // 刷新搜索站点下拉框
 function refresh_site_options(obj_id, show_all = false) {
-  axios_post("get_indexers", { check: true, basic: true }, function (ret) {
+  axios_post_do("get_indexers", { check: true, basic: true }, function (ret) {
     if (ret.code === 0) {
       let site_options = '';
       if (show_all) {
@@ -1345,7 +1368,7 @@ function refresh_savepath_select(obj_id, aync = true, sid = "", is_default = fal
     savepath_input_manual.hide();
     savepath_select.show();
   } else {
-    axios_post("get_download_dirs", { sid: sid, site: site }, function (ret) {
+    axios_post_do("get_download_dirs", { sid: sid, site: site }, function (ret) {
       if (ret.code === 0) {
         for (let path of ret.paths) {
           savepath_select_content += `<option value="${path}">${path}</option>`;
@@ -1393,7 +1416,7 @@ function get_savepath(select_id, input_id) {
 // 刷新下载设置
 function refresh_downloadsetting_select(obj_id, aync = true, is_default = false) {
   let default_content = (!is_default) ? "站点设置" : "默认";
-  axios_post("get_download_setting", {}, function (ret) {
+  axios_post_do("get_download_setting", {}, function (ret) {
     if (ret.code === 0) {
       let downloadsetting_select = $(`#${obj_id}`);
       let downloadsetting_select_content = `<option value="" selected>${default_content}</option>`;
@@ -1471,7 +1494,7 @@ function download_link() {
   const dir = get_savepath("search_download_dir", "search_download_dir_manual");
   const setting = $("#search_download_setting").val();
   $("#modal-search-download").modal('hide');
-  axios_post("download", { "id": id, "dir": dir, "setting": setting }, function (ret) {
+  axios_post_do("download", { "id": id, "dir": dir, "setting": setting }, function (ret) {
     if (ret.retcode === 0) {
       show_success_modal(`${name} 添加下载成功！`);
     } else {
@@ -1528,7 +1551,7 @@ function search_media_advanced() {
   const param = { "search_word": keyword, "filters": filters, "unident": true };
   $("#modal-search-advanced").modal("hide");
   show_refresh_progress(`正在搜索 ${keyword} ...`, "search");
-  axios_post("search", param, function (ret) {
+  axios_post_do("search", param, function (ret) {
     hide_refresh_process();
     if (ret.code === 0) {
       navmenu(`search?s=${keyword}`);
@@ -1625,7 +1648,7 @@ function media_name_test(name, result_div, func, subtitle) {
   if (!name) {
     return;
   }
-  axios_post("name_test", { "name": name, "subtitle": subtitle || "" }, function (ret) {
+  axios_post_do("name_test", { "name": name, "subtitle": subtitle || "" }, function (ret) {
     if (func) {
       func();
     }
@@ -1724,7 +1747,7 @@ function show_manual_transfer_modal(manual_type, inpath, syncmod, media_type, un
 
 // 重新识别
 function re_identification(flag, ids) {
-  axios_post("re_identification", { "flag": flag, "ids": ids }, function (ret) {
+  axios_post_do("re_identification", { "flag": flag, "ids": ids }, function (ret) {
     if (ret.retcode == 0) {
       navmenu(flag);
     } else {
@@ -1851,7 +1874,7 @@ function manual_media_transfer() {
   $('#modal-media-identification').modal('hide');
   show_refresh_progress("手动转移 " + inpath, "filetransfer");
   let cmd = (manual_type === '3') ? "rename_udf" : "rename"
-  axios_post(cmd, data, function (ret) {
+  axios_post_do(cmd, data, function (ret) {
     hide_refresh_process();
     if (ret.retcode === 0) {
       show_success_modal(inpath + "处理成功！", function () {
@@ -1888,7 +1911,7 @@ function search_tmdbid_by_name(keyid, resultid) {
     $("#" + keyid).removeClass("is-invalid");
   }
   $("#" + keyid).prop("disabled", true);
-  axios_post("search_media_infos", { "keyword": name, "searchtype": "tmdb" }, function (ret) {
+  axios_post_do("search_media_infos", { "keyword": name, "searchtype": "tmdb" }, function (ret) {
     $("#" + keyid).prop("disabled", false);
     if (ret.code == 0) {
       let data = ret.result;
@@ -2043,5 +2066,30 @@ function gen_form_empty_elements(obj_fileds) {
   });
 
   return $container.html();
+
+}
+
+
+function theme_toggle() {
+
+  const newTheme = (localStorage.getItem("theme") || "light") === "light" ? "dark" : "light";
+
+  const html = $("html");
+  html.attr("data-bs-theme", newTheme);
+
+  apply_theme(newTheme);
+
+}
+
+function apply_theme(targetTheme) {
+
+  // 先移除旧的 class
+  document.body.classList.remove("theme-dark", "theme-light");
+
+  // 加上新的 class
+  document.body.classList.add("theme-" + targetTheme);
+
+  // 保存到 localStorage
+  localStorage.setItem("theme", targetTheme);
 
 }

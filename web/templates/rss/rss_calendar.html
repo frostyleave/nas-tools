@@ -68,7 +68,7 @@
 
   function init_rss_movies_event() {
     for (let i = 0; i < RssMovieItems.length; i++) {
-      axios_post("movie_calendar_data",
+      axios_post_do("movie_calendar_data",
           {
             "id": RssMovieItems[i].id,
             "rssid": RssMovieItems[i].rssid
@@ -94,7 +94,7 @@
 
   function init_rss_tvs_event() {
     for (let i = 0; i < RssTvItems.length; i++) {
-      axios_post("tv_calendar_data", {
+      axios_post_do("tv_calendar_data", {
         "id": RssTvItems[i].id,
         "season": RssTvItems[i].season,
         "name": RssTvItems[i].name,

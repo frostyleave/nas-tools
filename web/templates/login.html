@@ -81,7 +81,6 @@
   <div class="page page-center">
     <div class="container-tight py-4">
       <form id="loginForm" class="card card-md border-0 {% if image_code %}login_window{% endif %}" autocomplete="off">
-        <input type="hidden" name="next" value="{{ GoPage }}" />
         <div class="card-body">
           <div class="text-center mb-3">
             <h1 class="login_title">
@@ -157,17 +156,9 @@
           submitBtn.prop('disabled', false).text(originalText);
 
           if (response.status === 200) {
-
-            // 重定向到目标页面
-            const nextPage = '{{ GoPage }}' || 'index';
-
             // 使用延迟跳转，确保认证状态完全设置
             setTimeout(() => {
-              if (nextPage && nextPage !== 'index' && nextPage !== 'web') {
-                window.location.href = `/web#${nextPage}`;
-              } else {
-                window.location.href = '/web#index';
-              }
+              window.location.href = '/home';
             }, 100);
           } else {
             showError(data.message || '登录失败');
