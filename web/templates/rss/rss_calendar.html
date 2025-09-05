@@ -5,6 +5,7 @@
 </div>
 
 <script type="text/javascript">
+  
   calendar = new FullCalendar.Calendar(document.getElementById('calendar'), {
     themeSystem: 'bootstrap',
     bootstrapFontAwesome: false,
@@ -19,7 +20,7 @@
       right: 'dayGridWeek,dayGridMonth,listMonth'
     },
     defaultView: 'dayGridWeek',
-    initialDate: '{{ Today }}',
+    initialDate: new Date(),
     navLinks: true,
     editable: false,
     dayMaxEvents: true,
@@ -61,15 +62,13 @@
       return {html: innerText};
     }
   });
-  calendar.render();
-</script>
-<script type="text/javascript">
+
   //查询订阅电影的上映日期
   RssMovieItems = {{ RssMovieItems| safe }};
 
   function init_rss_movies_event() {
     for (let i = 0; i < RssMovieItems.length; i++) {
-      axios_post("movie_calendar_data",
+      axios_post_do("movie_calendar_data",
           {
             "id": RssMovieItems[i].id,
             "rssid": RssMovieItems[i].rssid
@@ -95,7 +94,7 @@
 
   function init_rss_tvs_event() {
     for (let i = 0; i < RssTvItems.length; i++) {
-      axios_post("tv_calendar_data", {
+      axios_post_do("tv_calendar_data", {
         "id": RssTvItems[i].id,
         "season": RssTvItems[i].season,
         "name": RssTvItems[i].name,
@@ -119,8 +118,16 @@
       });
     }
   };
-  //拉取订阅电影
-  init_rss_movies_event();
-  //拉取订阅电视剧
-  init_rss_tvs_event();
+
+</script>
+
+<script>
+  $(document).ready(function () {
+    // 日历渲染
+    calendar.render();
+    //拉取订阅电影
+    init_rss_movies_event();
+    //拉取订阅电视剧
+    init_rss_tvs_event();
+  });
 </script>

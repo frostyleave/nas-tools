@@ -1221,7 +1221,7 @@
     if (flag) {
       $("#" + type + "_btn").text("保存中...").attr("disabled", true);
     }
-    axios_post("update_config", params, function (ret) {
+    axios_post_do("update_config", params, function (ret) {
       if (flag) {
         $("#" + type + "_btn").text("保存").attr("disabled", false);
         // window_history_refresh();
@@ -1283,7 +1283,7 @@
         }
       }
     };
-    axios_post("set_system_config", params, function (ret) {
+    axios_post_do("set_system_config", params, function (ret) {
       $("#modal-scraper").modal("hide");
       window_history_refresh();
     });
@@ -1294,7 +1294,7 @@
     let css_text = css_editor.getValue();
     let javascript_text = javascript_editor.getValue();
     $("#user_script_save_btn").text("保存中...").attr("disabled", true);
-    axios_post("save_user_script", { css: css_text, javascript: javascript_text }, function (ret) {
+    axios_post_do("save_user_script", { css: css_text, javascript: javascript_text }, function (ret) {
       $("#user_script_save_btn").text("保存").attr("disabled", false);
     });
     $("#modal-user-script").modal("hide");
@@ -1323,7 +1323,7 @@
       show_warning_modal("非法二级分类策略名称");
       return;
     }
-    axios_post("get_category_config", { "category_name": category_name }, function (ret) {
+    axios_post_do("get_category_config", { "category_name": category_name }, function (ret) {
       if (ret.code === 0) {
         category_editor.setValue(ret.text);
         $("#modal-library-category").modal('show');
@@ -1337,7 +1337,7 @@
   function save_category_config() {
     const value = category_editor.getValue();
     const params = { "config": value };
-    axios_post("update_category_config", params, function (ret) {
+    axios_post_do("update_category_config", params, function (ret) {
       $("#modal-library-category").modal('hide');
     });
   }

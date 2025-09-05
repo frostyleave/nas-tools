@@ -3,9 +3,9 @@ import { html, nothing, unsafeHTML, repeat } from "../../utility/lit-core.min.js
 import {CustomElement, Golbal} from "../../utility/utility.js";
 
 export class LayoutNavbar extends CustomElement {
+
   static properties = {
-    navbar_list: {type: Array },
-    layout_gopage: { attribute: "layout-gopage" },
+    navbar_list: { type: Array },
     layout_appversion: { attribute: "layout-appversion"},
     layout_useradmin: { attribute: "layout-useradmin"},
     _active_name: { state: true},
@@ -17,7 +17,6 @@ export class LayoutNavbar extends CustomElement {
   constructor() {
     super();
     this.navbar_list = [];
-    this.layout_gopage = "";
     this.layout_appversion = "v3.0.0";
     this._active_name = "";
     this._update_appversion = "";
@@ -55,17 +54,14 @@ export class LayoutNavbar extends CustomElement {
 
   _loadMenus() {
     // 直接使用axios_post，避免页面状态检查导致的请求丢弃
-    axios_post("get_user_menus", {}, (ret) => {
-      console.log('Menu response:', ret);
+    axios_post_do("get_user_menus", {}, (ret) => {
       if (ret.code === 0) {
         this.navbar_list = ret.menus;
-         console.log('Menu response:', ret);
         // 菜单加载完成后，触发重新渲染
         this.requestUpdate();
         // 如果是首次加载且页面还没有初始化，现在初始化
         if (!this._pageInitialized) {
           this._pageInitialized = true;
-          console.log('Menu response:', ret);
           this._init_page();
         }
       } else {
@@ -92,9 +88,7 @@ export class LayoutNavbar extends CustomElement {
 
   _init_page() {
     // 加载页面
-    if (this.layout_gopage) {
-      navmenu(this.layout_gopage);
-    } else if (window.history.state?.page) {
+    if (window.history.state?.page) {
       window_history_refresh();
     } else {
       // 打开地址链锚点页面
@@ -124,14 +118,10 @@ export class LayoutNavbar extends CustomElement {
       this._ensureVisible();
     }, 200);
 
-    // 检查更新
-    // if (this.layout_useradmin === "1") {
-    //   this._check_new_version();
-    // }
   }
 
   _check_new_version() {
-    axios_post("version", {}, (ret) => {
+    axios_post_do("version", {}, (ret) => {
       if (ret.code === 0) {
         let url = null;
         switch (compareVersion(ret.version, this.layout_appversion)) {
@@ -156,7 +146,6 @@ export class LayoutNavbar extends CustomElement {
     if (pages.length > 1) {
       return pages[pages.length - 1]
     }
-
   }
 
   _add_page_to_url(page){
@@ -169,6 +158,9 @@ export class LayoutNavbar extends CustomElement {
 
   update_active(page) {
     this._active_name = page ?? window.history.state?.page;
+    if (this._active_name.startsWith('/')) {
+      this._active_name = this._active_name.replace(/^\/+/, "");
+    }
     this.show_collapse(this._active_name);
   }
 
@@ -187,10 +179,6 @@ export class LayoutNavbar extends CustomElement {
 
 
   render() {
-    return this.render_v2();
-  }
-
-  render_v2() {
 
     const menuGroup = this.navbar_list.reduce((acc, item) => {
       const group = item.group || "";
@@ -238,103 +226,14 @@ export class LayoutNavbar extends CustomElement {
               ${content}
               </div>
               <div class="d-flex align-items-end">
-                ${this.layout_useradmin === "1" ? html`
-                  <!-- 升级提示 -->
-                  <span class="d-flex flex-grow-1 justify-content-center border rounded-3 m-3 p-2 ${this._is_update ? "bg-yellow" : ""}">
-                    <a href=${this._update_url} class="${this._is_update ? "text-yellow-fg" : "text-muted"}" target="_blank" rel="noreferrer">
-                      <strong>
-                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-brand-github" width="24" height="24"
-                            viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round"
-                            stroke-linejoin="round">
-                          <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
-                          <path d="M9 19c-4.3 1.4 -4.3 -2.5 -6 -3m12 5v-3.5c0 -1 .1 -1.4 -.5 -2c2.8 -.3 5.5 -1.4 5.5 -6a4.6 4.6 0 0 0 -1.3 -3.2a4.2 4.2 0 0 0 -.1 -3.2s-1.1 -.3 -3.5 1.3a12.3 12.3 0 0 0 -6.2 0c-2.4 -1.6 -3.5 -1.3 -3.5 -1.3a4.2 4.2 0 0 0 -.1 3.2a4.6 4.6 0 0 0 -1.3 3.2c0 4.6 2.7 5.7 5.5 6c-.6 .6 -.6 1.2 -.5 2v3.5"></path>
-                        </svg>
-                        ${!this._is_update ? this.layout_appversion : html`<del>${this.layout_appversion}</del>`}
-                      </strong>
-                    </a>
-                    ${this._is_update
-                    ? html`
-                      <svg xmlns="http://www.w3.org/2000/svg" class="cursor-pointer icon icon-tabler icon-tabler-arrow-big-up-lines-filled ms-2 text-red" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"
-                        @click=${ (e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          update(this._update_appversion);
-                          return false;
-                        }}>
-                        <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
-                        <path d="M9 12h-3.586a1 1 0 0 1 -.707 -1.707l6.586 -6.586a1 1 0 0 1 1.414 0l6.586 6.586a1 1 0 0 1 -.707 1.707h-3.586v3h-6v-3z" fill="currentColor"></path>
-                        <path d="M9 21h6"></path>
-                        <path d="M9 18h6"></path>
-                      </svg>`
-                    : nothing }
-                  </span>
-                ` : nothing }
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    `;
-  }
-
-  render_v1() {
-    return html`
-      <div class="container-fluid">
-        <div class="offcanvas offcanvas-start d-flex lit-navbar-canvas shadow" tabindex="-1" id="litLayoutNavbar">
-          <div class="d-flex flex-row flex-grow-1 lit-navbar-hide-scrollbar">
-            <div class="d-flex flex-column flex-grow-1">
-              <h1 class="mt-3" style="text-align:center;">
-                <img src="../static/img/logo/logo-blue.png" alt="NAStool" class="lit-navbar-logo">
-              </h1>
-              <div class="accordion px-2 py-2 flex-grow-1">
-                ${this.navbar_list.map((item, index) => ( html`
-                  ${item.list?.length > 0
-                  ? html`
-                    <button class="accordion-button lit-navbar-accordion-button collapsed ps-2 pe-1 py-2" style="font-size:1.1rem;" data-bs-toggle="collapse" data-bs-target="#lit-navbar-collapse-${index}" aria-expanded="false">
-                        <span class="nav-link-icon" style="color:var(--tblr-body-color);">
-                        ${item.icon ? unsafeHTML(item.icon) : nothing}
-                      </span>
-                      ${item.also??item.name}
-                    </button>
-                    <div class="accordion-collapse collapse" id="lit-navbar-collapse-${index}">
-                      ${item.list.map((drop) => (this._render_page_item(drop, true)))}
-                    </div>`
-                  : this._render_page_item(item, false)
-                  } `
-                ))}
-              </div>
-              <div class="d-flex align-items-end">
-                ${this.layout_useradmin === "1" ? html`
-                  <!-- 升级提示 -->
-                  <span class="d-flex flex-grow-1 justify-content-center border rounded-3 m-3 p-2 ${this._is_update ? "bg-yellow" : ""}">
-                    <a href=${this._update_url} class="${this._is_update ? "text-yellow-fg" : "text-muted"}" target="_blank" rel="noreferrer">
-                      <strong>
-                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-brand-github" width="24" height="24"
-                            viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round"
-                            stroke-linejoin="round">
-                          <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
-                          <path d="M9 19c-4.3 1.4 -4.3 -2.5 -6 -3m12 5v-3.5c0 -1 .1 -1.4 -.5 -2c2.8 -.3 5.5 -1.4 5.5 -6a4.6 4.6 0 0 0 -1.3 -3.2a4.2 4.2 0 0 0 -.1 -3.2s-1.1 -.3 -3.5 1.3a12.3 12.3 0 0 0 -6.2 0c-2.4 -1.6 -3.5 -1.3 -3.5 -1.3a4.2 4.2 0 0 0 -.1 3.2a4.6 4.6 0 0 0 -1.3 3.2c0 4.6 2.7 5.7 5.5 6c-.6 .6 -.6 1.2 -.5 2v3.5"></path>
-                        </svg>
-                        ${!this._is_update ? this.layout_appversion : html`<del>${this.layout_appversion}</del>`}
-                      </strong>
-                    </a>
-                    ${this._is_update
-                    ? html`
-                      <svg xmlns="http://www.w3.org/2000/svg" class="cursor-pointer icon icon-tabler icon-tabler-arrow-big-up-lines-filled ms-2 text-red" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"
-                        @click=${ (e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          update(this._update_appversion);
-                          return false;
-                        }}>
-                        <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
-                        <path d="M9 12h-3.586a1 1 0 0 1 -.707 -1.707l6.586 -6.586a1 1 0 0 1 1.414 0l6.586 6.586a1 1 0 0 1 -.707 1.707h-3.586v3h-6v-3z" fill="currentColor"></path>
-                        <path d="M9 21h6"></path>
-                        <path d="M9 18h6"></path>
-                      </svg>`
-                    : nothing }
-                  </span>
-                ` : nothing }
+                <span class="d-flex flex-grow-1 justify-content-center border rounded-3 m-3 p-2">
+                  <a href=${this._update_url} class="text-muted" target="_blank" rel="noreferrer">
+                    <strong>
+                      <i class="ti ti-brand-github fs-2"></i>
+                      <b id="version-txt"></b>
+                    </strong>
+                  </a>
+                </span>
               </div>
             </div>
           </div>

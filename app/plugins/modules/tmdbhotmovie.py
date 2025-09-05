@@ -246,7 +246,7 @@ class TmdbHotMovieRank(_IPluginModule):
         return """
           // 删除榜单订阅历史记录
           function TmdbHotMovie_delete_history(id){
-            ajax_post("run_plugin_method", {"plugin_id": 'TmdbHotMovie', 'method': 'delete_rank_history', 'tmdb_id': id}, function (ret) {
+            axios_post_do("run_plugin_method", {"plugin_id": 'TmdbHotMovie', 'method': 'delete_rank_history', 'tmdb_id': id}, function (ret) {
               $("#movie_rank_history_" + id).remove();
             });
 

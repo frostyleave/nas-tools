@@ -1,0 +1,29 @@
+<page-mediainfo id="page-mediainfo" media-type="" media-tmdbid=""></page-mediainfo>
+
+<script type="text/javascript">
+$(document).ready(function() {
+  // 获取URL参数
+  const urlParams = new URLSearchParams(window.location.search);
+  const type = urlParams.get('type') || '';
+  const tmdbId = urlParams.get('tmdbid') || '';
+
+  // 设置属性
+  $('#page-mediainfo').attr('media-type', type);
+  $('#page-mediainfo').attr('media-tmdbid', tmdbId);
+
+  // 使用axios_post请求/data/mediainfo接口获取数据并填充页面
+  axios_post('/data/mediainfo', {type: type, tmdbid: tmdbId}, function(response) {
+    if (response.code === 0 && response.data) {
+      const data = response.data;
+
+      // 更新属性
+      if (data.Type) {
+        $('#page-mediainfo').attr('media-type', data.Type);
+      }
+      if (data.TmdbId) {
+        $('#page-mediainfo').attr('media-tmdbid', data.TmdbId);
+      }
+    }
+  }, true, true);
+});
+</script>

@@ -3,8 +3,30 @@ html {
     min-height: calc(100% + env(safe-area-inset-top) + var(--safe-area-inset-top))
 }
 
+body {
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  position: relative;
+}
+
+/* 毛玻璃遮罩层 */
+body::before {
+  content: "";
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(255,255,255,0.2);  /* 半透明白色蒙层 */
+  backdrop-filter: blur(10px);        /* 毛玻璃模糊 */
+  -webkit-backdrop-filter: blur(10px);/* Safari 支持 */
+  z-index: -1;
+}
+
 body, .page {
     min-height: 100%;
+    overflow-y: hidden;
 }
 
 .theme-light .page {
@@ -428,7 +450,6 @@ body, .page {
     border-bottom: var(--tblr-nav-tabs-border-width) solid var(--tblr-nav-tabs-border-color);
     background: transparent;
     justify-content: flex-start;
-    /* 电脑模式下靠左对齐 */
   }
 
   div.top-sub-navbar>ul>li {

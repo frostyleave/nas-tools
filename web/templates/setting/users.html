@@ -124,7 +124,7 @@
     }
     $("#modal-user").modal('hide');
     const params = {"oper": "add", "name": name, "password": password, "pris": pris};
-    axios_post("user_manager", params, function (ret) {
+    axios_post_do("user_manager", params, function (ret) {
       window_history_refresh();
     });
   }
@@ -132,7 +132,7 @@
   // 删除用户
   function delete_user(name) {
     const params = {"oper": "del", "name": name};
-    axios_post("user_manager", params, function (ret) {
+    axios_post_do("user_manager", params, function (ret) {
       window_history_refresh();
     });
   }

@@ -57,7 +57,7 @@ apiClient.interceptors.response.use(
  * @param {boolean} async - 是否异步，默认true
  * @param {boolean} show_progress - 是否显示进度，默认true
  */
-function axios_post(cmd, params, handler, async = true, show_progress = true) {
+function axios_post_do(cmd, params, handler, async = true, show_progress = true) {
     if (show_progress) {
         show_loading_wave();
     }
@@ -112,6 +112,67 @@ function axios_post(cmd, params, handler, async = true, show_progress = true) {
     return request;
 }
 
+
+/**
+ * axios_post方法 - 替代ajax_post
+ * @param {string} req_url - 命令
+ * @param {object} params - 参数
+ * @param {function} handler - 成功回调
+ * @param {boolean} async - 是否异步，默认true
+ * @param {boolean} show_progress - 是否显示进度，默认true
+ */
+function axios_post(req_url, params, handler, async = true, show_progress = true) {
+
+    if (show_progress) {
+        show_loading_wave();
+    }
+
+    const config = {
+        method: 'POST',
+        url: req_url,
+        data: params,
+        timeout: 0, // 与原ajax_post保持一致
+    };
+
+    // 发送请求
+    const request = apiClient(config);
+
+    request
+        .then(response => {
+            if (show_progress) {
+                hide_loading();
+            }
+            
+            if (handler) {
+                handler(response.data);
+            }
+        })
+        .catch(error => {
+            if (show_progress) {
+                hide_loading();
+            }
+
+            // 处理错误
+            if (error.response && error.response.status === 200) {
+                // 与原ajax_post的错误处理保持一致
+                if (handler) {
+                    handler({code: 0});
+                }
+            } else {
+                console.error('Request failed:', error);
+                if (handler) {
+                    handler({
+                        code: 1,
+                        message: error.message || '请求失败'
+                    });
+                }
+            }
+        });
+
+    return request;
+}
+
+
 /**
  * API请求方法 - 用于调用RESTful API
  * @param {string} url - API路径
@@ -148,4 +209,4 @@ function api_request(url, data = {}, method = 'POST', show_progress = true) {
 // 导出方法到全局作用域
 window.axios_post = axios_post;
 window.api_request = api_request;
-window.axios_client = apiClient
+window.axios_client = apiClient;

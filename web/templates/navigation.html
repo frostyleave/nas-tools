@@ -76,7 +76,7 @@
   <link rel="stylesheet" href="/static/css/dropzone.css" />
   <link rel="stylesheet" href="/static/css/nprogress.css" />
   <link rel="stylesheet" href="/static/tabler/3.34.1/tabler-icons.min.css">
-  <!-- <link rel="stylesheet" href="https://cdn.bootcdn.net/ajax/libs/tabler-icons/3.34.1/tabler-icons.min.css"> -->
+
   <!-- 附加样式 -->
   <link rel="stylesheet" href="/static/css/style.css" />
 
@@ -89,7 +89,6 @@
   <div class="page">
     <!-- jquery -->
     <script src="/static/js/jquery-3.3.1.min.js"></script>
-    <script src="/static/js/tabler/demo-theme.min.js"></script>
     <!-- 第三方组件 -->
     <script src="/static/js/modules/echarts.min.js"></script>
     <script src="/static/js/modules/nprogress.js"></script>
@@ -150,8 +149,7 @@
       style="margin-bottom: calc(50px + env(safe-area-inset-top) + env(safe-area-inset-bottom))">
       <div class="list-group list-group-flush" id="system-messages">
       </div>
-      <div class="mt-3 w-100 position-absolute mb-2 pe-2" align="center"
-        style="bottom: calc(env(safe-area-inset-bottom))">
+      <div class="mt-3 w-100 position-absolute mb-2 pe-2" align="center" style="bottom: calc(env(safe-area-inset-bottom))">
         <div class="input-group">
           <button type="button" class="btn" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
             /
@@ -1213,8 +1211,8 @@
       });
 
       // 初始化和窗口大小变化时更新
-      document.addEventListener("DOMContentLoaded", updateTabDisplay);
-      window.addEventListener("resize", updateTabDisplay);
+      document.addEventListener("DOMContentLoaded", update_tab_display);
+      window.addEventListener("resize", update_tab_display);
 
       // 监听页面状态
       window.addEventListener('popstate', function (e) {

@@ -5,7 +5,6 @@ import log
 
 from app.downloader import Downloader
 from app.helper import ProgressHelper
-from app.helper.openai_helper import OpenAiHelper
 from app.indexer import Indexer
 from app.media import Media
 from app.message import Message
@@ -204,11 +203,6 @@ def search_media_by_message(input_str, in_from: SearchType, user_id, user_name=N
         elif input_str.startswith("http"):
             # 下载链接
             SEARCH_MEDIA_TYPE[user_id] = "DOWNLOAD"
-        elif OpenAiHelper().get_state() \
-                and not input_str.startswith("搜索") \
-                and not input_str.startswith("下载"):
-            # 开启ChatGPT时，不以订阅、搜索、下载开头的均为聊天模式
-            SEARCH_MEDIA_TYPE[user_id] = "ASK"
         else:
             # 搜索
             input_str = re.sub(r"(搜索|下载)[:：\s]*", "", input_str)
@@ -246,18 +240,6 @@ def search_media_by_message(input_str, in_from: SearchType, user_id, user_name=N
                                   torrent_file=filepath,
                                   in_from=in_from,
                                   user_name=user_name)
-        # 聊天
-        elif SEARCH_MEDIA_TYPE[user_id] == "ASK":
-            # 调用ChatGPT Api
-            answer = OpenAiHelper().get_answer(text=input_str,
-                                               userid=user_id)
-            if not answer:
-                answer = "ChatGTP出错了，请检查OpenAI API Key是否正确，如需搜索电影/电视剧，请发送 搜索或下载 + 名称"
-            # 发送消息
-            Message().send_channel_msg(channel=in_from,
-                                       title="",
-                                       text=str(answer).strip(),
-                                       user_id=user_id)
         # 搜索或订阅
         else:
             # 获取字符串中可能的RSS站点列表

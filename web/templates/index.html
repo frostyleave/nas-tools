@@ -311,14 +311,14 @@
   //显示媒体库同步框
   function show_mediasync_modal() {
     //获取同步状态
-    axios_post("refresh_process", {type: "mediasync"}, function (ret) {
+    axios_post_do("refresh_process", {type: "mediasync"}, function (ret) {
       if (ret.code === 0 && ret.value < 100) {
         //同步中
         $("#index-mediasync-modal").modal('show');
         start_media_sync(false);
       } else {
         //没有在同步，获取目前同步的数据情况
-        axios_post("mediasync_state", {}, function (ret) {
+        axios_post_do("mediasync_state", {}, function (ret) {
           if (ret.code === 0) {
             $("#mediasync_status").text(ret.text);
           }
@@ -342,7 +342,7 @@
         .attr("href", "javascript:close_mediasync_modal()");
     $("#save_mediasync_btn").hide();
     if (flag) {
-      axios_post("start_mediasync", {
+      axios_post_do("start_mediasync", {
         "librarys": select_GetSelectedVAL("sync_library")
       }, function (ret) {
         setTimeout("start_mediasync_progress()", 1000);
@@ -358,7 +358,7 @@
       "key": "SyncLibrary",
       "value": select_GetSelectedVAL("sync_library")
     };
-    axios_post("set_system_config", params, function (ret) {
+    axios_post_do("set_system_config", params, function (ret) {
       $("#index-mediasync-modal").modal('hide');
       window_history_refresh();
     });
@@ -398,7 +398,7 @@
   // 加载图表
   $('#modal-index-statistics').off('shown.bs.modal').on('shown.bs.modal', function (e) {
     // 请求数据
-    axios_post("get_transfer_statistics", {}, function(ret){
+    axios_post_do("get_transfer_statistics", {}, function(ret){
 
       // 电影变化图
       if (typeof (chart_statistics) != 'undefined')

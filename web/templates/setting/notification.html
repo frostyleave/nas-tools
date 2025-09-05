@@ -260,7 +260,7 @@
   function show_edit_message_client_modal(cid) {
     $("#client_id").val(cid);
     $("#client_modal_title").text("编辑消息通知");
-    axios_post("get_message_client", {cid: cid}, function (ret) {
+    axios_post_do("get_message_client", {cid: cid}, function (ret) {
       if (ret.code === 0) {
         $("#client_name").val(ret.detail.name);
         $("#client_enabled").val(ret.detail.enabled);
@@ -346,14 +346,14 @@
     };
     if (action === "save") {
       $("#add_or_edit_message_client_btn").text("保存中").attr("disabled", true);
-      axios_post("update_message_client", params, function (ret) {
+      axios_post_do("update_message_client", params, function (ret) {
         $("#modal-message-client").modal('hide');
         $("#add_or_edit_message_client_btn").attr("disabled", false);
         window_history_refresh();
       });
     } else if (action === "test") {
       $("#test_message_client_btn").text("测试中").attr("disabled", true);
-      axios_post("test_message_client", params, function (ret) {
+      axios_post_do("test_message_client", params, function (ret) {
         if (ret.code === 0) {
           $("#test_message_client_btn").text("测试成功").attr("disabled", false);
         } else {
@@ -366,7 +366,7 @@
 
   // 打开推送设置框
   function check_message_client(flag, cid, checked, type) {
-    axios_post("check_message_client", {flag: flag, cid: cid, checked: checked, type: type}, function (ret) {
+    axios_post_do("check_message_client", {flag: flag, cid: cid, checked: checked, type: type}, function (ret) {
       if (ret.code === 0) {
         window_history_refresh();
       }
@@ -380,7 +380,7 @@
     $("#modal-message-client").modal('hide');
     show_confirm_modal("删除消息服务 " + name + " ？", function () {
       hide_confirm_modal();
-      axios_post("delete_message_client", {"cid": cid}, function (ret) {
+      axios_post_do("delete_message_client", {"cid": cid}, function (ret) {
         window_history_refresh();
       });
     });
@@ -441,7 +441,7 @@
       image: $("#custom_message_image").val(),
       message_clients: select_GetSelectedVAL("custom_message_client"),
     };
-    axios_post("send_custom_message", params, function (ret) {
+    axios_post_do("send_custom_message", params, function (ret) {
       if (ret.code === 0) {
         $("#modal-send-custom-message").modal("hide");
         show_success_modal("自定义消息已发送");

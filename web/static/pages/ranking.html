@@ -1,0 +1,17 @@
+<page-discovery id="page-discovery" discovery-type=""></page-discovery>
+
+<script type="text/javascript">
+$(document).ready(function() {
+  // 使用axios_post请求/data/ranking接口获取数据并填充页面
+  axios_post('/data/ranking', {}, function(response) {
+    if (response.code === 0 && response.data) {
+      const data = response.data;
+
+      // 设置discovery-type属性
+      if (data.DiscoveryType) {
+        $('#page-discovery').attr('discovery-type', data.DiscoveryType);
+      }
+    }
+  }, true, true);
+});
+</script>
