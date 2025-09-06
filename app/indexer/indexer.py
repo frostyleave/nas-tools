@@ -5,6 +5,7 @@ import re
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import List
 
+from app.indexer.client.builtin import BuiltinIndexer
 import log
 
 from app.media.douban import DouBan
@@ -37,9 +38,8 @@ class Indexer(object):
     def init_config(self):
         self.progress = ProgressHelper()
         self.dbhelper = DbHelper()
-        self._client = self.__get_client('builtin')
-        if self._client:
-            self._client_type = self._client.get_type()
+        self._client = BuiltinIndexer()
+        self._client_type = self._client.get_type()
 
     def __build_class(self, ctype, conf):
         for indexer_schema in self._indexer_schemas:
@@ -98,20 +98,11 @@ class Indexer(object):
         """
         return self._client.list(index_id=index_id, page=page, keyword=keyword)
 
-    def __get_client(self, ctype: [IndexerType, str], conf=None):
-        return self.__build_class(ctype=ctype, conf=conf)
-
     def get_client(self):
         """
         获取当前索引器
         """
         return self._client
-
-    def get_client_type(self):
-        """
-        获取当前索引器类型
-        """
-        return self._client_type
 
     def search_by_keyword(self,
                           key_word: [str, list],

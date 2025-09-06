@@ -1764,7 +1764,7 @@ def do(content: dict = Body(...), current_user: User = Depends(get_current_user)
         log.debug(f"处理/do请求: cmd={cmd}, data={data}")
         return WebAction(current_user).action(cmd, data)
     except Exception as e:
-        log.exception("处理/do请求出错")  # 修正日志记录方式
+        log.exception("处理/do请求出错, cmd=" + content.get("cmd"))
         return {"code": -1, "msg": str(e)}
 
 

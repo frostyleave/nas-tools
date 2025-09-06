@@ -10,7 +10,8 @@
 <script type="text/javascript">
 $(document).ready(function() {
   // 获取URL参数
-  const urlParams = new URLSearchParams(window.location.search);
+  const [path, queryString] = window.location.hash.split("?");
+  const urlParams = new URLSearchParams(queryString);
   const title = urlParams.get('title') || '';
   const subtitle = urlParams.get('subtitle') || '';
   const tmdbId = urlParams.get('tmdbid') || '';

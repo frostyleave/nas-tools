@@ -116,26 +116,9 @@
           <div class="form-selectgroup-boxes row mb-3">
             <label class="form-label required">类型 <span class="form-help" data-bs-toggle="tooltip"
                                                           data-bs-original-title="QB版本要求>=4.3.9，TR版本要求>=3.0，其它版本可能存在适配问题">?</span></label>
-            {% for Id, Attr in DownloaderConf.items() %}
-              <div class="col-lg">
-                <div class="mb-1">
-                  <label class="form-selectgroup-item" for="type_{{ Id }}">
-                    <input type="radio" name="downloader_type" id="type_{{ Id }}" value="{{ Id }}"
-                           class="form-selectgroup-input" checked>
-                    <span class="form-selectgroup-label d-flex align-items-center p-2">
-                    <span class="me-2">
-                      <span class="form-selectgroup-check"></span>
-                    </span>
-                    <span class="form-selectgroup-label-content d-flex align-items-center">
-                      <span class="avatar avatar-sm avatar-thumb avatar-rounded"
-                            style="background-image: url({{ Attr.img_url }})"></span>
-                      <span class="form-selectgroup-title strong ms-1">{{ Attr.name }}</span>
-                    </span>
-                  </span>
-                  </label>
-                </div>
-              </div>
-            {% endfor %}
+            <div id="downloader-type-list">
+              <!-- 下载器类型选项将通过JavaScript动态生成 -->
+            </div>
           </div>
           <div id="downloader_config_box"></div>
           <div class="row" id="div_downloader_transfer">
@@ -153,9 +136,7 @@
               <div class="mb-3">
                 <label class="form-label required">转移方式</label>
                 <select class="form-select" id="downloader_rmt_mode">
-                  {% for mode in RmtModeDict %}
-                    <option value="{{ mode.value }}">{{ mode.name }}</option>
-                  {% endfor %}
+                  <!-- 转移方式选项将通过JavaScript动态生成 -->
                 </select>
               </div>
             </div>
@@ -206,17 +187,9 @@
     </div>
   </div>
   <!-- 插件部分 -->
-  {% for Id, Plugin in Plugins.items() %}
-  <plugin-modal
-          plugin-id="{{ Id }}"
-          plugin-name="{{ Plugin.name }}"
-          plugin-config='{{ Plugin.config|tojson|safe }}'
-          plugin-fields='{{ Plugin.fields|tojson|safe }}'
-          plugin-prefix="{{ Plugin.prefix }}"
-          plugin-page="{{ Plugin.page }}"
-  >
-  </plugin-modal>
-  {% endfor %}
+  <div id="plugin-modals-container">
+    <!-- 插件模态框将通过JavaScript动态生成 -->
+  </div>
   <!-- 插件市场容器 -->
   <div class="modal modal-blur fade" id="modal-plugin-apps" tabindex="-1" role="dialog" aria-hidden="true">
     <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable" id="modal-plugin-apps-content" role="document">
@@ -258,7 +231,7 @@
                       <label class="form-label false">
                       第三方源
                       <span class="form-help" data-bs-toggle="tooltip" data-bs-original-title="配置正确的第三方源以后将会显示再第三方插件仓库中，安装以后会进入插件市场。">?</span></label>
-                      <textarea class="form-control" id="external_source_content" rows="10" placeholder="每行一个源地址，可以同时添加多个源 ... &#10;https://ip:prot/route/xxx.json &#10;https://ip:prot/route/xxx.json">{{ Settings }}</textarea>
+                      <textarea class="form-control" id="external_source_content" rows="10" placeholder="每行一个源地址，可以同时添加多个源 ... &#10;https://ip:prot/route/xxx.json &#10;https://ip:prot/route/xxx.json"></textarea>
                     </div>
                   </div>
               </div>
@@ -330,23 +303,22 @@
 
   // 恢复输入项为默认值
   function reset_downloader_config_fields() {
-    {% for Id, Attr in DownloaderConf.items() %}
-      {% for FieldId, FieldAttr in Attr.config.items() %}
-        {% if FieldAttr.type == "switch" %}
-          {% if FieldAttr.default %}
-            $("#{{ FieldAttr.id }}").prop('checked', true);
-          {% else %}
-            $("#{{ FieldAttr.id }}").prop('checked', false);
-          {% endif %}
-        {% else %}
-          {% if FieldAttr.default %}
-            $("#{{ FieldAttr.id }}").val('{{ FieldAttr.default }}');
-          {% else %}
-            $("#{{ FieldAttr.id }}").val('');
-          {% endif %}
-        {% endif %}
-      {% endfor %}
-    {% endfor %}
+    if (!window.pageData || !window.pageData.DownloaderConf) return;
+
+    Object.entries(window.pageData.DownloaderConf).forEach(([id, attr]) => {
+      if (attr.config) {
+        Object.entries(attr.config).forEach(([fieldId, fieldAttr]) => {
+          const element = $("#" + fieldAttr.id);
+          if (element.length) {
+            if (fieldAttr.type === "switch") {
+              element.prop('checked', fieldAttr.default || false);
+            } else {
+              element.val(fieldAttr.default || '');
+            }
+          }
+        });
+      }
+    });
   }
 
   // 显示新增下载器
@@ -354,7 +326,12 @@
     $("#downloader_id").val('');
     $("#downloader_modal_title").text("新增下载器");
     reset_downloader_config_fields();
-    show_downloader_type("{{ DownloaderConf.keys()|first }}");
+    if (window.pageData && window.pageData.DownloaderConf) {
+      const firstKey = Object.keys(window.pageData.DownloaderConf)[0];
+      if (firstKey) {
+        show_downloader_type(firstKey);
+      }
+    }
     $("#downloader_transfer").val("0");
     $("#downloader_only_nastool").val("0");
     $("#downloader_match_path").val("0");
@@ -379,24 +356,21 @@
         // 清空输入项
         reset_downloader_config_fields();
         let type = detail.type;
-        switch (type) {
-          {% for Id, Attr in DownloaderConf.items() %}
-          case "{{ Id }}":
-            {% for FieldId, FieldAttr in Attr.config.items() %}
-              {% if FieldAttr.type == "switch" %}
-                if (detail.config.{{ FieldId }}) {
-                  $("#{{ FieldAttr.id }}").prop("checked", true);
+        // 动态加载下载器配置
+        if (window.pageData && window.pageData.DownloaderConf && window.pageData.DownloaderConf[type]) {
+          const downloaderConfig = window.pageData.DownloaderConf[type];
+          if (downloaderConfig.config) {
+            Object.entries(downloaderConfig.config).forEach(([fieldId, fieldAttr]) => {
+              const element = $("#" + fieldAttr.id);
+              if (element.length && detail.config) {
+                if (fieldAttr.type === "switch") {
+                  element.prop("checked", detail.config[fieldId] || false);
                 } else {
-                  $("#{{ FieldAttr.id }}").prop("checked", false);
+                  element.val(detail.config[fieldId] || '');
                 }
-              {% else %}
-                $("#{{ FieldAttr.id }}").val(detail.config.{{ FieldId }});
-              {% endif %}
-            {% endfor %}
-            break;
-          {% endfor %}
-          default:
-            break;
+              }
+            });
+          }
         }
         show_downloader_type(type);
         $("#downloader_transfer").val(detail.transfer);
@@ -446,43 +420,40 @@
     let only_nastool = 0;
     let match_path = 0;
     let rmt_mode = "";
-    switch (type) {
-      {% for Id, Attr in DownloaderConf.items() %}
-      case "{{ Id }}":
-        {% for FieldId, FieldAttr in Attr.config.items() %}
-          {% if FieldAttr.type == "switch" %}
-            if ($("#{{ FieldAttr.id }}").prop("checked")) {
-              config.{{ FieldId }} = 1;
+    // 动态处理下载器配置
+    if (window.pageData && window.pageData.DownloaderConf && window.pageData.DownloaderConf[type]) {
+      const downloaderConfig = window.pageData.DownloaderConf[type];
+      if (downloaderConfig.config) {
+        Object.entries(downloaderConfig.config).forEach(([fieldId, fieldAttr]) => {
+          const element = $("#" + fieldAttr.id);
+          if (element.length) {
+            if (fieldAttr.type === "switch") {
+              config[fieldId] = element.prop("checked") ? 1 : 0;
             } else {
-              config.{{ FieldId }} = 0;
-            }
-          {% else %}
-            config.{{ FieldId }} = $("#{{ FieldAttr.id }}").val();
-            {% if FieldAttr.required %}
-              if (!config.{{ FieldId }}) {
-                $("#{{ FieldAttr.id }}").addClass("is-invalid");
+              config[fieldId] = element.val();
+              if (fieldAttr.required && !config[fieldId]) {
+                element.addClass("is-invalid");
                 return;
               } else {
-                $("#{{ FieldAttr.id }}").removeClass("is-invalid");
+                element.removeClass("is-invalid");
               }
-            {% endif %}
-          {% endif %}
-        {% endfor %}
-        {% if Attr.monitor_enable %}
-          transfer = $("#downloader_transfer").val();
-          only_nastool = $("#downloader_only_nastool").val();
-          match_path = $("#downloader_match_path").val();
-          rmt_mode = $("#downloader_rmt_mode").val();
-        {% else %}
-          transfer = 0;
-          only_nastool = 0;
-          match_path = 0;
-          rmt_mode = "";
-        {% endif %}
-        break;
-      {% endfor %}
-      default:
-        break;
+            }
+          }
+        });
+      }
+
+      // 处理监控相关设置
+      if (downloaderConfig.monitor_enable) {
+        transfer = $("#downloader_transfer").val();
+        only_nastool = $("#downloader_only_nastool").val();
+        match_path = $("#downloader_match_path").val();
+        rmt_mode = $("#downloader_rmt_mode").val();
+      } else {
+        transfer = 0;
+        only_nastool = 0;
+        match_path = 0;
+        rmt_mode = "";
+      }
     }
     let name_obj = $("#downloader_name");
     let name = name_obj.val();
@@ -584,7 +555,7 @@
     if (!dir_type || !subtype_obj) {
       return;
     }
-    let sub_types = {{ Categories|safe }}[dir_type];
+    let sub_types = window.pageData && window.pageData.Categories ? window.pageData.Categories[dir_type] : [];
     let subtypes_used = [];
     $("[id^='dirdiv_']").each(function () {
       let suffix = $(this).attr('id').replace("dirdiv_", "");
@@ -610,24 +581,26 @@
 
   // 下载器类型类型
   function show_downloader_type(type) {
-    switch (type) {
-      {% for Id, Attr in DownloaderConf.items() %}
-      case "{{ Id }}":
-        $("div[id^='div_downloader_config']").each(function () {
-          $(this).hide();
-        });
-        $("#div_downloader_config_{{ Id }}").show();
-        {% if Attr.get("monitor_enable") %}
-          $("#div_downloader_transfer").show();
-        {% else %}
-          $("#div_downloader_transfer").hide();
-        {% endif %}
-        $("#type_{{ Id }}").prop("checked", true);
-        break;
-      {% endfor %}
-      default:
-        break;
+    if (!window.pageData || !window.pageData.DownloaderConf) return;
+
+    // 隐藏所有配置面板
+    $("div[id^='div_downloader_config']").each(function () {
+      $(this).hide();
+    });
+
+    // 显示选中类型的配置面板
+    $("#div_downloader_config_" + type).show();
+
+    // 根据配置决定是否显示传输设置
+    const downloaderConfig = window.pageData.DownloaderConf[type];
+    if (downloaderConfig && downloaderConfig.monitor_enable) {
+      $("#div_downloader_transfer").show();
+    } else {
+      $("#div_downloader_transfer").hide();
     }
+
+    // 设置单选框选中状态
+    $("#type_" + type).prop("checked", true);
   }
 
   // 设置默认下载器
@@ -643,7 +616,7 @@
 
   // 跳转下载设置
   function goto_download_setting(){
-    var downloaders = {{ Downloaders | tojson }};
+    var downloaders = window.pageData && window.pageData.Downloaders ? window.pageData.Downloaders : {};
     if (!Object.keys(downloaders).length) {
       show_fail_modal("请先添加下载器！");
     } else {
@@ -922,7 +895,7 @@
 
 <script type="text/javascript">
 
-  var downloaderConf = {{ DownloaderConf | tojson }};
+  var downloaderConf = window.pageData && window.pageData.DownloaderConf ? window.pageData.DownloaderConf : {};
 
   function genDownloaderConfElements() {
     let $list = $("#downloader_config_box");
@@ -943,9 +916,106 @@
 
 <script type="text/javascript">
   // 插件自带脚本函数
-  {% for Id, Plugin in Plugins.items() %}
-    {% if Plugin.script %}
-      {{ Plugin.script|safe }}
-    {% endif %}
-  {% endfor %}
+  if (window.pageData && window.pageData.Plugins) {
+    Object.entries(window.pageData.Plugins).forEach(([id, plugin]) => {
+      if (plugin.script) {
+        try {
+          eval(plugin.script);
+        } catch (e) {
+          console.error('插件脚本执行错误:', id, e);
+        }
+      }
+    });
+  }
+
+  // 页面初始化函数
+  function initializePage() {
+    if (!window.pageData) return;
+
+    // 生成下载器类型选项
+    generateDownloaderTypes();
+
+    // 生成转移方式选项
+    generateRmtModeOptions();
+
+    // 生成插件模态框
+    generatePluginModals();
+
+    // 设置第三方源内容
+    if (window.pageData.Settings) {
+      $("#external_source_content").val(window.pageData.Settings);
+    }
+  }
+
+  // 生成下载器类型选项
+  function generateDownloaderTypes() {
+    if (!window.pageData.DownloaderConf) return;
+
+    const container = $("#downloader-type-list");
+    container.empty();
+
+    Object.entries(window.pageData.DownloaderConf).forEach(([id, attr]) => {
+      const html = `
+        <div class="col-lg">
+          <div class="mb-1">
+            <label class="form-selectgroup-item" for="type_${id}">
+              <input type="radio" name="downloader_type" id="type_${id}" value="${id}"
+                     class="form-selectgroup-input">
+              <span class="form-selectgroup-label d-flex align-items-center p-2">
+                <span class="me-2">
+                  <span class="form-selectgroup-check"></span>
+                </span>
+                <span class="form-selectgroup-label-content d-flex align-items-center">
+                  <span class="avatar avatar-sm avatar-thumb avatar-rounded"
+                        style="background-image: url(${attr.img_url})"></span>
+                  <span class="form-selectgroup-title strong ms-1">${attr.name}</span>
+                </span>
+              </span>
+            </label>
+          </div>
+        </div>
+      `;
+      container.append(html);
+    });
+  }
+
+  // 生成转移方式选项
+  function generateRmtModeOptions() {
+    if (!window.pageData.RmtModeDict) return;
+
+    const select = $("#downloader_rmt_mode");
+    select.empty();
+
+    Object.entries(window.pageData.RmtModeDict).forEach(([key, mode]) => {
+      const option = `<option value="${mode.value}">${mode.name}</option>`;
+      select.append(option);
+    });
+  }
+
+  // 生成插件模态框
+  function generatePluginModals() {
+    if (!window.pageData.Plugins) return;
+
+    const container = $("#plugin-modals-container");
+    container.empty();
+
+    Object.entries(window.pageData.Plugins).forEach(([id, plugin]) => {
+      const modal = `
+        <plugin-modal
+          plugin-id="${id}"
+          plugin-name="${plugin.name}"
+          plugin-config='${JSON.stringify(plugin.config)}'
+          plugin-fields='${JSON.stringify(plugin.fields)}'
+          plugin-prefix="${plugin.prefix}"
+          plugin-page="${plugin.page}">
+        </plugin-modal>
+      `;
+      container.append(modal);
+    });
+  }
+
+  // 页面加载完成后初始化
+  $(document).ready(function() {
+    initializePage();
+  });
 </script>

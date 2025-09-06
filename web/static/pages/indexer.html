@@ -745,12 +745,12 @@
       
     });
 
-  });
+    const container = document.getElementById("page_content");
+    const urlParams = $(container).data("params");
+    var pParam = urlParams.p || 1;
 
-
-  // 页面加载完成后，使用axios_post请求/data/indexer接口获取数据并填充页面
-  $(document).ready(function() {
-    axios_post('/data/indexer', {}, function(response) {
+    axios_post('/data/indexer?p=' + pParam, {}, function(response) {
+      
       if (response.code === 0 && response.data) {
         const data = response.data;
 

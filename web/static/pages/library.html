@@ -14,7 +14,7 @@
     <h2 class="page-title">媒体服务器</h2>
   </div>
   <div class="page-body">
-    <div class="container-xl">
+    <div class="container-xl" id="library-container">
       <div class="d-grid gap-3 grid-normal-card" id="media-server-list">
         <!-- JS 动态填充 -->
       </div>
@@ -91,8 +91,9 @@
     $("#" + type + "_test_btn").text("测试中...").attr("disabled", true);
     save_config(type, function (ret) {
       let command = "";
-      if (window.mediaServerConf && window.mediaServerConf[currType]) {
-        command = window.mediaServerConf[currType].test_command;
+      const pageData = $("#library-container").data('pageData');
+      if (pageData && pageData.mediaServerConf && pageData.mediaServerConf[currType]) {
+        command = pageData.mediaServerConf[currType].test_command;
       }
       axios_post_do("test_connection", {"command": command}, function (ret) {
         if (ret.code === 0) {
@@ -270,9 +271,11 @@
       if (response.code === 0 && response.data) {
         const data = response.data;
 
-        // 更新全局变量
+        // 更新页面数据，避免污染window对象
         if (data.MediaServerConf) {
-          window.mediaServerConf = data.MediaServerConf;
+          const pageData = $("#library-container").data('pageData') || {};
+          pageData.mediaServerConf = data.MediaServerConf;
+          $("#library-container").data('pageData', pageData);
           mediaServerConf = data.MediaServerConf;
         }
         if (data.Config) {

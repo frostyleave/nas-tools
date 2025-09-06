@@ -6,6 +6,7 @@ import os
 from datetime import datetime
 
 from fastapi import APIRouter, Request, Depends, HTTPException, status
+from fastapi.encoders import jsonable_encoder
 from fastapi.responses import JSONResponse
 
 from app.helper.meta_helper import MetaHelper
@@ -25,6 +26,7 @@ from app.sync import Sync
 from app.torrentremover import TorrentRemover
 from app.utils.system_utils import SystemUtils
 from app.utils.types import *
+import enum
 
 from app.mediaserver.media_server import MediaServer
 from config import PT_TRANSFER_INTERVAL, TMDB_API_DOMAINS, Config
@@ -37,6 +39,28 @@ from web.backend.web_utils import WebUtils
 
 # API路由
 data_router = APIRouter(prefix="/data")
+
+
+def make_json_serializable(obj):
+    """
+    将对象转换为JSON可序列化的格式
+    """
+    if obj is None:
+        return None
+    elif isinstance(obj, dict):
+        return {key: make_json_serializable(value) for key, value in obj.items()}
+    elif isinstance(obj, list):
+        return [make_json_serializable(item) for item in obj]
+    elif isinstance(obj, tuple):
+        return [make_json_serializable(item) for item in obj]
+    elif isinstance(obj, enum.Enum):
+        return obj.value
+    elif hasattr(obj, '__dict__'):
+        # 复杂对象转换为字典，保持属性结构
+        return make_json_serializable(obj.__dict__)
+    else:
+        return obj
+
 
 async def get_current_user(request: Request):
     token = request.cookies.get("access_token")
@@ -57,11 +81,11 @@ async def get_current_user(request: Request):
 # 封装一个统一的返回函数
 def response(code: int = 0, msg: str = "success", data=None, status_code: int = 200):
     return JSONResponse(
-        content={
+        content=jsonable_encoder({
             "code": code,
             "msg": msg,
             "data": data
-        },
+        }),
         status_code=status_code
     )
 
@@ -78,51 +102,30 @@ async def sysinfo(request: Request, current_user: User = Depends(get_current_use
         sync_mod = "link"
 
     commands = WebAction().get_commands()
-    image_code, img_title, img_link = get_login_wallpaper()
     username = current_user.username
+
+    restype_dict = ModuleConf.TORRENT_SEARCH_PARAMS.get("restype")
+    pix_dict = ModuleConf.TORRENT_SEARCH_PARAMS.get("pix")
+
+    rmt_mode_dict = WebAction().get_rmt_modes()
 
     return response(data=
         {
             "username" : username,
             "admin" : 1 if username == 'admin' else 0,
             "search" : current_user.search,
-            "imgLink" : image_code,
             "SystemFlag": system_flag.value,
             "TMDBFlag": tmdb_flag,
             "AppVersion": WebUtils.get_current_version(),
             "SyncMod": sync_mod,
             "DefaultPath": default_path,
-            "Commands": commands
+            "Commands": commands,
+            "restype_dict": restype_dict,
+            "pix_dict": pix_dict,
+            "rmt_mode_dict": rmt_mode_dict,
         }
     )
 
-
-# rss_sysdict
-@data_router.post("/base_sys_dict")
-async def base_sys_dict(request: Request, current_user: User = Depends(get_current_user)):
-
-    restype_dict = ModuleConf.TORRENT_SEARCH_PARAMS.get("restype")
-    pix_dict = ModuleConf.TORRENT_SEARCH_PARAMS.get("pix")
-    indexers = Indexer().get_indexers()
-
-    return response(data=
-        {
-            "RestypeDict": restype_dict,
-            "PixDict": pix_dict,
-            "Indexers": indexers,
-        }
-    )
-
-
-# 全量转移模式
-@data_router.post("/rmt_modes")
-async def rmt_modes(request: Request, current_user: User = Depends(get_current_user)):
-    rmt_mode_dict = WebAction().get_rmt_modes()
-    return response(data=
-        {
-            "RmtModeDict": rmt_mode_dict,
-        }
-    )
 
 # 基础设置页面
 @data_router.post("/basic")
@@ -142,7 +145,7 @@ async def basic(request: Request, current_user: User = Depends(get_current_user)
             "CustomScriptCfg": CustomScriptCfg,
             "ScraperNfo": ScraperConf.get("scraper_nfo") or {},
             "ScraperPic": ScraperConf.get("scraper_pic") or {},
-            "MediaServerConf": ModuleConf.MEDIASERVER_CONF,
+            "MediaServerConf": make_json_serializable(ModuleConf.MEDIASERVER_CONF),
             "TmdbDomains": TMDB_API_DOMAINS,
         }
     )
@@ -220,41 +223,33 @@ async def search(request: Request, current_user: User = Depends(get_current_user
             "UPCHAR": chr(8593),
         })
 
-# 电影订阅页面
-@data_router.post("/movie_rss")
-async def movie_rss(request: Request, current_user: User = Depends(get_current_user)):
+# 订阅页面
+@data_router.post("/rss")
+async def rss(request: Request, current_user: User = Depends(get_current_user), t: str = "MOV"):
 
-    RssItems = WebAction().get_movie_rss_list().get("result")
     RuleGroups = {str(group["id"]): group["name"] for group in Filter().get_rule_groups()}
     DownloadSettings = Downloader().get_download_setting()
+
+    RssItems = []
+    Type = 'MOV'
+    TypeName = '电影'
+    if t == 'TV':
+        RssItems = WebAction().get_tv_rss_list().get("result")
+        Type = 'TV'
+        TypeName = '电视剧'
+    else:
+        RssItems = WebAction().get_movie_rss_list().get("result")
 
     return response(data=
         {
             "Count": len(RssItems),
             "RuleGroups": RuleGroups,
-            "DownloadSettings": DownloadSettings,
+            "DownloadSettings": dict(DownloadSettings) if DownloadSettings else {},
             "Items": RssItems,
-            "Type": 'MOV',
-            "TypeName": '电影',
+            "Type": Type,
+            "TypeName": TypeName,
         })
 
-# 电视剧订阅页面
-@data_router.post("/tv_rss")
-async def tv_rss(request: Request, current_user: User = Depends(get_current_user)):
-
-    RssItems = WebAction().get_tv_rss_list().get("result")
-    RuleGroups = {str(group["id"]): group["name"] for group in Filter().get_rule_groups()}
-    DownloadSettings = Downloader().get_download_setting()
-
-    return response(data=
-        {
-            "Count": len(RssItems),
-            "RuleGroups": RuleGroups,
-            "DownloadSettings": DownloadSettings,
-            "Items": RssItems,
-            "Type": 'TV',
-            "TypeName": '电视剧',
-        })
 
 
 # 订阅历史页面
@@ -289,7 +284,7 @@ async def rss_calendar(request: Request, current_user: User = Depends(get_curren
 
 # 索引站点页面
 @data_router.post("/indexer")
-async def indexer(request: Request, current_user: User = Depends(get_current_user), public: int = 1):
+async def indexer(request: Request, current_user: User = Depends(get_current_user), p: int = 1):
 
     indexers = Indexer().get_indexers(check=False)
     indexer_sites = SystemConfig().get(SystemConfigKey.UserIndexerSites)
@@ -303,7 +298,7 @@ async def indexer(request: Request, current_user: User = Depends(get_current_use
     front_indexers = []
     check_sites = []
 
-    is_public = public == 1
+    is_public = p == 1
 
     for idx_site in indexers:
         checked = idx_site.id in indexer_sites
@@ -330,61 +325,13 @@ async def indexer(request: Request, current_user: User = Depends(get_current_use
     return response(data=
         {
             "Config": Config().get_config(),
-            "IsPublic": public,
+            "IsPublic": p,
             "Indexers": front_indexers,
             "DownloadSettings": DownloadSettings,
             "CheckSites": check_sites,
             "SourceTypes": SourceTypes,
         })
 
-
-# PT索引站点页面
-@data_router.post("/ptindexer")
-async def ptindexer(request: Request, current_user: User = Depends(get_current_user)):
-
-    indexers = Indexer().get_indexers(check=False)
-    indexer_sites = SystemConfig().get(SystemConfigKey.UserIndexerSites)
-    if not indexer_sites:
-        indexer_sites = []
-
-    SearchTypes = { "title":'关键字', "en_name":'英文名', "douban_id":'豆瓣id', "imdb":'imdb id' }
-
-    private_indexers = []
-    check_sites = []
-    for site in indexers:
-        checked = site.id in indexer_sites
-        if checked:
-            check_sites.append(site.id)
-        if site.public:
-            continue
-        site_info = {
-            "id": site.id,
-            "name": site.name,
-            "domain": site.domain,
-            "render": site.render,
-            "source_type": site.source_type,
-            "search_type": SearchTypes.get(site.search_type, '关键字'),
-            "downloader": site.downloader,
-            "public": site.public,
-            "proxy": site.proxy,
-            "en_expand": site.en_expand,
-            "checked": checked
-        }
-        private_indexers.append(site_info)
-
-    DownloadSettings = {did: attr["name"] for did, attr in Downloader().get_download_setting().items()}
-    SourceTypes = { "MOVIE":'电影', "TV":'剧集', "ANIME":'动漫' }
-
-    return response(data=
-        {
-            "Config": Config().get_config(),
-            "IsPublic": 0,
-            "Indexers": private_indexers,
-            "DownloadSettings": DownloadSettings,
-            "CheckSites": check_sites,
-            "SourceTypes": SourceTypes,
-            "SearchTypes": SearchTypes,
-        })
 
 # 站点维护页面
 @data_router.post("/site")
@@ -447,7 +394,7 @@ async def library(request: Request, current_user = Depends(get_current_user)):
     return response(data=
         {
             "Config": Config().get_config(),
-            "MediaServerConf": ModuleConf.MEDIASERVER_CONF,
+            "MediaServerConf": make_json_serializable(ModuleConf.MEDIASERVER_CONF),
         })
 
 
@@ -467,11 +414,11 @@ async def notification(request: Request, current_user = Depends(get_current_user
 
     return response(data=
         {
-            "Channels": Channels,
-            "Switchs": Switchs,
+            "Channels": make_json_serializable(Channels),
+            "Switchs": make_json_serializable(Switchs),
             "ChannelsTpyes": ChannelsTpyes,
-            "ClientCount": len(MessageClients),
-            "MessageClients": MessageClients,
+            "ClientCount": len(MessageClients) if MessageClients else 0,
+            "MessageClients": dict(MessageClients) if MessageClients else {},
         })
 
 
@@ -567,38 +514,11 @@ async def plugin(request: Request, current_user = Depends(get_current_user)):
             "DownloadersCount": DownloadersCount,
             "Categories": Categories,
             "RmtModeDict": RmtModeDict,
-            "DownloaderConf": ModuleConf.DOWNLOADER_CONF,
+            "DownloaderConf": make_json_serializable(ModuleConf.DOWNLOADER_CONF),
             "Plugins": Plugins,
             "Settings": Settings,
             "PluginCount": len(Plugins),
         })
-
-
-
-# 排行榜页面
-@data_router.post("/ranking")
-async def ranking(request: Request, current_user: User = Depends(get_current_user)):
-    """
-    排行榜页面
-    """
-    return response(data=
-        {
-            "DiscoveryType": "RANKING",
-        }
-    )
-
-
-# 电视剧排行榜页面
-@data_router.post("/tv_ranking")
-async def tv_ranking(request: Request, current_user: User = Depends(get_current_user)):
-    """
-    电视剧排行榜页面
-    """
-    return response(data=
-        {
-            "DiscoveryType": "TV",
-        }
-    )
 
 
 # 用户RSS页面
@@ -847,8 +767,8 @@ async def brushtask(request: Request, current_user: User = Depends(get_current_u
         {
             "Count": len(Tasks),
             "Sites": CfgSites,
-            "Tasks": Tasks,
-            "Downloaders": Downloaders,
+            "Tasks": list(Tasks) if Tasks else [],
+            "Downloaders": dict(Downloaders) if Downloaders else {},
         }
     )
 
@@ -880,10 +800,10 @@ async def torrent_remove(request: Request, current_user: User = Depends(get_curr
 
     return response(data=
         {
-            "Downloaders": Downloaders,
-            "DownloaderConfig": ModuleConf.TORRENTREMOVER_DICT,
-            "Count": len(TorrentRemoveTasks),
-            "TorrentRemoveTasks": TorrentRemoveTasks,
+            "Downloaders": dict(Downloaders) if Downloaders else {},
+            "DownloaderConfig": make_json_serializable(ModuleConf.TORRENTREMOVER_DICT),
+            "Count": len(TorrentRemoveTasks) if TorrentRemoveTasks else 0,
+            "TorrentRemoveTasks": dict(TorrentRemoveTasks) if TorrentRemoveTasks else {},
         }
     )
 
@@ -917,10 +837,10 @@ async def download_setting(request: Request, current_user: User = Depends(get_cu
 
     return response(data=
         {
-            "DownloadSetting": DownloadSetting,
+            "DownloadSetting": dict(DownloadSetting) if DownloadSetting else {},
             "DefaultDownloadSetting": DefaultDownloadSetting,
-            "Downloaders": Downloaders,
-            "Count": len(DownloadSetting),
+            "Downloaders": dict(Downloaders) if Downloaders else {},
+            "Count": len(DownloadSetting) if DownloadSetting else 0,
         }
     )
 
@@ -957,7 +877,7 @@ async def recommend(request: Request, current_user: User = Depends(get_current_u
             "Keyword": Keyword,
             "Source": Source,
             "Filter": FilterKey,
-            "FilterConf": ModuleConf.DISCOVER_FILTER_CONF.get(FilterKey) if FilterKey else {},
+            "FilterConf": make_json_serializable(ModuleConf.DISCOVER_FILTER_CONF.get(FilterKey)) if FilterKey else {},
             "Params": Params,
         }
     )
@@ -975,7 +895,7 @@ async def douban_movie(request: Request, current_user: User = Depends(get_curren
             "SubType": "MOV",
             "Title": "豆瓣电影",
             "Filter": "douban_movie",
-            "FilterConf": ModuleConf.DISCOVER_FILTER_CONF.get('douban_movie'),
+            "FilterConf": make_json_serializable(ModuleConf.DISCOVER_FILTER_CONF.get('douban_movie')),
         }
     )
 
@@ -992,7 +912,7 @@ async def douban_tv(request: Request, current_user: User = Depends(get_current_u
             "SubType": "TV",
             "Title": "豆瓣剧集",
             "Filter": "douban_tv",
-            "FilterConf": ModuleConf.DISCOVER_FILTER_CONF.get('douban_tv'),
+            "FilterConf": make_json_serializable(ModuleConf.DISCOVER_FILTER_CONF.get('douban_tv')),
         }
     )
 
@@ -1009,7 +929,7 @@ async def tmdb_movie(request: Request, current_user: User = Depends(get_current_
             "SubType": "MOV",
             "Title": "TMDB电影",
             "Filter": "tmdb_movie",
-            "FilterConf": ModuleConf.DISCOVER_FILTER_CONF.get('tmdb_movie'),
+            "FilterConf": make_json_serializable(ModuleConf.DISCOVER_FILTER_CONF.get('tmdb_movie')),
         }
     )
 
@@ -1026,20 +946,7 @@ async def tmdb_tv(request: Request, current_user: User = Depends(get_current_use
             "SubType": "TV",
             "Title": "TMDB剧集",
             "Filter": "tmdb_tv",
-            "FilterConf": ModuleConf.DISCOVER_FILTER_CONF.get('tmdb_tv'),
-        }
-    )
-
-
-# Bangumi每日放送
-@data_router.post("/bangumi")
-async def bangumi(request: Request, current_user: User = Depends(get_current_user)):
-    """
-    Bangumi每日放送页面
-    """
-    return response(data=
-        {
-            "DiscoveryType": "BANGUMI",
+            "FilterConf": make_json_serializable(ModuleConf.DISCOVER_FILTER_CONF.get('tmdb_tv')),
         }
     )
 

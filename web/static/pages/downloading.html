@@ -163,11 +163,9 @@
 
 <script>
   $(document).ready(function () {
-    // Dropzone配置
-    init_dropzone();
 
-    // 页面加载完成后，使用axios_post请求/data/downloading接口获取数据并填充页面
-    const urlParams = new URLSearchParams(window.location.search);
+    const [path, queryString] = window.location.hash.split("?");
+    const urlParams = new URLSearchParams(queryString);
     const downloaderId = urlParams.get('downloaderId');
 
     axios_post('/data/downloading', downloaderId ? { downloaderId: downloaderId } : {}, function(response) {

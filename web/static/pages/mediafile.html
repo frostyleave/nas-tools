@@ -492,7 +492,8 @@
   // 页面加载完成后，使用axios_post请求/data/mediafile接口获取数据并填充页面
   $(document).ready(function() {
     // 获取URL参数中的目录路径
-    const urlParams = new URLSearchParams(window.location.search);
+    const [path, queryString] = window.location.hash.split("?");
+    const urlParams = new URLSearchParams(queryString);
     const dirPath = urlParams.get('dir') || '/';
 
     // 设置目录路径

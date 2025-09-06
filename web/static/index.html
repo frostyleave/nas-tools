@@ -155,12 +155,8 @@
           <button type="button" class="btn" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
             /
           </button>
-          <div class="dropdown-menu" data-popper-placement="bottom-start">
-            {% for Command in Commands %}
-            <a class="dropdown-item" href="javascript:send_web_message('{{ Command.id }}')">
-              {{ Command.name }}
-            </a>
-            {% endfor %}
+          <div class="dropdown-menu" data-popper-placement="bottom-start" id="commands-dropdown">
+            <!-- 命令菜单项将通过JavaScript动态生成 -->
           </div>
           <input type="text" id="message_center_input" class="form-control" autocomplete="off" placeholder="输入消息或命令..."
             onkeydown="if(event.keyCode==13) send_web_message($(this))">
@@ -407,14 +403,9 @@
                 <i class="ti ti-filter-2-cog fs-2"></i>
               </button>
               <div class="dropdown-menu dropdown-menu-end" id="dropdown-menu-logger">
-                {% with Loggers = ['All', 'System', 'Rss', 'RssChecker', 'Rmt', 'Meta', 'Sync', 'Sites', 'Brush',
-                'Douban', 'Spider', 'Message', 'Indexer', 'Searcher', 'Subscribe', 'Downloader', 'TorrentRemover',
-                'Plugin'] %}
-                {% for Logger in Loggers %}
-                <a class="dropdown-item" href="javascript:void(0)" onclick="logger_select('{{ Logger }}')">{{ Logger
-                  }}</a>
-                {% endfor %}
-                {% endwith %}
+                <div id="logger-dropdown-items">
+                  <!-- 日志选择器选项将通过JavaScript动态生成 -->
+                </div>
               </div>
             </div>
           </div>
@@ -486,9 +477,7 @@
                 <label class="form-label">质量</label>
                 <select class="form-select" id="default_rss_setting_restype">
                   <option value="" selected>全部</option>
-                  {% for Restype in RestypeDict %}
-                  <option value="{{ Restype }}">{{ Restype }}</option>
-                  {% endfor %}
+                  <!-- 质量选项将通过JavaScript动态生成 -->
                 </select>
               </div>
             </div>
@@ -497,9 +486,7 @@
                 <label class="form-label">分辨率</label>
                 <select class="form-select" id="default_rss_setting_pix">
                   <option value="" selected>全部</option>
-                  {% for Pix in PixDict %}
-                  <option value="{{ Pix }}">{{ Pix }}</option>
-                  {% endfor %}
+                  <!-- 分辨率选项将通过JavaScript动态生成 -->
                 </select>
               </div>
             </div>
@@ -617,9 +604,7 @@
                 <label class="form-label required">季</label>
                 <select class="form-select" id="rss_season">
                   <option value="" selected>请选择</option>
-                  {% for i in range(1, 51) %}
-                  <option value="{{ i }}">第{{ i }}季</option>
-                  {% endfor %}
+                  <!-- 季数选项将通过JavaScript动态生成 -->
                 </select>
               </div>
             </div>
@@ -666,9 +651,7 @@
                 <label class="form-label">质量</label>
                 <select class="form-select" id="rss_restype">
                   <option value="" selected>全部</option>
-                  {% for Restype in RestypeDict %}
-                  <option value="{{ Restype }}">{{ Restype }}</option>
-                  {% endfor %}
+                  <!-- 质量选项将通过JavaScript动态生成 -->
                 </select>
               </div>
             </div>
@@ -677,9 +660,7 @@
                 <label class="form-label">分辨率</label>
                 <select class="form-select" id="rss_pix">
                   <option value="" selected>全部</option>
-                  {% for Pix in PixDict %}
-                  <option value="{{ Pix }}">{{ Pix }}</option>
-                  {% endfor %}
+                  <!-- 分辨率选项将通过JavaScript动态生成 -->
                 </select>
               </div>
             </div>
@@ -792,10 +773,7 @@
               <div class="mb-3">
                 <label class="form-label required">转移方式</label>
                 <select id="rename_syncmod_manual" class="form-select">
-                  {% for mode in RmtModeDict %}
-                  <option value="{{ mode.value }}" {% if SyncMod==mode.value %}selected{% endif %}>{{ mode.name }}
-                  </option>
-                  {% endfor %}
+                  <!-- 转移方式选项将通过JavaScript动态生成 -->
                 </select>
               </div>
             </div>
@@ -817,10 +795,7 @@
               <div class="mb-3">
                 <label class="form-label required">转移方式</label>
                 <select id="rename_syncmod_customize" class="form-select">
-                  {% for mode in RmtModeDict %}
-                  <option value="{{ mode.value }}" {% if SyncMod==mode.value %}selected{% endif %}>{{ mode.name }}
-                  </option>
-                  {% endfor %}
+                  <!-- 转移方式选项将通过JavaScript动态生成 -->
                 </select>
               </div>
             </div>
@@ -892,9 +867,7 @@
                 <label class="form-label">季</label>
                 <select class="form-select" id="rename_season">
                   <option value="" selected>请选择</option>
-                  {% for i in range(0, 51) %}
-                  <option value="{{ i }}">第{{ i }}季</option>
-                  {% endfor %}
+                  <!-- 季数选项将通过JavaScript动态生成 -->
                 </select>
               </div>
             </div>
@@ -1067,9 +1040,7 @@
                 <label class="form-label">季</label>
                 <select class="form-select" id="advanced_search_season">
                   <option value="" selected>全部</option>
-                  {% for i in range(1, 51) %}
-                  <option value="{{ i }}">第{{ i }}季</option>
-                  {% endfor %}
+                  <!-- 季数选项将通过JavaScript动态生成 -->
                 </select>
               </div>
             </div>
@@ -1080,9 +1051,7 @@
                 <label class="form-label">站点</label>
                 <select class="form-select" id="advanced_search_site">
                   <option value="" selected>全部</option>
-                  {% for site in Indexers %}
-                  <option value="{{ site.name }}">{{ site.name }}</option>
-                  {% endfor %}
+                  <!-- 站点选项将通过JavaScript动态生成 -->
                 </select>
               </div>
             </div>
@@ -1091,9 +1060,7 @@
                 <label class="form-label">质量</label>
                 <select class="form-select" id="advanced_search_restype">
                   <option value="" selected>全部</option>
-                  {% for Restype in RestypeDict %}
-                  <option value="{{ Restype }}">{{ Restype }}</option>
-                  {% endfor %}
+                  <!-- 质量选项将通过JavaScript动态生成 -->
                 </select>
               </div>
             </div>
@@ -1102,9 +1069,7 @@
                 <label class="form-label">分辨率</label>
                 <select class="form-select" id="advanced_search_pix">
                   <option value="" selected>全部</option>
-                  {% for Pix in PixDict %}
-                  <option value="{{ Pix }}">{{ Pix }}</option>
-                  {% endfor %}
+                  <!-- 分辨率选项将通过JavaScript动态生成 -->
                 </select>
               </div>
             </div>
@@ -1254,7 +1219,7 @@
       });
 
       // 滚动到顶部功能绑定
-      $('#scrollToTop').on('click', function(e) {
+      $('#scrollToTop').on('click', function (e) {
         window.scrollTo({
           top: 0,
           behavior: 'smooth'
@@ -1293,10 +1258,19 @@
           // 在 #navbar-menu 后插入
           $("#navbar-menu").after(searchbar);
 
+          // 生成命令菜单
+          generateCommandsMenu(sysInfo.Commands);
+
+          // 生成日志选择器菜单
+          generateLoggerMenu();
+
+          // 生成高级搜索选项
+          generateAdvancedSearchOptions(sysInfo);
+
           // 版本号
           $('#version-txt').text(sysInfo.AppVersion);
           // 动态设置 body 背景图
-          $("body").css("background-image", `url(data:image/jpg;base64,${sysInfo.imgLink})`);
+          // $("body").css("background-image", `url(data:image/jpg;base64,${sysInfo.imgLink})`);
 
           // 检查tmdb配置
           if (!sysInfo.TMDBFlag) {
@@ -1315,6 +1289,119 @@
     function createSearchbar(sysInfo) {
       return `<layout-searchbar layout-username="${sysInfo.username}" layout-systemflag="${sysInfo.SystemFlag}"
       layout-useradmin="${sysInfo.admin}" layout-search="${sysInfo.search}">`;
+    }
+
+    // 生成命令菜单
+    function generateCommandsMenu(commands) {
+      if (!commands || !Array.isArray(commands)) return;
+
+      const dropdown = $("#commands-dropdown");
+      dropdown.empty();
+
+      commands.forEach(command => {
+        const menuItem = `
+          <a class="dropdown-item" href="javascript:send_web_message('${command.id}')">
+            ${command.name}
+          </a>
+        `;
+        dropdown.append(menuItem);
+      });
+    }
+
+    // 生成日志选择器菜单
+    function generateLoggerMenu() {
+      const loggers = ['All', 'System', 'Rss', 'RssChecker', 'Rmt', 'Meta', 'Sync', 'Sites', 'Brush',
+        'Douban', 'Spider', 'Message', 'Indexer', 'Searcher', 'Subscribe', 'Downloader', 'TorrentRemover',
+        'Plugin'];
+
+      const container = $("#logger-dropdown-items");
+      container.empty();
+
+      loggers.forEach(logger => {
+        const menuItem = `
+          <a class="dropdown-item" href="javascript:void(0)" onclick="logger_select('${logger}')">${logger}</a>
+        `;
+        container.append(menuItem);
+      });
+    }
+
+    // 生成所有动态选项
+    function generateAdvancedSearchOptions(sysInfo) {
+      // 生成季数选项
+      generateSeasonOptions();
+
+      // 生成质量选项
+      if (sysInfo.restype_dict) {
+        generateRestypeOptions(sysInfo.restype_dict);
+      }
+
+      // 生成分辨率选项
+      if (sysInfo.pix_dict) {
+        generatePixOptions(sysInfo.pix_dict);
+      }
+
+      // 生成转移方式选项
+      if (sysInfo.rmt_mode_dict) {
+        generateRmtModeOptions(sysInfo.rmt_mode_dict);
+      }
+    }
+
+    // 生成季数选项
+    function generateSeasonOptions() {
+      // 高级搜索季数选项 (1-50)
+      // RSS订阅季数选项 (1-50)
+      // 重命名季数选项 (0-50)
+      const renameSelect = $("#rename_season");
+      const rssSelect = $("#rss_season");
+      const advancedSelect = $("#advanced_search_season");
+      for (let i = 1; i <= 50; i++) {
+        var option = `<option value="${i}">第${i}季</option>`;
+        advancedSelect.append(option);
+        rssSelect.append(option);
+        renameSelect.append(option);
+      }
+    }
+
+    // 生成质量选项
+    function generateRestypeOptions(restypeDict) {
+
+      const advancedSelect = $("#advanced_search_restype");
+      const rssSelect = $("#rss_restype");
+      const defaultRssSelect = $("#default_rss_setting_restype");
+
+      Object.keys(restypeDict).forEach(function(restype) {
+        var option = `<option value="${restype}">${restype}</option>`;
+        advancedSelect.append(option);
+        defaultRssSelect.append(option);
+        rssSelect.append(option);
+      });
+    }
+
+    // 生成分辨率选项
+    function generatePixOptions(pixDict) {
+      const advancedSelect = $("#advanced_search_pix");
+      const defaultRssSelect = $("#default_rss_setting_pix");
+      const rssSelect = $("#rss_pix");
+      Object.keys(pixDict).forEach(function(pix) {
+        var option = `<option value="${pix}">${pix}</option>`;
+        advancedSelect.append(option);
+        defaultRssSelect.append(option);
+        rssSelect.append(option);
+      });
+    }
+
+    // 生成转移方式选项
+    function generateRmtModeOptions(rmtModeDict) {
+
+      const manualSelect = $("#rename_syncmod_manual");
+      const customizeSelect = $("#rename_syncmod_customize");
+
+      Object.keys(rmtModeDict).forEach(function(mode) {
+        var option = `<option value="${mode.value}">${mode.name}</option>`;
+        manualSelect.append(option);
+        customizeSelect.append(option);
+      });
+
     }
 
   </script>

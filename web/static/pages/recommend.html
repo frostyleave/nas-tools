@@ -165,7 +165,8 @@
   // 页面加载完成后，使用axios_post请求/data/recommend接口获取数据并填充页面
   $(document).ready(function() {
     // 获取URL参数
-    const urlParams = new URLSearchParams(window.location.search);
+    const [path, queryString] = window.location.hash.split("?");
+    const urlParams = new URLSearchParams(queryString);
 
     // 从URL参数中获取各种参数
     CurrentPage = parseInt(urlParams.get('page')) || 1;

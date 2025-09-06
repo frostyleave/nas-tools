@@ -50,108 +50,8 @@
 <!-- 业务页面代码 -->
 <div class="page-body">
   <div class="container-xl">
-    <div class="row row-cards">
-      {% for Group in Groups %}
-      <div class="col-12">
-        <div class="card">
-          <div class="card-header">
-            <a {% if Group.link %}href="{{ Group.link }}" target="_blank" {% endif %}>
-              <h3 class="card-title"><strong>{{ Group.name }}</strong></h3>
-            </a>
-            <div class="card-actions btn-actions">
-              <a href="javascript:void(0)" onclick="show_customwords_detail('{{ Group.id }}')" class="btn-action ms-1" title="折叠">
-                <i class="ti ti-menu-2 fs-2"></i>
-              </a>
-              <a href="javascript:show_add_custom_word_modal('{{ Group.id }}', {{ Group.type }}, {{ Group.seasons }})"
-                class="btn-action ms-1" title="增加识别词">
-                <i class="ti ti-plus fs-2"></i>
-              </a>
-              {% if Group.id != "-1" %}
-              <a href="javascript:delete_custom_word_group('{{ Group.id }}')" class="btn-action ms-1" title="删除识别词组">
-                <i class="ti ti-x fs-2"></i>
-              </a>
-              {% endif %}
-            </div>
-          </div>
-          <div id="div_group{{ Group.id }}" class="table-responsive" {% if GroupsCount> 8 %}style="display: none;"{% endif %}>
-            <table class="table table-vcenter card-table table-hover table-striped">
-              <thead>
-                <tr>
-                  {% if Group.words %}
-                  <th class="w-1">
-                    <input class="form-check-input m-0 align-middle" type="checkbox" aria-label="全选"
-                           onclick="select_SelectALL($(this).prop('checked'), 'custom_words_{{ Group.id }}')">
-                  </th>
-                  {% endif %}
-                  <th class="w-1"></th>
-                  <th>被替换词</th>
-                  <th>替换词</th>
-                  <th>偏移集数</th>
-                  <th>前定位词</th>
-                  <th>后定位词</th>
-                  <th>状态</th>
-                  <th>备注</th>
-                  <th class="w-5"></th>
-                </tr>
-              </thead>
-              <tbody>
-                {% if Group.words %}
-                {% for Word in Group.words %}
-                <tr>
-                  <td>
-                    <input class="form-check-input m-0 align-middle" name="custom_words_{{ Group.id }}"
-                           value="{{ Group.id }}_{{ Word.id }}" type="checkbox">
-                  </td>
-                  <td><span class="badge bg-{% if Word.enabled == 1 %}green{% else %}red{% endif %}"></span></td>
-                  <td>{{ Word.replaced }}</td>
-                  <td>{{ Word.replace }}</td>
-                  <td>
-                    {% if Word.offset %}
-                    <span class="badge badge-outline text-cyan" style="vertical-align: middle;">{{ Word.offset
-                      }}</span>
-                    {% endif %}
-                  </td>
-                  <td>{{ Word.front }}</td>
-                  <td>{{ Word.back }}</td>
-                  <td>
-                    {% if Word.regex == 1 %}
-                    <span class="badge bg-blue" style="vertical-align: middle;">RegEx</span>
-                    {% endif %}
-                  </td>
-                  <td class="text-nowrap">
-                    {% if Word.season != -2 %}
-                      {% if Word.season == -1 %}
-                      <span class="badge badge-outline text-orange me-1" style="vertical-align: middle;">全部季</span>
-                      {% else %}
-                      <span class="badge badge-outline text-orange me-1" style="vertical-align: middle;">第{{
-                        Word.season }}季</span>
-                      {% endif %}
-                    {% endif %}
-                    {% if Word.help %}
-                      <span class="form-help" title="{{ Word.help }}" data-bs-toggle="tooltip">!</span>
-                    {% endif %}
-                  </td>
-                  <td>
-                    <div class="d-flex">
-                      <a href="javascript:show_edit_custom_word_modal('{{ Word.id }}', '{{ Group.id }}', {{ Group.type }}, {{ Group.seasons }})"
-                        title="编辑" class='ms-1'>
-                        <i class="ti ti-edit fs-2"></i>
-                      </a>
-                    </div>
-                  </td>
-                </tr>
-                {% endfor %}
-                {% else %}
-                <tr>
-                  <td colspan="9" align="center">未配置</td>
-                </tr>
-                {% endif %}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-      {% endfor %}
+    <div class="row row-cards" id="customwords-container">
+      <!-- 动态生成的内容将在这里显示 -->
     </div>
   </div>
 </div>
@@ -304,9 +204,6 @@
               <label class="form-label">季</label>
               <select class="form-select" id="custom_word_season">
                 <option value="-1" selected>全部</option>
-                {% for i in range(0, 51) %}
-                  <option value="{{ i }}">第{{ i }}季</option>
-                {% endfor %}
               </select>
             </div>
           </div>
@@ -465,6 +362,163 @@
     </div>
   </div>
   <script type="text/javascript">
+    $(document).ready(function() {
+      // 初始化季选择下拉框
+      const seasonSelect = $("#custom_word_season");
+      for (let i = 0; i <= 50; i++) {
+        seasonSelect.append(`<option value="${i}">第${i}季</option>`);
+      }
+
+      // 请求数据并生成页面
+      axios_post("/data/customwords", {}, function(ret) {
+        if (ret.code === 0) {
+          generateCustomWordsPage(ret.data.Groups, ret.data.GroupsCount);
+        } else {
+          show_fail_modal("加载自定义识别词失败");
+        }
+      });
+    });
+
+    // 生成自定义识别词页面内容
+    function generateCustomWordsPage(groups, groupsCount) {
+      const container = $("#customwords-container");
+      container.empty();
+
+      groups.forEach(function(group) {
+        const groupHtml = generateGroupHtml(group, groupsCount);
+        container.append(groupHtml);
+      });
+    }
+
+    // 生成单个组的HTML
+    function generateGroupHtml(group, groupsCount) {
+      const linkHtml = group.link ?
+        `<a href="${group.link}" target="_blank"><h3 class="card-title"><strong>${group.name}</strong></h3></a>` :
+        `<h3 class="card-title"><strong>${group.name}</strong></h3>`;
+
+      const deleteButtonHtml = group.id !== "-1" ?
+        `<a href="javascript:delete_custom_word_group('${group.id}')" class="btn-action ms-1" title="删除识别词组">
+          <i class="ti ti-x fs-2"></i>
+        </a>` : '';
+
+      const displayStyle = groupsCount > 8 ? 'style="display: none;"' : '';
+
+      const wordsHtml = generateWordsTableHtml(group);
+
+      return `
+        <div class="col-12">
+          <div class="card">
+            <div class="card-header">
+              ${linkHtml}
+              <div class="card-actions btn-actions">
+                <a href="javascript:void(0)" onclick="show_customwords_detail('${group.id}')" class="btn-action ms-1" title="折叠">
+                  <i class="ti ti-menu-2 fs-2"></i>
+                </a>
+                <a href="javascript:show_add_custom_word_modal('${group.id}', ${group.type}, ${group.seasons})"
+                  class="btn-action ms-1" title="增加识别词">
+                  <i class="ti ti-plus fs-2"></i>
+                </a>
+                ${deleteButtonHtml}
+              </div>
+            </div>
+            <div id="div_group${group.id}" class="table-responsive" ${displayStyle}>
+              ${wordsHtml}
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    // 生成词汇表格HTML
+    function generateWordsTableHtml(group) {
+      const hasWords = group.words && group.words.length > 0;
+      const checkboxHeader = hasWords ?
+        `<th class="w-1">
+          <input class="form-check-input m-0 align-middle" type="checkbox" aria-label="全选"
+                 onclick="select_SelectALL($(this).prop('checked'), 'custom_words_${group.id}')">
+        </th>` : '';
+
+      let wordsRows = '';
+      if (hasWords) {
+        wordsRows = group.words.map(word => generateWordRowHtml(word, group)).join('');
+      } else {
+        wordsRows = '<tr><td colspan="9" align="center">未配置</td></tr>';
+      }
+
+      return `
+        <table class="table table-vcenter card-table table-hover table-striped">
+          <thead>
+            <tr>
+              ${checkboxHeader}
+              <th class="w-1"></th>
+              <th>被替换词</th>
+              <th>替换词</th>
+              <th>偏移集数</th>
+              <th>前定位词</th>
+              <th>后定位词</th>
+              <th>状态</th>
+              <th>备注</th>
+              <th class="w-5"></th>
+            </tr>
+          </thead>
+          <tbody>
+            ${wordsRows}
+          </tbody>
+        </table>
+      `;
+    }
+
+    // 生成单个词汇行HTML
+    function generateWordRowHtml(word, group) {
+      const checkboxHtml = `
+        <td>
+          <input class="form-check-input m-0 align-middle" name="custom_words_${group.id}"
+                 value="${group.id}_${word.id}" type="checkbox">
+        </td>`;
+
+      const statusBadge = `<span class="badge bg-${word.enabled == 1 ? 'green' : 'red'}"></span>`;
+
+      const offsetBadge = word.offset ?
+        `<span class="badge badge-outline text-cyan" style="vertical-align: middle;">${word.offset}</span>` : '';
+
+      const regexBadge = word.regex == 1 ?
+        '<span class="badge bg-blue" style="vertical-align: middle;">RegEx</span>' : '';
+
+      let seasonBadge = '';
+      if (word.season != -2) {
+        if (word.season == -1) {
+          seasonBadge = '<span class="badge badge-outline text-orange me-1" style="vertical-align: middle;">全部季</span>';
+        } else {
+          seasonBadge = `<span class="badge badge-outline text-orange me-1" style="vertical-align: middle;">第${word.season}季</span>`;
+        }
+      }
+
+      const helpIcon = word.help ?
+        `<span class="form-help" title="${word.help}" data-bs-toggle="tooltip">!</span>` : '';
+
+      return `
+        <tr>
+          ${checkboxHtml}
+          <td>${statusBadge}</td>
+          <td>${word.replaced || ''}</td>
+          <td>${word.replace || ''}</td>
+          <td>${offsetBadge}</td>
+          <td>${word.front || ''}</td>
+          <td>${word.back || ''}</td>
+          <td>${regexBadge}</td>
+          <td class="text-nowrap">${seasonBadge}${helpIcon}</td>
+          <td>
+            <div class="d-flex">
+              <a href="javascript:show_edit_custom_word_modal('${word.id}', '${group.id}', ${group.type}, ${group.seasons})"
+                title="编辑" class='ms-1'>
+                <i class="ti ti-edit fs-2"></i>
+              </a>
+            </div>
+          </td>
+        </tr>
+      `;
+    }
+
     // 批量启用/停用/导出
     function batch_check_action(flag) {
       let ids_info = select_GetSelectedVAL("^custom_words");

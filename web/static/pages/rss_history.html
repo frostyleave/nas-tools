@@ -1,4 +1,4 @@
-<div class="container-xl">
+<div class="container-xl" id="rss-history-container">
   <!-- Page title -->
   <div class="page-header d-print-none">
     <div class="row align-items-center">
@@ -59,7 +59,9 @@
 <script type="text/javascript">
   //重新订阅
   function re_rss_history(rssid) {
-    axios_post_do("re_rss_history", {"rssid": rssid, "type": window.currentType || ""}, function (ret) {
+    const pageData = $("#rss-history-container").data('pageData');
+    const currentType = pageData ? pageData.currentType : 'TV';
+    axios_post_do("re_rss_history", {"rssid": rssid, "type": currentType}, function (ret) {
       if (ret.code == 0) {
         show_success_modal("重新订阅成功！");
       } else {
@@ -78,9 +80,18 @@
   // 页面加载完成后，使用axios_post请求/data/rss_history接口获取数据并填充页面
   $(document).ready(function() {
     // 获取URL参数中的类型
-    const urlParams = new URLSearchParams(window.location.search);
-    const type = urlParams.get('type') || 'TV';
-    window.currentType = type;
+    const [path, queryString] = window.location.hash.split("?");
+    const urlParams = new URLSearchParams(queryString);
+    const type = urlParams.get('t') || urlParams.get('type') || 'TV';
+
+    // 设置页面数据，避免污染window对象
+    const pageData = {
+      currentType: type,
+      currentTypeName: type === 'TV' ? '电视剧' : '电影'
+    };
+
+    // 将数据存储在页面容器中
+    $("#rss-history-container").data('pageData', pageData);
 
     // 设置返回按钮链接
     const backUrl = type === 'MOV' ? 'movie_rss' : 'tv_rss';

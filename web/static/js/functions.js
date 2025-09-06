@@ -580,17 +580,6 @@ function start_progress(type) {
   ProgressES.onmessage = function (event) {
     render_progress(JSON.parse(event.data))
   };
-  ProgressES.onerror = function (event) {
-    console.error("进度服务连接错误:", event);
-    // 尝试重新连接
-    setTimeout(function() {
-      if (ProgressES) {
-        ProgressES.close();
-        ProgressES = undefined;
-        start_progress(type);
-      }
-    }, 3000);
-  };
 }
 
 // 渲染进度条

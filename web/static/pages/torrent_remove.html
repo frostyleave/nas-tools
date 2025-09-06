@@ -19,28 +19,78 @@
   </div>
 </div>
 <!-- 业务页面代码 -->
-{% if Count > 0 %}
 <div class="page-body">
   <div class="container-xl">
-    <div class="row row-cards">
-      {% for Id, Attr in TorrentRemoveTasks.items() %}
+    <div class="row row-cards" id="torrent-remove-list">
+      <!-- 动态生成的内容将在这里显示 -->
+    </div>
+  </div>
+</div>
+
+<script type="text/javascript">
+  $(document).ready(function() {
+    // 请求数据并生成页面
+    axios_post("/data/torrent_remove", {}, function(ret) {
+      if (ret.code === 0) {
+        generateTorrentRemovePage(ret.data);
+      } else {
+        show_fail_modal("加载自动删种任务失败");
+      }
+    });
+  });
+
+  // 生成自动删种任务页面内容
+  function generateTorrentRemovePage(data) {
+    const container = $("#torrent-remove-list");
+    container.empty();
+
+    // 生成下载器选项
+    generateDownloaderOptions(data.Downloaders);
+
+    // 存储下载器配置和类型信息
+    window.DownloaderTypes = data.Downloaders;
+    window.DownloaderConfig = data.DownloaderConfig;
+
+    if (!data.TorrentRemoveTasks || Object.keys(data.TorrentRemoveTasks).length === 0) {
+      container.parent().parent().html('<nodata-found title="没有任务" text="当前没有正在运行的自动删种任务。"></nodata-found>');
+      return;
+    }
+
+    Object.entries(data.TorrentRemoveTasks).forEach(([id, task]) => {
+      const taskHtml = generateTaskHtml(task, data.Count);
+      container.append(taskHtml);
+    });
+  }
+
+  // 生成下载器选项
+  function generateDownloaderOptions(downloaders) {
+    const downloaderSelect = $("#torrent_remove_downloader");
+    downloaderSelect.find('option:not(:first)').remove(); // 保留第一个"请选择"选项
+
+    if (downloaders) {
+      Object.entries(downloaders).forEach(([id, downloader]) => {
+        downloaderSelect.append(`<option value="${id}">${downloader.name}</option>`);
+      });
+    }
+  }
+
+  // 生成单个任务HTML
+  function generateTaskHtml(task, count) {
+    const stateBadge = task.enabled ? '<span class="badge bg-green"></span>' : '<span class="badge bg-red"></span>';
+    const displayStyle = count > 3 ? 'none' : 'block';
+
+    return `
       <div class="card">
         <div class="card-header">
-          <div>
-            {% if Attr.enabled %}
-            <span class="badge bg-green"></span>
-            {% else %}
-            <span class="badge bg-red"></span>
-            {% endif %}
-          </div>
-          <a href="javascript:void(0)" onclick="show_torrentremove_detail({{ Attr.id }})" style="text-decoration-line: none; color: unset"
+          <div>${stateBadge}</div>
+          <a href="javascript:void(0)" onclick="show_torrentremove_detail(${task.id})" style="text-decoration-line: none; color: unset"
              title="展开/折叠" data-bs-toggle="tooltip">
             <div class="ms-3">
-                <h3 class="card-title">{{ Attr.name }}</h3>
+                <h3 class="card-title">${task.name}</h3>
             </div>
           </a>
           <div class="ms-2 d-none d-sm-block">
-            <a href="javascript:void(0)" onclick="run_torrent_remove_now('{{ Attr.id }}')" class="btn-icon" title="立即运行任务"
+            <a href="javascript:void(0)" onclick="run_torrent_remove_now('${task.id}')" class="btn-icon" title="立即运行任务"
               data-bs-toggle="tooltip">
               <i class="ti ti-bolt fs-2"></i>
             </a>
@@ -49,195 +99,212 @@
             <i class="ti ti-dots fs-2"></i>
           </a>
           <div class="dropdown-menu dropdown-menu-end">
-            <button class="dropdown-item text-info" onclick="run_torrent_remove_now('{{ Attr.id }}')">
+            <button class="dropdown-item text-info" onclick="run_torrent_remove_now('${task.id}')">
               立即运行
             </button>
-            <button class="dropdown-item" onclick="show_remove_torrents_modal('{{ Attr.id }}')">
+            <button class="dropdown-item" onclick="show_remove_torrents_modal('${task.id}')">
               预览
             </button>
-            <button class="dropdown-item" onclick="show_edit_torrent_remove_task_modal('{{ Attr.id }}')">
+            <button class="dropdown-item" onclick="show_edit_torrent_remove_task_modal('${task.id}')">
               编辑
             </button>
-            <button class="dropdown-item text-danger" onclick="delete_torrent_remove_task('{{ Attr.id }}', '{{ Attr.name }}')">
+            <button class="dropdown-item text-danger" onclick="delete_torrent_remove_task('${task.id}', '${task.name}')">
               删除
             </button>
           </div>
           <div class="card-actions btn-actions d-none d-sm-block">
-            <a href="javascript:void(0)" onclick="show_torrentremove_detail({{ Attr.id }})" class="btn-action"
+            <a href="javascript:void(0)" onclick="show_torrentremove_detail(${task.id})" class="btn-action"
                title="展开/折叠" data-bs-toggle="tooltip">
               <i class="ti ti-menu-2 fs-2"></i>
             </a>
-            <a href="javascript:show_remove_torrents_modal('{{ Attr.id }}')" class="btn-action"
+            <a href="javascript:show_remove_torrents_modal('${task.id}')" class="btn-action"
                title="预览删种" data-bs-toggle="tooltip">
               <i class="ti ti-eye fs-2"></i>
             </a>
-            <a href="javascript:show_edit_torrent_remove_task_modal('{{ Attr.id }}')" class="btn-action"
+            <a href="javascript:show_edit_torrent_remove_task_modal('${task.id}')" class="btn-action"
                title="编辑设置" data-bs-toggle="tooltip">
               <i class="ti ti-edit fs-2"></i>
             </a>
-            <a href="javascript:delete_torrent_remove_task('{{ Attr.id }}', '{{ Attr.name }}')" class="btn-action"
+            <a href="javascript:delete_torrent_remove_task('${task.id}', '${task.name}')" class="btn-action"
                title="删除设置" data-bs-toggle="tooltip">
               <i class="ti ti-x fs-2"></i>
             </a>
           </div>
         </div>
-        <div class="card-body" id="detail_{{ Attr.id }}"
-            style="display: {% if Count > 3 %}none{% else %}block{% endif %};">
-          <div class="datagrid">
-            <div class="datagrid-item">
-              <div class="datagrid-title">下载器</div>
-              <div class="datagrid-content">
-                <span class="badge mb-1 bg-blue">{{ Attr.downloader_name }}</span>
-              </div>
+        ${generateTaskDetailHtml(task, displayStyle)}
+      </div>
+    `;
+  }
+
+  // 生成任务详情HTML
+  function generateTaskDetailHtml(task, displayStyle) {
+    const managementLimits = [];
+    if (task.onlynastool) managementLimits.push('<span class="badge mb-1">隔离</span>');
+    if (task.samedata) managementLimits.push('<span class="badge mb-1">处理辅种</span>');
+
+    const actionText = getActionText(task.action);
+    const ratioText = task.config.ratio ? `${task.config.ratio} +` : '';
+    const seedingTimeText = task.config.seeding_time ? `${task.config.seeding_time} 小时 +` : '';
+    const uploadAvsText = task.config.upload_avs ? `${task.config.upload_avs} KB/s -` : '';
+    const sizeText = task.config.size && task.config.size.length > 0 ?
+      `${task.config.size[0]}-${task.config.size[task.config.size.length - 1]} GB` : '';
+    const savepathKeyText = task.config.savepath_key ?
+      `<span class="badge bg-orange text-wrap text-break text-start">${task.config.savepath_key}</span>` : '';
+    const trackerKeyText = task.config.tracker_key ?
+      `<span class="badge bg-orange text-wrap text-break text-start">${task.config.tracker_key}</span>` : '';
+
+    let downloaderSpecificHtml = '';
+    if (task.downloader_type === "qbittorrent") {
+      downloaderSpecificHtml = generateQbittorrentSpecificHtml(task.config);
+    } else if (task.downloader_type === "transmission") {
+      downloaderSpecificHtml = generateTransmissionSpecificHtml(task.config);
+    }
+
+    const statusText = task.enabled ?
+      '<span class="badge bg-green">正在运行</span>' :
+      '<span class="badge bg-red">已停用</span>';
+
+    const tagsHtml = task.config.tags && task.config.tags.length > 0 ?
+      task.config.tags.map(tag => `<span class="badge mb-1">${tag}</span>`).join('') : '';
+
+    return `
+      <div class="card-body" id="detail_${task.id}" style="display: ${displayStyle};">
+        <div class="datagrid">
+          <div class="datagrid-item">
+            <div class="datagrid-title">下载器</div>
+            <div class="datagrid-content">
+              <span class="badge mb-1 bg-blue">${task.downloader_name}</span>
             </div>
-            <div class="datagrid-item">
-              <div class="datagrid-title">管理限制</div>
-              <div class="datagrid-content">
-              {% if Attr.onlynastool %}
-                <span class="badge mb-1">隔离</span>
-              {% endif %}
-              {% if Attr.samedata %}
-                <span class="badge mb-1">处理辅种</span>
-              {% endif %}
-              </div>
-            </div>
-            <div class="datagrid-item">
-              <div class="datagrid-title">刷新间隔</div>
-              <div class="datagrid-content">
-                {{ Attr.interval }} 分钟
-              </div>
-            </div>
-            <div class="datagrid-item">
-              <div class="datagrid-title">动作</div>
-              <div class="datagrid-content">
-                {% if Attr.action == 1 %}
-                <span class="badge bg-blue">暂停任务</span>
-                {% elif Attr.action == 2 %}
-                <span class="badge bg-orange">删除任务</span>
-                {% elif Attr.action == 3 %}
-                <span class="badge bg-red">删除任务及文件</span>
-                {% endif %}
-              </div>
-            </div>
-            <div class="datagrid-item">
-              <div class="datagrid-title">分享率</div>
-              <div class="datagrid-content">
-              {% if Attr.config.ratio %}
-                {{ Attr.config.ratio }} +
-              {% endif %}
-              </div>
-            </div>
-            <div class="datagrid-item">
-              <div class="datagrid-title">做种时间</div>
-              <div class="datagrid-content">
-              {% if Attr.config.seeding_time %}
-                {{ Attr.config.seeding_time }} 小时 +
-              {% endif %}
-              </div>
-            </div>
-            <div class="datagrid-item">
-              <div class="datagrid-title">平均做种速度</div>
-              <div class="datagrid-content">
-              {% if Attr.config.upload_avs %}
-                {{ Attr.config.upload_avs }} KB/s -
-              {% endif %}
-              </div>
-            </div>
-            <div class="datagrid-item">
-              <div class="datagrid-title">大小</div>
-              <div class="datagrid-content">
-              {% if Attr.config.size %}
-                {{ Attr.config.size[0] }}-{{ Attr.config.size[-1] }} GB
-              {% endif %}
-              </div>
-            </div>
-            <div class="datagrid-item">
-              <div class="datagrid-title">保存路径关键词</div>
-              <div class="datagrid-content">
-              {% if Attr.config.savepath_key %}
-                <span class="badge bg-orange text-wrap text-break text-start">{{ Attr.config.savepath_key }}</span>
-              {% endif %}
-              </div>
-            </div>
-            <div class="datagrid-item">
-              <div class="datagrid-title">tracker关键词</div>
-              <div class="datagrid-content">
-              {% if Attr.config.tracker_key %}
-                <span class="badge bg-orange text-wrap text-break text-start">{{ Attr.config.tracker_key }}</span>
-              {% endif %}
-              </div>
-            </div>
-            {% if Attr.downloader_type == "qbittorrent" %}
-              <div class="datagrid-item">
-                <div class="datagrid-title">分类</div>
-                <div class="datagrid-content">
-                  {% if Attr.config.qb_category %}
-                  {% for Category in Attr.config.qb_category %}
-                  <span class="badge mb-1">{{ Category }}</span>
-                  {% endfor %}
-                  {% endif %}
-                </div>
-              </div>
-              <div class="datagrid-item">
-                <div class="datagrid-title">种子状态</div>
-                <div class="datagrid-content">
-                  {% if Attr.config.qb_state %}
-                  {% for State in Attr.config.qb_state %}
-                  <span class="badge bg-blue mb-1">{{ State }}</span>
-                  {% endfor %}
-                  {% endif %}
-                </div>
-              </div>
-            {% elif Attr.downloader_type == "transmission" %}
-              <div class="datagrid-item">
-                <div class="datagrid-title">错误信息关键词</div>
-                <div class="datagrid-content">
-                {% if Attr.config.tr_error_key %}
-                  <span class="badge bg-orange text-wrap text-break text-start">{{ Attr.config.tr_error_key }}</span>
-                {% endif %}
-                </div>
-              </div>
-              <div class="datagrid-item">
-                <div class="datagrid-title">种子状态</div>
-                <div class="datagrid-content">
-                  {% if Attr.config.tr_state %}
-                  {% for State in Attr.config.tr_state %}
-                  <span class="badge bg-blue mb-1">{{ State }}</span>
-                  {% endfor %}
-                  {% endif %}
-                </div>
-              </div>
-            {% endif %}
-            <div class="datagrid-item">
-              <div class="datagrid-title">状态</div>
-              <div class="datagrid-content">
-                {% if Attr.enabled %}
-                <span class="badge bg-green">正在运行</span>
-                {% else %}
-                <span class="badge bg-red">已停用</span>
-                {% endif %}
-              </div>
-            </div>
-            <div class="datagrid-item">
-              <div class="datagrid-title">标签</div>
-              <div class="datagrid-content">
-                {% if Attr.config.tags %}
-                {% for Tag in Attr.config.tags %}
-                <span class="badge mb-1">{{ Tag }}</span>
-                {% endfor %}
-                {% endif %}
-              </div>
-            </div>
+          </div>
+          <div class="datagrid-item">
+            <div class="datagrid-title">管理限制</div>
+            <div class="datagrid-content">${managementLimits.join('')}</div>
+          </div>
+          <div class="datagrid-item">
+            <div class="datagrid-title">刷新间隔</div>
+            <div class="datagrid-content">${task.interval} 分钟</div>
+          </div>
+          <div class="datagrid-item">
+            <div class="datagrid-title">动作</div>
+            <div class="datagrid-content">${actionText}</div>
+          </div>
+          <div class="datagrid-item">
+            <div class="datagrid-title">分享率</div>
+            <div class="datagrid-content">${ratioText}</div>
+          </div>
+          <div class="datagrid-item">
+            <div class="datagrid-title">做种时间</div>
+            <div class="datagrid-content">${seedingTimeText}</div>
+          </div>
+          <div class="datagrid-item">
+            <div class="datagrid-title">平均做种速度</div>
+            <div class="datagrid-content">${uploadAvsText}</div>
+          </div>
+          <div class="datagrid-item">
+            <div class="datagrid-title">大小</div>
+            <div class="datagrid-content">${sizeText}</div>
+          </div>
+          <div class="datagrid-item">
+            <div class="datagrid-title">保存路径关键词</div>
+            <div class="datagrid-content">${savepathKeyText}</div>
+          </div>
+          <div class="datagrid-item">
+            <div class="datagrid-title">tracker关键词</div>
+            <div class="datagrid-content">${trackerKeyText}</div>
+          </div>
+          ${downloaderSpecificHtml}
+          <div class="datagrid-item">
+            <div class="datagrid-title">状态</div>
+            <div class="datagrid-content">${statusText}</div>
+          </div>
+          <div class="datagrid-item">
+            <div class="datagrid-title">标签</div>
+            <div class="datagrid-content">${tagsHtml}</div>
           </div>
         </div>
       </div>
-      {% endfor %}
-    </div>
-  </div>
-</div>
-{% else %}
-<nodata-found title="没有任务" text="当前没有正在运行的自动删种任务。"></nodata-found>
-{% endif %}
+    `;
+  }
+
+  // 获取动作文本
+  function getActionText(action) {
+    switch (action) {
+      case 1:
+        return '<span class="badge bg-blue">暂停任务</span>';
+      case 2:
+        return '<span class="badge bg-orange">删除任务</span>';
+      case 3:
+        return '<span class="badge bg-red">删除任务及文件</span>';
+      default:
+        return '';
+    }
+  }
+
+  // 生成qBittorrent特定配置HTML
+  function generateQbittorrentSpecificHtml(config) {
+    const categoryHtml = config.qb_category && config.qb_category.length > 0 ?
+      config.qb_category.map(category => `<span class="badge mb-1">${category}</span>`).join('') : '';
+
+    const stateHtml = config.qb_state && config.qb_state.length > 0 ?
+      config.qb_state.map(state => `<span class="badge bg-blue mb-1">${state}</span>`).join('') : '';
+
+    return `
+      <div class="datagrid-item">
+        <div class="datagrid-title">分类</div>
+        <div class="datagrid-content">${categoryHtml}</div>
+      </div>
+      <div class="datagrid-item">
+        <div class="datagrid-title">种子状态</div>
+        <div class="datagrid-content">${stateHtml}</div>
+      </div>
+    `;
+  }
+
+  // 生成Transmission特定配置HTML
+  function generateTransmissionSpecificHtml(config) {
+    const errorKeyHtml = config.tr_error_key ?
+      `<span class="badge bg-orange text-wrap text-break text-start">${config.tr_error_key}</span>` : '';
+
+    const stateHtml = config.tr_state && config.tr_state.length > 0 ?
+      config.tr_state.map(state => `<span class="badge bg-blue mb-1">${state}</span>`).join('') : '';
+
+    return `
+      <div class="datagrid-item">
+        <div class="datagrid-title">错误信息关键词</div>
+        <div class="datagrid-content">${errorKeyHtml}</div>
+      </div>
+      <div class="datagrid-item">
+        <div class="datagrid-title">种子状态</div>
+        <div class="datagrid-content">${stateHtml}</div>
+      </div>
+    `;
+  }
+
+  // 更新帮助文本
+  function updateHelpTexts() {
+    if (window.DownloaderConfig) {
+      // 更新qBittorrent状态帮助文本
+      if (window.DownloaderConfig.qbittorrent && window.DownloaderConfig.qbittorrent.torrent_state) {
+        let qbHelpText = '';
+        Object.entries(window.DownloaderConfig.qbittorrent.torrent_state).forEach(([id, desc]) => {
+          qbHelpText += `${id}：${desc}<br>`;
+        });
+        qbHelpText += '<br>设置多个状态时，种子属于其中任一状态视为满足该条件，留空为不启用';
+        $("#qb_state_help").attr('title', qbHelpText);
+      }
+
+      // 更新Transmission状态帮助文本
+      if (window.DownloaderConfig.transmission && window.DownloaderConfig.transmission.torrent_state) {
+        let trHelpText = '';
+        Object.entries(window.DownloaderConfig.transmission.torrent_state).forEach(([id, desc]) => {
+          trHelpText += `${id}：${desc}<br>`;
+        });
+        trHelpText += '<br>设置多个状态时，种子属于其中任一状态视为满足该条件，留空为不启用';
+        $("#tr_state_help").attr('title', trHelpText);
+      }
+    }
+  }
+</script>
 <div class="modal modal-blur fade" id="modal-torrent-remove-task" tabindex="-1" role="dialog" aria-hidden="true"
   data-bs-backdrop="static" data-bs-keyboard="false">
   <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable" role="document">
@@ -260,9 +327,7 @@
               <label class="form-label required">下载器</label>
               <select class="form-select" id="torrent_remove_downloader" onchange="show_torrent_remove_downloader_type($(this).val())">
                 <option value="">请选择</option>
-                {% for Id, Attr in Downloaders.items() %}
-                <option value="{{ Id }}">{{ Attr.name }}</option>
-                {% endfor %}
+                <!-- 下载器选项将通过JavaScript动态生成 -->
               </select>
             </div>
           </div>
@@ -374,11 +439,8 @@
           <div class="col-lg-7">
             <div class="mb-3">
               <label class="form-label">种子状态 <span class="form-help"
-                title=
-                "{% for Id, Attr in DownloaderConfig.qbittorrent.torrent_state.items() %}
-                {{ Id }}：{{ Attr }}<br>
-                {% endfor %}
-                <br>设置多个状态时，种子属于其中任一状态视为满足该条件，留空为不启用"
+                title=""
+                id="qb_state_help"
                 data-bs-toggle="tooltip"
                 data-bs-html="true">?</span></label>
               <input type="text" id="torrent_remove_qb_state" class="form-control" placeholder="多个状态用;分隔">
@@ -396,10 +458,8 @@
           <div class="col-lg-7">
             <div class="mb-3">
               <label class="form-label">种子状态 <span class="form-help"
-                title="{% for Id, Attr in DownloaderConfig.transmission.torrent_state.items() %}
-                {{ Id }}：{{ Attr }}<br>
-                {% endfor %}
-                <br>设置多个状态时，种子属于其中任一状态视为满足该条件，留空为不启用"
+                title=""
+                id="tr_state_help"
                 data-bs-toggle="tooltip"
                 data-bs-html="true">?</span></label>
               <input type="text" id="torrent_remove_tr_state" class="form-control" placeholder="多个状态用;分隔">
@@ -442,7 +502,7 @@
 </div>
 <script type="text/javascript">
 
-  var DownloaderTypes = {{ Downloaders|safe }};
+  var DownloaderTypes = {};
 
   // 折叠任务详情
   function show_torrentremove_detail(taskid) {
@@ -473,11 +533,13 @@
 
   // 显示新增任务
   function show_add_torrent_remove_task_modal(){
-    let downloaders = {{ Downloaders|safe }};
-    if (!Object.keys(downloaders).length) {
+    if (!window.DownloaderTypes || !Object.keys(window.DownloaderTypes).length) {
       show_fail_modal("请先添加下载器！");
       return;
     }
+
+    // 更新帮助文本
+    updateHelpTexts();
     $("#torrent_remove_task_id").val('');
     $("#modal-torrent-remove-task-title").val('新增删种任务');
     reset_torrent_remove_config();
