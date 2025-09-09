@@ -40,9 +40,11 @@
                         <img class="card-img rounded-3" alt=""
                           style="box-shadow:0 0 0 1px #888888; display: block; min-width: 100%; max-width: 100%; min-height: 100%; max-height: 100%; object-fit: cover;"
                           src="{{ Item.poster }}">
-                        <div style="position: absolute; bottom: 0; right: 0; width: 30px; height: 30px; padding: 12px; background-color: var(--tblr-success); clip-path: polygon(100% 0, 100% 100%, 0 100%); border-radius: 0 0 8px 0;z-index: 9;">
-                          <i class="ti ti-check"></i>
-                        </div>
+                         {% if Item.fav == "2" %}
+                          <div style="position: absolute; bottom: 0; right: 0; width: 30px; height: 30px; padding: 12px; background-color: var(--tblr-success); clip-path: polygon(100% 0, 100% 100%, 0 100%); border-radius: 0 0 8px 0;z-index: 9;">
+                            <i class="ti ti-check"></i>
+                          </div>
+                         {% endif %}
                         <span style="position: absolute; top: 10px; left: 10px; z-index: 9;" class="badge badge-pill bg-lime">{{ Item.type }}</span>
                         <div class="badge badge-pill bg-purple" style="position: absolute; top: 10px; right: 10px; z-index: 9;">{{ Item.vote }}</div>
                       </div>
@@ -53,10 +55,10 @@
                           </a>
                           <div class="ms-auto">
                             <a class="text-muted" title="加入/取消订阅" href='javascript:rss_love_click("{{ Item.title }}", "{{ Item.year }}", "{{ Item.type_key }}", "{{ Item.tmdbid }}", "{{Item.fav}}")'>
-                              {% if Item.fav == "2" %}
-                                <i class="ti ti-heart fs-2 text-white"></i>
-                              {% else %}
+                              {% if Item.fav == "1" %}
                                 <i class="ti ti-heart-filled fs-2 text-purple"></i>
+                              {% else %}
+                                <i class="ti ti-heart fs-2 text-white"></i>
                               {% endif %}
                             </a>
                           </div>
