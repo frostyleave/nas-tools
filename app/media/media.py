@@ -2120,7 +2120,7 @@ class Media:
             return ""
         genres = tmdbinfo.get("genres") or []
         genres_list = [genre.get("name") for genre in genres]
-        return ", ".join(genres_list) if genres_list else ""
+        return genres_list if genres_list else []
 
     def get_tmdb_genres(self, mtype):
         """

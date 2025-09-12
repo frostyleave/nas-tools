@@ -141,7 +141,7 @@ export class NormalCard extends observeState(CustomElement) {
           ${this._render_left_up()}
           ${this._render_right_up()}
         </div>
-        <div class="card-img-overlay rounded-3 ms-auto" style="background-color: rgba(0, 0, 0, 0.4);"
+        <div class="card-img-overlay rounded-3 ms-auto" style="background-color: rgba(0, 0, 0, 0.2);"
              @click=${() => { navmenu(`media_detail?type=${this.media_type}&id=${this.tmdb_id}`) }}>
           <div style="cursor: pointer;">
             ${this.year && !this.overview.startsWith(this.year)
@@ -172,7 +172,6 @@ export class NormalCard extends observeState(CustomElement) {
           ${this._render_bottom()}
         </div>
       </div>
-      <div class="m-2 text-center" style="-webkit-line-clamp:1; display: -webkit-box; -webkit-box-orient:vertical; overflow:hidden; text-overflow: ellipsis;font-weight: bold;">${this.title}</div>
     `;
   }
 

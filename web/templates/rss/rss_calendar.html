@@ -61,9 +61,7 @@
       return {html: innerText};
     }
   });
-  calendar.render();
-</script>
-<script type="text/javascript">
+
   //查询订阅电影的上映日期
   RssMovieItems = {{ RssMovieItems| safe }};
 
@@ -119,8 +117,16 @@
       });
     }
   };
-  //拉取订阅电影
-  init_rss_movies_event();
-  //拉取订阅电视剧
-  init_rss_tvs_event();
+
+</script>
+
+<script>
+  $(document).ready(function () {
+    // 日历渲染
+    calendar.render();
+    //拉取订阅电影
+    init_rss_movies_event();
+    //拉取订阅电视剧
+    init_rss_tvs_event();
+  });
 </script>
