@@ -724,6 +724,9 @@
   function init_indexer_chart() {
     // 请求数据
     ajax_post("get_indexer_statistics", {}, function (ret) {
+      if (ret.code != 0) {
+        return;
+      }
       // 饼图
       if (typeof (indexer_chat) != 'undefined')
         indexer_chat.dispose();
@@ -777,17 +780,6 @@
       } else {
         $("#indexer_list_content").html(`<tr><td colspan="4"></td></tr>`);
       }
-
-      let tableDataList = new List('table-indexer-list', {
-        sortClass: 'table-sort',
-        listClass: 'table-tbody',
-        valueNames: ['sort-name', 'sort-total', 'sort-fail', 'sort-avg',
-          { attr: 'data-name', name: 'sort-name' },
-          { attr: 'data-total', name: 'sort-total' },
-          { attr: 'data-fail', name: 'sort-fail' },
-          { attr: 'data-avg', name: 'sort-avg' }
-        ]
-      });
 
     });
 

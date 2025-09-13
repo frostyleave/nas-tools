@@ -586,6 +586,7 @@
                 ]
               };
               chart_site_activity.setOption(options_site_activity);
+              chart_site_activity.resize();
             } else {
               show_fail_modal(`${site_name} 查询失败：${ret.msg}！`);
             }
@@ -659,6 +660,7 @@
                 }
               };
               chart_seeding_info.setOption(options_seeding_info);
+              chart_seeding_info.resize();
             } else {
               show_fail_modal(`${site_name} 查询失败：${ret.msg}！`);
             }
@@ -746,6 +748,8 @@
                 ]
               };
               pie_ul.setOption(option_ul)
+              pie_ul.resize();
+
               let option_dl = {
                 tooltip: {
                   trigger: 'item', valueFormatter: value => numeral(value).format('0.0 ib')
@@ -776,6 +780,8 @@
                 ]
               };
               pie_dl.setOption(option_dl)
+              pie_ul.resize();
+
               let up_all = 0;
               let dl_all = 0;
               let len = ret.dataset.length;
@@ -859,6 +865,8 @@
                 ]
               };
               chart_history.setOption(option_history);
+              chart_history.resize();
+
               let up_all = 0;
               let dl_all = 0;
               let len = ret.dataset.length;
