@@ -1,5 +1,4 @@
 from functools import wraps
-import enum
 import os
 
 from fastapi import APIRouter, Request, Depends, HTTPException, status

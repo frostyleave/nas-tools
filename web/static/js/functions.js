@@ -538,7 +538,7 @@ function check_system_online() {
 //注销
 function logout() {
   // 兼容旧的登出方式
-  axios_post("/logout", {}, function (ret) {
+  axios_post("/auth/logout", {}, function (ret) {
     window.location.href = '/login';
   });
 }

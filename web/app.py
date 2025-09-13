@@ -3,17 +3,14 @@ import hashlib
 import json
 import os
 import re
-import mimetypes
 
 from urllib.parse import unquote
 from pathlib import Path
-from datetime import timedelta
 
-from fastapi import Body, FastAPI, Request, Depends, HTTPException, Response, WebSocket, WebSocketDisconnect, status
+from fastapi import Body, FastAPI, Request, Depends, HTTPException, Response, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
-from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, StreamingResponse
-from fastapi.security import OAuth2PasswordRequestForm
+from fastapi.responses import FileResponse, HTMLResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 
 import log
@@ -23,13 +20,16 @@ from app.utils.system_utils import SystemUtils
 from app.utils.types import *
 
 from config import Config
+
 from web.action import WebAction
-from web.backend.security import ACCESS_TOKEN_EXPIRE_MINUTES, REFRESH_TOKEN_EXPIRE_DAYS, authenticate_user, create_access_token, decode_access_token, validate_refresh_token
+from web.backend.security import decode_access_token
 from web.backend.user import User, UserManager
 from web.backend.web_utils import WebUtils
 
 from web.api import api_router
+from web.auth import auth_router
 from web.data_api import data_router, get_current_user
+from web.lifespan import lifespan
 
 from version import APP_VERSION
 
@@ -39,7 +39,7 @@ log.setup_fastapi_logging()
 # FastAPI App
 app = FastAPI(
     title="NAStool",
-    description="NAStool",
+    lifespan=lifespan,
     version=APP_VERSION,
 )
 
@@ -58,13 +58,10 @@ app.add_middleware(GZipMiddleware, minimum_size=1000)
 # 注册路由
 app.include_router(api_router)
 app.include_router(data_router)
+app.include_router(auth_router)
 
 # 静态文件
 app.mount("/static", StaticFiles(directory="web/static"), name="static")
-
-# fix Windows registry stuff
-mimetypes.add_type('application/javascript', '.js')
-mimetypes.add_type('text/css', '.css')
 
 
 # 页面不存在
@@ -76,7 +73,6 @@ async def page_not_found(request: Request, exc):
 @app.exception_handler(500)
 async def page_server_error(request: Request, exc):
     return FileResponse("web/static/500.html", status_code=500)
-
 
 # favicon.ico
 @app.get("/favicon.ico")
@@ -98,81 +94,6 @@ async def robots():
     禁止搜索引擎
     """
     return FileResponse("robots.txt")
-
-
-@app.post("/auth/token")
-async def login(request: Request, form_data: OAuth2PasswordRequestForm = Depends()):
-    user = authenticate_user(form_data.username, form_data.password)
-    if not user:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="用户名或密码错误",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
-
-    username = user.username
-
-    access_token = create_access_token(
-        data={"sub": username},
-        expires_delta=timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
-    )
-    refresh_token = create_access_token(
-        data={"sub": username, "type": "refresh"},
-        expires_delta=timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS)
-    )
-
-    scheme = request.headers.get("x-forwarded-proto", request.url.scheme)
-    secure_flag = scheme == "https"
-    
-    response = JSONResponse(content={"msg": "登录成功"})
-    response.set_cookie("access_token", access_token, httponly=True, samesite="Lax", secure=secure_flag)
-    response.set_cookie("refresh_token", refresh_token, httponly=True, samesite="Lax", secure=secure_flag)
-    return response
-
-
-@app.post("/logout")
-async def logout():
-    """
-    退出登录：清除 Cookie
-    """
-    response = JSONResponse(content={"msg": "退出成功"})
-    response.delete_cookie("access_token")
-    response.delete_cookie("refresh_token")
-    return response
-
-
-@app.post("/auth/refresh")
-async def refresh_token(request: Request):
-    refresh_token = request.cookies.get("refresh_token")
-    if not refresh_token:
-        raise HTTPException(status_code=401, detail="缺少 refresh_token")
-    
-    username = validate_refresh_token(refresh_token)
-    if not username:
-        raise HTTPException(status_code=401, detail="无效 refresh_token")
-    
-    new_access_token = create_access_token(
-        data={"sub": username},
-        expires_delta=timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
-    )
-
-    new_refresh_token = create_access_token(
-        data={"sub": username, "type": "refresh"},
-        expires_delta=timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS)
-    )
-
-    scheme = request.headers.get("x-forwarded-proto", request.url.scheme)
-    secure_flag = scheme == "https"
-
-    response = JSONResponse(content={"msg": "刷新成功"})
-    response.set_cookie("access_token", new_access_token, httponly=True, samesite="Lax", secure=secure_flag)
-    response.set_cookie("refresh_token", new_refresh_token, httponly=True, samesite="Lax", secure=secure_flag)
-    return response
-
-
-@app.post("/health")
-async def health(user: User = Depends(get_current_user)):
-    return 'ok'
 
 
 # 主页面
@@ -240,7 +161,7 @@ async def backup(request: Request, current_user: User = Depends(get_current_user
     备份用户设置文件
     :return: 备份文件.zip_file
     """
-    zip_file = WebAction().backup()
+    zip_file = WebAction(current_user).backup()
     if not zip_file:
         return Response(content="创建备份失败", status_code=400)
     return FileResponse(zip_file)

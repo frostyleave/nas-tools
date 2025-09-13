@@ -1,14 +1,35 @@
+import multiprocessing
 import os
 import signal
 import sys
 import warnings
 import uvicorn
 
+from fastapi import FastAPI
+
+
+from app.db import init_db, update_db, init_data
+from config import Config
+from initializer import update_config, check_config
+
+# 导入FastAPI应用
+from web.app import app
+from version import APP_VERSION
+
+import log
+
 warnings.filterwarnings('ignore')
 
 # 运行环境判断
+is_windows = os.name == "nt"
 is_executable = getattr(sys, 'frozen', False)
-is_windows_exe = is_executable and (os.name == "nt")
+is_windows_exe = is_executable and is_windows
+
+if is_windows:
+    import mimetypes
+    # fix Windows registry stuff
+    mimetypes.add_type('application/javascript', '.js')
+    mimetypes.add_type('text/css', '.css')
 
 if is_windows_exe:
     # 托盘相关库
@@ -26,78 +47,47 @@ if is_executable:
     except Exception as err:
         print(str(err))
 
-from config import Config
-
-from web.action import WebAction
-
-from app.db import init_db, update_db, init_data
-
-from initializer import update_config, check_config,  start_config_monitor, stop_config_monitor
-from version import APP_VERSION
-
-import log
 
 def sigal_handler(num, stack):
     """
     信号处理
     """
-    log.warn('捕捉到退出信号：%s，开始退出...' % num)
-    # 关闭配置文件监控
-    log.info('关闭配置文件监控...')
-    stop_config_monitor()
-    # 关闭服务
-    log.info('关闭服务...')
-    WebAction.stop_service()
+    log.warn('捕捉到退出信号：%s, 开始退出...' % num)
+
     # 退出主进程
     log.info('退出主进程...')
-    # sys.exit(0) -> os._exit(0)
-    # fix s6下python进程无法退出的问题
+    server.should_exit = True
     os._exit(0)
 
 
-def get_run_config(forcev4=False):
-    """
-    获取运行配置
-    """
-    _web_host = "::"
-    _web_port = 3000
-    _ssl_cert = None
-    _ssl_key = None
-    _debug = False
-
-    app_conf = Config().get_config('app')
-    if app_conf:
-        if forcev4:
-            _web_host = "0.0.0.0"
-        elif app_conf.get("web_host"):
-            _web_host = app_conf.get("web_host").replace('[', '').replace(']', '')
-        _web_port = int(app_conf.get('web_port')) if str(app_conf.get('web_port', '')).isdigit() else 3000
-        _ssl_cert = app_conf.get('ssl_cert')
-        _ssl_key = app_conf.get('ssl_key')
-        _debug = True if app_conf.get("debug") else False
-
-    # 获取日志级别配置
-    _log_level = app_conf.get('loglevel', 'info') if app_conf else 'info'
-
-    # 为Uvicorn准备配置
-    uvicorn_config = {
-        "host": _web_host,
-        "port": _web_port,
-        "log_level": _log_level,
-        "reload": False
-    }
-
-    # SSL配置
-    if _ssl_cert and _ssl_key:
-        uvicorn_config["ssl_certfile"] = _ssl_cert
-        uvicorn_config["ssl_keyfile"] = _ssl_key
-
-    return uvicorn_config
-
-
-# 退出事件
+# 事件绑定
 signal.signal(signal.SIGINT, sigal_handler)
 signal.signal(signal.SIGTERM, sigal_handler)
+
+# 生成运行配置
+def get_run_config(app: FastAPI) -> uvicorn.Config:
+
+    _web_host = "0.0.0.0"
+    _web_port = 3000
+    _log_level = 'info'
+
+    app_conf = Config().get_config('app')
+
+    if app_conf:
+        _web_port_conf = app_conf.get('web_port', '')
+        _web_port = int(_web_port_conf) if str(_web_port_conf).isdigit() else 3000
+        _log_level = app_conf.get('loglevel', 'info')
+
+    # 生成配置
+    uvicorn_config = uvicorn.Config(app, 
+                                    host=_web_host, 
+                                    port=_web_port,
+                                    reload=False,
+                                    log_level=_log_level,
+                                    workers=multiprocessing.cpu_count() * 2 + 1,
+                                    timeout_graceful_shutdown=60)
+
+    return uvicorn_config
 
 
 def init_system():
@@ -115,23 +105,14 @@ def init_system():
     check_config()
 
 
-def start_service():
-    log.console("开始启动服务...")
-    # 启动服务
-    WebAction.start_service()
-    # 监听配置文件变化
-    start_config_monitor()
-
-
-# 系统初始化
-init_system()
-
-# 启动服务
-start_service()
+# uvicorn服务
+server_conf = get_run_config(app)
+server = uvicorn.Server(server_conf)
 
 
 # 本地运行
 if __name__ == '__main__':
+   
     # Windows启动托盘
     if is_windows_exe:
         homepage = Config().get_config('app').get('domain')
@@ -152,16 +133,13 @@ if __name__ == '__main__':
 
     # 在这里导入app实例，确保所有初始化工作已完成
     try:
-        # 导入FastAPI应用
-        from web.app import app as fastapi_app
+        
+        # 系统初始化
+        init_system()
 
-        # 获取运行配置
-        run_config = get_run_config(is_windows_exe)
+        # 启动服务器
+        server.run()
 
-        # 打印调试信息
-        log.console(f"正在启动FastAPI应用...使用配置: {run_config}")
-
-        # 启动应用
-        uvicorn.run(fastapi_app, **run_config)
     except Exception as e:
+        print(str(e))
         log.exception('启动FastAPI应用时出错', e)
