@@ -1,6 +1,5 @@
-import { LayoutNavbarButton } from "./button.js"; export { LayoutNavbarButton };
 import { html, nothing, unsafeHTML, repeat } from "../../utility/lit-core.min.js";
-import {CustomElement, Golbal} from "../../utility/utility.js";
+import { CustomElement, Golbal } from "../../utility/utility.js";
 
 export class LayoutNavbar extends CustomElement {
 
@@ -17,12 +16,12 @@ export class LayoutNavbar extends CustomElement {
   constructor() {
     super();
     this.navbar_list = [];
-    this.layout_appversion = "v3.0.0";
+    this.layout_appversion = "v3.4.0";
     this._active_name = "";
     this._update_appversion = "";
     this._update_url = "https://github.com/frostyleave/nas-tools";
     this._is_update = false;
-    this._is_expand = false;
+
     this.classList.add("navbar","navbar-vertical","navbar-expand-lg","lit-navbar-fixed","lit-navbar","lit-navbar-hide-scrollbar");
     // 加载菜单
     Golbal.get_cache_or_ajax("get_user_menus", "usermenus", {},
@@ -47,27 +46,24 @@ export class LayoutNavbar extends CustomElement {
     // 确保组件在重新连接时能够正确显示
     this._ensureVisible();
     // 如果菜单为空，重新加载菜单数据
-    if (!this.navbar_list || this.navbar_list.length === 0) {
+    if (!this.navbar_list?.length) {
       this._loadMenus();
     }
   }
 
   _loadMenus() {
-    // 直接使用axios_post，避免页面状态检查导致的请求丢弃
+
     axios_post_do("get_user_menus", {}, (ret) => {
       if (ret.code === 0) {
         this.navbar_list = ret.menus;
-        // 菜单加载完成后，触发重新渲染
-        this.requestUpdate();
-        // 如果是首次加载且页面还没有初始化，现在初始化
-        if (!this._pageInitialized) {
-          this._pageInitialized = true;
-          this._init_page();
-        }
+        // lit 会在 navbar_list 变动时自动触发渲染
+        // this.requestUpdate();
+        this._init_page();
       } else {
         console.error('Failed to load menus:', ret);
       }
     }, false, false);
+    
   }
 
   _ensureVisible() {
@@ -87,31 +83,18 @@ export class LayoutNavbar extends CustomElement {
   }
 
   _init_page() {
-    // 加载页面
-    if (window.history.state?.page) {
-      window_history_refresh();
-    } else {
-      // 打开地址链锚点页面
-      let page = this._get_page_from_url();
-      if (page) {
-        navmenu(page);
-      } else {
-        // 打开第一个页面
-        if (this.navbar_list && this.navbar_list.length > 0) {
-          const page = this.navbar_list[0].page ?? (this.navbar_list[0].list && this.navbar_list[0].list.length > 0 ? this.navbar_list[0].list[0].page : 'index');
-          // this._add_page_to_url(page);
-          navmenu(page);
-        } else {
-          // 如果没有菜单项，默认打开首页
-          // this._add_page_to_url('index');
-          navmenu('index');
-        }
-      }
-      // 默认展开探索
-      if (!this._is_expand) {
-        this.show_collapse("ranking");
-      }
+
+    if (this._pageInitialized) 
+      return;
+
+    this._pageInitialized = true;
+
+    let page = window.history.state?.page || this._get_page_from_url();
+    if (!page && this.navbar_list?.length) {
+      page = this.navbar_list[0].page || this.navbar_list[0].list?.[0]?.page || "index";
     }
+
+    navmenu(page || "index");
 
     // 删除logo动画 加点延迟切换体验好
     setTimeout(() => {
@@ -120,39 +103,10 @@ export class LayoutNavbar extends CustomElement {
 
   }
 
-  _check_new_version() {
-    axios_post_do("version", {}, (ret) => {
-      if (ret.code === 0) {
-        let url = null;
-        switch (compareVersion(ret.version, this.layout_appversion)) {
-          case 1:
-            url = ret.url;
-            break;
-          case 2:
-            url = "https://github.com/frostyleave/nas-tools/commits/master"
-            break;
-        }
-        if (url) {
-          this._update_url = url;
-          this._update_appversion = ret.version;
-          this._is_update = true;
-        }
-      }
-    });
-  }
-
   _get_page_from_url() {
     const pages = window.location.href.split('#');
     if (pages.length > 1) {
       return pages[pages.length - 1]
-    }
-  }
-
-  _add_page_to_url(page){
-    if (window.location.href.indexOf("?") > 0) {
-      window.location.href = `${window.location.href.split('?')[0]}#${page}`;
-    }else {
-      window.location.href = `${window.location.href.split('#')[0]}#${page}`;
     }
   }
 
@@ -169,8 +123,6 @@ export class LayoutNavbar extends CustomElement {
       for (const a of item.querySelectorAll("a")) {
         if (page === a.getAttribute("data-lit-page")) {
           item.classList.add("show");
-          this.querySelectorAll(`button[data-bs-target='#${item.id}']`)[0].classList.remove("collapsed");
-          this._is_expand = true;
           return;
         }
       }
@@ -249,7 +201,6 @@ export class LayoutNavbar extends CustomElement {
       style="${child ? "font-size:1rem" : "font-size:1.1rem;"}"
       data-lit-page=${item.page}
       @click=${ () => {
-        // this._add_page_to_url(item.page);
         navmenu(item.page);
       }}>
       <span class="nav-link-icon" style="color:var(--tblr-body-color);">

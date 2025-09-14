@@ -1,14 +1,4 @@
-<style>
-  .space-between-box a:hover {
-    text-decoration: none;
-  }
-
-  div.top-sub-navbar>ul>li {
-    margin: 0 1em;
-  }
-
-</style>
-<div class="input-group top-sub-navbar" id="downloader-navbar" style="display: none;">
+<div class="input-group top-sub-navbar mx-2" >
   <input type="hidden" id="downloaderId" value="">
   <ul class="nav nav-tabs card-header-tabs" data-bs-toggle="tabs" role="tablist" id="downloader-tabs">
   </ul>
@@ -49,8 +39,6 @@
 </div>
 <nodata-found id="no-downloads" title="没有下载任务" text="当前下载器中没有正在下载的任务。" style="display: none;"></nodata-found>
 <script type="text/javascript">
-
-  $('#downloader-navbar').show();
 
   // 下载控制
   function start_pt_download(id) {
@@ -193,7 +181,6 @@
             downloaderTabs.append(tabItem);
           });
 
-          $('#downloader-navbar').show();
         }
 
         // 生成下载任务列表

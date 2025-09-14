@@ -12,12 +12,7 @@ let TorrentDropZone;
 let DefaultTransferMode;
 // 默认路径
 let DefaultPath;
-// 页面正在加载中的标志
-let NavPageLoading = false;
-// 加载中页面的字柄
-let NavPageXhr;
-// 是否允许打断弹窗
-let GlobalModalAbort = true;
+
 // 进度刷新EventSource
 let ProgressES;
 // 日志来源筛选时关掉之前的刷新日志计时器
@@ -34,269 +29,10 @@ if (window.location.protocol === "https:") {
 // 页面加载的时间
 let PageLoadedTime = new Date();
 
-window.addEventListener('popstate', function (event) {
-
-  // 解除滚动事件
-  $(window).unbind('scroll');
-
-  var pageMenu = window.location.hash;
-  if (!pageMenu || !pageMenu.startsWith('#/')) {
-    return;
-  }
-  // 获取当前子菜单
-  pageMenu = pageMenu.substring(2).replaceAll(" ", "%20");
-  if (!pageMenu) {
-    pageMenu = 'index';
-  } else {
-    var paramIndex = pageMenu.indexOf('?');
-    if (paramIndex > 0) {
-      pageMenu = pageMenu.substring(0, paramIndex);
-    }
-  }
-  // 刷新子菜单
-  refresh_sub_menu(pageMenu);
-
-});
-
 
 /**
  * 公共函数区
  */
-
-// 导航菜单点击
-function navmenu(page, newflag = false) {
- 
-  // 修复空格问题
-  page = page.replaceAll(" ", "%20");
-  // 主动点击时清除页码, 刷新页面也需要清除
-  sessionStorage.removeItem("CurrentPage");
-  // 展开菜单
-  navbarMenu = document.querySelector("#navbar-menu")
-
-  // 解除滚动事件
-  $(window).unbind('scroll');
-
-  // 停止上一次加载
-  if (NavPageXhr && NavPageLoading) {
-    NavPageXhr.abort();
-  }
-  // 显示等待动画
-  menu_swith_wait();
-
-  // 加载新页面
-  NavPageLoading = true;
-
-  // 页面切换
-  window.navigateTo(page);
-
-  NavPageLoading = false;
-
-  // 隐藏等待动画
-  hide_loading();
-
-  // 加载完成
-  render_other(page);
-
-}
-
-function render_other(page) {
-
-  // 移除/
-  if (page.startsWith('/')) {
-    page = page.replace(/^\/+/, "");
-  }
-
-  // 修复登录页面刷新问题
-  if (document.title === "登录 - NAStool") {
-    // 刷新页面
-    window.location.reload();
-  } else {
-    // 关掉已经打开的弹窗
-    if (GlobalModalAbort) {
-      $(".modal").modal("hide");
-    }
-    // 刷新tooltip
-    fresh_tooltip();
-    // 刷新filetree控件
-    init_filetree_element();
-  }
-
-  let pageMenu = page;
-  var paramIndex = page.indexOf('?');
-  if (paramIndex > 0) {
-    pageMenu = pageMenu.substring(0, paramIndex);
-  }
-
-  var prevMenu = ''
-  if (CurrentPageUri) {
-    paramIndex = CurrentPageUri.indexOf('?');
-    if (paramIndex > 0) {
-      prevMenu = CurrentPageUri.substring(0, paramIndex);
-    } else {
-      prevMenu = CurrentPageUri;
-    }    
-  }
-
-  if (page !== CurrentPageUri) {
-    // 记录当前页面ID
-    CurrentPageUri = page;
-  }
-
-  if (pageMenu !== prevMenu) {
-    // 刷新子菜单
-    refresh_sub_menu(pageMenu);
-    // 更新元素菜单显隐
-    update_tab_display();
-  }
-
-}
-
-
-function refresh_sub_menu(pageMenu) {
-
-  // 子菜单当前可见
-  if ($('#top-sub-navbar').is(':visible')) {
-
-    let navLinks = document.querySelectorAll('#top-sub-navbar a');
-    if (navLinks) {
-      // 移除活动标记
-      $(navLinks).removeClass('active');
-      let selectNav = Array.from(navLinks).find(link => link.getAttribute('data-id') === pageMenu);
-      // 子菜单切换, 无需额外处理
-      if (selectNav) {
-        // 添加活动标记
-        $(selectNav).addClass('active');
-        return;
-      }
-    }
-
-  }
-
-  // 当前子菜单不可见，或点击的菜单不在子菜单中，说明是大菜单切换，需要重绘或者清空子菜单
-
-  // 获取ul元素
-  const ulElement = document.querySelector('#top-sub-navbar ul');
-  // 清空现有的li元素
-  ulElement.innerHTML = '';
-
-  var navList = [];
-  // 找到当前页面菜单配置
-  var currentMenu = navbarMenu.navbar_list.find(item => item.page === pageMenu);
-  if (currentMenu) {
-    // 激活主菜单
-    navbarMenu.update_active(pageMenu);
-    navList = currentMenu.nav;
-  } else {
-    // 找不到当前菜单，说是子菜单刷新页面
-    for (var menuItem of navbarMenu.navbar_list) {
-      if (menuItem.nav) {
-        if (menuItem.nav.find(navItem => navItem.page === pageMenu)) {
-          // 激活主菜单
-          navbarMenu.update_active(menuItem.page);
-          navList = menuItem.nav;
-          break;
-        }
-      }
-    }
-  }
-
-  // 没有子菜单
-  if (!navList) {
-    // 激活主菜单
-    navbarMenu.update_active(pageMenu);
-    // 隐藏子菜单
-    $('#top-sub-navbar').hide();
-    return;
-  }
-
-  // 重新绘制子菜单
-  navList.forEach(item => {
-
-    const aElement = document.createElement('a');
-    aElement.className = 'nav-link top-nav-link';
-    aElement.href = '#';
-    aElement.innerHTML = `<span class="tab-icon" style="color:var(--tblr-body-color);display: inline-flex;align-items: anchor-center;">${item.icon}</span><span class="tab-text">${item.name}</span>`;
-    aElement.setAttribute('data-bs-toggle', 'tab');
-    aElement.setAttribute('data-id', item.page);
-    aElement.onclick = () => navmenu(item.page); // 根据 item.page 设定点击行为
-
-    if (pageMenu == item.page) {
-      aElement.classList.add('active');
-    }
-
-    const liElement = document.createElement('li');
-    liElement.className = 'nav-item';
-    liElement.appendChild(aElement);
-    ulElement.appendChild(liElement);
-
-  });
-
-  $('#top-sub-navbar').show();
-
-}
-
-
-function update_tab_display() {
-
-    if (!$('#top-sub-navbar').is(':visible')) {
-      return;
-    }
-
-    const menu = document.querySelector('.nav.nav-tabs');
-    if (!menu) return;
-
-    // 克隆原始菜单用于测量（避免污染实际DOM）
-    const clone = menu.cloneNode(true);
-    clone.style.visibility = 'hidden';
-    document.body.appendChild(clone);
-
-    // 初始化测量元素
-    const items = Array.from(clone.querySelectorAll('.nav-item'));
-    const links = items.map(item => item.querySelector('.nav-link'));
-    const textElements = links.map(link => link.querySelector('.tab-text'));
-    const iconElements = links.map(link => link.querySelector('.tab-icon'));
-
-    // 测量模式函数（返回总宽度）
-    function measureMode(mode) {
-      textElements.forEach(el => el.style.display =
-        mode === 'ICON' ? 'none' : 'inline-flex');
-      iconElements.forEach(el => el.style.display =
-        mode === 'TEXT' ? 'none' : 'inline-flex');
-
-      return Array.from(clone.querySelectorAll('.nav-item'))
-        .reduce((sum, item) => sum + item.offsetWidth, 0);
-    }
-
-    // 获取容器可用宽度
-    const containerWidth = menu.parentElement.offsetWidth;
-
-    // 按优先级测量三种模式
-    const modeWidths = {
-      BOTH: measureMode('BOTH'),
-      ICON: measureMode('ICON'),
-      TEXT: measureMode('TEXT')
-    };
-
-    // 移除克隆体
-    document.body.removeChild(clone);
-
-    // 选择最佳显示模式
-    let bestMode = 'ICON'; // 默认图标模式
-    if (modeWidths.BOTH <= containerWidth) {
-      bestMode = 'BOTH';
-    } else if (modeWidths.TEXT <= containerWidth) {
-      bestMode = 'TEXT';
-    }
-
-    // 应用最终模式
-    menu.querySelectorAll('.nav-item').forEach((item, index) => {
-      item.querySelector('.tab-text').style.display =
-        bestMode === 'ICON' ? 'none' : 'inline-flex';
-      item.querySelector('.tab-icon').style.display =
-        bestMode === 'TEXT' ? 'none' : 'inline-flex';
-    });
-}
-
 
 // 搜索
 function media_search(tmdbid, title, type) {
@@ -2102,12 +1838,12 @@ function apply_theme(targetTheme) {
 
   // 先移除旧的 class
   document.body.classList.remove("theme-dark", "theme-light");
-
   // 加上新的 class
   document.body.classList.add("theme-" + targetTheme);
-
   // 保存到 localStorage
   localStorage.setItem("theme", targetTheme);
+  // 绑定
+  document.documentElement.setAttribute('data-bs-theme', targetTheme);
 
 }
 

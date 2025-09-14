@@ -131,7 +131,6 @@ if __name__ == '__main__':
             p1 = threading.Thread(target=traystart, daemon=True)
             p1.start()
 
-    # 在这里导入app实例，确保所有初始化工作已完成
     try:
         
         # 系统初始化

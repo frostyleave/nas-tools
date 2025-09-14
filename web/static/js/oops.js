@@ -59,7 +59,7 @@ class SystemError extends HTMLElement {
         <div class="container-xl d-flex flex-column justify-content-center">
           <div class="empty">
             <div>
-              <img src="./static/img/404.png" class="w-25" alt="System error">
+              <img src="./static/img/error.svg" class="w-25" alt="System error">
             </div>
             <p class="empty-title fs-1">${title}</p>
             <p class="empty-subtitle text-muted fs-3">
