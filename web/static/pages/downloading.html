@@ -156,7 +156,11 @@
     const urlParams = new URLSearchParams(queryString);
     const downloaderId = urlParams.get('downloaderId');
 
+    const downloadingList = $('#downloading-list');
+    downloadingList.empty();
+
     axios_post('/data/downloading', downloaderId ? { downloaderId: downloaderId } : {}, function(response) {
+
       if (response.code === 0 && response.data) {
         const data = response.data;
 
@@ -185,11 +189,6 @@
 
         // 生成下载任务列表
         if (data.Torrents && data.Torrents.length > 0) {
-          const downloadingList = $('#downloading-list');
-          const downloadingContainer = $('#downloading-container');
-          const noDownloads = $('#no-downloads');
-
-          downloadingList.empty();
 
           data.Torrents.forEach(torrent => {
             const startBtnStyle = torrent.state === 'Downloading' ? 'display:none' : '';
@@ -246,8 +245,8 @@
             downloadingList.append(torrentCard);
           });
 
-          downloadingContainer.show();
-          noDownloads.hide();
+          $('#downloading-container').show();
+          $('#no-downloads').hide();
         } else {
           $('#downloading-container').hide();
           $('#no-downloads').show();

@@ -50,9 +50,6 @@
 
         if (data.Sites && data.Sites.length > 0) {
           const sitesList = $('#sites-list');
-          const sitesContainer = $('#sites-container');
-          const noSites = $('#no-sites');
-
           sitesList.empty();
 
           data.Sites.forEach(site => {
@@ -78,8 +75,8 @@
             sitesList.append(siteCard);
           });
 
-          sitesContainer.show();
-          noSites.hide();
+          $('#sites-container').show();
+          $('#no-sites').hide();
         } else {
           $('#sites-container').hide();
           $('#no-sites').show();

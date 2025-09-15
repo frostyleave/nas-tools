@@ -459,12 +459,12 @@
 
     axios_post("/data/search", {}, function (res) {
 
-      if (res.data && res.data.data && res.data.data.Count > 0) {
+      if (res.data && res.data.Count > 0) {
 
         $("#no-data-card").hide();
         $('#page-body-div').show();
 
-        var data = res.data.data;
+        var data = res.data;
         var count = data.Count;
         var results = data.Results;
         $("#search_count").text(`共搜索到 ${count} 条记录`);

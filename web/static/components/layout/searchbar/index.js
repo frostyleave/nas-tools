@@ -99,9 +99,9 @@ export class LayoutSearchbar extends CustomElement {
 
           <!-- 头像 dropdown -->
           <span class="input-group-text border-start-0">
-            <div class="nav-item dropdown">
-              <a href="#" class="d-flex lh-1 text-reset p-1 d-sm-inline-flex" data-bs-toggle="dropdown">
-                <i class="ti ti-user-square-rounded fs-2 text-blue"></i>
+            <div class="nav-item dropdown d-sm-inline-flex">
+              <a href="#" class="d-sm-inline-flex" data-bs-toggle="dropdown">
+                <i class="ti ti-user-square-rounded fs-2 text-vimeo"></i>
               </a>
               <div class="dropdown-menu dropdown-menu-end dropdown-menu-arrow">
                 <a class="dropdown-item hide-theme-dark" href="javascript:theme_toggle()" role="button">暗黑风格</a>

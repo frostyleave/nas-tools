@@ -709,6 +709,9 @@
     const urlParams = $(container).data("params");
     var pParam = urlParams.p || 1;
 
+    const indexersList = $('#indexers-list');
+    indexersList.empty();
+
     axios_post('/data/indexer?p=' + pParam, {}, function(response) {
       
       if (response.code === 0 && response.data) {
@@ -751,11 +754,6 @@
 
         // 生成索引站点列表
         if (data.Indexers && data.Indexers.length > 0) {
-          const indexersList = $('#indexers-list');
-          const indexersContainer = $('#indexers-container');
-          const noIndexers = $('#no-indexers');
-
-          indexersList.empty();
 
           data.Indexers.forEach(site => {
             // 生成资源类型标签
@@ -822,8 +820,8 @@
             indexersList.append(siteCard);
           });
 
-          indexersContainer.show();
-          noIndexers.hide();
+          $('#indexers-container').show();
+          $('#no-indexers').hide();
         } else {
           $('#indexers-container').hide();
           const noIndexersElement = $('#no-indexers');
