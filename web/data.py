@@ -1,7 +1,7 @@
 from functools import wraps
 import os
 
-from fastapi import APIRouter, Request, Depends, HTTPException, status
+from fastapi import APIRouter, Request, Depends
 from fastapi.encoders import jsonable_encoder
 from fastapi.responses import JSONResponse
 
@@ -27,8 +27,8 @@ from app.utils.types import *
 from config import PT_TRANSFER_INTERVAL, TMDB_API_DOMAINS, Config
 
 from web.action import WebAction
-from web.backend.security import decode_access_token
-from web.backend.user import User, UserManager
+from web.backend.security import get_current_user
+from web.backend.user import User
 from web.backend.wallpaper import get_login_wallpaper
 from web.backend.web_utils import WebUtils
 
@@ -71,24 +71,6 @@ def response(code: int = 0, msg: str = "success", data=None, status_code: int = 
         }),
         status_code=status_code
     )
-
-
-# 解析请求中的用户
-async def get_current_user(request: Request):
-    token = request.cookies.get("access_token")
-    if not token:
-        raise HTTPException(status_code=401, detail="缺少 access_token")
-    username = decode_access_token(token)
-    if username is None:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="无效 token",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
-    user = UserManager().get_user_by_name(username)
-    if user is None:
-        raise HTTPException(status_code=404, detail="用户不存在")
-    return user
 
 
 # bing
@@ -227,10 +209,6 @@ async def index(request: Request, current_user: User = Depends(get_current_user)
 # 资源搜索页面
 @data_router.post("/search")
 async def search(request: Request, current_user: User = Depends(get_current_user)):
-
-    # 权限
-    username = current_user.username
-    pris = UserManager().get_user_by_name(username).pris
 
     # 结果
     res = WebAction(current_user).get_search_result()
@@ -493,19 +471,7 @@ async def plugin(request: Request, current_user = Depends(get_current_user)):
     }
     RmtModeDict = webAction.get_rmt_modes()
     # 插件
-    # 确保current_user不为None
-    if current_user:
-        # 直接传递用户级别
-        Plugins = PluginManager().get_plugins_conf(current_user.level)
-    else:
-        # 如果current_user为None，使用默认admin用户级别
-        admin_user = UserManager().get_user_by_name("admin")
-        if admin_user:
-            # 直接传递admin用户级别
-            Plugins = PluginManager().get_plugins_conf(admin_user.level)
-        else:
-            # 如果无法获取admin用户，使用最高级别99
-            Plugins = PluginManager().get_plugins_conf(99)
+    Plugins = PluginManager().get_plugins_conf(current_user.level)
 
     Settings = '\n'.join(SystemConfig().get(SystemConfigKey.ExternalPluginsSource) or [])
     return response(data=

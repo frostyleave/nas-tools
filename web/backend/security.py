@@ -1,6 +1,7 @@
 from datetime import datetime, timedelta
 from typing import Optional
 
+from fastapi import HTTPException, Request, WebSocket, status
 from jose import JWTError, jwt
 from passlib.context import CryptContext
 
@@ -61,3 +62,40 @@ def validate_refresh_token(token: str) -> Optional[str]:
         return username
     except JWTError:
         return None
+    
+
+# 解析http请求中的用户
+async def get_current_user(request: Request):
+    token = request.cookies.get("access_token")
+    if not token:
+        raise HTTPException(status_code=401, detail="缺少 access_token")
+    username = decode_access_token(token)
+    if username is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="无效 token",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    user = UserManager().get_user_by_name(username)
+    if user is None:
+        raise HTTPException(status_code=404, detail="用户不存在")
+    return user
+
+
+# 解析websocket请求中的用户
+async def get_websocket_user(request: WebSocket):
+    token = request.cookies.get("access_token")
+    if not token:
+        raise HTTPException(status_code=401, detail="缺少 access_token")
+    username = decode_access_token(token)
+    if username is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="无效 token",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    user = UserManager().get_user_by_name(username)
+    if user is None:
+        raise HTTPException(status_code=404, detail="用户不存在")
+    return user
+

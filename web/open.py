@@ -23,12 +23,12 @@ from web.action import WebAction
 from web.backend.WXBizMsgCrypt3 import WXBizMsgCrypt
 
 
-# API路由
-api_router = APIRouter()
+# 开放接口路由
+open_router = APIRouter()
 
 
 # 微信回调
-@api_router.api_route("/wechat", methods=["GET", "POST"])
+@open_router.api_route("/wechat", methods=["GET", "POST"])
 async def wechat(request: Request):
     # 当前在用的交互渠道
     interactive_client = Message().get_interactive_client(SearchType.WX)
@@ -117,7 +117,7 @@ async def wechat(request: Request):
 
 
 # 微信发送消息
-@api_router.post("/sendwechat")
+@open_router.post("/sendwechat")
 async def sendwechat(request: Request):
     if not SecurityHelper().check_mediaserver_ip(request.client.host):
         log.warn(f"非法IP地址的媒体服务器消息通知: {request.client.host}")
@@ -146,7 +146,7 @@ async def sendwechat(request: Request):
 
 
 # Plex Webhook
-@api_router.post("/plex")
+@open_router.post("/plex")
 async def plex_webhook(request: Request):
     if not SecurityHelper().check_mediaserver_ip(request.client.host):
         log.warn(f"非法IP地址的媒体服务器消息通知: {request.client.host}")
@@ -168,7 +168,7 @@ async def plex_webhook(request: Request):
 
 
 # Jellyfin Webhook
-@api_router.post("/jellyfin")
+@open_router.post("/jellyfin")
 async def jellyfin_webhook(request: Request):
     if not SecurityHelper().check_mediaserver_ip(request.client.host):
         log.warn(f"非法IP地址的媒体服务器消息通知: {request.client.host}")
@@ -184,7 +184,7 @@ async def jellyfin_webhook(request: Request):
 
 
 # Emby Webhook
-@api_router.api_route("/emby", methods=["GET", "POST"])
+@open_router.api_route("/emby", methods=["GET", "POST"])
 async def emby_webhook(request: Request):
     if not SecurityHelper().check_mediaserver_ip(request.client.host):
         log.warn(f"非法IP地址的媒体服务器消息通知: {request.client.host}")
@@ -207,7 +207,7 @@ async def emby_webhook(request: Request):
 
 
 # Telegram消息响应
-@api_router.post("/telegram")
+@open_router.post("/telegram")
 async def telegram(request: Request):
     interactive_client = Message().get_interactive_client(SearchType.TG)
     if not interactive_client:
@@ -247,7 +247,7 @@ async def telegram(request: Request):
 
 
 # Synology Chat消息响应
-@api_router.post("/synology")
+@open_router.post("/synology")
 async def synology(request: Request):
     interactive_client = Message().get_interactive_client(SearchType.SYNOLOGY)
     if not interactive_client:
@@ -278,7 +278,7 @@ async def synology(request: Request):
 
 
 # Slack消息响应
-@api_router.post("/slack")
+@open_router.post("/slack")
 async def slack(request: Request):
     if not SecurityHelper().check_slack_ip(request.client.host):
         log.warn(f"非法IP地址的Slack消息通知: {request.client.host}")
@@ -318,7 +318,7 @@ async def slack(request: Request):
 
 
 # Jellyseerr Overseerr订阅接口
-@api_router.post("/subscribe")
+@open_router.post("/subscribe")
 async def subscribe(request: Request):
     req_json = await request.json()
     if not req_json:

@@ -7,7 +7,7 @@ import re
 from urllib.parse import unquote
 from pathlib import Path
 
-from fastapi import Body, FastAPI, Request, Depends, HTTPException, Response, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, Request, Depends, HTTPException, Response, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import FileResponse, HTMLResponse, StreamingResponse
@@ -21,14 +21,14 @@ from app.utils.types import *
 
 from config import Config
 
-from web.action import WebAction
-from web.backend.security import decode_access_token
-from web.backend.user import User, UserManager
+from web.action import action_router, WebAction
+from web.backend.security import get_websocket_user, get_current_user
+from web.backend.user import User
 from web.backend.web_utils import WebUtils
 
-from web.api import api_router
 from web.auth import auth_router
-from web.data_api import data_router, get_current_user
+from web.data import data_router
+from web.open import open_router
 from web.lifespan import lifespan
 
 from version import APP_VERSION
@@ -56,9 +56,10 @@ app.add_middleware(
 app.add_middleware(GZipMiddleware, minimum_size=1000)
 
 # 注册路由
-app.include_router(api_router)
+app.include_router(open_router)
 app.include_router(data_router)
 app.include_router(auth_router)
+app.include_router(action_router)
 
 # 静态文件
 app.mount("/static", StaticFiles(directory="web/static"), name="static")
@@ -219,19 +220,6 @@ async def img(request: Request, url: str, current_user: User = Depends(get_curre
     return response
 
 
-# 事件响应
-@app.post("/do")
-def do(content: dict = Body(...), current_user: User = Depends(get_current_user)):
-    try:
-        cmd = content.get("cmd")
-        data = content.get("data") or {}
-        log.debug(f"处理/do请求: cmd={cmd}, data={data}")
-        return WebAction(current_user).action(cmd, data)
-    except Exception as e:
-        log.exception("处理/do请求出错, cmd=" + content.get("cmd"))
-        return {"code": -1, "msg": str(e)}
-    
-
 # WebSocket连接 - 消息中心
 @app.websocket("/message")
 async def message_handler(websocket: WebSocket):
@@ -244,16 +232,10 @@ async def message_handler(websocket: WebSocket):
     user_id = None
     try:
         # 尝试从cookie中获取会话数据
-        token = websocket.cookies.get("access_token")
-        if token:
-            try:
-                username = decode_access_token(token)
-                user_info = UserManager().get_user_by_name(username)
-                if user_info:
-                    user_id = user_info.id
-                    log.debug(f"[WebSocket-消息]会话用户ID: {user_id}")
-            except Exception as e:
-                log.exception("[WebSocket-消息]解析会话数据失败: ", e)
+        user_info = get_websocket_user(websocket)
+        if user_info:
+            user_id = user_info.id
+            log.debug(f"[WebSocket-消息]会话用户ID: {user_id}")
     except Exception as e:
         log.exception("[WebSocket-消息]会话获取失败: ", e)
 

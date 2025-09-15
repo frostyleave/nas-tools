@@ -10,6 +10,7 @@ import signal
 import sqlite3
 import time
 
+from fastapi import APIRouter, Body, Depends
 from math import floor
 from pathlib import Path
 from typing import Optional
@@ -51,6 +52,22 @@ from config import RMT_MEDIAEXT, RMT_SUBEXT, RMT_AUDIO_TRACK_EXT, Config
 from web.backend.search import search_medias_for_web, search_media_by_message
 from web.backend.user import User, UserManager
 from web.backend.web_utils import WebUtils
+from web.backend.security import get_current_user
+
+# action接口路由
+action_router = APIRouter()
+
+# 事件响应
+@action_router.post("/do")
+def do(content: dict = Body(...), current_user: User = Depends(get_current_user)):
+    try:
+        cmd = content.get("cmd")
+        data = content.get("data") or {}
+        log.debug(f"处理/do请求: cmd={cmd}, data={data}")
+        return WebAction(current_user).action(cmd, data)
+    except Exception as e:
+        log.exception("处理/do请求出错, cmd=" + content.get("cmd"))
+        return {"code": -1, "msg": str(e)}
 
 
 class WebAction:
