@@ -8,18 +8,18 @@
       <div class="col-auto ms-auto d-print-none">
         <div class="btn-list">
           <a href="javascript:show_site_modal()" class="btn btn-primary d-none d-sm-inline-flex">
-            <i class="ti ti-plus fs-2 me-1"></i>
+            <i class="ti ti-plus fs-2"></i>
             新增站点
           </a>
           <a href="javascript:show_site_modal()" class="btn btn-primary d-sm-none btn-icon">
-            <i class="ti ti-plus fs-2 me-1"></i>
+            <i class="ti ti-plus fs-2"></i>
           </a>
           <a href="javascript:show_sitetest_modal()" class="btn d-none d-sm-inline-flex">
-            <i class="ti ti-activity-heartbeat fs-2 me-1"></i>
+            <i class="ti ti-activity-heartbeat fs-2"></i>
             站点测试
           </a>
           <a href="javascript:show_sitetest_modal()" class="btn d-sm-none btn-icon">
-            <i class="ti ti-activity-heartbeat fs-2 me-1"></i>
+            <i class="ti ti-activity-heartbeat fs-2"></i>
           </a>
         </div>
       </div>
@@ -203,7 +203,7 @@
                 <input type="text" class="form-control" id="site_ua" value="" placeholder="站点访问User-Agent">
                 <span class="input-group-text">
                   <a href="javascript:set_user_agent('site_ua')" class="link-secondary" title="从浏览器中获取 User-Agent" data-bs-toggle="tooltip">
-                    <i class="ti ti-arrow-bar-to-left fs-2 me-1"></i>
+                    <i class="ti ti-arrow-bar-to-left fs-2"></i>
                   </a>
                 </span>
               </div>
@@ -866,13 +866,13 @@
                   </h3>
                   <div class="card-actions btn-actions">
                     <a href="javascript:edit_site('${site.id}')" class="btn-action ms-1" title="编辑站点">
-                      <i class="ti ti-edit fs-2 me-1"></i>
+                      <i class="ti ti-edit fs-2"></i>
                     </a>
                     ${data.ChromeOk ? `<a href="javascript:show_site_cookie_ua_modal('${site.id}', '${site.name}')" class="btn-action ms-1" title="更新站点Cookie和User-Agent">
-                      <i class="ti ti-refresh-dot fs-2 me-1"></i>
+                      <i class="ti ti-refresh-dot fs-2"></i>
                     </a>` : ''}
                     <a href="javascript:remove_site('${site.name}', '${site.id}')" class="btn-action ms-1" title="删除站点">
-                      <i class="ti ti-x fs-2 me-1"></i>
+                      <i class="ti ti-x fs-2"></i>
                     </a>
                   </div>
                 </div>

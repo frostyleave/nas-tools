@@ -969,11 +969,17 @@ class Downloader:
         """
         if not downloader_id:
             downloader_id = self.default_downloader_id
-        downloader_conf = self.get_downloader_conf(downloader_id)
-        only_nastool = downloader_conf.get("only_nastool")
+
         _client = self.__get_client(downloader_id)
         if not _client:
             return []
+        
+        # 查询配置
+        downloader_conf = self.get_downloader_conf(downloader_id)
+        if not downloader_conf:
+            return []
+        # 仅下载指定标签
+        only_nastool = downloader_conf.get("only_nastool")
         if only_nastool:
             tag = [PT_TAG]
         else:
@@ -1646,6 +1652,7 @@ class Downloader:
         """
         if not did:
             return self._downloader_confs
+        
         return self._downloader_confs.get(str(did))
 
     def get_downloader_conf_simple(self):

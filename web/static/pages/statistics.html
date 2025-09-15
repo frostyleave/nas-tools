@@ -6,18 +6,18 @@
       <div class="col-auto ms-auto d-print-none">
         <div class="btn-list">
           <a href="javascript:ask_refresh_statistics()" class="btn btn-primary d-none d-sm-inline-flex">
-            <i class="ti ti-refresh fs-2 me-1"></i>
+            <i class="ti ti-refresh fs-2"></i>
             强制刷新
           </a>
           <a href="javascript:ask_refresh_statistics()" class="btn btn-primary d-sm-none btn-icon">
-            <i class="ti ti-refresh fs-2 me-1"></i>
+            <i class="ti ti-refresh fs-2"></i>
           </a>
           <a href="javascript:show_history()" class="btn me-2 d-none d-sm-inline-flex">
-            <i class="ti ti-history fs-2 me-1"></i>
+            <i class="ti ti-history fs-2"></i>
             历史数据
           </a>
           <a href="javascript:show_history()" class="btn me-2 d-sm-none btn-icon">
-            <i class="ti ti-history fs-2 me-1"></i>
+            <i class="ti ti-history fs-2"></i>
           </a>
         </div>
       </div>
@@ -116,9 +116,9 @@
           <div class="card-body">
             <div class="d-flex">
               <h3 class="card-title d-flex align-items-center w-100">
-                <button class="btn btn-link btn-icon" onclick="switch_date(-1)"><i class="ti ti-chevron-left fs-2 me-1"></i></button>
+                <button class="btn btn-link btn-icon" onclick="switch_date(-1)"><i class="ti ti-chevron-left fs-2"></i></button>
                 <span id="chart-recent-upload-title" class="w-100 chart-title">今日上传量</span>
-                <button class="btn btn-link btn-icon" onclick="switch_date(1)"><i class="ti ti-chevron-right fs-2 me-1"></i></button>
+                <button class="btn btn-link btn-icon" onclick="switch_date(1)"><i class="ti ti-chevron-right fs-2"></i></button>
               </h3>
             </div>
             <div id="chart-recent-upload"></div>
@@ -130,9 +130,9 @@
           <div class="card-body">
             <div class="d-flex">
               <h3 class="card-title d-flex align-items-center w-100">
-                <button class="btn btn-link btn-icon" onclick="switch_date(-1)"><i class="ti ti-chevron-left fs-2 me-1"></i></button>
+                <button class="btn btn-link btn-icon" onclick="switch_date(-1)"><i class="ti ti-chevron-left fs-2"></i></button>
                 <span id="chart-recent-download-title" class="w-100 chart-title">今日下载量</span>
-                <button class="btn btn-link btn-icon" onclick="switch_date(1)"><i class="ti ti-chevron-right fs-2 me-1"></i></button>
+                <button class="btn btn-link btn-icon" onclick="switch_date(1)"><i class="ti ti-chevron-right fs-2"></i></button>
               </h3>
             </div>
             <div id="chart-recent-download"></div>
@@ -147,7 +147,7 @@
               <div class="text-muted align-self-end ms-3">共 <span id="site-count">0</span> 条记录
               </div>
               <a id="share-btn-container" class="btn-icon d-flex align-items-end ms-3" style="display: none;" href="javascript:show_statistics_pic_setting_moadl()">
-                <i class="ti ti-share fs-2 me-1"></i>
+                <i class="ti ti-share fs-2"></i>
               </a>
             </div>
           </div>
@@ -1149,7 +1149,7 @@
                 `<span class="badge bg-warning me-2" title="${siteError}"></span>` :
                 '<span class="badge bg-success me-2"></span>';
 
-              const messageIcon = item.msg_unread > 0 ? '<i class="ti ti-message fs-2 me-1"></i>' : '';
+              const messageIcon = item.msg_unread > 0 ? '<i class="ti ti-message fs-2"></i>' : '';
 
               const ratio = item.ratio == 0.0 || item.ratio > 10000 ? 'Infinity' : item.ratio.toFixed(2);
               const ratioData = item.ratio == 0.0 ? 'Infinity' : item.ratio;
@@ -1173,11 +1173,11 @@
                     </td>
                     <td class="sort-data" data-data="${item.upload}">
                       <div class="flex-fill">
-                        <span class="text-green"><i class="ti ti-arrow-narrow-up fs-2 me-1"></i></span>
+                        <span class="text-green"><i class="ti ti-arrow-narrow-up fs-2"></i></span>
                         <small>${formatFileSize(item.upload)}</small>
                       </div>
                       <div class="flex-fill">
-                        <span class="text-red"><i class="ti ti-arrow-narrow-down fs-2 me-1"></i></span>
+                        <span class="text-red"><i class="ti ti-arrow-narrow-down fs-2"></i></span>
                         <small>${formatFileSize(item.download)}</small>
                       </div>
                     </td>
@@ -1199,10 +1199,10 @@
                     </td>
                     <td class="activity">
                       <a href="javascript:show_site_activity('${item.site}')" class="btn-icon" title="查看历史数据" aria-label="activity">
-                        <i class="ti ti-activity fs-2 me-1"></i>
+                        <i class="ti ti-activity fs-2"></i>
                       </a>
                       <a href="javascript:void(0)" class="btn-icon ms-3" title="刷新站点数据" onclick="navmenu('statistics?refresh_site=${item.site}')">
-                        <i class="ti ti-refresh fs-2 me-1"></i>
+                        <i class="ti ti-refresh fs-2"></i>
                       </a>
                     </td>
                   </tr>

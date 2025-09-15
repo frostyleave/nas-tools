@@ -792,3 +792,8 @@ a:hover {
     width: 100%;
     bottom: 0;
 }
+
+#messageCenterModal .modal-body {
+  height: 60vh;
+  overflow-y: auto;
+}

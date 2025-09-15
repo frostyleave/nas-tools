@@ -4,18 +4,18 @@
     <div class="col-auto ms-auto d-print-none">
       <div class="btn-list">
         <a href="javascript:show_add_downloader_modal()" class="btn btn-primary d-none d-sm-inline-flex">
-          <i class="ti ti-plus fs-2 me-1"></i>
+          <i class="ti ti-plus fs-2"></i>
           新增下载器
         </a>
         <a href="javascript:show_add_downloader_modal()" class="btn btn-primary d-sm-none btn-icon" title="下载目录">
-          <i class="ti ti-plus fs-2 me-1"></i>
+          <i class="ti ti-plus fs-2"></i>
         </a>
         <a href="javascript:goto_download_setting()" class="btn d-none d-sm-inline-flex">
-          <i class="ti ti-settings fs-2 me-1"></i>
+          <i class="ti ti-settings fs-2"></i>
           下载设置
         </a>
         <a href="javascript:goto_download_setting()" class="btn d-sm-none btn-icon" title="下载设置">
-          <i class="ti ti-settings fs-2 me-1"></i>
+          <i class="ti ti-settings fs-2"></i>
         </a>
       </div>
     </div>
@@ -37,11 +37,11 @@
     <div class="col-auto ms-auto d-print-none">
       <div class="btn-list">
         <a href="javascript:show_plugin_apps_modal()" class="btn btn-primary d-none d-sm-inline-flex">
-          <i class="ti ti-apps fs-2 me-1"></i>
+          <i class="ti ti-apps fs-2"></i>
           插件市场
         </a>
         <a href="javascript:show_plugin_apps_modal()" class="btn btn-primary d-sm-none btn-icon">
-          <i class="ti ti-apps fs-2 me-1"></i>
+          <i class="ti ti-apps fs-2"></i>
         </a>
       </div>
     </div>
@@ -138,7 +138,7 @@
             </summary>
             <div class="row mt-2" id="div_downloader_downloaddir"></div>
             <div class="ms-2 mt-2">
-              <a href="javascript:add_downloaddir()" class="btn-icon" title="增加目录"><i class="ti ti-folder-plus fs-2 me-1"></i></a>
+              <a href="javascript:add_downloaddir()" class="btn-icon" title="增加目录"><i class="ti ti-folder-plus fs-2"></i></a>
             </div>
           </details>
         </div>
@@ -167,7 +167,7 @@
       <div class="modal-content">
         <div class="modal-header">
           <h5 class="modal-title">插件市场</h5>
-          <button type="button" class="btn-action" aria-label="Settings" onclick="show_external_settings_page()"><i class="ti ti-settings fs-2 me-1"></i></button>
+          <button type="button" class="btn-action" aria-label="Settings" onclick="show_external_settings_page()"><i class="ti ti-settings fs-2"></i></button>
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
         <div>
@@ -262,7 +262,7 @@
         </div>
         <div class="col-12 col-lg mb-1 align-self-center" style="text-align: center">
           <a href="javascript:del_downloaddir('{DIRDIV_LEVEL}')" class="btn-icon text-red" title="删除目录">
-            <i class="ti ti-circle-minus fs-2 me-1"></i>
+            <i class="ti ti-circle-minus fs-2"></i>
           </a>
         </div>
       </div>
@@ -666,18 +666,18 @@
         plugin_html += `
             ${plugin.installed ? `
               <a href="javascript:uninstall_external_plugin('${pid}', '${plugin.name}')" class="card-btn text-danger">
-                <i class="ti ti-trash fs-2 me-1"></i>
+                <i class="ti ti-trash fs-2"></i>
                 卸载
               </a>
               ` : `
               <a href="javascript:install_external_plugin('${pid}', '${plugin.name}', '${plugin.download_url}', '${plugin.file_md5}')" class="card-btn">
-                <i class="ti ti-cloud-download fs-2 me-1"></i>
+                <i class="ti ti-cloud-download fs-2"></i>
                 安装
               </a>
               `}
             ${ plugin.update ? `
               <a href="javascript:update_external_plugin('${pid}', '${plugin.name}', '${plugin.download_url}', '${plugin.file_md5}')" class="card-btn">
-                <i class="ti ti-cloud-download fs-2 me-1"></i>
+                <i class="ti ti-cloud-download fs-2"></i>
                 更新
               </a>
               ` : ``}
@@ -686,12 +686,12 @@
         plugin_html += `
             ${plugin.installed ? `
               <a href="javascript:uninstall_plugin('${pid}', '${plugin.name}')" class="card-btn text-danger">
-                <i class="ti ti-trash fs-2 me-1"></i>
+                <i class="ti ti-trash fs-2"></i>
                  卸载
               </a>
               ` : `
               <a href="javascript:install_plugin('${pid}', '${plugin.name}')" class="card-btn">
-                <i class="ti ti-cloud-download fs-2 me-1"></i>
+                <i class="ti ti-cloud-download fs-2"></i>
                  安装
               </a>
             `}

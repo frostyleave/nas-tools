@@ -6,26 +6,26 @@
       <div class="col-auto ms-auto d-print-none">
         <div class="btn-list">
           <a href="javascript:show_add_custom_word_group_modal()" class="btn btn-primary d-none d-sm-inline-flex">
-            <i class="ti ti-plus fs-2 me-1"></i>
+            <i class="ti ti-plus fs-2"></i>
             新增
           </a>
           <a href="javascript:show_add_custom_word_group_modal()" class="btn btn-twitter d-sm-none btn-icon">
-            <i class="ti ti-plus fs-2 me-1"></i>
+            <i class="ti ti-plus fs-2"></i>
           </a>
           <a href="javascript:show_import_custom_words_modal()" class="btn btn-twitter ms-auto d-none d-sm-inline-flex">
-            <i class="ti ti-transfer-in fs-2 me-1"></i>
+            <i class="ti ti-transfer-in fs-2"></i>
             导入
           </a>
           <a href="javascript:show_import_custom_words_modal()" class="btn btn-twitter d-sm-none btn-icon">
-            <i class="ti ti-transfer-in fs-2 me-1"></i>
+            <i class="ti ti-transfer-in fs-2"></i>
           </a>
           <div class="dropdown">
             <a href="#" class="btn ms-auto d-none d-sm-inline-flex dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
-              <i class="ti ti-menu-2 fs-2 me-1"></i>
+              <i class="ti ti-menu-2 fs-2"></i>
               批量管理
             </a>
             <a href="#" class="btn d-sm-none btn-icon" data-bs-toggle="dropdown" aria-expanded="false">
-              <i class="ti ti-menu-2 fs-2 me-1"></i>
+              <i class="ti ti-menu-2 fs-2"></i>
             </a>
             <div class="dropdown-menu dropdown-menu-end">
               <a class="dropdown-item text-mute" href="javascript:batch_check_action('enable')" >
@@ -402,7 +402,7 @@
 
       const deleteButtonHtml = group.id !== "-1" ?
         `<a href="javascript:delete_custom_word_group('${group.id}')" class="btn-action ms-1" title="删除识别词组">
-          <i class="ti ti-x fs-2 me-1"></i>
+          <i class="ti ti-x fs-2"></i>
         </a>` : '';
 
       const displayStyle = groupsCount > 8 ? 'style="display: none;"' : '';
@@ -416,11 +416,11 @@
               ${linkHtml}
               <div class="card-actions btn-actions">
                 <a href="javascript:void(0)" onclick="show_customwords_detail('${group.id}')" class="btn-action ms-1" title="折叠">
-                  <i class="ti ti-menu-2 fs-2 me-1"></i>
+                  <i class="ti ti-menu-2 fs-2"></i>
                 </a>
                 <a href="javascript:show_add_custom_word_modal('${group.id}', ${group.type}, ${group.seasons})"
                   class="btn-action ms-1" title="增加识别词">
-                  <i class="ti ti-plus fs-2 me-1"></i>
+                  <i class="ti ti-plus fs-2"></i>
                 </a>
                 ${deleteButtonHtml}
               </div>
@@ -515,7 +515,7 @@
             <div class="d-flex">
               <a href="javascript:show_edit_custom_word_modal('${word.id}', '${group.id}', ${group.type}, ${group.seasons})"
                 title="编辑" class='ms-1'>
-                <i class="ti ti-edit fs-2 me-1"></i>
+                <i class="ti ti-edit fs-2"></i>
               </a>
             </div>
           </td>

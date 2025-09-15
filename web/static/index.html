@@ -134,31 +134,37 @@
   <button id="scrollToTop" class="scroll-to-top" aria-label="Back to top">
     <i class="ti ti-arrow-big-up-lines"></i>
   </button>
-  <div class="offcanvas offcanvas-end" tabindex="-1" id="offcanvasEnd" aria-labelledby="消息中心">
-    <div class="offcanvas-header">
-      <h2 class="offcanvas-title" id="offcanvasEndLabel">消息中心</h2>
-      <button type="button" class="btn-close text-reset" data-bs-dismiss="offcanvas" aria-label="Close"></button>
-    </div>
-    <div class="offcanvas-body p-1"
-      style="margin-bottom: calc(50px + env(safe-area-inset-top) + env(safe-area-inset-bottom))">
-      <div class="list-group list-group-flush" id="system-messages">
-      </div>
-      <div class="mt-3 w-100 position-absolute mb-2 pe-2" align="center" style="bottom: calc(env(safe-area-inset-bottom))">
-        <div class="input-group">
-          <button type="button" class="btn" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-            /
-          </button>
-          <div class="dropdown-menu" data-popper-placement="bottom-start" id="commands-dropdown">
-            <!-- 命令菜单项将通过JavaScript动态生成 -->
-          </div>
-          <input type="text" id="message_center_input" class="form-control" autocomplete="off" placeholder="输入消息或命令..."
-            onkeydown="if(event.keyCode==13) send_web_message($(this))">
-          <button class="btn btn-primary" type="button"
-            onclick="send_web_message($('#message_center_input'))">发送</button>
+  <div class="modal fade" id="messageCenterModal" tabindex="-1" aria-labelledby="消息中心" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg" role="document">
+      <div class="modal-content">
+        <!-- header -->
+        <div class="modal-header">
+          <h5 class="modal-title" id="messageCenterModalLabel">消息中心</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
+        <!-- body -->
+        <div class="modal-body p-1" style="position:relative;">
+          <div class="list-group list-group-flush" id="system-messages"></div>
+        </div>
+        <!-- footer -->
+        <div class="modal-footer justify-content-center w-100">
+          <div class="input-group">
+            <button type="button" class="btn" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">/</button>
+            <div class="dropdown-menu" id="commands-dropdown">
+              <!-- 命令菜单项将通过JavaScript动态生成 -->
+            </div>
+            <input type="text" id="message_center_input" class="form-control" autocomplete="off"
+                  placeholder="输入消息或命令..."
+                  onkeydown="if(event.keyCode==13) send_web_message($('#message_center_input'))">
+            <button class="btn btn-primary" type="button"
+                    onclick="send_web_message($('#message_center_input'))">发送</button>
+          </div>
+        </div>
+
       </div>
     </div>
   </div>
+
   <!-- 等待框 -->
   <div class="modal" id="modal-wait" tabindex="-1" role="dialog" aria-hidden="true">
     <div class="modal-dialog modal-full-width modal-dialog-centered" role="document">
@@ -190,7 +196,7 @@
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         <div class="modal-status bg-danger"></div>
         <div class="modal-body text-center py-4">
-          <span class="mb-2 text-danger"><i class="ti ti-alert-triangle fs-2 me-1"></i></span>
+          <span class="mb-2 text-danger"><i class="ti ti-alert-triangle fs-2"></i></span>
           <h3>确认</h3>
           <div class="text-muted text-wrap" id="system_confirm_message">是否确定？</div>
         </div>
@@ -220,7 +226,7 @@
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         <div class="modal-status bg-success"></div>
         <div class="modal-body text-center py-4">
-          <span class="mb-2 text-green"><i class="ti ti-circle-check fs-2 me-1"></i></span>
+          <span class="mb-2 text-green"><i class="ti ti-circle-check fs-2"></i></span>
           <h3>成功</h3>
           <div class="text-muted text-wrap" id="system_success_action_message">操作成功！</div>
         </div>
@@ -265,7 +271,7 @@
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         <div class="modal-status bg-success"></div>
         <div class="modal-body text-center py-4">
-          <span class="mb-2 text-green"><i class="ti ti-circle-check fs-2 me-1"></i></span>
+          <span class="mb-2 text-green"><i class="ti ti-circle-check fs-2"></i></span>
           <h3>成功</h3>
           <div class="text-muted text-wrap" id="system_success_message">成功！</div>
         </div>
@@ -291,7 +297,7 @@
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         <div class="modal-status bg-danger"></div>
         <div class="modal-body text-center py-4">
-          <span class="mb-2 text-danger"><i class="ti ti-alert-triangle fs-2 me-1"></i></span>
+          <span class="mb-2 text-danger"><i class="ti ti-alert-triangle fs-2"></i></span>
           <h3>失败</h3>
           <div class="text-muted text-wrap" id="system_fail_message">错误信息</div>
         </div>
@@ -316,7 +322,7 @@
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         <div class="modal-status bg-warning"></div>
         <div class="modal-body text-center py-4">
-          <span class="mb-2 text-warning"><i class="ti ti-alert-triangle fs-2 me-1"></i></span>
+          <span class="mb-2 text-warning"><i class="ti ti-alert-triangle fs-2"></i></span>
           <h3>注意</h3>
           <div class="text-muted text-wrap" id="system_warning_message">警告信息</div>
         </div>
@@ -393,7 +399,7 @@
             <h5 class="modal-title">实时日志</h5>
             <div class="dropdown">
               <button class="btn-action" data-bs-toggle="dropdown" aria-expanded="false">
-                <i class="ti ti-filter-2-cog fs-2 me-1"></i>
+                <i class="ti ti-filter-2-cog fs-2"></i>
               </button>
               <div class="dropdown-menu dropdown-menu-end" id="dropdown-menu-logger">
                 <div id="logger-dropdown-items">

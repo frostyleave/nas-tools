@@ -7,11 +7,11 @@
       <div class="col-auto ms-auto d-print-none">
         <div class="btn-list">
           <a href="javascript:clear_tmdb_cache()" class="btn btn-danger d-none d-sm-inline-block">
-            <i class="ti ti-eraser fs-2 me-1"></i>
+            <i class="ti ti-eraser fs-2"></i>
             清空TMDB缓存
           </a>
           <a href="javascript:clear_tmdb_cache()" class="btn btn-danger d-sm-none btn-icon" title="清空TMDB缓存">
-            <i class="ti ti-eraser fs-2 me-1"></i>
+            <i class="ti ti-eraser fs-2"></i>
           </a>
         </div>
       </div>
@@ -238,7 +238,7 @@
                 <td>
                   <div class="d-flex py-1 align-items-center">
                     <span class="avatar me-2 text-nowrap">
-                      <i class="ti ${mediaIcon} fs-2 me-1"></i>
+                      <i class="ti ${mediaIcon} fs-2"></i>
                     </span>
                     <div class="flex-fill">
                       <div class="font-weight-medium">${indexKey}</div>
@@ -251,7 +251,7 @@
                 <td>
                   <div class="text-muted text-nowrap">${cacheData.id}
                     <a class="ms-1" href="https://www.themoviedb.org/${mediaType}/${cacheData.id}" target="_blank">
-                      <i class="ti ti-link fs-2 me-1"></i>
+                      <i class="ti ti-link fs-2"></i>
                     </a>
                   </div>
                 </td>
@@ -261,7 +261,7 @@
                 <td>
                   <div class="dropdown">
                     <a href="#" class="btn-action" data-bs-toggle="dropdown" aria-expanded="false">
-                      <i class="ti ti-dots-vertical fs-2 me-1"></i>
+                      <i class="ti ti-dots-vertical fs-2"></i>
                     </a>
                     <div class="dropdown-menu dropdown-menu-end">
                       <a class="dropdown-item" href='javascript:show_modify("${indexKey}", "${cacheData.title}")'>
@@ -288,7 +288,7 @@
             paginationList.append(`
               <li class="page-item ${prevDisabled}">
                 <a class="page-link" href="javascript:go_pre_page('${data.Search || ''}', ${data.CurrentPage})" tabindex="-1" aria-disabled="true">
-                  <i class="ti ti-chevron-left fs-2 me-1"></i>
+                  <i class="ti ti-chevron-left fs-2"></i>
                 </a>
               </li>
             `);
@@ -313,7 +313,7 @@
             paginationList.append(`
               <li class="page-item ${nextDisabled}">
                 <a class="page-link" href="${nextHref}">
-                  <i class="ti ti-chevron-right fs-2 me-1"></i>
+                  <i class="ti ti-chevron-right fs-2"></i>
                 </a>
               </li>
             `);

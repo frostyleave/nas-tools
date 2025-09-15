@@ -181,7 +181,7 @@ export class LayoutNavbar extends CustomElement {
                 <span class="d-flex flex-grow-1 justify-content-center border rounded-3 m-3 p-2">
                   <a href=${this._update_url} class="text-muted" target="_blank" rel="noreferrer">
                     <strong>
-                      <i class="ti ti-brand-github fs-2 me-1"></i>
+                      <i class="ti ti-brand-github fs-2"></i>
                       <b id="version-txt"></b>
                     </strong>
                   </a>

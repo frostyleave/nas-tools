@@ -22,7 +22,7 @@ from app.utils.types import *
 from config import Config
 
 from web.action import action_router, WebAction
-from web.backend.security import get_websocket_user, get_current_user
+from web.backend.security import get_current_user
 from web.backend.user import User
 from web.backend.web_utils import WebUtils
 
@@ -232,7 +232,7 @@ async def message_handler(websocket: WebSocket):
     user_id = None
     try:
         # 尝试从cookie中获取会话数据
-        user_info = get_websocket_user(websocket)
+        user_info = await get_current_user(websocket)
         if user_info:
             user_id = user_info.id
             log.debug(f"[WebSocket-消息]会话用户ID: {user_id}")

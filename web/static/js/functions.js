@@ -163,6 +163,11 @@ function pause_logging() {
   }
 }
 
+// 显示消息中心
+function show_message_modal() {
+  $('#messageCenterModal').modal('show');
+}
+
 // 显示实时日志
 function show_logging_modal() {
   // 显示窗口

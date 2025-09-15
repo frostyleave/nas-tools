@@ -66,7 +66,7 @@ def do(content: dict = Body(...), current_user: User = Depends(get_current_user)
         log.debug(f"处理/do请求: cmd={cmd}, data={data}")
         return WebAction(current_user).action(cmd, data)
     except Exception as e:
-        log.exception("处理/do请求出错, cmd=" + content.get("cmd"))
+        log.exception("处理/do请求出错, cmd=" + content.get("cmd"), e)
         return {"code": -1, "msg": str(e)}
 
 
@@ -3770,10 +3770,12 @@ class WebAction:
         mtype = data.get("type")
         return {"code": 0, "result": [rec.as_dict() for rec in Rss().get_rss_history(rtype=mtype)]}
 
-    def get_downloading(self, downloader_id=None):
+    def get_downloading(self, data):
         """
         查询正在下载的任务
         """
+        downloader_id = data.get("downloader_id")
+
         DownloaderHandler = Downloader()
         torrents = DownloaderHandler.get_downloading_progress(downloader_id=downloader_id)
         for torrent in torrents:

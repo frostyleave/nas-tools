@@ -93,7 +93,7 @@ export class LayoutSearchbar extends CustomElement {
           <span class="input-group-text">
             <a href="${this.layout_search > 0 ? "javascript:show_search_advanced_modal()" : "javascript:void(0)"}"
               class="link-secondary d-sm-inline-flex">
-              <i class="ti ti-adjustments fs-2 me-1"></i>
+              <i class="ti ti-adjustments fs-2"></i>
             </a>
           </span>
 
@@ -109,8 +109,7 @@ export class LayoutSearchbar extends CustomElement {
                 <div class="dropdown-divider"></div>
                 ${this.layout_useradmin === "1"
                   ? html`
-                      <a class="dropdown-item" data-bs-toggle="offcanvas" href="#offcanvasEnd" role="button"
-                        aria-controls="offcanvasEnd">消息中心</a>
+                      <a class="dropdown-item" href="javascript:show_message_modal()" role="button">消息中心</a>
                       <a class="dropdown-item" href="javascript:show_logging_modal()" role="button">实时日志</a>
                       <div class="dropdown-divider"></div>
                       ${["Docker", "Synology"].includes(this.layout_systemflag)

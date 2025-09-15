@@ -605,19 +605,9 @@ async def downloading(request: Request, current_user: User = Depends(get_current
         if value.get('enabled'):
             Downloaders.append(value)
 
-    form = await request.form()
-    did = form.get('downloaderId')
-    if not did:
-        did = downloader_proxy.default_downloader_id
-
-    DispTorrents = WebAction(current_user).get_downloading(downloader_id=did).get("result")
-
     return response(data=
         {
-            "DownloaderId": int(did) if did else 0,
-            "Downloaders": Downloaders,
-            "DownloadCount": len(DispTorrents),
-            "Torrents": DispTorrents,
+            "Downloaders": Downloaders
         }
     )
 

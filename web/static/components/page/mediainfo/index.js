@@ -129,8 +129,8 @@ export class PageMediainfo extends CustomElement {
                       <span class="badge bg-indigo mb-1"> ${element}</span>
                       `
                     )) : nothing}
-                    <span class="mb-1 ${!this.media_info.runtime ? 'd-none' : 'd-inline-flex'}"><i class="ti ti-clock fs-2 me-1"></i>&nbsp;${this.media_info.runtime}</span>
-                    <span class="mb-1 ${!this.seasons_data.length ? 'd-none' : 'd-inline-flex'}"><i class="ti ti-stack-2 fs-2 me-1"></i>&nbsp;共${this.seasons_data.length}季</span>
+                    <span class="mb-1 ${!this.media_info.runtime ? 'd-none' : 'd-inline-flex'}"><i class="ti ti-clock fs-2"></i>&nbsp;${this.media_info.runtime}</span>
+                    <span class="mb-1 ${!this.seasons_data.length ? 'd-none' : 'd-inline-flex'}"><i class="ti ti-stack-2 fs-2"></i>&nbsp;共${this.seasons_data.length}季</span>
                     <span class="mb-1 ${!this.media_info.link ? 'd-none' : 'd-inline-flex'}"><i class="ti ti-badge-tm fs-2 text-blue"></i> <a class="text-reset" href="${this.media_info.link}" target="_blank">${this.media_info.tmdbid}</a></span>
                     <span class="mb-1 ${!this.media_info.douban_id ? 'd-none' : 'd-inline-flex'}"><i class="ti ti-brand-douban fs-2 text-green"></i> ${this._render_douban_a_link(this.media_info.douban_id)}
                     ${Object.keys(this.media_info).length === 0 ? this._render_placeholder("205px") : nothing }

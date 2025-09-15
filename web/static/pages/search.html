@@ -202,7 +202,7 @@
     }
 
     var checkTagLfet = mediaItem.fav == "2"
-      ? '<div style="position: absolute; bottom: 0; right: 0; width: 30px; height: 30px; padding: 12px; background-color: var(--tblr-success); clip-path: polygon(100% 0, 100% 100%, 0 100%); border-radius: 0 0 8px 0;z-index: 9;"><i class="ti ti-check fs-2 me-1"></i></div>'
+      ? '<div style="position: absolute; bottom: 0; right: 0; width: 30px; height: 30px; padding: 12px; background-color: var(--tblr-success); clip-path: polygon(100% 0, 100% 100%, 0 100%); border-radius: 0 0 8px 0;z-index: 9;"><i class="ti ti-check fs-2"></i></div>'
       : '';
 
     return `
@@ -289,7 +289,7 @@
           <div class="list-group-item p-1 search_results_torrent"
               data-site="${torrent.site}"
               data-releasegroup="${torrent.releasegroup || '未知'}"
-              data-free="${torrent.uploadvalue + ' ' + torrent.downloadvalue}"
+              data-free="${torrent.uploadvalue.toFixed(1) + ' ' + torrent.downloadvalue.toFixed(1)}"
               data-video="${torrent.video_encode}"
               data-group="${groupKey}"
               data-season="${seKey}">
@@ -311,7 +311,7 @@
         // labels
         html += `<div class="mb-1">`;
         $.each(torrent.labels || [], function (_, label) {
-          html += `<span class="badge badge-outline text-purple">${label}</span>`;
+          html += `<span class="badge badge-outline text-purple me-1">${label}</span>`;
         });
         html += `<span class="text-muted">${torrent.description || ''}</span></div>`;
 
@@ -357,13 +357,13 @@
                 </div>
                 <div class="col-auto ms-2 d-none d-md-inline-block">
                   <a href="javascript:download_search_resource('${torrent.id}')" class="link-secondary" title="下载">
-                    <i class="ti ti-download fs-2 me-1"></i>
+                    <i class="ti ti-download fs-2"></i>
                   </a>
                 </div>
                 <div class="col-auto lh-1 ms-2 d-none d-md-inline-block">
                   <div class="dropdown">
                     <a href="#" class="link-secondary" data-bs-toggle="dropdown" aria-expanded="false">
-                      <i class="ti ti-dots fs-2 me-1"></i>
+                      <i class="ti ti-dots fs-2"></i>
                     </a>
                     <div class="dropdown-menu dropdown-menu-end">
           `;
@@ -474,7 +474,7 @@
           // 主内容
 
           var checkTagMedia = item.fav == "2"
-            ? '<div class="badge badge-pill bg-green d-md-none" style="position:absolute;top:20px;right:50px;padding:0;"><i class="ti ti-check fs-2 me-1"></i></div>'
+            ? '<div class="badge badge-pill bg-green d-md-none" style="position:absolute;top:20px;right:50px;padding:0;"><i class="ti ti-check fs-2"></i></div>'
             : '';
 
           var posterCard = drawPoster(item);
@@ -491,7 +491,7 @@
             <div class="card bg-transparent border-0">
               <div class="ribbon g-cyan d-md-none">
                 <a class="text-white" href="javascript:show_search_filter_modal('${item.key}')">
-                  <i class="ti ti-filter fs-2 me-1"></i>
+                  <i class="ti ti-filter fs-2"></i>
                 </a>
               </div>
               ${checkTagMedia}

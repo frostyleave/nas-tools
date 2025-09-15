@@ -47,7 +47,7 @@ RUN mkdir -p /ms-playwright
 ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
 
 # 在 final 阶段之前添加 ARG 指令
-ARG BRANCH=master  # 默认值设为 master
+ARG BRANCH=dev_fastapi  # 默认值
 
 # 升级 pip、setuptools、 wheel, 
 RUN pip install --no-cache-dir --upgrade pip setuptools==70.1.1 wheel \
