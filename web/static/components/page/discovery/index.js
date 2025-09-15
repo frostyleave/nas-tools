@@ -172,7 +172,6 @@ export class PageDiscovery extends CustomElement {
                   card-title=${card.title}
                   card-overview=${card.overview}
                   card-restype=${card.media_type}
-                  class="px-2"
                 ></normal-card>`))
               : Array(20).fill(html`<normal-card-placeholder></normal-card-placeholder>`)
             }

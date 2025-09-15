@@ -202,13 +202,13 @@
     }
 
     var checkTagLfet = mediaItem.fav == "2"
-      ? '<div style="position: absolute; bottom: 0; right: 0; width: 30px; height: 30px; padding: 12px; background-color: var(--tblr-success); clip-path: polygon(100% 0, 100% 100%, 0 100%); border-radius: 0 0 8px 0;z-index: 9;"><i class="ti ti-check fs-2"></i></div>'
+      ? '<div style="position: absolute; bottom: 0; right: 0; width: 30px; height: 30px; padding: 12px; background-color: var(--tblr-success); clip-path: polygon(100% 0, 100% 100%, 0 100%); border-radius: 0 0 8px 0;z-index: 9;"><i class="ti ti-check fs-3"></i></div>'
       : '';
 
     return `
           <div class="card card-sm lit-normal-card rounded-3 cursor-pointer ratio shadow-sm">
             <div class="rounded-3">
-              <img class="card-img rounded-3" alt="" style="box-shadow:0 0 0 1px #888888; display: block; min-width: 100%; max-width: 100%; min-height: 100%; max-height: 100%; object-fit: cover;" src="${mediaItem.poster}">
+              <img class="card-img rounded-3" alt="" style="display: block; min-width: 100%; max-width: 100%; min-height: 100%; max-height: 100%; object-fit: cover;" src="${mediaItem.poster}">
               ${checkTagLfet}
               <span style="position: absolute; top: 10px; left: 10px; z-index: 9;" class="badge badge-pill bg-lime">${mediaItem.type}</span>
               <div class="badge badge-pill bg-purple" style="position: absolute; top: 10px; right: 10px; z-index: 9;">${mediaItem.vote}</div>
@@ -474,7 +474,12 @@
           // 主内容
 
           var checkTagMedia = item.fav == "2"
-            ? '<div class="badge badge-pill bg-green d-md-none" style="position:absolute;top:20px;right:50px;padding:0;"><i class="ti ti-check fs-2"></i></div>'
+            ? `
+            <div class="list-inline-item">
+              <i class="ti ti-check text-green"></i>
+              已入库
+            </div>
+            `
             : '';
 
           var posterCard = drawPoster(item);
@@ -489,12 +494,6 @@
 
           var displayHtml = $(`
             <div class="card bg-transparent border-0">
-              <div class="ribbon g-cyan d-md-none">
-                <a class="text-white" href="javascript:show_search_filter_modal('${item.key}')">
-                  <i class="ti ti-filter fs-2"></i>
-                </a>
-              </div>
-              ${checkTagMedia}
               <div class="card-body ps-1 pe-1">
                 <div class="row">
                   <div class="col-2 ps-3 d-none d-md-block" id="search_results_filter_${item.key}" style="max-width: 15rem">
@@ -524,10 +523,15 @@
                   <div class="col">
                     <!-- 标题 -->
                     <div class="row">
-                      <div class="col" onclick='navmenu("media_detail?type=${item.type_key}&id=${item.tmdbid}")'>
+                      <div class="col d-flex align-items-center justify-content-between">
                         <h2 class="mb-0" style="cursor: pointer;" >
-                          <strong>${title}</strong>
+                          <strong onclick='navmenu("media_detail?type=${item.type_key}&id=${item.tmdbid}")'>${title}</strong>
                         </h2>
+                        <div class="d-flex gap-2 d-md-none">
+                          <a class="d-flex align-items-center" href="javascript:show_search_filter_modal('${item.key}')">
+                            <i class="ti ti-filter fs-2 text-blue"></i>
+                          </a>
+                        </div>
                       </div>
                     </div>
                     <!-- 媒体属性 -->
@@ -546,6 +550,7 @@
                             <i class="ti ti-info-circle"></i>
                             <a href="${tmdbLink}" target="_blank">${item.tmdbid}</a>
                           </div>
+                          ${checkTagMedia}
                         </div>
                       </div>
                     </div>

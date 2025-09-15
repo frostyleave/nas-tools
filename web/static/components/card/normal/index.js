@@ -63,21 +63,6 @@ export class NormalCard extends observeState(CustomElement) {
                         ${this.vote}
                       </div>`;
 
-    //  if (this.fav == "2") {
-    //     var fav_html = html`
-    //     <div class="badge badge-pill bg-green" style="position:absolute;bottom:10px;right:10px;padding:0;">
-    //       <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-check" width="24" height="24"
-    //            viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round"
-    //            stroke-linejoin="round">
-    //         <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
-    //         <path d="M5 12l5 5l10 -10"></path>
-    //       </svg>
-    //     </div>`;
-    //     if (has_vote) {
-    //         return html`${fav_html}${vote_html}`;
-    //     }
-    //     return fav_html;
-    // }
     if (has_vote) {
       return vote_html;
     }
@@ -126,7 +111,7 @@ export class NormalCard extends observeState(CustomElement) {
            @mouseleave=${() => { if (!Golbal.is_touch_device()){ cardState.more_id = undefined } } }>
         ${this._placeholder ? NormalCardPlaceholder.render_placeholder() : nothing}
         <div ?hidden=${this._placeholder} class="rounded-3">
-          <img class="card-img rounded-3" alt="" style="box-shadow:0 0 0 1px #888888; display: block; min-width: 100%; max-width: 100%; min-height: 100%; max-height: 100%; object-fit: cover;"
+          <img class="card-img rounded-3" alt="" style="display: block; min-width: 100%; max-width: 100%; min-height: 100%; max-height: 100%; object-fit: cover;"
              src=${this.lazy == "1" ? "" : this.image ?? Golbal.noImage}
              @error=${() => { if (this.lazy != "1") {this.image = Golbal.noImage; this._card_image_error = true} }}
              @load=${() => { this._placeholder = false }}/>
