@@ -488,9 +488,9 @@
 
             var channelInfo = data.Channels[clientAttr.type];
 
-            var enabledBadge = clientAttr.enabled ? '<span class="badge bg-green" title="已启用" data-bs-toggle="tooltip"></span>' : '';
+            var enabledBadge = clientAttr.enabled ? '<span class="badge bg-green me-1 mb-1" title="已启用">已启用</span>' : '<span class="badge bg-red me-1 mb-1" title="已停用">已停用</span>';
 
-            var interactiveBadge = clientAttr.interactive == 1 && channelInfo.search_type ? '<span class="badge bg-green me-1 mb-1" title="已开启交互">交互</span>' : '';
+            var interactiveBadge = clientAttr.interactive == 1 && channelInfo.search_type ? '<span class="badge bg-blue me-1 mb-1" title="已开启交互">交互</span>' : '';
             
             var bgcolor = channelInfo.color ? `style="background-color: ${channelInfo.color} "` : ''
 
@@ -527,9 +527,12 @@
                   <span class="avatar avatar-xl avatar-thumb avatar-rounded" style="background-image: url('${channelInfo.img_url}')"></span>
                 </div>
                 <div class="card-body text-center">
-                  <div class="card-title mb-1">${enabledBadge} ${clientAttr.name}</div>
+                  <div class="card-title mb-1">${clientAttr.name}</div>
                   <div class="text-muted">${addrInfo}</div>
-                  <div class="text-muted mt-1">${interactiveBadge}</div>
+                  <div class="text-muted mt-1">
+                    ${enabledBadge}
+                    ${interactiveBadge}
+                  </div>
                   <div class="text-muted"><small>${tagHtml}</small></div>
                 </div>
               </a>

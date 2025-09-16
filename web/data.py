@@ -420,13 +420,13 @@ async def users(request: Request, current_user = Depends(get_current_user)):
 @data_router.post("/filterrule")
 async def filterrule(request: Request, current_user = Depends(get_current_user)):
 
-    result = WebAction(current_user).get_filterrules()
+    ruleGroups = Filter().get_rule_infos()
+    initRuleGroups = WebAction(current_user).get_init_filterrules()
 
     return response(data=
         {
-            "Count": len(result.get("ruleGroups")),
-            "RuleGroups": result.get("ruleGroups"),
-            "Init_RuleGroups": result.get("initRules"),
+            "RuleGroups": ruleGroups,
+            "InitRuleGroups": initRuleGroups,
         })
 
 
@@ -463,7 +463,6 @@ async def plugin(request: Request, current_user = Depends(get_current_user)):
     # 下载器
     DefaultDownloader = Downloader().default_downloader_id
     Downloaders = Downloader().get_downloader_conf()
-    DownloadersCount = len(Downloaders)
     Categories = {
         x: webAction.get_categories({
             "type": x
@@ -476,16 +475,13 @@ async def plugin(request: Request, current_user = Depends(get_current_user)):
     Settings = '\n'.join(SystemConfig().get(SystemConfigKey.ExternalPluginsSource) or [])
     return response(data=
         {
-            "Config": Config().get_config(),
             "Downloaders": Downloaders,
             "DefaultDownloader": DefaultDownloader,
-            "DownloadersCount": DownloadersCount,
             "Categories": Categories,
             "RmtModeDict": RmtModeDict,
             "DownloaderConf": ModuleConf.DOWNLOADER_CONF,
             "Plugins": Plugins,
-            "Settings": Settings,
-            "PluginCount": len(Plugins),
+            "Settings": Settings
         })
 
 

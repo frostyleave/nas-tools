@@ -2264,7 +2264,7 @@ class WebAction:
         恢复初始规则组
         """
         groupids = data.get("groupids")
-        init_rulegroups = data.get("init_rulegroups")
+        init_rulegroups = self.get_init_filterrules()
         _filter = Filter()
         for groupid in groupids:
             try:
@@ -3982,10 +3982,21 @@ class WebAction:
         查询所有过滤规则
         """
         RuleGroups = Filter().get_rule_infos()
+
+        return {
+            "code": 0,
+            "ruleGroups": RuleGroups
+        }
+    
+    def get_init_filterrules(self):
+        """
+        查询初始过滤规则
+        """
+        Init_RuleGroups = []
+
         sql_file = os.path.join(Config().get_script_path(), "init_filter.sql")
         with open(sql_file, "r", encoding="utf-8") as f:
             sql_list = f.read().split(';\n')
-            Init_RuleGroups = []
             i = 0
             while i < len(sql_list):
                 rulegroup = {}
@@ -4008,11 +4019,8 @@ class WebAction:
                     rulegroup["sql"].append(sql_list[i + 1])
                 Init_RuleGroups.append(rulegroup)
                 i = i + 2
-        return {
-            "code": 0,
-            "ruleGroups": RuleGroups,
-            "initRules": Init_RuleGroups
-        }
+
+        return Init_RuleGroups
 
     def __update_directory(self, data):
         """
