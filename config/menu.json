@@ -35,7 +35,7 @@
     "level": 1,
     "page": "search",
     "group": "发现",
-    "icon": "<i class=\"ti ti-cloud-search fs-2 \"></i>"
+    "icon": "<i class=\"ti ti-search fs-2 \"></i>"
   },
   {
     "name": "订阅",
@@ -71,7 +71,7 @@
     "level": 1,
     "page": "service",
     "group": "服务",
-    "icon": "<i class=\"ti ti-blocks fs-2 \"></i>"
+    "icon": "<i class=\"ti ti-stack-2 fs-2 \"></i>"
   },
   {
     "name": "下载",
@@ -85,7 +85,7 @@
     "level": 1,
     "page": "mediafile",
     "group": "整理",
-    "icon": "<i class=\"ti ti-books fs-2 \"></i>",
+    "icon": "<i class=\"ti ti-files fs-2 \"></i>",
     "nav": [
       {
         "name": "文件管理",
@@ -190,7 +190,7 @@
     "name": "插件",
     "page": "plugin",
     "group": "系统",
-    "icon": "<i class=\"ti ti-chart-grid-dots fs-2 \"></i>"
+    "icon": "<i class=\"ti ti-apps fs-2 \"></i>"
   },
   {
     "name": "用户",

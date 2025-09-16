@@ -406,9 +406,6 @@
     $("#mediafile_file_container").css("height", $(window).height() - 200);
   }
 
-  // 初始列表
-  init_mediafile_tree();
-
   // 初始化高度
   init_mediafile_height();
 
@@ -489,38 +486,31 @@
   </td>
 </tr>
 
-  // 页面加载完成后，使用axios_post请求/data/mediafile接口获取数据并填充页面
-  $(document).ready(function() {
-    // 获取URL参数中的目录路径
-    const [path, queryString] = window.location.hash.split("?");
-    const urlParams = new URLSearchParams(queryString);
-    const dirPath = urlParams.get('dir') || '/';
+</script>
 
-    // 设置目录路径
-    $('#mediafile_path').val(dirPath);
-    $('#find_links_dir').val(dirPath);
+<script>
+
+  // 页面加载完成后，使用axios_post请求/data/mediafile接口获取数据并填充页面
+  $(document).ready(function () {
 
     // 加载目录内容
-    load_mediafile_content(dirPath);
-  });
+    axios_post('/data/mediafile', {}, function (response) {
 
-  // 加载媒体文件内容
-  function load_mediafile_content(dir) {
-    axios_post('/data/mediafile', {dir: dir}, function(response) {
       if (response.code === 0 && response.data) {
         const data = response.data;
 
-        // 更新目录路径
-        if (data.Dir) {
-          $('#mediafile_path').val(data.Dir);
-          $('#find_links_dir').val(data.Dir);
-        }
+        var rootPath = data.Dir || '/';
 
-        // 这里可以根据返回的数据更新页面内容
-        // 由于mediafile页面主要是文件浏览功能，具体的文件列表渲染逻辑
-        // 可能需要根据实际的API返回数据结构来实现
+        // 更新目录路径
+        $('#mediafile_path').val(rootPath);
+        $('#find_links_dir').val(rootPath);
+
+        // 初始列表
+        init_mediafile_tree();
       }
     }, true, true);
-  }
+
+  });
+
 
 </script>

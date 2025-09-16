@@ -666,18 +666,18 @@
         plugin_html += `
             ${plugin.installed ? `
               <a href="javascript:uninstall_external_plugin('${pid}', '${plugin.name}')" class="card-btn text-danger">
-                <i class="ti ti-trash fs-2"></i>
+                <i class="ti ti-trash fs-2 me-1"></i>
                 卸载
               </a>
               ` : `
               <a href="javascript:install_external_plugin('${pid}', '${plugin.name}', '${plugin.download_url}', '${plugin.file_md5}')" class="card-btn">
-                <i class="ti ti-cloud-download fs-2"></i>
+                <i class="ti ti-cloud-download fs-2 me-1"></i>
                 安装
               </a>
               `}
             ${ plugin.update ? `
               <a href="javascript:update_external_plugin('${pid}', '${plugin.name}', '${plugin.download_url}', '${plugin.file_md5}')" class="card-btn">
-                <i class="ti ti-cloud-download fs-2"></i>
+                <i class="ti ti-cloud-download fs-2 me-1"></i>
                 更新
               </a>
               ` : ``}
@@ -686,12 +686,12 @@
         plugin_html += `
             ${plugin.installed ? `
               <a href="javascript:uninstall_plugin('${pid}', '${plugin.name}')" class="card-btn text-danger">
-                <i class="ti ti-trash fs-2"></i>
+                <i class="ti ti-trash fs-2 me-1"></i>
                  卸载
               </a>
               ` : `
               <a href="javascript:install_plugin('${pid}', '${plugin.name}')" class="card-btn">
-                <i class="ti ti-cloud-download fs-2"></i>
+                <i class="ti ti-cloud-download fs-2 me-1"></i>
                  安装
               </a>
             `}

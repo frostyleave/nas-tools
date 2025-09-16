@@ -616,24 +616,23 @@ async def mediafile(request: Request, current_user: User = Depends(get_current_u
     """
     media_default_path = Config().get_config('media').get('media_default_path')
     if media_default_path:
-        DirD = media_default_path
+        rootDir = media_default_path
     else:
         download_dirs = Downloader().get_download_visit_dirs()
         if download_dirs:
             try:
-                DirD = os.path.commonpath(download_dirs).replace("\\", "/")
+                rootDir = os.path.commonpath(download_dirs).replace("\\", "/")
             except Exception as err:
                 log.exception(f'管理目录转换异常: {download_dirs}', err)
-                DirD = "/"
+                rootDir = "/"
         else:
-            DirD = "/"
+            rootDir = "/"
     
     form = await request.form()
-    DirR = form.get("dir")
 
     return response(data=
         {
-            "Dir": DirR or DirD,
+            "Dir": rootDir,
         }
     )
 

@@ -311,37 +311,59 @@
         // labels
         html += `<div class="mb-1">`;
         $.each(torrent.labels || [], function (_, label) {
-          html += `<span class="badge badge-outline text-purple me-1">${label}</span>`;
+          html += `
+          <span class="badge badge-outline text-purple">${label}</span>
+          `;
         });
-        html += `<span class="text-muted">${torrent.description || ''}</span></div>`;
+        html += `
+        <span class="text-muted">${torrent.description || ''}</span></div>
+        `;
 
         // badges
         html += `<div>`;
-        html += `<span class="badge bg-black text-dark-fg mb-1 me-1">${torrent.site}</span>`;
+        html += `
+        <span class="badge bg-black text-dark-fg mb-1">${torrent.site}</span>
+        `;
         if (torrent.video_encode) {
-          html += `<span class="badge text-white bg-orange mb-1 me-1">${torrent.video_encode}</span>`;
+          html += `
+          <span class="badge text-white bg-orange mb-1">${torrent.video_encode}</span>
+          `;
         }
         if (torrent.reseffect) {
-          html += `<span class="badge text-white bg-purple mb-1 me-1">${torrent.reseffect}</span>`;
+          html += `
+          <span class="badge text-white bg-purple mb-1">${torrent.reseffect}</span>
+          `;
         }
         if (torrent.size) {
-          html += `<span class="badge text-white bg-yellow mb-1 me-1">${torrent.size}</span>`;
+          html += `
+          <span class="badge text-white bg-yellow mb-1">${torrent.size}</span>
+          `;
         }
         if (torrent.releasegroup) {
-          html += `<span class="badge text-white bg-cyan mb-1 me-1">${torrent.releasegroup}</span>`;
+          html += `
+          <span class="badge text-white bg-cyan mb-1">${torrent.releasegroup}</span>
+          `;
         }
         if (torrent.uploadvalue !== 1.0) {
-          html += `<span class="badge text-white bg-azure mb-1 me-1">${parseInt(torrent.uploadvalue * 100)}%UL</span>`;
+          html += `
+          <span class="badge text-white bg-azure mb-1">${parseInt(torrent.uploadvalue * 100)}%UL</span>
+          `;
         }
         if (torrent.downloadvalue !== 1.0) {
           if (torrent.downloadvalue === 0.0) {
-            html += `<span class="badge text-white bg-lime mb-1 me-1">FREE</span>`;
+            html += `
+            <span class="badge text-white bg-lime mb-1">FREE</span>
+            `;
           } else {
-            html += `<span class="badge text-white bg-indigo mb-1 me-1">${parseInt(torrent.downloadvalue * 100)}%DL</span>`;
+            html += `
+            <span class="badge text-white bg-indigo mb-1">${parseInt(torrent.downloadvalue * 100)}%DL</span>
+            `;
           }
         }
         if (torrent.seeders) {
-          html += `<span class="badge text-white mb-1 me-1">${torrent.seeders}↑</span>`;
+          html += `
+          <span class="badge text-white mb-1">${torrent.seeders}↑</span>
+          `;
         }
         if (torrent.pubdate) {
           html += `<span class="badge text-white bg-lime mb-1">${torrent.pubdate}</span>`;
