@@ -66,7 +66,7 @@ export class LayoutSearchbar extends CustomElement {
         <!-- 搜索栏 -->
         <div class="input-group input-group-flat ms-2">
           <span class="input-group-text">
-            <a href="javascript:void(0)" class="link-secondary d-sm-inline-flex"
+            <a href="javascript:void(0)" class="link-secondary d-flex align-items-center"
               @click=${() => {
                 let source_dict = { tmdb: "douban", douban: "person", person: "tmdb" };
                 this._search_source = source_dict[this._search_source];
@@ -92,15 +92,15 @@ export class LayoutSearchbar extends CustomElement {
           
           <span class="input-group-text">
             <a href="${this.layout_search > 0 ? "javascript:show_search_advanced_modal()" : "javascript:void(0)"}"
-              class="link-secondary d-sm-inline-flex">
+              class="link-secondary d-flex align-items-center">
               <i class="ti ti-adjustments fs-2"></i>
             </a>
           </span>
 
           <!-- 头像 dropdown -->
           <span class="input-group-text border-start-0">
-            <div class="nav-item dropdown d-sm-inline-flex">
-              <a href="#" class="d-sm-inline-flex" data-bs-toggle="dropdown">
+            <div class="nav-item dropdown">
+              <a href="#" class="d-flex align-items-center" data-bs-toggle="dropdown">
                 <i class="ti ti-user-square-rounded fs-2 text-vimeo"></i>
               </a>
               <div class="dropdown-menu dropdown-menu-end dropdown-menu-arrow">

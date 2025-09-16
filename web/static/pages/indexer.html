@@ -29,7 +29,7 @@
     </div>
   </div>
 </div>
-<div class="container-xl tab-content" id="indexers-container" style="display: none;">
+<div class="container-xl page-body" id="indexers-container" style="display: none;">
   <div id="public-indexer-div" class="tab-pane fade active show" role="tabpanel">
     <div class="d-grid gap-3 grid-info-card" id="indexers-list">
     </div>
@@ -715,12 +715,11 @@
     axios_post('/data/indexer?p=' + pParam, {}, function(response) {
       
       if (response.code === 0 && response.data) {
+        
         const data = response.data;
 
         // 设置是否为公共站点
-        if (data.IsPublic !== undefined) {
-          $('#is_public_site').val(data.IsPublic);
-        }
+        $('#is_public_site').val(data.IsPublic);
 
         // 更新全局变量
         if (data.CheckSites) {
