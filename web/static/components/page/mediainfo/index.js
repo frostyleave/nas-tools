@@ -183,17 +183,19 @@ export class PageMediainfo extends CustomElement {
           </div>
         </div>
         <div class="row">
-          <div>
+          <div class="col-lg-9">
             <h2 class="text-muted ms-4 me-2">
               <small>${this.media_info.overview ?? this._render_placeholder("200px", "", "col-12", 7)}</small>
             </h2>
-            <accordion-seasons
-              .seasons_data=${this.seasons_data}
-              .tmdbid=${this.tmdbid}
-              .title=${this.media_info.title}
-              .year=${this.media_info.year}
-            ></accordion-seasons>
           </div>
+        </div>
+        <div class="d-none d-md-block position-fixed rounded" style="top: 5rem; right: 1rem; z-index: 99;width: 825px;">
+          <accordion-seasons
+            .seasons_data=${this.seasons_data}
+            .tmdbid=${this.tmdbid}
+            .title=${this.media_info.title}
+            .year=${this.media_info.year}
+          ></accordion-seasons>
         </div>
 
         <!-- 渲染演员阵容 -->

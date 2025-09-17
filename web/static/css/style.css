@@ -797,3 +797,12 @@ a:hover {
     border-radius: 0 0 8px 0;
     z-index: 9;
 }
+
+.accordion-header .accordion-button {
+    padding: 0.5rem 2rem !important
+}
+
+.accordion-content-limited {
+  max-height: 500px;
+  overflow-y: auto;
+}

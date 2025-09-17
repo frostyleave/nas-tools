@@ -91,7 +91,7 @@ export class CustomImg extends CustomElement {
           : nothing
         }
         ${this.img_mark == "1" ? html`
-            <div class="card-right-bottom-ribbon"><i class="ti ti-check"></i></div>'
+            <div class="card-right-bottom-ribbon"><i class="ti ti-check"></i></div>
             ` : null
           }
       </div>
