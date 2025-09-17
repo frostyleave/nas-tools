@@ -67,12 +67,7 @@ export class AccordionSeasons extends CustomElement {
                           ${episodes.air_date ? html`<span class="badge badge-pill ms-1 p-1 px-2">
                             <small>${episodes.air_date}</small></span>` : nothing}
                           ${episodes.state ? html`<span class="badge badge-pill bg-green ms-1 p-1">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-check" width="24" height="24"
-                                 viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round"
-                                 stroke-linejoin="round">
-                              <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
-                              <path d="M5 12l5 5l10 -10"></path>
-                            </svg>
+                            <i class="ti ti-check fs-2"></i>
                           </span>` : nothing}
                         </h3>
                         ${episodes.overview ? html`<h3 class="text-muted">${episodes.overview}</h3>` : nothing}

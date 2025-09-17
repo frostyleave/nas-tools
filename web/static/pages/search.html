@@ -202,7 +202,7 @@
     }
 
     var checkTagLfet = mediaItem.fav == "2"
-      ? '<div style="position: absolute; bottom: 0; right: 0; width: 30px; height: 30px; padding: 12px; background-color: var(--tblr-success); clip-path: polygon(100% 0, 100% 100%, 0 100%); border-radius: 0 0 8px 0;z-index: 9;"><i class="ti ti-check fs-3"></i></div>'
+      ? '<div class="card-right-bottom-ribbon"><i class="ti ti-check fs-3"></i></div>'
       : '';
 
     return `
@@ -322,51 +322,51 @@
         // badges
         html += `<div>`;
         html += `
-        <span class="badge bg-black text-dark-fg mb-1">${torrent.site}</span>
+        <span class="badge badge-outline text-vimeo">${torrent.site}</span>
         `;
         if (torrent.video_encode) {
           html += `
-          <span class="badge text-white bg-orange mb-1">${torrent.video_encode}</span>
+          <span class="badge text-white bg-orange">${torrent.video_encode}</span>
           `;
         }
         if (torrent.reseffect) {
           html += `
-          <span class="badge text-white bg-purple mb-1">${torrent.reseffect}</span>
+          <span class="badge text-white bg-purple">${torrent.reseffect}</span>
           `;
         }
         if (torrent.size) {
           html += `
-          <span class="badge text-white bg-yellow mb-1">${torrent.size}</span>
+          <span class="badge text-white bg-yellow">${torrent.size}</span>
           `;
         }
         if (torrent.releasegroup) {
           html += `
-          <span class="badge text-white bg-cyan mb-1">${torrent.releasegroup}</span>
+          <span class="badge text-white bg-cyan">${torrent.releasegroup}</span>
           `;
         }
         if (torrent.uploadvalue !== 1.0) {
           html += `
-          <span class="badge text-white bg-azure mb-1">${parseInt(torrent.uploadvalue * 100)}%UL</span>
+          <span class="badge text-white bg-azure">${parseInt(torrent.uploadvalue * 100)}%UL</span>
           `;
         }
         if (torrent.downloadvalue !== 1.0) {
           if (torrent.downloadvalue === 0.0) {
             html += `
-            <span class="badge text-white bg-lime mb-1">FREE</span>
+            <span class="badge text-white bg-lime">FREE</span>
             `;
           } else {
             html += `
-            <span class="badge text-white bg-indigo mb-1">${parseInt(torrent.downloadvalue * 100)}%DL</span>
+            <span class="badge text-white bg-indigo">${parseInt(torrent.downloadvalue * 100)}%DL</span>
             `;
           }
         }
         if (torrent.seeders) {
           html += `
-          <span class="badge text-white mb-1">${torrent.seeders}↑</span>
+          <span class="badge text-white">${torrent.seeders}↑</span>
           `;
         }
         if (torrent.pubdate) {
-          html += `<span class="badge text-white bg-lime mb-1">${torrent.pubdate}</span>`;
+          html += `<span class="badge text-white bg-lime">${torrent.pubdate}</span>`;
         }
         html += `</div>`;
 

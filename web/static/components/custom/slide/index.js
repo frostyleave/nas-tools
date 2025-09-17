@@ -30,13 +30,8 @@ export class CustomSlide extends CustomElement {
                 <h2 class="my-1">
                   <strong>${this.slide_card.length == 0 ? "加载中.." : this.slide_title}</strong>
                 </h2>
-                <div class="ms-2">
-                  <svg xmlns="http://www.w3.org/2000/svg" class="icon-tabler icon-tabler-arrow-up-right-circle" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
-                    <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
-                    <circle cx="12" cy="12" r="9"></circle>
-                    <line x1="15" y1="9" x2="9" y2="15"></line>
-                    <polyline points="15 15 15 9 9 9"></polyline>
-                  </svg>
+                <div class="ms-2 d-flex align-items-center">
+                  <i class="ti ti-chevrons-right fs-1"></i>
                 </div>
               </a>
             </div>
@@ -44,21 +39,11 @@ export class CustomSlide extends CustomElement {
               <div class="d-inline-flex">
                 <a class="btn btn-sm btn-icon btn-link text-muted border-0 ${this._disabled == 0 ? "disabled" : ""}"
                    @click=${ () => this._slideNext(false) }>
-                  <svg xmlns="http://www.w3.org/2000/svg" class="btn-icon icon-tabler icon-tabler-chevron-left" width="24" height="24"
-                      viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round"
-                      stroke-linejoin="round">
-                    <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
-                    <polyline points="15 6 9 12 15 18"></polyline>
-                  </svg>
+                  <i class="ti ti-chevron-left fs-1"></i>
                 </a>
                 <a class="media-slide-right btn btn-sm btn-icon btn-link border-0 text-muted ${this._disabled == 2 ? "disabled" : ""}"
                    @click=${ () => this._slideNext(true) }>
-                  <svg xmlns="http://www.w3.org/2000/svg" class="btn-icon icon-tabler icon-tabler-chevron-right" width="24" height="24"
-                      viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round"
-                      stroke-linejoin="round">
-                    <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
-                    <polyline points="9 6 15 12 9 18"></polyline>
-                  </svg>
+                  <i class="ti ti-chevron-right fs-1"></i>
                 </a>
               </div>
             </div>

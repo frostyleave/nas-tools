@@ -29,12 +29,10 @@ export class PersonCard extends CustomElement {
               img-style="object-fit:cover;"
             ></custom-img>
           </div>
-          <h3 class="lh-sm text-white mt-3 ${this.lazy == "1" ? "placeholder" : ""}"
-              style="margin-bottom: 5px; -webkit-line-clamp:2; display: -webkit-box; -webkit-box-orient:vertical; overflow:hidden; text-overflow: ellipsis;">
+          <h3 class="lh-sm text-white card-overview-text mt-3 ${this.lazy == "1" ? "placeholder" : ""}" >
             <strong>${this.person_name}</strong>
           </h3>
-          <div class="lh-sm text-white mt-2 ${this.lazy == "1" ? "placeholder" : ""}"
-              style="margin-bottom: 5px; -webkit-line-clamp:3; display: -webkit-box; -webkit-box-orient:vertical; overflow:hidden; text-overflow: ellipsis;">
+          <div class="lh-sm text-white card-overview-text mt-2 ${this.lazy == "1" ? "placeholder" : ""}" >
             ${this.person_role}
           </div>
         </div>

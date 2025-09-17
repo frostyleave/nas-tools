@@ -76,24 +76,13 @@ export class NormalCard extends observeState(CustomElement) {
           <a class="text-muted" title="搜索资源" @click=${(e) => { e.stopPropagation() }}
              href='javascript:media_search("${this.tmdb_id}", "${this.title}", "${this.media_type}")'>
             <span class="icon-pulse text-white">
-              <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-search" width="24" height="24"
-                  viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round"
-                  stroke-linejoin="round">
-                <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
-                <circle cx="10" cy="10" r="7"></circle>
-                <line x1="21" y1="21" x2="15" y2="15"></line>
-              </svg>
+              <i class="ti ti-search fs-2"></i>
             </span>
           </a>
           <div class="ms-auto">
             <div class="text-muted" title="加入/取消订阅" style="cursor: pointer" @click=${this._loveClick}>
               <span class="icon-pulse text-white">
-                <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-heart ${this.fav == "1" ? "icon-filled text-red" : ""}" width="24" height="24"
-                    viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round"
-                    stroke-linejoin="round">
-                  <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
-                  <path d="M19.5 12.572l-7.5 7.428l-7.5 -7.428m0 0a5 5 0 1 1 7.5 -6.566a5 5 0 1 1 7.5 6.572"></path>
-                </svg>
+                ${this.fav == "1" ? html`<i class="ti ti-heart-filled text-red"></i>` : html`<i class="ti ti-heart fs-2 text-white"></i>`}
               </span>
             </div>
           </div>
@@ -116,11 +105,8 @@ export class NormalCard extends observeState(CustomElement) {
              @error=${() => { if (this.lazy != "1") {this.image = Golbal.noImage; this._card_image_error = true} }}
              @load=${() => { this._placeholder = false }}/>
             ${this.fav == "2" ? html`
-            <div style="position: absolute; bottom: 0; right: 0; width: 30px; height: 30px; padding: 12px; background-color: var(--tblr-success); clip-path: polygon(100% 0, 100% 100%, 0 100%); border-radius: 0 0 8px 0;z-index: 9;">
-              <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-check" width="15" height="15" viewBox="0 0 30 30" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round" >
-                <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
-                <path d="M5 12l5 5l10 -10"></path>
-              </svg>
+            <div class="card-right-bottom-ribbon">
+              <i class="ti ti-check"></i>
             </div> 
             ` : null}
           ${this._render_left_up()}
@@ -130,26 +116,24 @@ export class NormalCard extends observeState(CustomElement) {
              @click=${() => { navmenu(`media_detail?type=${this.media_type}&id=${this.tmdb_id}`) }}>
           <div style="cursor: pointer;">
             ${this.year && !this.overview.startsWith(this.year)
-              ? html`<div class="text-white" style="-webkit-line-clamp:1; display: -webkit-box; -webkit-box-orient:vertical; overflow:hidden; text-overflow: ellipsis;"><strong>${this.site ? this.site : this.year}</strong></div>` 
+              ? html`<div class="text-white card-secondary-text"><strong>${this.site ? this.site : this.year}</strong></div>` 
               : nothing 
             }
             ${this.title
             ? html`
-              <h3 class="lh-sm text-white" style="margin-bottom: 5px; -webkit-line-clamp:2; display: -webkit-box; -webkit-box-orient:vertical; overflow:hidden; text-overflow: ellipsis;">
+              <h3 class="lh-sm text-white card-overview-text">
                 <strong>${this.title}</strong>
               </h3>`
             : nothing }
             ${this.overview
             ? html`
-              <p class="lh-sm text-white"
-                 style="margin-bottom: 5px; -webkit-line-clamp:4; display: -webkit-box; -webkit-box-orient:vertical; overflow:hidden; text-overflow: ellipsis; -webkit-line-clamp: 2; /* 限制为2行 */">
+              <p class="lh-sm text-white card-overview-text">
                 ${this.overview}
               </p>`
             : nothing }
             ${this.date
             ? html`
-              <p class="lh-sm text-white"
-                style="margin-bottom: 5px; -webkit-line-clamp:1; display: -webkit-box; -webkit-box-orient:vertical; overflow:hidden; text-overflow: ellipsis;">
+              <p class="lh-sm text-white card-secondary-text" style="margin-bottom: 5px;">
                 <small>${this.date}</small>
               </p>`
             : nothing }

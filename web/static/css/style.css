@@ -1,8 +1,22 @@
 :root {
-  --tblr-primary: #696cff;
-  --tblr-primary-rgb: 105, 108, 255;
+    --tblr-primary: #696cff;
+    --tblr-primary-rgb: 106, 109, 255;
+
+    --lit-navbar-hover: #fcfafec5;
+    --lit-navbar-active: rgba(123, 178, 233, 0.5);
+}
+.theme-dark {
+    --lit-navbar-hover: #2a3551ca;
+    --lit-navbar-active: #414d6dca;
 }
 
+.lit-navbar-accordion-item:hover {
+    background-color: var(--lit-navbar-hover) !important;
+}
+
+.lit-navbar-accordion-item-active {
+    background-color: var(--lit-navbar-active) !important;
+}
 
 html {
     --safe-area-inset-top: 0px;
@@ -170,15 +184,13 @@ body, .page {
     z-index: 1;
     --tblr-aspect-ratio: 150%;
     border: none;
-    box-shadow: 0 0 0 1px #888888 inset, 0 .125rem .25rem rgba(0, 0, 0, 0.2);
-    background-image: linear-gradient(45deg, #99999b, #637599 60%);
+    background-image: linear-gradient(45deg, var(--lit-navbar-hover), var(--lit-navbar-hover) 60%);
 }
 
 .lit-person-card:hover {
     transform: scale(1.05, 1.05);
     opacity: 1;
-    box-shadow: 0 0 0 1px #bbbbbb inset;
-    background-image: linear-gradient(45deg, #bbbbbd, #8597aa 60%);
+    background-image: linear-gradient(45deg, var(--lit-navbar-active), var(--lit-navbar-active) 60%);
 }
 
 .grid-normal-card {
@@ -368,30 +380,9 @@ body, .page {
     filter: invert(1) grayscale(100%) brightness(200%);
 }
 
-/* .container-fluid.nav-search-bar {
-    padding-right: 0;
-} */
-
 .lit-navbar-accordion-item,
 .lit-navbar-accordion-item-active {
     border-radius: 0.5rem;
-}
-
-.theme-dark .lit-navbar-accordion-item:hover {
-    background-color: #2a3551ca !important;
-}
-
-.theme-light .lit-navbar-accordion-item:hover {
-    background-color: #fcfafec5 !important;
-}
-
-.theme-dark .lit-navbar-accordion-item-active {
-    background-color: #414d6dca !important;
-}
-
-.theme-light .lit-navbar-accordion-item-active {
-    background-color: rgba(123, 178, 233, 0.5) !important;
-    color: #000 !important;
 }
 
 .lit-custom-img-carousel {
@@ -457,29 +448,18 @@ div.top-sub-navbar>ul>li>a {
     text-align: center;
 }
 
-div.top-sub-navbar>ul>li>a.active {
-    display: block;
-    box-shadow: inset 0 -1px 0 0 var(--tblr-link-hover-color);
-    /* 模拟边框效果 */
-}
-
 /* 手机屏幕上的样式 */
 @media (max-width: 576px) {
     div.top-sub-navbar>ul {
         justify-content: center;
-        /* 手机模式下居中对齐 */
         padding: 0;
-        /* 去掉左右的空白 */
         overflow-x: hidden;
     }
 
     div.top-sub-navbar>ul>li {
         margin-left: 0;
-        /* 移除间距 */
         min-width: auto;
-        /* 移除最小宽度限制，标签宽度自适应 */
         flex: 1;
-        /* 让每个标签等宽，填满整个行 */
     }
 
     div.top-sub-navbar>ul>li>a {
@@ -505,7 +485,6 @@ div.top-sub-navbar>ul>li>a.active {
     cursor: pointer;
     z-index: 1000;
     opacity: 0;
-    /* transition: background-color 0.3s, transform 0.3s; */
     transition: opacity 0.3s ease-in-out;
     pointer-events: none;
 }
@@ -785,4 +764,36 @@ a:hover {
 #messageCenterModal .modal-body {
   height: 60vh;
   overflow-y: auto;
+}
+
+.card-overview-text {
+    margin-bottom: 5px; 
+    -webkit-line-clamp:2; 
+    display: -webkit-box; 
+    -webkit-box-orient:vertical; 
+    overflow:hidden; 
+    text-overflow: ellipsis;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 1.0);
+}
+
+.card-secondary-text {
+    -webkit-line-clamp: 1;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 1.0);
+}
+
+.card-right-bottom-ribbon {
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    width: 30px;
+    height: 30px;
+    padding: 12px;
+    background-color: var(--tblr-success);
+    clip-path: polygon(100% 0, 100% 100%, 0 100%);
+    border-radius: 0 0 8px 0;
+    z-index: 9;
 }
