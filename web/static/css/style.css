@@ -798,11 +798,15 @@ a:hover {
     z-index: 9;
 }
 
-.accordion-header .accordion-button {
+.accordion-header .accordion-button-lit {
     padding: 0.5rem 2rem !important
 }
 
 .accordion-content-limited {
   max-height: 500px;
   overflow-y: auto;
+}
+
+.badge-fixed {
+  width: 3rem;            
 }

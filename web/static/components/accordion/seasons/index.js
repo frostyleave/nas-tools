@@ -40,7 +40,7 @@ export class AccordionSeasons extends CustomElement {
           html`
             <div class="accordion-item">
               <div class="accordion-header" id="lit-accordion-seasons-heading-${seasons_index}">
-                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#lit-accordion-seasons-collapse-${seasons_index}" aria-expanded="false"
+                <button class="accordion-button accordion-button-lit collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#lit-accordion-seasons-collapse-${seasons_index}" aria-expanded="false"
                   @click=${() => {
                     if (!seasons.is_loadok && !seasons.is_loading && !seasons.is_loaderror) {
                       seasons.is_loading = true;

@@ -298,8 +298,12 @@
             <input type="hidden" id="site_${torrent.id}" value="${torrent.site}">
             <div class="row g-2 align-items-center">
               <div class="col">
-                <a href='javascript:download_search_resource("${torrent.id}")'>${torrent.torrent_name}</a>
+                <a href='javascript:download_search_resource("${torrent.id}")'>${torrent.torrent_name}
           `;
+        if (torrent.pubdate) {
+          html += `<span class="text-muted">[${torrent.pubdate}]</span>`;
+        }
+        html += `</a>`;
 
         if (!mediaItem.tmdbid || mediaItem.tmdbid == '0') {
           html += `
@@ -320,18 +324,17 @@
         `;
 
         // badges
-        html += `<div>`;
-        html += `
-        <span class="badge badge-outline text-azure">${torrent.site}</span>
+        html += `<div>
+        <span class="badge badge-outline text-azure badge-fixed">${torrent.site}</span>
         `;
-        if (torrent.video_encode) {
-          html += `
-          <span class="badge text-white bg-orange">${torrent.video_encode}</span>
-          `;
-        }
         if (torrent.reseffect) {
           html += `
           <span class="badge text-white bg-purple">${torrent.reseffect}</span>
+          `;
+        }
+        if (torrent.video_encode) {
+          html += `
+          <span class="badge text-white bg-orange">${torrent.video_encode}</span>
           `;
         }
         if (torrent.size) {
@@ -364,9 +367,6 @@
           html += `
           <span class="badge text-white">${torrent.seeders}↑</span>
           `;
-        }
-        if (torrent.pubdate) {
-          html += `<span class="badge text-white bg-lime">${torrent.pubdate}</span>`;
         }
         html += `</div>`;
 
