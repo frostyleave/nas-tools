@@ -376,7 +376,7 @@ function active_menu(pageMenu) {
     aElement.innerHTML = `<span class="tab-icon" style="color:var(--tblr-body-color);display: inline-flex;align-items: anchor-center;">${item.icon}</span><span class="tab-text">${item.name}</span>`;
     aElement.setAttribute('data-bs-toggle', 'tab');
     aElement.setAttribute('data-id', item.page);
-    aElement.onclick = () => navmenu(item.page); // 根据 item.page 设定点击行为
+    aElement.onclick = () => navmenu(item.page);
 
     if (pageMenu == item.page) {
       aElement.classList.add('active');

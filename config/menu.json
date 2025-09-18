@@ -40,19 +40,19 @@
   {
     "name": "订阅",
     "level": 1,
-    "page": "movie_rss",
+    "page": "tv_rss",
     "group": "服务",
     "icon": "<i class=\"ti ti-rss fs-2 \"></i>",
     "nav": [
       {
+        "name": "剧集订阅",
+        "page": "tv_rss",
+        "icon": "<i class=\"ti ti-device-tv fs-2 \"></i>"
+      },
+      {
         "name": "电影订阅",
         "page": "movie_rss",
         "icon": "<i class=\"ti ti-movie fs-2 \"></i>"
-      },
-      {
-        "name": "电视剧订阅",
-        "page": "tv_rss",
-        "icon": "<i class=\"ti ti-device-tv fs-2 \"></i>"
       },
       {
         "name": "自定义订阅",

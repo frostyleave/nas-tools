@@ -107,73 +107,71 @@ export class PageMediainfo extends CustomElement {
             img-style="padding-bottom: 1px; display: block; width: 100%; height: 100%; object-fit: cover;">
           </custom-img>
           <div class="card-img-overlay rounded-0 lit-media-info-background">
-            <div class="d-md-flex flex-md-row mb-4">
-              <custom-img class="d-flex justify-content-center" div-style="position:relative;"
+            <div class="d-flex flex-row mb-4 align-items-stretch">
+              <custom-img class="d-flex justify-content-center flex-shrink-0" div-style="position:relative;"
                 img-class="rounded-3 object-cover lit-media-info-image"
                 img-error=${Object.keys(this.media_info).length === 0 ? "0" : "1"}
                 img_vote=${this.media_info.vote}
                 img_mark=${this.fav == "2" ? "1" : "0"}
                 img-src=${this.media_info.image}>
               </custom-img>
-              <div class="d-flex justify-content-center">
-                <div class="d-flex flex-column justify-content-end div-media-detail-margin mt-2">
-                  <div>
-                    <h1 class="display-6 text-center text-md-start">
-                      <strong calss="d-block d-md-inline">${this.media_info.title ?? this._render_placeholder("200px")}</strong>
-                      <strong class="d-block h3 ${!this.media_info.year ? 'd-none' : 'd-md-inline'} ">(${this.media_info.year})</strong>
-                    </h1>
-                  </div>
-                  <div class="text-center text-md-start">
-                    ${this.media_info.genres ? this.media_info.genres.map((element) => (
-                      html`
-                      <span class="badge bg-indigo mb-1"> ${element}</span>
-                      `
-                    )) : nothing}
-                    <span class="mb-1 ${!this.media_info.runtime ? 'd-none' : 'd-inline-flex'}"><i class="ti ti-clock fs-2"></i>&nbsp;${this.media_info.runtime}</span>
-                    <span class="mb-1 ${!this.seasons_data.length ? 'd-none' : 'd-inline-flex'}"><i class="ti ti-stack-2 fs-2"></i>&nbsp;共${this.seasons_data.length}季</span>
-                    <span class="mb-1 ${!this.media_info.link ? 'd-none' : 'd-inline-flex'}"><i class="ti ti-badge-tm fs-2 text-blue"></i> <a class="text-reset" href="${this.media_info.link}" target="_blank">${this.media_info.tmdbid}</a></span>
-                    <span class="mb-1 ${!this.media_info.douban_id ? 'd-none' : 'd-inline-flex'}"><i class="ti ti-brand-douban fs-2 text-green"></i> ${this._render_douban_a_link(this.media_info.douban_id)}
-                    ${Object.keys(this.media_info).length === 0 ? this._render_placeholder("205px") : nothing }
-                  </div>
-                  <div class="text-md-start text-center mt-1">
-                    ${Object.keys(this.media_info).length !== 0
+              <div class="d-flex flex-column justify-content-end ms-3 text-start">
+                <div>
+                  <h1 class="display-7 text-start text-shadow-b1">
+                    <strong calss="d-inline">${this.media_info.title ?? this._render_placeholder("200px")}</strong>
+                    <strong class="h3 ${!this.media_info.year ? 'd-none' : 'd-inline'} ">(${this.media_info.year})</strong>
+                  </h1>
+                </div>
+                <div class="text-start mt-1">
+                  ${this.media_info.genres ? this.media_info.genres.map((element) => (
+                    html`
+                    <span class="badge bg-indigo mb-1"> ${element}</span>
+                    `
+                  )) : nothing}
+                  <span class="mb-1 ${!this.media_info.runtime ? 'd-none' : 'd-inline-flex'}"><i class="ti ti-clock fs-2"></i>&nbsp;${this.media_info.runtime}</span>
+                  <span class="mb-1 ${!this.seasons_data.length ? 'd-none' : 'd-inline-flex'}"><i class="ti ti-stack-2 fs-2"></i>&nbsp;共${this.seasons_data.length}季</span>
+                  <span class="mb-1 ${!this.media_info.link ? 'd-none' : 'd-inline-flex'}"><i class="ti ti-badge-tm fs-2 text-blue"></i> <a class="text-reset" href="${this.media_info.link}" target="_blank">${this.media_info.tmdbid}</a></span>
+                  <span class="mb-1 ${!this.media_info.douban_id ? 'd-none' : 'd-inline-flex'}"><i class="ti ti-brand-douban fs-2 text-green"></i> ${this._render_douban_a_link(this.media_info.douban_id)}
+                  ${Object.keys(this.media_info).length === 0 ? this._render_placeholder("205px") : nothing }
+                </div>
+                <div class="text-start mt-3">
+                  ${Object.keys(this.media_info).length !== 0
+                  ? html`
+                    <span class="btn btn-primary mt-1"
+                      @click=${(e) => {
+                        e.stopPropagation();
+                        media_search(this.tmdbid + "", this.media_info.title, this.media_type);
+                      }}>
+                      <i class="ti ti-search fs-2 text-white"></i>
+                      搜索资源
+                    </span>
+                    ${this.fav == "1"
                     ? html`
-                      <span class="btn btn-primary mt-1"
-                        @click=${(e) => {
-                          e.stopPropagation();
-                          media_search(this.tmdbid + "", this.media_info.title, this.media_type);
-                        }}>
-                        <i class="ti ti-search fs-2 text-white"></i>
-                        搜索资源
-                      </span>
-                      ${this.fav == "1"
-                      ? html`
-                        <span class="btn btn-pinterest mt-1"
-                          @click=${this._loveClick}>
-                          <i class="ti ti-heart-filled fs-2 text-purple"></i>
-                          删除订阅
-                        </span>`
-                      : html`
-                        ${this.fav != "2"
-                        ? html`
-                          <span class="btn btn-purple mt-1"
-                            @click=${this._loveClick}>
-                            <i class="ti ti-heart fs-2 text-white"></i>
-                            添加订阅
-                          </span>`: nothing }`
-                        }
-                      ${this.item_url ? html`
-                      <span class="btn btn-green mt-1" @click=${this._openItemUrl}>
-                        <i class="ti ti-device-tv-old fs-2 text-white"></i>
-                        在线观看
-                      </span>
-                      ` : nothing }`
+                      <span class="btn btn-pinterest mt-1"
+                        @click=${this._loveClick}>
+                        <i class="ti ti-heart-filled fs-2 text-purple"></i>
+                        删除订阅
+                      </span>`
                     : html`
-                      <span class="me-1">${this._render_placeholder("100px", "30px")}</span>
-                      <span class="me-1">${this._render_placeholder("100px", "30px")}</span>
-                      `
-                    }
-                  </div>
+                      ${this.fav != "2"
+                      ? html`
+                        <span class="btn btn-purple mt-1"
+                          @click=${this._loveClick}>
+                          <i class="ti ti-heart fs-2 text-white"></i>
+                          添加订阅
+                        </span>`: nothing }`
+                      }
+                    ${this.item_url ? html`
+                    <span class="btn btn-green mt-1" @click=${this._openItemUrl}>
+                      <i class="ti ti-device-tv-old fs-2 text-white"></i>
+                      在线观看
+                    </span>
+                    ` : nothing }`
+                  : html`
+                    <span class="me-1">${this._render_placeholder("100px", "30px")}</span>
+                    <span class="me-1">${this._render_placeholder("100px", "30px")}</span>
+                    `
+                  }
                 </div>
               </div>
             </div>
@@ -184,7 +182,7 @@ export class PageMediainfo extends CustomElement {
         </div>
         <div class="row">
           <div class="col-lg-9">
-            <h2 class="text-muted ms-4 me-2">
+            <h2 class="text-muted ms-3 me-2">
               <small>${this.media_info.overview ?? this._render_placeholder("200px", "", "col-12", 7)}</small>
             </h2>
           </div>

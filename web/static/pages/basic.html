@@ -146,8 +146,7 @@
           <div class="mb-3">
             <label class="form-label">TMDB图片代理 <span class="form-help" title="加速TMDB图片下载，留空使用TMDB官方地址"
                 data-bs-toggle="tooltip">?</span></label>
-            <input type="text" value=""
-              class="form-control" id="app.tmdb_image_url" placeholder="https://image.tmdb.org" autocomplete="off">
+            <input type="text" value="" class="form-control" id="app.tmdb_image_url" placeholder="https://image.tmdb.org" autocomplete="off">
           </div>
         </div>
       </div>
@@ -157,35 +156,16 @@
             <label class="form-label">代理服务器 <span class="form-help"
                 title="将使用代理访服务器访问themoviedb、telegram等境外网站及程序更新(git)，站点默认不使用代理，如需使用需在站点维护中开启；配置格式示例：127.0.0.1:7890（Http协议）、socks5://127.0.0.1:8018、socks5h://127.0.0.1:8018(remote DNS)"
                 data-bs-toggle="tooltip">?</span></label>
-            <input type="text" value="" class="form-control" id="app.proxies"
-              placeholder="127.0.0.1:7890" autocomplete="off">
+            <input type="text" value="" class="form-control" id="app.proxies" placeholder="127.0.0.1:7890" autocomplete="off">
           </div>
         </div>
         <div class="col-12 col-xl-3">
-          <div class="mb-6">
+          <div class="mb-3">
             <label class="form-label">自建OCR服务 <span class="form-help" title="填写后将使用自建的OCR服务进行验证码识别"
                 data-bs-toggle="tooltip">?</span></label>
             <div class="input-group input-group-flat">
-              <input type="text" value="" class="form-control" id="app.ocr_url"
-                placeholder="http://127.0.0.1:9899/captcha/base64" autocomplete="off">
+              <input type="text" value="" class="form-control" id="app.ocr_url" placeholder="http://127.0.0.1:9899/captcha/base64" autocomplete="off">
             </div>
-          </div>
-        </div>
-      </div>
-      <div class="row">
-        <div class="col-12 col-xl-3">
-          <div class="mb-3">
-            <label class="form-label">HTTPS证书文件路径 <span class="form-help" title="需要是pem格式的证书文件"
-                data-bs-toggle="tooltip">?</span></label>
-            <input type="text" value="" class="form-control filetree-files-only"
-              id="app.ssl_cert" placeholder="" autocomplete="off">
-          </div>
-        </div>
-        <div class="col-12 col-xl-3">
-          <div class="mb-3">
-            <label class="form-label">HTTPS证书密钥文件路径</label>
-            <input type="text" value="" class="form-control filetree-files-only"
-              id="app.ssl_key" placeholder="" autocomplete="off">
           </div>
         </div>
         <div class="col-12 col-xl-3">
@@ -193,23 +173,16 @@
             <label class="form-label">外网访问地址 <span class="form-help"
                 title="使用该地址进行通知点击跳转以及设置Telegram机器人Webhook；需要配置IP地址和端口，如为https则需要加https://前缀；如启用Telegram机器人Webhook，则端口必须为：443, 80, 88, 8443之一，80、443一般运营商会封禁，建议使用88、8443"
                 data-bs-toggle="tooltip">?</span></label>
-            <input type="text" value="" class="form-control" id="app.domain"
-              placeholder="http://IP:PORT" autocomplete="off">
+            <input type="text" value="" class="form-control" id="app.domain" placeholder="http://IP:PORT" autocomplete="off">
           </div>
         </div>
-      </div>
-      <div class="row">
-        <div class="col-lg">
+        <div class="col-12 col-xl-3">
           <div class="mb-3">
-            <label class="form-label">User-Agent <span class="form-help" title="如发现被豆瓣、PT站等封堵，请适当修改此项"
-                data-bs-toggle="tooltip">?</span></label>
+            <label class="form-label">User-Agent <span class="form-help" title="如发现被豆瓣、PT站等封堵，请适当修改此项" data-bs-toggle="tooltip">?</span></label>
             <div class="input-group input-group-flat">
-              <input type="text" value="" class="form-control" id="app.user_agent"
-                placeholder="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/98.0.4758.102 Safari/537.36"
-                autocomplete="off">
+              <input type="text" value="" class="form-control" id="app.user_agent" autocomplete="off">
               <span class="input-group-text">
-                <a href="javascript:set_user_agent('app\\.user_agent')" class="link-secondary"
-                  title="从浏览器中获取 User-Agent" data-bs-toggle="tooltip">
+                <a href="javascript:set_user_agent('app\\.user_agent')" class="link-secondary" title="从浏览器中获取 User-Agent" data-bs-toggle="tooltip">
                   <i class="ti ti-arrow-bar-to-left fs-2"></i>
                 </a>
               </span>
@@ -546,16 +519,6 @@
               <input class="form-check-input" type="checkbox" id="laboratory.search_adult">
               <span class="form-check-label">TMDB搜索成人资源 <span class="form-help"
                   title="TMDB默认不返回成人内容" data-bs-toggle="tooltip">?</span>
-              </span>
-            </label>
-          </div>
-        </div>
-        <div class="col-12 col-xl-3">
-          <div class="mb-3">
-            <label class="form-check form-switch">
-              <input class="form-check-input" type="checkbox" id="laboratory.search_en_title">
-              <span class="form-check-label">搜索优先使用英文名 <span class="form-help"
-                  title="开启后对于精确搜索场景将会优先使用英文名搜索，否则优先使用中文名搜索" data-bs-toggle="tooltip">?</span>
               </span>
             </label>
           </div>
@@ -1425,7 +1388,6 @@
           $('#laboratory\\.search_tmdbweb').prop('checked', data.Config.laboratory.search_tmdbweb || false);
           $('#laboratory\\.use_douban_titles').prop('checked', data.Config.laboratory.use_douban_titles || false);
           $('#laboratory\\.search_adult').prop('checked', data.Config.laboratory.search_adult || false);
-          $('#laboratory\\.search_en_title').prop('checked', data.Config.laboratory.search_en_title || false);
           $('#laboratory\\.tmdb_cache_expire').prop('checked', data.Config.laboratory.tmdb_cache_expire || false);
         }
 

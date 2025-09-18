@@ -167,9 +167,12 @@
 
   // 重置过滤条件
   function reset_filter(obj, key, modal) {
+    // 重置过滤条件
     filter_reset()
     // 开始过滤
     filter_do(key, modal);
+    // 模拟点击第一项
+    $('.accordion-button').first().trigger("click");
   }
 
   // 显示过滤器弹窗
@@ -307,7 +310,7 @@
 
         if (!mediaItem.tmdbid || mediaItem.tmdbid == '0') {
           html += `
-            <a class="ms-2 mb-1" title="名称测试" href='javascript:nametest("${torrent.id}")' data-bs-toggle="tooltip">
+            <a class="ms-2 mb-1 d-inline-flex align-items-center" title="名称测试" href='javascript:nametest("${torrent.id}")' data-bs-toggle="tooltip">
               <i class="ti ti-text-recognition"></i>
             </a>`;
         }
@@ -494,16 +497,6 @@
         $.each(results, function (title, item) {
 
           // 主内容
-
-          var checkTagMedia = item.fav == "2"
-            ? `
-            <div class="list-inline-item">
-              <i class="ti ti-check text-green"></i>
-              已入库
-            </div>
-            `
-            : '';
-
           var posterCard = drawPoster(item);
           var seasonCard = drawSeasonFilter(item);
           var sitesCard = drawFilterLabels(item.key, 'site', item.filter.site);
@@ -572,7 +565,12 @@
                             <i class="ti ti-info-circle"></i>
                             <a href="${tmdbLink}" target="_blank">${item.tmdbid}</a>
                           </div>
-                          ${checkTagMedia}
+                          ${item.fav == "2" ? `
+                            <div class="list-inline-item">
+                              <i class="ti ti-check text-green"></i>
+                              已入库
+                            </div>
+                            ` : ''}
                         </div>
                       </div>
                     </div>

@@ -5,6 +5,13 @@
     --lit-navbar-hover: #fcfafec5;
     --lit-navbar-active: rgba(123, 178, 233, 0.5);
 }
+
+@media (max-width: 768px) {
+  .btn {
+    --tblr-btn-padding-x: 0.5rem;
+  }
+}
+
 .theme-dark {
     --lit-navbar-hover: #2a3551ca;
     --lit-navbar-active: #414d6dca;
@@ -591,8 +598,9 @@ div.top-sub-navbar>ul>li>a {
 
 /* 加载框 */
 .wave-loading {
-    display: none;
-    /* 默认隐藏 */
+    display: flex;
+    justify-content: center;
+    align-items: center;
     position: fixed;
     top: 50%;
     left: 50%;
@@ -600,9 +608,6 @@ div.top-sub-navbar>ul>li>a {
     width: 100%;
     height: 400px;
     z-index: 9999;
-    display: flex;
-    justify-content: center;
-    align-items: center;
 }
 
 /* 小竖条 */
@@ -612,8 +617,8 @@ div.top-sub-navbar>ul>li>a {
     background: var(--tblr-primary);
     margin: 0px 4px;
     border-radius: 4px;
-    animation: wave 1.2s infinite ease-in-out;
-    box-shadow: 0 0 1px 1px rgba(255, 255, 255, 0.5);
+    animation: loading 1.2s infinite ease-in-out;
+    box-shadow: 0 0 10px 4px rgba(255, 255, 255, 0.75);
 }
 
 @keyframes wave {
@@ -809,4 +814,8 @@ a:hover {
 
 .badge-fixed {
   width: 3rem;            
+}
+
+.text-shadow-b1 {
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 1.0);
 }
