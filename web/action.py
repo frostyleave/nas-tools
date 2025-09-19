@@ -95,7 +95,6 @@ class WebAction:
             "update_site": self.__update_site,
             "get_site": self.__get_site,
             "del_site": self.__del_site,
-            "get_site_favicon": self.__get_site_favicon,
             "restart": self.__restart,
             "update_system": self.update_system,
             "reset_db_version": self.__reset_db_version,
@@ -4413,13 +4412,6 @@ class WebAction:
         tid = data.get("tid")
         TorrentRemover().auto_remove_torrents(taskids=tid)
         return {"code": 0}
-
-    def __get_site_favicon(self, data):
-        """
-        获取站点图标
-        """
-        sitename = data.get("name")
-        return {"code": 0, "icon": Sites().get_site_favicon(site_name=sitename)}
 
     def __list_brushtask_torrents(self, data):
         """

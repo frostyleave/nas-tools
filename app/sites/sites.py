@@ -21,7 +21,6 @@ class Sites:
     _sites = []
     _siteByIds = {}
     _siteByUrls = {}
-    _site_favicons = {}
     _rss_sites = []
     _brush_sites = []
     _statistic_sites = []
@@ -52,8 +51,6 @@ class Sites:
         self._signin_sites = []
         # 站点限速器
         self._limiters = {}
-        # 站点图标
-        self.init_favicons()
         # 站点数据
         self._sites = self.dbhelper.get_config_site()
         for site in self._sites:
@@ -122,12 +119,6 @@ class Sites:
                 limit_seconds=int(site_note.get("limit_seconds")) if site_note.get("limit_seconds") and str(
                     site_note.get("limit_seconds")).isdigit() else None
             )
-
-    def init_favicons(self):
-        """
-        加载图标到内存
-        """
-        self._site_favicons = {site.SITE: site.FAVICON for site in self.dbhelper.get_site_favicons()}
 
     def get_sites(self,
                   siteid=None,
@@ -235,15 +226,6 @@ class Sites:
                 statistic=statistic
             )
         ]
-
-    def get_site_favicon(self, site_name=None):
-        """
-        获取站点图标
-        """
-        if site_name:
-            return self._site_favicons.get(site_name)
-        else:
-            return self._site_favicons
 
     def get_site_download_setting(self, site_name=None):
         """
