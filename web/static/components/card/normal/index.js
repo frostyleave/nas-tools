@@ -57,14 +57,13 @@ export class NormalCard extends observeState(CustomElement) {
 
   _render_right_up() {
 
-     var has_vote = this.vote && this.vote != "0.0" && this.vote != "0";
-     var vote_html = html`
-                      <div class="badge badge-pill bg-purple" style="position: absolute; top: 10px; right: 10px; z-index: 9;">
-                        ${this.vote}
-                      </div>`;
-
+    var has_vote = this.vote && this.vote != "0.0" && this.vote != "0";
     if (has_vote) {
-      return vote_html;
+           var color = this.tmdb_id && this.tmdb_id.startsWith('DB:') ? 'bg-green' : 'bg-purple';
+           return html`
+           <div class="badge badge-pill ${color}" style="position: absolute; top: 10px; right: 10px; z-index: 9;">
+              ${this.vote}
+           </div>`;
     }
     return nothing;
   }

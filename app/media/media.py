@@ -35,11 +35,10 @@ class Media:
     discover = None
     genre = None
     meta = None
-    openai = None
+    douban = None
     _rmt_match_mode = None
     _search_keyword = None
     _search_tmdbweb = None
-    _chatgpt_enable = None
     _default_language = None
 
     def __init__(self):
@@ -53,10 +52,10 @@ class Media:
         self._search_keyword = laboratory.get("search_keyword")
         # WEB辅助
         self._search_tmdbweb = laboratory.get("search_tmdbweb")
-        # ChatGPT辅助
-        self._chatgpt_enable = laboratory.get("chatgpt_enable")
         # 默认语言
         self._default_language = media.get("tmdb_language", "zh") or "zh"
+        # 豆瓣api
+        self.douban = DoubanApi()
         # TMDB
         if app.get('rmt_tmdbkey'):
             # TMDB主体
@@ -793,6 +792,7 @@ class Media:
         if not file_media_info and self._search_tmdbweb:
             # 从网站查询
             file_media_info = self.__search_tmdb_web(file_media_name=name, mtype=mtype)
+            
         if not file_media_info and self._search_keyword:
             # 关键字猜测
             cache_name = cacheman["tmdb_supply"].get(name)
@@ -1213,6 +1213,45 @@ class Media:
                 "role": info.get("name") if info.get("name") != name else "",
                 "image": image
             })
+        return ret_infos
+    
+    @staticmethod
+    def __dict_dbinfos(infos, mtype=None, poster_filter=False):
+
+        if not infos:
+            return []
+        
+        ret_infos = []
+        for info in infos:
+
+            image = ''
+            pic_info = info.get('pic')
+            if pic_info:
+                image = pic_info.get('normal') if pic_info.get('normal') else pic_info.get('large')
+
+            if poster_filter and not image:
+                continue
+
+            doubanId = 'DB:' + info.get('id')
+            title = info.get('title')
+            typestr = 'TV' if info.get('type') == 'tv' else 'MOV'
+            media_type = '电影' if typestr == 'MOV' else '剧集'
+            vote = info.get('rating', {}).get('value', 0)
+            overview = info.get('card_subtitle')
+
+            ret_infos.append({
+                'id': doubanId,
+                'orgid': doubanId,
+                'tmdbid': doubanId,
+                'title': title,
+                'type': typestr,
+                'media_type': media_type,
+                'vote': vote,
+                'image': image,
+                'overview': overview
+            })
+
+
         return ret_infos
 
     @staticmethod
@@ -2171,6 +2210,12 @@ class Media:
         if not self.movie:
             return []
         try:
+            # 豆瓣
+            if str(tmdbid).startswith("DB:"):            
+                doubanid = tmdbid[3:].split(',')[0]
+                movies = self.douban.movie_recommendations(doubanid)
+                return self.__dict_dbinfos(movies)
+
             movies = self.movie.recommendations(movie_id=tmdbid, page=page) or []
             return self.__dict_tmdbinfos(movies, MediaType.MOVIE)
         except Exception as e:
@@ -2197,6 +2242,12 @@ class Media:
         if not self.tv:
             return []
         try:
+            # 豆瓣
+            if str(tmdbid).startswith("DB:"):            
+                doubanid = tmdbid[3:].split(',')[0]
+                tvs = self.douban.tv_recommendations(doubanid)
+                return self.__dict_dbinfos(tvs)
+            
             tvs = self.tv.recommendations(tv_id=tmdbid, page=page) or []
             return self.__dict_tmdbinfos(tvs, MediaType.TV)
         except Exception as e:
@@ -2242,11 +2293,11 @@ class Media:
             if str(personid).startswith("DB:"):
                 personid = personid[3:].split(',')[0]
                 if personid.isdigit():
-                    movies = DoubanApi().celebrity_works(personid).get("works") or []
+                    movies = self.douban.celebrity_works(personid).get("works") or []
                     # celebrity_works 接口返回结构多了一层subject
                     movies = list(map(lambda x: x.get("subject"), movies))
                 else:
-                    movies = DoubanApi().movie_search(personid).get("subjects") or []
+                    movies = self.douban.movie_search(personid).get("subjects") or []
                 if movies:
                     for item in movies:
                         movie_item = self.__convert_douban_stuct_to_tmdb(item)

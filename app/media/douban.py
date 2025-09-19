@@ -172,8 +172,8 @@ class DouBan:
             return item_type == 'movie'
         return item_type != 'movie'
 
-    # 从豆瓣网页抓取演职人员信息
-    def scraper_media_celebrities(self, douban_id):
+    # 查询演职人员信息
+    def get_media_celebrities(self, douban_id):
 
         crews, actors = [], []
 
@@ -210,6 +210,46 @@ class DouBan:
                 actors.append(actor)
 
         return crews, actors
+
+    # 查询图片信息
+    def get_media_photo(self, douban_id, mtype:MediaType):
+
+        # 调用图片接口
+        if mtype == MediaType.MOVIE:
+            info = self.doubanapi.movie_photos(douban_id)
+        else:
+            info = self.doubanapi.tv_photos(douban_id)
+
+        # 处理图片数据
+        return self._process_douban_images(info)
+
+    def _process_douban_images(self, info: dict):
+        
+        images = info.get("photos")
+        if not images:
+            return []
+        
+        img_list = []
+        # 取背景图
+        for item in images:
+            backdrop = item.get("image", {}).get("large") or {}
+            if not backdrop:
+                continue
+            if backdrop.get('width', 0) < backdrop.get('height', 0):
+                continue
+            img_list.append(backdrop.get("url"))
+            # 最多取5条数据
+            if len(img_list) == 5:
+                break
+
+        return img_list
+
+    def get_douban_info_byId(self, doubanid, mtype=None):
+        # 查询剧集
+        if mtype == MediaType.TV or mtype == MediaType.ANIME:
+            return self.doubanapi.tv_detail(doubanid)
+        # 默认查询电影
+        return self.doubanapi.movie_info(doubanid)
 
     def get_douban_detail(self, doubanid, mtype=None, wait=False):
         """

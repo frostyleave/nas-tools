@@ -35,11 +35,13 @@ export class PageMediainfo extends CustomElement {
     Golbal.get_cache_or_ajax("media_detail", "info", { "type": this.media_type, "tmdbid": this.tmdbid},
       (ret) => {
         if (ret.code === 0) {
+
           this.media_info = ret.data;
-          this.tmdbid = ret.data.tmdbid;
-          this.fav = ret.data.fav;
-          this.item_url = ret.data.item_url
-          this.seasons_data = ret.data.seasons;
+
+          this.tmdbid = this.media_info.tmdbid;
+          this.fav = this.media_info.fav;
+          this.item_url = this.media_info.item_url
+          this.seasons_data = this.media_info.seasons;
           
           if (this.media_info.crews && this.media_info.crews.length) {
             this.crews = this.crews.concat(this.media_info.crews)
@@ -50,15 +52,18 @@ export class PageMediainfo extends CustomElement {
           }
 
           // 类似
-          Golbal.get_cache_or_ajax("get_recommend", "sim", { "type": this.media_type, "subtype": "sim", "tmdbid": ret.data.tmdbid, "page": 1},
-            (ret) => {
-              if (ret.code === 0) {
-                this.similar_media = ret.Items;
+          if (this.tmdbid && !this.tmdbid.startsWith('DB:')) {
+            Golbal.get_cache_or_ajax("get_recommend", "sim", { "type": this.media_type, "subtype": "sim", "tmdbid": this.tmdbid, "page": 1},
+              (ret) => {
+                if (ret.code === 0) {
+                  this.similar_media = ret.Items;
+                }
               }
-            }
-          );
+            );
+          }
+          
           // 推荐
-          Golbal.get_cache_or_ajax("get_recommend", "more", { "type": this.media_type, "subtype": "more", "tmdbid": ret.data.tmdbid, "page": 1},
+          Golbal.get_cache_or_ajax("get_recommend", "more", { "type": this.media_type, "subtype": "more", "tmdbid": this.tmdbid, "page": 1},
             (ret) => {
               if (ret.code === 0) {
                 this.recommend_media = ret.Items;
@@ -132,8 +137,14 @@ export class PageMediainfo extends CustomElement {
                 <div class="text-start mt-1">
                   <span class="mb-1 ${!this.media_info.runtime ? 'd-none' : 'd-inline-flex'}"><i class="ti ti-clock fs-2"></i>&nbsp;${this.media_info.runtime}</span>
                   <span class="mb-1 ${!this.seasons_data.length ? 'd-none' : 'd-inline-flex'}"><i class="ti ti-stack-2 fs-2"></i>&nbsp;共${this.seasons_data.length}季</span>
-                  <span class="mb-1 ${!this.media_info.link ? 'd-none' : 'd-inline-flex'}"><i class="ti ti-badge-tm fs-2 text-blue"></i> <a class="text-reset" href="${this.media_info.link}" target="_blank">${this.media_info.tmdbid}</a></span>
-                  <span class="mb-1 ${!this.media_info.douban_id ? 'd-none' : 'd-inline-flex'}"><i class="ti ti-brand-douban fs-2 text-green"></i> ${this._render_douban_a_link(this.media_info.douban_id)}
+                  ${ this.tmdbid && !this.tmdbid.startsWith('DB:') && this.media_info.link
+                    ? html `<span class="mb-1 d-inline-flex"><i class="ti ti-badge-tm fs-2 text-blue"></i><a class="text-reset" href="${this.media_info.link}" target="_blank">${this.media_info.tmdbid}</a></span>`
+                    : nothing
+                  }
+                  ${ this.media_info.douban_id
+                    ? html `<span class="mb-1 d-inline-flex"><i class="ti ti-brand-douban fs-2 text-green"></i> ${this._render_douban_a_link(this.media_info.douban_id)}`
+                    : nothing
+                  }
                   ${Object.keys(this.media_info).length === 0 ? this._render_placeholder("205px") : nothing }
                 </div>
                 <hr class="d-block d-sm-none mt-3 mb-0">
@@ -194,6 +205,14 @@ export class PageMediainfo extends CustomElement {
                   }
                 </div>
               </div>
+              <div class="d-none d-md-block position-absolute rounded" style="top: 5rem; right: 0rem; z-index: 99;width: auto; min-width: 25rem;">
+                <accordion-seasons
+                  .seasons_data=${this.seasons_data}
+                  .tmdbid=${this.tmdbid}
+                  .title=${this.media_info.title}
+                  .year=${this.media_info.year} >
+                </accordion-seasons>
+              </div>
             </div>
             <h1 class="d-flex">
               <strong>${Object.keys(this.media_info).length === 0 ? "加载中.." : "简介"}</strong>
@@ -207,15 +226,6 @@ export class PageMediainfo extends CustomElement {
             </h2>
           </div>
         </div>
-        <div class="d-none d-md-block position-fixed rounded" style="top: 5rem; right: 1rem; z-index: 99;width: 825px;">
-          <accordion-seasons
-            .seasons_data=${this.seasons_data}
-            .tmdbid=${this.tmdbid}
-            .title=${this.media_info.title}
-            .year=${this.media_info.year}
-          ></accordion-seasons>
-        </div>
-
         <!-- 渲染演员阵容 -->
         ${this.crews && this.crews.length
         ? html`

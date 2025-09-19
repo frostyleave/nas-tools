@@ -4,11 +4,14 @@
 
     --lit-navbar-hover: #fcfafec5;
     --lit-navbar-active: rgba(123, 178, 233, 0.5);
+
+    --lit-person-card-bg: var(--tblr-body-bg);
 }
 
 .theme-dark {
     --lit-navbar-hover: #2a3551ca;
     --lit-navbar-active: #414d6dca;
+    --lit-person-card-bg: var(--lit-navbar-active);
 }
 
 .lit-navbar-accordion-item:hover {
@@ -185,7 +188,7 @@ body, .page {
     z-index: 1;
     --tblr-aspect-ratio: 150%;
     border: none;
-    background-image: linear-gradient(45deg, var(--lit-navbar-hover), var(--lit-navbar-hover) 60%);
+    background-image: linear-gradient(45deg, var(--lit-person-card-bg), var(--lit-person-card-bg) 60%);
 }
 
 .lit-person-card:hover {
@@ -804,6 +807,7 @@ a:hover {
 .accordion-content-limited {
   max-height: 500px;
   overflow-y: auto;
+  overflow-x: hidden;
 }
 
 .badge-fixed {

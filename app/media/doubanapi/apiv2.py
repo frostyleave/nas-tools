@@ -305,6 +305,9 @@ class DoubanApi(object):
     def show_hot(self, start=0, count=20, ts=datetime.strftime(datetime.now(), '%Y%m%d')):
         return self.__invoke(self._urls["show_hot"], start=start, count=count, _ts=ts)
 
+    def movie_info(self, subject_id):
+        return self.__post(self._urls["movie_info"] + subject_id)
+    
     def movie_detail(self, subject_id):
         return self.__post(self._urls["movie_detail"] + subject_id)
 
@@ -314,6 +317,12 @@ class DoubanApi(object):
     def movie_celebrities(self, subject_id):
         return self.__invoke(self._urls["movie_celebrities"] % subject_id)
 
+    def movie_photos(self, subject_id):
+        return self.__invoke(self._urls["movie_photos"] % subject_id)
+
+    def movie_recommendations(self, subject_id):
+        return self.__invoke(self._urls["movie_recommendations"] % subject_id)
+    
     def celebrity_works(self, people_id):
         return self.__post(self._urls["celebrity_works"] % people_id)
     
@@ -323,6 +332,12 @@ class DoubanApi(object):
     def tv_celebrities(self, subject_id):
         return self.__invoke(self._urls["tv_celebrities"] % subject_id)
 
+    def tv_recommendations(self, subject_id):
+        return self.__invoke(self._urls["tv_recommendations"] % subject_id)
+
+    def tv_photos(self, subject_id):
+        return self.__invoke(self._urls["tv_photos"] % subject_id)
+    
     def book_detail(self, subject_id):
         return self.__invoke(self._urls["book_detail"] + subject_id)
 

@@ -35,7 +35,7 @@ export class AccordionSeasons extends CustomElement {
 
   render() {
     return html`
-      <div class="accordion m-2" id="lit-accordion-seasons">
+      <div class="accordion m-2" id="lit-accordion-seasons" style="background:var(--tblr-body-bg);">
         ${this.seasons_data.map((seasons, seasons_index) => (
           html`
             <div class="accordion-item">
@@ -47,8 +47,8 @@ export class AccordionSeasons extends CustomElement {
                       this._get_episodes_list(seasons);
                     }
                   }}>
-                  <h3 class="mt-2">第 ${seasons.season_number} 季</h3>
-                  ${seasons.air_date ? html`<h3 class="ms-2 mt-2"> - ${seasons.air_date.split("-")[0]}</h3>` : nothing}
+                  <h4 class="mt-2">第 ${seasons.season_number} 季</h4>
+                  ${seasons.air_date ? html`<h4 class="ms-2 mt-2"> - ${seasons.air_date.split("-")[0]}</h4>` : nothing}
                   <div class="d-flex flex-grow-1 justify-content-between">
                     ${seasons.episode_count ? html`<div><strong class="badge badge-pill mx-3">共${seasons.episode_count}集</strong></div>` : nothing}
                     ${seasons.state ? html`<div><strong class="badge badge-pill bg-green text-white mx-3">已入库</strong></div>`: nothing}
@@ -60,12 +60,11 @@ export class AccordionSeasons extends CustomElement {
                 ${seasons.list
                 ? seasons.list.map((episodes, episodes_index) => (
                   html`
-                  <div class="card card-stacked">
+                  <div class="row pt-3 pb-3 custom-border-top">
                     <div class="d-flex align-items-stretch">
                       <div class="col-auto">
                         <img src="${episodes.still_path}" alt="剧集海报" class="rounded" style="width: 227px; height: 127px; object-fit: cover;">
-                      </div>
-                      
+                      </div>                      
                       <div class="col">
                         <div class="card-body">
                           <h3 class="card-title">

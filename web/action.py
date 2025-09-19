@@ -74,6 +74,7 @@ class WebAction:
     _actions = {}
     _commands = {}
     _current_user : Optional[User] = None
+    _douBan : Optional[DouBan] =  None
 
     def __init__(self, current_user=None):
         # WEB请求响应
@@ -274,6 +275,8 @@ class WebAction:
         }
         # 用户绑定
         self._current_user = current_user
+        # 豆瓣实例
+        self._douBan = DouBan()
 
     def action(self, cmd, data):
         """
@@ -1821,7 +1824,7 @@ class WebAction:
         rssid = data.get("rssid")
         if tid and tid.startswith("DB:"):
             doubanid = tid.replace("DB:", "")
-            douban_info = DouBan().get_douban_detail(doubanid=doubanid, mtype=MediaType.MOVIE)
+            douban_info = self._douBan.get_douban_detail(doubanid=doubanid, mtype=MediaType.MOVIE)
             if not douban_info:
                 return {"code": 1, "retmsg": "无法查询到豆瓣信息"}
 
@@ -1878,7 +1881,7 @@ class WebAction:
         rssid = data.get("rssid")
         if tid and tid.startswith("DB:"):
             doubanid = tid.replace("DB:", "")
-            douban_info = DouBan().get_douban_detail(doubanid=doubanid, mtype=MediaType.TV)
+            douban_info = self._douBan.get_douban_detail(doubanid=doubanid, mtype=MediaType.TV)
             if not douban_info:
                 return {"code": 1, "retmsg": "无法查询到豆瓣信息"}
 
@@ -2364,7 +2367,7 @@ class WebAction:
             # 选中的分类
             tags = params.get("tags") or ""
             # 过滤参数
-            res_list = DouBan().get_douban_disover(mtype=mtype,
+            res_list = self._douBan.get_douban_disover(mtype=mtype,
                                                    sort=sort,
                                                    tags=tags,
                                                    page=CurrentPage)
@@ -2401,39 +2404,39 @@ class WebAction:
         
         if SubType == "dbom":
                 # 豆瓣正在上映
-            return DouBan().get_douban_online_movie(CurrentPage)
+            return self._douBan.get_douban_online_movie(CurrentPage)
         
         if SubType == "dbhm":
             # 豆瓣热门电影
-            return DouBan().get_douban_hot_movie(CurrentPage)
+            return self._douBan.get_douban_hot_movie(CurrentPage)
         
         if SubType == "dbht":
             # 豆瓣热门电视剧
-            return DouBan().get_douban_hot_tv(CurrentPage)
+            return self._douBan.get_douban_hot_tv(CurrentPage)
         
         if SubType == "dbdh":
             # 豆瓣热门动画
-            return DouBan().get_douban_hot_anime(CurrentPage)
+            return self._douBan.get_douban_hot_anime(CurrentPage)
         
         if SubType == "dbnm":
             # 豆瓣最新电影
-            return DouBan().get_douban_new_movie(CurrentPage)
+            return self._douBan.get_douban_new_movie(CurrentPage)
         
         if SubType == "dbtop":
             # 豆瓣TOP250电影
-            return DouBan().get_douban_top250_movie(CurrentPage)
+            return self._douBan.get_douban_top250_movie(CurrentPage)
         
         if SubType == "dbzy":
             # 豆瓣热门综艺
-            return DouBan().get_douban_hot_show(CurrentPage)
+            return self._douBan.get_douban_hot_show(CurrentPage)
         
         if SubType == "dbct":
             # 华语口碑剧集榜
-            return DouBan().get_douban_chinese_weekly_tv(CurrentPage)
+            return self._douBan.get_douban_chinese_weekly_tv(CurrentPage)
         
         if SubType == "dbgt":
             # 全球口碑剧集榜
-            return DouBan().get_douban_weekly_tv_global(CurrentPage)
+            return self._douBan.get_douban_weekly_tv_global(CurrentPage)
         
         if SubType == "sim":
             # 相似推荐
@@ -4497,6 +4500,62 @@ class WebAction:
         mtype = MediaType.MOVIE if data.get("type") in MovieTypes else MediaType.TV
         if not tmdbid:
             return {"code": 1, "msg": "未指定媒体ID"}
+        
+        if str(tmdbid).startswith("DB:"):
+            doubanId = tmdbid[3:].split(',')[0]
+            douban_info = self._douBan.get_douban_info_byId(doubanId, mtype)
+            if douban_info:
+                title = douban_info.get('title')
+
+                if mtype != MediaType.MOVIE:
+                    overview = douban_info.get('intro')
+                    genres = douban_info.get('genres')
+                    year = douban_info.get('year')
+                    vote = douban_info.get('rating', {}).get('value'),
+                    image = douban_info.get('cover_url')
+                    duration = douban_info.get('durations')
+                    duration_str = duration[0] if duration else ''
+                else:
+                    overview = douban_info.get('summary')
+                    image = douban_info.get('image')
+                    vote = douban_info.get('rating', {}).get('average'),
+                    # 从attrs获取
+                    info_attr = douban_info.get('attrs')
+                    genres = info_attr.get('movie_type')
+                    year_list = info_attr.get('year')
+                    year = year_list[0] if year_list else ''
+                    duration = info_attr.get('movie_duration')
+                    duration_str = duration[0] if duration else ''
+
+                # 查询演职人员信息
+                crews, actors = self._douBan.get_media_celebrities(doubanId)
+                # 查询存在及订阅状态
+                fav, rssid, item_url = self.get_media_exists_info(mtype,title,year,tmdbid)
+
+                return {
+                    "code": 0,
+                    "data": {
+                        "tmdbid": tmdbid,
+                        "douban_id": doubanId,
+                        "title": title,
+                        "year": year,
+                        "image": image,
+                        "vote": vote,
+                        "overview": overview,
+                        "link": douban_info.get('alt'),
+                        "genres": genres,
+                        "runtime": duration_str,
+                        "background": self._douBan.get_media_photo(doubanId, mtype),
+                        "crews": crews,
+                        "actors": actors,
+                        "fav": fav,
+                        "item_url": item_url,
+                        "rssid": rssid,
+                        "seasons": []
+                    }
+                }
+
+        
         media_info = WebUtils.get_mediainfo_from_id(mediaid=tmdbid, mtype=mtype)
         # 检查TMDB信息
         if not media_info or not media_info.tmdb_info:
@@ -4528,7 +4587,7 @@ class WebAction:
         crews = []
         actors = []
         if media_info.douban_id:
-            crews, actors = DouBan().scraper_media_celebrities(media_info.douban_id.split(',')[0])
+            crews, actors = self._douBan.get_media_celebrities(media_info.douban_id.split(',')[0])
         else:
             crews = MediaHandler.get_tmdb_crews(tmdbinfo=media_info.tmdb_info, nums=6)
             actors = MediaHandler.get_tmdb_cats(mtype=mtype, tmdbid=media_info.tmdb_id)
@@ -4536,7 +4595,7 @@ class WebAction:
         return {
             "code": 0,
             "data": {
-                "tmdbid": media_info.tmdb_id,
+                "tmdbid": str(media_info.tmdb_id),
                 "douban_id": media_info.douban_id,
                 "background": MediaHandler.get_tmdb_backdrops(tmdbinfo=media_info.tmdb_info),
                 "image": media_info.get_poster_image(),
@@ -4562,8 +4621,7 @@ class WebAction:
         """
         tmdbid = data.get("tmdbid")
         page = data.get("page") or 1
-        mtype = MediaType.MOVIE if data.get(
-            "type") in MovieTypes else MediaType.TV
+        mtype = MediaType.MOVIE if data.get("type") in MovieTypes else MediaType.TV
         if not tmdbid:
             return {"code": 1, "msg": "未指定TMDBID"}
         if mtype == MediaType.MOVIE:
