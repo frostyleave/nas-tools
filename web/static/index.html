@@ -1375,7 +1375,7 @@
       const manualSelect = $("#rename_syncmod_manual");
       const customizeSelect = $("#rename_syncmod_customize");
 
-      Object.keys(rmtModeDict).forEach(function(mode) {
+      $.each(rmtModeDict, function (idx, mode){
         var option = `<option value="${mode.value}">${mode.name}</option>`;
         manualSelect.append(option);
         customizeSelect.append(option);
