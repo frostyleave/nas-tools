@@ -27,6 +27,7 @@ class AuthManager {
 
             return 'ok'
         } catch (error) {
+            console.log('refresh access token error: ', error);
             this.logout();
         }
     }
@@ -66,7 +67,7 @@ class AuthManager {
             this.processQueue(error, null);
             // 重定向到登录页
             this.redirectToLogin();
-            throw error;
+            console.log('request refresh access token error: ', error);
         } finally {
             this.isRefreshing = false;
         }
