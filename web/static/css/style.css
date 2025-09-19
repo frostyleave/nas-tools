@@ -6,12 +6,6 @@
     --lit-navbar-active: rgba(123, 178, 233, 0.5);
 }
 
-@media (max-width: 768px) {
-  .btn {
-    --tblr-btn-padding-x: 0.5rem;
-  }
-}
-
 .theme-dark {
     --lit-navbar-hover: #2a3551ca;
     --lit-navbar-active: #414d6dca;
