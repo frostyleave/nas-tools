@@ -153,7 +153,7 @@ export class PageMediainfo extends CustomElement {
                           e.stopPropagation();
                           media_search(this.tmdbid + "", this.media_info.title, this.media_type);
                         }}>
-                      <i class="ti ti-search fs-2 text-white"></i>
+                      <i class="ti ti-search fs-2"></i>
                     </span>
                     ${this.fav == "1"
                     ? html`
@@ -174,7 +174,7 @@ export class PageMediainfo extends CustomElement {
                           添加订阅
                         </span>
                         <span class="btn btn-icon bg-transparent border-0 d-sm-none" @click=${this._loveClick}>
-                          <i class="ti ti-heart fs-2 text-white"></i>
+                          <i class="ti ti-heart fs-2"></i>
                         </span>
                         `: nothing }`
                       }
@@ -184,7 +184,7 @@ export class PageMediainfo extends CustomElement {
                       在线观看
                     </span>
                     <span class="btn btn-icon bg-transparent border-0 d-sm-none" @click=${this._openItemUrl}>
-                      <i class="ti ti-player-play fs-2 text-white"></i>
+                      <i class="ti ti-player-play fs-2"></i>
                     </span>
                     ` : nothing }`
                   : html`

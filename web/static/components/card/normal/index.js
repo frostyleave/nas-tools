@@ -82,7 +82,7 @@ export class NormalCard extends observeState(CustomElement) {
           <div class="ms-auto">
             <div class="text-muted" title="加入/取消订阅" style="cursor: pointer" @click=${this._loveClick}>
               <span class="icon-pulse text-white">
-                ${this.fav == "1" ? html`<i class="ti ti-heart-filled text-red"></i>` : html`<i class="ti ti-heart fs-2 text-white"></i>`}
+                ${this.fav == "1" ? html`<i class="ti ti-heart-filled fs-2 text-red"></i>` : html`<i class="ti ti-heart fs-2 text-white"></i>`}
               </span>
             </div>
           </div>
