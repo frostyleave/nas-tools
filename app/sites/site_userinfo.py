@@ -269,12 +269,8 @@ class SiteUserInfo(object):
             self.dbhelper.insert_site_statistics_history(site_user_infos)
             # 实时用户数据
             self.dbhelper.update_site_user_statistics(site_user_infos)
-            # 更新站点图标
-            self.dbhelper.update_site_favicon(site_user_infos)
             # 实时做种信息
             self.dbhelper.update_site_seed_info(site_user_infos)
-            # 站点图标重新加载
-            self.sites.init_favicons()
 
             # 更新时间
             self._last_update_time = datetime.now()

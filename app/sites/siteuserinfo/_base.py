@@ -115,7 +115,7 @@ class _ISiteUserInfo(metaclass=ABCMeta):
         解析站点信息
         :return:
         """
-        self._parse_favicon(self._index_html)
+        # self._parse_favicon(self._index_html)
         if not self._parse_logged_in(self._index_html):
             return
 
