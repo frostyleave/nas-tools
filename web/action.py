@@ -38,7 +38,7 @@ from app.rss import Rss
 from app.rsschecker import RssChecker
 from app.scheduler import Scheduler
 from app.searcher import Searcher
-from app.sites import Sites, SiteUserInfo, SiteCookie, SiteConf
+from app.sites import SitesManager, SitesInfoCenter, CookieManager, SiteConf
 from app.subscribe import Subscribe
 from app.sync import Sync
 from app.torrentremover import TorrentRemover
@@ -681,7 +681,7 @@ class WebAction:
             if not url:
                 continue
             # 查询站点
-            site_info = Sites().get_sites(siteurl=url)
+            site_info = SitesManager().get_sites(siteurl=url)
             if not site_info:
                 return {"code": -1, "msg": "根据链接地址未匹配到站点"}
             # 下载种子文件，并读取信息
@@ -1097,7 +1097,7 @@ class WebAction:
         维护站点信息
         """
 
-        _sites = Sites()
+        _sites = SitesManager()
 
         def __is_site_duplicate(query_name, query_tid):
             # 检查是否重名
@@ -1140,7 +1140,7 @@ class WebAction:
                                      rss_uses=rss_uses)
             if ret and (name != old_name):
                 # 更新历史站点数据信息
-                SiteUserInfo().update_site_name(name, old_name)
+                SitesInfoCenter().update_site_name(name, old_name)
 
         else:
             ret = _sites.add_site(name=name,
@@ -1164,7 +1164,7 @@ class WebAction:
         site_2xfree = False
         site_hr = False
         if tid:
-            ret = Sites().get_sites(siteid=tid)
+            ret = SitesManager().get_sites(siteid=tid)
             if ret.get("rssurl"):
                 site_attr = SiteConf().get_grap_conf(ret.get("rssurl"))
                 if site_attr.get("FREE"):
@@ -1186,11 +1186,11 @@ class WebAction:
         statistic = True if data.get("statistic") else False
         basic = True if data.get("basic") else False
         if basic:
-            sites = Sites().get_site_dict(rss=rss,
+            sites = SitesManager().get_site_dict(rss=rss,
                                           brush=brush,
                                           statistic=statistic)
         else:
-            sites = Sites().get_sites(rss=rss,
+            sites = SitesManager().get_sites(rss=rss,
                                       brush=brush,
                                       statistic=statistic)
         return {"code": 0, "sites": sites}
@@ -1201,7 +1201,7 @@ class WebAction:
         """
         tid = data.get("id")
         if tid:
-            ret = Sites().delete_site(tid)
+            ret = SitesManager().delete_site(tid)
             return {"code": ret}
         else:
             return {"code": 0}
@@ -2206,7 +2206,7 @@ class WebAction:
         resp = {"code": 0}
 
         resp.update(
-            {"dataset": SiteUserInfo().get_pt_site_activity_history(data["name"])})
+            {"dataset": SitesInfoCenter().get_pt_site_activity_history(data["name"])})
         return resp
 
     def __get_site_history(self, data):
@@ -2219,7 +2219,7 @@ class WebAction:
             return {"code": 1, "msg": "查询参数错误"}
 
         resp = {"code": 0}
-        _, _, site, upload, download = SiteUserInfo().get_pt_site_statistics_history(
+        _, _, site, upload, download = SitesInfoCenter().get_pt_site_statistics_history(
             data["days"] + 1, data.get("end_day", None)
         )
 
@@ -2241,7 +2241,7 @@ class WebAction:
 
         resp = {"code": 0}
 
-        seeding_info = SiteUserInfo().get_pt_site_seeding_info(
+        seeding_info = SitesInfoCenter().get_pt_site_seeding_info(
             data["name"]).get("seeding_info", [])
         # 调整为dataset组织数据
         dataset = [["seeders", "size"]]
@@ -4041,7 +4041,7 @@ class WebAction:
         """
         测试站点连通性
         """
-        flag, msg, times = Sites().test_connection(data.get("id"))
+        flag, msg, times = SitesManager().test_connection(data.get("id"))
         code = 0 if flag else -1
         return {"code": code, "msg": msg, "time": times}
 
@@ -4298,7 +4298,7 @@ class WebAction:
         sid = data.get("sid")
         site = data.get("site")
         if not sid and site:
-            sid = Sites().get_site_download_setting(site_name=site)
+            sid = SitesManager().get_site_download_setting(site_name=site)
         dirs = Downloader().get_download_dirs(setting=sid)
         return {"code": 0, "paths": dirs}
 
@@ -4341,7 +4341,7 @@ class WebAction:
                                "password": password,
                                "two_step_code": twostepcode
                            })
-        retcode, messages = SiteCookie().update_sites_cookie_ua(siteid=siteid,
+        retcode, messages = CookieManager().update_sites_cookie_ua(siteid=siteid,
                                                                 username=username,
                                                                 password=password,
                                                                 twostepcode=twostepcode,
@@ -4355,7 +4355,7 @@ class WebAction:
         siteid = data.get("site_id")
         cookie = data.get("site_cookie")
         ua = data.get("site_ua")
-        Sites().update_site_cookie(siteid=siteid, cookie=cookie, ua=ua)
+        SitesManager().update_site_cookie(siteid=siteid, cookie=cookie, ua=ua)
         return {"code": 0, "messages": "请求发送成功"}
 
     def __set_site_captcha_code(self, data):
@@ -4364,7 +4364,7 @@ class WebAction:
         """
         code = data.get("code")
         value = data.get("value")
-        SiteCookie().set_code(code=code, value=value)
+        CookieManager().set_code(code=code, value=value)
         return {"code": 0}
 
     def __update_torrent_remove_task(self, data):
@@ -4450,7 +4450,7 @@ class WebAction:
         sort_by = data.get("sort_by")
         sort_on = data.get("sort_on")
         site_hash = data.get("site_hash")
-        statistics = SiteUserInfo().get_site_user_statistics(sites=sites, encoding=encoding)
+        statistics = SitesInfoCenter().get_site_user_statistics(sites=sites, encoding=encoding)
         if sort_by and sort_on in ["asc", "desc"]:
             if sort_on == "asc":
                 statistics.sort(key=lambda x: x[sort_by])
@@ -4792,7 +4792,7 @@ class WebAction:
         # # 需要过滤的菜单
         # ignore = []
         # # 查询最早加入PT站的时间, 如果不足一个月, 则隐藏刷流任务
-        # first_pt_site = SiteUserInfo().get_pt_site_min_join_date()
+        # first_pt_site = PtUserInfoCenter().get_pt_site_min_join_date()
         # if not first_pt_site or not StringUtils.is_one_month_ago(first_pt_site):
         #     ignore.append('brushtask')
 
@@ -5022,7 +5022,7 @@ class WebAction:
         强制刷新站点数据,并发送站点统计的消息
         """
         # 强制刷新站点数据,并发送站点统计的消息
-        SiteUserInfo().refresh_site_data_now()
+        SitesInfoCenter().refresh_site_data_now()
 
     def get_default_rss_setting(self, data):
         """

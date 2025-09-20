@@ -2629,7 +2629,7 @@ class DbHelper:
                 }
             )
 
-    def get_indexers(self):
+    def get_indexers(self) -> List[INDEXERSITE]:
         """
         查询内置索引站点
         """

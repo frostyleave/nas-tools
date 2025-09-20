@@ -8,7 +8,7 @@ import log
 from app.helper import MetaHelper
 from app.mediaserver import MediaServer
 from app.rss import Rss
-from app.sites import SiteUserInfo
+from app.sites import SitesInfoCenter
 from app.subscribe import Subscribe
 from app.sync import Sync
 from app.utils import ExceptionUtils, SchedulerUtils
@@ -58,7 +58,7 @@ class Scheduler:
                 tz = pytz.timezone(Config().get_timezone())
                 SchedulerUtils.start_job(
                     scheduler=self.SCHEDULER,
-                    func=SiteUserInfo().refresh_site_data_now,
+                    func=SitesInfoCenter().refresh_site_data_now,
                     func_desc="数据统计",
                     cron=str(ptrefresh_date_cron),
                     next_run_time=datetime.datetime.now(tz)

@@ -9,7 +9,7 @@ from app.indexer import Indexer
 from app.media import Media
 from app.message import Message
 from app.searcher import Searcher
-from app.sites import Sites
+from app.sites import SitesManager
 from app.subscribe import Subscribe
 from app.utils import StringUtils
 from app.utils.types import SearchType, IndexerType, ProgressKey, RssType
@@ -211,7 +211,7 @@ def search_media_by_message(input_str, in_from: SearchType, user_id, user_name=N
         # 下载链接
         if SEARCH_MEDIA_TYPE[user_id] == "DOWNLOAD":
             # 检查是不是有这个站点
-            site_info = Sites().get_sites(siteurl=input_str)
+            site_info = SitesManager().get_sites(siteurl=input_str)
             # 偿试下载种子文件
             filepath, content, retmsg = Downloader().save_torrent_file(
                 url=input_str,
@@ -247,7 +247,7 @@ def search_media_by_message(input_str, in_from: SearchType, user_id, user_name=N
                                                                     [{
                                                                         "id": site.get("name"),
                                                                         "name": site.get("name")
-                                                                    } for site in Sites().get_sites(rss=True)])
+                                                                    } for site in SitesManager().get_sites(rss=True)])
 
             # 索引器
             indexers = Indexer().get_indexers()

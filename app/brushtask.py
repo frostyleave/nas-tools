@@ -13,7 +13,7 @@ from app.filter import Filter
 from app.helper import DbHelper, RssHelper
 from app.media.meta import MetaInfo
 from app.message import Message
-from app.sites import Sites, SiteConf
+from app.sites import SitesManager, SiteConf
 from app.utils import StringUtils, ExceptionUtils, SiteUtils
 from app.utils.commons import singleton
 from app.utils.types import BrushDeleteType
@@ -42,7 +42,7 @@ class BrushTask(object):
         self.dbhelper = DbHelper()
         self.rsshelper = RssHelper()
         self.message = Message()
-        self.sites = Sites()
+        self.sites = SitesManager()
         self.siteconf = SiteConf()
         self.filter = Filter()
         self.downloader = Downloader()

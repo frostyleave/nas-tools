@@ -1,20 +1,26 @@
 import json
 from datetime import datetime
+from lxml import etree
+from typing import Optional
 
-from app.indexer.client.browser import PlaywrightHelper
 import log
+
 from app.helper import SiteHelper, DbHelper
-from app.indexer.manager import IndexerManager
+from app.indexer.client.browser import PlaywrightHelper
+from app.indexer.manager import BaseIndexer, IndexerManager
 from app.message import Message
 from app.sites.site_limiter import SiteRateLimiter
 from app.utils import RequestUtils, SiteUtils, ExceptionUtils
 from app.utils.commons import singleton
+
 from config import Config
-from lxml import etree
 
 
 @singleton
-class Sites:
+class SitesManager:
+    """
+    站点管理器
+    """
     message = None
     dbhelper = None
 
@@ -25,7 +31,7 @@ class Sites:
     _brush_sites = []
     _statistic_sites = []
     _signin_sites = []
-    _limiters = {}
+    _limiters : Optional[dict[str, SiteRateLimiter]] = {}
 
     _MAX_CONCURRENCY = 10
 
@@ -63,7 +69,9 @@ class Sites:
             site_token = site.TOKEN
             site_apikey = site.API_KEY
             site_uses = site.INCLUDE or ''
+            site_parser = ''
             uses = []
+
             if site_uses:
                 rss_enable = True if "D" in site_uses and site_rssurl else False
                 brush_enable = True if "S" in site_uses and site_rssurl else False
@@ -75,6 +83,11 @@ class Sites:
                 rss_enable = False
                 brush_enable = False
                 statistic_enable = False
+            
+            # 解析器
+            indexer_base = IndexerManager().get_indexer_base(site_signurl)
+            if indexer_base:
+                site_parser = indexer_base.parser
 
             site_info = {
                 "id": site.ID,
@@ -100,7 +113,8 @@ class Sites:
                 "limit_interval": site_note.get("limit_interval"),
                 "limit_count": site_note.get("limit_count"),
                 "limit_seconds": site_note.get("limit_seconds"),
-                "strict_url": SiteUtils.get_base_url(site_signurl or site_rssurl)
+                "strict_url": SiteUtils.get_base_url(site_signurl or site_rssurl),
+                "parser" : site_parser
             }
             # 以ID存储
             self._siteByIds[site.ID] = site_info
@@ -304,15 +318,18 @@ class Sites:
         if len(xpaths) > 3:
             referer = xpaths[3]
         try:
-            site_info = self.get_indexer_sites(url=page_url)
-            if not site_info.get("referer"):
+            site_info = self.match_indexer_sites(url=page_url)
+            if not site_info.referer:
                 referer = None
+            proxy = Config().get_proxies() if site_info.proxy else None
+
             req = RequestUtils(
                 ua=ua,
                 cookies=cookie,
                 referer=referer,
-                proxies=Config().get_proxies() if site_info.get("proxy") else None
+                proxies=proxy
             ).get_res(url=page_url)
+
             if req and req.status_code == 200:
                 if req.text:
                     page_source = req.text
@@ -326,24 +343,24 @@ class Sites:
             ExceptionUtils.exception_traceback(err)
         return None
 
-    def get_indexer_sites(self, url, site_name=None):
+    def match_indexer_sites(self, url, site_name=None) -> Optional[BaseIndexer]:
         """
-        根据url查询索引站点信息
+        根据url匹配索引站点信息
         """
-        indexers = IndexerManager().get_all_indexers()
+        indexers = IndexerManager().get_all_indexer_Base()
         if url:
             base_url = SiteUtils.get_base_url(url)            
-            sites_info = next(filter(lambda x: x.get("domain").startswith(base_url), indexers), None)
+            sites_info = next(filter(lambda x: x.domain.startswith(base_url), indexers), None)
             if sites_info:
                 return sites_info
             
             url_sld = SiteUtils.get_url_sld(url)
-            sites_info = next(filter(lambda x: url_sld.startswith(x.get("id")), indexers), None)
+            sites_info = next(filter(lambda x: url_sld.startswith(x.id), indexers), None)
             if sites_info:
                 return sites_info
             
         if site_name:
-            sites_info = next(filter(lambda x: x.get("name") == site_name, indexers), None)
+            sites_info = next(filter(lambda x: x.name == site_name, indexers), None)
             return sites_info
 
         return None

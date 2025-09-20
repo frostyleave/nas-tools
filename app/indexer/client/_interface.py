@@ -6,7 +6,7 @@ import requests
 
 from urllib.parse import quote
 
-from app.indexer.manager import IndexerConf
+from app.indexer.manager import IndexerInfo
 from app.utils.string_utils import StringUtils
 from config import Config
 
@@ -15,7 +15,7 @@ class InterfaceSpider(object):
     torrents_info_array = []
     result_num = 100
 
-    def __init__(self, indexer:IndexerConf):
+    def __init__(self, indexer:IndexerInfo):
         self._indexer = indexer
         self.list_selector = None
         self.torrents_selector = None

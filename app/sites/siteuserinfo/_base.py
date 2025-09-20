@@ -24,8 +24,10 @@ class _ISiteUserInfo(metaclass=ABCMeta):
     schema = SiteSchema.NexusPhp
     # 站点解析时判断顺序，值越小越先解析
     order = SITE_BASE_ORDER
+    # 请求模式 cookie/apikey
+    request_mode = "cookie"
 
-    def __init__(self, site_name, url, site_cookie, index_html, session=None, ua=None, emulate=False, proxy=None):
+    def __init__(self, site_name, url, site_cookie, index_html, apikey=None, session=None, ua=None, emulate=False, proxy=None):
         super().__init__()
         # 站点信息
         self.site_name = None
@@ -64,11 +66,14 @@ class _ISiteUserInfo(metaclass=ABCMeta):
 
         # 错误信息
         self.err_msg = None
-        # 内部数据
-        self._base_url = None
-        self._site_cookie = None
-        self._index_html = None
         self._addition_headers = None
+
+        # 用户基础信息页面
+        self._user_basic_page = None
+        # 用户基础信息参数
+        self._user_basic_params = None
+        # 用户基础信息请求头
+        self._user_basic_headers = None
 
         # 站点页面
         self._brief_page = "index.php"
@@ -83,13 +88,16 @@ class _ISiteUserInfo(metaclass=ABCMeta):
         split_url = urlsplit(url)
         self.site_name = site_name
         self.site_url = url
+
         self._base_url = f"{split_url.scheme}://{split_url.netloc}"
         self._favicon_url = urljoin(self._base_url, "favicon.ico")
-        self.site_favicon = ""
         self._site_cookie = site_cookie
+        self._apikey = apikey
         self._index_html = index_html
         self._session = session if session else requests.Session()
         self._ua = ua
+
+        self.site_favicon = ""
 
         self._emulate = emulate
         self._proxy = proxy
@@ -115,20 +123,24 @@ class _ISiteUserInfo(metaclass=ABCMeta):
         解析站点信息
         :return:
         """
-        # self._parse_favicon(self._index_html)
-        if not self._parse_logged_in(self._index_html):
-            return
+        try:
+            # self._parse_favicon(self._index_html)
+            if not self._parse_logged_in(self._index_html):
+                return
 
-        self._parse_site_page(self._index_html)
-        self._parse_user_base_info(self._index_html)
-        self._pase_unread_msgs()
-        if self._user_traffic_page:
-            self._parse_user_traffic_info(self._get_page_content(urljoin(self._base_url, self._user_traffic_page)))
-        if self._user_detail_page:
-            self._parse_user_detail_info(self._get_page_content(urljoin(self._base_url, self._user_detail_page)))
+            self._parse_site_page(self._index_html)
+            self._parse_user_base_info(self._index_html)
+            self._pase_unread_msgs()
+            if self._user_traffic_page:
+                self._parse_user_traffic_info(self._get_page_content(urljoin(self._base_url, self._user_traffic_page)))
+            if self._user_detail_page:
+                self._parse_user_detail_info(self._get_page_content(urljoin(self._base_url, self._user_detail_page)))
 
-        self._parse_seeding_pages()
-        self.seeding_info = json.dumps(self.seeding_info)
+            self._parse_seeding_pages()
+            self.seeding_info = json.dumps(self.seeding_info)
+        finally:
+            # 关闭连接
+            self.close()
 
     def _pase_unread_msgs(self):
         """
@@ -216,35 +228,59 @@ class _ISiteUserInfo(metaclass=ABCMeta):
         req_headers = None
         proxies = Config().get_proxies() if self._proxy else None
         if self._ua or headers or self._addition_headers:
-            req_headers = {}
+
+            if self.request_mode == "apikey":
+                req_headers = {}
+            else:
+                req_headers = {
+                    "User-Agent": f"{self._ua}"
+                }
+
             if headers:
                 req_headers.update(headers)
-
-            if isinstance(self._ua, str):
-                req_headers.update({
-                    "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
-                    "User-Agent": f"{self._ua}"
-                })
             else:
-                req_headers.update(self._ua)
+                req_headers.update({
+                    "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"
+                })
 
             if self._addition_headers:
                 req_headers.update(self._addition_headers)
 
-        reqHandler = RequestUtils(cookies=self._site_cookie,
-                               session=self._session,
+        if self.request_mode == "apikey":
+            # 使用apikey请求，通过请求头传递
+            cookie = None
+            session = None
+        else:
+            # 使用cookie请求
+            cookie = self._site_cookie
+            session = self._session
+
+        reqHandler = RequestUtils(cookies=cookie,
+                               session=session,
                                timeout=60,
                                proxies=proxies,
                                headers=req_headers)
 
         if params:
-            res = reqHandler.post_res(url=url, data=params)
+            if req_headers.get("Content-Type") == "application/json":
+                res = reqHandler.post_res(url=url, json=params)
+            else:
+                res = reqHandler.post_res(url=url, data=params)
         else:
             res = reqHandler.get_res(url=url)
+
         if res is not None and res.status_code in (200, 500, 403):
+            
+            if req_headers and "application/json" in str(req_headers.get("Accept")):
+                try:
+                    return json.dumps(res.json())
+                except (json.JSONDecodeError, ValueError) as e:
+                    log.exception(f"{self.site_name} API响应JSON解析失败: {e}")
+                    return ""
+                
             # 如果cloudflare 有防护，尝试使用浏览器仿真
             if under_challenge(res.text):
-                log.debug(f"【Sites】{self.site_name} 检测到Cloudflare，需要浏览器仿真")
+                log.debug(f"【Sites】{self.site_name} 检测到Cloudflare, 需要浏览器仿真")
                 return PlaywrightHelper().get_page_source(url=url, ua=self._ua, cookies=self._site_cookie, proxy=True if self._proxy else False)
             if "charset=utf-8" in res.text or "charset=UTF-8" in res.text:
                 res.encoding = "UTF-8"
@@ -322,3 +358,11 @@ class _ISiteUserInfo(metaclass=ABCMeta):
         :return:  head: message, date: time, content: message content
         """
         pass
+
+    def close(self):
+        """
+        关闭会话
+        """
+        if self._session:
+            self._session.close()
+            self._session = None

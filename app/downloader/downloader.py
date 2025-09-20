@@ -16,13 +16,13 @@ from app.filetransfer import FileTransfer
 from app.helper import DbHelper, ThreadHelper, SubmoduleHelper
 from app.indexer.client import InterfaceSpider, MTorrentSpider
 from app.indexer.client.browser import PlaywrightHelper
-from app.indexer.manager import IndexerConf, IndexerManager
+from app.indexer.manager import IndexerInfo, IndexerManager
 from app.media import Media
 from app.media.meta import MetaInfo
 from app.mediaserver import MediaServer
 from app.message import Message
 from app.plugins import EventManager
-from app.sites import Sites, SiteSubtitle
+from app.sites import SitesManager, SiteSubtitle
 from app.utils import TorrentUtils, StringUtils, SystemUtils, ExceptionUtils, NumberUtils, RequestUtils, SiteUtils
 from app.utils.commons import singleton
 from app.utils.types import MediaType, DownloaderType, SearchType, RmtMode, EventType, SystemConfigKey
@@ -77,7 +77,7 @@ class Downloader:
         self.mediaserver = MediaServer()
         self.filetransfer = FileTransfer()
         self.media = Media()
-        self.sites = Sites()
+        self.sites = SitesManager()
         self.systemconfig = SystemConfig()
         self.eventmanager = EventManager()
         self.sitesubtitle = SiteSubtitle()
@@ -653,7 +653,7 @@ class Downloader:
             log.info(f"【Downloader】下载器 {downloader_name} 添加任务: %s, 目录: %s, Url: %s" % (
                 title, download_dir, print_url))
 
-    def get_torrent_info_with_site(self, url:str, indexer_info:IndexerConf, page_url:str):
+    def get_torrent_info_with_site(self, url:str, indexer_info:IndexerInfo, page_url:str):
         """
         根据下载链接所属的站点信息，把种子下载到本地, 返回种子内容
         :param url: 种子链接
@@ -729,7 +729,7 @@ class Downloader:
         except Exception as err:
             return None, None, "", [], "下载种子文件出现异常: %s" % str(err)
 
-    def get_torrent_file_with_spider(self, url:str, indexer_info:IndexerConf, parser:str):
+    def get_torrent_file_with_spider(self, url:str, indexer_info:IndexerInfo, parser:str):
         """
         把种子下载到本地
         :return: 种子保存路径, 种子内容, 错误信息

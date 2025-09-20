@@ -7,7 +7,7 @@ from app.filter import Filter
 from app.helper import DbHelper, RssHelper
 from app.media import Media
 from app.media.meta import MetaInfo
-from app.sites import Sites, SiteConf
+from app.sites import SitesManager, SiteConf
 from app.subscribe import Subscribe
 from app.utils import ExceptionUtils, TorrentUtils
 from app.utils.commons import singleton
@@ -34,7 +34,7 @@ class Rss:
     def init_config(self):
         self.media = Media()
         self.downloader = Downloader()
-        self.sites = Sites()
+        self.sites = SitesManager()
         self.siteconf = SiteConf()
         self.filter = Filter()
         self.dbhelper = DbHelper()

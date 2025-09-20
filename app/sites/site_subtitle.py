@@ -4,7 +4,7 @@ import shutil
 from lxml import etree
 
 import log
-from app.sites.sites import Sites
+from app.sites.site_manager import SitesManager
 from app.sites.siteconf import SiteConf
 from app.helper import SiteHelper
 from app.utils import RequestUtils, SiteUtils, PathUtils, ExceptionUtils, SiteUtils
@@ -19,7 +19,7 @@ class SiteSubtitle:
 
     def __init__(self):
         self.siteconf = SiteConf()
-        self.sites = Sites()
+        self.sites = SitesManager()
         self._save_tmp_path = Config().get_temp_path()
         if not os.path.exists(self._save_tmp_path):
             os.makedirs(self._save_tmp_path)

@@ -1,4 +1,5 @@
 import time
+from typing import Tuple
 
 
 class SiteRateLimiter:
@@ -15,7 +16,7 @@ class SiteRateLimiter:
         self.last_visit_time = 0
         self.count = 0
 
-    def check_rate_limit(self) -> (bool, str):
+    def check_rate_limit(self) -> Tuple[bool, str]:
         """
         检查是否超出访问频率控制
         :return: 超出返回True，否则返回False，超出时返回错误信息
@@ -40,16 +41,3 @@ class SiteRateLimiter:
         self.last_visit_time = current_time
         # 未触发流控
         return False, ""
-
-
-if __name__ == "__main__":
-    # 限制 1 分钟内最多访问 10 次，单次访问间隔不得小于 10 秒
-    site_rate_limit = SiteRateLimiter(10, 60, 10)
-
-    # 模拟访问
-    for i in range(12):
-        if site_rate_limit.check_rate_limit():
-            print("访问频率超限")
-        else:
-            print("访问成功")
-        time.sleep(3)

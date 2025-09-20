@@ -1,12 +1,10 @@
 # author: https://github.com/jxxghp/MoviePilot/blob/main/app/modules/indexer/mtorrent.py
-import base64
-import json
 import re
-from app.indexer.manager import IndexerConf
-import log as logger
-
 from typing import Tuple, List
 
+import log as logger
+
+from app.indexer.manager import IndexerInfo
 from app.utils.types import MediaType
 from app.utils import RequestUtils, StringUtils, SiteUtils
 from config import Config
@@ -49,7 +47,7 @@ class MTorrentSpider:
         "7": "DIY 国配 中字"
     }
 
-    def __init__(self, indexer: IndexerConf):
+    def __init__(self, indexer: IndexerInfo):
         if indexer:
             self._indexerid = indexer.id
             self._url = indexer.domain

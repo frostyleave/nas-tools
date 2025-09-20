@@ -13,7 +13,7 @@ from app.downloader import Downloader
 from app.media.meta import MetaInfo
 from app.plugins.modules._base import _IPluginModule
 from app.plugins.modules.iyuu.iyuu_helper import IyuuHelper
-from app.sites import Sites
+from app.sites import SitesManager
 from app.utils import RequestUtils
 from app.utils.types import DownloaderType
 from config import Config
@@ -87,7 +87,7 @@ class IYUUAutoSeed(_IPluginModule):
     def get_fields():
         downloaders = {k: v for k, v in Downloader().get_downloader_conf_simple().items()
                        if v.get("type") in ["qbittorrent", "transmission"] and v.get("enabled")}
-        sites = {site.get("id"): site for site in Sites().get_site_dict()}
+        sites = {site.get("id"): site for site in SitesManager().get_site_dict()}
         return [
             # 同一板块
             {
@@ -208,7 +208,7 @@ class IYUUAutoSeed(_IPluginModule):
 
     def init_config(self, config=None):
         self.downloader = Downloader()
-        self.sites = Sites()
+        self.sites = SitesManager()
         # 读取配置
         if config:
             self._enable = config.get("enable")

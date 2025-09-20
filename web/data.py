@@ -18,7 +18,7 @@ from app.mediaserver.media_server import MediaServer
 from app.message import Message
 from app.plugins.plugin_manager import PluginManager
 from app.rsschecker import RssChecker
-from app.sites.sites import Sites
+from app.sites.site_manager import SitesManager
 from app.sync import Sync
 from app.torrentremover import TorrentRemover
 from app.utils.system_utils import SystemUtils
@@ -338,7 +338,7 @@ async def indexer(request: Request, current_user: User = Depends(get_current_use
 # 站点维护页面
 @data_router.post("/site")
 async def sites_page(request: Request, current_user = Depends(get_current_user)):
-    cfg_sites = Sites().get_sites()
+    cfg_sites = SitesManager().get_sites()
     rule_groups = {str(group["id"]): group["name"] for group in Filter().get_rule_groups()}
     download_settings = {did: attr["name"] for did, attr in Downloader().get_download_setting().items()}
     cookie_cloud_cfg = SystemConfig().get(SystemConfigKey.CookieCloud)
@@ -708,7 +708,7 @@ async def brushtask(request: Request, current_user: User = Depends(get_current_u
     刷流任务页面
     """
     # 站点列表
-    CfgSites = Sites().get_sites(brush=True)
+    CfgSites = SitesManager().get_sites(brush=True)
     # 下载器列表
     Downloaders = Downloader().get_downloader_conf_simple()
     # 任务列表

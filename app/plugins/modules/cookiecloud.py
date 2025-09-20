@@ -8,7 +8,7 @@ from apscheduler.triggers.cron import CronTrigger
 
 from app.indexer.manager import IndexerManager
 from app.plugins.modules._base import _IPluginModule
-from app.sites import Sites
+from app.sites import SitesManager
 from app.utils import RequestUtils
 from config import Config
 
@@ -149,7 +149,7 @@ class CookieCloud(_IPluginModule):
         ]
 
     def init_config(self, config=None):
-        self.sites = Sites()
+        self.sites = SitesManager()
         self._index_helper = IndexerManager()
 
         # 读取配置
@@ -292,14 +292,14 @@ class CookieCloud(_IPluginModule):
                     update_count += 1
             else:
                 # 查询是否在索引器范围
-                indexer_info = self._index_helper.get_indexer_info(domain_url)
-                if indexer_info:
+                indexer_base = self._index_helper.get_indexer_base(domain_url)
+                if indexer_base:
                     # 支持则新增站点
                     site_pri = self.sites.get_max_site_pri() + 1
                     self.sites.add_site(
-                        name=indexer_info.get("name"),
+                        name=indexer_base.name,
+                        signurl=indexer_base.domain,
                         site_pri=site_pri,
-                        signurl=indexer_info.get("domain"),
                         cookie=cookie_str,
                         rss_uses='T'
                     )

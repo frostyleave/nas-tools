@@ -12,7 +12,7 @@ from app.media.meta import MetaInfo
 from app.message import Message
 from app.plugins import EventManager
 from app.searcher import Searcher
-from app.sites import Sites
+from app.sites import SitesManager
 from app.utils import TorrentUtils
 from app.utils.commons import singleton
 from app.utils.types import MediaType, SearchType, EventType, SystemConfigKey, RssType
@@ -45,7 +45,7 @@ class Subscribe:
         self.message = Message()
         self.media = Media()
         self.downloader = Downloader()
-        self.sites = Sites()
+        self.sites = SitesManager()
         self.douban = DouBan()
         self.indexer = Indexer()
         self.filter = Filter()

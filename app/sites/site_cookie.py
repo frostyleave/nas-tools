@@ -10,7 +10,7 @@ import log
 from app.helper import ProgressHelper, OcrHelper, SiteHelper
 from app.indexer.client.browser import PlaywrightHelper
 from app.sites.siteconf import SiteConf
-from app.sites.sites import Sites
+from app.sites.site_manager import SitesManager
 from app.utils import StringUtils, RequestUtils, SiteUtils
 from app.utils.commons import singleton
 from app.utils.types import ProgressKey
@@ -18,7 +18,10 @@ from app.utils.system_utils import SystemUtils
 
 
 @singleton
-class SiteCookie(object):
+class CookieManager(object):
+    """
+    Cookie管理器
+    """
     progress = None
     sites = None
     siteconf = None
@@ -30,7 +33,7 @@ class SiteCookie(object):
 
     def init_config(self):
         self.progress = ProgressHelper()
-        self.sites = Sites()
+        self.sites = SitesManager()
         self.siteconf = SiteConf()
         self.ocrhelper = OcrHelper()
         self.captcha_code = {}

@@ -461,7 +461,7 @@ function update_tab_display() {
 window.addEventListener('popstate', function (event) {
 
   // 解除滚动事件
-  $(window).unbind('scroll');
+  // $(window).unbind('scroll');
 
   var pageMenu = get_menu_id(window.location.hash);
   if (!pageMenu) {

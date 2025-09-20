@@ -17,7 +17,7 @@ from app.message import Message
 from app.plugins import EventHandler
 from app.plugins.modules._base import _IPluginModule
 from app.sites.siteconf import SiteConf
-from app.sites.sites import Sites
+from app.sites.site_manager import SitesManager
 from app.utils import RequestUtils, ExceptionUtils, SiteUtils, SchedulerUtils
 from app.utils.types import EventType
 from config import Config
@@ -71,7 +71,7 @@ class AutoSignIn(_IPluginModule):
 
     @staticmethod
     def get_fields():
-        sites = {site.get("id"): site for site in Sites().get_site_dict()}
+        sites = {site.get("id"): site for site in SitesManager().get_site_dict()}
         return [
             {
                 'type': 'div',
@@ -304,7 +304,7 @@ class AutoSignIn(_IPluginModule):
                 return
 
         # 查询待签到站点信息
-        sign_sites_info = Sites().get_sites(siteids=wait_sign_sites)
+        sign_sites_info = SitesManager().get_sites(siteids=wait_sign_sites)
         if not sign_sites_info:
             self.info("没有可签到站点，停止运行")
             return

@@ -8,9 +8,9 @@ from app.conf import SystemConfig
 from app.helper import ProgressHelper, DbHelper
 from app.indexer.client._base import _IIndexClient
 from app.indexer.client import Rarbg, TorrentSpider, TNodeSpider, TorrentLeech, InterfaceSpider, MTorrentSpider
-from app.indexer.manager import IndexerManager, IndexerConf
+from app.indexer.manager import IndexerManager, IndexerInfo
 from app.media.meta.metainfo import MetaInfo
-from app.sites import Sites
+from app.sites import SitesManager
 from app.utils import StringUtils
 from app.utils.types import SearchType, IndexerType, ProgressKey, SystemConfigKey
 
@@ -38,7 +38,7 @@ class BuiltinIndexer(_IIndexClient):
         self.init_config()
 
     def init_config(self):
-        self.sites = Sites()
+        self.sites = SitesManager()
         self.progress = ProgressHelper()
         self.dbhelper = DbHelper()
         self._show_more_sites = Config().get_config("laboratory").get('show_more_sites')
@@ -57,7 +57,7 @@ class BuiltinIndexer(_IIndexClient):
         """
         return True
 
-    def get_indexers(self, check=True, indexer_id=None, public=True) -> List[IndexerConf]:
+    def get_indexers(self, check=True, indexer_id=None, public=True) -> List[IndexerInfo]:
 
         ret_indexers = []
 
@@ -66,12 +66,12 @@ class BuiltinIndexer(_IIndexClient):
         _indexer_domains = []
 
         # 私有站点
-        for site in Sites().get_sites():
+        for site in SitesManager().get_sites():
             url = site.get("signurl") or site.get("rssurl")
             if not url:
                 continue
             render = site.get("chrome")
-            indexer = IndexerManager().build_indexer_conf(url=url,
+            indexer_conf = IndexerManager().build_indexer_conf(url=url,
                                                   siteid=site.get("id"),
                                                   cookie=site.get("cookie"),
                                                   token=site.get("token"),
@@ -83,33 +83,35 @@ class BuiltinIndexer(_IIndexClient):
                                                   public=False,
                                                   proxy=site.get("proxy"),
                                                   render=render)
-            if indexer:
-                if indexer_id and indexer.id == indexer_id:
-                    return indexer
-                if check and (not indexer_sites or indexer.id not in indexer_sites):
+            if indexer_conf:
+                if indexer_id and indexer_conf.id == indexer_id:
+                    return indexer_conf
+                if check and (not indexer_sites or indexer_conf.id not in indexer_sites):
                     continue
-                if indexer.domain not in _indexer_domains:
-                    _indexer_domains.append(indexer.domain)
-                    indexer.name = site.get("name")
-                    ret_indexers.append(indexer)
+                if indexer_conf.domain not in _indexer_domains:
+                    _indexer_domains.append(indexer_conf.domain)
+                    indexer_conf.name = site.get("name")
+                    ret_indexers.append(indexer_conf)
         # 公开站点
-        for indexer in IndexerManager().get_all_indexers():
-            if not indexer.get("public"):
+        for base_item in IndexerManager().get_all_indexer_Base():
+            if not base_item.public:
                 continue
-            if indexer_id and indexer.get("id") == indexer_id:
-                conf_data = IndexerManager().prepare_datas(datas=indexer)
-                return IndexerConf.from_datas(conf_data)
-            if check and (not indexer_sites or indexer.get("id") not in indexer_sites):
+            if indexer_id and base_item.id == indexer_id:
+                conf_data = IndexerManager().prepare_datas(conf_data=base_item)
+                return IndexerInfo.from_datas(conf_data)
+            
+            if check and (not indexer_sites or base_item.id not in indexer_sites):
                 continue
-            if indexer.get("domain") not in _indexer_domains:
-                _indexer_domains.append(indexer.get("domain"))
-                conf_data = IndexerManager().prepare_datas(datas=indexer)
-                ret_indexers.append(IndexerConf.from_datas(conf_data))
+
+            if base_item.domain not in _indexer_domains:
+                _indexer_domains.append(base_item.domain)
+                conf_data = IndexerManager().prepare_datas(conf_data=base_item)
+                ret_indexers.append(IndexerInfo.from_datas(conf_data))
         
         return None if indexer_id else ret_indexers
 
     def search(self, order_seq,
-               indexer: IndexerConf,
+               indexer: IndexerInfo,
                key_word,
                filter_args: dict,
                match_media,
