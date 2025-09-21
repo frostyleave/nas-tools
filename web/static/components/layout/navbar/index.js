@@ -170,7 +170,7 @@ export class LayoutNavbar extends CustomElement {
         <div class="offcanvas offcanvas-start d-flex lit-navbar-canvas shadow" tabindex="-1" id="litLayoutNavbar">
           <div class="d-flex flex-row flex-grow-1 lit-navbar-hide-scrollbar">
             <div class="d-flex flex-column flex-grow-1">
-              <h1 style="text-align:center;margin: 1.5rem 0">
+              <h1 style="margin: 1.5rem">
                 <img src="../static/favicon.ico" style="vertical-align: bottom;border: 1px solid var(--tblr-navbar-toggler-border-color);border-radius: 5px;">
                 <label style="font-size: xx-large;color: var(--tblr-body-color);">nastool</label>
               </h1>
@@ -203,7 +203,7 @@ export class LayoutNavbar extends CustomElement {
       @click=${ () => {
         navmenu(item.page);
       }}>
-      <span class="nav-link-icon" style="color:var(--tblr-body-color);">
+      <span class="nav-item-icon">
         ${item.icon ? unsafeHTML(item.icon) : nothing}
       </span>
       <span class="nav-link-title">
