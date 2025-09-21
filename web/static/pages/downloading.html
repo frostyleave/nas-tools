@@ -169,7 +169,7 @@
       if (ret.retcode == "0") {
         for (var torrent of ret.torrents) {
           // 种子下载完成, 刷新界面
-          if (info.progress >= 100) {
+          if (torrent.progress >= 100) {
             get_downloader_torrents(downloaderId);
             break;
           }
