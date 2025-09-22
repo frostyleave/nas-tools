@@ -159,7 +159,7 @@ class BuiltinIndexer(_IIndexClient):
             elif indexer.parser == "MTorrentSpider":
                 error_flag, result_array = MTorrentSpider(indexer).search(keyword=search_word, mtype=mtype)
             else:
-                error_flag, result_array = TorrentSpider(indexer).search_torrents(keyword=search_word, mtype=mtype)
+                error_flag, result_array = TorrentSpider(indexer).search(keyword=search_word, mtype=mtype)
         except Exception as err:
             log.error("【%s】%s搜索执行出错: %s - %s" % (self.client_name, indexer.name, str(err), traceback.format_exc()))
             error_flag = True

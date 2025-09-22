@@ -7,13 +7,14 @@ from urllib.parse import quote, urlencode
 from jinja2 import Template
 from pyquery import PyQuery
 
-from app.utils.system_utils import SystemUtils
 import log
 
 from app.indexer.client.browser import PlaywrightHelper, WaitElement
 from app.utils import StringUtils, RequestUtils
 from app.utils.exception_utils import ExceptionUtils
+from app.utils.system_utils import SystemUtils
 from app.utils.types import MediaType
+
 
 from config import Config
 
@@ -36,7 +37,7 @@ class TorrentSpider(object):
     # Referer
     referer = None
     # 搜索路径、方式配置
-    search = {}
+    search_conf = {}
     # 批量搜索配置
     batch = {}
     # 浏览配置
@@ -68,7 +69,7 @@ class TorrentSpider(object):
             self._indexer = indexer
             self.indexerid = indexer.id
             self.indexername = indexer.name
-            self.search = indexer.search
+            self.search_conf = indexer.search
             self.batch = indexer.batch
             self.browse = indexer.browse
             self.category = indexer.category
@@ -87,7 +88,7 @@ class TorrentSpider(object):
             if indexer.cookie:
                 self.cookie = RequestUtils.cookie_parse(indexer.cookie)
 
-            wait_navigation = self.search.get('navigation')
+            wait_navigation = self.search_conf.get('navigation')
             if wait_navigation:
                 wait_pair = StringUtils.split_and_filter(wait_navigation, ":")
                 if len(wait_pair) == 2:
@@ -96,7 +97,7 @@ class TorrentSpider(object):
         if referer:
             self.referer = referer
 
-    def search_torrents(self, keyword: [str, list] = None, page=None, mtype=None):
+    def search(self, keyword: [str, list] = None, page=None, mtype=None):
         """
         页面查询
         :param keyword: 搜索关键字，如果数组则为批量搜索
@@ -104,7 +105,7 @@ class TorrentSpider(object):
         :param referer: Referer
         :param mtype: 媒体类型
         """
-        if not self.search or not self.domain:
+        if not self.search_conf or not self.domain:
             return False, []
         
         searchurl = self.build_search_url(keyword, page, mtype)
@@ -135,7 +136,7 @@ class TorrentSpider(object):
         构建请求地址
         """
         # 种子搜索相对路径
-        paths = self.search.get("paths", [])
+        paths = self.search_conf.get("paths", [])
         torrentspath = ""
         if len(paths) == 1:
             torrentspath = paths[0].get("path", "")
@@ -177,7 +178,7 @@ class TorrentSpider(object):
                 search_mode = "0"
 
             # 搜索URL
-            if self.search.get("params"):
+            if self.search_conf.get("params"):
                 # 变量字典
                 inputs_dict = {"keyword": search_word}
                 # 查询参数
@@ -187,7 +188,7 @@ class TorrentSpider(object):
                     "notnewword": 1,
                 }
                 # 额外参数
-                for key, value in self.search.get("params").items():
+                for key, value in self.search_conf.get("params").items():
                     params.update({"%s" % key: str(value).format(**inputs_dict)})
                 # 分类条件
                 if self.category:

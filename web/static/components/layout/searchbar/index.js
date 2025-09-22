@@ -104,8 +104,8 @@ export class LayoutSearchbar extends CustomElement {
                 <i class="ti ti-user-square-rounded fs-2 text-vimeo"></i>
               </a>
               <div class="dropdown-menu dropdown-menu-end dropdown-menu-arrow">
-                <a class="dropdown-item hide-theme-dark" href="javascript:theme_toggle()" role="button">暗黑风格</a>
-                <a class="dropdown-item hide-theme-light" href="javascript:theme_toggle()" role="button">明亮风格</a>
+                <a class="dropdown-item hide-theme-dark" data-id="dark" href="javascript:void(0)" onclick="theme_toggle(this)" role="button">暗黑风格</a>
+                <a class="dropdown-item hide-theme-light" data-id="light" href="javascript:void(0)" onclick="theme_toggle(this)" role="button">明亮风格</a>
                 <div class="dropdown-divider"></div>
                 ${this.layout_useradmin === "1"
                   ? html`

@@ -2,14 +2,15 @@
 import base64
 import json
 import re
+import requests
+
 from abc import ABCMeta, abstractmethod
+from lxml import etree
 from urllib.parse import urljoin, urlsplit
 
-import requests
-from lxml import etree
+import log
 
 from app.indexer.client.browser import PlaywrightHelper
-import log
 from app.helper import SiteHelper
 from app.helper.cloudflare_helper import under_challenge
 from app.utils import RequestUtils
@@ -129,15 +130,23 @@ class _ISiteUserInfo(metaclass=ABCMeta):
                 return
 
             self._parse_site_page(self._index_html)
+
             self._parse_user_base_info(self._index_html)
+
             self._pase_unread_msgs()
+
             if self._user_traffic_page:
                 self._parse_user_traffic_info(self._get_page_content(urljoin(self._base_url, self._user_traffic_page)))
+
             if self._user_detail_page:
                 self._parse_user_detail_info(self._get_page_content(urljoin(self._base_url, self._user_detail_page)))
 
             self._parse_seeding_pages()
+
             self.seeding_info = json.dumps(self.seeding_info)
+            
+        except Exception as e:
+            log.exception(f"【Sites】{self.site_name} 解析站点信息出错", e)
         finally:
             # 关闭连接
             self.close()

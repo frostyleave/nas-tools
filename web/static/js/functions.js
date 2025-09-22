@@ -8,10 +8,6 @@ let RssSitesLength = 0;
 let SearchSitesLength = 0;
 // 种子上传控件
 let TorrentDropZone;
-// 默认转移模式
-let DefaultTransferMode;
-// 默认路径
-let DefaultPath;
 
 // 进度刷新EventSource
 let ProgressES;
@@ -1432,7 +1428,7 @@ function media_name_test_ui(data, result_div) {
 function show_manual_transfer_modal(manual_type, inpath, syncmod, media_type, unknown_id, transferlog_id) {
   // 初始化类型
   if (!syncmod) {
-    syncmod = DefaultTransferMode;
+    syncmod = $('#default_transfer_mode').val();
   }
   let source = CurrentPageUri;
   $("#rename_source").val(source);
@@ -1445,7 +1441,7 @@ function show_manual_transfer_modal(manual_type, inpath, syncmod, media_type, un
     if (inpath) {
       $("#rename_inpath").val(inpath);
     } else {
-      $("#rename_inpath").val(DefaultPath);
+      $("#rename_inpath").val($('#default_path').val());
     }
     $("#rename_outpath").val('');
     $("#rename_syncmod_customize").val(syncmod);
@@ -1827,12 +1823,10 @@ function gen_form_empty_elements(obj_fileds) {
 }
 
 // 主题切换
-function theme_toggle() {
+function theme_toggle(element) {
 
-  const newTheme = (localStorage.getItem("theme") || "light") === "light" ? "dark" : "light";
-
-  const html = $("html");
-  html.attr("data-bs-theme", newTheme);
+  const theme = $(element).data("id");
+  const newTheme = theme ?? "light";
 
   apply_theme(newTheme);
 
@@ -1849,6 +1843,8 @@ function apply_theme(targetTheme) {
   localStorage.setItem("theme", targetTheme);
   // 绑定
   document.documentElement.setAttribute('data-bs-theme', targetTheme);
+
+  $("html").attr("data-bs-theme", targetTheme);
 
 }
 

@@ -67,6 +67,9 @@ class IndexerInfo(BaseModel):
 
 @singleton
 class IndexerManager:
+    """
+    站点索引配置管理器
+    """
 
     _indexers : List[BaseIndexer] = []
 
@@ -75,7 +78,7 @@ class IndexerManager:
 
     def init_config(self):
         """
-        初始化: 加载所有索引站点
+        初始化: 加载所有站点索引信息
         """
         try:
             self._indexers = []
@@ -102,7 +105,7 @@ class IndexerManager:
                 indexer = BaseIndexer(**indexer_data)
                 self._indexers.append(indexer)
         except Exception as err:
-            log.error("【索引器】初始化出错：" + str(err))
+            log.exception("【索引器】初始化出错：", err)
 
     def get_all_indexer_Base(self) -> list[BaseIndexer]:
         """

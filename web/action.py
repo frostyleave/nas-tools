@@ -38,7 +38,7 @@ from app.rss import Rss
 from app.rsschecker import RssChecker
 from app.scheduler import Scheduler
 from app.searcher import Searcher
-from app.sites import SitesManager, SitesInfoCenter, CookieManager, SiteConf
+from app.sites import SitesManager, SitesDataStatisticsCenter, CookieManager, SiteConf
 from app.subscribe import Subscribe
 from app.sync import Sync
 from app.torrentremover import TorrentRemover
@@ -1140,7 +1140,7 @@ class WebAction:
                                      rss_uses=rss_uses)
             if ret and (name != old_name):
                 # 更新历史站点数据信息
-                SitesInfoCenter().update_site_name(name, old_name)
+                SitesDataStatisticsCenter().update_site_name(name, old_name)
 
         else:
             ret = _sites.add_site(name=name,
@@ -2206,7 +2206,7 @@ class WebAction:
         resp = {"code": 0}
 
         resp.update(
-            {"dataset": SitesInfoCenter().get_pt_site_activity_history(data["name"])})
+            {"dataset": SitesDataStatisticsCenter().get_pt_site_activity_history(data["name"])})
         return resp
 
     def __get_site_history(self, data):
@@ -2219,7 +2219,7 @@ class WebAction:
             return {"code": 1, "msg": "查询参数错误"}
 
         resp = {"code": 0}
-        _, _, site, upload, download = SitesInfoCenter().get_pt_site_statistics_history(
+        _, _, site, upload, download = SitesDataStatisticsCenter().get_pt_site_statistics_history(
             data["days"] + 1, data.get("end_day", None)
         )
 
@@ -2241,7 +2241,7 @@ class WebAction:
 
         resp = {"code": 0}
 
-        seeding_info = SitesInfoCenter().get_pt_site_seeding_info(
+        seeding_info = SitesDataStatisticsCenter().get_pt_site_seeding_info(
             data["name"]).get("seeding_info", [])
         # 调整为dataset组织数据
         dataset = [["seeders", "size"]]
@@ -4450,7 +4450,7 @@ class WebAction:
         sort_by = data.get("sort_by")
         sort_on = data.get("sort_on")
         site_hash = data.get("site_hash")
-        statistics = SitesInfoCenter().get_site_user_statistics(sites=sites, encoding=encoding)
+        statistics = SitesDataStatisticsCenter().get_site_user_statistics(sites=sites, encoding=encoding)
         if sort_by and sort_on in ["asc", "desc"]:
             if sort_on == "asc":
                 statistics.sort(key=lambda x: x[sort_by])
@@ -5022,7 +5022,7 @@ class WebAction:
         强制刷新站点数据,并发送站点统计的消息
         """
         # 强制刷新站点数据,并发送站点统计的消息
-        SitesInfoCenter().refresh_site_data_now()
+        SitesDataStatisticsCenter().refresh_site_data_now()
 
     def get_default_rss_setting(self, data):
         """

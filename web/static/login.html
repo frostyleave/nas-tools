@@ -193,14 +193,14 @@
             var data = response.data.data;
 
             // 设置背景图片
-            if (data.image_code) {
-              $('body').css('background-image', 'url(data:image/jpeg;base64,' + data.image_code + ')');
+            if (data.imageCode) {
+              $('body').css('background-image', 'url(data:image/jpeg;base64,' + data.imageCode + ')');
             }
 
             // 显示图片信息
-            $('#image-title').text(data.img_title);
-            if (data.img_link) {
-              $('#image-link').attr('href', data.img_link);
+            $('#image-title').text(data.imgTitle);
+            if (data.imgLink) {
+              $('#image-link').attr('href', data.imgLink);
             }
             $('#image-desc-container').show();
 

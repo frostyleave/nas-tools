@@ -6,8 +6,6 @@ from multiprocessing.dummy import Pool as ThreadPool
 from threading import Lock
 from typing import List, Optional
 
-from app.sites.siteuserinfo.mTorrent import MTorrentUserInfo
-from app.utils.types import Spider
 import log
 
 from app.helper import SubmoduleHelper, DbHelper
@@ -15,6 +13,8 @@ from app.indexer.client.browser import PlaywrightHelper
 from app.message import Message
 from app.sites.siteuserinfo._base import _ISiteUserInfo
 from app.sites.site_manager import SitesManager
+from app.sites.siteuserinfo.mTorrent import MTorrentUserInfo
+from app.utils.types import Spider
 from app.utils import RequestUtils, ExceptionUtils, StringUtils
 from app.utils.commons import singleton
 
@@ -24,9 +24,9 @@ lock = Lock()
 
 
 @singleton
-class SitesInfoCenter(object):
+class SitesDataStatisticsCenter(object):
     """
-    站点数据中心单例
+    站点数据统计中心单例
     """
     sites = None
     dbhelper = None
@@ -98,7 +98,6 @@ class SitesInfoCenter(object):
             log.error("【Sites】站点 %s 无法识别站点类型" % site_name)
             return None
         return site_schema(site_name, url, site_cookie, html_text, session=session, ua=ua, emulate=emulate, proxy=proxy)
-
 
     def __request_site_page(self, url, session, site_cookie=None, ua=None, emulate=None, proxy=False) -> Optional[str]:
                             

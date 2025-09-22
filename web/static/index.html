@@ -108,6 +108,8 @@
 
 <body class="layout-fluid">
   <div class="page">
+    <input type="hidden" id="default_transfer_mode" />
+    <input type="hidden" id="default_path" />
     <!-- 解决密码填充问题 -->
     <span hidden><input type="text" aria-label=""><input type="password" aria-label=""></span>
     <layout-navbar hidden id="navbar-menu"></layout-navbar>
@@ -1231,17 +1233,13 @@
 
           const sysInfo = response.data;
 
-          // 全局变量默认值
-          DefaultTransferMode = sysInfo.SyncMod;
-          DefaultPath = sysInfo.DefaultPath;
-
           // 动态生成搜索栏 HTML
           var searchbar = createSearchbar(sysInfo);
           // 在 #navbar-menu 后插入
           $("#navbar-menu").after(searchbar);
 
           // 生成命令菜单
-          generateCommandsMenu(sysInfo.Commands);
+          generateCommandsMenu(sysInfo.commands);
 
           // 生成日志选择器菜单
           generateLoggerMenu();
@@ -1250,12 +1248,19 @@
           generateAdvancedSearchOptions(sysInfo);
 
           // 版本号
-          $('#version-txt').text(sysInfo.AppVersion);
+          $('#version-txt').text(sysInfo.appVersion);
+          
+          // 全局变量默认值
+          $('#default_path').val(sysInfo.defaultPath);
+          $('#default_transfer_mode').val(sysInfo.syncMod);
+
           // 动态设置 body 背景图
-          // $("body").css("background-image", `url(data:image/jpg;base64,${sysInfo.imgLink})`);
+          if (sysInfo.imageCode) {
+            $("body").css("background", `url(data:image/jpg;base64,${sysInfo.imageCode}) center / cover no-repeat fixed`);
+          }
 
           // 检查tmdb配置
-          if (!sysInfo.TMDBFlag) {
+          if (!sysInfo.tmdbFlag) {
             show_init_alert_modal();
           }
 
@@ -1269,7 +1274,7 @@
 
     // 创建搜索栏 HTML
     function createSearchbar(sysInfo) {
-      return `<layout-searchbar layout-username="${sysInfo.username}" layout-systemflag="${sysInfo.SystemFlag}"
+      return `<layout-searchbar layout-username="${sysInfo.username}" layout-systemflag="${sysInfo.systemFlag}"
       layout-useradmin="${sysInfo.admin}" layout-search="${sysInfo.search}">`;
     }
 
@@ -1309,23 +1314,25 @@
 
     // 生成所有动态选项
     function generateAdvancedSearchOptions(sysInfo) {
+
       // 生成季数选项
       generateSeasonOptions();
 
       // 生成质量选项
-      if (sysInfo.restype_dict) {
-        generateRestypeOptions(sysInfo.restype_dict);
+      if (sysInfo.restypeDict) {
+        generateRestypeOptions(sysInfo.restypeDict);
       }
 
       // 生成分辨率选项
-      if (sysInfo.pix_dict) {
-        generatePixOptions(sysInfo.pix_dict);
+      if (sysInfo.pixDict) {
+        generatePixOptions(sysInfo.pixDict);
       }
 
       // 生成转移方式选项
-      if (sysInfo.rmt_mode_dict) {
-        generateRmtModeOptions(sysInfo.rmt_mode_dict);
+      if (sysInfo.rmtDodeDict) {
+        generateRmtModeOptions(sysInfo.rmtDodeDict);
       }
+
     }
 
     // 生成季数选项

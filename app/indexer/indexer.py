@@ -5,34 +5,30 @@ import re
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import List
 
-from app.indexer.client.builtin import BuiltinIndexer
 import log
 
 from app.media.douban import DouBan
 from app.media.meta._base import MetaBase
 from app.helper import ProgressHelper, SubmoduleHelper, DbHelper
+from app.indexer.client.builtin import BuiltinIndexer
 from app.media import Media
 from app.media.meta.metainfo import MetaInfo
 from app.utils import ExceptionUtils, StringUtils
 from app.utils.commons import singleton
-from app.utils.types import MediaType, SearchType, IndexerType, ProgressKey
+from app.utils.types import MediaType, SearchType, ProgressKey
+
 from config import INDEXER_CATEGORY
 
 
 @singleton
 class Indexer(object):
-    _indexer_schemas = []
+
     _client = None
     _client_type = None
     progress = None
     dbhelper = None
 
     def __init__(self):
-        self._indexer_schemas = SubmoduleHelper.import_submodules(
-            'app.indexer.client',
-            filter_func=lambda _, obj: hasattr(obj, 'client_id')
-        )
-        log.debug(f"【Indexer】加载索引器：{self._indexer_schemas}")
         self.init_config()
 
     def init_config(self):
@@ -40,15 +36,6 @@ class Indexer(object):
         self.dbhelper = DbHelper()
         self._client = BuiltinIndexer()
         self._client_type = self._client.get_type()
-
-    def __build_class(self, ctype, conf):
-        for indexer_schema in self._indexer_schemas:
-            try:
-                if indexer_schema.match(ctype):
-                    return indexer_schema(conf)
-            except Exception as e:
-                ExceptionUtils.exception_traceback(e)
-        return None
 
     def get_indexers(self, check=False):
         """

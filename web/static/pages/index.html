@@ -205,7 +205,7 @@
   function renderPage(pageData) {
     if (!pageData) return;
 
-    if (pageData.ServerSucess) {
+    if (pageData.serverSucess) {
       renderMediaLibraries(pageData);
       renderResumeWatching(pageData);
       renderLatestMedia(pageData);
@@ -221,7 +221,7 @@
   // 渲染媒体库
   function renderMediaLibraries(pageData) {
     const container = $("#media-libraries-container");
-    if (!pageData.Librarys || pageData.Librarys.length === 0) {
+    if (!pageData.librarys || pageData.librarys.length === 0) {
       container.empty();
       return;
     }
@@ -232,8 +232,8 @@
           <div class="d-grid gap-3 grid-normal-card">
     `;
 
-    pageData.Librarys.forEach(library => {
-      if (pageData.LibrarySyncConf && pageData.LibrarySyncConf.includes(library.id.toString())) {
+    pageData.librarys.forEach(library => {
+      if (pageData.librarySyncConf && pageData.librarySyncConf.includes(library.id.toString())) {
         let theLibLink = library.link;
         // 替换 127.0.0.1 和 localhost
         if (theLibLink && theLibLink.substring(0, 16).includes("127.0.0.1")) {
@@ -279,7 +279,7 @@
   // 渲染正在观看
   function renderResumeWatching(pageData) {
     const container = $("#resume-watching-container");
-    if (!pageData.Resumes || pageData.Resumes.length === 0) {
+    if (!pageData.resumes || pageData.resumes.length === 0) {
       container.empty();
       return;
     }
@@ -299,7 +299,7 @@
           <div class="d-grid gap-3 grid-normal-card align-items-start">
     `;
 
-    pageData.Resumes.forEach(resume => {
+    pageData.resumes.forEach(resume => {
       let theLibLink = resume.link;
       // 替换 127.0.0.1 和 localhost
       if (theLibLink && theLibLink.substring(0, 16).includes("127.0.0.1")) {
@@ -360,8 +360,7 @@
           if (ret.code === 0) {
             $("#mediasync_status").text(ret.text);
           }
-          $("#mediasync_btn").text("开始同步")
-              .attr("href", "javascript:start_media_sync(true)");
+          $("#mediasync_btn").text("开始同步").attr("href", "javascript:start_media_sync(true)");
           $("#save_mediasync_btn").show();
           $("#index-mediasync-modal").modal('show');
         }, true, false);
@@ -372,7 +371,7 @@
   // 渲染最新入库
   function renderLatestMedia(pageData) {
     const container = $("#latest-media-container");
-    if (!pageData.Latests || pageData.Latests.length === 0) {
+    if (!pageData.latests || pageData.latests.length === 0) {
       container.empty();
       return;
     }
@@ -392,7 +391,7 @@
           <div class="d-grid gap-3 grid-media-card align-items-start">
     `;
 
-    pageData.Latests.forEach(latest => {
+    pageData.latests.forEach(latest => {
       let theLibLink = latest.link;
       // 替换 127.0.0.1 和 localhost
       if (theLibLink && theLibLink.substring(0, 16).includes("127.0.0.1")) {
@@ -430,16 +429,16 @@
   // 更新模态框数据
   function updateModalData(pageData) {
     // 更新媒体服务器类型
-    if (pageData.MediaServerType) {
-      $("#media-server-type").text(pageData.MediaServerType.charAt(0).toUpperCase() + pageData.MediaServerType.slice(1));
-      $("#media-server-avatar").attr("style", `background-image: url('../static/img/mediaserver/${pageData.MediaServerType}.png')`);
+    if (pageData.mediaServerType) {
+      $("#media-server-type").text(pageData.mediaServerType.charAt(0).toUpperCase() + pageData.mediaServerType.slice(1));
+      $("#media-server-avatar").attr("style", `background-image: url('../static/img/mediaserver/${pageData.mediaServerType}.png')`);
     }
 
     // 更新媒体库同步列表
-    if (pageData.Librarys) {
+    if (pageData.librarys) {
       let syncLibraryHtml = '';
-      pageData.Librarys.forEach(library => {
-        const checked = pageData.LibrarySyncConf && pageData.LibrarySyncConf.includes(library.id.toString()) ? 'checked' : '';
+      pageData.librarys.forEach(library => {
+        const checked = pageData.librarySyncConf && pageData.librarySyncConf.includes(library.id.toString()) ? 'checked' : '';
         syncLibraryHtml += `
           <label class="form-selectgroup-item">
             <input type="checkbox" name="sync_library" value="${library.id}" class="form-selectgroup-input" ${checked}>
@@ -451,9 +450,9 @@
     }
 
     // 更新播放记录
-    if (pageData.Activitys) {
+    if (pageData.activitys) {
       let activityHtml = '';
-      pageData.Activitys.forEach(activity => {
+      pageData.activitys.forEach(activity => {
         activityHtml += `
           <div>
             <div class="row">
@@ -477,19 +476,19 @@
     }
 
     // 更新统计数据
-    if (pageData.MediaCount) {
-      $("#movie-count").text(pageData.MediaCount.MovieCount || 0);
-      $("#series-count").text(pageData.MediaCount.SeriesCount || 0);
-      $("#episode-count").text(pageData.MediaCount.EpisodeCount || 0);
+    if (pageData.mediaCount) {
+      $("#movie-count").text(pageData.mediaCount.movieCount || 0);
+      $("#series-count").text(pageData.mediaCount.seriesCount || 0);
+      $("#episode-count").text(pageData.mediaCount.episodeCount || 0);
     }
 
-    if (pageData.TotalSpace) {
-      $("#total-space").text(pageData.TotalSpace);
+    if (pageData.totalSpace) {
+      $("#total-space").text(pageData.totalSpace);
     }
 
-    if (pageData.UsedPercent) {
-      $("#used-space-bar").attr("style", `width:${pageData.UsedPercent}%`)
-                          .attr("aria-valuenow", pageData.UsedPercent);
+    if (pageData.usedPercent) {
+      $("#used-space-bar").attr("style", `width:${pageData.usedPercent}%`)
+                          .attr("aria-valuenow", pageData.usedPercent);
     }
   }
 

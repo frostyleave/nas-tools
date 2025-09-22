@@ -81,9 +81,9 @@ async def bing(request: Request):
 
     return response(data=
         {
-            "image_code" : image_code,
-            "img_title" : img_title,
-            "img_link" : img_link
+            "imageCode" : image_code,
+            "imgTitle" : img_title,
+            "imgLink" : img_link
         }
     )
 
@@ -100,30 +100,33 @@ async def sysinfo(request: Request, current_user: User = Depends(get_current_use
     if not sync_mod:
         sync_mod = "link"
 
-    webAction = WebAction(current_user)
 
-    commands = webAction.get_commands()
     username = current_user.username
 
     restype_dict = ModuleConf.TORRENT_SEARCH_PARAMS.get("restype")
     pix_dict = ModuleConf.TORRENT_SEARCH_PARAMS.get("pix")
 
-    rmt_mode_dict = webAction.get_rmt_modes()
+    web_action = WebAction(current_user)
+    commands = web_action.get_commands()
+    rmt_mode_dict = web_action.get_rmt_modes()
+
+    image_code, img_title, img_link = get_login_wallpaper()
 
     return response(data=
         {
             "username" : username,
             "admin" : 1 if username == 'admin' else 0,
             "search" : current_user.search,
-            "SystemFlag": system_flag.value,
-            "TMDBFlag": tmdb_flag,
-            "AppVersion": WebUtils.get_current_version(),
-            "SyncMod": sync_mod,
-            "DefaultPath": default_path,
-            "Commands": commands,
-            "restype_dict": restype_dict,
-            "pix_dict": pix_dict,
-            "rmt_mode_dict": rmt_mode_dict,
+            "systemFlag": system_flag.value,
+            "tmdbFlag": tmdb_flag,
+            "appVersion": WebUtils.get_current_version(),
+            "syncMod": sync_mod,
+            "defaultPath": default_path,
+            "commands": commands,
+            "restypeDict": restype_dict,
+            "pixDict": pix_dict,
+            "rmtDodeDict": rmt_mode_dict,
+            "imageCode": image_code
         }
     )
 
@@ -156,22 +159,22 @@ async def basic(request: Request, current_user: User = Depends(get_current_user)
 @data_router.post("/index")
 async def index(request: Request, current_user: User = Depends(get_current_user)):
 
-    webAction = WebAction(current_user)
+    web_action = WebAction(current_user)
 
     # 媒体服务器类型
     MSType = Config().get_config('media').get('media_server')
     # 获取媒体数量
-    MediaCounts = webAction.get_library_mediacount()
+    MediaCounts = web_action.get_library_mediacount()
     if MediaCounts.get("code") == 0:
         ServerSucess = True
     else:
         ServerSucess = False
 
     # 获得活动日志
-    Activity = webAction.get_library_playhistory().get("result")
+    Activity = web_action.get_library_playhistory().get("result")
 
     # 磁盘空间
-    LibrarySpaces = webAction.get_library_spacesize()
+    LibrarySpaces = web_action.get_library_spacesize()
 
     # 媒体库
     Librarys = MediaServer().get_libraries()
@@ -185,23 +188,21 @@ async def index(request: Request, current_user: User = Depends(get_current_user)
 
     return response(data=
         {
-             "ServerSucess": ServerSucess,
-             "MediaCount": {'MovieCount': MediaCounts.get("Movie"),
-                     'SeriesCount': MediaCounts.get("Series"),
-                     'SongCount': MediaCounts.get("Music"),
-                     "EpisodeCount": MediaCounts.get("Episodes")
-                     },
-             "Activitys": Activity,
-             "UserCount": MediaCounts.get("User"),
-             "FreeSpace": LibrarySpaces.get("FreeSpace"),
-             "TotalSpace": LibrarySpaces.get("TotalSpace"),
-             "UsedSapce": LibrarySpaces.get("UsedSapce"),
-             "UsedPercent": LibrarySpaces.get("UsedPercent"),
-             "MediaServerType": MSType,
-             "Librarys": Librarys,
-             "LibrarySyncConf": LibrarySyncConf,
-             "Resumes": Resumes,
-             "Latests": Latests,
+             "serverSucess": ServerSucess,
+             "mediaCount": {
+                 'movieCount': MediaCounts.get("Movie"),
+                 'seriesCount': MediaCounts.get("Series"),
+                 'songCount': MediaCounts.get("Music"),
+                 "episodeCount": MediaCounts.get("Episodes")
+                 },
+             "activitys": Activity,
+             "totalSpace": LibrarySpaces.get("TotalSpace"),
+             "usedPercent": LibrarySpaces.get("UsedPercent"),
+             "mediaServerType": MSType,
+             "librarys": Librarys,
+             "librarySyncConf": LibrarySyncConf,
+             "resumes": Resumes,
+             "latests": Latests,
         }
     )
 
@@ -227,7 +228,7 @@ async def search(request: Request, current_user: User = Depends(get_current_user
 @data_router.post("/rss")
 async def rss(request: Request, current_user: User = Depends(get_current_user), t: str = "MOV"):
 
-    webAction = WebAction(current_user)
+    web_action = WebAction(current_user)
 
     RuleGroups = {str(group["id"]): group["name"] for group in Filter().get_rule_groups()}
     DownloadSettings = Downloader().get_download_setting()
@@ -236,11 +237,11 @@ async def rss(request: Request, current_user: User = Depends(get_current_user), 
     Type = 'MOV'
     TypeName = '电影'
     if t == 'TV':
-        RssItems = webAction.get_tv_rss_list().get("result")
+        RssItems = web_action.get_tv_rss_list().get("result")
         Type = 'TV'
         TypeName = '电视剧'
     else:
-        RssItems = webAction.get_movie_rss_list().get("result")
+        RssItems = web_action.get_movie_rss_list().get("result")
 
     return response(data=
         {
@@ -271,11 +272,11 @@ async def rss_history(request: Request, current_user: User = Depends(get_current
 @data_router.post("/rss_calendar")
 async def rss_calendar(request: Request, current_user: User = Depends(get_current_user)):
 
-    webAction = WebAction(current_user)
+    web_action = WebAction(current_user)
     # 电影订阅
-    RssMovieItems = webAction.get_movie_rss_items().get("result")
+    RssMovieItems = web_action.get_movie_rss_items().get("result")
     # 电视剧订阅
-    RssTvItems = webAction.get_tv_rss_items().get("result")
+    RssTvItems = web_action.get_tv_rss_items().get("result")
 
     return response(data=
         {
@@ -458,17 +459,17 @@ async def customwords(request: Request, current_user = Depends(get_current_user)
 @data_router.post("/plugin")
 async def plugin(request: Request, current_user = Depends(get_current_user)):
 
-    webAction = WebAction(current_user)
+    web_action = WebAction(current_user)
 
     # 下载器
     DefaultDownloader = Downloader().default_downloader_id
     Downloaders = Downloader().get_downloader_conf()
     Categories = {
-        x: webAction.get_categories({
+        x: web_action.get_categories({
             "type": x
         }).get("category") for x in ["电影", "电视剧", "动漫"]
     }
-    RmtModeDict = webAction.get_rmt_modes()
+    RmtModeDict = web_action.get_rmt_modes()
     # 插件
     Plugins = PluginManager().get_plugins_conf(current_user.level)
 

@@ -19,12 +19,11 @@ from config import Config
 @singleton
 class SitesManager:
     """
-    站点管理器
+    站点数据管理器
     """
     message = None
     dbhelper = None
 
-    _sites = []
     _siteByIds = {}
     _siteByUrls = {}
     _rss_sites = []
@@ -41,8 +40,6 @@ class SitesManager:
     def init_config(self):
         self.dbhelper = DbHelper()
         self.message = Message()
-        # 原始站点列表
-        self._sites = []
         # ID存储站点
         self._siteByIds = {}
         # URL存储站点
@@ -57,11 +54,13 @@ class SitesManager:
         self._signin_sites = []
         # 站点限速器
         self._limiters = {}
+        
         # 站点数据
-        self._sites = self.dbhelper.get_config_site()
-        for site in self._sites:
+        config_sites = self.dbhelper.get_config_site()
+        for site in config_sites:
             # 站点属性
             site_note = self.__get_site_note_items(site.NOTE)
+
             # 站点用途：Q签到、D订阅、S刷流
             site_rssurl = site.RSSURL
             site_signurl = site.SIGNURL
@@ -70,6 +69,7 @@ class SitesManager:
             site_apikey = site.API_KEY
             site_uses = site.INCLUDE or ''
             site_parser = ''
+
             uses = []
 
             if site_uses:
@@ -116,12 +116,15 @@ class SitesManager:
                 "strict_url": SiteUtils.get_base_url(site_signurl or site_rssurl),
                 "parser" : site_parser
             }
+
             # 以ID存储
             self._siteByIds[site.ID] = site_info
+
             # 以域名存储
             site_strict_url = SiteUtils.get_url_domain(site.SIGNURL or site.RSSURL)
             if site_strict_url:
                 self._siteByUrls[site_strict_url] = site_info
+
             # 初始化站点限速器
             self._limiters[site.ID] = SiteRateLimiter(
                 limit_interval=int(site_note.get("limit_interval")) * 60 if site_note.get("limit_interval") and str(
