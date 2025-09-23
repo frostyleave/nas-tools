@@ -86,6 +86,7 @@ class NexusPhpSiteUserInfo(_ISiteUserInfo):
             return
 
     def __parse_user_traffic_info(self, html_text):
+
         html_text = self._prepare_html_text(html_text)
         upload_match = re.search(r"[^总]上[传傳]量?[:：_<>/a-zA-Z-=\"'\s#;]+([\d,.\s]+[KMGTPI]*B)", html_text,
                                  re.IGNORECASE)
@@ -264,10 +265,34 @@ class NexusPhpSiteUserInfo(_ISiteUserInfo):
 
         # 加入日期
         join_at_text = html.xpath(
+            # ① 表格里的“加入日期/注册日期”
             '//tr/td[text()="加入日期" or text()="注册日期" or *[text()="加入日期"]]/following-sibling::td[1]//text()'
-            '|//div/b[text()="加入日期"]/../text()')
+            # ② div + b 结构
+            '|//div/b[text()="加入日期"]/../text()'
+            # ③ div + span.font-bold 结构
+            '|//div/span[@class="font-bold" and contains(text(),"加入日期")]/following-sibling::span[1]/text()'
+        )
         if join_at_text:
             self.join_at = StringUtils.unify_datetime_str(join_at_text[0].split(' (')[0].strip())
+
+        if not self.ratio:
+            ratio_html = html.xpath('//*[@id="user-info-panel"]/div[2]/div[1]/div[1]/div/text()')
+            if ratio_html:
+                ratio_match = re.search(r"分享率][:：_<>/a-zA-Z-=\"'\s#;]+([\d,.\s]+)", ratio_html[0])
+                if ratio_match and ratio_match.group(1).strip():
+                    self.ratio = StringUtils.str_float(ratio_match.group(1))
+
+        if not self.upload:
+            upload_html = html.xpath('//*[@id="user-info-panel"]/div[2]/div[2]/div[4]/text()')
+            if upload_html:
+                upload_match = re.search(r"[_<>/a-zA-Z-=\"'\s#;]+([\d,.\s]+[KMGTPI]*B)", upload_html[0])
+                self.upload = StringUtils.num_filesize(upload_match.group(1).strip()) if upload_match else 0
+        
+        if not self.download:
+            download_html = html.xpath('//*[@id="user-info-panel"]/div[2]/div[2]/div[5]/text()')
+            if download_html:
+                download_match = re.search(r"[_<>/a-zA-Z-=\"'\s#;]+([\d,.\s]+[KMGTPI]*B)", download_html[0])
+                self.download = StringUtils.num_filesize(download_match.group(1).strip()) if download_match else 0            
 
         # 做种体积 & 做种数
         # seeding 页面获取不到的话，此处再获取一次
@@ -292,6 +317,7 @@ class NexusPhpSiteUserInfo(_ISiteUserInfo):
         if not self.seeding_info:
             self.seeding_info = tmp_seeding_info
 
+        # 做种量
         text = html.xpath('//div[@id="ka1"]/following-sibling::text()')
         if text:
             text = ''.join(text).strip()
@@ -395,6 +421,15 @@ class NexusPhpSiteUserInfo(_ISiteUserInfo):
                                       'following-sibling::td[1]')
         if user_levels_text:
             self.user_level = user_levels_text[0].xpath("string(.)").strip()
+            return
+        
+        # --- hanhan：div + span 结构 ---
+        # 尝试 img/@title
+        user_levels_text = html.xpath(
+            '//div/span[@class="font-bold m-auto" and contains(text(),"等级")]/following-sibling::span[1]/img/@title'
+        )
+        if user_levels_text:
+            self.user_level = user_levels_text[0].strip()
             return
 
         user_levels_text = html.xpath('//a[contains(@href, "userdetails")]/text()')
