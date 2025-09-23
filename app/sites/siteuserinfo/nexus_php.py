@@ -100,9 +100,11 @@ class NexusPhpSiteUserInfo(_ISiteUserInfo):
         # 优先使用页面上的分享率
         self.ratio = StringUtils.str_float(ratio_match.group(1)) if (
                 ratio_match and ratio_match.group(1).strip()) else calc_ratio
+        
         leeching_match = re.search(r"(Torrents leeching|下载中)[\u4E00-\u9FA5\D\s]+(\d+)[\s\S]+<", html_text)
         self.leeching = StringUtils.str_int(leeching_match.group(2)) if leeching_match and leeching_match.group(
             2).strip() else 0
+        
         html = etree.HTML(html_text)
         has_ucoin, self.bonus = self.__parse_ucoin(html)
         if has_ucoin:
@@ -403,22 +405,27 @@ class NexusPhpSiteUserInfo(_ISiteUserInfo):
 
     def __get_user_level(self, html):
         # 等级 获取同一行等级数据，图片格式等级，取title信息，否则取文本信息
-        user_levels_text = html.xpath('//tr/td[text()="等級" or text()="等级" or *[text()="等级"]]/'
-                                      'following-sibling::td[1]/img[1]/@title')
+        # --- 情况1：表格里，img 带 title ---
+        user_levels_text = html.xpath(
+            '//tr/td[text()="等級" or text()="等级" or text()="用户等级" or *[text()="等级" or text()="用户等级"]]/following-sibling::td[1]/img[1]/@title'
+        )
         if user_levels_text:
             self.user_level = user_levels_text[0].strip()
             return
 
-        user_levels_text = html.xpath('//tr/td[text()="等級" or text()="等级"]/'
-                                      'following-sibling::td[1 and not(img)]'
-                                      '|//tr/td[text()="等級" or text()="等级"]/'
-                                      'following-sibling::td[1 and img[not(@title)]]')
+        # --- 情况2：表格里，<b> 带 title 或 alt ---
+        user_levels_text = html.xpath(
+            '//tr/td[text()="等級" or text()="等级" or text()="用户等级"]/following-sibling::td[1]/b[@title or @alt]/@title'
+            '|//tr/td[text()="等級" or text()="等级" or text()="用户等级"]/following-sibling::td[1]/b[@alt]/@alt'
+        )
         if user_levels_text:
-            self.user_level = user_levels_text[0].xpath("string(.)").strip()
+            self.user_level = user_levels_text[0].strip()
             return
 
-        user_levels_text = html.xpath('//tr/td[text()="等級" or text()="等级"]/'
-                                      'following-sibling::td[1]')
+        # --- 情况3：表格里，纯文字等级 or <b> 无属性 ---
+        user_levels_text = html.xpath(
+            '//tr/td[text()="等級" or text()="等级" or text()="用户等级"]/following-sibling::td[1]'
+        )
         if user_levels_text:
             self.user_level = user_levels_text[0].xpath("string(.)").strip()
             return

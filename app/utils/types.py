@@ -90,6 +90,7 @@ class SiteSchema(Enum):
     NexusPhp = "NexusPhp"
     NexusProject = "NexusProject"
     NexusRabbit = "NexusRabbit"
+    PTTNP = "PTT-NP"
     SmallHorse = "Small Horse"
     Unit3d = "Unit3d"
     TorrentLeech = "TorrentLeech"

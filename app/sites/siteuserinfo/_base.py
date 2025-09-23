@@ -290,7 +290,7 @@ class _ISiteUserInfo(metaclass=ABCMeta):
             if under_challenge(res.text):
                 log.debug(f"【Sites】{self.site_name} 检测到Cloudflare, 需要浏览器仿真")
                 return PlaywrightHelper().get_page_source(url=url, ua=self._ua, cookies=self._site_cookie, proxy=True if self._proxy else False)
-            if "charset=utf-8" in res.text or "charset=UTF-8" in res.text:
+            if "charset=utf-8" in res.text or "charset=UTF-8" in res.text or 'charset="utf-8"' in res.text :
                 res.encoding = "UTF-8"
             else:
                 res.encoding = res.apparent_encoding

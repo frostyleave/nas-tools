@@ -126,7 +126,7 @@ class SitesDataStatisticsCenter(object):
         
         # 正常请求, 开始解析
 
-        if "charset=utf-8" in res.text or "charset=UTF-8" in res.text:
+        if "charset=utf-8" in res.text or "charset=UTF-8" in res.text or 'charset="utf-8"' in res.text :
             res.encoding = "UTF-8"
         else:
             res.encoding = res.apparent_encoding
