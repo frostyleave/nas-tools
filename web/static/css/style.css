@@ -11,7 +11,9 @@
     --lit-navbar-hover: #e7e7ff;
     --lit-navbar-active: #757BF4;
     --lit-navbar-active-color: var(--tblr-body-bg);
+    --tblr-nav-tabs-border-color: lightgray;
 
+    --tblr-navbar-border-color: var(--tblr-body-bg);
 
     --lit-person-card-bg: var(--tblr-body-bg);
     --lit-menu-color: var(--tblr-body-color);
@@ -24,6 +26,7 @@
     --lit-person-card-bg: var(--lit-navbar-active);
     --lit-navbar-active-color: #fff;
     --lit-menu-color: #b2b2c4;
+    --tblr-navbar-border-color:#243049;
 }
 
 .lit-navbar-accordion-item:hover {
@@ -480,10 +483,9 @@ body.theme-light::after {
 div.top-sub-navbar>ul {
     display: flex;
     flex-wrap: nowrap;
-    /* 确保标签不换行 */
-    border-bottom: var(--tblr-nav-tabs-border-width) solid var(--tblr-nav-tabs-border-color);
     background: transparent;
     justify-content: flex-start;
+    border-bottom: 1px solid var(--tblr-navbar-border-color);
 }
 
 div.top-sub-navbar>ul>li {
@@ -551,7 +553,7 @@ div.top-sub-navbar>ul>li>a {
 
 .nav-tabs .nav-link.active {
     border-color: transparent;
-    border-bottom-color: var(--tblr-link-hover-color);
+    border-bottom-color: var(--lit-navbar-active);
 }
 
 .components-div {
@@ -580,7 +582,7 @@ div.top-sub-navbar>ul>li>a {
 .divider-line {
     flex-grow: 1;
     height: 1px;
-    background-color: var(--tblr-border-color);
+    background-color: var(--tblr-navbar-border-color);
 }
 
 .nav-item-icon {
