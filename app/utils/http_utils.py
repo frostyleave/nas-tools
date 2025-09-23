@@ -76,7 +76,7 @@ class RequestUtils:
         try:
             return req_method(method, url, **kwargs)
         except requests.exceptions.RequestException as e:
-            log.warn(f"【RequestUtils】请求{url} 错误: {str(e)}")
+            log.exception(f"【RequestUtils】请求{url},method={method}  异常:", e)
             if raise_exception:
                 raise
             return None

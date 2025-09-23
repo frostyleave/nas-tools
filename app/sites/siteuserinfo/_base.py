@@ -135,11 +135,11 @@ class _ISiteUserInfo(metaclass=ABCMeta):
 
             self._pase_unread_msgs()
 
-            if self._user_traffic_page:
-                self._parse_user_traffic_info(self._get_page_content(urljoin(self._base_url, self._user_traffic_page)))
-
             if self._user_detail_page:
                 self._parse_user_detail_info(self._get_page_content(urljoin(self._base_url, self._user_detail_page)))
+
+            if self._user_traffic_page:
+                self._parse_user_traffic_info(self._get_page_content(urljoin(self._base_url, self._user_traffic_page)))
 
             self._parse_seeding_pages()
 
@@ -179,20 +179,19 @@ class _ISiteUserInfo(metaclass=ABCMeta):
             self.message_unread_contents.append((head, date, content))
 
     def _parse_seeding_pages(self):
+
         if self._torrent_seeding_page:
+            page_url = urljoin(self._base_url, self._torrent_seeding_page)
+            page_conent = self._get_page_content(page_url, self._torrent_seeding_params, self._torrent_seeding_headers)
             # 第一页
-            next_page = self._parse_user_torrent_seeding_info(
-                self._get_page_content(urljoin(self._base_url, self._torrent_seeding_page),
-                                       self._torrent_seeding_params,
-                                       self._torrent_seeding_headers))
+            next_page = self._parse_user_torrent_seeding_info(page_conent)
 
             # 其他页处理
             while next_page:
-                next_page = self._parse_user_torrent_seeding_info(
-                    self._get_page_content(urljoin(urljoin(self._base_url, self._torrent_seeding_page), next_page),
+                page_conent = self._get_page_content(urljoin(page_url, next_page),
                                            self._torrent_seeding_params,
-                                           self._torrent_seeding_headers),
-                    multi_page=True)
+                                           self._torrent_seeding_headers)
+                next_page = self._parse_user_torrent_seeding_info(page_conent, multi_page=True)
 
     @staticmethod
     def _prepare_html_text(html_text):

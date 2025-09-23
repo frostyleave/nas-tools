@@ -170,6 +170,21 @@ class NexusPhpSiteUserInfo(_ISiteUserInfo):
         html = etree.HTML(str(html_text).replace(r'\/', '/'))
         if not html:
             return None
+        
+        # 检查是否已有总量数据
+        target_divs = html.xpath('//div[contains(text(), "条记录") and contains(text(), "总大小")]')
+        if target_divs:
+            target_div = target_divs[0]
+            b_tag = target_div.xpath('.//b/text()')
+            if b_tag:
+                seed_count = b_tag[0].strip()
+                # 获取 <b>后面剩余文本
+                following_text = ''.join(target_div.xpath('.//text()')).strip()
+                match = re.search(r'总大小：([\d\.]+\s*(?:KB|MB|GB|TB))', following_text, re.IGNORECASE)
+                if match:
+                    self.seeding = StringUtils.str_int(seed_count)
+                    self.seeding_size = StringUtils.num_filesize(match.group(1))
+                    return None
 
         # 首页存在扩展链接，使用扩展链接
         seeding_url_text = html.xpath('//a[contains(@href,"torrents.php") '
@@ -223,6 +238,10 @@ class NexusPhpSiteUserInfo(_ISiteUserInfo):
         next_page_text = html.xpath('//a[contains(.//text(), "下一页") or contains(.//text(), "下一頁")]/@href')
         if next_page_text:
             next_page = next_page_text[-1].strip()
+            if not next_page:
+                return None
+            if 'javascript' in next_page:
+                return None
             # fix up page url
             if self.userid not in next_page:
                 next_page = f'{next_page}&userid={self.userid}&type=seeding'
@@ -273,6 +292,17 @@ class NexusPhpSiteUserInfo(_ISiteUserInfo):
         if not self.seeding_info:
             self.seeding_info = tmp_seeding_info
 
+        text = html.xpath('//div[@id="ka1"]/following-sibling::text()')
+        if text:
+            text = ''.join(text).strip()
+            match = re.search(r'(\d+)\s*个种子.*共计([\d\.]+\s*(?:KB|MB|GB|TB))\)?', text, re.IGNORECASE)
+            if match:
+                self.seeding = StringUtils.str_int(match.group(1))
+                self.seeding_size = StringUtils.num_filesize(match.group(2))
+                # 不再查询做种数据
+                self._torrent_seeding_page = ''
+                return
+
         seeding_sizes = html.xpath('//tr/td[text()="做种统计"]/following-sibling::td[1]//text()')
         if seeding_sizes:
             seeding_match = re.search(r"总做种数:\s+(\d+)", seeding_sizes[0], re.IGNORECASE)
@@ -287,6 +317,30 @@ class NexusPhpSiteUserInfo(_ISiteUserInfo):
             self.seeding = tmp_seeding
 
         self.__fixup_torrent_seeding_page(html)
+    
+    def extract_seed_info(html_tree):
+        
+        # 第一种：<b>5</b> 条记录 | 总大小：1.66 GB
+        div_texts = html_tree.xpath('//div[@id="ka1"]//div/text()')
+        for text in div_texts:
+            text = text.strip()
+            match = re.search(r'(\d+)\s*条记录\s*\|\s*总大小：([\d\.]+\s*(?:KB|MB|GB|TB))', text, re.IGNORECASE)
+            if match:
+                seed_count = match.group(1)
+                total_size = match.group(2)
+                return seed_count, total_size
+
+        # 第二种：(19个种子，共计320.31 GB)
+        all_texts = html_tree.xpath('//div[@id="ka1"]/following-sibling::text()')
+        for text in all_texts:
+            text = text.strip()
+            match = re.search(r'\(?(\d+)[^\d]+共计([\d\.]+\s*(?:KB|MB|GB|TB))\)?', text, re.IGNORECASE)
+            if match:
+                seed_count = match.group(1)
+                total_size = match.group(2)
+                return seed_count, total_size
+
+        return None, None  # 都没匹配到
 
     def __fixup_torrent_seeding_page(self, html):
         """
