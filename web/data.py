@@ -100,7 +100,6 @@ async def sysinfo(request: Request, current_user: User = Depends(get_current_use
     if not sync_mod:
         sync_mod = "link"
 
-
     username = current_user.username
 
     restype_dict = ModuleConf.TORRENT_SEARCH_PARAMS.get("restype")
@@ -109,6 +108,10 @@ async def sysinfo(request: Request, current_user: User = Depends(get_current_use
     web_action = WebAction(current_user)
     commands = web_action.get_commands()
     rmt_mode_dict = web_action.get_rmt_modes()
+
+    downloadSettings = {did: attr["name"] for did, attr in Downloader().get_download_setting().items()}
+    sourceTypes = { "MOVIE":'电影', "TV":'剧集', "ANIME":'动漫' }
+    spiderTypes = { member.value: member.name for member in Spider }
 
     image_code, img_title, img_link = get_login_wallpaper()
 
@@ -126,7 +129,10 @@ async def sysinfo(request: Request, current_user: User = Depends(get_current_use
             "restypeDict": restype_dict,
             "pixDict": pix_dict,
             "rmtDodeDict": rmt_mode_dict,
-            "imageCode": image_code
+            "imageCode": image_code,
+            "downloadSettings": downloadSettings,
+            "sourceTypes": sourceTypes,
+            "spiderTypes": spiderTypes
         }
     )
 
@@ -294,9 +300,8 @@ async def indexer(request: Request, current_user: User = Depends(get_current_use
     if not indexer_sites:
         indexer_sites = []
 
-    DownloadSettings = {did: attr["name"] for did, attr in Downloader().get_download_setting().items()}
-    SourceTypes = { "MOVIE":'电影', "TV":'剧集', "ANIME":'动漫' }
-    SearchTypes = { "title":'关键字', "en_name":'英文名', "douban_id":'豆瓣id', "imdb":'imdb id' }
+    searchTypes = { "title":'关键字', "en_name":'英文名', "douban_id":'豆瓣id', "imdb":'imdb id' }
+    sourceTypes = { "MOVIE":'电影', "TV":'剧集', "ANIME":'动漫' }
 
     front_indexers = []
     check_sites = []
@@ -316,7 +321,7 @@ async def indexer(request: Request, current_user: User = Depends(get_current_use
             "domain": idx_site.domain,
             "render": idx_site.render,
             "source_type": idx_site.source_type,
-            "search_type": SearchTypes.get(idx_site.search_type, '关键字'),
+            "search_type": searchTypes.get(idx_site.search_type, '关键字'),
             "downloader": idx_site.downloader,
             "public": idx_site.public,
             "proxy": idx_site.proxy,
@@ -327,18 +332,21 @@ async def indexer(request: Request, current_user: User = Depends(get_current_use
 
     return response(data=
         {
-            "Config": Config().get_config(),
-            "IsPublic": p,
-            "Indexers": front_indexers,
-            "DownloadSettings": DownloadSettings,
-            "CheckSites": check_sites,
-            "SourceTypes": SourceTypes,
+            "isPublic": p,
+            "indexers": front_indexers,
+            "checkSites": check_sites,
+            "sourceTypes": sourceTypes
         })
 
 
 # 站点维护页面
 @data_router.post("/site")
 async def sites_page(request: Request, current_user = Depends(get_current_user)):
+
+    indexer_sites = SystemConfig().get(SystemConfigKey.UserIndexerSites)
+    if not indexer_sites:
+        indexer_sites = []
+
     cfg_sites = SitesManager().get_sites()
     rule_groups = {str(group["id"]): group["name"] for group in Filter().get_rule_groups()}
     download_settings = {did: attr["name"] for did, attr in Downloader().get_download_setting().items()}
@@ -353,6 +361,7 @@ async def sites_page(request: Request, current_user = Depends(get_current_user))
             "ChromeOk": True,
             "CookieCloudCfg": cookie_cloud_cfg,
             "CookieUserInfoCfg": cookie_user_info_cfg,
+            "indexerSites": indexer_sites
         }
     )
 
@@ -629,8 +638,6 @@ async def mediafile(request: Request, current_user: User = Depends(get_current_u
         else:
             rootDir = "/"
     
-    form = await request.form()
-
     return response(data=
         {
             "Dir": rootDir,

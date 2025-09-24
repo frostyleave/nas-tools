@@ -77,7 +77,7 @@ function start_logging() {
   LoggingES.onerror = function (event) {
     console.error("日志服务连接错误:", event);
     // 尝试重新连接
-    setTimeout(function() {
+    setTimeout(function () {
       if (LoggingES) {
         LoggingES.close();
         LoggingES = undefined;
@@ -1741,7 +1741,7 @@ function gen_form_empty_elements(obj_fileds) {
   let row;
   let index = 0;
 
-  $.each(obj_fileds, function(fieldId, fieldAttr) {
+  $.each(obj_fileds, function (fieldId, fieldAttr) {
     if (index % 2 === 0) {
       row = $('<div class="row"></div>');
       $container.append(row);
@@ -1791,7 +1791,7 @@ function gen_form_empty_elements(obj_fileds) {
         let $select = $('<select class="form-select"></select>')
           .attr("id", fieldAttr.id);
 
-        $.each(fieldAttr.options, function(OptionValue, OptionTitle) {
+        $.each(fieldAttr.options, function (OptionValue, OptionTitle) {
           let $opt = $('<option></option>')
             .attr("value", OptionValue)
             .text(OptionTitle);
@@ -1850,28 +1850,293 @@ function apply_theme(targetTheme) {
 
 // 计算分页显示的范围
 function get_page_range(currentPage, totalPage) {
-    var startPage, endPage;
+  var startPage, endPage;
 
-    if (totalPage <= 5) {
-        startPage = 1;
-        endPage = totalPage;
+  if (totalPage <= 5) {
+    startPage = 1;
+    endPage = totalPage;
+  } else {
+    if (currentPage <= 3) {
+      startPage = 1;
+      endPage = 5;
+    } else if (currentPage >= totalPage - 2) {
+      startPage = totalPage - 4;
+      endPage = totalPage;
     } else {
-        if (currentPage <= 3) {
-            startPage = 1;
-            endPage = 5;
-        } else if (currentPage >= totalPage - 2) {
-            startPage = totalPage - 4;
-            endPage = totalPage;
-        } else {
-            startPage = currentPage - 2;
-            endPage = Math.min(currentPage + 2, totalPage);
-        }
+      startPage = currentPage - 2;
+      endPage = Math.min(currentPage + 2, totalPage);
     }
+  }
 
-    var pageRange = [];
-    for (let i = startPage; i <= endPage; i++) {
-        pageRange.push(i);
-    }
+  var pageRange = [];
+  for (let i = startPage; i <= endPage; i++) {
+    pageRange.push(i);
+  }
 
-    return pageRange;
+  return pageRange;
 }
+
+
+// json合法性检查
+function object_json_valid(json_str, allow_empty) {
+
+  if (!json_str || json_str == '') {
+    console.log(json_str)
+    return allow_empty;
+  }
+
+  try {
+
+    json_obj = JSON.parse(json_str);
+
+    if (typeof json_obj == 'object' && json_obj) {
+      if (Object.prototype.toString.call(json_obj) === '[object Array]') {
+        console.log('对象为数组')
+        return false;
+      }
+      return true;
+    } else {
+      console.log('对象为不是object')
+      return false;
+    }
+  } catch (e) {
+    console.log('对象解析失败：' + e)
+    return false;
+  }
+}
+
+// 压缩json字符串
+function zip_json(raw_json) {
+
+  if (!raw_json || raw_json == '') {
+    return raw_json;
+  }
+
+  // 压缩
+  var t = raw_json.replace(/[\r\n]/g, "")
+  for (var n = [], o = !1, i = 0, r = t.length; r > i; i++) {
+    var a = t.charAt(i);
+    o && a === o ? "\\" !== t.charAt(i - 1) && (o = !1) : o || '"' !== a && "'" !== a ? o || " " !== a && "	" !== a || (a = "") : o = a, n.push(a)
+  }
+  return n.join("");
+
+}
+
+// 格式化json文本内容并填充到textarea
+function append_json_to_textarea(elem_id, json_str) {
+
+  if (!json_str) {
+    return
+  }
+
+  // 格式化
+  var lint_json = JSON.parse(json_str);
+  // 格式化显示
+  var json = JSON.stringify(lint_json, undefined, 4);
+
+  $("#" + elem_id).val(json);
+
+  var match_break_line = json.match(/\n/ig);
+  if (match_break_line) {
+    var height = Math.min(match_break_line.length * 22 + 15, 500);
+    $("#" + elem_id).height(height + 'px');
+  }
+
+}
+
+// 判断是否为网址
+function isUrl(str) {
+  // 根据网址的特征进行判断
+  var hasProtocol = str.startsWith("http://") || str.startsWith("https://");
+  var hasDomain = str.includes(".");
+  return hasProtocol && hasDomain;
+}
+
+
+// 编辑索引配置
+function edit_indexer_conf(site_url, ispt) {
+
+  $("#modal-manual-indexer").data("indexer", NaN);
+  if (ispt) {
+    $('.pt-hide').hide();
+  } else {
+    $('.pt-hide').show();
+  }
+
+  // 根据ID查询详细信息
+  axios_post_do("get_indexer", { "url": site_url }, function (ret) {
+    if (ret.data) {
+
+      // 数据绑定到容器上
+      $("#modal-manual-indexer").data("indexer", ret.data);
+
+      $("#indexer_id").val(ret.data.id).attr("readonly", true);
+      $("#indexer_name").val(ret.data.name).attr("readonly", true);
+      $("#indexer_url").val(ret.data.domain);
+
+      // 下拉
+      $("#indexer_download_setting").val(ret.data.downloader ?? 0);
+      $("#parser_setting").val(ret.data.parser ?? '');
+      $('#search_type').val(ret.data.search_type ?? 'title')
+      // 多选
+      select_SelectPart(ret.data.source_type, "source_type")
+
+      $("#indexer_proxy").prop("checked", ret.data.proxy);
+      $("#indexer_render").prop("checked", ret.data.render);
+      $("#en_expand").prop("checked", ret.data.en_expand);
+
+      if (ret.data.search) {
+        append_json_to_textarea('search_cfg', ret.data.search)
+      }
+
+      if (ret.data.torrents) {
+        append_json_to_textarea('torrent_cfg', ret.data.torrents)
+      }
+
+      if (ret.data.browse) {
+        append_json_to_textarea('browse_cfg', ret.data.browse)
+      }
+
+      if (ret.data.category) {
+        append_json_to_textarea('category_cfg', ret.data.category)
+      }
+
+      $("#indexer_modal_title").text("编辑站点");
+      $("[name='indexer_add_btn']").hide();
+      $("[name='indexer_edit_btn']").show();
+      $("#indexer_delete_btn").show();
+
+      $("#modal-manual-indexer").modal("show");
+    }
+  });
+}
+
+function do_update_indexer() {
+
+  var current_indexer = $("#modal-manual-indexer").data("indexer");
+  if (!current_indexer) {
+    show_fail_modal('系统异常, 请重新编辑');
+    return
+  }
+
+  var indexer_id = $("#indexer_id").val();
+  if (current_indexer.id != indexer_id) {
+    show_fail_modal('站点ID不一致, 请重新编辑');
+    return
+  }
+
+  var indexer_url = $("#indexer_url").val();
+  if (!indexer_url || !isUrl(indexer_url)) {
+    show_fail_modal('站点地址无效, 请重新编辑');
+    return
+  }
+  if (indexer_url == current_indexer.domain) {
+    indexer_url = NaN
+  }
+
+  var search_cfg = $('#search_cfg').val();
+  if (!object_json_valid(search_cfg, false)) {
+    show_fail_modal('搜索配置不合法，请检查后重试');
+    return
+  }
+  search_cfg = zip_json(search_cfg)
+  if (search_cfg == zip_json(current_indexer.search)) {
+    search_cfg = NaN
+  }
+
+  var torrent_cfg = $('#torrent_cfg').val();
+  if (!object_json_valid(torrent_cfg, false)) {
+    show_fail_modal('种子过滤配置不合法，请检查后重试');
+    return
+  }
+  torrent_cfg = zip_json(torrent_cfg)
+  if (torrent_cfg == zip_json(current_indexer.torrents)) {
+    torrent_cfg = NaN
+  }
+
+  var browse_cfg = $('#browse_cfg').val();
+  if (!object_json_valid(browse_cfg, true)) {
+    show_fail_modal('资源浏览配置不合法，请检查后重试');
+    return
+  }
+  browse_cfg = zip_json(browse_cfg)
+  if (browse_cfg == zip_json(current_indexer.browse)) {
+    browse_cfg = NaN
+  }
+
+  var category_cfg = $('#category_cfg').val();
+  if (!object_json_valid(category_cfg, true)) {
+    show_fail_modal('目录配置不合法，请检查后重试');
+    return
+  }
+  if (zip_json(category_cfg) == zip_json(current_indexer.category)) {
+    category_cfg = NaN
+  }
+
+  var proxy = $('#indexer_proxy').prop('checked');
+  if (proxy == current_indexer.proxy) {
+    proxy = NaN
+  }
+
+  var render = $('#indexer_render').prop('checked');
+  if (render == current_indexer.render) {
+    render = NaN
+  }
+  var en_expand = $('#en_expand').prop('checked');
+  if (en_expand == current_indexer.en_expand) {
+    en_expand = NaN
+  }
+
+  var downloader = $("#indexer_download_setting").val();
+  if (downloader == current_indexer.downloader) {
+    downloader = NaN
+  }
+  var parser_setting = $('#parser_setting').val();
+  if (parser_setting == current_indexer.parser) {
+    parser_setting = NaN
+  }
+
+  var source_type = select_GetSelectedVAL("source_type").join(',');
+  if (source_type == current_indexer.source_type) {
+    source_type = NaN
+  }
+  var search_type = $('#search_type').val();
+  if (search_type == current_indexer.search_type) {
+    search_type = NaN
+  }
+
+  if (indexer_url == NaN && proxy == NaN && render == NaN && downloader == NaN && en_expand == NaN
+    && source_type == NaN && search_type == NaN && search_cfg == NaN && torrent_cfg == NaN
+    && browse_cfg == NaN && parser_setting == NaN && category_cfg == NaN) {
+    $("#modal-manual-indexer").modal("hide");
+    return;
+  }
+
+  const data = {
+    "id": indexer_id,
+    "domain": indexer_url,
+    "proxy": proxy,
+    "render": render,
+    "en_expand": en_expand,
+    "downloader": downloader,
+    "parser": parser_setting,
+    "source_type": source_type,
+    "search_type": search_type,
+    "search": zip_json(search_cfg),
+    "torrents": zip_json(torrent_cfg),
+    "browse": zip_json(browse_cfg),
+    "category": zip_json(category_cfg)
+  };
+
+  axios_post_do("update_indexer", data, function (ret) {
+    if (ret.code === 0) {
+      $("#modal-manual-indexer").modal("hide");
+      show_success_modal("更新索引站点成功!");
+      window_history_refresh();
+    } else {
+      show_fail_modal(`更新索引站点失败：${ret.msg}!`);
+    }
+  });
+
+};
+

@@ -89,165 +89,15 @@
   </div>
 </div>
 
-<div class="modal modal-blur fade" id="modal-manual-indexer" tabindex="-1" role="dialog" aria-hidden="true"
-  data-bs-backdrop="static" data-bs-keyboard="false">
-  <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable" role="document">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title" id="indexer_modal_title">新增索引站点</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-      </div>
-      <div class="modal-body">
-        <div class="row">
-          <div class="col-lg-4">
-            <div class="mb-3">
-              <label class="form-label required">ID</label>
-              <input type="text" value="" id="indexer_id" class="form-control" placeholder="ID">
-            </div>
-          </div>
-          <div class="col-lg-4">
-            <div class="mb-3">
-              <label class="form-label required">名称</label>
-              <input type="text" value="" id="indexer_name" class="form-control" placeholder="名称">
-            </div>
-          </div>
-          <div class="col-lg-4">
-            <div class="mb-3">
-              <label class="form-label required">站点地址 <span class="form-help" title="站点访问地址，站点签到、数据统计、刷流、内置索引器等将使用"
-                  data-bs-toggle="tooltip">?</span>
-              </label>
-              <input type="text" class="form-control" id="indexer_url" value="" placeholder="站点http地址">
-            </div>
-          </div>
-        </div>
-        <div class="row">
-          <div class="col-lg-4">
-            <div class="mb-3">
-              <label class="form-label required">检索方式 <span class="form-help" title="站点支持根据哪些参数进行资源检索"
-                  data-bs-toggle="tooltip">?</span></label>
-              <select class="form-select" id="search_type">
-                <option value="title">关键字</option>
-                <option value="en_name">英文名</option>
-                <option value="douban_id">豆瓣id</option>
-                <option value="imdb">imdb id</option>
-              </select>
-            </div>
-          </div>
-          <div class="col-lg-4">
-            <div class="mb-3">
-              <label class="form-label">解析器</label>
-              <select class="form-select" id="parser_setting">
-                <option value="">默认</option>
-                <option value="InterfaceSpider">InterfaceSpider</option>
-                <option value="ShadesSpider">ShadesSpider</option>
-                <option value="TorrentLeech">TorrentLeech</option>
-                <option value="TNodeSpider">TNodeSpider</option>
-                <option value="RarBg">RarBg</option>
-              </select>
-            </div>
-          </div>
-          <div class="col-lg-4">
-            <div class="mb-3">
-              <label class="form-label">下载器</label>
-              <select class="form-select" id="indexer_download_setting">
-                <option value="0">默认</option>
-              </select>
-            </div>
-          </div>
-        </div>
-        <div class="row">
-          <div class="col-lg-4">
-            <div class="mb-3">
-              <label class="form-check form-switch">
-                <input class="form-check-input" type="checkbox" id="indexer_proxy">
-                <span class="form-check-label">使用代理服务器 <span class="form-help"
-                    title="开启后该站点的访问将使用代理服务器，代理需在基础设置->系统->代理服务器中设置" data-bs-toggle="tooltip">?</span>
-                </span>
-              </label>
-            </div>
-          </div>
-          <div class="col-lg-4">
-            <div class="mb-3">
-              <label class="form-check form-switch">
-                <input class="form-check-input" type="checkbox" id="indexer_render">
-                <span class="form-check-label">开启浏览器仿真 <span class="form-help"
-                    title="开启后可以兼容更多站点，但获取数据耗时会大幅增加；需要拉取含浏览器内核的镜像才能使用" data-bs-toggle="tooltip">?</span></span>
-              </label>
-            </div>
-          </div>
-          <div class="col-lg-4">
-            <div class="mb-3">
-              <label class="form-check form-switch">
-                <input class="form-check-input" type="checkbox" id="en_expand">
-                <span class="form-check-label">使用英文名进行扩展搜索</span>
-              </label>
-            </div>
-          </div>
-        </div>
-        <div class="row">
-          <div class="col-lg-4">
-            <div class="mb-3">
-              <label class="form-label required">资源类型 <span class="form-help" title="站点可进行哪种类型资源的检索"
-                  data-bs-toggle="tooltip">?</span></label>
-              <div class="form-selectgroup" id="source-types-group">
-              </div>
-            </div>
-          </div>
-        </div>
-        <details>
-          <summary class="summary">
-            搜索配置 <span class="form-help" title="资源搜索配置参数" data-bs-toggle="tooltip">?</span>
-          </summary>
-          <div class="row mt-2">
-            <textarea class="form-control mt-2" id="search_cfg" rows="1" aria-label=""></textarea>
-          </div>
-        </details>
-        <details>
-          <summary class="summary">
-            种子过滤配置 <span class="form-help" title="种子过滤配置" data-bs-toggle="tooltip">?</span>
-          </summary>
-          <div class="row mt-2">
-            <textarea class="form-control mt-2" id="torrent_cfg" rows="1" aria-label=""></textarea>
-          </div>
-        </details>
-        <details>
-          <summary class="summary">
-            资源浏览配置 <span class="form-help" title="资源浏览配置参数" data-bs-toggle="tooltip">?</span>
-          </summary>
-          <div class="row mt-2">
-            <textarea class="form-control mt-2" id="browse_cfg" rows="1" aria-label=""></textarea>
-          </div>
-        </details>
-        <details>
-          <summary class="summary">
-            目录配置 <span class="form-help" title="目录配置参数" data-bs-toggle="tooltip">?</span>
-          </summary>
-          <div class="row mt-2">
-            <textarea class="form-control mt-2" id="category_cfg" rows="1" aria-label=""></textarea>
-          </div>
-        </details>
-      </div>
-      <div class="modal-footer">
-        <a href="javascript:do_del_indexer()" class="btn btn-link text-red me-auto" id="indexer_delete_btn">
-          删除站点
-        </a>
-        <div class="btn-list">
-          <a href="javascript:do_add_indexer()" name="indexer_add_btn" class="btn btn-primary">添加</a>
-          <a href="javascript:do_update_indexer()" name="indexer_edit_btn" class="btn btn-primary">确定</a>
-        </div>
-      </div>
-    </div>
-  </div>
-</div>
-
 <script type="text/javascript">
 
   var check_sites = [];
 
-  var current_indexer = NaN;
-
   // 新增站点
   function add_indexer(site_url) {
+
+    $("#modal-manual-indexer").data("indexer", NaN);
+
     $("#indexer_id").val("").attr("readonly", false);
     $("#indexer_name").val("").attr("readonly", false);
     $("#indexer_url").val("")
@@ -327,288 +177,6 @@
 
   };
 
-  // 编辑站点
-  function edit_site(site_url) {
-
-    current_indexer = NaN
-
-    // 根据ID查询详细信息
-    axios_post_do("get_indexer", { "url": site_url }, function (ret) {
-      if (ret.data) {
-        current_indexer = ret.data
-
-        $("#indexer_id").val(ret.data.id).attr("readonly", true);
-        $("#indexer_name").val(ret.data.name).attr("readonly", true);
-        $("#indexer_url").val(ret.data.domain);
-
-        // 下拉
-        $("#indexer_download_setting").val(ret.data.downloader ?? 0);
-        $("#parser_setting").val(ret.data.parser ?? '');
-        $('#search_type').val(ret.data.search_type ?? 'title')
-        // 多选
-        select_SelectPart(ret.data.source_type, "source_type")
-
-        $("#indexer_proxy").prop("checked", ret.data.proxy);
-        $("#indexer_render").prop("checked", ret.data.render);
-        $("#en_expand").prop("checked", ret.data.en_expand);
-
-        if (ret.data.search) {
-          append_json_to_textarea('search_cfg', ret.data.search)
-        }
-
-        if (ret.data.torrents) {
-          append_json_to_textarea('torrent_cfg', ret.data.torrents)
-        }
-
-        if (ret.data.browse) {
-          append_json_to_textarea('browse_cfg', ret.data.browse)
-        }
-
-        if (ret.data.category) {
-          append_json_to_textarea('category_cfg', ret.data.category)
-        }
-
-        $("#indexer_modal_title").text("编辑站点");
-        $("[name='indexer_add_btn']").hide();
-        $("[name='indexer_edit_btn']").show();
-        $("#indexer_delete_btn").show();
-
-        $("#modal-manual-indexer").modal("show");
-      }
-    });
-  }
-
-  function do_update_indexer() {
-
-    if (current_indexer == NaN) {
-      show_fail_modal('系统异常, 请重新编辑');
-      return
-    }
-
-    var indexer_id = $("#indexer_id").val();
-    if (current_indexer.id != indexer_id) {
-      show_fail_modal('站点ID不一致, 请重新编辑');
-      return
-    }
-
-    var indexer_url = $("#indexer_url").val();
-    if (!indexer_url || !isUrl(indexer_url)) {
-      show_fail_modal('站点地址无效, 请重新编辑');
-      return
-    }
-    if (indexer_url == current_indexer.domain) {
-      indexer_url = NaN
-    }
-
-    var search_cfg = $('#search_cfg').val();
-    if (!object_json_valid(search_cfg, false)) {
-      show_fail_modal('搜索配置不合法，请检查后重试');
-      return
-    }
-    search_cfg = zip_json(search_cfg)
-    if (search_cfg == zip_json(current_indexer.search)) {
-      search_cfg = NaN
-    }
-
-    var torrent_cfg = $('#torrent_cfg').val();
-    if (!object_json_valid(torrent_cfg, false)) {
-      show_fail_modal('种子过滤配置不合法，请检查后重试');
-      return
-    }
-    torrent_cfg = zip_json(torrent_cfg)
-    if (torrent_cfg == zip_json(current_indexer.torrents)) {
-      torrent_cfg = NaN
-    }
-
-    var browse_cfg = $('#browse_cfg').val();
-    if (!object_json_valid(browse_cfg, true)) {
-      show_fail_modal('资源浏览配置不合法，请检查后重试');
-      return
-    }
-    browse_cfg = zip_json(browse_cfg)
-    if (browse_cfg == zip_json(current_indexer.browse)) {
-      browse_cfg = NaN
-    }
-
-    var category_cfg = $('#category_cfg').val();
-    if (!object_json_valid(category_cfg, true)) {
-      show_fail_modal('目录配置不合法，请检查后重试');
-      return
-    }
-    if (zip_json(category_cfg) == zip_json(current_indexer.category)) {
-      category_cfg = NaN
-    }
-
-    var proxy = $('#indexer_proxy').prop('checked');
-    if (proxy == current_indexer.proxy) {
-      proxy = NaN
-    }
-
-    var render = $('#indexer_render').prop('checked');
-    if (render == current_indexer.render) {
-      render = NaN
-    }
-    var en_expand = $('#en_expand').prop('checked');
-    if (en_expand == current_indexer.en_expand) {
-      en_expand = NaN
-    }
-
-    var downloader = $("#indexer_download_setting").val();
-    if (downloader == current_indexer.downloader) {
-      downloader = NaN
-    }
-    var parser_setting = $('#parser_setting').val();
-    if (parser_setting == current_indexer.parser) {
-      parser_setting = NaN
-    }
-
-    var source_type = select_GetSelectedVAL("source_type").join(',');
-    if (source_type == current_indexer.source_type) {
-      source_type = NaN
-    }
-    var search_type = $('#search_type').val();
-    if (search_type == current_indexer.search_type) {
-      search_type = NaN
-    }
-
-    if (indexer_url == NaN && proxy == NaN && render == NaN && downloader == NaN && en_expand == NaN
-      && source_type == NaN && search_type == NaN && search_cfg == NaN && torrent_cfg == NaN
-      && browse_cfg == NaN && parser_setting == NaN && category_cfg == NaN) {
-      $("#modal-manual-indexer").modal("hide");
-      return;
-    }
-
-    const data = {
-      "id": indexer_id,
-      "domain": indexer_url,
-      "proxy": proxy,
-      "render": render,
-      "en_expand": en_expand,
-      "downloader": downloader,
-      "parser": parser_setting,
-      "source_type": source_type,
-      "search_type": search_type,
-      "search": zip_json(search_cfg),
-      "torrents": zip_json(torrent_cfg),
-      "browse": zip_json(browse_cfg),
-      "category": zip_json(category_cfg)
-    };
-
-    axios_post_do("update_indexer", data, function (ret) {
-      if (ret.code === 0) {
-        $("#modal-manual-indexer").modal("hide");
-        show_success_modal("更新索引站点成功!");
-        window_history_refresh();
-      } else {
-        show_fail_modal(`更新索引站点失败：${ret.msg}!`);
-      }
-    });
-
-  };
-
-  function do_del_indexer() {
-
-    if (current_indexer == NaN) {
-      show_fail_modal('系统异常, 请重新编辑');
-      return
-    }
-
-    var indexer_id = $("#indexer_id").val();
-    if (current_indexer.id != indexer_id) {
-      show_fail_modal('站点ID不一致, 请重新编辑');
-      return
-    }
-
-    const data = {
-      "id": indexer_id
-    };
-
-    axios_post_do("delete_indexer", data, function (ret) {
-      if (ret.code === 0) {
-        $("#modal-manual-indexer").modal("hide");
-        window_history_refresh();
-      } else {
-        show_fail_modal(`索引站点删除失败：${ret.msg}!`);
-      }
-    });
-
-  };
-
-  // json合法性检查
-  function object_json_valid(json_str, allow_empty) {
-
-    if (!json_str || json_str == '') {
-      console.log(json_str)
-      return allow_empty;
-    }
-
-    try {
-
-      json_obj = JSON.parse(json_str);
-
-      if (typeof json_obj == 'object' && json_obj) {
-        if (Object.prototype.toString.call(json_obj) === '[object Array]') {
-          console.log('对象为数组')
-          return false;
-        }
-        return true;
-      } else {
-        console.log('对象为不是object')
-        return false;
-      }
-    } catch (e) {
-      console.log('对象解析失败：' + e)
-      return false;
-    }
-  }
-
-  // 压缩json字符串
-  function zip_json(raw_json) {
-
-    if (!raw_json || raw_json == '') {
-      return raw_json;
-    }
-
-    // 压缩
-    var t = raw_json.replace(/[\r\n]/g, "")
-    for (var n = [], o = !1, i = 0, r = t.length; r > i; i++) {
-      var a = t.charAt(i);
-      o && a === o ? "\\" !== t.charAt(i - 1) && (o = !1) : o || '"' !== a && "'" !== a ? o || " " !== a && "	" !== a || (a = "") : o = a, n.push(a)
-    }
-    return n.join("");
-
-  }
-
-  // 格式化json文本内容并填充到textarea
-  function append_json_to_textarea(elem_id, json_str) {
-
-    if (!json_str) {
-      return
-    }
-
-    // 格式化
-    var lint_json = JSON.parse(json_str);
-    // 格式化显示
-    var json = JSON.stringify(lint_json, undefined, 4);
-
-    $("#" + elem_id).val(json);
-
-    var match_break_line = json.match(/\n/ig);
-    if (match_break_line) {
-      var height = Math.min(match_break_line.length * 22 + 15, 500);
-      $("#" + elem_id).height(height + 'px');
-    }
-
-  }
-
-  // 判断是否为网址
-  function isUrl(str) {
-    // 根据网址的特征进行判断
-    var hasProtocol = str.startsWith("http://") || str.startsWith("https://");
-    var hasDomain = str.includes(".");
-    return hasProtocol && hasDomain;
-  }
-
   // 显示索引统计
   function show_indexer_statistics_modal() {
     $("#modal-indexer-statistics").modal("show");
@@ -684,27 +252,6 @@
       init_indexer_chart();
     });
 
-    // 监听所有具有相同 name 的 checkbox 的状态变化
-    $('input[name="indexer_sites"]').change(function () {
-      const itemVal = $(this).val();
-
-      if (this.checked) {
-          check_sites.push(itemVal)
-      } else {
-          const indexToRemove = check_sites.indexOf(itemVal);
-          if (indexToRemove > -1) {
-            check_sites.splice(indexToRemove, 1);
-          }
-      }
-
-      let params = {
-        key: "UserIndexerSites",
-        value: check_sites
-      }
-      axios_post_do("set_system_config", params);
-      
-    });
-
     const container = document.getElementById("page_content");
     const urlParams = $(container).data("params");
     var pParam = urlParams.p || 1;
@@ -713,63 +260,38 @@
     indexersList.empty();
 
     axios_post('/data/indexer?p=' + pParam, {}, function(response) {
-      
+     
       if (response.code === 0 && response.data) {
         
         const data = response.data;
 
         // 设置是否为公共站点
-        $('#is_public_site').val(data.IsPublic);
+        $('#is_public_site').val(data.isPublic);
 
         // 更新全局变量
-        if (data.CheckSites) {
-          check_sites = data.CheckSites;
-        }
-
-        // 填充下载设置选项
-        if (data.DownloadSettings) {
-          const downloadSelect = $('#indexer_download_setting');
-          downloadSelect.empty();
-          downloadSelect.append('<option value="0">默认</option>');
-          Object.entries(data.DownloadSettings).forEach(([id, name]) => {
-            downloadSelect.append(`<option value="${id}">${name}</option>`);
-          });
-        }
-
-        // 填充资源类型选项
-        if (data.SourceTypes) {
-          const sourceTypesGroup = $('#source-types-group');
-          sourceTypesGroup.empty();
-          Object.entries(data.SourceTypes).forEach(([key, value]) => {
-            const sourceTypeItem = `
-              <label class="form-selectgroup-item">
-                <input type="checkbox" name="source_type" value="${key}" class="form-selectgroup-input" checked>
-                <span class="form-selectgroup-label">${value}</span>
-              </label>
-            `;
-            sourceTypesGroup.append(sourceTypeItem);
-          });
+        if (data.checkSites) {
+          check_sites = data.checkSites;
         }
 
         // 生成索引站点列表
-        if (data.Indexers && data.Indexers.length > 0) {
+        if (data.indexers && data.indexers.length > 0) {
 
-          data.Indexers.forEach(site => {
+          data.indexers.forEach(site => {
             // 生成资源类型标签
             let sourceTypeBadges = '';
             if (site.source_type && Array.isArray(site.source_type)) {
               sourceTypeBadges = site.source_type.map(source => {
                 const sourceStr = source.toString();
-                const sourceLabel = data.SourceTypes && data.SourceTypes[sourceStr] ?
-                  data.SourceTypes[sourceStr] : source;
+                const sourceLabel = data.sourceTypes && data.sourceTypes[sourceStr] ?
+                  data.sourceTypes[sourceStr] : source;
                 return `<span class="badge bg-blue me-2">${sourceLabel}</span>`;
               }).join('');
             }
 
             // 生成下载器标签
             let downloaderBadge = '<span class="badge bg-yellow me-2">默认</span>';
-            if (site.downloader && data.DownloadSettings && data.DownloadSettings[site.downloader.toString()]) {
-              downloaderBadge = `<span class="badge bg-yellow me-2">${data.DownloadSettings[site.downloader.toString()]}</span>`;
+            if (site.downloader && data.downloadSettings && data.downloadSettings[site.downloader.toString()]) {
+              downloaderBadge = `<span class="badge bg-yellow me-2">${data.downloadSettings[site.downloader.toString()]}</span>`;
             }
 
             // 生成特性标签
@@ -790,7 +312,7 @@
                     </a>
                   </h3>
                   <div class="card-actions btn-actions">
-                    <a href="javascript:edit_site('${site.domain}')" class="btn-action ms-1" title="编辑站点">
+                    <a href="javascript:edit_indexer_conf('${site.domain}')" class="btn-action ms-1" title="编辑站点">
                       <i class="ti ti-edit fs-2"></i>
                     </a>
                   </div>
@@ -821,10 +343,33 @@
 
           $('#indexers-container').show();
           $('#no-indexers').hide();
+
+          
+          // 监听站点启用
+          $('input[name="indexer_sites"]').change(function () {
+            const itemVal = $(this).val();
+
+            if (this.checked) {
+                check_sites.push(itemVal)
+            } else {
+                const indexToRemove = check_sites.indexOf(itemVal);
+                if (indexToRemove > -1) {
+                  check_sites.splice(indexToRemove, 1);
+                }
+            }
+
+            let params = {
+              key: "UserIndexerSites",
+              value: check_sites
+            }
+            axios_post_do("set_system_config", params);
+            
+          });
+
         } else {
           $('#indexers-container').hide();
           const noIndexersElement = $('#no-indexers');
-          if (data.IsPublic == 1) {
+          if (data.isPublic == 1) {
             noIndexersElement.attr('text', '没有可以用的公共索引站点');
           } else {
             noIndexersElement.attr('text', '没有认证成功的PT站点信息');

@@ -69,6 +69,7 @@ class SitesManager:
             site_apikey = site.API_KEY
             site_uses = site.INCLUDE or ''
             site_parser = ''
+            indexer_id = ''
 
             uses = []
 
@@ -84,14 +85,17 @@ class SitesManager:
                 brush_enable = False
                 statistic_enable = False
             
+            strict_url = SiteUtils.get_base_url(site_signurl or site_rssurl)
             # 解析器
-            indexer_base = IndexerManager().get_indexer_base(site_signurl)
+            indexer_base = IndexerManager().get_indexer_base(strict_url)
             if indexer_base:
                 site_parser = indexer_base.parser
+                indexer_id = indexer_base.id
 
             site_info = {
                 "id": site.ID,
                 "name": site.NAME,
+                "indexer_id": indexer_id,
                 "pri": site.PRI or 0,
                 "rssurl": site_rssurl,
                 "signurl": site_signurl,
@@ -113,7 +117,7 @@ class SitesManager:
                 "limit_interval": site_note.get("limit_interval"),
                 "limit_count": site_note.get("limit_count"),
                 "limit_seconds": site_note.get("limit_seconds"),
-                "strict_url": SiteUtils.get_base_url(site_signurl or site_rssurl),
+                "strict_url": strict_url,
                 "parser" : site_parser
             }
 

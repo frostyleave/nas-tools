@@ -218,7 +218,7 @@ class IndexerManager:
             # 支持的搜索类型, 为空默认为标题、英文名
             result["search_type"] = conf_data.search_type or 'title'
             # 是否公开站点
-            result["public"] = conf_data.public or public
+            result["public"] = public if public is not None else (conf_data.public or False)
             # 是否使用英文名进行扩展搜索
             result["en_expand"] = conf_data.en_expand or False
             # 指定下载器

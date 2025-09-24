@@ -1,4 +1,5 @@
 
+import tracemalloc
 from fastapi import FastAPI
 from fastapi.concurrency import asynccontextmanager
 
@@ -18,6 +19,9 @@ async def lifespan(app: FastAPI):
         
         log.info('开启配置文件监控...')
         start_config_monitor()
+
+        # 开始内存监控
+        tracemalloc.start()
 
         log.info("✅ FastAPI 应用启动完成")
         yield

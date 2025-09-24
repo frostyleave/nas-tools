@@ -165,12 +165,7 @@
         "icon": "<i class=\"ti ti-world-search fs-2 \"></i>"
       },
       {
-        "name": "PT索引",
-        "page": "ptindexer",
-        "icon": "<i class=\"ti ti-shield-search fs-2 \"></i>"
-      },
-      {
-        "name": "站点维护",
+        "name": "PT维护",
         "page": "site",
         "icon": "<i class=\"ti ti-settings-search fs-2 \"></i>"
       },

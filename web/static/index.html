@@ -1106,6 +1106,140 @@
     </div>
   </div>
 
+  <div class="modal modal-blur fade" id="modal-manual-indexer" tabindex="-1" role="dialog" aria-hidden="true"
+    data-bs-backdrop="static" data-bs-keyboard="false">
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable" role="document">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="indexer_modal_title">新增索引站点</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <div class="row">
+            <div class="col-lg-4">
+              <div class="mb-3">
+                <label class="form-label required">ID</label>
+                <input type="text" value="" id="indexer_id" class="form-control" placeholder="ID">
+              </div>
+            </div>
+            <div class="col-lg-4">
+              <div class="mb-3">
+                <label class="form-label required">名称</label>
+                <input type="text" value="" id="indexer_name" class="form-control" placeholder="名称">
+              </div>
+            </div>
+            <div class="col-lg-4">
+              <div class="mb-3">
+                <label class="form-label required">站点地址 <span class="form-help" title="站点访问地址，站点签到、数据统计、刷流、内置索引器等将使用"
+                    data-bs-toggle="tooltip">?</span>
+                </label>
+                <input type="text" class="form-control" id="indexer_url" value="" placeholder="站点http地址">
+              </div>
+            </div>
+          </div>
+          <div class="row">
+            <div class="col-lg-4">
+              <div class="mb-3">
+                <label class="form-label required">检索方式 <span class="form-help" title="站点支持根据哪些参数进行资源检索"
+                    data-bs-toggle="tooltip">?</span></label>
+                <select class="form-select" id="search_type">
+                  <option value="title">关键字</option>
+                  <option value="en_name">英文名</option>
+                  <option value="douban_id">豆瓣id</option>
+                  <option value="imdb">imdb id</option>
+                </select>
+              </div>
+            </div>
+            <div class="col-lg-4">
+              <div class="mb-3">
+                <label class="form-label">解析器</label>
+                <select class="form-select" id="parser_setting">
+                </select>
+              </div>
+            </div>
+            <div class="col-lg-4 pt-hide">
+              <div class="mb-3">
+                <label class="form-label">下载器</label>
+                <select class="form-select" id="indexer_download_setting">
+                  <option value="0">默认</option>
+                </select>
+              </div>
+            </div>
+          </div>
+          <div class="row">
+            <div class="mb-3">
+              <label class="required">资源类型 <span class="form-help" title="站点可进行哪种类型资源的检索"data-bs-toggle="tooltip">?</span></label>
+              <div class="form-selectgroup" id="source-types-group"></div>
+            </div>
+          </div>
+          <div class="row">
+            <div class="col-lg-4 pt-hide">
+              <div class="mb-3">
+                <span>使用代理服务器 
+                  <span class="form-help" title="开启后该站点的访问将使用代理服务器，代理需在基础设置->系统->代理服务器中设置" data-bs-toggle="tooltip">?</span>
+                </span>
+                <div class="form-switch d-inline-block ms-2"><input class="form-check-input" type="checkbox" id="indexer_proxy"></div>
+              </div>
+            </div>
+            <div class="col-lg-4 pt-hide">
+              <div class="mb-3">
+                  <span>开启浏览器仿真 
+                    <span class="form-help"
+                      title="开启后可以兼容更多站点，但获取数据耗时会大幅增加；需要拉取含浏览器内核的镜像才能使用" data-bs-toggle="tooltip">?</span>
+                    </span>
+                  <div class="form-switch d-inline-block ms-2"><input class="form-check-input" type="checkbox" id="indexer_render"></div>
+              </div>
+            </div>
+            <div class="col-lg-4">
+              <div class="mb-3">
+                <label>使用英文名进行扩展搜索</label>
+                <div class="form-switch d-inline-block ms-2"><input class="form-check-input" type="checkbox" id="en_expand"></div>
+              </div>
+            </div>
+          </div>
+          <details>
+            <summary class="summary">
+              搜索配置 <span class="form-help" title="资源搜索配置参数" data-bs-toggle="tooltip">?</span>
+            </summary>
+            <div class="row mt-2">
+              <textarea class="form-control mt-2" id="search_cfg" rows="1" aria-label=""></textarea>
+            </div>
+          </details>
+          <details>
+            <summary class="summary">
+              种子过滤配置 <span class="form-help" title="种子过滤配置" data-bs-toggle="tooltip">?</span>
+            </summary>
+            <div class="row mt-2">
+              <textarea class="form-control mt-2" id="torrent_cfg" rows="1" aria-label=""></textarea>
+            </div>
+          </details>
+          <details>
+            <summary class="summary">
+              资源浏览配置 <span class="form-help" title="资源浏览配置参数" data-bs-toggle="tooltip">?</span>
+            </summary>
+            <div class="row mt-2">
+              <textarea class="form-control mt-2" id="browse_cfg" rows="1" aria-label=""></textarea>
+            </div>
+          </details>
+          <details>
+            <summary class="summary">
+              目录配置 <span class="form-help" title="目录配置参数" data-bs-toggle="tooltip">?</span>
+            </summary>
+            <div class="row mt-2">
+              <textarea class="form-control mt-2" id="category_cfg" rows="1" aria-label=""></textarea>
+            </div>
+          </details>
+        </div>
+        <div class="modal-footer">
+          <div class="btn-list">
+            <a href="javascript:do_add_indexer()" name="indexer_add_btn" class="btn btn-primary">添加</a>
+            <a href="javascript:do_update_indexer()" name="indexer_edit_btn" class="btn btn-primary">确定</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <cmd-dialog theme="light"></cmd-dialog>
 
   <!-- 基础库 -->
@@ -1333,6 +1467,9 @@
         generateRmtModeOptions(sysInfo.rmtDodeDict);
       }
 
+      // 生成索引器弹窗选项
+      generateIndexerModalOptions(sysInfo);
+
     }
 
     // 生成季数选项
@@ -1387,6 +1524,43 @@
         manualSelect.append(option);
         customizeSelect.append(option);
       });
+
+    }
+
+    function generateIndexerModalOptions(data) {
+
+      // 填充下载设置选项
+      if (data.downloadSettings) {
+        const downloadSelect = $('#indexer_download_setting');
+        downloadSelect.empty();
+        downloadSelect.append('<option value="0">默认</option>');
+        Object.entries(data.downloadSettings).forEach(([id, name]) => {
+          downloadSelect.append(`<option value="${id}">${name}</option>`);
+        });
+      }
+
+      // 填充资源类型选项
+      if (data.sourceTypes) {
+        const sourceTypesGroup = $('#source-types-group');
+        sourceTypesGroup.empty();
+        Object.entries(data.sourceTypes).forEach(([key, value]) => {
+          const sourceTypeItem = `
+            <label class="form-selectgroup-item">
+              <input type="checkbox" name="source_type" value="${key}" class="form-selectgroup-input" checked>
+              <span class="form-selectgroup-label">${value}</span>
+            </label>
+          `;
+          sourceTypesGroup.append(sourceTypeItem);
+        });
+      }
+
+      if (data.spiderTypes) {
+        const sourceTypesGroup = $('#parser_setting');
+        $.each(data.spiderTypes, function (sKey, sName){
+          var option = `<option value="${sKey}">${sName}</option>`;
+          sourceTypesGroup.append(option);
+        });
+      }
 
     }
 

@@ -1,6 +1,7 @@
 import json
 import re
 import traceback
+import tracemalloc
 import xml.dom.minidom
 
 from fastapi import APIRouter, Request, Response
@@ -370,3 +371,16 @@ async def subscribe(request: Request):
         return Response(content="ok", status_code=200)
     else:
         return Response(content=msg, status_code=500)
+    
+
+@open_router.get("/memory")
+async def memory_snapshot():
+    
+    snapshot = tracemalloc.take_snapshot()
+    top_stats = snapshot.statistics('filename')
+
+    output = []
+    for stat in top_stats[:10]:
+        output.append(f"{stat}")
+    
+    return {"top_memory": output}
