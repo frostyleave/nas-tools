@@ -21,13 +21,13 @@ router
   })
   // 探索模块
   .on("/ranking", function (match) {
-    loadPage("/static/pages/ranking.html", match.queryString);
+    loadPage("/static/pages/ranking.html?t=RANKING", match.queryString);
   })
   .on("/tv_ranking", function (match) {
-    loadPage("/static/pages/tv_ranking.html", match.queryString);
+    loadPage("/static/pages/ranking.html?t=TV", match.queryString);
   })
   .on("/bangumi", function (match) {
-    loadPage("/static/pages/bangumi.html", match.queryString);
+    loadPage("/static/pages/ranking.html?t=BANGUMI", match.queryString);
   })
   .on("/media_detail", function (match) {
     loadPage("/static/pages/mediainfo.html", match.queryString);

@@ -1,1 +1,195 @@
-<page-discovery discovery-type="RANKING"></page-discovery>
+<div id="discovery-container" class="container-xl"></div>
+
+<script type="text/javascript">
+    // 榜单配置
+    _media_type_list = {
+        "RANKING": [
+            {
+                type: "MOV",
+                title: "正在热映",
+                subtype: "dbom",
+            },
+            {
+                type: "MOV",
+                title: "即将上映",
+                subtype: "dbnm",
+            },
+            {
+                type: "MOV",
+                title: "豆瓣热门电影",
+                subtype: "dbhm",
+            },
+            {
+                type: "TRENDING",
+                title: "TMDB流行趋势",
+                subtype: "trendingmv",
+            },
+            {
+                type: "MOV",
+                title: "豆瓣电影TOP250",
+                subtype: "dbtop",
+            },
+
+        ],
+        "TV": [
+            {
+                type: "TV",
+                title: "豆瓣热门剧集",
+                subtype: "dbht",
+            },
+            {
+                type: "TV",
+                title: "豆瓣热门动漫",
+                subtype: "dbdh",
+            },
+            {
+                type: "TV",
+                title: "豆瓣热门综艺",
+                subtype: "dbzy",
+            },
+            {
+                type: "TRENDING",
+                title: "TMDB流行趋势",
+                subtype: "trendingtv"
+            },
+            {
+                type: "TV",
+                title: "华语口碑剧集榜",
+                subtype: "dbct",
+            },
+            {
+                type: "TV",
+                title: "全球口碑剧集榜",
+                subtype: "dbgt",
+            }
+            // {
+            //   type: "MOV",
+            //   title:"最新电影",
+            //   subtype :"nm",
+            // },
+            // {
+            //   type: "MOV",
+            //   title:"热门电影",
+            //   subtype :"hm",
+            // },
+        ],
+        "BANGUMI": [
+            {
+                type: "TV",
+                title: "星期一",
+                subtype: "bangumi",
+                week: "1",
+                noMore: true
+            },
+            {
+                type: "TV",
+                title: "星期二",
+                subtype: "bangumi",
+                week: "2",
+                noMore: true
+            },
+            {
+                type: "TV",
+                title: "星期三",
+                subtype: "bangumi",
+                week: "3",
+                noMore: true
+            },
+            {
+                type: "TV",
+                title: "星期四",
+                subtype: "bangumi",
+                week: "4",
+                noMore: true
+            },
+            {
+                type: "TV",
+                title: "星期五",
+                subtype: "bangumi",
+                week: "5",
+                noMore: true
+            },
+            {
+                type: "TV",
+                title: "星期六",
+                subtype: "bangumi",
+                week: "6",
+                noMore: true
+            },
+            {
+                type: "TV",
+                title: "星期日",
+                subtype: "bangumi",
+                week: "7",
+                noMore: true
+            },
+        ]
+    }
+</script>
+
+<script type="text/javascript">
+
+    $(document).ready(function () {
+
+        const container = document.getElementById("page_content");
+        const urlParams = $(container).data("params");
+        var discovery_type = urlParams.t || 'RANKING';
+
+        const pageRankList = _media_type_list[discovery_type];
+        if (!pageRankList) {
+            console.warn('page-discovery: unknown discovery-type:', discovery_type);
+            return;
+        }
+
+        const $rankContainer = $('#discovery-container');
+        // 为每个 item 创建一个 custom-slide 并先填充占位符
+        pageRankList.forEach((rankItem) => {
+
+            const rankSlide = document.createElement('custom-slide');
+            
+            rankSlide.setAttribute('slide-title', rankItem.title);
+            rankSlide.setAttribute('lazy', 'normal-card');
+
+            // 可查看更多
+            if (!rankItem.noMore) {
+                 rankSlide.setAttribute('slide-click',
+                `javascript:navmenu('recommend?type=${rankItem.type}&subtype=${rankItem.subtype}&week=${rankItem.week ?? ""}&title=${encodeURIComponent(rankItem.title)}')`
+                );
+            }
+
+            $rankContainer.append(rankSlide);
+            // 请求接口, 查询相应榜单数据
+            axios_post_do("get_recommend", { "type": rankItem.type, "subtype": rankItem.subtype, "page": 1, "week": rankItem.week}, (ret) => {
+
+                var slide_cards = [];
+                
+                // 生成 normal-card 集合
+                ret.Items.map((card, index) => {
+
+                    const nc = document.createElement('normal-card');
+
+                    nc.setAttribute('lazy', '1');
+                    nc.setAttribute('card-showsub', '1');
+                    nc.setAttribute('card-tmdbid', card.id);
+                    nc.setAttribute('card-mediatype', card.type);
+                    nc.setAttribute('card-image', card.image);
+                    nc.setAttribute('card-fav', card.fav);
+                    nc.setAttribute('card-vote', card.vote);
+                    nc.setAttribute('card-year', card.year);
+                    nc.setAttribute('card-title', card.title);
+                    nc.setAttribute('card-overview', card.overview);
+                    nc.setAttribute('card-restype', card.media_type);
+
+                    slide_cards.push(nc);
+
+                });
+
+                rankSlide.slide_card = slide_cards;
+
+            });
+
+        });
+
+    });
+
+</script>

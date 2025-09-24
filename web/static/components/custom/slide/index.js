@@ -16,7 +16,7 @@ export class CustomSlide extends CustomElement {
     super();
     this._disabled = 0;
     this.slide_title = "加载中..";
-    this.slide_click = "javascript:void(0)";
+    this.slide_click = "";
     this.slide_card = Array(20).fill(html`<normal-card-placeholder class="px-2"></normal-card-placeholder>`);
   }
 
@@ -26,11 +26,11 @@ export class CustomSlide extends CustomElement {
         <div class="page-header d-print-none">
           <div class="d-flex justify-content-between">
             <div class="d-inline-flex">
-              <a class="nav-link ms-2" href=${this.slide_card.length == 0 ? "javascript:void(0)" : this.slide_click}>
+              <a class="nav-link ms-2 ${this.slide_click ? "cursor-pointer" : "cursor-default"}" href=${this.slide_click ? this.slide_click : "javascript:void(0)"}>
                 <h2 class="my-1">
-                  <strong>${this.slide_card.length == 0 ? "加载中.." : this.slide_title}</strong>
+                  <strong>${this.slide_title}</strong>
                 </h2>
-                <div class="ms-2 d-flex align-items-center">
+                <div class="ms-2 d-flex align-items-center ${this.slide_click ? "" : "d-none"}">
                   <i class="ti ti-chevrons-right fs-1"></i>
                 </div>
               </a>
