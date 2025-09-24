@@ -794,6 +794,8 @@
 
 <script type="text/javascript">
 
+  var check_sites = [];
+
   // 页面加载完成后，使用axios_post请求/data/site接口获取数据并填充页面
   $(document).ready(function() {
 
@@ -801,6 +803,9 @@
 
       if (response.code === 0 && response.data) {
         const data = response.data;
+
+        // 开启搜索的站点
+        check_sites = data.indexerSites;
 
         // 填充站点优先级选项（1-50）
         const sitePriSelect = $('#site_pri');
@@ -859,7 +864,7 @@
               <div class="card p-0 frosted-card">
                 <div class="card-body" >
                   <div class="right-top-box">
-                    <a href="javascript:remove_site('${site.name}', '${site.id}')" class="btn-action" title="删除站点">
+                    <a href="javascript:remove_site('${site.name}', '${site.id}')" class="btn-action text-danger" title="删除站点">
                       <i class="ti ti-x fs-2"></i>
                     </a>
                   </div>
@@ -869,9 +874,6 @@
                         <input name="indexer_sites" type="checkbox" class="form-check-input" value="${site.indexer_id}" ${data.indexerSites.includes(site.indexer_id) ? 'checked' : ''}>
                       </div>
                       <span class="text-reset card-text">${site.name}</span>
-                    </div>
-                    <div class="mx-1 my-1">
-                      <span>${site.strict_url}</span>
                     </div>
                     <div class="flex-grow-1 mt-1 pt-2 ps-1 border-top">
                       <div class="d-flex align-items-center">
@@ -890,17 +892,19 @@
                         </small>
                       </div>
                     </div>
-                    <div class="d-flex justify-content-between">
-                      <div></div>
+                    <div class="d-flex justify-content-between mt-2">
+                      <div class="d-flex align-items-center ms-1">
+                        <span>${site.strict_url}</span>
+                      </div>
                       <div class="col-auto">
-                        <a href="javascript:edit_indexer_conf('${site.strict_url}', true)" class="btn-action ms-1" title="编辑索引">
+                        <a href="javascript:edit_indexer_conf('${site.strict_url}', true)" class="me-1" title="编辑索引">
                           <i class="ti ti-settings fs-2"></i>
                         </a>
-                        <a href="javascript:edit_site('${site.id}')" class="btn-action ms-1" title="编辑站点">
+                        <a href="javascript:edit_site('${site.id}')" class="me-1" title="编辑站点">
                           <i class="ti ti-edit fs-2"></i>
                         </a>
                         ${data.ChromeOk 
-                        ? `<a href="javascript:show_site_cookie_ua_modal('${site.id}', '${site.name}')" class="btn-action ms-1" title="更新站点Cookie和User-Agent">
+                        ? `<a href="javascript:show_site_cookie_ua_modal('${site.id}', '${site.name}')" class="me-1" title="更新站点Cookie和User-Agent">
                             <i class="ti ti-refresh-dot fs-2"></i>
                           </a>` 
                         : ''}
@@ -927,6 +931,27 @@
               </tr>
             `;
             testTableBody.append(testRow);
+          });
+          
+          // 监听站点启用
+          $('input[name="indexer_sites"]').change(function () {
+            const itemVal = $(this).val();
+
+            if (this.checked) {
+                check_sites.push(itemVal)
+            } else {
+                const indexToRemove = check_sites.indexOf(itemVal);
+                if (indexToRemove > -1) {
+                  check_sites.splice(indexToRemove, 1);
+                }
+            }
+
+            let params = {
+              key: "UserIndexerSites",
+              value: check_sites
+            }
+            axios_post_do("set_system_config", params);
+            
           });
 
           $('#no-sites').hide();
