@@ -554,9 +554,9 @@ div.top-sub-navbar>ul>li>a {
 
 .nav-tabs .nav-link.active {
     border-color: transparent;
-    border-bottom-color: var(--lit-navbar-active);
+    border-bottom-color: var(--tblr-primary);
     border-bottom-width: 2px;
-    color: var(--lit-navbar-active);
+    color: var(--tblr-primary);
     font-weight: 600;
 }
 
