@@ -478,6 +478,9 @@ body.theme-light::after {
 .top-sub-navbar {
     font-size: 1rem;
     border-bottom: 0;
+    overflow-x: auto;
+    overflow-y: hidden;
+    white-space: nowrap;
 }
 
 div.top-sub-navbar>ul {
@@ -546,14 +549,15 @@ div.top-sub-navbar>ul>li>a {
 
 .scroll-to-top:hover {
     background-color: #0056b3;
-    /* 鼠标悬停背景颜色 */
     transform: scale(1.1);
-    /* 鼠标悬停时放大 */
 }
 
 .nav-tabs .nav-link.active {
     border-color: transparent;
     border-bottom-color: var(--lit-navbar-active);
+    border-bottom-width: 2px;
+    color: var(--lit-navbar-active);
+    font-weight: 600;
 }
 
 .components-div {
@@ -861,12 +865,57 @@ a:hover {
     text-shadow: 1px 1px 2px rgba(var(--tblr-body-bg-rgb), 1.0);
 }
 
-.frosted-card {
-    background-color: rgba(255, 255, 255, 0.25);
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
-}
-
 .mh-5 {
     min-height: 5rem;
+}
+
+.glass-card {
+    backdrop-filter: blur(15px);
+    -webkit-backdrop-filter: blur(15px);
+    background: rgba(255, 255, 255, 0.15);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 8px;
+    box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.glass-card:hover {
+    transform: translateY(-10px);
+    box-shadow: 0 12px 40px 0 rgba(31, 38, 135, 0.45);
+}
+
+/* 分区切换样式 */
+.category-tabs {
+    display: flex;
+    gap: 0;
+    background: #f8fafc;
+    border-radius: 10px;
+    margin-bottom: 24px;
+    width: fit-content;
+    padding: 4px;
+    border: 1px solid var(--border);
+}
+
+.category-tab {
+    padding: 8px 20px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    color: var(--secondary);
+}
+
+.category-tab.active {
+    background: var(--lit-navbar-active);
+    color: var(--lit-navbar-active-color);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+@media (max-width: 768px) {
+    .category-tabs {
+        width: 100%;
+        overflow-x: auto;
+        white-space: nowrap;
+    }
 }

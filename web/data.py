@@ -472,28 +472,12 @@ async def customwords(request: Request, current_user = Depends(get_current_user)
 @data_router.post("/plugin")
 async def plugin(request: Request, current_user = Depends(get_current_user)):
 
-    web_action = WebAction(current_user)
-
-    # 下载器
-    DefaultDownloader = Downloader().default_downloader_id
-    Downloaders = Downloader().get_downloader_conf()
-    Categories = {
-        x: web_action.get_categories({
-            "type": x
-        }).get("category") for x in ["电影", "电视剧", "动漫"]
-    }
-    RmtModeDict = web_action.get_rmt_modes()
     # 插件
     Plugins = PluginManager().get_plugins_conf(current_user.level)
 
     Settings = '\n'.join(SystemConfig().get(SystemConfigKey.ExternalPluginsSource) or [])
     return response(data=
         {
-            "Downloaders": Downloaders,
-            "DefaultDownloader": DefaultDownloader,
-            "Categories": Categories,
-            "RmtModeDict": RmtModeDict,
-            "DownloaderConf": ModuleConf.DOWNLOADER_CONF,
             "Plugins": Plugins,
             "Settings": Settings
         })
@@ -599,6 +583,34 @@ async def service(request: Request, current_user: User = Depends(get_current_use
             "RuleGroups": RuleGroups,
             "SyncPaths": SyncPaths,
             "SchedulerTasks": Services,
+        }
+    )
+
+
+# 下载器
+@data_router.post("/downloaders")
+async def downloading(request: Request, current_user: User = Depends(get_current_user)):
+    """
+    正在下载页面
+    """
+    webAction = WebAction(current_user)
+
+    rmtModeDict = webAction.get_rmt_modes()
+
+    # 下载器
+    defaultDownloader = Downloader().default_downloader_id
+    downloaders = Downloader().get_downloader_conf()
+    categories = {
+        x: webAction.get_categories({ "type": x }).get("category") for x in ["电影", "电视剧", "动漫"]
+    }
+
+    return response(data=
+        {
+            "downloaders": downloaders,
+            "defaultDownloader": defaultDownloader,
+            "categories": categories,
+            "downloaderConf": ModuleConf.DOWNLOADER_CONF,
+            "rmtModeDict": rmtModeDict,
         }
     )
 

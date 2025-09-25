@@ -72,6 +72,9 @@ router
   .on("/downloading", function (match) {
     loadPage("/static/pages/downloading.html", match.queryString);
   })
+  .on("/downloaders", function (match) {
+    loadPage("/static/pages/downloaders.html", match.queryString);
+  })
   // 下载配置
   .on("/download_setting", function (match) {
     loadPage("/static/pages/download_setting.html", match.queryString);
@@ -373,7 +376,7 @@ function active_menu(pageMenu) {
     const aElement = document.createElement('a');
     aElement.className = 'nav-link top-nav-link';
     aElement.href = '#';
-    aElement.innerHTML = `<span class="tab-icon" style="color:var(--tblr-body-color);display: inline-flex;align-items: anchor-center;">${item.icon}</span><span class="tab-text">${item.name}</span>`;
+    aElement.innerHTML = `<span class="tab-icon" style="display: inline-flex;align-items: anchor-center;">${item.icon}</span><span class="tab-text">${item.name}</span>`;
     aElement.setAttribute('data-bs-toggle', 'tab');
     aElement.setAttribute('data-id', item.page);
     aElement.onclick = () => navmenu(item.page);

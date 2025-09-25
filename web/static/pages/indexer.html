@@ -116,7 +116,6 @@
     $("#indexer_modal_title").text("新增索引站点");
     $("[name='indexer_add_btn']").show();
     $("[name='indexer_edit_btn']").hide();
-    $("#indexer_delete_btn").hide();
 
     $("#modal-manual-indexer").modal("show");
   }
@@ -181,6 +180,29 @@
   function show_indexer_statistics_modal() {
     $("#modal-indexer-statistics").modal("show");
   }
+
+  function do_del_indexer(indexer_id, indexer_name) {
+
+    show_ask_modal("是否确认删除索引站点 " + indexer_name + " ?", function () {
+
+      hide_ask_modal();
+
+      const data = {
+        "id": indexer_id
+      };
+
+      axios_post_do("delete_indexer", data, function (ret) {
+        if (ret.code === 0) {
+          $("#modal-manual-indexer").modal("hide");
+          window_history_refresh();
+        } else {
+          show_fail_modal(`索引站点删除失败：${ret.msg}!`);
+        }
+      });
+      
+    });
+
+  };
 
   var indexer_chat = undefined;
 
@@ -301,19 +323,18 @@
             if (site.en_expand) featureBadges += '<span class="badge bg-cyan-lt mb-1 me-1">扩展</span>';
 
             const siteCard = `
-              <div class="card card-link-pop">
+              <div class="card glass-card">
                 <div class="card-header">
                   <div class="form-switch">
                     <input name="indexer_sites" type="checkbox" class="form-check-input" value="${site.id}" ${site.checked ? 'checked' : ''}>
                   </div>
-                  <h3 class="card-title">
-                    <a href="javascript:void(0)" class="ms-1">
-                      <strong>${site.name}</strong>
-                    </a>
-                  </h3>
+                  <span class="text-reset card-text">${site.name}</span>
                   <div class="card-actions btn-actions">
                     <a href="javascript:edit_indexer_conf('${site.domain}')" class="btn-action ms-1" title="编辑站点">
                       <i class="ti ti-edit fs-2"></i>
+                    </a>
+                    <a href="javascript:do_del_indexer('${site.id}', '${site.name}')" class="btn btn-link text-red me-auto" title="删除站点">
+                      <i class="ti ti-x fs-2"></i>
                     </a>
                   </div>
                 </div>

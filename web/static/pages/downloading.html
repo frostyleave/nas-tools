@@ -1,21 +1,35 @@
-<div class="top-sub-navbar mx-2" >
-  <input type="hidden" id="downloaderId" value="">
-  <ul class="nav nav-tabs card-header-tabs" data-bs-toggle="tabs" role="tablist" id="downloader-tabs">
-  </ul>
-</div>
 <div class="container-xl">
-  <!-- Page title -->
   <div class="page-header d-print-none">
     <div class="row align-items-center">
       <div class="col">
+        <input type="hidden" id="downloaderId" value="">
+        <div class="top-sub-navbar mx-2" >
+          <input type="hidden" id="downloaderId" value="">
+          <ul class="nav nav-tabs card-header-tabs" data-bs-toggle="tabs" role="tablist" id="downloader-tabs">
+          </ul>
+        </div>
       </div>
       <div class="col-auto ms-auto d-print-none">
         <div class="btn-list">
-          <button data-bs-toggle="dropdown" type="button" class="btn btn-primary d-none d-sm-inline-flex dropdown-toggle">
+          <a href="javascript:navmenu('downloaders')" class="btn btn-primary d-none d-sm-inline-flex" title="下载器">
+            <i class="ti ti-tool fs-2"></i>
+            下载器
+          </a>
+          <a href="javascript:navmenu('downloaders')" class="btn btn-primary d-sm-none btn-icon" title="下载器">
+            <i class="ti ti-tool fs-2"></i>
+          </a>
+          <a href="javascript:navmenu('download_setting')" class="btn btn-cyan d-none d-sm-inline-flex" title="下载配置">
+            <i class="ti ti-settings-down fs-2"></i>
+            下载配置
+          </a>
+          <a href="javascript:navmenu('download_setting')" class="btn btn-cyan d-sm-none btn-icon" title="下载配置">
+            <i class="ti ti-settings-down fs-2"></i>
+          </a>
+          <button data-bs-toggle="dropdown" type="button" class="btn d-none d-sm-inline-flex dropdown-toggle">
             <i class="ti ti-plus fs-2"></i>
             新增下载
           </button>
-          <button data-bs-toggle="dropdown" type="button" class="btn btn-primary d-sm-none btn-icon">
+          <button data-bs-toggle="dropdown" type="button" class="btn d-sm-none btn-icon">
             <i class="ti ti-plus fs-2"></i>
           </button>
           <div class="dropdown-menu dropdown-menu-end">
