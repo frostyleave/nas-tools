@@ -329,11 +329,13 @@ async def indexer(request: Request, current_user: User = Depends(get_current_use
             "checked": checked
         }
         front_indexers.append(site_info)
+    
+    sorted_list = sorted(front_indexers, key=lambda x: x.get("id", "") not in indexer_sites)
 
     return response(data=
         {
             "isPublic": p,
-            "indexers": front_indexers,
+            "indexers": sorted_list,
             "checkSites": check_sites,
             "sourceTypes": sourceTypes
         })

@@ -747,7 +747,7 @@ div.top-sub-navbar>ul>li>a {
 .right-top-box {
     position: absolute;
     top: 1rem;
-    right: 1.5rem;
+    right: 1.0rem;
     z-index: 99;
 }
 
@@ -865,4 +865,8 @@ a:hover {
     background-color: rgba(255, 255, 255, 0.25);
     backdrop-filter: blur(10px);
     -webkit-backdrop-filter: blur(10px);
+}
+
+.mh-5 {
+    min-height: 5rem;
 }
