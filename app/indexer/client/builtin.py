@@ -166,23 +166,24 @@ class BuiltinIndexer(_IIndexClient):
 
         # 索引花费的时间
         seconds = round((datetime.datetime.now() - start_time).seconds, 1)
-        # 索引统计
-        self.dbhelper.insert_indexer_statistics(indexer=indexer.name,
-                                                itype=self.client_id,
-                                                seconds=seconds,
-                                                result='N' if error_flag else 'Y')
-        # 返回结果
-        if len(result_array) == 0:
-            log.warn(f"【{self.client_name}】{indexer.name} 未搜索到数据")
+        
+        result_count = len(result_array)
+        # 没有结果
+        if result_count == 0:
+            result_info = '搜索失败' if error_flag else '未搜索到数据'
+            summary_txt = f"【{self.client_name}】{indexer.name} {result_info}, 用时: {seconds}s"
+            log.info(summary_txt)
             # 更新进度
-            self.progress.update(ptype=ProgressKey.Search, text=f"{indexer.name} 未搜索到数据")
+            self.progress.update(ptype=ProgressKey.Search, text=summary_txt)
             return []
-        else:
-            log.warn(f"【{self.client_name}】{indexer.name} 返回数据：{len(result_array)}")
-            # 更新进度
-            self.progress.update(ptype=ProgressKey.Search, text=f"{indexer.name} 返回 {len(result_array)} 条数据")
-            # 过滤
-            return self.filter_search_results(result_array=result_array,
+        
+        # 有搜索结果
+        summary_txt = f"【{self.client_name}】{indexer.name} 返回数据：{result_count}, 用时: {seconds}s"
+        log.info(summary_txt)
+        # 更新进度
+        self.progress.update(ptype=ProgressKey.Search, text=summary_txt)
+        # 过滤
+        return self.filter_search_results(result_array=result_array,
                                               order_seq=order_seq,
                                               indexer=indexer,
                                               filter_args=filter_args,

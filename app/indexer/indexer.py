@@ -199,12 +199,6 @@ class Indexer(object):
             return media_info.original_title
         # 获取英文标题
         return Media().get_tmdb_en_title(media_info)
-
-    def get_indexer_statistics(self):
-        """
-        获取索引器统计信息
-        """
-        return self.dbhelper.get_indexer_statistics()
     
     def get_douban_tv_season_id(self, media_info:MetaBase):
         """

@@ -2714,37 +2714,6 @@ class DbHelper:
         return self._db.query(DOWNLOADER).all()
 
     @DbPersist(_db)
-    def insert_indexer_statistics(self,
-                                  indexer,
-                                  itype,
-                                  seconds,
-                                  result):
-        """
-        插入索引器统计
-        """
-        self._db.insert(INDEXERSTATISTICS(
-            INDEXER=indexer,
-            TYPE=itype,
-            SECONDS=seconds,
-            RESULT=result,
-            DATE=time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time()))
-        ))
-
-    def get_indexer_statistics(self):
-        """
-        查询索引器统计
-        """
-        return self._db.query(
-            INDEXERSTATISTICS.INDEXER,
-            func.count(INDEXERSTATISTICS.ID).label("TOTAL"),
-            func.sum(case((INDEXERSTATISTICS.RESULT == 'N', 1),
-                          else_=0)).label("FAIL"),
-            func.sum(case((INDEXERSTATISTICS.RESULT == 'Y', 1),
-                          else_=0)).label("SUCCESS"),
-            func.avg(INDEXERSTATISTICS.SECONDS).label("AVG"),
-        ).group_by(INDEXERSTATISTICS.INDEXER).all()
-
-    @DbPersist(_db)
     def insert_indexer_custom_site(self,
                                   site,
                                   indexer):

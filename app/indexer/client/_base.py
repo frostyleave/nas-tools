@@ -291,23 +291,15 @@ class _IIndexClient(metaclass=ABCMeta):
                 ret_array.append(media_info)
             else:
                 index_rule_fail += 1
+
         # 循环结束
         # 计算耗时
-        end_time = datetime.datetime.now()
-        log.info(
-            f"【{self.client_name}】{indexer.name} {len(result_array)} 条数据中，"
-            f"过滤 {index_rule_fail}，"
-            f"不匹配 {index_match_fail}，"
-            f"错误 {index_error}，"
-            f"有效 {index_sucess}，"
-            f"耗时 {(end_time - start_time).seconds} 秒")
-        self.progress.update(ptype=ProgressKey.Search,
-                             text=f"{indexer.name} {len(result_array)} 条数据中，"
-                                  f"过滤 {index_rule_fail}，"
-                                  f"不匹配 {index_match_fail}，"
-                                  f"错误 {index_error}，"
-                                  f"有效 {index_sucess}，"
-                                  f"耗时 {(end_time - start_time).seconds} 秒")
+        time_span = (datetime.datetime.now() - start_time).seconds
+        text_info = f"【{self.client_name}】{indexer.name} {len(result_array)} 条数据中，过滤:{index_rule_fail}，不匹配:{index_match_fail}，错误:{index_error}，有效:{index_sucess}，耗时:{time_span} 秒"
+
+        log.info(text_info)        
+        self.progress.update(ptype=ProgressKey.Search, text=text_info)
+
         return ret_array
 
 

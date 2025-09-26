@@ -239,7 +239,6 @@ class WebAction:
             "add_indexer": self.__add_indexer,
             "update_indexer": self.__update_indexer,
             "delete_indexer": self.__delete_indexer,
-            "get_indexer_statistics": self.__get_indexer_statistics,
             "media_path_scrap": self.__media_path_scrap,
             "get_default_rss_setting": self.get_default_rss_setting,
             "get_movie_rss_items": self.get_movie_rss_items,
@@ -4986,25 +4985,6 @@ class WebAction:
         DbHelper().delete_indexer(data.get('id'))
         IndexerManager().init_config()
         return {"code": 0, "msg": "更新成功"}
-
-    def __get_indexer_statistics(self):
-        """
-        获取索引器统计数据
-        """
-        dataset = [["indexer", "avg"]]
-        result = Indexer().get_indexer_statistics() or []
-        dataset.extend([[ret[0], round(ret[4], 1)] for ret in result])
-        return {
-            "code": 0,
-            "data": [{
-                "name": ret[0],
-                "total": ret[1],
-                "fail": ret[2],
-                "success": ret[3],
-                "avg": round(ret[4], 1),
-            } for ret in result],
-            "dataset": dataset
-        }
 
     def refresh_pt_statistics(self):
         """
