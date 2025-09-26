@@ -172,6 +172,11 @@ function loadPage(htmlPath, queryString) {
   // 直接加载HTML文件
   $("#page_content").load(htmlPath, function(_, status, xhr) {
 
+    // 隐藏等待动画
+    hideLoading();
+    // 关闭加载标记
+    NavPageLoading = false;
+
     // 首次进入页面, 菜单数据没有加载完成
     var navbarMenu = document.querySelector("#navbar-menu")
     if (!navbarMenu || !navbarMenu.navbar_list) {
@@ -184,8 +189,8 @@ function loadPage(htmlPath, queryString) {
     }
 
     // 激活菜单
-    var pageMenu = get_menu_id(page);
-    var prevMenu = get_menu_id(CurrentPageUri);
+    var pageMenu = getMenuId(page);
+    var prevMenu = getMenuId(CurrentPageUri);
 
     // 记录当前页面ID
     if (page !== CurrentPageUri) {
@@ -194,13 +199,8 @@ function loadPage(htmlPath, queryString) {
 
     // 刷新子菜单
     if (pageMenu !== prevMenu) {    
-      active_menu(pageMenu);
+      activeMenu(pageMenu);
     }
-
-    // 隐藏等待动画
-    hide_loading();
-    // 关闭加载标记
-    NavPageLoading = false;
 
     if (status == "error") {
       $("#page_content").html(`<system-error title="${xhr.status}" text="${xhr.statusText || ''}"></system-error>`);
@@ -210,7 +210,7 @@ function loadPage(htmlPath, queryString) {
     }
 
     // 加载完成
-    render_other();
+    renderOther();
 
   });
 
@@ -221,10 +221,10 @@ function navigateTo(target) {
 
   if (target) {
 
-    var current = router.current && router.current[0];
     // 同页面, 只刷新内容, 不新增历史
-    if (current && current.url === target) {
-      // 直接调用 handler, 传入当前匹配的数据
+    if (pageNotChanged(target)) {
+      var current = router.current && router.current[0];
+      // 直接调用 handler, 传入当前页面的数据
       current.route.handler({
         data: current.data,
         params: current.route.params || {},
@@ -237,10 +237,27 @@ function navigateTo(target) {
     // 正常跳转
     router.navigate(target);
   }
+
 };
 
+// 检查页面是否没有变化
+function pageNotChanged(target) {
+
+  var current = router.current && router.current[0];
+  if (!current) {
+    return false;
+  }
+  
+  if (current.hashString && current.hashString.endsWith(target)) {
+    return true;
+  }
+
+  return current.url === target;
+
+}
+
 // 计算菜单名称
-function get_menu_id(input) {
+function getMenuId(input) {
 
   if (!input) return '';
 
@@ -262,14 +279,6 @@ function navmenu(page) {
   // 修复空格问题
   page = page.replaceAll(" ", "%20");
 
-  // 移除/
-  if (page.startsWith('/')) {
-    page = page.substring(1);
-  }
-
-  // 主动点击时清除页码, 刷新页面也需要清除
-  sessionStorage.removeItem("CurrentPage");
-
   // 解除滚动事件
   $(window).unbind('scroll');
 
@@ -277,8 +286,9 @@ function navmenu(page) {
   if (NavPageXhr && NavPageLoading) {
     NavPageXhr.abort();
   }
+  
   // 显示等待动画
-  menu_swith_wait();
+  menuSwithWait();
 
   // 加载新页面
   NavPageLoading = true;
@@ -288,7 +298,7 @@ function navmenu(page) {
 
 }
 
-function render_other() {
+function renderOther() {
 
   // 修复登录页面刷新问题
   if (document.title === "登录 - NAStool") {
@@ -308,7 +318,7 @@ function render_other() {
 }
 
 // 刷新子菜单
-function active_menu(pageMenu) {
+function activeMenu(pageMenu) {
 
   // 子菜单当前可见
   if ($('#top-sub-navbar').is(':visible')) {
@@ -463,15 +473,13 @@ function update_tab_display() {
 // 浏览器回退事件绑定
 window.addEventListener('popstate', function (event) {
 
-  // 解除滚动事件
-  // $(window).unbind('scroll');
-
-  var pageMenu = get_menu_id(window.location.hash);
+  var pageMenu = getMenuId(window.location.hash);
   if (!pageMenu) {
     pageMenu = 'index';
   }
+
   // 刷新子菜单
-  active_menu(pageMenu);
+  activeMenu(pageMenu);
 
 });
 

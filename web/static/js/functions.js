@@ -37,7 +37,7 @@ function media_search(tmdbid, title, type) {
   axios_post_do("search", param, function (ret) {
     hide_refresh_process();
     if (ret.code === 0) {
-      navmenu('search?s=' + title)
+      navmenu('search?s=' + title);
     } else {
       show_fail_modal(ret.msg);
     }
@@ -359,7 +359,7 @@ function render_progress(ret) {
 
 // 显示全局进度框
 function show_refresh_progress(title, type) {
-  hide_loading();
+  hideLoading();
   // 显示对话框
   if (title) {
     $("#modal_process_title").text(title);
@@ -637,16 +637,7 @@ function show_rss_seasons_modal(name, year, type, mediaid, seasons, func) {
 //搜索
 function search_mediainfo_media(tmdbid, title, typestr) {
   hide_mediainfo_modal();
-  const param = { "tmdbid": tmdbid, "search_word": title, "media_type": typestr };
-  show_refresh_progress("正在搜索 " + title + " ...", "search");
-  axios_post_do("search", param, function (ret) {
-    hide_refresh_process();
-    if (ret.code === 0) {
-      navmenu('search?s=' + title);
-    } else {
-      show_fail_modal(ret.msg);
-    }
-  }, true, false);
+  media_search(tmdbid, title, typestr);
 }
 
 //新增订阅

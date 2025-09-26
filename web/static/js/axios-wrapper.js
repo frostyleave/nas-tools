@@ -59,7 +59,7 @@ apiClient.interceptors.response.use(
  */
 function axios_post_do(cmd, params, handler, async = true, show_progress = true) {
     if (show_progress) {
-        show_loading_wave();
+        showLoadingWave();
     }
 
     const data = {
@@ -80,7 +80,7 @@ function axios_post_do(cmd, params, handler, async = true, show_progress = true)
     request
         .then(response => {
             if (show_progress) {
-                hide_loading_wave();
+                hideLoadingWave();
             }
             
             if (handler) {
@@ -89,7 +89,7 @@ function axios_post_do(cmd, params, handler, async = true, show_progress = true)
         })
         .catch(error => {
             if (show_progress) {
-                hide_loading_wave();
+                hideLoadingWave();
             }
             // 处理错误
             if (error.response) {
@@ -114,7 +114,7 @@ function axios_post_do(cmd, params, handler, async = true, show_progress = true)
 function axios_post(req_url, params, handler, async = true, show_progress = true) {
 
     if (show_progress) {
-        show_loading_wave();
+        showLoadingWave();
     }
 
     const config = {
@@ -130,7 +130,7 @@ function axios_post(req_url, params, handler, async = true, show_progress = true
     request
         .then(response => {
             if (show_progress) {
-                hide_loading_wave();
+                hideLoadingWave();
             }
             
             if (handler) {
@@ -139,7 +139,7 @@ function axios_post(req_url, params, handler, async = true, show_progress = true
         })
         .catch(error => {
             if (show_progress) {
-                hide_loading_wave();
+                hideLoadingWave();
             }
             // 处理错误
             if (error.response) {
@@ -162,7 +162,7 @@ function axios_post(req_url, params, handler, async = true, show_progress = true
  */
 function api_request(url, data = {}, method = 'POST', show_progress = true) {
     if (show_progress) {
-        show_loading_wave();
+        showLoadingWave();
     }
 
     const config = {
@@ -174,13 +174,13 @@ function api_request(url, data = {}, method = 'POST', show_progress = true) {
     return apiClient(config)
         .then(response => {
             if (show_progress) {
-                hide_loading_wave();
+                hideLoadingWave();
             }
             return response.data;
         })
         .catch(error => {
             if (show_progress) {
-                hide_loading_wave();
+                hideLoadingWave();
             }
             throw error;
         });

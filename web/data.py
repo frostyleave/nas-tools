@@ -785,11 +785,9 @@ async def torrent_remove(request: Request, current_user: User = Depends(get_curr
 # 近期下载页面
 @data_router.post("/downloaded")
 async def downloaded(request: Request, current_user: User = Depends(get_current_user)):
-    """
-    近期下载页面
-    """
-    form = await request.form()
-    CurrentPage = form.get("page") or 1
+
+    data = await request.json()
+    CurrentPage = data.get("page") or 1
 
     return response(data=
         {
@@ -894,14 +892,15 @@ async def tmdbcache(request: Request, current_user: User = Depends(get_current_u
     """
     TMDB缓存页面
     """
-    form = await request.form()
-    page_num = form.get("pagenum")
+    data = await request.json()
+    
+    page_num = data.get("pagenum")
     if not page_num:
         page_num = 20
-    search_str = form.get("s")
+    search_str = data.get("s")
     if not search_str:
         search_str = ""
-    current_page = form.get("page")
+    current_page = data.get("page")
     if not current_page:
         current_page = 1
     else:
@@ -939,17 +938,17 @@ async def history(request: Request, current_user: User = Depends(get_current_use
     """
     历史记录页面
     """
-    form = await request.form()
+    data = await request.json()
 
-    page_num = form.get("pagenum")
+    page_num = data.get("pagenum")
     if not page_num:
         page_num = 20
 
-    search_str = form.get("s")
+    search_str = data.get("s")
     if not search_str:
         search_str = ""
 
-    current_page = form.get("page")
+    current_page = data.get("page")
     if not current_page:
         current_page = 1
     else:
@@ -976,17 +975,17 @@ async def unidentification(request: Request, current_user: User = Depends(get_cu
     """
     手工识别页面
     """
-    form = await request.form()
+    data = await request.json()
 
-    page_num = form.get("pagenum")
+    page_num = data.get("pagenum")
     if not page_num:
         page_num = 20
 
-    search_str = form.get("s")
+    search_str = data.get("s")
     if not search_str:
         search_str = ""
 
-    current_page = form.get("page")
+    current_page = data.get("page")
     if not current_page:
         current_page = 1
     else:
