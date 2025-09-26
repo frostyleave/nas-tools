@@ -1,98 +1,42 @@
-<div id="server-div" class="card components-div">
-  <div class="card-header">
-    <h2 class="page-title">媒体服务器</h2>
-  </div>
-  <div class="page-body">
-    <div class="container-xl" id="library-container">
-      <div class="d-grid gap-3 grid-normal-card" id="media-server-list">
-        <!-- JS 动态填充 -->
-      </div>
+<div class="page-body">
+  <div class="container-xl">
+    <div class="row row-cards" id="library-list">
+      <!-- JS 动态填充 -->
     </div>
   </div>
 </div>
 
-<div id="lib-div" class="card components-div">
-  <div class="card-header">
-    <h2 class="page-title">媒体库</h2>
-  </div>
-  <div class="page-body">
-    <div class="container-xl">
-      <div class="row row-cards" id="library-list">
-        <!-- JS 动态填充 -->
+<div class="modal modal-blur fade" id="modal-dirctory" tabindex="-1" role="dialog" aria-hidden="true"
+  data-bs-backdrop="static" data-bs-keyboard="false">
+  <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">新增目录</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
-    </div>
-  </div>
-
-  <div class="modal modal-blur fade" id="modal-dirctory" tabindex="-1" role="dialog" aria-hidden="true"
-    data-bs-backdrop="static" data-bs-keyboard="false">
-    <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title">新增目录</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-        </div>
-        <div class="modal-body">
-          <div class="row">
-            <div class="col-lg-12">
-              <div class="mb-3">
-                <label class="form-label">路径 <span class="form-help"
-                    title="Emby/Jellyfin/Plex媒体库对应文件的路径，下载文件转移、目录同步未配置目的目录时，媒体文件将重命名转移到该目录"
-                    data-bs-toggle="tooltip">?</span></label>
-                <input type="text" value="" id="path_str" class="form-control filetree-folders-only" autocomplete="off">
-                <input type="hidden" value="" id="path_type" class="form-control">
-              </div>
+      <div class="modal-body">
+        <div class="row">
+          <div class="col-lg-12">
+            <div class="mb-3">
+              <label class="form-label">路径 <span class="form-help"
+                  title="Emby/Jellyfin/Plex媒体库对应文件的路径，下载文件转移、目录同步未配置目的目录时，媒体文件将重命名转移到该目录"
+                  data-bs-toggle="tooltip">?</span></label>
+              <input type="text" value="" id="path_str" class="form-control filetree-folders-only" autocomplete="off">
+              <input type="hidden" value="" id="path_type" class="form-control">
             </div>
           </div>
         </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-link me-auto" data-bs-dismiss="modal">取消</button>
-          <a href="javascript:add_directory_config()" id="directory_save_btn" class="btn btn-primary">确定</a>
-        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-link me-auto" data-bs-dismiss="modal">取消</button>
+        <a href="javascript:add_directory_config()" id="directory_save_btn" class="btn btn-primary">确定</a>
       </div>
     </div>
   </div>
 </div>
 
-
 <script type="text/javascript">
-  // 当前处理的类型
-  var currType = "";
-
-  // 保存配置
-  function save_config(type, func, test) {
-    currType = type;
-    const params = input_select_GetVal(`modal-${type}`);
-    params['test'] = test || false;
-    params['media.media_server'] = type;
-    axios_post_do("update_config", params, func);
-  }
-
-  //保存配置、关闭和刷新页面
-  function save_mediaserver_config(type) {
-    $("#modal-" + type).modal('hide');
-    save_config(type, function (ret) {
-      window_history_refresh();
-    });
-  }
-
-  //保存配置和测试配置
-  function test_mediaserver_config(type) {
-    $("#" + type + "_test_btn").text("测试中...").attr("disabled", true);
-    save_config(type, function (ret) {
-      let command = "";
-      const pageData = $("#library-container").data('pageData');
-      if (pageData && pageData.mediaServerConf && pageData.mediaServerConf[currType]) {
-        command = pageData.mediaServerConf[currType].test_command;
-      }
-      axios_post_do("test_connection", {"command": command}, function (ret) {
-        if (ret.code === 0) {
-          $("#" + currType + "_test_btn").text("测试成功").attr("disabled", false);
-        } else {
-          $("#" + currType + "_test_btn").text("测试失败！").attr("disabled", false);
-        }
-      });
-    }, true);
-  }
+  
   // 打开新增窗口
   function show_directory_modal(type) {
     $("#path_type").val(type);
@@ -122,99 +66,8 @@
 
 <script type="text/javascript">
   // === 1. 注入数据 (后端 JSON 渲染) ===
-  var mediaServerConf = {};
+
   var configInfo = {};
-
-  function genFormConfigElements(type, config, fields) {
-
-    let $container = $("<div>");
-    let $row;
-    let index = 0;
-    $.each(fields, function (fieldId, fieldAttr) {
-      if (index % 2 === 0) {
-        $row = $("<div class='row'>");
-        $container.append($row);
-      }
-
-      let colClass = (fieldAttr.type === "switch") ? "col-12" : "col-lg";
-      let $col = $('<div class="' + colClass + '"><div class="mb-3"></div></div>');
-      let $inner = $col.find(".mb-3");
-
-      if (fieldAttr.type === "switch") {
-        let checked = (config[type] && config[type][fieldId]) ? "checked" : "";
-        $inner.append(`
-          <label class="form-check form-switch">
-            <input class="form-check-input" type="checkbox" id="${fieldAttr.id}" ${checked}>
-            <span class="form-check-label">${fieldAttr.title}</span>
-          </label>
-        `);
-      } else {
-        let requiredClass = fieldAttr.required ? "required" : "";
-        let value = (config[type] && config[type][fieldId]) ? config[type][fieldId] : "";
-        if (fieldAttr.type === "select") {
-          let $select = $('<select class="form-select" id="' + fieldAttr.id + '"></select>');
-          $.each(fieldAttr.options, function (optValue, optTitle) {
-            let selected = (value === optValue) ? "selected" : "";
-            $select.append('<option value="' + optValue + '" ' + selected + '>' + optTitle + '</option>');
-          });
-          $inner.append(`<label class="form-label ${requiredClass}">${fieldAttr.title}</label>`).append($select);
-        } else {
-          $inner.append(`
-            <label class="form-label ${requiredClass}">${fieldAttr.title}</label>
-            <input type="${fieldAttr.type}" id="${fieldAttr.id}" class="form-control" value="${value}" placeholder="${fieldAttr.placeholder || ""}">
-          `);
-        }
-      }
-
-      $row.append($col);
-
-      index++;
-    });
-    return $container.html();
-  }
-
-  // 渲染媒体服务器卡片 & 模态框
-  function renderMediaServers() {
-    let $list = $("#media-server-list");
-    $.each(mediaServerConf, function (type, server) {
-      let active = (configInfo.media.media_server === type) ?
-        `<div class="col-auto align-self-center"><span class="badge bg-green"></span> 正在使用</div>` : "";
-
-      $list.append(`
-        <a class="card card-link-pop p-0 rounded-3 overflow-hidden" href="#" data-bs-toggle="modal" data-bs-target="#modal-${type}">
-          <div class="card card-sm card-link-pop ${server.background}">
-            <div class="card-body">
-              <div class="row align-items-center">
-                <div class="col-auto"><span class="text-white avatar" style="background-image: url(${server.img_url})"></span></div>
-                <div class="col"><div class="font-weight-medium">${server.name}</div></div>
-                ${active}
-              </div>
-            </div>
-          </div>
-        </a>
-      `);
-
-      $("body").append(`
-        <div class="modal modal-blur fade" id="modal-${type}" tabindex="-1">
-          <div class="modal-dialog modal-lg modal-dialog-centered">
-            <div class="modal-content">
-              <div class="modal-header">
-                <h5 class="modal-title">${server.name}</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-              </div>
-              <div class="modal-body">
-                ${genFormConfigElements(type, configInfo, server.config)}
-              </div>
-              <div class="modal-footer">
-                <a href="javascript:test_mediaserver_config('${type}')" id="${type}_test_btn" class="btn me-auto">测试</a>
-                <a href="javascript:save_mediaserver_config('${type}')" id="${type}_save_btn" class="btn btn-primary">确定</a>
-              </div>
-            </div>
-          </div>
-        </div>
-      `);
-    });
-  }
 
   // 渲染媒体库目录
   function renderLibraries() {
@@ -253,26 +106,20 @@
       `);
     });
   }
+
   // === 5. 页面初始化 ===
   $(document).ready(function () {
+
     // 使用axios_post请求/data/library接口获取数据并填充页面
     axios_post('/data/library', {}, function(response) {
       if (response.code === 0 && response.data) {
         const data = response.data;
 
-        // 更新页面数据，避免污染window对象
-        if (data.MediaServerConf) {
-          const pageData = $("#library-container").data('pageData') || {};
-          pageData.mediaServerConf = data.MediaServerConf;
-          $("#library-container").data('pageData', pageData);
-          mediaServerConf = data.MediaServerConf;
-        }
         if (data.Config) {
           configInfo = data.Config;
         }
 
         // 渲染页面
-        renderMediaServers();
         renderLibraries();
       }
     }, true, true);

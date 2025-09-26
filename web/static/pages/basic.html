@@ -221,6 +221,11 @@
       </div>
     </div>
     <div class="card-body" id="media_param_setting" style="display: none;">
+      <div class="row mb-3">
+        <div class="d-grid gap-3 grid-normal-card" id="media-server-list">
+          <!-- JS 动态填充 -->
+        </div>
+      </div>
       <div class="row">
         <div class="col-12 col-xl-3">
           <div class="mb-3">
@@ -231,6 +236,7 @@
           </div>
         </div>
       </div>
+      <hr class="mt-1 mb-3">
       <div class="row">
         <div class="col-lg">
           <div class="mb-3">
@@ -1265,6 +1271,174 @@
       }
     }
 
+</script>
+
+<script type="text/javascript">
+
+  var mediaServerConf = {};
+
+  // 当前处理的类型
+  var currType = "";
+
+  // 保存配置
+  function save_config(type, func, test) {
+    currType = type;
+    const params = input_select_GetVal(`modal-${type}`);
+    params['test'] = test || false;
+    params['media.media_server'] = type;
+    axios_post_do("update_config", params, func);
+  }
+
+  //保存配置、关闭和刷新页面
+  function save_mediaserver_config(type) {
+    $("#modal-" + type).modal('hide');
+    save_config(type, function (ret) {
+      window_history_refresh();
+    });
+  }
+
+  //保存配置和测试配置
+  function test_mediaserver_config(type) {
+
+    $("#" + type + "_test_btn").text("测试中...").attr("disabled", true);
+
+    if (mediaServerConf && mediaServerConf[type]) {
+      var command = mediaServerConf[type].test_command;
+      axios_post_do("test_connection", {"command": command}, function (ret) {
+        if (ret.code === 0) {
+          $("#" + type + "_test_btn").text("测试成功").attr("disabled", false);
+        } else {
+          $("#" + type + "_test_btn").text("测试失败！").attr("disabled", false);
+        }
+      });
+
+      return;
+    }
+
+  }
+  
+  // 打开新增窗口
+  function show_directory_modal(type) {
+    $("#path_type").val(type);
+    $("#modal-dirctory").modal('show');
+  }
+
+  // 新增目录
+  function add_directory_config() {
+    const type = $("#path_type").val();
+    const value = $("#path_str").val();
+    const params = { "oper": "add", "key": "media." + type + "_path", "value": value };
+    $("#modal-dirctory").modal('hide');
+    axios_post_do("update_directory", params, function (ret) {
+      window_history_refresh();
+    });
+  }
+
+  // 删除目录
+  function sub_directory_config(type, value) {
+    const params = { "oper": "sub", "key": "media." + type + "_path", "value": value };
+    axios_post_do("update_directory", params, function (ret) {
+      window_history_refresh();
+    });
+  }
+
+
+  function genFormConfigElements(type, config, fields) {
+
+    let $container = $("<div>");
+    let $row;
+    let index = 0;
+    $.each(fields, function (fieldId, fieldAttr) {
+      if (index % 2 === 0) {
+        $row = $("<div class='row'>");
+        $container.append($row);
+      }
+
+      let colClass = (fieldAttr.type === "switch") ? "col-12" : "col-lg";
+      let $col = $('<div class="' + colClass + '"><div class="mb-3"></div></div>');
+      let $inner = $col.find(".mb-3");
+
+      if (fieldAttr.type === "switch") {
+        let checked = (config[type] && config[type][fieldId]) ? "checked" : "";
+        $inner.append(`
+          <label class="form-check form-switch">
+            <input class="form-check-input" type="checkbox" id="${fieldAttr.id}" ${checked}>
+            <span class="form-check-label">${fieldAttr.title}</span>
+          </label>
+        `);
+      } else {
+        let requiredClass = fieldAttr.required ? "required" : "";
+        let value = (config[type] && config[type][fieldId]) ? config[type][fieldId] : "";
+        if (fieldAttr.type === "select") {
+          let $select = $('<select class="form-select" id="' + fieldAttr.id + '"></select>');
+          $.each(fieldAttr.options, function (optValue, optTitle) {
+            let selected = (value === optValue) ? "selected" : "";
+            $select.append('<option value="' + optValue + '" ' + selected + '>' + optTitle + '</option>');
+          });
+          $inner.append(`<label class="form-label ${requiredClass}">${fieldAttr.title}</label>`).append($select);
+        } else {
+          $inner.append(`
+            <label class="form-label ${requiredClass}">${fieldAttr.title}</label>
+            <input type="${fieldAttr.type}" id="${fieldAttr.id}" class="form-control" value="${value}" placeholder="${fieldAttr.placeholder || ""}">
+          `);
+        }
+      }
+
+      $row.append($col);
+
+      index++;
+    });
+    return $container.html();
+  }
+
+  // 渲染媒体服务器卡片 & 模态框
+  function renderMediaServers(mediaServerConf, configInfo) {
+
+    let $list = $("#media-server-list");
+    $.each(mediaServerConf, function (type, server) {
+      let active = (configInfo.media.media_server === type) ?
+        `<div class="col-auto align-self-center"><span class="badge bg-green"></span> 正在使用</div>` : "";
+
+      $list.append(`
+        <a class="card card-link-pop p-0 rounded-3 overflow-hidden" href="#" data-bs-toggle="modal" data-bs-target="#modal-${type}">
+          <div class="card card-sm card-link-pop ${server.background}">
+            <div class="card-body">
+              <div class="row align-items-center">
+                <div class="col-auto"><span class="text-white avatar" style="background-image: url(${server.img_url})"></span></div>
+                <div class="col"><div class="font-weight-medium">${server.name}</div></div>
+                ${active}
+              </div>
+            </div>
+          </div>
+        </a>
+      `);
+
+      $("#page_content").append(`
+        <div class="modal modal-blur fade" id="modal-${type}" tabindex="-1">
+          <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content">
+              <div class="modal-header">
+                <h5 class="modal-title">${server.name}</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+              </div>
+              <div class="modal-body">
+                ${genFormConfigElements(type, configInfo, server.config)}
+              </div>
+              <div class="modal-footer">
+                <a href="javascript:test_mediaserver_config('${type}')" id="${type}_test_btn" class="btn me-auto">测试</a>
+                <a href="javascript:save_mediaserver_config('${type}')" id="${type}_save_btn" class="btn btn-primary">确定</a>
+              </div>
+            </div>
+          </div>
+        </div>
+      `);
+    });
+  }
+
+</script>
+
+<script type="text/javascript">
+
   // 页面加载完成后，使用axios_post请求/data/basic接口获取数据并填充页面
   $(document).ready(function() {
 
@@ -1382,6 +1556,7 @@
           $('#openai\\.api_key').val(data.Config.openai.api_key || '');
           $('#openai\\.api_url').val(data.Config.openai.api_url || '');
         }
+
         if (data.Config && data.Config.laboratory) {
           $('#laboratory\\.chatgpt_enable').prop('checked', data.Config.laboratory.chatgpt_enable || false);
           $('#laboratory\\.search_keyword').prop('checked', data.Config.laboratory.search_keyword || false);
@@ -1433,9 +1608,16 @@
             $('#scraper_pic_tv_episode_thumb_ffmpeg').prop('checked', data.ScraperPic.tv.episode_thumb_ffmpeg || false);
           }
         }
+      
+        // 渲染媒体服务器
+        if (data.MediaServerConf) {
+          mediaServerConf = data.MediaServerConf;
+          renderMediaServers(data.MediaServerConf, data.Config);
+        }
+      
       }
+
     }, true, true);
   });
-
 
 </script>

@@ -387,8 +387,7 @@ async def sitelist_page(request: Request, current_user = Depends(get_current_use
 async def library(request: Request, current_user = Depends(get_current_user)):
     return response(data=
         {
-            "Config": Config().get_config(),
-            "MediaServerConf": ModuleConf.MEDIASERVER_CONF,
+            "Config": Config().get_config()
         })
 
 
@@ -916,25 +915,6 @@ async def tmdbcache(request: Request, current_user: User = Depends(get_current_u
             "Search": search_str,
             "CurrentPage": current_page,
             "TotalCount": total_count
-        }
-    )
-
-
-# 系统设置页面
-@data_router.post("/system")
-async def system(request: Request, current_user: User = Depends(get_current_user)):
-    """
-    系统设置页面
-    """
-    SystemConfig = Config().get_config('system') or {}
-    CurrentVersion = WebUtils.get_current_version()
-    RestartFlag = SystemConfig.get("restart_flag") or ""
-    return response(data=
-        {
-            "Config": Config().get_config(),
-            "CurrentVersion": CurrentVersion,
-            "RestartFlag": RestartFlag,
-            "IndexerStatistics": WebAction(current_user).get_indexer_statistics().get("result"),
         }
     )
 
