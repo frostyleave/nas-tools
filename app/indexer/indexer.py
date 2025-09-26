@@ -127,13 +127,14 @@ class Indexer(object):
         # 计算耗时
         start_time = datetime.datetime.now()
         if filter_args and filter_args.get("site"):
-            log.info(f"【{self._client_type.value}】开始搜索 %s，站点：%s ..." % (key_word, filter_args.get("site")))
-            self.progress.update(ptype=ProgressKey.Search,
-                                 text="开始搜索 %s，站点：%s ..." % (key_word, filter_args.get("site")))
+            log_info = f"【{self._client_type.value}】开始搜索 %s, 站点: %s ..." % (key_word, filter_args.get("site"))
+            log.info(log_info)
+            self.progress.update(ptype=ProgressKey.Search, text=log_info)
         else:
-            log.info(f"【{self._client_type.value}】开始并行搜索 %s，线程数：%s ..." % (key_word, len(indexers)))
-            self.progress.update(ptype=ProgressKey.Search,
-                                 text="开始并行搜索 %s，线程数：%s ..." % (key_word, len(indexers)))
+            log_info = f"【{self._client_type.value}】开始并行搜索 %s, 线程数: %s ..." % (key_word, len(indexers))
+            log.info(log_info)
+            self.progress.update(ptype=ProgressKey.Search, text=log_info)
+
         # 多线程
         executor = ThreadPoolExecutor(max_workers=len(indexers))
         all_task = []

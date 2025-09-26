@@ -52,6 +52,16 @@
               <input type="text" class="form-control" id="site_name" placeholder="自定义站点名称">
             </div>
           </div>
+          <div class="col-lg-8">
+            <div class="mb-3">
+              <label class="form-label required">签到地址 <span class="form-help"
+                  title="站点访问地址，站点签到、数据统计、刷流、内置索引器等将使用"
+                  data-bs-toggle="tooltip">?</span></label>
+              <input type="text" class="form-control" id="site_signurl" value="" placeholder="站点http地址">
+            </div>
+          </div>
+        </div>
+        <div class="row">
           <div class="col-lg-4">
             <div class="mb-3">
               <label class="form-label required">站点用途 <span class="form-help" title="设置站点使用场景，选中的场景才会使用该站点"
@@ -72,96 +82,78 @@
               </div>
             </div>
           </div>
-          <div class="col-lg-4">
-            <div class="mb-3">
-              <label class="form-label">优先级 <span class="form-help" title="多个站点同时命中订阅时选择下载的优先级，数值越小优先级越高"
-                  data-bs-toggle="tooltip">?</span></label>
-              <select class="form-select" id="site_pri">
-              </select>
-            </div>
-          </div>
-        </div>
-        <div class="row">
-          <div class="col-lg-12">
-            <div class="mb-3">
-              <label class="form-label required">签到地址 <span class="form-help"
-                  title="站点访问地址，站点签到、数据统计、刷流、内置索引器等将使用"
-                  data-bs-toggle="tooltip">?</span></label>
-              <input type="text" class="form-control" id="site_signurl" value="" placeholder="站点http地址">
-            </div>
-          </div>
-        </div>
-        <div class="row">
-          <div class="col-lg-12">
+          <div class="col-lg-8">
             <div class="mb-3">
               <label class="form-label">RSS订阅地址 <span class="form-help" title="站点订阅源URL地址，用于电影、电视剧订阅、刷流，点击站点RSS图标获取"
                   data-bs-toggle="tooltip">?</span></label>
               <input type="text" class="form-control" id="site_rssurl" value="" placeholder="站点RSS订阅URL">
             </div>
           </div>
-        </div>        
-        <div class="col-lg-12">
-          <div class="mb-3">
-            <label class="form-label">COOKIE <span class="form-help"
-                title="站点的Cookie，用于站点自动签到、站点数据统计、刷流、内置索引器等，需要在浏览器中F12->网络页抓取" data-bs-toggle="tooltip">?</span></label>
-            <textarea class="form-control" id="site_cookie" rows="2" placeholder="站点COOKIE"></textarea>
+        </div>
+        <ul class="nav card-header-tabs nav-tabs rounded-3" data-bs-toggle="tabs" role="tablist">
+          <li class="nav-item" role="presentation" id="cookie-form-tab" >
+            <a href="#tabs-cookie-form" class="nav-link" style="justify-content: center" data-bs-toggle="tab" aria-selected="true" role="tab">
+              cookie模式
+            </a>
+          </li>
+          <li class="nav-item" role="presentation" id="api-form-tab" >
+            <a href="#tabs-api-form" class="nav-link" style="justify-content: center" data-bs-toggle="tab" aria-selected="false" role="tab" tabindex="-1">
+              api模式
+            </a>
+          </li>
+        </ul>
+        <div class="tab-content border border-1 px-3 pt-2">
+          <div class="tab-pane fade" id="tabs-cookie-form" role="tabpanel">
+            <div class="col-lg-12">
+              <div class="mb-3">
+                <label class="form-label">COOKIE <span class="form-help"
+                    title="站点的Cookie，用于站点自动签到、站点数据统计、刷流、内置索引器等，需要在浏览器中F12->网络页抓取" data-bs-toggle="tooltip">?</span></label>
+                <textarea class="form-control" id="site_cookie" rows="2" placeholder="站点COOKIE"></textarea>
+              </div>
+            </div>
+            <div class="col-lg-12">
+              <div class="mb-3">
+              <label class="form-label">User-Agent <span class="form-help"
+                    title="站点签到/数据获取/搜索请求时使用的User-Agent，为空则使用基础配置中User-Agent设置" data-bs-toggle="tooltip">?</span></label>
+                <div class="input-group input-group-flat">
+                  <input type="text" class="form-control" id="site_ua" value="" placeholder="站点访问User-Agent">
+                  <span class="input-group-text">
+                    <a href="javascript:set_user_agent('site_ua')" class="link-secondary" title="从浏览器中获取 User-Agent" data-bs-toggle="tooltip">
+                      <i class="ti ti-arrow-bar-to-left fs-2"></i>
+                    </a>
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="tab-pane fade" id="tabs-api-form" role="tabpanel">
+            <div class="col-lg-12">
+              <div class="mb-3">
+                <label class="form-label required">请求头(Authorization)<span class="form-help"
+                    title="站点请求头中的Authorization信息, 特殊站点需要"
+                    data-bs-toggle="tooltip">?</span></label>
+                <input type="text" class="form-control" id="site_token" value="" placeholder="请求头(Authorization)">
+              </div>
+            </div>
+            <div class="col-lg-12">
+              <div class="mb-3">
+                <label class="form-label required">令牌(API key)<span class="form-help"
+                    title="站点的访问API Key, 特殊站点需要"
+                    data-bs-toggle="tooltip">?</span></label>
+                <input type="text" class="form-control" id="site_apikey" value="" placeholder="令牌(API key)">
+              </div>
+            </div>         
           </div>
         </div>
-        <div class="row">
-          <div class="col-lg-8">
-            <div class="mb-3">
-              <label class="form-label required">请求头(Authorization)<span class="form-help"
-                  title="站点请求头中的Authorization信息, 特殊站点需要"
-                  data-bs-toggle="tooltip">?</span></label>
-              <input type="text" class="form-control" id="site_token" value="" placeholder="请求头(Authorization)">
-            </div>
-          </div>
-          <div class="col-lg-4">
-            <div class="mb-3">
-              <label class="form-label required">令牌(API key)<span class="form-help"
-                  title="站点的访问API Key, 特殊站点需要"
-                  data-bs-toggle="tooltip">?</span></label>
-              <input type="text" class="form-control" id="site_apikey" value="" placeholder="令牌(API key)">
-            </div>
-          </div>
-        </div> 
+        <hr class="my-3">
         <div class="row">
           <div class="col-lg-4">
             <div class="mb-3">
-              <label class="form-label required">RSS解析种子详情 <span class="form-help"
-                  title="选择是时RSS订阅会解析站点种子详情页面获取种子FREE及HR状态，会增加站点访问压力；选择否时无法判断FREE种，无法实现FREE优先规则；刷流不受此限制"
-                  data-bs-toggle="tooltip">?</span></label>
-              <select class="form-select" id="site_parse">
+              <label class="form-label required">使用代理服务器 <span class="form-help"
+                  title="开启后该站点的访问将使用代理服务器，代理需在基础设置->系统->代理服务器中设置" data-bs-toggle="tooltip">?</span></label>
+              <select class="form-select" id="site_proxy">
                 <option value="Y" selected>是</option>
                 <option value="N">否</option>
-              </select>
-            </div>
-          </div>
-          <div class="col-lg-4">
-            <div class="mb-3">
-              <label class="form-label required">发送站点未读消息通知 <span class="form-help" title="选择是时检测到站点有未读消息会通过消息推送通知"
-                  data-bs-toggle="tooltip">?</span></label>
-              <select class="form-select" id="site_unread_msg_notify">
-                <option value="Y" selected>是</option>
-                <option value="N">否</option>
-              </select>
-            </div>
-          </div>
-          <div class="col-lg-4">
-            <div class="mb-3">
-              <label class="form-label">过滤规则 <span class="form-help"
-                  title="选择该站点使用的过滤规则组，在设置->过滤规则中设置规则，选择了过滤规则后该站点只有符合规则的种子才会被命中下载；仅作用于RSS、内建索引自动搜索，刷流等不受此限制"
-                  data-bs-toggle="tooltip">?</span></label>
-              <select class="form-select" id="site_rule">
-                <option value="" selected>默认</option>
-              </select>
-            </div>
-          </div>
-          <div class="col-lg-4">
-            <div class="mb-3">
-              <label class="form-label">下载设置</label>
-              <select class="form-select" id="site_download_setting">
-                <option value="">默认</option>
               </select>
             </div>
           </div>
@@ -176,11 +168,50 @@
           </div>
           <div class="col-lg-4">
             <div class="mb-3">
-              <label class="form-label required">使用代理服务器 <span class="form-help"
-                  title="开启后该站点的访问将使用代理服务器，代理需在基础设置->系统->代理服务器中设置" data-bs-toggle="tooltip">?</span></label>
-              <select class="form-select" id="site_proxy">
-                <option value="Y" selected>是</option>
-                <option value="N">否</option>
+              <label class="form-label">下载设置</label>
+              <select class="form-select" id="site_download_setting">
+                <option value="">默认</option>
+              </select>
+            </div>
+          </div>
+          <div class="col-lg-4">
+            <div class="mb-3">
+              <label class="form-label">订阅优先级 <span class="form-help" title="多个站点同时命中订阅时选择下载的优先级，数值越小优先级越高"
+                  data-bs-toggle="tooltip">?</span></label>
+              <select class="form-select" id="site_pri">
+              </select>
+            </div>
+          </div>
+          <div class="col-lg-4">
+            <div class="mb-3">
+              <label class="form-label required">RSS解析种子详情 <span class="form-help"
+                  title="选择是时RSS订阅会解析站点种子详情页面获取种子FREE及HR状态，会增加站点访问压力；选择否时无法判断FREE种，无法实现FREE优先规则；刷流不受此限制"
+                  data-bs-toggle="tooltip">?</span></label>
+              <select class="form-select" id="site_parse">
+                <option value="Y">是</option>
+                <option value="N" selected>否</option>
+              </select>
+            </div>
+          </div>
+        </div>
+        <div class="row">
+          <div class="col-lg-4">
+            <div class="mb-3">
+              <label class="form-label">过滤规则 <span class="form-help"
+                  title="选择该站点使用的过滤规则组，在设置->过滤规则中设置规则，选择了过滤规则后该站点只有符合规则的种子才会被命中下载；仅作用于RSS、内建索引自动搜索，刷流等不受此限制"
+                  data-bs-toggle="tooltip">?</span></label>
+              <select class="form-select" id="site_rule">
+                <option value="" selected>默认</option>
+              </select>
+            </div>
+          </div>
+          <div class="col-lg-4">
+            <div class="mb-3">
+              <label class="form-label required">发送站点未读消息通知 <span class="form-help" title="选择是时检测到站点有未读消息会通过消息推送通知"
+                  data-bs-toggle="tooltip">?</span></label>
+              <select class="form-select" id="site_unread_msg_notify">
+                <option value="Y">是</option>
+                <option value="N" selected>否</option>
               </select>
             </div>
           </div>
@@ -192,20 +223,6 @@
                 <option value="Y" selected>是</option>
                 <option value="N">否</option>
               </select>
-            </div>
-          </div>
-          <div class="col-lg-8">
-            <div class="mb-3">
-            <label class="form-label">User-Agent <span class="form-help"
-                  title="站点签到/数据获取/搜索请求时使用的User-Agent，为空则使用基础配置中User-Agent设置" data-bs-toggle="tooltip">?</span></label>
-              <div class="input-group input-group-flat">
-                <input type="text" class="form-control" id="site_ua" value="" placeholder="站点访问User-Agent">
-                <span class="input-group-text">
-                  <a href="javascript:set_user_agent('site_ua')" class="link-secondary" title="从浏览器中获取 User-Agent" data-bs-toggle="tooltip">
-                    <i class="ti ti-arrow-bar-to-left fs-2"></i>
-                  </a>
-                </span>
-              </div>
             </div>
           </div>
         </div>
@@ -416,6 +433,8 @@
         $("#site_apikey").val(ret.site.apikey);    
         $("#site_ua").val(ret.site.ua);
         $("#site_download_setting").val(ret.site.download_setting);
+        $("#site_rule").val(ret.site.rule);
+
         if (ret.site.parse) {
           $("#site_parse").val("Y");
         } else {
@@ -447,9 +466,17 @@
         $("#sitelimit_seconds").val(ret.site.limit_seconds);
         $("#modal-site-title").text("编辑站点");
         $("#add_or_edit_site_btn").text("修改");
+
         $("#modal-site").modal("show");
+
+        if (ret.site.apikey) {
+          $('#api-form-tab a').tab('show'); 
+        } else {
+          $('#cookie-form-tab a').tab('show'); 
+        }
+
       }
-      $("#site_rule").val(ret.site.rule);
+
     });
   }
 

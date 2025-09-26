@@ -138,7 +138,7 @@ class BuiltinIndexer(_IIndexClient):
         # 计算耗时
         start_time = datetime.datetime.now()
 
-        log.info(f"【{self.client_name}】开始搜索Indexer：{indexer.name} ...")
+        log.info(f"【{self.client_name}】开始搜索{indexer.name} ...")
         # 特殊符号处理
         search_word = StringUtils.handler_special_chars(text=key_word, replace_word=" ", allow_space=True)
 
