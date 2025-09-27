@@ -11,7 +11,7 @@ from datetime import datetime, timedelta
 from dateutil.parser import parse as parse_date, isoparse
 
 import log
-from app.utils.exception_utils import ExceptionUtils
+
 from app.utils.types import MediaType
 
 
@@ -37,7 +37,7 @@ class StringUtils:
         try:
             size = float(size)
         except Exception as e:
-            ExceptionUtils.exception_traceback(e)
+            log.exception('num_filesize error:', e)
             return 0
         if text.find("PB") != -1 or text.find("PIB") != -1:
             size *= 1024 ** 5
@@ -60,7 +60,7 @@ class StringUtils:
             try:
                 time_sec = float(time_sec)
             except Exception as e:
-                ExceptionUtils.exception_traceback(e)
+                log.exception('str_timelong error:', e)
                 return ""
         d = [(0, '秒'), (60 - 1, '分'), (3600 - 1, '小时'), (86400 - 1, '天')]
         s = [x[0] for x in d]
@@ -195,7 +195,7 @@ class StringUtils:
         try:
             int_val = int(text.strip().replace(',', ''))
         except Exception as e:
-            ExceptionUtils.exception_traceback(e)
+            log.exception('str_int error:', e)
 
         return int_val
 
@@ -216,7 +216,7 @@ class StringUtils:
             else:
                 float_val = 0.0
         except Exception as e:
-            ExceptionUtils.exception_traceback(e)
+            log.exception('str_float error:', e)
         return float_val
 
     @staticmethod
@@ -260,7 +260,7 @@ class StringUtils:
                     b, u = d[index]
                 return str(round(size / (b + 1), pre)) + u
             except Exception as e:
-                ExceptionUtils.exception_traceback(e)
+                log.exception('str_filesize error:', e)
                 return ""
         if re.findall(r"[KMGTP]", size, re.I):
             return size
@@ -339,8 +339,8 @@ class StringUtils:
         tempsTime = None
         try:
             tempsTime = parse(date)
-        except Exception as err:
-            ExceptionUtils.exception_traceback(err)
+        except Exception as e:
+            log.exception('get_time_stamp error:', e)
         return tempsTime
 
     @staticmethod
@@ -364,7 +364,7 @@ class StringUtils:
         try:
             return dateparser.parse(datetime_str).strftime('%Y-%m-%d %H:%M:%S')
         except Exception as e:
-            ExceptionUtils.exception_traceback(e)
+            log.exception('unify_datetime_str error:', e)
             return datetime_str
 
     @staticmethod
@@ -380,7 +380,7 @@ class StringUtils:
         try:
             return datetime.fromtimestamp(int(timestamp)).strftime(date_format)
         except Exception as e:
-            ExceptionUtils.exception_traceback(e)
+            log.exception('timestamp_to_date error:', e)
             return timestamp
 
     @staticmethod

@@ -4504,7 +4504,8 @@ class WebAction:
             doubanId = tmdbid[3:].split(',')[0]
             douban_info = self._douBan.get_douban_info_byId(doubanId, mtype)
             if douban_info:
-                title = douban_info.get('title')
+
+                title = self.__try_get_ch_title_from_douban(doubanId, douban_info)    
 
                 if mtype != MediaType.MOVIE:
                     overview = douban_info.get('intro')
@@ -4613,6 +4614,26 @@ class WebAction:
                 "seasons": seasons
             }
         }
+
+    def __try_get_ch_title_from_douban(self, douban_id, douban_info):
+
+        title = douban_info.get('title')
+        if StringUtils.is_all_chinese_and_mark(title):
+            return title
+        
+        if douban_info.get('alt_title'):
+            alt_title = douban_info.get('alt_title').split('/')
+            if len(alt_title) == 1:
+                title = alt_title[0]
+                if StringUtils.is_all_chinese_and_mark(title):
+                    return title
+            else:
+                cn_title = next(filter(lambda t: StringUtils.is_all_chinese_and_mark(t), alt_title), None)
+                if cn_title:
+                    return cn_title.strip()
+        
+        douban_info = self._douBan.get_douban_detail(douban_id)
+        return douban_info.get("title")
 
     def __media_similar(self, data):
         """

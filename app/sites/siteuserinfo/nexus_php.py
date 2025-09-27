@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import re
+from typing import List
 
 from lxml import etree
 
@@ -62,6 +63,7 @@ class NexusPhpSiteUserInfo(_ISiteUserInfo):
                 self.message_unread = StringUtils.str_int(message_text)
 
     def _parse_user_base_info(self, html_text):
+
         # 合并解析，减少额外请求调用
         self.__parse_user_traffic_info(html_text)
         self._user_traffic_page = None
@@ -88,12 +90,32 @@ class NexusPhpSiteUserInfo(_ISiteUserInfo):
     def __parse_user_traffic_info(self, html_text):
 
         html_text = self._prepare_html_text(html_text)
+
+        html = etree.HTML(html_text)
+
+        # 尝试提取用户面板
+        # hanhan
+        user_info_div = html.xpath('//div[@id="user-info-panel"]')
+        if user_info_div:
+            self.__parse_user_infopanel(user_info_div[0])
+            return
+        # cspt
+        user_info_div = html.xpath('//div[@id="user-info-pannl"]')
+        if user_info_div:
+            self.__parse_user_pannl(user_info_div[0])
+            return
+
+        # 上传
         upload_match = re.search(r"[^总]上[传傳]量?[:：_<>/a-zA-Z-=\"'\s#;]+([\d,.\s]+[KMGTPI]*B)", html_text,
                                  re.IGNORECASE)
         self.upload = StringUtils.num_filesize(upload_match.group(1).strip()) if upload_match else 0
+
+        # 下载
         download_match = re.search(r"[^总子影力]下[载載]量?[:：_<>/a-zA-Z-=\"'\s#;]+([\d,.\s]+[KMGTPI]*B)", html_text,
                                    re.IGNORECASE)
         self.download = StringUtils.num_filesize(download_match.group(1).strip()) if download_match else 0
+
+        # 分享率
         ratio_match = re.search(r"分享率[:：_<>/a-zA-Z-=\"'\s#;]+([\d,.\s]+)", html_text)
         # 计算分享率
         calc_ratio = 0.0 if self.download <= 0.0 else round(self.upload / self.download, 3)
@@ -105,7 +127,6 @@ class NexusPhpSiteUserInfo(_ISiteUserInfo):
         self.leeching = StringUtils.str_int(leeching_match.group(2)) if leeching_match and leeching_match.group(
             2).strip() else 0
         
-        html = etree.HTML(html_text)
         has_ucoin, self.bonus = self.__parse_ucoin(html)
         if has_ucoin:
             return
@@ -126,8 +147,74 @@ class NexusPhpSiteUserInfo(_ISiteUserInfo):
                                     flags=re.S)
             if bonus_match and bonus_match.group(1).strip():
                 self.bonus = StringUtils.str_float(bonus_match.group(1).strip('"'))
-        except Exception as err:
-            ExceptionUtils.exception_traceback(err)
+        except Exception as e:
+            log.exception('解析用户流量数据异常: ', e)
+
+    def __parse_user_infopanel(self, panel):
+
+        # 分享率
+        share_ratio = panel.xpath('.//div[contains(text(), "[分享率]")]/text()')
+        share_ratio = self.clean_text_list(share_ratio)
+        if share_ratio:            
+            self.ratio = StringUtils.str_float(share_ratio[0].replace("[分享率]:", "").strip())
+
+        # 上传
+        upload = panel.xpath('.//img[@alt="上传"]/following-sibling::text()')
+        upload = self.clean_text_list(upload)
+        if upload:
+            self.upload = StringUtils.num_filesize(upload[0].strip())
+
+        # 下载
+        download = panel.xpath('.//img[@alt="下载"]/following-sibling::text()')
+        download = self.clean_text_list(download)
+        if download:
+            self.download = StringUtils.num_filesize(download[0].strip())
+
+        # 做种数
+        seeding = panel.xpath('.//img[@alt="做种数"]/following-sibling::text()')
+        seeding = self.clean_text_list(seeding)
+        if seeding:
+            self.seeding = StringUtils.str_int(seeding[0].strip())
+
+        # 憨豆 / 魔力 / 魔力值 / 元宝
+        beans = panel.xpath(
+            './/img[@alt="憨豆" or @alt="魔力" or @alt="魔力值" or @alt="元宝"]/following-sibling::a/div/text()'
+        )
+        beans = self.clean_text_list(beans)
+        if beans:
+            self.bonus = StringUtils.str_float(beans[0].strip())
+
+    def __parse_user_pannl(self, panel):
+
+        # 分享率
+        share_ratio = panel.xpath('.//svg/title[text()="分享率"]/../following-sibling::a/text()')
+        share_ratio = self.clean_text_list(share_ratio)
+        if share_ratio:
+            self.ratio = StringUtils.str_float(share_ratio[0].strip())
+
+        # 上传
+        upload = panel.xpath('.//svg/title[text()="上传量"]/../following-sibling::a/text()')
+        upload = self.clean_text_list(upload)
+        if upload:
+            self.upload = StringUtils.num_filesize(upload[0].strip())
+
+        # 下载
+        download = panel.xpath('.//svg/title[text()="下载量"]/../following-sibling::a/text()')
+        download = self.clean_text_list(download)
+        if download:
+            self.download = StringUtils.num_filesize(download[0].strip())
+
+        # 做种数
+        seeding = panel.xpath('.//svg/title[text()="当前做种"]/../following-sibling::a/text()')
+        seeding = self.clean_text_list(seeding)
+        if seeding:
+            self.seeding = StringUtils.str_int(seeding[0].strip())
+
+        # 憨豆 / 魔力 / 魔力值 / 元宝
+        beans = panel.xpath('.//svg/title[text()="元宝"]/../following-sibling::a/text()')
+        beans = self.clean_text_list(beans)
+        if beans:
+            self.bonus = StringUtils.str_float(beans[0].strip())
 
     @staticmethod
     def __parse_ucoin(html):
@@ -495,3 +582,13 @@ class NexusPhpSiteUserInfo(_ISiteUserInfo):
             bonus_text = html.xpath('//tr/td[text()="魔力值" or text()="猫粮"]/following-sibling::td[1]/text()')
             if bonus_text:
                 self.bonus = StringUtils.str_float(bonus_text[0].strip())
+
+    def clean_text_list(self, texts: List[str]) -> List[str]:
+        """
+        过滤掉空白，只保留有内容的
+        """
+        if not texts:
+            return []
+        return [t.strip() for t in texts if t.strip()]
+
+

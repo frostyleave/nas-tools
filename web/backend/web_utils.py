@@ -113,8 +113,9 @@ class WebUtils:
 
             if not tmdb_info:
                 return None
-
-            media_info = MetaInfo(title=tmdb_info.get("title") if mtype == MediaType.MOVIE else tmdb_info.get("name"))
+            
+            media_title = WebUtils.get_tmdb_title(tmdb_info, title)
+            media_info = MetaInfo(title=media_title)
             media_info.set_tmdb_info(tmdb_info)
             media_info.begin_season = begin_season
             media_info.douban_id = doubanid
@@ -143,7 +144,7 @@ class WebUtils:
             info = Media().get_tmdb_info(tmdbid=mediaid, mtype=mtype, append_to_response="all")
             if not info:
                 return None
-            title = info.get("title") if mtype == MediaType.MOVIE else info.get("name")
+            title = WebUtils.get_tmdb_title(info)
             media_info = MetaInfo(title)
             media_info.set_tmdb_info(info)
         
@@ -157,6 +158,14 @@ class WebUtils:
             WebUtils.fill_douban_info(title, mtype, media_info, imdb_id)
 
         return media_info
+    
+    @staticmethod
+    def get_tmdb_title(tmdb_info, title=None):
+        
+        media_title = tmdb_info.get("title") if tmdb_info.get("title") else tmdb_info.get("name")
+        if not media_title:
+            media_title = title
+        return media_title
 
 
     @staticmethod

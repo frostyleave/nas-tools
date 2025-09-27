@@ -196,9 +196,15 @@ class _ISiteUserInfo(metaclass=ABCMeta):
     @staticmethod
     def _prepare_html_text(html_text):
         """
-        处理掉HTML中的干扰部分
+        处理掉HTML中的干扰部分，包括 #数字、xxpx，以及换行符
         """
-        return re.sub(r"#\d+", "", re.sub(r"\d+px", "", html_text))
+        # 去掉 #123 这种
+        cleaned = re.sub(r"#\d+", "", html_text)
+        # 去掉 12px 这种
+        cleaned = re.sub(r"\d+px", "", cleaned)
+        # 去掉换行、制表符、多余空格
+        cleaned = re.sub(r"[\r\n\t]+", "", cleaned)
+        return cleaned.strip()
 
     @abstractmethod
     def _parse_message_unread_links(self, html_text, msg_links):

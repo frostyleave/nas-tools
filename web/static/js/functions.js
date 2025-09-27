@@ -1992,10 +1992,9 @@ function edit_indexer_conf(site_url, ispt) {
         append_json_to_textarea('category_cfg', ret.data.category)
       }
 
-      $("#indexer_modal_title").text("编辑站点");
+      $("#indexer_modal_title").text("编辑索引站点");
       $("[name='indexer_add_btn']").hide();
       $("[name='indexer_edit_btn']").show();
-      $("#indexer_delete_btn").show();
 
       $("#modal-manual-indexer").modal("show");
     }
