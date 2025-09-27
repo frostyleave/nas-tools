@@ -210,6 +210,8 @@
 
         tableBody.empty();
 
+        $('#total-count').text(data.TotalCount || 0);
+
         if (data.TmdbCaches && data.TmdbCaches.length > 0) {
 
           $('#current-count').text(data.TmdbCaches.length);

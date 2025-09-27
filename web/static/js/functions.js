@@ -1622,6 +1622,11 @@ function manual_media_transfer() {
     hide_refresh_process();
     if (ret.retcode === 0) {
       show_success_modal(inpath + "处理成功！", function () {
+        // 转移
+        if (manual_type === '3' && typeof window.refresh_files === "function") {
+          window.refresh_files();
+          return;
+        }
         navmenu(source);
       });
     } else {
