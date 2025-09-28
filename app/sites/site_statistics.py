@@ -244,11 +244,11 @@ class SitesDataStatisticsCenter(object):
             self.message.send_site_message(
                 title=f"站点 {site_user_info.site_name} 收到 {site_user_info.message_unread} 条新消息，请登陆查看")
 
-    def refresh_site_data_now(self):
+    def refresh_site_data_now(self, specify_sites=None):
         """
         强制刷新站点数据
         """
-        self.__refresh_all_site_data(force=True)
+        self.__refresh_all_site_data(force=True, specify_sites=specify_sites)
         # 刷完发送消息
         string_list = []
 

@@ -962,13 +962,15 @@
     });
   }
 
-  function ask_refresh_statistics() {
+  function ask_refresh_statistics(site_name) {
 
-    show_ask_modal("是否立即刷新站点数据? ", function () {
+    var target = site_name ? '是否立即刷新【'+ site_name +'】站点数据?' : "是否立即刷新所有站点的数据?"
+
+    show_ask_modal(target, function () {
 
       hide_ask_modal();
 
-      axios_post_do("refresh_pt_statistics", {}, function (ret) {
+      axios_post_do("refresh_pt_statistics", {'site':site_name}, function (ret) {
         if (ret.code === 0) {
           show_success_modal(ret.msg);
         } else {
@@ -1185,10 +1187,10 @@
                       ${ratio}
                     </td>
                     <td class="sort-seeding" data-seeding="${item.seeding}">
-                      <a href="javascript:show_site_seeding_info('${item.site}')" aria-label="seeding_info">${item.seeding}</a>
+                      ${item.seeding}
                     </td>
                     <td class="sort-size" data-size="${item.seeding_size}">
-                      <a href="javascript:show_site_seeding_info('${item.site}')" aria-label="seeding_info">${formatFileSize(item.seeding_size)}</a>
+                      ${formatFileSize(item.seeding_size)}
                     </td>
                     <td class="sort-bonus" data-bouns="${item.bonus}">${item.bonus}</td>
                     <td class="sort-jtime">
@@ -1201,7 +1203,7 @@
                       <a href="javascript:show_site_activity('${item.site}')" class="btn-icon" title="查看历史数据" aria-label="activity">
                         <i class="ti ti-activity fs-2"></i>
                       </a>
-                      <a href="javascript:void(0)" class="btn-icon ms-3" title="刷新站点数据" onclick="navmenu('statistics?refresh_site=${item.site}')">
+                      <a href="javascript:ask_refresh_statistics('${item.site}')" class="btn-icon ms-3" title="刷新站点数据" >
                         <i class="ti ti-refresh fs-2"></i>
                       </a>
                     </td>

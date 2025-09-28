@@ -5007,15 +5007,18 @@ class WebAction:
         IndexerManager().init_config()
         return {"code": 0, "msg": "更新成功"}
 
-    def refresh_pt_statistics(self):
+    def refresh_pt_statistics(self, data):
         """
         刷新站点数据
         """
         if not self._current_user:
             return {"code": 1, "msg": "未登录"}
-
-        # 刷新站点数据
-        self.handle_message_job("/sta", in_from=SearchType.WEB, user_id=self._current_user.id, user_name=self._current_user.username)
+        
+         # 刷新站点数据
+        if data.get('site'):
+            SitesDataStatisticsCenter().refresh_site_data_now(specify_sites=data.get('site'))
+        else:
+            self.handle_message_job("/sta", in_from=SearchType.WEB, user_id=self._current_user.id, user_name=self._current_user.username)
         return {"code": 0, "msg": "已提交"}
 
     def user_statistics(self):

@@ -1214,23 +1214,35 @@ class DbHelper:
                     MSG_UNREAD=msg_unread
                 ))
             else:
-                self._db.query(SITEUSERINFOSTATS).filter(SITEUSERINFOSTATS.URL == url).update(
-                    {
-                        "SITE": site,
-                        "USERNAME": username,
-                        "USER_LEVEL": user_level,
-                        "JOIN_AT": join_at,
-                        "UPDATE_AT": update_at,
-                        "UPLOAD": upload,
-                        "DOWNLOAD": download,
-                        "RATIO": ratio,
-                        "SEEDING": seeding,
-                        "LEECHING": leeching,
-                        "SEEDING_SIZE": seeding_size,
-                        "BONUS": bonus,
-                        "MSG_UNREAD": msg_unread
-                    }
-                )
+                update_dic = {}
+
+                if user_level:
+                    update_dic['USER_LEVEL'] = user_level
+                if join_at is not None:
+                    update_dic['JOIN_AT'] = join_at
+
+                if upload:
+                    update_dic['UPLOAD'] = upload
+                if download:
+                    update_dic['DOWNLOAD'] = download
+                if ratio:
+                    update_dic['RATIO'] = ratio
+                if seeding:
+                    update_dic['SEEDING'] = seeding
+                if leeching:
+                    update_dic['LEECHING'] = leeching
+                if seeding_size:
+                    update_dic['SEEDING_SIZE'] = seeding_size
+                if bonus:
+                    update_dic['BONUS'] = bonus
+                if msg_unread is not None:
+                    update_dic['MSG_UNREAD'] = msg_unread
+                if not update_dic:
+                    return
+                
+                update_dic['UPDATE_AT'] = update_at
+                
+                self._db.query(SITEUSERINFOSTATS).filter(SITEUSERINFOSTATS.URL == url).update(update_dic)
 
     def is_exists_site_user_statistics(self, url):
         """
