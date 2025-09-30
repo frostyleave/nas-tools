@@ -4,7 +4,8 @@
     "page": "index",
     "level": 1,
     "group": "",
-    "icon": "<i class=\"ti ti-home fs-2 \"></i>"
+    "icon": "<i class=\"ti ti-home fs-2 \"></i>",
+    "html": "/static/pages/index.html"
   },
   {
     "name": "探索",
@@ -12,21 +13,25 @@
     "page": "ranking",
     "group": "发现",
     "icon": "<i class=\"ti ti-carambola fs-2 \"></i>",
+    "html": "/static/pages/ranking.html?t=RANKING",
     "nav": [
       {
         "name": "电影",
         "page": "ranking",
-        "icon": "<i class=\"ti ti-movie fs-2 \"></i>"
+        "icon": "<i class=\"ti ti-movie fs-2 \"></i>",
+        "html": "/static/pages/ranking.html?t=RANKING"
       },
       {
         "name": "剧集",
         "page": "tv_ranking",
-        "icon": "<i class=\"ti ti-device-tv fs-2 \"></i>"
+        "icon": "<i class=\"ti ti-device-tv fs-2 \"></i>",
+        "html": "/static/pages/ranking.html?t=TV"
       },
       {
         "name": "BANGUMI",
         "page": "bangumi",
-        "icon": "<i class=\"ti ti-brand-bilibili fs-2 \"></i>"
+        "icon": "<i class=\"ti ti-brand-bilibili fs-2 \"></i>",
+        "html": "/static/pages/ranking.html?t=BANGUMI"
       }
     ]
   },
@@ -35,7 +40,8 @@
     "level": 1,
     "page": "search",
     "group": "发现",
-    "icon": "<i class=\"ti ti-search fs-2 \"></i>"
+    "icon": "<i class=\"ti ti-search fs-2 \"></i>",
+    "html": "/static/pages/search.html"
   },
   {
     "name": "订阅",
@@ -43,26 +49,31 @@
     "page": "tv_rss",
     "group": "服务",
     "icon": "<i class=\"ti ti-rss fs-2 \"></i>",
+    "html": "/static/pages/rss.html?t=TV",
     "nav": [
       {
         "name": "剧集订阅",
         "page": "tv_rss",
-        "icon": "<i class=\"ti ti-device-tv fs-2 \"></i>"
+        "icon": "<i class=\"ti ti-device-tv fs-2 \"></i>",
+        "html": "/static/pages/rss.html?t=TV"
       },
       {
         "name": "电影订阅",
         "page": "movie_rss",
-        "icon": "<i class=\"ti ti-movie fs-2 \"></i>"
+        "icon": "<i class=\"ti ti-movie fs-2 \"></i>",
+        "html": "/static/pages/rss.html?t=MOV"
       },
       {
         "name": "自定义订阅",
         "page": "user_rss",
-        "icon": "<i class=\"ti ti-file-rss fs-2 \"></i>"
+        "icon": "<i class=\"ti ti-file-rss fs-2 \"></i>",
+        "html": "/static/pages/user_rss.html"
       },
       {
         "name": "订阅日历",
         "page": "rss_calendar",
-        "icon": "<i class=\"ti ti-calendar-month fs-2 \"></i>"
+        "icon": "<i class=\"ti ti-calendar-month fs-2 \"></i>",
+        "html": "/static/pages/rss_calendar.html"
       }
     ]
   },
@@ -71,14 +82,16 @@
     "level": 1,
     "page": "service",
     "group": "服务",
-    "icon": "<i class=\"ti ti-stack-2 fs-2 \"></i>"
+    "icon": "<i class=\"ti ti-stack-2 fs-2 \"></i>",
+    "html": "/static/pages/service.html"
   },
   {
     "name": "下载",
     "level": 1,
     "page": "downloading",
     "group": "整理",
-    "icon": "<i class=\"ti ti-download fs-2 \"></i>"
+    "icon": "<i class=\"ti ti-download fs-2 \"></i>",
+    "html": "/static/pages/downloading.html"
   },
   {
     "name": "文件",
@@ -86,31 +99,37 @@
     "page": "mediafile",
     "group": "整理",
     "icon": "<i class=\"ti ti-files fs-2 \"></i>",
+    "html": "/static/pages/mediafile.html",    
     "nav": [
       {
         "name": "文件管理",
         "page": "mediafile",
-        "icon": "<i class=\"ti ti-files fs-2 \"></i>"
+        "icon": "<i class=\"ti ti-files fs-2 \"></i>",
+        "html": "/static/pages/mediafile.html"
       },
       {
         "name": "自动删种",
         "page": "torrent_remove",
-        "icon": "<i class=\"ti ti-http-delete fs-2 \"></i>"
+        "icon": "<i class=\"ti ti-http-delete fs-2 \"></i>",
+        "html": "/static/pages/torrent_remove.html"
       },
       {
         "name": "转移记录",
         "page": "history",
-        "icon": "<i class=\"ti ti-history fs-2 \"></i>"
+        "icon": "<i class=\"ti ti-history fs-2 \"></i>",
+        "html": "/static/pages/history.html"
       },
       {
         "name": "手动识别",
         "page": "unidentification",
-        "icon": "<i class=\"ti ti-user-scan fs-2 \"></i>"
+        "icon": "<i class=\"ti ti-user-scan fs-2 \"></i>",
+        "html": "/static/pages/unidentification.html"
       },
       {
         "name": "TMDB缓存",
         "page": "tmdbcache",
-        "icon": "<i class=\"ti ti-keyframes fs-2 \"></i>"
+        "icon": "<i class=\"ti ti-keyframes fs-2 \"></i>",
+        "html": "/static/pages/tmdbcache.html"
       }
     ]
   },
@@ -119,36 +138,43 @@
     "page": "basic",
     "group": "系统",
     "icon": "<i class=\"ti ti-settings fs-2 \"></i>",
+    "html": "/static/pages/basic.html",
     "nav": [
       {
         "name": "基础设置",
         "page": "basic",
-        "icon": "<i class=\"ti ti-settings-2 fs-2 \"></i>"
+        "icon": "<i class=\"ti ti-settings-2 fs-2 \"></i>",
+        "html": "/static/pages/basic.html"
       },
       {
         "name": "媒体库",
         "page": "library",
-        "icon": "<i class=\"ti ti-jellyfin fs-2 \"></i>"
+        "icon": "<i class=\"ti ti-jellyfin fs-2 \"></i>",
+        "html": "/static/pages/library.html"
       },
       {
         "name": "消息通知",
         "page": "notification",
-        "icon": "<i class=\"ti ti-bell fs-2 \"></i>"
+        "icon": "<i class=\"ti ti-bell fs-2 \"></i>",
+        "html": "/static/pages/notification.html"
       },
       {
         "name": "目录同步",
         "page": "directorysync",
-        "icon": "<i class=\"ti ti-refresh fs-2 \"></i>"
+        "icon": "<i class=\"ti ti-refresh fs-2 \"></i>",
+        "html": "/static/pages/directorysync.html"
       },
       {
         "name": "过滤规则",
         "page": "filterrule",
-        "icon": "<i class=\"ti ti-filter-pause fs-2 \"></i>"
+        "icon": "<i class=\"ti ti-filter-pause fs-2 \"></i>",
+        "html": "/static/pages/filterrule.html"
       },
       {
         "name": "自定义识别词",
         "page": "customwords",
-        "icon": "<i class=\"ti ti-text-grammar fs-2 \"></i>"
+        "icon": "<i class=\"ti ti-text-grammar fs-2 \"></i>",
+        "html": "/static/pages/customwords.html"
       }
     ]
   },
@@ -158,26 +184,31 @@
     "page": "indexer",
     "group": "系统",
     "icon": "<i class=\"ti ti-world-www fs-2 \"></i>",
+    "html": "/static/pages/indexer.html?p=1",
     "nav": [
       {
         "name": "BT索引",
         "page": "indexer",
-        "icon": "<i class=\"ti ti-world-search fs-2 \"></i>"
+        "icon": "<i class=\"ti ti-world-search fs-2 \"></i>",
+        "html": "/static/pages/indexer.html?p=1"
       },
       {
         "name": "PT维护",
         "page": "site",
-        "icon": "<i class=\"ti ti-settings-search fs-2 \"></i>"
+        "icon": "<i class=\"ti ti-settings-search fs-2 \"></i>",
+        "html": "/static/pages/site.html"
       },
       {
         "name": "数据统计",
         "page": "statistics",
-        "icon": "<i class=\"ti ti-chart-column fs-2 \"></i>"
+        "icon": "<i class=\"ti ti-chart-column fs-2 \"></i>",
+        "html": "/static/pages/statistics.html"
       },
       {
         "name": "PT刷流",
         "page": "brushtask",
-        "icon": "<i class=\"ti ti-list-check fs-2 \"></i>"
+        "icon": "<i class=\"ti ti-list-check fs-2 \"></i>",
+        "html": "/static/pages/brushtask.html"
       }
     ]
   },
@@ -185,12 +216,14 @@
     "name": "插件",
     "page": "plugin",
     "group": "系统",
-    "icon": "<i class=\"ti ti-apps fs-2 \"></i>"
+    "icon": "<i class=\"ti ti-apps fs-2 \"></i>",
+    "html": "/static/pages/plugin.html"
   },
   {
     "name": "用户",
     "page": "users",
     "group": "系统",
-    "icon": "<i class=\"ti ti-users fs-2 \"></i>"
+    "icon": "<i class=\"ti ti-users fs-2 \"></i>",
+    "html": "/static/pages/users.html"
   }
 ]

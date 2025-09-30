@@ -23,14 +23,7 @@ export class LayoutNavbar extends CustomElement {
     this._is_update = false;
 
     this.classList.add("navbar","navbar-vertical","navbar-expand-lg","lit-navbar-fixed","lit-navbar","lit-navbar-hide-scrollbar");
-    // 加载菜单
-    Golbal.get_cache_or_ajax("get_user_menus", "usermenus", {},
-      (ret) => {
-        if (ret.code === 0) {
-          this.navbar_list = ret.menus;
-        }
-      },false
-    );
+
   }
 
   firstUpdated() {
@@ -45,10 +38,10 @@ export class LayoutNavbar extends CustomElement {
     super.connectedCallback();
     // 确保组件在重新连接时能够正确显示
     this._ensureVisible();
-    // 如果菜单为空，重新加载菜单数据
-    if (!this.navbar_list?.length) {
-      this._loadMenus();
-    }
+    // // 如果菜单为空，重新加载菜单数据
+    // if (!this.navbar_list?.length) {
+    //   this._loadMenus();
+    // }
   }
 
   _loadMenus() {
@@ -182,7 +175,7 @@ export class LayoutNavbar extends CustomElement {
                   <a href=${this._update_url} class="text-muted" target="_blank" rel="noreferrer">
                     <strong>
                       <i class="ti ti-brand-github fs-2"></i>
-                      <b id="version-txt"></b>
+                      <b>${this.layout_appversion}</b>
                     </strong>
                   </a>
                 </span>

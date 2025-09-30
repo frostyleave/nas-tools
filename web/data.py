@@ -113,13 +113,12 @@ async def sysinfo(request: Request, current_user: User = Depends(get_current_use
     sourceTypes = { "MOVIE":'电影', "TV":'剧集', "ANIME":'动漫' }
     spiderTypes = { member.value: member.name for member in Spider }
 
-    image_code, img_title, img_link = get_login_wallpaper()
-
     return response(data=
         {
             "username" : username,
             "admin" : 1 if username == 'admin' else 0,
             "search" : current_user.search,
+            "menus": current_user.get_usermenus(),
             "systemFlag": system_flag.value,
             "tmdbFlag": tmdb_flag,
             "appVersion": WebUtils.get_current_version(),
@@ -129,10 +128,9 @@ async def sysinfo(request: Request, current_user: User = Depends(get_current_use
             "restypeDict": restype_dict,
             "pixDict": pix_dict,
             "rmtDodeDict": rmt_mode_dict,
-            "imageCode": image_code,
             "downloadSettings": downloadSettings,
             "sourceTypes": sourceTypes,
-            "spiderTypes": spiderTypes
+            "spiderTypes": spiderTypes,
         }
     )
 

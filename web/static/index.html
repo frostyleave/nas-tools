@@ -106,14 +106,49 @@
 
 </head>
 
-<body class="layout-fluid">
-  <div class="page">
+<body class="layout-fluid no-after">
+  <div id="login-container" class="d-none d-flex flex-column justify-content-center align-items-center vh-100">
+    <div class="image-desc card card-md border-0 rounded-3" id="image-desc-container" style="display: none;">
+      <a class="image-link" href="#" target="_blank" id="image-link">
+        <i class="ti ti-link"></i>
+        <span id="image-title"></span>
+      </a>
+    </div>
+    <div class="page-center" style="width: 30rem;">
+      <div class="container-tight py-4">
+        <form id="loginForm" class="card card-md border-0" autocomplete="off">
+          <div class="card-body">
+            <div class="text-center mb-3">
+              <h1 class="login_title">
+                <img src="../static/favicon.ico">
+                <label>nastool</label>
+              </h1>
+            </div>
+            <label class="form-label">用户名</label>
+            <div class="input-icon mb-3">
+              <span class="input-icon-addon d-flex align-items-center">
+                <i class="ti ti-user"></i>
+              </span>
+              <input type="text" name="username" class="form-control" placeholder="admin" value="" autocomplete="off">
+            </div>
+            <label class="form-label">密码</label>
+            <div class="input-icon">
+              <span class="input-icon-addon d-flex align-items-center">
+                <i class="ti ti-keyboard"></i>
+              </span>
+              <input type="password" class="form-control" name="password" placeholder="password" autocomplete="off">
+            </div>
+            <div class="form-footer">
+              <button type="submit" class="btn btn-primary w-100">登录</button>
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+  <div id="app-layout" class="page d-none">
     <input type="hidden" id="default_transfer_mode" />
     <input type="hidden" id="default_path" />
-    <!-- 解决密码填充问题 -->
-    <span hidden><input type="text" aria-label=""><input type="password" aria-label=""></span>
-    <layout-navbar hidden id="navbar-menu"></layout-navbar>
-    <!-- <div class="spinner-border" role="status" id="logo_animation"></div> -->
     <div class="page-wrapper">
       <div class="top-sub-navbar mx-2" id="top-sub-navbar">
         <ul class="nav nav-tabs card-header-tabs" data-bs-toggle="tabs" role="tablist"></ul>
@@ -126,7 +161,7 @@
     </div>
   </div>
   <!-- 加载动画遮罩 -->
-  <div class="wave-loading" id="loadingOverlay">
+  <div class="wave-loading" id="loadingOverlay" style="display: none;">
     <div class="wave-loading-item"></div>
     <div class="wave-loading-item"></div>
     <div class="wave-loading-item"></div>
@@ -1269,11 +1304,130 @@
   <!-- lit -->
   <script type="module" src="../static/components/lit-index.js"></script>
 
+  <script type="text/javascript">
+
+    // 全局登录函数
+    function performLogin() {
+
+      const username = $('input[name="username"]').val();
+      const password = $('input[name="password"]').val();
+      const remember = $('input[name="remember"]').is(':checked');
+
+      if (!username || !password) {
+        showLoginError('请输入用户名和密码');
+        return;
+      }
+
+      // 显示加载状态
+      const submitBtn = $('button[type="button"]');
+      const originalText = submitBtn.text();
+      submitBtn.prop('disabled', true).text('登录中...');
+
+      // 调用登录API
+      window.axios_client.post("/auth/token",
+        new URLSearchParams({
+          username,
+          password,
+        }),
+        {
+          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        }).then(function (response) {
+          // 恢复按钮状态
+          submitBtn.prop('disabled', false).text(originalText);
+
+          if (response.status === 200) {
+
+            localStorage.setItem("token", response.data.access_token)
+
+            // 初始化主页面
+            initSysInfo();
+
+          } else {
+            showLoginError(data.message || '登录失败');
+          }
+        })
+        .catch(function (error) {
+          console.error('Login error:', error);
+          if (error.response && error.response.data) {
+            showLoginError(error.response.data.message || '登录失败');
+          } else {
+            showLoginError('网络错误，请重试');
+          }
+          // 恢复按钮状态
+          submitBtn.prop('disabled', false).text(originalText);
+        });
+    }
+
+    function showLoginError(message) {
+      const errorDiv = $('#login_retmsg');
+      errorDiv.text(message).show();
+      $('input').addClass('is-invalid');
+    }
+
+    // 登录处理
+    $(document).ready(function () {
+
+      // 处理回车键登录
+      $('input[name="password"]').on('keypress', function (e) {
+        if (e.which === 13) { // Enter键
+          performLogin();
+        }
+      });
+
+      // 绑定表单提交事件
+      $('#loginForm').on('submit', function (e) {
+        e.preventDefault(); // 阻止默认表单提交
+        performLogin();
+      });
+
+      // 调用 /data/bing 接口获取壁纸数据
+      axios.post('/data/bing', {})
+        .then(function (response) {
+
+          if (response.data && response.data.code === 0 && response.data.data) {
+
+            var data = response.data.data;
+
+            // 设置背景图片
+            if (data.imageCode) {
+              $("body").css("background", `url(data:image/jpg;base64,${data.imageCode}) center / cover no-repeat fixed`);
+            }
+
+            // 显示图片信息
+            $('#image-title').text(data.imgTitle);
+            if (data.imgLink) {
+              $('#image-link').attr('href', data.imgLink);
+            }
+            $('#image-desc-container').show();
+
+            // 添加登录窗口样式
+            $('#loginForm').addClass('login_window');
+          }
+        })
+        .catch(function (error) {
+          console.log('获取壁纸数据失败:', error);
+        });
+
+      
+      initIndex();
+
+      // 登陆检查
+      if (authManager.isLoggedIn()) {        
+        // 初始化系统信息和组件
+        initSysInfo();
+      } else {
+        authManager.redirectToLogin();
+      }
+
+    });
+
+  </script>
+
   <!-- 首页事件  -->
   <script type="text/javascript">
 
     // 页面初始事件
-    $(document).ready(function () {
+    function initIndex() {
 
       var savedTheme = localStorage.getItem("theme") || "light";
       apply_theme(savedTheme);
@@ -1347,16 +1501,10 @@
       // 回到顶部按钮状态
       calcToTopBtnVisitable();
 
-      // 初始化系统信息和组件
-      initSysInfo();
-
       // Dropzone配置
       init_dropzone();
 
-      // WebSocket刷新消息中心
-      connect_message();
-
-    });
+    }
 
     // 初始化系统信息函数
     function initSysInfo() {
@@ -1367,9 +1515,17 @@
 
           const sysInfo = response.data;
 
-          // 动态生成搜索栏 HTML
+          // 全局变量默认值
+          $('#default_path').val(sysInfo.defaultPath);
+          $('#default_transfer_mode').val(sysInfo.syncMod);
+
+          // 生成菜单
+          let $navbar = $(`<layout-navbar hidden id="navbar-menu" layout-appversion="${sysInfo.appVersion}"></layout-navbar>`);
+          $navbar[0].navbar_list = sysInfo.menus;
+          $("#default_path").after($navbar);
+
+          // 生成搜索栏
           var searchbar = createSearchbar(sysInfo);
-          // 在 #navbar-menu 后插入
           $("#navbar-menu").after(searchbar);
 
           // 生成命令菜单
@@ -1381,22 +1537,22 @@
           // 生成高级搜索选项
           generateAdvancedSearchOptions(sysInfo);
 
-          // 版本号
-          $('#version-txt').text(sysInfo.appVersion);
-          
-          // 全局变量默认值
-          $('#default_path').val(sysInfo.defaultPath);
-          $('#default_transfer_mode').val(sysInfo.syncMod);
-
-          // 动态设置 body 背景图
-          if (sysInfo.imageCode) {
-            $("body").css("background", `url(data:image/jpg;base64,${sysInfo.imageCode}) center / cover no-repeat fixed`);
-          }
-
           // 检查tmdb配置
           if (!sysInfo.tmdbFlag) {
             show_init_alert_modal();
           }
+
+          // WebSocket刷新消息中心
+          connect_message();
+
+          // 注册路由
+          registerRouter(sysInfo.menus);
+
+          var current = router.current && router.current[0] && router.current[0].hashString;
+          if (!current || current == '/login') {
+            current = 'index';
+          }
+          navmenu(current);
 
         } else {
           console.error('获取系统信息失败:', response);

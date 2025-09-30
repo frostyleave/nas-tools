@@ -25,6 +25,8 @@ class AuthManager {
                 return;
             }
 
+            localStorage.setItem("token", response.data.get('access_token'))
+
             return 'ok'
         } catch (error) {
             console.log('refresh access token error: ', error);
@@ -77,7 +79,8 @@ class AuthManager {
      * 登录，获取 access_token & refresh_token
      */
     redirectToLogin() {
-        window.location.href = '/login';
+        localStorage.removeItem("token");
+        navmenu('login')
     }
            
     /**
@@ -86,6 +89,10 @@ class AuthManager {
     async logout() {       
         // 重定向到登录页
         this.redirectToLogin();
+    }
+
+    isLoggedIn() {
+        return !!localStorage.getItem("token");
     }
 }
 

@@ -103,12 +103,6 @@ async def home_page(request: Request):
     return FileResponse("web/static/index.html")
 
 
-# 登录页面
-@app.get("/login", response_class=HTMLResponse)
-async def login_page(request: Request):
-    return FileResponse("web/static/login.html")
-
-
 # 目录事件响应
 @app.post("/dirlist")
 async def dirlist(request: Request, current_user: User = Depends(get_current_user)):

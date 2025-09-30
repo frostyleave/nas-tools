@@ -55,6 +55,10 @@ body, .page {
     overflow-y: auto;
 }
 
+body.no-after::after {
+  content: none !important;
+}
+
 /* .theme-dark .input-group-flat .input-group-text {
     background-color: var(--bs-card-bg);
 }
@@ -918,4 +922,43 @@ a:hover {
         overflow-x: auto;
         white-space: nowrap;
     }
+}
+
+.login_window {
+    background-color: rgba(255, 255, 255, 0.5);
+    -webkit-backdrop-filter: blur(1rem);
+    backdrop-filter: blur(1rem)
+}
+
+.image-desc {
+    background-color: rgba(34, 34, 34, .8);
+    position: absolute;
+    bottom: 20px;
+    left: 20px;
+    padding: 5px;
+    z-index: 10;
+    cursor: pointer;
+    margin-bottom: env(safe-area-inset-bottom) !important;
+    margin-left: env(safe-area-inset-left) !important;
+}
+
+.image-link,
+.image-link:hover {
+    text-decoration: none;
+    color: #fff;
+}
+
+.login_title {
+    text-align: center;
+    margin: 1.5rem 0;
+}
+
+h1.login_title>img {
+    vertical-align: bottom;
+}
+
+h1.login_title>label {
+    font-size: xx-large;
+    color: white;
+    text-shadow: 1px 1px 1px rgba(0, 0, 0, 0.5);
 }

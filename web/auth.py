@@ -37,7 +37,11 @@ async def login(request: Request, form_data: OAuth2PasswordRequestForm = Depends
     scheme = request.headers.get("x-forwarded-proto", request.url.scheme)
     secure_flag = scheme == "https"
     
-    response = JSONResponse(content={"msg": "登录成功"})
+    response = JSONResponse(content={
+        "msg": "登录成功",
+        "token_type": "bearer",
+        "access_token": access_token
+    })
     response.set_cookie("access_token", access_token, httponly=True, samesite="Lax", secure=secure_flag)
     response.set_cookie("refresh_token", refresh_token, httponly=True, samesite="Lax", secure=secure_flag)
     return response
@@ -66,7 +70,11 @@ async def refresh_token(request: Request):
     scheme = request.headers.get("x-forwarded-proto", request.url.scheme)
     secure_flag = scheme == "https"
 
-    response = JSONResponse(content={"msg": "刷新成功"})
+    response = JSONResponse(content={
+        "msg": "刷新成功",
+        "token_type": "bearer",
+        "access_token": new_access_token
+    })
     response.set_cookie("access_token", new_access_token, httponly=True, samesite="Lax", secure=secure_flag)
     response.set_cookie("refresh_token", new_refresh_token, httponly=True, samesite="Lax", secure=secure_flag)
     return response
