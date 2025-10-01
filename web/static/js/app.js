@@ -12,14 +12,11 @@ let CurrentPageUri = "";
 const router = new Navigo("/", { hash: true });
 
 router
-  // 首页
-  .on("/", function () {
-    router.navigate("/index");
-  })
   // 登陆
   .on("/login", function (match) {
     showLogin();
   })
+  // 首页
   .on("/index", function (match) {
     loadPage("/static/pages/index.html", match.queryString);
   })
@@ -65,31 +62,6 @@ router
 
 router.resolve();
 
-
-// 导航菜单点击
-function navmenu(page) {
- 
-  // 修复空格问题
-  page = page.replaceAll(" ", "%20");
-
-  // 解除滚动事件
-  $(window).unbind('scroll');
-
-  // 停止上一次加载
-  if (NavPageXhr && NavPageLoading) {
-    NavPageXhr.abort();
-  }
-  
-  // 显示等待动画
-  menuSwithWait();
-
-  // 加载新页面
-  NavPageLoading = true;
-
-  // 页面切换
-  navigateTo(page);
-
-}
 
 function showLogin() {
 
@@ -171,6 +143,31 @@ function loadPage(htmlPath, queryString) {
 
 }
 
+// 导航菜单点击
+function navmenu(page) {
+ 
+  // 修复空格问题
+  page = page.replaceAll(" ", "%20");
+
+  // 解除滚动事件
+  $(window).unbind('scroll');
+
+  // 停止上一次加载
+  if (NavPageXhr && NavPageLoading) {
+    NavPageXhr.abort();
+  }
+  
+  // 显示等待动画
+  menuSwithWait();
+
+  // 加载新页面
+  NavPageLoading = true;
+
+  // 页面切换
+  navigateTo(page);
+
+}
+
 // 页面切换
 function navigateTo(target) {
 
@@ -193,7 +190,7 @@ function navigateTo(target) {
     router.navigate(target);
   }
 
-};
+}
 
 // 检查页面是否没有变化
 function pageNotChanged(target) {

@@ -830,7 +830,7 @@ class WebAction:
         """
         inpath = data.get("inpath")
         if not os.path.exists(inpath):
-            return {"retcode": -1, "retmsg": "输入路径不存在"}
+            return {"retcode": -1, "retmsg": f"输入路径{inpath}不存在"}
         outpath = data.get("outpath")
         syncmod = ModuleConf.RMT_MODES.get(data.get("syncmod"))
         tmdbid = data.get("tmdb")

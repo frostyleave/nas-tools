@@ -88,6 +88,17 @@ async def bing(request: Request):
     )
 
 
+# userinfo
+@data_router.post("/userinfo")
+async def sysinfo(request: Request, current_user: User = Depends(get_current_user)):
+
+    return response(data=
+        {
+            "username" : current_user.username
+        }
+    )
+
+
 # sysinfo
 @data_router.post("/sysinfo")
 async def sysinfo(request: Request, current_user: User = Depends(get_current_user)):

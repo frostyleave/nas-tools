@@ -1349,7 +1349,6 @@
       $('input').addClass('is-invalid');
     }
 
-    // 登录处理
     $(document).ready(function () {
 
       // 处理回车键登录
@@ -1366,50 +1365,47 @@
       });
 
       // 调用 /data/bing 接口获取壁纸数据
-      axios.post('/data/bing', {})
-        .then(function (response) {
+      axios_post('/data/bing', {}, function (response) {
 
-          if (response.data && response.data.code === 0 && response.data.data) {
+        if (response.code === 0 && response.data) {
 
-            var data = response.data.data;
+          var data = response.data;
 
-            // 设置背景图片
-            if (data.imageCode) {
-              $("body").css("background", `url(data:image/jpg;base64,${data.imageCode}) center / cover no-repeat fixed`);
-            }
-
-            // 显示图片信息
-            $('#image-title').text(data.imgTitle);
-            if (data.imgLink) {
-              $('#image-link').attr('href', data.imgLink);
-            }
-            $('#image-desc-container').show();
-
-            // 添加登录窗口样式
-            $('#loginForm').addClass('login_window');
+          // 设置背景图片
+          if (data.imageCode) {
+            $("body").css("background", `url(data:image/jpg;base64,${data.imageCode}) center / cover no-repeat fixed`);
           }
-        })
-        .catch(function (error) {
-          console.log('获取壁纸数据失败:', error);
-        });
+
+          // 显示图片信息
+          $('#image-title').text(data.imgTitle);
+          if (data.imgLink) {
+            $('#image-link').attr('href', data.imgLink);
+          }
+          $('#image-desc-container').show();
+
+          // 添加登录窗口样式
+          $('#loginForm').addClass('login_window');
+        }
+      });
 
       
       initIndex();
 
       // 登陆检查
-      if (authManager.isLoggedIn()) {        
-        // 初始化系统信息和组件
-        initSysInfo();
-      } else {
-        authManager.redirectToLogin();
-      }
+      window.authManager.checkLoginStatus().then(function (userData) {
+
+        if (userData) {        
+          // 初始化系统信息和组件
+          initSysInfo();
+        } else {
+          // 切换到登陆
+          authManager.redirectToLogin();
+        }
+
+      });
 
     });
 
-  </script>
-
-  <!-- 首页事件  -->
-  <script type="text/javascript">
 
     // 页面初始事件
     function initIndex() {
