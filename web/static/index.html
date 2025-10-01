@@ -1322,10 +1322,9 @@
 
           if (response.status === 200) {
 
-            localStorage.setItem("token", response.data.access_token)
-
             // 初始化主页面
             initSysInfo();
+            window.location.reload(true);
 
           } else {
             showLoginError(data.message || '登录失败');
@@ -1501,7 +1500,7 @@
           $('#default_transfer_mode').val(sysInfo.syncMod);
 
           // 生成菜单
-          if ($("#navbar-menu")) {
+          if (document.getElementById("navbar-menu")) {
             $("#navbar-menu").remove();
           }
           let $navbar = $(`<layout-navbar hidden id="navbar-menu" layout-appversion="${sysInfo.appVersion}"></layout-navbar>`);
@@ -1509,7 +1508,7 @@
           $("#default_path").after($navbar);
 
           // 生成搜索栏
-          if ($("#navbar-search")) {
+          if (document.getElementById("navbar-search")) {
             $("#navbar-search").remove();
           }
           var searchbar = `<layout-searchbar id="navbar-search"  layout-username="${sysInfo.username}" layout-systemflag="${sysInfo.systemFlag}"
