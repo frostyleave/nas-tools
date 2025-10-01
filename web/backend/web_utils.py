@@ -13,7 +13,7 @@ from app.utils.types import MediaType
 from config import Config
 from version import APP_VERSION
 
-DB_SEASON_SUFFIX = '[第]+[0-9一二三四五六七八九十\-\s]+季'
+DB_SEASON_SUFFIX = '[第]+[0-9一二三四五六七八九十\-\s]+[季期卷]'
 
 
 class WebUtils:

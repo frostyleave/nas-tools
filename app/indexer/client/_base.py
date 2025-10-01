@@ -86,7 +86,7 @@ class _IIndexClient(metaclass=ABCMeta):
         index_error = 0
 
         target_year = []
-        item_tmdb_info = search_media.tmdb_info
+        item_tmdb_info = search_media.tmdb_info if search_media else None
         # 目标资源类型
         mtype = search_media.type if search_media else None
         if item_tmdb_info:

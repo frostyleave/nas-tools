@@ -311,7 +311,7 @@
         if (!mediaItem.tmdbid || mediaItem.tmdbid == '0') {
           html += `
             <a class="ms-2 mb-1 d-inline-flex align-items-center" title="名称测试" href='javascript:nametest("${torrent.id}")' data-bs-toggle="tooltip">
-              <i class="ti ti-text-recognition"></i>
+              <i class="ti ti-text-recognition fs-3"></i>
             </a>`;
         }
 
@@ -576,7 +576,7 @@
                     </div>
                     <!-- 简介 -->
                     <div class="text-muted mt-2 d-none d-md-block">
-                      ${item.overview}
+                      ${item.overview ?? ''}
                     </div>
                     <!-- 资源分组 -->
                     ${drawResAccordionCard(title, item)}

@@ -16,7 +16,7 @@ class MediaUtils:
         # 所有【】换成[]
         title = title.replace("【", "[").replace("】", "]").strip()
         # 季、期 统一：改为英文，方便三方插件识别
-        clean_title = MediaUtils.name_ch_to_number(title, r"([第|全|共][^第|全|共]+[季|期])", 'S')
+        clean_title = MediaUtils.name_ch_to_number(title, r"([第|全|共][^第|全|共]+[季|期|卷])", 'S')
         # 集数 统一：改为英文，方便三方插件识别
         clean_title = MediaUtils.name_ch_to_number(clean_title, r"([第|全|共][^第|全|共]+[集|话|話])", 'E')
         clean_title = MediaUtils.name_ch_to_number(clean_title, r"(\d+)(集|话|話)全", 'E')
@@ -32,7 +32,7 @@ class MediaUtils:
         """
         解析豆瓣剧集名称中的季信息
         """
-        season_match = re.findall(r'([第][^第]+[季|期])', title)
+        season_match = re.findall(r'([第][^第]+[季|期|卷])', title)
         if not season_match:
             return title, 0
         first_season = season_match[0]
