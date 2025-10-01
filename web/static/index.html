@@ -106,7 +106,7 @@
 
 </head>
 
-<body class="layout-fluid no-after">
+<body class="layout-fluid">
   <div id="login-container" class="d-none d-flex flex-column justify-content-center align-items-center vh-100">
     <div class="image-desc card card-md border-0 rounded-3" id="image-desc-container" style="display: none;">
       <a class="image-link" href="#" target="_blank" id="image-link">
@@ -512,7 +512,6 @@
               <div class="mb-3">
                 <label class="form-label">质量</label>
                 <select class="form-select" id="default_rss_setting_restype">
-                  <option value="" selected>全部</option>
                   <!-- 质量选项将通过JavaScript动态生成 -->
                 </select>
               </div>
@@ -521,7 +520,6 @@
               <div class="mb-3">
                 <label class="form-label">分辨率</label>
                 <select class="form-select" id="default_rss_setting_pix">
-                  <option value="" selected>全部</option>
                   <!-- 分辨率选项将通过JavaScript动态生成 -->
                 </select>
               </div>
@@ -639,7 +637,6 @@
               <div class="mb-3">
                 <label class="form-label required">季</label>
                 <select class="form-select" id="rss_season">
-                  <option value="" selected>请选择</option>
                   <!-- 季数选项将通过JavaScript动态生成 -->
                 </select>
               </div>
@@ -686,7 +683,6 @@
               <div class="mb-3">
                 <label class="form-label">质量</label>
                 <select class="form-select" id="rss_restype">
-                  <option value="" selected>全部</option>
                   <!-- 质量选项将通过JavaScript动态生成 -->
                 </select>
               </div>
@@ -695,7 +691,6 @@
               <div class="mb-3">
                 <label class="form-label">分辨率</label>
                 <select class="form-select" id="rss_pix">
-                  <option value="" selected>全部</option>
                   <!-- 分辨率选项将通过JavaScript动态生成 -->
                 </select>
               </div>
@@ -902,7 +897,6 @@
               <div class="mb-3">
                 <label class="form-label">季</label>
                 <select class="form-select" id="rename_season">
-                  <option value="" selected>请选择</option>
                   <!-- 季数选项将通过JavaScript动态生成 -->
                 </select>
               </div>
@@ -1075,7 +1069,6 @@
               <div class="mb-3">
                 <label class="form-label">季</label>
                 <select class="form-select" id="advanced_search_season">
-                  <option value="" selected>全部</option>
                   <!-- 季数选项将通过JavaScript动态生成 -->
                 </select>
               </div>
@@ -1095,7 +1088,6 @@
               <div class="mb-3">
                 <label class="form-label">质量</label>
                 <select class="form-select" id="advanced_search_restype">
-                  <option value="" selected>全部</option>
                   <!-- 质量选项将通过JavaScript动态生成 -->
                 </select>
               </div>
@@ -1104,7 +1096,6 @@
               <div class="mb-3">
                 <label class="form-label">分辨率</label>
                 <select class="form-select" id="advanced_search_pix">
-                  <option value="" selected>全部</option>
                   <!-- 分辨率选项将通过JavaScript动态生成 -->
                 </select>
               </div>
@@ -1324,14 +1315,8 @@
       submitBtn.prop('disabled', true).text('登录中...');
 
       // 调用登录API
-      window.axios_client.post("/auth/token",
-        new URLSearchParams({
-          username,
-          password,
-        }),
-        {
-          headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        }).then(function (response) {
+      window.axios_client.post("/auth/token", new URLSearchParams({username, password}), { headers: { "Content-Type": "application/x-www-form-urlencoded" } })
+        .then(function (response) {
           // 恢复按钮状态
           submitBtn.prop('disabled', false).text(originalText);
 
@@ -1520,12 +1505,19 @@
           $('#default_transfer_mode').val(sysInfo.syncMod);
 
           // 生成菜单
+          if ($("#navbar-menu")) {
+            $("#navbar-menu").remove();
+          }
           let $navbar = $(`<layout-navbar hidden id="navbar-menu" layout-appversion="${sysInfo.appVersion}"></layout-navbar>`);
           $navbar[0].navbar_list = sysInfo.menus;
           $("#default_path").after($navbar);
 
           // 生成搜索栏
-          var searchbar = createSearchbar(sysInfo);
+          if ($("#navbar-search")) {
+            $("#navbar-search").remove();
+          }
+          var searchbar = `<layout-searchbar id="navbar-search"  layout-username="${sysInfo.username}" layout-systemflag="${sysInfo.systemFlag}"
+                            layout-useradmin="${sysInfo.admin}" layout-search="${sysInfo.search}">`;
           $("#navbar-menu").after(searchbar);
 
           // 生成命令菜单
@@ -1548,18 +1540,17 @@
           // 注册路由
           registerRouter(sysInfo.menus);
 
+          var current = router.current && router.current[0] && router.current[0].url;
+          if (!current || current == 'login') {
+            navmenu('index');
+          }
+
         } else {
           console.error('获取系统信息失败:', response);
         }
       }, function (error) {
         console.error('调用系统信息接口失败:', error);
       });
-    }
-
-    // 创建搜索栏 HTML
-    function createSearchbar(sysInfo) {
-      return `<layout-searchbar layout-username="${sysInfo.username}" layout-systemflag="${sysInfo.systemFlag}"
-      layout-useradmin="${sysInfo.admin}" layout-search="${sysInfo.search}">`;
     }
 
     // 生成命令菜单
@@ -1625,8 +1616,17 @@
     // 生成季数选项
     function generateSeasonOptions() {
       const renameSelect = $("#rename_season");
+      renameSelect.empty();
+      renameSelect.append('<option value="" selected>请选择</option>');
+
       const rssSelect = $("#rss_season");
+      rssSelect.empty();
+      rssSelect.append('<option value="" selected>请选择</option>');
+
       const advancedSelect = $("#advanced_search_season");
+      advancedSelect.empty();
+      advancedSelect.append('<option value="" selected>全部</option>');
+
       for (let i = 1; i <= 50; i++) {
         var option = `<option value="${i}">第${i}季</option>`;
         advancedSelect.append(option);
@@ -1639,8 +1639,16 @@
     function generateRestypeOptions(restypeDict) {
 
       const advancedSelect = $("#advanced_search_restype");
+      advancedSelect.empty();
+      advancedSelect.append('<option value="" selected>全部</option>');
+
       const rssSelect = $("#rss_restype");
+      rssSelect.empty();
+      rssSelect.append('<option value="" selected>全部</option>');
+
       const defaultRssSelect = $("#default_rss_setting_restype");
+      defaultRssSelect.empty();
+      defaultRssSelect.append('<option value="" selected>全部</option>');
 
       Object.keys(restypeDict).forEach(function(restype) {
         var option = `<option value="${restype}">${restype}</option>`;
@@ -1653,8 +1661,17 @@
     // 生成分辨率选项
     function generatePixOptions(pixDict) {
       const advancedSelect = $("#advanced_search_pix");
+      advancedSelect.empty();
+      advancedSelect.append('<option value="" selected>全部</option>');
+
       const defaultRssSelect = $("#default_rss_setting_pix");
+      defaultRssSelect.empty();
+      defaultRssSelect.append('<option value="" selected>全部</option>');
+
       const rssSelect = $("#rss_pix");
+      rssSelect.empty();
+      rssSelect.append('<option value="" selected>全部</option>');
+
       Object.keys(pixDict).forEach(function(pix) {
         var option = `<option value="${pix}">${pix}</option>`;
         advancedSelect.append(option);
@@ -1667,7 +1684,10 @@
     function generateRmtModeOptions(rmtModeDict) {
 
       const manualSelect = $("#rename_syncmod_manual");
+      manualSelect.empty();
+
       const customizeSelect = $("#rename_syncmod_customize");
+      customizeSelect.empty();
 
       $.each(rmtModeDict, function (idx, mode){
         var option = `<option value="${mode.value}">${mode.name}</option>`;
@@ -1705,10 +1725,11 @@
       }
 
       if (data.spiderTypes) {
-        const sourceTypesGroup = $('#parser_setting');
+        const parserSettingGroup = $('#parser_setting');
+        parserSettingGroup.empty();
         $.each(data.spiderTypes, function (sKey, sName){
           var option = `<option value="${sKey}">${sName}</option>`;
-          sourceTypesGroup.append(option);
+          parserSettingGroup.append(option);
         });
       }
 
