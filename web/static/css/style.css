@@ -862,7 +862,7 @@ a:hover {
 }
 
 .badge-fixed {
-  width: 3rem;            
+  min-width: 2rem;
 }
 
 .text-shadow-b1 {

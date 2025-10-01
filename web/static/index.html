@@ -1548,12 +1548,6 @@
           // 注册路由
           registerRouter(sysInfo.menus);
 
-          var current = router.current && router.current[0] && router.current[0].hashString;
-          if (!current || current == '/login') {
-            current = 'index';
-          }
-          navmenu(current);
-
         } else {
           console.error('获取系统信息失败:', response);
         }

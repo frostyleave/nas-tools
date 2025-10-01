@@ -25,7 +25,7 @@ class AuthManager {
                 return;
             }
 
-            localStorage.setItem("token", response.data.get('access_token'))
+            localStorage.setItem("token", response.data.access_token)
 
             return 'ok'
         } catch (error) {
