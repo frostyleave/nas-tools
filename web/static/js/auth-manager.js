@@ -123,43 +123,6 @@ class AuthManager {
         }
     }
     
-    /**
-     * 检查用户登录状态
-     * 通过请求受保护的接口来验证用户的会话Cookie是否有效。
-     * @returns {Promise<object|null>} 
-     * - 如果用户已登录，则返回一个包含用户信息的Promise对象。
-     * - 如果用户未登录或会话无效，则返回一个解析为 null 的Promise，并触发重定向。
-     */
-    async checkLoginStatus() {
-        try {
-            const response = await fetch('/data/userinfo', {
-                method: 'POST',
-                credentials: 'include', // 关键：确保浏览器发送HttpOnly Cookie
-                headers: {
-                    'Accept': 'application/json',
-                }
-            });
-
-            if (response.ok) {
-                const userData = await response.json();
-                console.log("User is logged in:", userData);
-                return userData;
-            }
-
-            if (response.status === 401) {
-                console.log("User is not logged in. Redirecting to login page.");
-                this.redirectToLogin(); // 直接调用内部方法
-                return null;
-            }
-
-            console.log(`Server responded with status: ${response.status}`);
-            return null;
-
-        } catch (error) {
-            console.error('Failed to check login status:', error);
-            return null;
-        }
-    }
 }
 
 // 创建全局实例

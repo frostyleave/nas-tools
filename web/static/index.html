@@ -1390,10 +1390,9 @@
       
       initIndex();
 
-      // 登陆检查
-      window.authManager.checkLoginStatus().then(function (userData) {
+      axios_post("/data/userinfo", {}, function (response) {
 
-        if (userData) {        
+        if (response.code === 0 && response.data) {
           // 初始化系统信息和组件
           initSysInfo();
         } else {
