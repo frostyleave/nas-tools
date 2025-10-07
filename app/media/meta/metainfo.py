@@ -35,6 +35,8 @@ def MetaInfo(title, subtitle=None, mtype=None):
     rev_title, msg, used_info = WordsHelper().process(rev_title)
     if subtitle:
         subtitle, _, _ = WordsHelper().process(subtitle)
+    else:
+        subtitle = ''
 
     # 判断是否处理文件、格式化剧集文件名
     if org_title and os.path.splitext(org_title)[-1] in RMT_MEDIAEXT:
@@ -71,12 +73,12 @@ def MetaInfo(title, subtitle=None, mtype=None):
 
     # 剧集
     if meta_info.begin_episode:
-         # 多季文件, 剧集范围无效
         if meta_info.end_season and meta_info.begin_season != meta_info.end_season:
+            # 多季文件, 剧集范围无效
             meta_info.begin_episode = None
             meta_info.end_episode = None
-         # 总第集数混淆
-        if meta_info.begin_season and meta_info.begin_season > 1 and meta_info.begin_episode > 1 and ('总第' in org_title or '总第' in subtitle):
+        elif meta_info.begin_season and meta_info.begin_season > 1 and meta_info.begin_episode > 1 and ('总第' in org_title or '总第' in subtitle):
+            # 总第集数混淆
             meta_info.begin_season = 1
 
     # 信息修正
