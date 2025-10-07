@@ -962,3 +962,7 @@ h1.login_title>label {
     color: white;
     text-shadow: 1px 1px 1px rgba(0, 0, 0, 0.5);
 }
+
+.zoom-link:hover {
+  transform: scale(1.3);
+}

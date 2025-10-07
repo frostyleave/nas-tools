@@ -778,6 +778,14 @@ function change_over_edition_check(obj) {
   }
 }
 
+function convert_mediaid(tmdbid) {
+  if (typeof(tmdbid) === "number") {
+    tmdbid = tmdbid + "";
+  }
+  return tmdbid
+}
+
+
 // 订阅按钮被点击时
 function rss_love_click(title, year, media_type, tmdb_id, fav, remove_func, add_func) {
   if (fav == "1"){
@@ -788,7 +796,7 @@ function rss_love_click(title, year, media_type, tmdb_id, fav, remove_func, add_
   } else {
     show_ask_modal("是否确定订阅： " + title + "？", function () {
       hide_ask_modal();
-      const mediaid = Golbal.convert_mediaid(tmdb_id);
+      const mediaid = convert_mediaid(tmdb_id);
       if (media_type == "MOV" || media_type == "电影") {
         add_rss_media(title, year, media_type, mediaid, "", "", add_func);
       } else {

@@ -211,21 +211,17 @@
     return `
           <div class="card card-sm lit-normal-card rounded-3 cursor-pointer ratio shadow-sm">
             <div class="rounded-3">
-              <img class="card-img rounded-3" alt="" style="display: block; min-width: 100%; max-width: 100%; min-height: 100%; max-height: 100%; object-fit: cover;" src="${mediaItem.poster}">
+              <img class="card-img rounded-3" alt="查看详情" onclick='navmenu("media_detail?type=${mediaItem.type_key}&id=${mediaItem.tmdbid}")' style="display: block; min-width: 100%; max-width: 100%; min-height: 100%; max-height: 100%; object-fit: cover;" src="${mediaItem.poster}">
               ${checkTagLfet}
               <span style="position: absolute; top: 10px; left: 10px; z-index: 9;" class="badge badge-pill bg-lime">${mediaItem.type}</span>
               <div class="badge badge-pill bg-purple" style="position: absolute; top: 10px; right: 10px; z-index: 9;">${mediaItem.vote}</div>
-            </div>
-            <div class="card-img-overlay rounded-3 ms-auto" >
-              <div class="d-flex justify-content-between">
-                <a class="text-muted" title="搜索资源" href='javascript:media_search("${mediaItem.tmdbid}", "${mediaItem.title}", "${mediaItem.type_key}")'>
+              <div class="d-flex justify-content-between align-items-center position-absolute bottom-0 start-0 end-0 p-3">
+                <a class="text-muted zoom-link" title="搜索资源" href='javascript:media_search("${mediaItem.tmdbid}", "${mediaItem.title}", "${mediaItem.type_key}")'>
                   <i class="ti ti-search fs-2 text-white"></i>
                 </a>
-                <div class="ms-auto">
-                  <a class="text-muted" title="加入/取消订阅" href='javascript:rss_love_click("${mediaItem.title}", "${mediaItem.year}", "${mediaItem.type_key}", "${mediaItem.tmdbid}", "${mediaItem.fav}")'>
-                    ${mediaItem.fav == "1" ? `<i class="ti ti-heart-filled fs-2 text-purple"></i>` : `<i class="ti ti-heart fs-2 text-white"></i>`}
-                  </a>
-                </div>
+                <a class="text-muted zoom-link" title="加入/取消订阅" href='javascript:rss_love_click("${mediaItem.title}", "${mediaItem.year}", "${mediaItem.type_key}", "${mediaItem.tmdbid}", "${mediaItem.fav}")'>
+                  ${mediaItem.fav == "1" ? `<i class="ti ti-heart-filled fs-2 text-purple"></i>` : `<i class="ti ti-heart fs-2 text-white"></i>`}
+                </a>
               </div>
             </div>
           </div>
