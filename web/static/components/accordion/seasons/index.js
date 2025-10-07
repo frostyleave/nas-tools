@@ -60,10 +60,10 @@ export class AccordionSeasons extends CustomElement {
                 ${seasons.list
                 ? seasons.list.map((episodes, episodes_index) => (
                   html`
-                  <div class="row pt-3 pb-3 custom-border-top">
+                  <div class="row border-top">
                     <div class="d-flex align-items-stretch">
-                      <div class="col-auto">
-                        <img src="${episodes.still_path}" alt="剧集海报" class="rounded" style="width: 227px; height: 127px; object-fit: cover;">
+                      <div class="col-auto d-flex align-items-center">
+                        <img src="${episodes.still_path || '../static/img/no-image.svg'}" alt="剧集海报" class="rounded" style="width: 227px; height: 127px; object-fit: cover;">
                       </div>                      
                       <div class="col">
                         <div class="card-body">

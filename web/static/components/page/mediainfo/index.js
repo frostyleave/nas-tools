@@ -178,8 +178,6 @@ export class PageMediainfo extends CustomElement {
                       </span>
                       `
                     : html`
-                      ${this.fav != "2"
-                      ? html`
                         <span class="btn btn-purple d-none d-sm-inline-flex" @click=${this._loveClick}>
                           <i class="ti ti-heart fs-2 text-white"></i>
                           添加订阅
@@ -187,7 +185,7 @@ export class PageMediainfo extends CustomElement {
                         <span class="btn btn-icon bg-transparent border-0 d-sm-none" @click=${this._loveClick}>
                           <i class="ti ti-heart fs-2"></i>
                         </span>
-                        `: nothing }`
+                        `
                       }
                     ${this.item_url ? html`
                     <span class="btn btn-green d-none d-sm-inline-flex" @click=${this._openItemUrl}>
@@ -205,7 +203,7 @@ export class PageMediainfo extends CustomElement {
                   }
                 </div>
               </div>
-              <div class="d-none d-md-block position-absolute rounded" style="top: 5rem; right: 0rem; z-index: 99;width: auto; min-width: 25rem;">
+              <div class="d-none d-md-block position-absolute rounded" style="top: 5rem; right: 0rem; z-index: 99;width: auto; min-width: 25rem;max-width: 50rem;">
                 <accordion-seasons
                   .seasons_data=${this.seasons_data}
                   .tmdbid=${this.tmdbid}

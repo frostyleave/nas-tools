@@ -778,6 +778,34 @@ function change_over_edition_check(obj) {
   }
 }
 
+// 订阅按钮被点击时
+function rss_love_click(title, year, media_type, tmdb_id, fav, remove_func, add_func) {
+  if (fav == "1"){
+    show_ask_modal("是否确定将 " + title + " 从订阅中移除？", function () {
+      hide_ask_modal();
+      remove_rss_media(title, year, media_type, "", "", tmdb_id, remove_func);
+    });
+  } else {
+    show_ask_modal("是否确定订阅： " + title + "？", function () {
+      hide_ask_modal();
+      const mediaid = Golbal.convert_mediaid(tmdb_id);
+      if (media_type == "MOV" || media_type == "电影") {
+        add_rss_media(title, year, media_type, mediaid, "", "", add_func);
+      } else {
+        axios_post_do("get_tvseason_list", {tmdbid: mediaid, title: title}, function (ret) {
+          if (ret.seasons.length === 1) {
+            add_rss_media(title, year, "TV", mediaid, "", ret.seasons[0].num, add_func);
+          } else if (ret.seasons.length > 1) {
+            show_rss_seasons_modal(title, year, "TV", mediaid, ret.seasons, add_func);
+          } else {
+            show_fail_modal(title + " 添加RSS订阅失败：未查询到季信息！");
+          }
+        });
+      }
+    });
+  }
+}
+
 //取消订阅
 function remove_rss_manual(type, name, year, rssid) {
   $("#modal-manual-rss").modal('hide');
