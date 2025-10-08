@@ -2,6 +2,7 @@ import bisect
 import hashlib
 import random
 import re
+from typing import Optional
 from urllib import parse
 
 import cn2an
@@ -557,6 +558,43 @@ class StringUtils:
             return "%s小时%s分" % (hours, minutes)
         else:
             return "%s分钟" % minutes
+
+    @staticmethod
+    def str_to_datetime(date_str: str, formats: Optional[list[str]] = None) -> Optional[datetime]:
+        """
+        将字符串转换为 datetime 对象。
+
+        参数:
+            date_str (str): 要转换的日期字符串。
+            formats (list[str], 可选): 支持的日期格式列表。
+                如果未提供，将尝试自动识别常见格式。
+
+        返回:
+            datetime 或 None: 转换成功返回 datetime 对象，失败返回 None。
+        """
+        if not date_str or not isinstance(date_str, str):
+            return None
+
+        # 默认支持的常见日期时间格式
+        if formats is None:
+            formats = [
+                "%Y-%m-%d %H:%M:%S",
+                "%Y/%m/%d %H:%M:%S",
+                "%Y-%m-%d %H:%M",
+                "%Y/%m/%d %H:%M",
+                "%Y-%m-%d",
+                "%Y/%m/%d",
+                "%Y%m%d%H%M%S",
+                "%Y%m%d",
+            ]
+
+        for fmt in formats:
+            try:
+                return datetime.strptime(date_str.strip(), fmt)
+            except ValueError:
+                continue
+
+        return None
 
     @staticmethod
     def str_amount(amount, curr="$"):

@@ -961,11 +961,15 @@ class Media:
                 media_info.begin_episode = None
                 media_info.end_episode = None
             return
+        
+        # 资源发布时间
+        data_pubtime = StringUtils.str_to_datetime(media_info.pubdate)
+        if not data_pubtime:
+            return
 
         # 季集信息不匹配修正
         while True:
-            match_season = next(filter(lambda x: x.season_number == media_info.begin_season,
-                                       tmdb_info.seasons), None)
+            match_season = next(filter(lambda x: x.season_number == media_info.begin_season, tmdb_info.seasons), None)
             if not match_season:
                 return
             if media_info.begin_episode <= match_season.episode_count:
@@ -981,6 +985,10 @@ class Media:
                     ss = media_info.begin_season + 1
                     next_season = next(filter(lambda x: x.season_number == ss, tmdb_info.seasons), None)
                     while next_season:
+                        air_date = StringUtils.str_to_datetime(next_season.air_date)
+                        # 资源发布时间大于剧集发布时间
+                        if not air_date or air_date > data_pubtime:
+                            break
                         episode_count -= next_season.episode_count
                         if episode_count == 0:
                             media_info.end_season = ss
@@ -994,11 +1002,15 @@ class Media:
                         next_season = next(filter(lambda x: x.season_number == ss, tmdb_info.seasons), None)
                 return
             # 是否有下一季
-            if not next(filter(lambda x: x.season_number == media_info.begin_season + 1,
-                               tmdb_info.seasons), None):
+            next_season = next(filter(lambda x: x.season_number == match_season.season_number + 1, tmdb_info.seasons), None)
+            if not next_season:
+                return
+            air_date = StringUtils.str_to_datetime(next_season.air_date)
+            # 资源发布时间大于剧集发布时间
+            if not air_date or air_date > data_pubtime:
                 return
             # 如果有下一季则下推
-            media_info.begin_season = media_info.begin_season + 1
+            media_info.begin_season = match_season.season_number + 1
             media_info.begin_episode -= match_season.episode_count
             if media_info.end_episode:
                 media_info.end_episode -= match_season.episode_count
