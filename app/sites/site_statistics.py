@@ -91,6 +91,8 @@ class SitesDataStatisticsCenter(object):
         # 请求网页
         session = requests.Session()
         html_text = self.__request_site_page(url=url, session=session, site_cookie=site_cookie, ua=ua, emulate=emulate, proxy=proxy)
+        if not html_text:
+            return
 
         # 解析站点类型
         site_schema = self.__build_class(html_text)
@@ -185,7 +187,7 @@ class SitesDataStatisticsCenter(object):
         """
         site_url = site_info.get("strict_url")
         if not site_url:
-            return
+            return None
         
         site_id = site_info.get("id")
         site_name = site_info.get("name")
@@ -215,16 +217,22 @@ class SitesDataStatisticsCenter(object):
 
                 # 获取不到数据时，仅返回错误信息，不做历史数据更新
                 if site_user_info.err_msg:
-                    return
+                    log.warn(f'【Sites】 {site_name} 解析出错: {site_user_info.err_msg}')
+                    return None
 
                 # 发送通知，存在未读消息
                 self.__notify_unread_msg(site_name, site_user_info, unread_msg_notify)
+                
+                # 做种信息数组转换
+                if site_user_info.seeding_info is not None and isinstance(site_user_info.seeding_info, list):
+                    site_user_info.seeding_info = json.dumps(site_user_info.seeding_info)
 
                 return site_user_info
 
         except Exception as e:
             ExceptionUtils.exception_traceback(e)
             log.error(f"【Sites】站点 {site_name} 获取流量数据失败: {str(e)}")
+            return None
 
     def __notify_unread_msg(self, site_name, site_user_info, unread_msg_notify):
         if site_user_info.message_unread <= 0:
@@ -311,9 +319,8 @@ class SitesDataStatisticsCenter(object):
 
             # 并发刷新
             with ThreadPool(min(len(refresh_sites), self._MAX_CONCURRENCY)) as p:
-                site_user_infos = p.map(self.__refresh_site_data, refresh_sites)
-                site_user_infos = [info for info in site_user_infos if info]
-
+                site_user_infos = list(filter(None, p.map(self.__refresh_site_data, refresh_sites)))
+                
             # 登记历史数据
             self.dbhelper.insert_site_statistics_history(site_user_infos)
             # 实时用户数据

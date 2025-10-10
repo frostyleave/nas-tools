@@ -16,7 +16,7 @@ def get_secret() -> str:
     return Config().get_config("security").get("jwt_secret")
 
 ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 60      # 访问 token 过期时间
+ACCESS_TOKEN_EXPIRE_MINUTES = 10      # 访问 token 过期时间
 REFRESH_TOKEN_EXPIRE_DAYS = 7         # 刷新 token 过期时间
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")

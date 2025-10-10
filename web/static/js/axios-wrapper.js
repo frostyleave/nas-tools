@@ -94,6 +94,7 @@ function axios_post_do(cmd, params, handler, async = true, show_progress = true)
             // 处理错误
             if (error.response) {
                 $("#page_content").html(`<system-error title="${error.response.status}" text="${error.response.data || '请求出错'}"></system-error>`);
+                handler(error.response.data);
             } else {
                 console.error('Request failed:', error);
             }

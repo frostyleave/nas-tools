@@ -1,15 +1,14 @@
 import bisect
+import dateparser
 import hashlib
 import random
 import re
-from typing import Optional
-from urllib import parse
-
-import cn2an
-import dateparser
 
 from datetime import datetime, timedelta
 from dateutil.parser import parse as parse_date, isoparse
+from typing import Optional
+
+import cn2an
 
 import log
 
@@ -339,7 +338,7 @@ class StringUtils:
     def get_time_stamp(date):
         tempsTime = None
         try:
-            tempsTime = parse(date)
+            tempsTime = parse_date(date)
         except Exception as e:
             log.exception('get_time_stamp error:', e)
         return tempsTime
