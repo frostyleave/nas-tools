@@ -18,6 +18,7 @@ def get_secret() -> str:
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 10      # 访问 token 过期时间
 REFRESH_TOKEN_EXPIRE_DAYS = 7         # 刷新 token 过期时间
+COOKIE_MAX_AGE = REFRESH_TOKEN_EXPIRE_DAYS * 24 * 60 * 60  # cookie最大生存时间
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 

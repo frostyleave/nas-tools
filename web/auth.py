@@ -6,7 +6,7 @@ from fastapi.responses import JSONResponse
 from fastapi.security import OAuth2PasswordRequestForm
 
 import log
-from web.backend.security import ACCESS_TOKEN_EXPIRE_MINUTES, REFRESH_TOKEN_EXPIRE_DAYS, authenticate_user, create_access_token, validate_refresh_token
+from web.backend.security import ACCESS_TOKEN_EXPIRE_MINUTES, COOKIE_MAX_AGE, REFRESH_TOKEN_EXPIRE_DAYS, authenticate_user, create_access_token, validate_refresh_token
 
 
 # 鉴权路由
@@ -46,7 +46,7 @@ async def login(request: Request, form_data: OAuth2PasswordRequestForm = Depends
         "access_token": access_token
     })
     response.set_cookie("access_token", access_token, httponly=True, samesite="Lax", secure=secure_flag)
-    response.set_cookie("refresh_token", refresh_token, httponly=True, samesite="Lax", secure=secure_flag)
+    response.set_cookie("refresh_token", refresh_token, httponly=True, samesite="Lax", secure=secure_flag, max_age=COOKIE_MAX_AGE)
     return response
 
 
@@ -81,7 +81,7 @@ async def refresh_token(request: Request):
         "access_token": new_access_token
     })
     response.set_cookie("access_token", new_access_token, httponly=True, samesite="Lax", secure=secure_flag)
-    response.set_cookie("refresh_token", refresh_token, httponly=True, samesite="Lax", secure=secure_flag)
+    response.set_cookie("refresh_token", refresh_token, httponly=True, samesite="Lax", secure=secure_flag, max_age=COOKIE_MAX_AGE)
     return response
 
 
