@@ -31,11 +31,9 @@ apiClient.interceptors.response.use(
             originalRequest._retry = true;
 
             try {
+
                 // 尝试刷新Token
-                const newToken = await window.authManager.handle401Error();
-                
-                // 重新设置Authorization头
-                originalRequest.headers.Authorization = `Bearer ${newToken}`;
+                await window.authManager.handle401Error();
                 
                 // 重试原始请求
                 return apiClient(originalRequest);
@@ -71,7 +69,7 @@ function axios_post_do(cmd, params, handler, async = true, show_progress = true)
         method: 'POST',
         url: `do?random=${Math.random()}`,
         data: data,
-        timeout: 0, // 与原ajax_post保持一致
+        timeout: 0
     };
 
     // 发送请求
@@ -96,7 +94,7 @@ function axios_post_do(cmd, params, handler, async = true, show_progress = true)
                 $("#page_content").html(`<system-error title="${error.response.status}" text="${error.response.data || '请求出错'}"></system-error>`);
                 handler(error.response.data);
             } else {
-                console.error('Request failed:', error);
+                console.error('axios_post_do failed:', error);
             }
         });
 

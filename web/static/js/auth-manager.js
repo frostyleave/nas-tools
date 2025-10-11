@@ -26,9 +26,8 @@ class AuthManager {
             });
 
             if (!response.ok) {
-                // 如果刷新失败（例如Refresh Token也过期了），则执行登出操作
+                // 刷新失败，则跳转到登陆
                 console.error('Failed to refresh token, status:', response.status);
-                this.logout();
                 return false;
             }
             
@@ -36,7 +35,6 @@ class AuthManager {
             return true;
         } catch (error) {
             console.error('Error during access token refresh:', error);
-            this.logout();
             return false;
         }
     }
@@ -77,21 +75,21 @@ class AuthManager {
         this.isRefreshing = true;
 
         try {
+
             const refreshSucceeded = await this.refreshAccessToken();
             if (refreshSucceeded) {
                 // Token刷新成功，处理队列中的所有等待请求
                 this.processQueue(null);
             } else {
-                // Token刷新失败，处理队列，并传递错误
-                 this.processQueue(new Error("Token refresh failed"), null);
-                 // 重定向到登录页
-                 this.redirectToLogin();
+                // 向上抛出错误
+                throw new Error(" refresh token failed");
             }
         } catch (error) {
             this.processQueue(error, null);
             // 出现意外错误，重定向到登录页
             this.redirectToLogin();
-            console.error('Request to refresh access token failed:', error);
+            // 向上抛出错误
+            throw error;
         } finally {
             this.isRefreshing = false;
         }
