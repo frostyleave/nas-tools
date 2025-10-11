@@ -1,15 +1,18 @@
 import regex as re
 import datetime
+
 from abc import ABCMeta, abstractmethod
 from typing import List
 
 import log
+
 from app.filter import Filter
 from app.helper import ProgressHelper
 from app.media import Media
 from app.media.meta import MetaInfo
-from app.utils import StringUtils
+from app.utils import StringUtils, MediaUtils
 from app.utils.types import MediaType, SearchType, ProgressKey
+
 from config import SPLIT_CHARS
 
 
@@ -130,6 +133,12 @@ class _IIndexClient(metaclass=ABCMeta):
             description = item.get('description') if item.get('description') else ''
             # 识别种子名称
             log.info(f"【{self.client_name}】开始识别资源: {torrent_name} {description}")
+
+            # 公共站点的资源, 格式化剧集资源名称
+            if indexer.public:
+                torrent_name, description = MediaUtils.format_tv_file_name(torrent_name, description)
+                log.info(f"【{self.client_name}】资源名称预处理结果: {torrent_name} {description}")
+            
             item_meta = MetaInfo(title=torrent_name, subtitle=f"{labels} {description}".strip(), mtype=mtype)
             if not item_meta.get_name():
                 log.info(f"【{self.client_name}】{torrent_name} 无法识别到名称")

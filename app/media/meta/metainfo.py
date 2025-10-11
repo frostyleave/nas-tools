@@ -4,12 +4,14 @@ import PTN
 import anitopy
 
 import log
+
 from app.conf import ModuleConf
 from app.helper import WordsHelper
 from app.media.meta.metaanime import MetaAnime
 from app.media.meta.metavideo import MetaVideo
 from app.utils import StringUtils, ReleaseGroupsMatcher, MediaUtils
 from app.utils.types import MediaType
+
 from config import RMT_MEDIAEXT
 
 NAME_NOSTRING_RE = r"高清影视之家发布|连载|日剧|美剧|电视剧|动画片|动漫|欧美|西德|日韩|超高清|高清|蓝光|翡翠台|梦幻天堂·龙网|★?\d?\+?\d*月?新?番★?|[日美国][漫剧]" \
@@ -32,9 +34,10 @@ def MetaInfo(title, subtitle=None, mtype=None):
     rev_title = re.sub(r'%s' % NAME_NOSTRING_RE, "", title, flags=re.IGNORECASE)
 
     # 应用自定义识别词，获取识别词处理后名称
-    rev_title, msg, used_info = WordsHelper().process(rev_title)
+    wordsHelper = WordsHelper()
+    rev_title, used_info = wordsHelper.process(rev_title)
     if subtitle:
-        subtitle, _, _ = WordsHelper().process(subtitle)
+        subtitle, _ = wordsHelper.process(subtitle)
     else:
         subtitle = ''
 
@@ -44,11 +47,6 @@ def MetaInfo(title, subtitle=None, mtype=None):
         rev_title, subtitle = MediaUtils.clean_episode_range_from_file_name(rev_title, subtitle)
     else:
         fileflag = False
-        rev_title, subtitle = MediaUtils.format_tv_file_name(rev_title, subtitle)
-
-    if msg:
-        for msg_item in msg:
-            log.warn("【Meta】%s" % msg_item)
 
     anime_flag = is_anime(rev_title)
 
@@ -80,9 +78,6 @@ def MetaInfo(title, subtitle=None, mtype=None):
         elif meta_info.begin_season and meta_info.begin_season > 1 and meta_info.begin_episode > 1 and ('总第' in org_title or '总第' in subtitle):
             # 总第集数混淆
             meta_info.begin_season = 1
-
-    # 信息修正
-    # info_fix(meta_info, rev_title)
 
     # 设置原始名称
     meta_info.org_string = org_title

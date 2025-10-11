@@ -1,4 +1,4 @@
-FROM python:3.11-slim-bookworm AS base
+FROM python:3.12-slim-bookworm AS base
 
 # 设置环境变量避免 tzdata 等交互
 ENV DEBIAN_FRONTEND=noninteractive

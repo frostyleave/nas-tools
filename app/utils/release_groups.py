@@ -1,4 +1,5 @@
 import regex as re
+
 from app.utils.commons import singleton
 
 
@@ -70,7 +71,7 @@ class ReleaseGroupsMatcher(object):
         "ultrahd": [],
         "others": ['B(?:MDru|eyondHD|TN)', 'C(?:fandora|trlhd|MRG)', 'DON', 'EVO', 'FLUX', 'HONE(?:|yG)',
                    'N(?:oGroup|T(?:b|G))', 'PandaMoon', 'SMURF', 'T(?:EPES|aengoo|rollHD )'],
-        "anime": ['ANi', 'HYSUB', 'KTXP', 'LoliHouse', 'MCE', 'Nekomoe kissaten', '(\d|\w|[\u4e00-\u9fa5])+-Raws',
+        "anime": ['ANi', 'HYSUB', 'KTXP', 'LoliHouse', 'MCE', 'Nekomoe kissaten', r'(\d|\w|[\u4e00-\u9fa5])+-Raws',
                   '织梦字幕组', '豌豆字幕组&风之圣殿字幕组', '豌豆&风之圣殿字幕组', '风之圣殿字幕组', '豌豆字幕组']
     }
 

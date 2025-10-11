@@ -3,30 +3,30 @@ import PTN
 import re
 
 from app.utils.string_utils import StringUtils
+
 import log
 
 
 class MediaUtils:
-
+    
     @staticmethod
     def format_tv_file_name(title, subtitle):
         """
         格式化剧集文件名
         """
-        # 所有【】换成[]
-        title = title.replace("【", "[").replace("】", "]").strip()
-        # 季、期 统一：改为英文，方便三方插件识别
-        clean_title = MediaUtils.name_ch_to_number(title, r"([第|全|共][^第|全|共]+[季|期|卷])", 'S')
-        # 集数 统一：改为英文，方便三方插件识别
-        clean_title = MediaUtils.name_ch_to_number(clean_title, r"([第|全|共][^第|全|共]+[集|话|話])", 'E')
-        clean_title = MediaUtils.name_ch_to_number(clean_title, r"(\d+)(集|话|話)全", 'E')
-        clean_title = MediaUtils.name_ch_to_number(clean_title, r"(?<!第)(?<!全)(?<!共)(?<!\d)\b\d+[集话話]", 'E')
+        # 1. 基础清理
+        clean_title = title.replace("【", "[").replace("】", "]").strip()
 
-        # 英文集数范围格式化
-        clean_title = re.sub(r'(E)(\d{2,3})-(\d{2,3})', r'\1\2-E\3', clean_title)
+        # 2. 一次性调用完成所有季、集的格式化
+        clean_title = MediaUtils._format_media_numbers(clean_title)
 
-        return MediaUtils.adjust_tv_se_position(clean_title, subtitle)
-    
+        # 3. 最终清理
+        clean_title = re.sub(r'\|\s+\|', '|', clean_title)
+        clean_title = re.sub(r'\s{2,}', ' ', clean_title).strip()
+
+        return MediaUtils._adjust_tv_se_position(clean_title, subtitle)
+
+
     @staticmethod
     def resolve_douban_season_tag(title: str):
         """
@@ -57,82 +57,121 @@ class MediaUtils:
         """
         episode_pattern = r"([全|共][^全|共]+[集|话|話])|(\d+)(集|话|話)全|(?<!全)(?<!共)(?<!\d)\b\d+[集话話]"
         clean_title = re.sub(episode_pattern, '', filename)
-        return MediaUtils.adjust_tv_se_position(clean_title, subtitle)        
+        return MediaUtils._adjust_tv_se_position(clean_title, subtitle)        
+
 
     @staticmethod
-    def name_ch_to_number(title, reg_pattern, format_str):
+    def _move_last_char_to_front(text: str, char: str) -> str:
         """
-        中文序号转为数字
+        辅助函数。如果 `text` 以 `char` 结尾，则将其移动到开头。
+        示例: "40集全" -> "全40集"
         """
-        offset = 0
-        new_list = set()
-        for raw in list(re.finditer(reg_pattern, title, flags=re.IGNORECASE))[::-1]:
-            info = raw.group()
-            # 截掉这部分内容
-            title = title[0:raw.regs[0][0]] + title[raw.regs[0][1]:]
-            # 偏移量
-            if offset == 0:
-                offset = raw.regs[0][0]
-            else:
-                offset -= (raw.regs[0][1] - raw.regs[0][0] + 1)
+        if text.endswith(char):
+            return char + text[:-1]
+        return text
 
-            info = MediaUtils.move_last_char_to_front(info, '全')
-            tag = info[0]
-            # 去掉头尾取中间需要转换的部分
-            if tag.isdigit() is False:
-                info = info[1:-1]
-            else:
-                info = info[0:-1]
-            # 正则取中文，转化为数字
-            numbers = list(re.finditer(r'[\d\u4e00-\u9fa5]+', info))
-            trans_num_list = []
-            position_list = []
-            for ep in numbers[::-1]:
-                try:
-                    digit = cn2an.cn2an(ep.group(), "smart")
-                    format_ep = format_str + str(int(digit)).rjust(2, '0')
-                    trans_num_list.append(format_ep)
-                    position_list.append(ep.regs)
-                except Exception as err:
-                    log.error(f"季集信息转换出错出错：{str(err)}")
-            
-            if len(numbers) == 1 and (tag =='全' or tag =='共'):
-                position = position_list[0]
-                info = format_str + '01-' + info[0: position[0][0]] + trans_num_list[0] + info[position[0][1]:]
-            else:
-                sorted_list = sorted(trans_num_list)
-                list_len = len(sorted_list)
-                for i in range(list_len):
-                    position_item = position_list[i]
-                    se_item = sorted_list[list_len - i - 1]
-                    info = info[0: position_item[0][0]] + se_item + info[position_item[0][1]:]
+    @staticmethod
+    def _parse_and_format_numbers(number_section: str, format_str: str, tag: str) -> str:
+        """
+        解析包含中文或阿拉伯数字的字符串并进行格式化。
+        此函数能正确格式化范围 (例如 E01-E40)，使得原代码中最后的 re.sub 不再需要。
+        """
+        # 查找所有数字部分 (阿拉伯数字或中文数字)
+        number_matches = re.findall(r'(\d+|[\u4e00-\u9fa5]+)', number_section)
+        
+        digits = []
+        for num_str in number_matches:
+            try:
+                digits.append(cn2an.cn2an(num_str, "smart"))
+            except (ValueError, KeyError) as e:
+                log.error(f"无法将 '{num_str}' 转换为数字: {e}")
+                continue
+        
+        if not digits:
+            return ""
 
-            new_list.add(info)
+        # --- 格式化逻辑 ---
+        # 情况1: 处理总集数 (例如, "全40集" -> "E01-E40")
+        if tag in ('全', '共') and len(digits) == 1:
+            total = digits[0]
+            if total > 1:
+                # 正确格式化为完整范围
+                return f"{format_str}01-{format_str}{total:02d}"
+            else:
+                return f"{format_str}{total:02d}"
+        
+        # 情况2: 处理单个数字 (例如, "第21集" -> "E21")
+        if len(digits) == 1:
+            return f"{format_str}{digits[0]:02d}"
+        
+        # 情况3: 处理范围或列表 (例如, "21-22" -> "E21-E22")
+        if len(digits) >= 2:
+            min_num, max_num = min(digits), max(digits)
+            if min_num == max_num:
+                return f"{format_str}{min_num:02d}"
+            # 正确格式化范围，确保前后都有前缀
+            return f"{format_str}{min_num:02d}-{format_str}{max_num:02d}"
 
-        list_len = len(new_list)
-        if list_len == 0:
+        return ""
+
+    @staticmethod
+    def _format_media_numbers(title: str) -> str:
+        """
+        在一个函数内，一次性查找并格式化标题中所有的季、集编号
+        """
+        # 这个统一的正则表达式可以一次性匹配所有需要处理的格式。
+        # 它覆盖了：第..季, 第..集, X集全, 以及像 21集 这样的独立数字。
+        # 它还允许数字之间有空格、连字符、逗号等多种分隔符
+
+        unified_reg_pattern = r'(' + '|'.join([
+            r'[第全共][^第全共]+[季期卷]',  # 季、期模式
+            r'[第全共][^第全共]+[集话話]',  # 集数模式  
+            r'\d+[集话話]全',               # 数字+集全模式
+            r'(?<!第)(?<!全)(?<!共)(?<!\d)\b\d+[集话話]'  # 单独数字+集模式
+        ]) + ')'
+
+        matches = list(re.finditer(unified_reg_pattern, title, flags=re.IGNORECASE))
+        
+        if not matches:
             return title
-        elif list_len > 1:
-            new_list = list(set(new_list))
 
-        new_info = '.{}.'.format(' '.join(new_list))
-        if offset == 0:
-            cn_char = re.search('[A-Za-z]+', title, flags=re.IGNORECASE)
-            if cn_char:
-                offset = cn_char.regs[0][0]
-        title = title[0: offset].strip() + new_info + title[offset:].strip()
-        return title.strip('.').strip()
-    
-    @staticmethod
-    def move_last_char_to_front(s: str, target: str) -> str:
-        # 如果字符串以目标字符结尾
-        if s[-len(target):] == target:
-            # 将末尾的目标字符移到最前面
-            return target + s[:-len(target)]
-        return s
+        try:
+            # 从后向前遍历，这样在替换字符串时不会影响前面未处理部分的索引位置
+            for match in reversed(matches):
+                original_match_str = match.group(0).strip()
+
+                # 1. 根据后缀（季/集）判断是季(S)还是集(E)
+                format_str = 'S' if re.search(r'[季期卷]', original_match_str) else 'E'
+
+                # 2. 预处理匹配到的字符串以便解析 (例如, "40集全" -> "全40集")
+                processed_match = MediaUtils._move_last_char_to_front(original_match_str, '全')
+
+                # 3. 识别前缀标签 ('第', '全', '共')
+                tag = ''
+                if processed_match.startswith(('第', '全', '共')):
+                    tag = processed_match[0]
+
+                # 4. 用一个通用正则提取出核心的数字部分 (位于前缀和后缀之间)
+                number_part_match = re.search(r"[第全共]?(.*?)[季期卷集话話]", processed_match, re.IGNORECASE)
+                if not number_part_match:
+                    continue
+                number_section = number_part_match.group(1).strip()
+                
+                # 5. 解析数字并创建新的格式化字符串
+                new_part = MediaUtils._parse_and_format_numbers(number_section, format_str, tag)
+                
+                # 6. 在标题中，用新生成的字符串替换原始匹配项
+                if new_part:
+                    start, end = match.span()
+                    title = title[:start] + new_part + title[end:]
+                    
+        except Exception as e:
+            log.exception("格式化标题中的季集编号出错: ", e)
+                
+        return title
 
     @staticmethod
-    def adjust_tv_se_position(filename:str, subtitle:str):
+    def _adjust_tv_se_position(filename:str, subtitle:str):
         """
         调整剧集文件的季、集信息所在位置
         """
@@ -143,94 +182,96 @@ class MediaUtils:
         if not subtitle:
             subtitle = ''
 
-        season_rindex = -1
-        episode_rindex = -1
-        cleaned_filename = filename
-        # 提取集信息
-        episode_match = list(re.finditer(episode_pattern, filename, flags=re.IGNORECASE))
-        if episode_match:
-            # 清除集信息
-            cleaned_filename = filename[:episode_match[0].start()] + filename[episode_match[-1].end():]
-            # cleaned_filename = re.sub(episode_pattern, '', filename).strip('.')
-            # last_one = episode_match[-1].group()
-            episode_rindex = episode_match[0].start()
+        try:
+            season_rindex = -1
+            episode_rindex = -1
+            cleaned_filename = filename
+            # 提取集信息
+            episode_match = list(re.finditer(episode_pattern, filename, flags=re.IGNORECASE))
+            if episode_match:
+                # 清除集信息
+                cleaned_filename = filename[:episode_match[0].start()] + filename[episode_match[-1].end():]
+                episode_rindex = episode_match[0].start()
 
-        season_match = list(re.finditer(season_pattern, cleaned_filename, flags=re.IGNORECASE))        
-        if len(season_match) == 1:
-            season_name = season_match[0].group()
-            cleaned_filename = MediaUtils.insert_season_to_sw(season_name, cleaned_filename, episode_rindex)
-            season_rindex = cleaned_filename.find(season_name) + len(season_name) + 1
-        elif len(season_match) > 1:
-            # 去重后检查真是季数
-            real_season = sorted(list(set(list(map(lambda x: x.group().upper().strip('S'), season_match)))))
-            if len(real_season) == 1:
-                # 移除第一个
-                cleaned_filename = cleaned_filename.replace(season_match[0].group(), "", 1)
-                season_name = season_match[1].group()
+            season_match = list(re.finditer(season_pattern, cleaned_filename, flags=re.IGNORECASE))        
+            if len(season_match) == 1:
+                season_name = season_match[0].group()
+                cleaned_filename = MediaUtils._insert_season_to_sw(season_name, cleaned_filename, episode_rindex)
                 season_rindex = cleaned_filename.find(season_name) + len(season_name) + 1
-            else:
-                first_season = season_match[0].group()
-                # 仅在开头时做特殊处理
-                if cleaned_filename.startswith(first_season):
-                    # 连续剧集范围：包含符号
-                    multi_season = re.findall(r'S\d{1,2}[-.]\d{1,2}', cleaned_filename, re.IGNORECASE)
-                    if multi_season:
-                        season_name = multi_season[0]
-                        cleaned_filename = MediaUtils.insert_season_to_sw(season_name, cleaned_filename, episode_rindex)
-                        season_rindex = cleaned_filename.find(season_name) + len(season_name) + 1
-                    else:
-                        # 连续剧集范围：不包含符号
-                        multi_season = re.findall(r'S\d{1,2}\d{1,2}', cleaned_filename, re.IGNORECASE)
+            elif len(season_match) > 1:
+                # 去重后检查真是季数
+                real_season = sorted(list(set(list(map(lambda x: x.group().upper().strip('S'), season_match)))))
+                if len(real_season) == 1:
+                    # 移除第一个
+                    cleaned_filename = cleaned_filename.replace(season_match[0].group(), "", 1)
+                    season_name = season_match[1].group()
+                    season_rindex = cleaned_filename.find(season_name) + len(season_name) + 1
+                else:
+                    first_season = season_match[0].group()
+                    # 仅在开头时做特殊处理
+                    if cleaned_filename.startswith(first_season):
+                        # 连续剧集范围：包含符号
+                        multi_season = re.findall(r'S\d{1,2}[-.]\d{1,2}', cleaned_filename, re.IGNORECASE)
                         if multi_season:
                             season_name = multi_season[0]
-                            cleaned_filename = MediaUtils.insert_season_to_sw(season_name, cleaned_filename, episode_rindex)
+                            cleaned_filename = MediaUtils._insert_season_to_sw(season_name, cleaned_filename, episode_rindex)
                             season_rindex = cleaned_filename.find(season_name) + len(season_name) + 1
                         else:
-                            # 主标题中移除所有季信息，把季信息移动到副标题
-                            last_season_reg = season_match[-1]
-                            last_season_name = last_season_reg.group()
-                            # 清空季信息
-                            cleaned_filename = re.sub(season_pattern, '', cleaned_filename)
-                            # 有集信息
-                            if episode_rindex > 0:
-                                # 检查集数下标是否在季之前
-                                behind_seasons = list(filter(lambda x: x.regs[0][0] > episode_rindex, season_match))
-                                if len(behind_seasons) == 0:
-                                    # 季、集 混着的情况: 插入最后一个季信息所在位置
-                                    episode_rindex = (season_match[-1]).regs[0][0] - sum(len(s.group()) for s in season_match) + len(last_season_name)
-                                season_name = ' {}-{} '.format(first_season, last_season_name)     
-                                cleaned_filename = StringUtils.insert_char_at_index(cleaned_filename, season_name, episode_rindex)
+                            # 连续剧集范围：不包含符号
+                            multi_season = re.findall(r'S\d{1,2}\d{1,2}', cleaned_filename, re.IGNORECASE)
+                            if multi_season:
+                                season_name = multi_season[0]
+                                cleaned_filename = MediaUtils._insert_season_to_sw(season_name, cleaned_filename, episode_rindex)
                                 season_rindex = cleaned_filename.find(season_name) + len(season_name) + 1
                             else:
-                                season_name = ' 第{}-{}季'.format(first_season, last_season_name).replace('S', '').replace('s', '')
-                                subtitle += season_name
+                                # 主标题中移除所有季信息，把季信息移动到副标题
+                                last_season_reg = season_match[-1]
+                                last_season_name = last_season_reg.group()
+                                # 清空季信息
+                                cleaned_filename = re.sub(season_pattern, '', cleaned_filename)
+                                # 有集信息
+                                if episode_rindex > 0:
+                                    # 检查集数下标是否在季之前
+                                    behind_seasons = list(filter(lambda x: x.regs[0][0] > episode_rindex, season_match))
+                                    if len(behind_seasons) == 0:
+                                        # 季、集 混着的情况: 插入最后一个季信息所在位置
+                                        episode_rindex = (season_match[-1]).regs[0][0] - sum(len(s.group()) for s in season_match) + len(last_season_name)
+                                    season_name = ' {}-{} '.format(first_season, last_season_name)     
+                                    cleaned_filename = StringUtils.insert_char_at_index(cleaned_filename, season_name, episode_rindex)
+                                    season_rindex = cleaned_filename.find(season_name) + len(season_name) + 1
+                                else:
+                                    season_name = ' 第{}-{}季'.format(first_season, last_season_name).replace('S', '').replace('s', '')
+                                    subtitle += season_name
 
-        # 集
-        if episode_match:
-            # 去重后排序
-            real_ep = sorted(list(set(list(map(lambda x: int(x.group().upper().strip('E')), episode_match)))))
-            if len(real_ep) == 1:
-                ep_name = ' E{} '.format(real_ep[0])
-            else:
-                real_ep = list(filter(lambda x: x > 0, real_ep))
-                if len(real_ep) == 0:
-                    ep_name = ' E00 '
-                elif len(real_ep) == 1:
-                    ep_name = ' E{} '.format(str(real_ep[0]).rjust(2, '0'))
+            # 集
+            if episode_match:
+                # 去重后排序
+                real_ep = sorted(list(set(list(map(lambda x: int(x.group().upper().strip('E')), episode_match)))))
+                if len(real_ep) == 1:
+                    ep_name = ' E{} '.format(real_ep[0])
                 else:
-                    ep_name = ' E{}-{} '.format(str(real_ep[0]).rjust(2, '0'), str(real_ep[-1]).rjust(2, '0'))
+                    real_ep = list(filter(lambda x: x > 0, real_ep))
+                    if len(real_ep) == 0:
+                        ep_name = ' E00 '
+                    elif len(real_ep) == 1:
+                        ep_name = ' E{} '.format(str(real_ep[0]).rjust(2, '0'))
+                    else:
+                        ep_name = ' E{}-{} '.format(str(real_ep[0]).rjust(2, '0'), str(real_ep[-1]).rjust(2, '0'))
 
-            if season_rindex > 0:
-                cleaned_filename = StringUtils.insert_char_at_index(cleaned_filename, ep_name, season_rindex)
-            elif episode_rindex > 0:
-                cleaned_filename = StringUtils.insert_char_at_index(cleaned_filename, ep_name, episode_rindex)
-            else:
-                subtitle += ' 第{}集'.format(ep_name).replace('E', '')
-                
+                if season_rindex > 0:
+                    cleaned_filename = StringUtils.insert_char_at_index(cleaned_filename, ep_name, season_rindex)
+                elif episode_rindex > 0:
+                    cleaned_filename = StringUtils.insert_char_at_index(cleaned_filename, ep_name, episode_rindex)
+                else:
+                    subtitle += ' 第{}集'.format(ep_name).replace('E', '')
+
+        except Exception as e:
+            log.exception("调整剧集文件的季集信息所在位置出错: ", e)
+
         return re.sub(r"\s+", " ", cleaned_filename).strip(), subtitle.strip()
 
     @staticmethod
-    def insert_season_to_sw(first_season:str, target_str:str, episode_rindex:int):
+    def _insert_season_to_sw(first_season:str, target_str:str, episode_rindex:int):
         """
         把季信息插入合适的位置
         """

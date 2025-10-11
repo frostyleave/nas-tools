@@ -5,6 +5,8 @@ from app.helper.db_helper import DbHelper
 from app.utils.commons import singleton
 from app.utils.exception_utils import ExceptionUtils
 
+import log
+
 
 @singleton
 class WordsHelper:
@@ -20,8 +22,6 @@ class WordsHelper:
         self.words_info = self.dbhelper.get_custom_words(enabled=1)
 
     def process(self, title):
-        # 错误信息
-        msg = []
         # 应用屏蔽
         used_ignored_words = []
         # 应用替换
@@ -40,7 +40,7 @@ class WordsHelper:
                     if ignore_flag:
                         used_ignored_words.append(ignored_word)
                     elif ignore_msg:
-                        msg.append(f"自定义屏蔽词 {ignored_word} 设置有误：{ignore_msg}")
+                        log.warn(f"【Meta】自定义屏蔽词 {ignored_word} 设置有误：{ignore_msg}")
                 case 2:
                     # 替换
                     replaced, replace = word_info.REPLACED, word_info.REPLACE
@@ -50,7 +50,7 @@ class WordsHelper:
                     if replace_flag:
                         used_replaced_words.append(replaced_word)
                     elif replace_msg:
-                        msg.append(f"自定义替换词 {replaced_word} 格式有误：{replace_msg}")
+                        log.warn(f"【Meta】自定义替换词 {replaced_word} 格式有误：{replace_msg}")
 
                 case 3:
                     # 替换+集偏移
@@ -73,10 +73,9 @@ class WordsHelper:
                         elif offset_msg:
                             # 还原title
                             title = title_cache
-                            msg.append(
-                                f"自定义替换+集偏移词 {replaced_offset_word} 集偏移部分格式有误：{offset_msg}")
+                            log.warn(f"【Meta】自定义替换+集偏移词 {replaced_offset_word} 集偏移部分格式有误：{offset_msg}")
                     elif replace_msg:
-                        msg.append(f"自定义替换+集偏移词 {replaced_offset_word} 替换部分格式有误：{replace_msg}")
+                        log.warn(f"【Meta】自定义替换+集偏移词 {replaced_offset_word} 替换部分格式有误：{replace_msg}")
                 case 4:
                     # 集数偏移
                     front, back, offset = word_info.FRONT, word_info.BACK, word_info.OFFSET
@@ -85,10 +84,10 @@ class WordsHelper:
                     if offset_flag:
                         used_offset_words.append(offset_word)
                     elif offset_msg:
-                        msg.append(f"自定义集偏移词 {offset_word} 格式有误：{offset_msg}")
+                        log.warn(f"【Meta】自定义集偏移词 {offset_word} 格式有误：{offset_msg}")
                 case _:
                     pass
-        return title, msg, {"ignored": used_ignored_words, "replaced": used_replaced_words, "offset": used_offset_words}
+        return title, {"ignored": used_ignored_words, "replaced": used_replaced_words, "offset": used_offset_words}
 
     @staticmethod
     def replace_regex(title, replaced, replace) -> (str, str, bool):

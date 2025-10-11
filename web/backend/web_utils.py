@@ -1,8 +1,9 @@
+import cn2an
+import re
+
 from functools import lru_cache
 from urllib.parse import quote
 
-import cn2an
-import re
 import log
 
 from app.media import Media, Bangumi, DouBan
@@ -10,10 +11,11 @@ from app.media.meta import MetaInfo
 from app.media.meta._base import MetaBase
 from app.utils import StringUtils, ExceptionUtils, SystemUtils, RequestUtils, IpUtils, MediaUtils
 from app.utils.types import MediaType
+
 from config import Config
 from version import APP_VERSION
 
-DB_SEASON_SUFFIX = '[第]+[0-9一二三四五六七八九十\-\s]+[季期卷]'
+DB_SEASON_SUFFIX = r'[第]+[0-9一二三四五六七八九十\-\s]+[季期卷]'
 
 
 class WebUtils:

@@ -2,14 +2,14 @@
 import base64
 import hashlib
 import hmac
+import json
+import re
+import requests
+
+from cachetools import TTLCache, cached
 from datetime import datetime
 from random import choice
 from urllib import parse
-import json
-import re
-
-from cachetools import TTLCache, cached
-import requests
 
 from app.utils import RequestUtils
 from app.utils.commons import singleton
@@ -365,14 +365,14 @@ class DoubanApi(object):
             "is_follow": false,
             "screenshot_title": "分享海报",
             "playable_count": 1226,
-            "screenshot_url": "douban:\/\/partial.douban.com\/screenshot\/doulist\/13712178\/_content",
+            "screenshot_url": "douban://partial.douban.com/screenshot/doulist/13712178/_content",
             "create_time": "2014-10-05 10:41:22",
             "owner": {
                 "kind": "user",
                 "name": "依然饭特稀",
-                "url": "https:\/\/www.douban.com\/people\/56698183\/",
-                "uri": "douban:\/\/douban.com\/user\/56698183",
-                "avatar": "https://img2.doubanio.com\/icon\/up56698183-12.jpg",
+                "url": "https://www.douban.com/people/56698183/",
+                "uri": "douban://douban.com/user/56698183",
+                "avatar": "https://img2.doubanio.com/icon/up56698183-12.jpg",
                 "is_club": false,
                 "type": "user",
                 "id": "56698183",
@@ -392,17 +392,17 @@ class DoubanApi(object):
             "list_type": "ugc_doulist",
             "tags": [],
             "syncing_note": null,
-            "cover_url": "https://img9.doubanio.com\/view\/elanor_image\/raw\/public\/91314905.jpg",
+            "cover_url": "https://img9.doubanio.com/view/elanor_image/raw/public/91314905.jpg",
             "header_bg_image": "",
             "doulist_type": "",
             "done_count": 0,
-            "desc": "谢谢大家的关注和点赞，不过我更希望大家能在留言板上补充遗漏。\r\n看腻了豆瓣的评分排序，不如试试评价人数排序。评价人数并不代表作品的优劣，但是它起码说明了作品的存在感。这不一定是选电影最好的方法，却一定是选电影风险最小的方法。\r\n欢迎关注我关于读书的两个豆列： \r\n豆瓣评价人数超过一万的外文书籍 \r\nhttp:\/\/www.douban.com\/doulist\/37912871\/ \r\n豆瓣评价人数超过一万的中文书籍\r\nhttp:\/\/www.douban.com\/doulist\/36708212\/",
+            "desc": "谢谢大家的关注和点赞，不过我更希望大家能在留言板上补充遗漏。\r\n看腻了豆瓣的评分排序，不如试试评价人数排序。评价人数并不代表作品的优劣，但是它起码说明了作品的存在感。这不一定是选电影最好的方法，却一定是选电影风险最小的方法。\r\n欢迎关注我关于读书的两个豆列： \r\n豆瓣评价人数超过一万的外文书籍 \r\nhttp://www.douban.com/doulist/37912871/ \r\n豆瓣评价人数超过一万的中文书籍\r\nhttp://www.douban.com/doulist/36708212/",
             "items_count": 1453,
             "wechat_timeline_share": "url",
-            "url": "https:\/\/www.douban.com\/doulist\/13712178\/",
+            "url": "https://www.douban.com/doulist/13712178/",
             "is_sys_private": false,
-            "uri": "douban:\/\/douban.com\/doulist\/13712178",
-            "sharing_url": "https:\/\/www.douban.com\/doulist\/13712178\/"
+            "uri": "douban://douban.com/doulist/13712178",
+            "sharing_url": "https://www.douban.com/doulist/13712178/"
         }
         """
         return self.__invoke(self._urls["doulist"] + subject_id)
@@ -427,12 +427,12 @@ class DoubanApi(object):
                     "star_count": 5.0,
                     "value": 9.7
                 },
-                "subtitle": "1994 \/ 美国 \/ 剧情 犯罪 \/ 弗兰克·德拉邦特 \/ 蒂姆·罗宾斯 摩根·弗里曼",
+                "subtitle": "1994 / 美国 / 剧情 犯罪 / 弗兰克·德拉邦特 / 蒂姆·罗宾斯 摩根·弗里曼",
                 "title": "肖申克的救赎",
-                "url": "https:\/\/movie.douban.com\/subject\/1292052\/",
+                "url": "https://movie.douban.com/subject/1292052/",
                 "target_id": "1292052",
-                "uri": "douban:\/\/douban.com\/movie\/1292052",
-                "cover_url": "https:\/\/qnmob3.doubanio.com\/view\/photo\/m_ratio_poster\/public\/p480747492.jpg?imageView2\/2\/q\/80\/w\/300\/h\/300\/format\/jpg",
+                "uri": "douban://douban.com/movie/1292052",
+                "cover_url": "https://qnmob3.doubanio.com/view/photo/m_ratio_poster/public/p480747492.jpg?imageView2/2/q/80/w/300/h/300/format/jpg",
                 "create_time": "2014-10-05 10:41:51",
                 "type": "movie",
                 "id": "19877287"
@@ -444,12 +444,12 @@ class DoubanApi(object):
                     "star_count": 4.5,
                     "value": 9.4
                 },
-                "subtitle": "1994 \/ 法国 美国 \/ 剧情 动作 犯罪 \/ 吕克·贝松 \/ 让·雷诺 娜塔莉·波特曼",
+                "subtitle": "1994 / 法国 美国 / 剧情 动作 犯罪 / 吕克·贝松 / 让·雷诺 娜塔莉·波特曼",
                 "title": "这个杀手不太冷",
-                "url": "https:\/\/movie.douban.com\/subject\/1295644\/",
+                "url": "https://movie.douban.com/subject/1295644/",
                 "target_id": "1295644",
-                "uri": "douban:\/\/douban.com\/movie\/1295644",
-                "cover_url": "https:\/\/qnmob3.doubanio.com\/view\/photo\/m_ratio_poster\/public\/p511118051.jpg?imageView2\/2\/q\/80\/w\/300\/h\/300\/format\/jpg",
+                "uri": "douban://douban.com/movie/1295644",
+                "cover_url": "https://qnmob3.doubanio.com/view/photo/m_ratio_poster/public/p511118051.jpg?imageView2/2/q/80/w/300/h/300/format/jpg",
                 "create_time": "2014-10-05 10:42:34",
                 "type": "movie",
                 "id": "19877286"
@@ -461,12 +461,12 @@ class DoubanApi(object):
                     "star_count": 4.5,
                     "value": 9.4
                 },
-                "subtitle": "2001 \/ 日本 \/ 剧情 动画 奇幻 \/ 宫崎骏 \/ 柊瑠美 入野自由",
+                "subtitle": "2001 / 日本 / 剧情 动画 奇幻 / 宫崎骏 / 柊瑠美 入野自由",
                 "title": "千与千寻",
-                "url": "https:\/\/movie.douban.com\/subject\/1291561\/",
+                "url": "https://movie.douban.com/subject/1291561/",
                 "target_id": "1291561",
-                "uri": "douban:\/\/douban.com\/movie\/1291561",
-                "cover_url": "https:\/\/qnmob3.doubanio.com\/view\/photo\/m_ratio_poster\/public\/p2557573348.jpg?imageView2\/2\/q\/80\/w\/300\/h\/300\/format\/jpg",
+                "uri": "douban://douban.com/movie/1291561",
+                "cover_url": "https://qnmob3.doubanio.com/view/photo/m_ratio_poster/public/p2557573348.jpg?imageView2/2/q/80/w/300/h/300/format/jpg",
                 "create_time": "2014-10-05 10:47:12",
                 "type": "movie",
                 "id": "19877280"

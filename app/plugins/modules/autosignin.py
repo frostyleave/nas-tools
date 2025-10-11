@@ -63,6 +63,7 @@ class AutoSignIn(_IPluginModule):
     _queue_cnt = None
     _retry_keyword = None
     _special_sites = None
+    _render_sites = None
     _onlyonce = False
     _notify = False
     _clean = False
@@ -183,6 +184,20 @@ class AutoSignIn(_IPluginModule):
                     ]
                 ]
             },
+            {
+                'type': 'details',
+                'summary': '仿真签到站点',
+                'tooltip': '选中的站点使用仿真签到, 不受站点配置中的仿真选项影响',
+                'content': [
+                    [
+                        {
+                            'id': 'render_sites',
+                            'type': 'form-selectgroup',
+                            'content': sites
+                        },
+                    ]
+                ]
+            },
         ]
 
     def init_config(self, config=None):
@@ -195,6 +210,7 @@ class AutoSignIn(_IPluginModule):
             self._retry_keyword = config.get("retry_keyword")
             self._config_sites = config.get("sign_sites")
             self._special_sites = config.get("special_sites") or []
+            self._render_sites = config.get("render_sites") or []
             self._notify = config.get("notify")
             self._queue_cnt = config.get("queue_cnt")
             self._onlyonce = config.get("onlyonce")
@@ -220,9 +236,8 @@ class AutoSignIn(_IPluginModule):
             # 运行一次
             if self._onlyonce:
                 self.info("签到服务启动，立即运行一次")
-                self._scheduler.add_job(self.sign_in, 'date',
-                                        run_date=datetime.now(tz=pytz.timezone(Config().get_timezone())) + timedelta(
-                                            seconds=3))
+                run_time = datetime.now(tz=pytz.timezone(Config().get_timezone())) + timedelta(seconds=5)
+                self._scheduler.add_job(self.sign_in, 'date', run_date=run_time)
 
             if self._onlyonce or self._clean:
                 # 关闭一次性开关|清理缓存开关
@@ -234,6 +249,7 @@ class AutoSignIn(_IPluginModule):
                     "retry_keyword": self._retry_keyword,
                     "sign_sites": self._config_sites,
                     "special_sites": self._special_sites,
+                    "render_sites": self._render_sites,
                     "notify": self._notify,
                     "onlyonce": self._onlyonce,
                     "queue_cnt": self._queue_cnt,
@@ -420,7 +436,7 @@ class AutoSignIn(_IPluginModule):
             home_url = SiteUtils.get_base_url(site_url)
             ua = site_info.get("ua")
 
-            if site_info.get("chrome"):
+            if site_info.get("chrome") or (self._render_sites and site_name in self._render_sites):
 
                 self.info(f"[{site_name}]开始仿真签到..")
 

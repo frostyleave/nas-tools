@@ -1,4 +1,5 @@
 import bisect
+import cn2an
 import dateparser
 import hashlib
 import random
@@ -7,8 +8,6 @@ import re
 from datetime import datetime, timedelta
 from dateutil.parser import parse as parse_date, isoparse
 from typing import Optional
-
-import cn2an
 
 import log
 
@@ -702,10 +701,28 @@ class StringUtils:
 
     @staticmethod
     def remve_redundant_symbol(title):
-        # []换成.
-        rev_title = title.replace('[', '.').replace(']', '.').replace('「', '.').replace('」', '.').strip('.-/\&#_')
-        # 把多个连续'.'合并为一个
-        return re.sub("\.+", ".", rev_title).strip('.')
+        # 需要替换的字符
+        trans_table = str.maketrans({'[': '.', ']': '.', '「': '.', '』': '.'})
+        rev_title = title.translate(trans_table)
+        
+        # 去除首尾指定字符
+        rev_title = rev_title.strip(r'.-/\\&#_')
+        
+        # 合并连续的点
+        return re.sub(r"\.+", ".", rev_title).strip('.')\
+    
+    @staticmethod
+    def clean_title(title, symbols_to_dot=None, chars_to_strip=None):
+        """通用的标题清理函数"""
+        if symbols_to_dot is None:
+            symbols_to_dot = {'[', ']', '「', '』'}
+        if chars_to_strip is None:
+            chars_to_strip = r'.-/\\&#_'
+        
+        trans_table = str.maketrans({char: '.' for char in symbols_to_dot})
+        cleaned = title.translate(trans_table).strip(chars_to_strip)
+        return re.sub(r"\.+", ".", cleaned).strip('.')
+    
     
     @staticmethod
     def is_string_ending_with_number(s):
