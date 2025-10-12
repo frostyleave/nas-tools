@@ -436,7 +436,8 @@ class AutoSignIn(_IPluginModule):
             home_url = SiteUtils.get_base_url(site_url)
             ua = site_info.get("ua")
 
-            if site_info.get("chrome") or (self._render_sites and site_name in self._render_sites):
+            site_id = str(site_info.get('id'))
+            if site_info.get("chrome") or (self._render_sites and site_id in self._render_sites):
 
                 self.info(f"[{site_name}]开始仿真签到..")
 
