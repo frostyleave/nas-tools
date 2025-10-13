@@ -163,7 +163,7 @@ export class LayoutNavbar extends CustomElement {
         <div class="offcanvas offcanvas-start d-flex lit-navbar-canvas shadow" tabindex="-1" id="litLayoutNavbar">
           <div class="d-flex flex-row flex-grow-1 lit-navbar-hide-scrollbar">
             <div class="d-flex flex-column flex-grow-1">
-              <h1 style="margin: 1.5rem">
+              <h1 style="margin: 1.5rem; text-align: center;">
                 <img src="../static/favicon.ico" style="vertical-align: bottom;border: 1px solid var(--tblr-navbar-toggler-border-color);border-radius: 5px;">
                 <label style="font-size: xx-large;color: var(--tblr-body-color);">nastool</label>
               </h1>

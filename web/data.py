@@ -153,17 +153,12 @@ async def basic(request: Request, current_user: User = Depends(get_current_user)
     if proxy:
         proxy = proxy.replace("http://", "")
         
-    RmtModeDict = WebAction(current_user).get_rmt_modes()
     CustomScriptCfg = SystemConfig().get(SystemConfigKey.CustomScript)
-    ScraperConf = SystemConfig().get(SystemConfigKey.UserScraperConf) or {}
     return response(data=
         {
             "Config": Config().get_config(),
             "Proxy": proxy,
-            "RmtModeDict": RmtModeDict,
             "CustomScriptCfg": CustomScriptCfg,
-            "ScraperNfo": ScraperConf.get("scraper_nfo") or {},
-            "ScraperPic": ScraperConf.get("scraper_pic") or {},
             "MediaServerConf": ModuleConf.MEDIASERVER_CONF,
             "TmdbDomains": TMDB_API_DOMAINS,
         }
@@ -394,9 +389,16 @@ async def sitelist_page(request: Request, current_user = Depends(get_current_use
 # 媒体库页面
 @data_router.post("/library")
 async def library(request: Request, current_user = Depends(get_current_user)):
+    RmtModeDict = WebAction(current_user).get_rmt_modes()
+    ScraperConf = SystemConfig().get(SystemConfigKey.UserScraperConf) or {}
+    SyncPaths = Sync().get_sync_path_conf()
     return response(data=
         {
-            "Config": Config().get_config()
+            "Config": Config().get_config(),
+            "RmtModeDict": RmtModeDict,
+            "ScraperNfo": ScraperConf.get("scraper_nfo") or {},
+            "ScraperPic": ScraperConf.get("scraper_pic") or {},
+            "SyncPaths": SyncPaths
         })
 
 
@@ -460,7 +462,6 @@ async def directorysync(request: Request, current_user = Depends(get_current_use
     return response(data=
         {
             "SyncPaths": SyncPaths,
-            "SyncCount": len(SyncPaths),
             "RmtModeDict": RmtModeDict,
         })
 

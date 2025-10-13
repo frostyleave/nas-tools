@@ -243,6 +243,13 @@ function renderOther() {
     init_filetree_element();
   }
 
+  
+  if ($('#top-sub-navbar').is(':visible')) {
+    $('.container-xl .page-header .row .col h2.page-title').hide();
+  } else {
+    $('.container-xl .page-header .row .col h2.page-title').show();
+  }
+
 }
 
 // 刷新子菜单

@@ -149,9 +149,9 @@
         "html": "/static/pages/basic.html"
       },
       {
-        "name": "媒体库",
+        "name": "存储设置",
         "page": "library",
-        "icon": "<i class=\"ti ti-jellyfin fs-2 \"></i>",
+        "icon": "<i class=\"ti ti-folder-cog fs-2 \"></i>",
         "html": "/static/pages/library.html"
       },
       {
@@ -159,12 +159,6 @@
         "page": "notification",
         "icon": "<i class=\"ti ti-bell fs-2 \"></i>",
         "html": "/static/pages/notification.html"
-      },
-      {
-        "name": "目录同步",
-        "page": "directorysync",
-        "icon": "<i class=\"ti ti-refresh fs-2 \"></i>",
-        "html": "/static/pages/directorysync.html"
       },
       {
         "name": "过滤规则",
