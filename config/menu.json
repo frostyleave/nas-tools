@@ -47,7 +47,7 @@
     "name": "订阅",
     "level": 1,
     "page": "tv_rss",
-    "group": "服务",
+    "group": "任务",
     "icon": "<i class=\"ti ti-rss fs-2 \"></i>",
     "html": "/static/pages/rss.html?t=TV",
     "nav": [
@@ -78,26 +78,26 @@
     ]
   },
   {
-    "name": "服务",
-    "level": 1,
-    "page": "service",
-    "group": "服务",
-    "icon": "<i class=\"ti ti-stack-2 fs-2 \"></i>",
-    "html": "/static/pages/service.html"
-  },
-  {
     "name": "下载",
     "level": 1,
     "page": "downloading",
-    "group": "整理",
+    "group": "任务",
     "icon": "<i class=\"ti ti-download fs-2 \"></i>",
     "html": "/static/pages/downloading.html"
+  },  
+  {
+    "name": "服务",
+    "level": 1,
+    "page": "service",
+    "group": "任务",
+    "icon": "<i class=\"ti ti-stack-2 fs-2 \"></i>",
+    "html": "/static/pages/service.html"
   },
   {
     "name": "文件",
     "level": 1,
     "page": "mediafile",
-    "group": "整理",
+    "group": "资源",
     "icon": "<i class=\"ti ti-files fs-2 \"></i>",
     "html": "/static/pages/mediafile.html",    
     "nav": [
@@ -106,6 +106,12 @@
         "page": "mediafile",
         "icon": "<i class=\"ti ti-files fs-2 \"></i>",
         "html": "/static/pages/mediafile.html"
+      },
+      {
+        "name": "手动识别",
+        "page": "unidentification",
+        "icon": "<i class=\"ti ti-user-scan fs-2 \"></i>",
+        "html": "/static/pages/unidentification.html"
       },
       {
         "name": "自动删种",
@@ -118,20 +124,16 @@
         "page": "history",
         "icon": "<i class=\"ti ti-history fs-2 \"></i>",
         "html": "/static/pages/history.html"
-      },
-      {
-        "name": "手动识别",
-        "page": "unidentification",
-        "icon": "<i class=\"ti ti-user-scan fs-2 \"></i>",
-        "html": "/static/pages/unidentification.html"
-      },
-      {
-        "name": "TMDB缓存",
-        "page": "tmdbcache",
-        "icon": "<i class=\"ti ti-keyframes fs-2 \"></i>",
-        "html": "/static/pages/tmdbcache.html"
       }
     ]
+  },
+  {
+    "name": "缓存",
+    "level": 1,
+    "page": "tmdbcache",
+    "group": "资源",
+    "icon": "<i class=\"ti ti-keyframes fs-2 \"></i>",
+    "html": "/static/pages/tmdbcache.html"
   },
   {
     "name": "设置",

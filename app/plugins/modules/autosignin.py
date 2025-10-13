@@ -457,7 +457,7 @@ class AutoSignIn(_IPluginModule):
                     # 查找签到按钮
                     html = etree.HTML(html_text)
 
-                    if re.search(r'已签|签到已得', html_text, re.IGNORECASE):
+                    if re.search(r'已签|签到已得|本次签到', html_text, re.IGNORECASE):
                         self.info("%s 今日已签到" % site_name)
                         return True, f"[{site_name}]今日已签到"
                     
@@ -481,7 +481,7 @@ class AutoSignIn(_IPluginModule):
                     content = page.content()
 
                     # 判断是否已签到   [签到已得125, 补签卡: 0]
-                    if re.search(r'已签|签到已得', content, re.IGNORECASE):
+                    if re.search(r'已签|签到已得|本次签到', content, re.IGNORECASE):
                         return True, f"[{site_name}]签到成功"
                     
                     return False, f"[{site_name}]仿真签到异常: 无法获取签到结果"
