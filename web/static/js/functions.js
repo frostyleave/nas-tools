@@ -169,8 +169,11 @@ function show_logging_modal() {
   // 显示窗口
   $("#logging_stop_btn").text("暂停");
   $('#modal-logging').modal('show');
-  // 连接日志服务
-  start_logging();
+  // 当模态框完全显示后，再连接日志服务
+  $('#modal-logging').one('shown.bs.modal', function() {
+    start_logging();
+  });
+  
 }
 
 // 日志来源筛选
