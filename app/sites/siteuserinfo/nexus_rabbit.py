@@ -5,8 +5,9 @@ from lxml import etree
 
 from app.sites.siteuserinfo._base import SITE_BASE_ORDER
 from app.sites.siteuserinfo.nexus_php import NexusPhpSiteUserInfo
-from app.utils.exception_utils import ExceptionUtils
 from app.utils.types import SiteSchema
+
+import log
 
 
 class NexusRabbitSiteUserInfo(NexusPhpSiteUserInfo):
@@ -38,7 +39,7 @@ class NexusRabbitSiteUserInfo(NexusPhpSiteUserInfo):
         try:
             torrents = json.loads(html_text).get('data')
         except Exception as e:
-            ExceptionUtils.exception_traceback(e)
+            log.exception('[Site]解析做种信息出错: ', e)
             return
 
         page_seeding_size = 0

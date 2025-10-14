@@ -11,7 +11,7 @@ from app.rss import Rss
 from app.sites import SitesDataStatisticsCenter
 from app.subscribe import Subscribe
 from app.sync import Sync
-from app.utils import ExceptionUtils, SchedulerUtils
+from app.utils import SchedulerUtils
 from app.utils.commons import singleton
 from config import (
     METAINFO_SAVE_INTERVAL,
@@ -180,4 +180,4 @@ class Scheduler:
                 self.SCHEDULER.shutdown()
                 self.SCHEDULER = None
         except Exception as e:
-            ExceptionUtils.exception_traceback(e)
+            log.exception('[Sys]停止定时服务出错: ', e)

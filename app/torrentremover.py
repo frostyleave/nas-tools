@@ -8,7 +8,6 @@ from app.conf import ModuleConf
 from app.downloader import Downloader
 from app.helper import DbHelper
 from app.message import Message
-from app.utils import ExceptionUtils
 from app.utils.commons import singleton
 from config import Config
 
@@ -164,8 +163,7 @@ class TorrentRemover(object):
                 if torrents and title and text:
                     self.message.send_auto_remove_torrents_message(title=title, text=text)
             except Exception as e:
-                ExceptionUtils.exception_traceback(e)
-                log.error(f"【TorrentRemover】自动删种任务：{task.get('name')}异常：{str(e)}")
+                log.exception(f"【TorrentRemover】自动删种任务[{task.get('name')}]异常：", e)
             finally:
                 lock.release()
 

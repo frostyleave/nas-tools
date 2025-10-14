@@ -1,6 +1,6 @@
 import re
 
-from app.utils.exception_utils import ExceptionUtils
+import log
 
 
 class RssTitleUtils:
@@ -25,6 +25,6 @@ class RssTitleUtils:
                     torrent_name = title_search.group(1)
                     torrent_desc = title.replace(title_search.group(), "").strip()
                     title = "%s %s" % (torrent_name, torrent_desc)
-        except Exception as err:
-            ExceptionUtils.exception_traceback(err)
+        except Exception as e:
+            log.exception(f'[Rss]处理RSS标题[{title}]出错: ', e)
         return title

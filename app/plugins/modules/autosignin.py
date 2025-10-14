@@ -434,16 +434,15 @@ class AutoSignIn(_IPluginModule):
                 return False, err_msg
 
             home_url = SiteUtils.get_base_url(site_url)
+            checkin_url = site_url if "pttime" in home_url else urljoin(home_url, "attendance.php")
+            
             ua = site_info.get("ua")
 
             site_id = str(site_info.get('id'))
             if site_info.get("chrome") or (self._render_sites and site_id in self._render_sites):
 
                 self.info(f"[{site_name}]开始仿真签到..")
-
-                if "1ptba" in home_url:
-                    home_url = f"{home_url}/index.php"
-                
+               
                 def _click_sign(page: Page):
                     """
                     仿真签到
@@ -486,7 +485,7 @@ class AutoSignIn(_IPluginModule):
                     
                     return False, f"[{site_name}]仿真签到异常: 无法获取签到结果"
                 
-                result = PlaywrightHelper().action(url=home_url, 
+                result = PlaywrightHelper().action(url=checkin_url, 
                                                  ua=ua, 
                                                  cookies=site_cookie, 
                                                  proxy=True if site_info.get("proxy") else False,
@@ -497,8 +496,6 @@ class AutoSignIn(_IPluginModule):
                 return result
             else:
                 
-                checkin_url = site_url if "pttime" in home_url else urljoin(home_url, "attendance.php")
-
                 self.info(f"[{site_name}]开始签到: {checkin_url}")
 
                 # 代理

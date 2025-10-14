@@ -10,7 +10,7 @@ from app.indexer.client.browser import PlaywrightHelper
 from app.indexer.manager import BaseIndexer, IndexerManager
 from app.message import Message
 from app.sites.site_limiter import SiteRateLimiter
-from app.utils import RequestUtils, SiteUtils, ExceptionUtils
+from app.utils import RequestUtils, SiteUtils
 from app.utils.commons import singleton
 
 from config import Config
@@ -347,7 +347,7 @@ class SitesManager:
                 if urls:
                     return str(urls[0]).strip()
         except Exception as err:
-            ExceptionUtils.exception_traceback(err)
+            log.exception('【Sites】解析网站下载链接出错: ', err)
         return None
 
     def match_indexer_sites(self, url, site_name=None) -> Optional[BaseIndexer]:

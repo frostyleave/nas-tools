@@ -4,8 +4,10 @@ import datetime
 from cachetools import TTLCache, cached
 
 from app.media import Media
-from app.utils import RequestUtils, ExceptionUtils
+from app.utils import RequestUtils
 from config import Config
+
+import log
 
 
 def get_login_wallpaper(time_now=None):
@@ -61,7 +63,7 @@ def get_bing_wallpaper(today):
     try:
         resp = RequestUtils(timeout=5).get_res(url)
     except Exception as err:
-        ExceptionUtils.exception_traceback(err)
+        log.exception('[Sys]获取Bing每日壁纸失败: ', err)
         return ""
     if resp and resp.status_code == 200:
         try:

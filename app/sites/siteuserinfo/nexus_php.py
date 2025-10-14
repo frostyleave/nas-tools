@@ -7,7 +7,6 @@ from lxml import etree
 import log
 from app.sites.siteuserinfo._base import _ISiteUserInfo, SITE_BASE_ORDER
 from app.utils import StringUtils
-from app.utils.exception_utils import ExceptionUtils
 from app.utils.types import SiteSchema
 
 

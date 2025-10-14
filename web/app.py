@@ -15,7 +15,6 @@ from fastapi.staticfiles import StaticFiles
 
 import log
 
-from app.utils.exception_utils import ExceptionUtils
 from app.utils.system_utils import SystemUtils
 from app.utils.types import *
 
@@ -143,7 +142,7 @@ async def dirlist(request: Request, current_user: User = Depends(get_current_use
                         e, ff.replace("\\", "/"), f.replace("\\", "/")))
         r.append('</ul>')
     except Exception as e:
-        ExceptionUtils.exception_traceback(e)
+        log.exception('[App]加载路径失败: ', e)
         r.append('加载路径失败: %s' % str(e))
     r.append('</ul>')
     return Response(content=''.join(r), media_type="text/html")
@@ -183,7 +182,7 @@ async def upload(request: Request, current_user: User = Depends(get_current_user
 
         return {"code": 0, "filepath": str(file_path)}
     except Exception as e:
-        ExceptionUtils.exception_traceback(e)
+        log.exception('[App]文件上传失败: ', e)
         return {"code": 1, "msg": str(e), "filepath": ""}
 
 

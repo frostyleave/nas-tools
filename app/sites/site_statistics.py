@@ -15,7 +15,7 @@ from app.sites.siteuserinfo._base import _ISiteUserInfo
 from app.sites.site_manager import SitesManager
 from app.sites.siteuserinfo.mTorrent import MTorrentUserInfo
 from app.utils.types import Spider
-from app.utils import RequestUtils, ExceptionUtils, StringUtils
+from app.utils import RequestUtils, StringUtils
 from app.utils.commons import singleton
 
 from config import Config
@@ -62,7 +62,7 @@ class SitesDataStatisticsCenter(object):
                 if site_schema.match(html_text):
                     return site_schema
             except Exception as e:
-                ExceptionUtils.exception_traceback(e)
+                log.exception('【Sites】实例化站点解析器出错: ', e)
         return None
 
     def build(self, 
@@ -230,8 +230,7 @@ class SitesDataStatisticsCenter(object):
                 return site_user_info
 
         except Exception as e:
-            ExceptionUtils.exception_traceback(e)
-            log.error(f"【Sites】站点 {site_name} 获取流量数据失败: {str(e)}")
+            log.exception(f'【Sites】站点 {site_name} 获取流量数据失败: ', e)
             return None
 
     def __notify_unread_msg(self, site_name, site_user_info, unread_msg_notify):

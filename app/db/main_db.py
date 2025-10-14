@@ -5,8 +5,9 @@ from sqlalchemy.orm import sessionmaker, scoped_session
 from sqlalchemy.pool import QueuePool
 
 from app.db.models import Base
-from app.utils import ExceptionUtils, PathUtils
+from app.utils import PathUtils
 from config import Config
+import log
 
 lock = threading.Lock()
 _Engine = create_engine(
@@ -125,7 +126,7 @@ class DbPersist(object):
                 self.db.commit()
                 return True if ret is None else ret
             except Exception as e:
-                ExceptionUtils.exception_traceback(e)
+                log.exception('[DB]数据库持久化出错: ', e)
                 self.db.rollback()
                 return False
 

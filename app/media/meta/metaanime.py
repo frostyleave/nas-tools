@@ -1,15 +1,18 @@
-from decimal import Decimal
 import re
 
-import zhconv
+from decimal import Decimal
 
 import anitopy
+import zhconv
+
 from app.media.meta._base import MetaBase
 from app.utils.release_groups import ReleaseGroupsMatcher
 from app.media.meta.customization import CustomizationMatcher
-from app.utils import StringUtils, ExceptionUtils
+from app.utils import StringUtils
 from app.utils.types import MediaType
 from config import SPLIT_CHARS
+
+import log
 
 class MetaAnime(MetaBase):
     """
@@ -132,9 +135,10 @@ class MetaAnime(MetaBase):
                         else:
                             self.total_episodes = 1
                     except Exception as err:
-                        ExceptionUtils.exception_traceback(err)
                         self.begin_episode = None
                         self.end_episode = None
+                        log.exception('【Meta】动漫剧集范围解析出错: ', e)
+
                     self.type = MediaType.TV
                 # 类型
                 if not self.type:
@@ -175,7 +179,7 @@ class MetaAnime(MetaBase):
             if not self.type:
                 self.type = MediaType.TV
         except Exception as e:
-            ExceptionUtils.exception_traceback(e)
+            log.exception(f'【Meta】解析动漫名称[{title}]出错: ', e)
 
     def __prepare_title(self, title):
         """

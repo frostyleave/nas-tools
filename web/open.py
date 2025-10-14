@@ -16,7 +16,6 @@ from app.message import Message
 from app.plugins.event_manager import EventManager
 from app.subscribe import Subscribe
 from app.utils.dom_utils import DomUtils
-from app.utils.exception_utils import ExceptionUtils
 from app.utils.types import EventType, MediaServerType, MediaType, RssType, SearchType
 
 import log
@@ -165,8 +164,7 @@ async def sendwechat(request: Request):
         return Response(content=content, status_code=200)
 
     except Exception as err:
-        ExceptionUtils.exception_traceback(err)
-        log.error("微信消息处理发生错误: %s - %s", str(err), traceback.format_exc())
+        log.exception('微信消息处理发生错误: ', err)
         return Response(content="ok", status_code=200)
     
 # 微信发送消息

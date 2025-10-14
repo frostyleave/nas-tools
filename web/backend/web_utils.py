@@ -9,7 +9,7 @@ import log
 from app.media import Media, Bangumi, DouBan
 from app.media.meta import MetaInfo
 from app.media.meta._base import MetaBase
-from app.utils import StringUtils, ExceptionUtils, SystemUtils, RequestUtils, IpUtils, MediaUtils
+from app.utils import StringUtils, SystemUtils, RequestUtils, IpUtils, MediaUtils
 from app.utils.types import MediaType
 
 from config import Config
@@ -41,7 +41,7 @@ class WebUtils:
             else:
                 return ""
         except Exception as err:
-            ExceptionUtils.exception_traceback(err)
+            log.exception('[Web]根据IP址查询真实地址失败: ', err)
             return ""
 
     @staticmethod
@@ -71,7 +71,7 @@ class WebUtils:
                     version = version.split()[0]
                 return version, link
         except Exception as e:
-            ExceptionUtils.exception_traceback(e)
+            log.exception('[Web]获取最新版本号: ', e)
         return None, None
 
     @staticmethod
@@ -206,7 +206,7 @@ class WebUtils:
             #     WebUtils.adjust_tv_search_name(mtype, douban_info.get("title"), media_info)
 
         except Exception as err:
-            ExceptionUtils.exception_traceback(err)            
+            log.exception('[Web]补全豆瓣信息失败: ', err)
 
 
     @staticmethod

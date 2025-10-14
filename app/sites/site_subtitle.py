@@ -7,7 +7,7 @@ import log
 from app.sites.site_manager import SitesManager
 from app.sites.siteconf import SiteConf
 from app.helper import SiteHelper
-from app.utils import RequestUtils, SiteUtils, PathUtils, ExceptionUtils, SiteUtils
+from app.utils import RequestUtils, SiteUtils, PathUtils, SiteUtils
 from config import Config, RMT_SUBEXT
 
 
@@ -97,7 +97,7 @@ class SiteSubtitle:
                             shutil.rmtree(zip_path)
                             os.remove(zip_file)
                         except Exception as err:
-                            ExceptionUtils.exception_traceback(err)
+                            log.exception('【Sites】删除临时文件出错: ', err)
                     else:
                         sub_file = os.path.join(self._save_tmp_path, file_name)
                         # 保存

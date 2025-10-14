@@ -7,9 +7,10 @@ from cachetools import TTLCache, cached
 from lxml import etree
 
 from app.indexer.client.browser import PlaywrightHelper
-from app.utils import ExceptionUtils, SiteUtils, RequestUtils
+from app.utils import SiteUtils, RequestUtils
 from app.utils.commons import singleton
 from config import Config
+import log
 
 
 @singleton
@@ -84,7 +85,7 @@ class SiteConf:
             with open(os.path.join(Config().get_inner_config_path(), "sites.dat"), "rb") as f:
                 self._RSS_SITE_GRAP_CONF = pickle.load(f).get("conf")
         except Exception as err:
-            ExceptionUtils.exception_traceback(err)
+            log.exception('【Sites】解析站点数据出错: ', err)
 
     def get_checkin_conf(self):
         return self._SITE_CHECKIN_XPATH
@@ -158,7 +159,7 @@ class SiteConf:
                             break
                     ret_attr["peer_count"] = int(peer_count_digit_str) if len(peer_count_digit_str) > 0 else 0
         except Exception as err:
-            ExceptionUtils.exception_traceback(err)
+            log.exception('【Sites】检验种子属性出错: ', err)
         # 随机休眼后再返回
         time.sleep(round(random.uniform(1, 5), 1))
         return ret_attr

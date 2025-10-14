@@ -2,6 +2,7 @@ import re
 from threading import Lock
 
 import log
+
 from app.downloader import Downloader
 from app.filter import Filter
 from app.helper import DbHelper, RssHelper
@@ -9,7 +10,7 @@ from app.media import Media
 from app.media.meta import MetaInfo
 from app.sites import SitesManager, SiteConf
 from app.subscribe import Subscribe
-from app.utils import ExceptionUtils, TorrentUtils
+from app.utils import TorrentUtils
 from app.utils.commons import singleton
 from app.utils.types import MediaType, SearchType
 
@@ -307,8 +308,7 @@ class Rss:
                             rss_download_torrents.append(media_info)
                             res_num = res_num + 1
                     except Exception as e:
-                        ExceptionUtils.exception_traceback(e)
-                        log.error("【Rss】处理RSS发生错误：%s" % str(e))
+                        log.exception(f'【Rss】处理RSS发生错误: ', e)
                         continue
                 log.info("【Rss】%s 处理结束，匹配到 %s 个有效资源" % (site_name, res_num))
             log.info("【Rss】所有RSS处理结束，共 %s 个有效资源" % len(rss_download_torrents))
