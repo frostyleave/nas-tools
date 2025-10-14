@@ -56,7 +56,7 @@ class Message(object):
                 "interactive": client_config.INTERACTIVE
             })
             client_conf = {
-                "id": client_config.ID,
+                "id": str(client_config.ID),
                 "name": client_config.NAME,
                 "type": client_config.TYPE,
                 "config": config,
@@ -74,8 +74,12 @@ class Message(object):
             }
             client.update(client_conf)
             self._active_clients.append(client)
+            # 交互
             if client.get("interactive"):
-                self._active_interactive_clients[client.get("search_type")] = client
+                search_type_key = client.get("search_type")
+                interactive_list = self._active_interactive_clients.get(search_type_key, [])
+                interactive_list.append(client)
+                self._active_interactive_clients[search_type_key] = interactive_list
 
     def __build_class(self, ctype, conf):
         for message_schema in self._message_schemas:
@@ -113,7 +117,9 @@ class Message(object):
         :return: 发送状态、错误信息
         """
         if not client or not client.get('client'):
+            log.warn(f"【Message】消息端实例为空")
             return None
+        
         cname = client.get('name')
         log.info(f"【Message】发送消息 {cname}：title={title}, text={text}")
         if self._domain:
@@ -150,7 +156,7 @@ class Message(object):
                 return state
         return True
 
-    def send_channel_msg(self, channel, title, text="", image="", url="", user_id=""):
+    def send_channel_msg(self, channel: SearchType, title, text="", image="", url="", user_id="", client_id=None):
         """
         按渠道发送消息，用于消息交互
         :param channel: 消息渠道
@@ -165,17 +171,26 @@ class Message(object):
         if channel == SearchType.WEB:
             self.messagecenter.insert_system_message(title=title, content=text)
             return True
+        
         # 发送消息
-        client = self._active_interactive_clients.get(channel)
-        if client:
-            state = self.__sendmsg(client=client,
-                                   title=title,
-                                   text=text,
-                                   image=image,
-                                   url=url,
-                                   user_id=user_id)
-            return state
-        return False
+        client_list = self._active_interactive_clients.get(channel)
+        if not client_list:
+            log.warn(f'没有配置消息交互客户端={channel.name}')
+            return False
+        
+        # 指定客户端
+        if client_id:
+            target_client = next(filter(lambda x: x.get('id') == client_id, client_list), None)
+            if target_client:
+                return self.__sendmsg(client=target_client, title=title, text=text, image=image, url=url, user_id=user_id)
+            log.warn(f'找不到id={client_id}的消息发送端')
+            return False
+        
+        # 所有客户端
+        for client in client_list:
+            self.__sendmsg(client=client, title=title, text=text, image=image, url=url, user_id=user_id)
+
+        return True
 
     def __send_list_msg(self, client, medias, user_id, title):
         """
@@ -191,9 +206,10 @@ class Message(object):
                                                             url=self._domain)
         if not state:
             log.error(f"【Message】{cname} 发送消息失败：%s" % ret_msg)
+            
         return state
 
-    def send_channel_list_msg(self, channel, title, medias: list, user_id=""):
+    def send_channel_list_msg(self, channel, title, medias: list, user_id="", client_id=None):
         """
         发送列表选择消息，用于消息交互
         :param channel: 消息渠道
@@ -210,14 +226,24 @@ class Message(object):
                 index += 1
             self.messagecenter.insert_system_message(title=title, content="\n".join(texts))
             return True
-        client = self._active_interactive_clients.get(channel)
-        if client:
-            state = self.__send_list_msg(client=client,
-                                         title=title,
-                                         medias=medias,
-                                         user_id=user_id)
-            return state
-        return False
+        
+        # 发送消息
+        client_list = self._active_interactive_clients.get(channel)
+        if not client_list:
+            return False
+        
+        # 指定客户端
+        if client_id:
+            target_client = next(filter(lambda x: x.get('id') == client_id, client_list), None)
+            if target_client:
+                return self.__send_list_msg(client=target_client, title=title, medias=medias, user_id=user_id)
+            log.warn(f'找不到id={client_id}的消息发送端')
+            return False
+            
+        # 所有客户端
+        for client in client_list:
+            self.__send_list_msg(client=client, title=title, medias=medias, user_id=user_id)
+        return True
 
     def send_download_message(self, in_from: SearchType, can_item, download_setting_name=None, downloader_name=None):
         """
@@ -775,7 +801,8 @@ class Message(object):
         if client_type:
             return self._active_interactive_clients.get(client_type)
         else:
-            return [client for client in self._active_interactive_clients.values()]
+            # 展开嵌套的 list，返回一个扁平列表
+            return [client for clients in self._active_interactive_clients.values() for client in clients]
 
     @staticmethod
     def get_search_types():

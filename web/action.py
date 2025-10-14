@@ -386,7 +386,7 @@ class WebAction:
                 os.system("kill $(pgrep -f 'python3 run.py')")
                 # os.system("pkill -f 'python3 run.py'")
 
-    def handle_message_job(self, msg, in_from=SearchType.OT, user_id=None, user_name=None):
+    def handle_message_job(self, msg, in_from=SearchType.OT, user_id=None, user_name=None, client_id=None):
         """
         处理消息事件
         """
@@ -409,7 +409,7 @@ class WebAction:
             ThreadHelper().start_thread(command.get("func"), ())
             # 消息回应
             Message().send_channel_msg(
-                channel=in_from, title="正在运行 %s ..." % command.get("desc"), user_id=user_id)
+                channel=in_from, title="正在运行 %s ..." % command.get("desc"), user_id=user_id, client_id=client_id)
             return
 
         # 插件命令
@@ -420,12 +420,12 @@ class WebAction:
                 EventManager().send_event(command.get("event"), command.get("data") or {})
                 # 消息回应
                 Message().send_channel_msg(
-                    channel=in_from, title="正在运行 %s ..." % command.get("desc"), user_id=user_id)
+                    channel=in_from, title="正在运行 %s ..." % command.get("desc"), user_id=user_id, client_id=client_id)
                 return
 
         # 站点搜索或者添加订阅
         ThreadHelper().start_thread(search_media_by_message,
-                                    (msg, in_from, user_id, user_name))
+                                    (msg, in_from, user_id, user_name, client_id))
 
     def set_config_value(self, cfg, cfg_key, cfg_value):
         """
@@ -4223,8 +4223,8 @@ class WebAction:
         enabled = data.get("enabled")
         if cid:
             _message.delete_message_client(cid=cid)
-        if int(interactive) == 1:
-            _message.check_message_client(interactive=0, ctype=ctype)
+        # if int(interactive) == 1:
+        #     _message.check_message_client(interactive=0, ctype=ctype)
         _message.insert_message_client(name=name,
                                        ctype=ctype,
                                        config=config,

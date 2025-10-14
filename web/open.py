@@ -5,6 +5,7 @@ import tracemalloc
 import xml.dom.minidom
 
 from fastapi import APIRouter, Request, Response
+from typing import Optional
 
 from app.conf.moduleconf import ModuleConf
 from app.helper.security_helper import SecurityHelper
@@ -27,21 +28,33 @@ from web.backend.WXBizMsgCrypt3 import WXBizMsgCrypt
 # 开放接口路由
 open_router = APIRouter()
 
+def send_text_response(content: str, status_code: int = 200) -> Response:
+    return Response(content=content, status_code=status_code, media_type="text/plain; charset=utf-8")
 
 # 微信回调
-@open_router.api_route("/wechat", methods=["GET", "POST"])
-async def wechat(request: Request):
-    # 当前在用的交互渠道
-    interactive_client = Message().get_interactive_client(SearchType.WX)
-    if not interactive_client:
-        return Response(content="NAStool没有启用微信交互", status_code=200)
+@open_router.get("/wechat")
+async def wechat(request: Request, appid: Optional[str] = None):
 
-    conf = interactive_client.get("config")
+    # 当前在用的交互渠道
+    interactive_clients = Message().get_interactive_client(SearchType.WX)
+    if not interactive_clients:
+        log.info("NAStool没有启用微信交互")
+        return send_text_response(content="NAStool没有启用微信交互", status_code=200)
+
+    if appid:
+        assign_app = next(filter(lambda x: x.get('config', {}).get('agentid') == appid, interactive_clients), None)
+        if not assign_app:
+            return send_text_response(content=f"微信应用{appid}没有开启交互", status_code=200)
+    else:
+        assign_app = interactive_clients[0]
+
+    conf = assign_app.get("config")
     sToken = conf.get("token")
     sEncodingAESKey = conf.get("encodingAESKey")
     sCorpID = conf.get("corpid")
     if not sToken or not sEncodingAESKey or not sCorpID:
-        return Response(content="配置错误", status_code=200)
+        log.info("配置错误")
+        return send_text_response(content="配置错误", status_code=200)
 
     wxcpt = WXBizMsgCrypt(sToken, sEncodingAESKey, sCorpID)
     query = request.query_params
@@ -49,25 +62,61 @@ async def wechat(request: Request):
     sVerifyTimeStamp = query.get("timestamp")
     sVerifyNonce = query.get("nonce")
 
-    if request.method == "GET":
-        if not sVerifyMsgSig and not sVerifyTimeStamp and not sVerifyNonce:
-            return Response(content="NAStool微信交互服务正常！<br>微信回调配置步聚: <br>1、在微信企业应用接收消息设置页面生成Token和EncodingAESKey并填入设置->消息通知->微信对应项，打开微信交互开关。<br>2、保存并重启本工具，保存并重启本工具，保存并重启本工具。<br>3、在微信企业应用接收消息设置页面输入此地址: http(s)://IP:PORT/wechat", status_code=200)
+    if not sVerifyMsgSig and not sVerifyTimeStamp and not sVerifyNonce:
+        return send_text_response(content="NAStool微信交互服务正常！<br>微信回调配置步聚: <br>1、在微信企业应用接收消息设置页面生成Token和EncodingAESKey并填入设置->消息通知->微信对应项，打开微信交互开关。<br>2、保存并重启本工具，保存并重启本工具，保存并重启本工具。<br>3、在微信企业应用接收消息设置页面输入此地址: http(s)://IP:PORT/wechat", status_code=200)
 
-        sVerifyEchoStr = query.get("echostr")
-        log.info("收到微信验证请求: echostr= %s", sVerifyEchoStr)
-        ret, sEchoStr = wxcpt.VerifyURL(sVerifyMsgSig, sVerifyTimeStamp, sVerifyNonce, sVerifyEchoStr)
-        if ret != 0:
-            log.error("微信请求验证失败 VerifyURL ret: %s", str(ret))
-        return Response(content=sEchoStr, status_code=200)
+    sVerifyEchoStr = query.get("echostr")
+    log.info(f"收到微信验证请求: echostr= {sVerifyEchoStr}")
+    ret, sEchoStr = wxcpt.VerifyURL(sVerifyMsgSig, sVerifyTimeStamp, sVerifyNonce, sVerifyEchoStr)
+    if ret != 0:
+        log.error(f"微信请求验证失败 VerifyURL ret: {str(ret)}",)
 
-    # POST 处理消息
+    return send_text_response(content=sEchoStr, status_code=200)
+
+
+@open_router.post("/wechat")
+async def sendwechat(request: Request):
+
     try:
-        sReqData = await request.body()
-        log.debug("收到微信请求: %s", str(sReqData))
 
-        ret, sMsg = wxcpt.DecryptMsg(sReqData, sVerifyMsgSig, sVerifyTimeStamp, sVerifyNonce)
+        req_bytes = await request.body()
+        req_xml = req_bytes.decode("utf-8")
+        log.debug(f"收到微信请求: {req_xml}")
+
+        # 已启用的交互渠道
+        interactive_clients = Message().get_interactive_client(SearchType.WX)
+        if not interactive_clients:
+            log.info("NAStool没有启用微信交互")
+            return send_text_response(content="", status_code=200)
+        
+        match = re.search(r"<AgentID><!\[CDATA\[(.*?)\]\]></AgentID>", req_xml)
+        appid = match.group(1) if match else None
+        if not appid:
+            log.warn("消息中没有包含AgentID")
+            return send_text_response(content="", status_code=200)
+
+        agent_client = next(filter(lambda x: x.get('config', {}).get('agentid') == appid, interactive_clients), None)
+        if not agent_client:
+            log.warn(f"微信应用{appid}没有开启交互")
+            return send_text_response(content="", status_code=200)
+        
+        conf = agent_client.get("config")
+        sToken = conf.get("token")
+        sEncodingAESKey = conf.get("encodingAESKey")
+        sCorpID = conf.get("corpid")
+        if not sToken or not sEncodingAESKey or not sCorpID:
+            log.warn("配置错误")
+            return send_text_response(content="", status_code=200)
+
+        wxcpt = WXBizMsgCrypt(sToken, sEncodingAESKey, sCorpID)
+        query = request.query_params
+        sVerifyMsgSig = query.get("msg_signature")
+        sVerifyTimeStamp = query.get("timestamp")
+        sVerifyNonce = query.get("nonce")
+
+        ret, sMsg = wxcpt.DecryptMsg(req_bytes, sVerifyMsgSig, sVerifyTimeStamp, sVerifyNonce)
         if ret != 0:
-            log.error("解密微信消息失败 DecryptMsg ret = %s", str(ret))
+            log.error(f"解密微信消息失败 DecryptMsg ret = {str(ret)}")
             return Response(content="ok", status_code=200)
 
         # 解析XML
@@ -106,7 +155,8 @@ async def wechat(request: Request):
                 msg=content,
                 in_from=SearchType.WX,
                 user_id=user_id,
-                user_name=user_id
+                user_name=user_id,
+                client_id = str(agent_client.get("id"))
             )
 
         return Response(content=content, status_code=200)
@@ -115,18 +165,25 @@ async def wechat(request: Request):
         ExceptionUtils.exception_traceback(err)
         log.error("微信消息处理发生错误: %s - %s", str(err), traceback.format_exc())
         return Response(content="ok", status_code=200)
-
-
+    
 # 微信发送消息
 @open_router.post("/sendwechat")
-async def sendwechat(request: Request):
+async def sendwechat(request: Request, appid: Optional[str] = None):
+    
     if not SecurityHelper().check_mediaserver_ip(request.client.host):
         log.warn(f"非法IP地址的媒体服务器消息通知: {request.client.host}")
         return Response(content="不允许的IP地址请求", status_code=403)
 
-    interactive_client = Message().get_interactive_client(SearchType.WX)
-    if not interactive_client:
+    interactive_clients = Message().get_interactive_client(SearchType.WX)
+    if not interactive_clients:
         return Response(content="NAStool没有启用微信交互", status_code=200)
+
+    if appid:
+        assign_app = next(filter(lambda x: x.get('config', {}).get('agentid') == appid, interactive_clients), None)
+        if not assign_app:
+            return send_text_response(content=f"微信应用{appid}没有开启交互", status_code=200)
+    else:
+        assign_app = interactive_clients[0]
 
     req_json = await request.json()
     title = req_json.get("title")
@@ -138,7 +195,7 @@ async def sendwechat(request: Request):
         return Response(content="请填写消息内容", status_code=200)
 
     Message().send_custom_message(
-        clients=[str(interactive_client.get("id"))],
+        clients=[str(assign_app.get("id"))],
         title=title,
         text=message,
         image=req_json.get("image")
@@ -210,9 +267,11 @@ async def emby_webhook(request: Request):
 # Telegram消息响应
 @open_router.post("/telegram")
 async def telegram(request: Request):
-    interactive_client = Message().get_interactive_client(SearchType.TG)
-    if not interactive_client:
+    interactive_clients = Message().get_interactive_client(SearchType.TG)
+    if not interactive_clients:
         return Response(content="NAStool未启用Telegram交互", status_code=200)
+    
+    interactive_client = interactive_clients[0]
 
     msg_json = await request.json()
     if not SecurityHelper().check_telegram_ip(request.client.host):
@@ -250,9 +309,11 @@ async def telegram(request: Request):
 # Synology Chat消息响应
 @open_router.post("/synology")
 async def synology(request: Request):
-    interactive_client = Message().get_interactive_client(SearchType.SYNOLOGY)
-    if not interactive_client:
+    interactive_clients = Message().get_interactive_client(SearchType.SYNOLOGY)
+    if not interactive_clients:
         return Response(content="NAStool未启用Synology Chat交互", status_code=200)
+    
+    interactive_client = interactive_clients[0]
 
     form = await request.form()
     if not SecurityHelper().check_synology_ip(request.client.host):
@@ -285,9 +346,11 @@ async def slack(request: Request):
         log.warn(f"非法IP地址的Slack消息通知: {request.client.host}")
         return Response(content="不允许的IP地址请求", status_code=403)
 
-    interactive_client = Message().get_interactive_client(SearchType.SLACK)
-    if not interactive_client:
+    interactive_clients = Message().get_interactive_client(SearchType.SLACK)
+    if not interactive_clients:
         return Response(content="NAStool未启用Slack交互", status_code=200)
+    
+    interactive_client = interactive_clients[0]
 
     msg_json = await request.json()
     if msg_json:
