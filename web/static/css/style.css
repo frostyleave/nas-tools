@@ -964,12 +964,9 @@ h1.login_title>label {
 }
 
 .zoom-link:hover {
-  transform: scale(1.3);
+    transform: scale(1.3);
 }
 
-.table.card-table thead th {
-    font-size: 0.85rem;
-    line-height: 1.5rem;
-    padding-bottom: .75rem;
-    padding-top: .75rem;
+.mb-4.card-table {
+    margin-bottom: 3rem !important;
 }

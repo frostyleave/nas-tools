@@ -2173,3 +2173,7 @@ function do_update_indexer() {
 
 };
 
+// 展开/收起div
+function slideToggle(id) {
+  $(`#${id}`).slideToggle();
+}

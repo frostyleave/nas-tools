@@ -1,10 +1,13 @@
 from datetime import datetime, timedelta
+from functools import partial, wraps
 from typing import Optional
 
-from fastapi import HTTPException, status
+from fastapi import HTTPException, Request, status
 from fastapi.requests import HTTPConnection
 from jose import JWTError, jwt
 from passlib.context import CryptContext
+
+import log
 
 from config import Config
 from web.backend.user import User, UserManager
@@ -82,3 +85,45 @@ async def get_current_user(request: HTTPConnection):
     if user is None:
         raise HTTPException(status_code=404, detail="用户不存在")
     return user
+
+
+def auth_required(func=None):
+    """
+    API安全认证
+    """
+    if func is None:
+        return partial(auth_required)
+
+    @wraps(func)
+    async def wrapper(*args, **kwargs):
+
+        check_apikey = Config().get_config("security").get("check_apikey")
+        if not check_apikey:
+            return func(*args, **kwargs)
+        
+        log.debug(f"【Security】{func.__name__} 认证检查")
+        
+        setting_api_key = Config().get_config("security").get("api_key")
+        request: Request = kwargs.get("request") or args[0]
+
+        # 允许在请求头Authorization中添加apikey
+        auth = request.headers.get("Authorization")
+        if auth:
+            auth = str(auth).split()[-1]
+            if auth == setting_api_key:
+                return await func(*args, **kwargs)
+            
+        # 允许使用在api后面拼接 ?apikey=xxx 的方式进行验证
+        auth = request.query_params.get("apikey")
+        if auth:
+            if auth == setting_api_key:
+                return await func(*args, **kwargs)
+            
+        log.warn(f"【Security】{func.__name__} 认证未通过, 请检查API Key")
+        return {
+            "code": 401,
+            "success": False,
+            "message": "安全认证未通过, 请检查ApiKey"
+        }
+
+    return wrapper

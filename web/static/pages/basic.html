@@ -1,12 +1,9 @@
 <!-- 业务页面代码 -->
 <div class="card components-div" id="sys_config">
-  <div class="card">
+  <div class="card border-0">
     <div class="card-header" style="display: flex; align-items: center;">
       <h4 class="card-title"><strong>基础设置</strong></h4>
-      <a href="javascript:void(0)" onclick="slideToggle('basic_system')" class="btn-action ms-1" title="展开/折叠">
-        <i class="ti ti-menu-2 fs-2"></i>
-      </a>
-      <div class="col-auto" style="margin-left: auto;">
+      <div class="card-actions btn-actions">
         <a href="javascript:void(0)" class="btn d-none d-sm-inline-block" data-bs-toggle="modal"
           data-bs-target="#modal-user-script">
           自定义 CSS/JavaScript
@@ -15,9 +12,12 @@
           data-bs-target="#modal-user-script" title="自定义CSS/JavaScript">
           <i class="ti ti-code-dots fs-2"></i>
         </a>
+        <a href="javascript:slideToggle('basic_system')" class="btn-action ms-1" title="展开/折叠">
+          <i class="ti ti-menu-2 fs-2"></i>
+        </a>
       </div>
     </div>
-    <div class="card-body" id="basic_system">
+    <div class="card-body border-bottom" id="basic_system">
       <div class="row">
         <div class="col-lg">
           <div class="mb-3">
@@ -203,14 +203,16 @@
       </div>
     </div>
   </div>
-  <div class="card">
+  <div class="card border-0">
     <div class="card-header">
       <h4 class="card-title"><strong>服务配置</strong></h4>
-      <a href="javascript:void(0)" onclick="slideToggle('basic_service')" class="btn-action ms-1" title="展开/折叠">
-        <i class="ti ti-menu-2 fs-2"></i>
-      </a>
+      <div class="card-actions btn-actions">
+        <a href="javascript:slideToggle('basic_service')" class="btn-action ms-1" title="展开/折叠">
+          <i class="ti ti-menu-2 fs-2"></i>
+        </a>
+      </div>
     </div>
-    <div class="card-body" id="basic_service" style="display: none;">
+    <div class="card-body border-bottom" id="basic_service" style="display: none;">
       <div class="row mb-3">
         <div class="d-grid gap-3 grid-normal-card" id="media-server-list">
           <!-- JS 动态填充 -->
@@ -292,14 +294,16 @@
       </div>
     </div>
   </div>
-  <div class="card">
+  <div class="card border-0">
     <div class="card-header">
       <h4 class="card-title"><strong>安全配置</strong></h4>
-      <a href="javascript:void(0)" onclick="slideToggle('security')" class="btn-action ms-1" title="展开/折叠">
-        <i class="ti ti-menu-2 fs-2"></i>
-      </a>
+      <div class="card-actions btn-actions">
+        <a href="javascript:slideToggle('security')" class="btn-action ms-1" title="展开/折叠">
+          <i class="ti ti-menu-2 fs-2"></i>
+        </a>
+      </div>
     </div>
-    <div class="card-body" id="security" style="display: none;">
+    <div class="card-body border-bottom" id="security" style="display: none;">
       <div class="row">
         <div class="form-group">
           <label class="control-label">API密钥 <span class="form-help"
@@ -372,14 +376,16 @@
       </div>
     </div>
   </div>
-  <div class="card">
+  <div class="card border-0">
     <div class="card-header">
       <h4 class="card-title"><strong>实验室</strong></h4>
-      <a href="javascript:void(0)" onclick="slideToggle('laboratory')" class="btn-action ms-1" title="展开/折叠">
-        <i class="ti ti-menu-2 fs-2"></i>
-      </a>
+      <div class="card-actions btn-actions">
+        <a href="javascript:slideToggle('laboratory')" class="btn-action ms-1" title="展开/折叠">
+          <i class="ti ti-menu-2 fs-2"></i>
+        </a>
+      </div>
     </div>
-    <div class="card-body" id="laboratory" style="display: none;">
+    <div class="card-body border-bottom" id="laboratory" style="display: none;">
       <div class="row">
         <div class="col-12 col-xl-3">
           <div class="mb-3">
@@ -437,7 +443,7 @@
       </div>
     </div>
   </div>
-  <div class="card-footer">
+  <div class="card-footer border-0">
     <div class="row align-items-center">
       <div class="col"></div>
       <div class="col-auto">
@@ -574,11 +580,6 @@
         show_success_modal("配置已保存!");
       }
     });
-  }
-
-  // 展开/收起div
-  function slideToggle(id) {
-    $(`#${id}`).slideToggle();
   }
 
   // 保存自定义CSS/JavsScript配置

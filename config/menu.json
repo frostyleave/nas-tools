@@ -161,6 +161,12 @@
         "html": "/static/pages/notification.html"
       },
       {
+        "name": "目录同步",
+        "page": "directorysync",
+        "icon": "<i class=\"ti ti-refresh fs-2 \"></i>",
+        "html": "/static/pages/directorysync.html"
+      },
+      {
         "name": "过滤规则",
         "page": "filterrule",
         "icon": "<i class=\"ti ti-filter-pause fs-2 \"></i>",

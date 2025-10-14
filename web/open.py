@@ -23,6 +23,7 @@ import log
 
 from web.action import WebAction
 from web.backend.WXBizMsgCrypt3 import WXBizMsgCrypt
+from web.backend.security import auth_required
 
 
 # 开放接口路由
@@ -33,6 +34,7 @@ def send_text_response(content: str, status_code: int = 200) -> Response:
 
 # 微信回调
 @open_router.get("/wechat")
+@auth_required
 async def wechat(request: Request, appid: Optional[str] = None):
 
     # 当前在用的交互渠道
@@ -69,12 +71,13 @@ async def wechat(request: Request, appid: Optional[str] = None):
     log.info(f"收到微信验证请求: echostr= {sVerifyEchoStr}")
     ret, sEchoStr = wxcpt.VerifyURL(sVerifyMsgSig, sVerifyTimeStamp, sVerifyNonce, sVerifyEchoStr)
     if ret != 0:
-        log.error(f"微信请求验证失败 VerifyURL ret: {str(ret)}",)
+        log.error(f"微信请求验证失败 VerifyURL ret: {str(ret)}")
 
     return send_text_response(content=sEchoStr, status_code=200)
 
 
 @open_router.post("/wechat")
+@auth_required
 async def sendwechat(request: Request):
 
     try:
@@ -168,6 +171,7 @@ async def sendwechat(request: Request):
     
 # 微信发送消息
 @open_router.post("/sendwechat")
+@auth_required
 async def sendwechat(request: Request, appid: Optional[str] = None):
     
     if not SecurityHelper().check_mediaserver_ip(request.client.host):
@@ -205,6 +209,7 @@ async def sendwechat(request: Request, appid: Optional[str] = None):
 
 # Plex Webhook
 @open_router.post("/plex")
+@auth_required
 async def plex_webhook(request: Request):
     if not SecurityHelper().check_mediaserver_ip(request.client.host):
         log.warn(f"非法IP地址的媒体服务器消息通知: {request.client.host}")
@@ -227,6 +232,7 @@ async def plex_webhook(request: Request):
 
 # Jellyfin Webhook
 @open_router.post("/jellyfin")
+@auth_required
 async def jellyfin_webhook(request: Request):
     if not SecurityHelper().check_mediaserver_ip(request.client.host):
         log.warn(f"非法IP地址的媒体服务器消息通知: {request.client.host}")
@@ -243,6 +249,7 @@ async def jellyfin_webhook(request: Request):
 
 # Emby Webhook
 @open_router.api_route("/emby", methods=["GET", "POST"])
+@auth_required
 async def emby_webhook(request: Request):
     if not SecurityHelper().check_mediaserver_ip(request.client.host):
         log.warn(f"非法IP地址的媒体服务器消息通知: {request.client.host}")
@@ -266,6 +273,7 @@ async def emby_webhook(request: Request):
 
 # Telegram消息响应
 @open_router.post("/telegram")
+@auth_required
 async def telegram(request: Request):
     interactive_clients = Message().get_interactive_client(SearchType.TG)
     if not interactive_clients:
@@ -308,6 +316,7 @@ async def telegram(request: Request):
 
 # Synology Chat消息响应
 @open_router.post("/synology")
+@auth_required
 async def synology(request: Request):
     interactive_clients = Message().get_interactive_client(SearchType.SYNOLOGY)
     if not interactive_clients:
@@ -341,6 +350,7 @@ async def synology(request: Request):
 
 # Slack消息响应
 @open_router.post("/slack")
+@auth_required
 async def slack(request: Request):
     if not SecurityHelper().check_slack_ip(request.client.host):
         log.warn(f"非法IP地址的Slack消息通知: {request.client.host}")
@@ -350,8 +360,6 @@ async def slack(request: Request):
     if not interactive_clients:
         return Response(content="NAStool未启用Slack交互", status_code=200)
     
-    interactive_client = interactive_clients[0]
-
     msg_json = await request.json()
     if msg_json:
         if msg_json.get("type") == "message":
@@ -383,6 +391,7 @@ async def slack(request: Request):
 
 # Jellyseerr Overseerr订阅接口
 @open_router.post("/subscribe")
+@auth_required
 async def subscribe(request: Request):
     req_json = await request.json()
     if not req_json:

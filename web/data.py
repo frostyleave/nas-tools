@@ -391,14 +391,12 @@ async def sitelist_page(request: Request, current_user = Depends(get_current_use
 async def library(request: Request, current_user = Depends(get_current_user)):
     RmtModeDict = WebAction(current_user).get_rmt_modes()
     ScraperConf = SystemConfig().get(SystemConfigKey.UserScraperConf) or {}
-    SyncPaths = Sync().get_sync_path_conf()
     return response(data=
         {
             "Config": Config().get_config(),
             "RmtModeDict": RmtModeDict,
             "ScraperNfo": ScraperConf.get("scraper_nfo") or {},
             "ScraperPic": ScraperConf.get("scraper_pic") or {},
-            "SyncPaths": SyncPaths
         })
 
 
