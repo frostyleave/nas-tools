@@ -5,20 +5,20 @@
         <h2 class="page-title">文件管理</h2>
       </div>
       <div class="col-auto ms-auto d-print-none">
+        <div class="btn-list d-md-none">
+          <a class="btn btn-flickr mbtn-action" href="javascript:js_change_card()">
+            <i class="ti ti-switch-horizontal fs-3"></i>
+          </a>
+        </div>
       </div>
     </div>
   </div>
 </div>
 <div class="container-xl">
     <div class="card bg-transparent border-0">
-      <div class="ribbon ribbon-top g-cyan d-md-none">
-        <a class="text-white" href="javascript:js_change_card()">
-          <i class="ti ti-switch-horizontal fs-2"></i>
-        </a>
-      </div>
       <div class="row g-0">
         <div class="col-md-4 border-start border-end js-change-card-a">
-          <div class="card-body">
+          <div class="card-body pt-1">
             <h4 class="subheader">目录</h4>
             <div class="input-icon mb-2">
               <span class="input-icon-addon">
@@ -35,23 +35,32 @@
           </div>
         </div>
         <div class="col d-md-block js-change-card-b" style="display: none;">
-          <div class="card-body py-0 border-0">
-            <div class="d-flex flex-column flex-md-row justify-content-md-between">
+          <div class="card-body py-0 pe-0 border-0">
+            <div class="d-flex justify-content-between align-items-center">
               <div class="text-muted align-self-center">
                 共 <span id="mediafile_num">0</span> 个文件
               </div>
               <div class="align-self-center">
-                <a href="javascript:mediafile_transfer_all()" class="btn btn-primary" title="转移当前目录">
-                  <i class="ti ti-transform fs-2"></i>
+                <a href="javascript:mediafile_transfer_all()" class="btn btn-primary d-none d-sm-inline-flex" title="转移当前目录">
+                  <i class="ti ti-transform fs-3"></i>
                   转移
                 </a>
-                <a href="javascript:mediafile_findlinks_all()" class="btn btn-cyan" title="查询所有文件硬链接">
-                  <i class="ti ti-link fs-2"></i>
+                <a href="javascript:mediafile_transfer_all" class="btn btn-primary d-sm-none mbtn-action" title="转移当前目录">
+                  <i class="ti ti-transform fs-3"></i>
+                </a>
+                <a href="javascript:mediafile_findlinks_all()" class="btn btn-cyan d-none d-sm-inline-flex" title="查询所有文件硬链接">
+                  <i class="ti ti-link fs-3"></i>
                   硬链接
                 </a>
-                <a href="javascript:mediafile_scraper_all()" class="btn" title="刮削当前目录">
-                  <i class="ti ti-link fs-2"></i>
+                <a href="javascript:mediafile_findlinks_all()" class="btn btn-cyan d-sm-none mbtn-action" title="查询所有文件硬链接">
+                  <i class="ti ti-link fs-3"></i>
+                </a>
+                <a href="javascript:mediafile_scraper_all()" class="btn d-none d-sm-inline-flex" title="刮削当前目录">
+                  <i class="ti ti-link fs-3"></i>
                   刮削
+                </a>
+                <a href="javascript:mediafile_scraper_all()" class="btn d-sm-none mbtn-action" title="刮削当前目录">
+                  <i class="ti ti-link fs-3"></i>
                 </a>
               </div>
             </div>

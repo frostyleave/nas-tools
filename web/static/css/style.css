@@ -1007,10 +1007,19 @@ h1.login_title>label {
 
 .container-xl .page-header .row .col h2.page-title::before {
     content: "";
-    left: 10px;
-    transform: translateY(10%);
     width: 4px;
-    height: 1.2em;
+    height: 1.5rem;
     background-color: var(--tblr-primary);
     border-radius: 2px;
+}
+
+.mbtn-action {
+    padding: 0;
+    border: 0;
+    display: inline-flex;
+    width: 2rem;
+    height: 2rem;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--tblr-border-radius);
 }
