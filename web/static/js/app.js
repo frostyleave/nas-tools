@@ -243,12 +243,22 @@ function renderOther() {
     init_filetree_element();
   }
 
-  
-  if ($('#top-sub-navbar').is(':visible')) {
-    $('.container-xl .page-header .row .col h2.page-title').hide();
-  } else {
-    $('.container-xl .page-header .row .col h2.page-title').show();
-  }
+  // var $page_title = $('.container-xl .page-header .row .col h2.page-title');
+  // if ($page_title) {
+
+  //   if ($('#top-sub-navbar').is(':visible') && $('#top-sub-navbar').find('.tab-text').is(':visible')) {
+  //     // 检查是否有按钮
+  //     const $container = $page_title.closest('.container-xl');
+  //     if ($container.find('.btn-list').length == 0) {
+  //       $container.hide();
+  //     } else {
+  //       $page_title.hide();
+  //     }
+
+  //   } else {
+  //     $page_title.show();
+  //   }
+  // }
 
 }
 
@@ -319,10 +329,9 @@ function activeMenu(pageMenu) {
   navList.forEach(item => {
 
     const aElement = document.createElement('a');
-    aElement.className = 'nav-link top-nav-link';
-    aElement.href = '#';
-    aElement.innerHTML = `<span class="tab-icon" style="display: inline-flex;align-items: anchor-center;">${item.icon}</span><span class="tab-text">${item.name}</span>`;
-    aElement.setAttribute('data-bs-toggle', 'tab');
+    aElement.className = 'nav-link';
+    aElement.href = 'javascript:void(0)';
+    aElement.innerHTML = `<span class="tab-icon">${item.icon}</span><span class="tab-text">${item.name}</span>`;
     aElement.setAttribute('data-id', item.page);
     aElement.onclick = () => navmenu(item.page);
 
@@ -345,64 +354,92 @@ function activeMenu(pageMenu) {
 
 // 更新子菜单图标、名称显示
 function update_tab_display() {
+  const $navbar = $('#top-sub-navbar');
+  if (!$navbar.is(':visible')) return;
 
-    if (!$('#top-sub-navbar').is(':visible')) {
-      return;
+  const menu = $navbar.find('.navbar-nav')[0]; // ul.navbar-nav
+  if (!menu) return;
+
+  const links = Array.from(menu.querySelectorAll('a.nav-link'));
+  if (!links.length) return;
+
+  // 获取父容器可用宽度
+  const containerWidth = menu.parentElement.clientWidth;
+
+  // 取 computed gap（可能为空），转换为像素数
+  const cs = window.getComputedStyle(menu);
+  const gapStr = cs.gap || cs.getPropertyValue('column-gap') || cs.getPropertyValue('grid-column-gap') || '0px';
+  const gap = parseFloat(gapStr) || 0;
+
+  // 创建一个测量 wrapper，每次在里面放一组 clone 链接
+  const wrapper = document.createElement('div');
+  wrapper.style.position = 'absolute';
+  wrapper.style.left = '-9999px';
+  wrapper.style.top = '0';
+  wrapper.style.visibility = 'hidden';
+  wrapper.style.display = 'flex';
+  wrapper.style.alignItems = 'center';
+  wrapper.style.gap = `${gap}px`;
+  document.body.appendChild(wrapper);
+
+  // 辅助：克隆单个 link，并设置模式（'BOTH'/'ICON'/'TEXT'）
+  function cloneLinkWithMode(link, mode) {
+    const c = link.cloneNode(true);
+    // ensure inline-flex for spans when needed
+    const text = c.querySelector('.tab-text');
+    const icon = c.querySelector('.tab-icon');
+
+    if (text) {
+      text.style.display = (mode === 'ICON') ? 'none' : 'inline-flex';
+    }
+    if (icon) {
+      icon.style.display = (mode === 'TEXT') ? 'none' : 'inline-flex';
     }
 
-    const menu = document.querySelector('.nav.nav-tabs');
-    if (!menu) return;
+    // reset widths inside clone so offsetWidth measures content size
+    c.style.display = 'inline-flex';
+    c.style.alignItems = 'center';
+    c.style.whiteSpace = 'nowrap';
+    c.style.padding = window.getComputedStyle(link).padding;
+    return c;
+  }
 
-    // 克隆原始菜单用于测量（避免污染实际DOM）
-    const clone = menu.cloneNode(true);
-    clone.style.visibility = 'hidden';
-    document.body.appendChild(clone);
-
-    // 初始化测量元素
-    const items = Array.from(clone.querySelectorAll('.nav-item'));
-    const links = items.map(item => item.querySelector('.nav-link'));
-    const textElements = links.map(link => link.querySelector('.tab-text'));
-    const iconElements = links.map(link => link.querySelector('.tab-icon'));
-
-    // 测量模式函数（返回总宽度）
-    function measureMode(mode) {
-      textElements.forEach(el => el.style.display =
-        mode === 'ICON' ? 'none' : 'inline-flex');
-      iconElements.forEach(el => el.style.display =
-        mode === 'TEXT' ? 'none' : 'inline-flex');
-
-      return Array.from(clone.querySelectorAll('.nav-item'))
-        .reduce((sum, item) => sum + item.offsetWidth, 0);
-    }
-
-    // 获取容器可用宽度
-    const containerWidth = menu.parentElement.offsetWidth;
-
-    // 按优先级测量三种模式
-    const modeWidths = {
-      BOTH: measureMode('BOTH'),
-      ICON: measureMode('ICON'),
-      TEXT: measureMode('TEXT')
-    };
-
-    // 移除克隆体
-    document.body.removeChild(clone);
-
-    // 选择最佳显示模式
-    let bestMode = 'ICON'; // 默认图标模式
-    if (modeWidths.BOTH <= containerWidth) {
-      bestMode = 'BOTH';
-    } else if (modeWidths.TEXT <= containerWidth) {
-      bestMode = 'TEXT';
-    }
-
-    // 应用最终模式
-    menu.querySelectorAll('.nav-item').forEach((item, index) => {
-      item.querySelector('.tab-text').style.display =
-        bestMode === 'ICON' ? 'none' : 'inline-flex';
-      item.querySelector('.tab-icon').style.display =
-        bestMode === 'TEXT' ? 'none' : 'inline-flex';
+  // 测量三种模式的总宽度（对每个 link 单独测量更稳）
+  function measureTotalWidth(mode) {
+    // 清空 wrapper
+    wrapper.innerHTML = '';
+    links.forEach(link => {
+      const c = cloneLinkWithMode(link, mode);
+      wrapper.appendChild(c);
     });
+    // 使用 scrollWidth（包含 gap）更可靠
+    return wrapper.scrollWidth;
+  }
+
+  const widths = {
+    BOTH: measureTotalWidth('BOTH'),
+    ICON: measureTotalWidth('ICON'),
+    TEXT: measureTotalWidth('TEXT')
+  };
+
+  // 移除 wrapper
+  document.body.removeChild(wrapper);
+
+  // 选择最佳模式（优先 BOTH -> TEXT -> ICON）
+  let bestMode = 'ICON';
+  if (widths.BOTH <= containerWidth) {
+    bestMode = 'BOTH';
+  } else if (widths.TEXT <= containerWidth) {
+    bestMode = 'TEXT';
+  }
+
+  // 应用到真实 DOM（安全地判断存在性）
+  links.forEach(link => {
+    const text = link.querySelector('.tab-text');
+    const icon = link.querySelector('.tab-icon');
+    if (text) text.style.display = (bestMode === 'ICON') ? 'none' : 'inline-flex';
+    if (icon) icon.style.display = (bestMode === 'TEXT') ? 'none' : 'inline-flex';
+  });
 }
 
 // 浏览器回退事件绑定

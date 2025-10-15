@@ -427,13 +427,18 @@ async def notification(request: Request, current_user = Depends(get_current_user
 # 用户管理页面
 @data_router.post("/users")
 async def users(request: Request, current_user = Depends(get_current_user)):
-    Users = WebAction(current_user).get_users().get("result")
-    TopMenus = WebAction(current_user).get_top_menus().get("menus")
+
+    Users = []
+    TopMenus = []
+    
+    if current_user.admin:
+        webAction = WebAction(current_user)
+        Users = webAction.get_users().get("result")
+        TopMenus = webAction.get_top_menus().get("menus")
 
     return response(data=
         {
             "Users": Users,
-            "UserCount": len(Users),
             "TopMenus": TopMenus,
         })
 

@@ -1,193 +1,197 @@
-<div class="page-body" id="statistics-container" style="display: none;">
-  <div class="mb-3 d-print-none">
-    <div class="row align-items-center">
-      <div class="col">
-        <h2 class="page-title">数据统计</h2>
-      </div>
-      <div class="col-auto ms-auto d-print-none">
-        <div class="btn-list">
-          <a href="javascript:ask_refresh_statistics()" class="btn btn-primary d-none d-sm-inline-flex">
-            <i class="ti ti-refresh fs-2"></i>
-            强制刷新
-          </a>
-          <a href="javascript:ask_refresh_statistics()" class="btn btn-primary d-sm-none btn-icon">
-            <i class="ti ti-refresh fs-2"></i>
-          </a>
-          <a href="javascript:show_history()" class="btn me-2 d-none d-sm-inline-flex">
-            <i class="ti ti-history fs-2"></i>
-            历史数据
-          </a>
-          <a href="javascript:show_history()" class="btn me-2 d-sm-none btn-icon">
-            <i class="ti ti-history fs-2"></i>
-          </a>
+<div id="statistics-container" style="display: none;">
+  <div class="container-xl">
+    <div class="page-header d-print-none mt-2">
+      <div class="row align-items-center">
+        <div class="col">
+          <h2 class="page-title">数据统计</h2>
+        </div>
+        <div class="col-auto ms-auto d-print-none">
+          <div class="btn-list">
+            <a href="javascript:ask_refresh_statistics()" class="btn btn-primary d-none d-sm-inline-flex">
+              <i class="ti ti-refresh fs-3"></i>
+              强制刷新
+            </a>
+            <a href="javascript:ask_refresh_statistics()" class="btn btn-primary d-sm-none btn-icon">
+              <i class="ti ti-refresh fs-3"></i>
+            </a>
+            <a href="javascript:show_history()" class="btn me-2 d-none d-sm-inline-flex">
+              <i class="ti ti-history fs-3"></i>
+              历史数据
+            </a>
+            <a href="javascript:show_history()" class="btn me-2 d-sm-none btn-icon">
+              <i class="ti ti-history fs-3"></i>
+            </a>
+          </div>
         </div>
       </div>
     </div>
   </div>
   <div class="container-xl">
-    <div class="row row-cards mb-3">
-      <div class="col-12 col-md-4 col-xl-3">
-        <div class="card card-sm">
-          <div class="card-body">
-            <div class="row align-items-center">
-              <div class="col-auto">
-                <span class="bg-blue avatar text-white">
-                  <i class="ti ti-arrow-up fs-1"></i>
-                </span>
-              </div>
-              <div class="col">
-                <div class="d-flex align-items-center">
-                  <div class="subheader">总上传量</div>
+    <div class="page-body">
+      <div class="row row-cards mb-3">
+        <div class="col-12 col-md-4 col-xl-3">
+          <div class="card card-sm">
+            <div class="card-body">
+              <div class="row align-items-center">
+                <div class="col-auto">
+                  <span class="bg-blue avatar text-white">
+                    <i class="ti ti-arrow-up fs-1"></i>
+                  </span>
                 </div>
-                <div class="d-flex align-items-baseline">
-                  <div class="h1 mb-0 me-2" id="total-upload">0 B</div>
+                <div class="col">
+                  <div class="d-flex align-items-center">
+                    <div class="subheader">总上传量</div>
+                  </div>
+                  <div class="d-flex align-items-baseline">
+                    <div class="h1 mb-0 me-2" id="total-upload">0 B</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="col-12 col-md-4 col-xl-3">
+          <div class="card card-sm">
+            <div class="card-body">
+              <div class="row align-items-center">
+                <div class="col-auto">
+                  <span class="bg-red avatar text-white">
+                    <i class="ti ti-arrow-down fs-1"></i>
+                  </span>
+                </div>
+                <div class="col">
+                  <div class="d-flex align-items-center">
+                    <div class="subheader">总下载量</div>
+                  </div>
+                  <div class="d-flex align-items-baseline">
+                    <div class="h1 mb-0 me-2" id="total-download">0 B</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="col-12 col-md-4 col-xl-3">
+          <div class="card card-sm">
+            <div class="card-body">
+              <div class="row align-items-center">
+                <div class="col-auto">
+                  <span class="bg-green avatar text-white">
+                    <i class="ti ti-seedling fs-1"></i>
+                  </span>
+                </div>
+                <div class="col">
+                  <div class="d-flex align-items-center">
+                    <div class="subheader">总做种数</div>
+                  </div>
+                  <div class="d-flex align-items-baseline">
+                    <div class="h1 mb-0 me-2" id="total-seeding">0</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="col-12 col-md-4 col-xl-3">
+          <div class="card card-sm">
+            <div class="card-body">
+              <div class="row align-items-center">
+                <div class="col-auto">
+                  <span class="bg-vimeo avatar text-white">
+                    <i class="ti ti-database fs-1"></i>
+                  </span>
+                </div>
+                <div class="col">
+                  <div class="d-flex align-items-center">
+                    <div class="subheader">总做种体积</div>
+                  </div>
+                  <div class="d-flex align-items-baseline">
+                    <div class="h1 mb-0 me-2" id="total-seeding-size">0 B</div>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
         </div>
       </div>
-      <div class="col-12 col-md-4 col-xl-3">
-        <div class="card card-sm">
-          <div class="card-body">
-            <div class="row align-items-center">
-              <div class="col-auto">
-                <span class="bg-red avatar text-white">
-                  <i class="ti ti-arrow-down fs-1"></i>
-                </span>
+      <div class="row row-cards">
+        <div class="col-lg-6">
+          <div class="card">
+            <div class="card-body">
+              <div class="d-flex">
+                <h3 class="card-title d-flex align-items-center w-100">
+                  <button class="btn btn-link btn-icon" onclick="switch_date(-1)"><i class="ti ti-chevron-left fs-2"></i></button>
+                  <span id="chart-recent-upload-title" class="w-100 chart-title">今日上传量</span>
+                  <button class="btn btn-link btn-icon" onclick="switch_date(1)"><i class="ti ti-chevron-right fs-2"></i></button>
+                </h3>
               </div>
-              <div class="col">
-                <div class="d-flex align-items-center">
-                  <div class="subheader">总下载量</div>
-                </div>
-                <div class="d-flex align-items-baseline">
-                  <div class="h1 mb-0 me-2" id="total-download">0 B</div>
-                </div>
-              </div>
+              <div id="chart-recent-upload"></div>
             </div>
           </div>
         </div>
-      </div>
-      <div class="col-12 col-md-4 col-xl-3">
-        <div class="card card-sm">
-          <div class="card-body">
-            <div class="row align-items-center">
-              <div class="col-auto">
-                <span class="bg-green avatar text-white">
-                  <i class="ti ti-seedling fs-1"></i>
-                </span>
+        <div class="col-lg-6">
+          <div class="card">
+            <div class="card-body">
+              <div class="d-flex">
+                <h3 class="card-title d-flex align-items-center w-100">
+                  <button class="btn btn-link btn-icon" onclick="switch_date(-1)"><i class="ti ti-chevron-left fs-2"></i></button>
+                  <span id="chart-recent-download-title" class="w-100 chart-title">今日下载量</span>
+                  <button class="btn btn-link btn-icon" onclick="switch_date(1)"><i class="ti ti-chevron-right fs-2"></i></button>
+                </h3>
               </div>
-              <div class="col">
-                <div class="d-flex align-items-center">
-                  <div class="subheader">总做种数</div>
-                </div>
-                <div class="d-flex align-items-baseline">
-                  <div class="h1 mb-0 me-2" id="total-seeding">0</div>
-                </div>
-              </div>
+              <div id="chart-recent-download"></div>
             </div>
           </div>
         </div>
-      </div>
-      <div class="col-12 col-md-4 col-xl-3">
-        <div class="card card-sm">
-          <div class="card-body">
-            <div class="row align-items-center">
-              <div class="col-auto">
-                <span class="bg-vimeo avatar text-white">
-                  <i class="ti ti-database fs-1"></i>
-                </span>
-              </div>
-              <div class="col">
-                <div class="d-flex align-items-center">
-                  <div class="subheader">总做种体积</div>
+        <div class="col-lg-12">
+          <div class="card">
+            <div class="card-body">
+              <div class="d-flex align-self-end">
+                <h3 class="mb-0">站点数据</h3>
+                <div class="text-muted align-self-end ms-3">共 <span id="site-count">0</span> 条记录
                 </div>
-                <div class="d-flex align-items-baseline">
-                  <div class="h1 mb-0 me-2" id="total-seeding-size">0 B</div>
-                </div>
+                <a id="share-btn-container" class="btn-icon d-flex align-items-end ms-3" style="display: none;" href="javascript:show_statistics_pic_setting_moadl()">
+                  <i class="ti ti-share fs-2"></i>
+                </a>
               </div>
             </div>
-          </div>
-        </div>
-      </div>
-    </div>
-    <div class="row row-cards">
-      <div class="col-lg-6">
-        <div class="card">
-          <div class="card-body">
-            <div class="d-flex">
-              <h3 class="card-title d-flex align-items-center w-100">
-                <button class="btn btn-link btn-icon" onclick="switch_date(-1)"><i class="ti ti-chevron-left fs-2"></i></button>
-                <span id="chart-recent-upload-title" class="w-100 chart-title">今日上传量</span>
-                <button class="btn btn-link btn-icon" onclick="switch_date(1)"><i class="ti ti-chevron-right fs-2"></i></button>
-              </h3>
+            <div id="table-site-user-data" class="table-responsive">
+              <table class="table table-vcenter card-table table-hover table-striped">
+                <thead>
+                  <tr>
+                    <th class="flex-fill">
+                      <button class="table-sort" data-sort="sort-name">站点</button>
+                    </th>
+                    <th><span class="d-none d-lg-block">等级</span></th>
+                    <th>
+                      <button class="table-sort" data-sort="sort-data">数据量</button>
+                    </th>
+                    <th>
+                      <button class="table-sort" data-sort="sort-ratio">分享率</button>
+                    </th>
+                    <th>
+                      <button class="table-sort" data-sort="sort-seeding">做种数</button>
+                    </th>
+                    <th>
+                      <button class="table-sort" data-sort="sort-size">做种体积</button>
+                    </th>
+                    <th>
+                      <button class="table-sort" data-sort="sort-bonus">魔力值(积分)</button>
+                    </th>
+                    <th><span class="d-none d-lg-block"><button class="table-sort"
+                          data-sort="sort-jtime">加入时间</button></span></th>
+                    <th><span class="d-none d-lg-block"><button class="table-sort"
+                          data-sort="sort-rtime">更新时间</button></span></th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody class="table-tbody" id="site-statistics-table-body">
+                  <tr>
+                    <td colspan="8" align="center">加载中...</td>
+                  </tr>
+                </tbody>
+              </table>
             </div>
-            <div id="chart-recent-upload"></div>
-          </div>
-        </div>
-      </div>
-      <div class="col-lg-6">
-        <div class="card">
-          <div class="card-body">
-            <div class="d-flex">
-              <h3 class="card-title d-flex align-items-center w-100">
-                <button class="btn btn-link btn-icon" onclick="switch_date(-1)"><i class="ti ti-chevron-left fs-2"></i></button>
-                <span id="chart-recent-download-title" class="w-100 chart-title">今日下载量</span>
-                <button class="btn btn-link btn-icon" onclick="switch_date(1)"><i class="ti ti-chevron-right fs-2"></i></button>
-              </h3>
-            </div>
-            <div id="chart-recent-download"></div>
-          </div>
-        </div>
-      </div>
-      <div class="col-lg-12">
-        <div class="card">
-          <div class="card-body">
-            <div class="d-flex align-self-end">
-              <h3 class="mb-0">站点数据</h3>
-              <div class="text-muted align-self-end ms-3">共 <span id="site-count">0</span> 条记录
-              </div>
-              <a id="share-btn-container" class="btn-icon d-flex align-items-end ms-3" style="display: none;" href="javascript:show_statistics_pic_setting_moadl()">
-                <i class="ti ti-share fs-2"></i>
-              </a>
-            </div>
-          </div>
-          <div id="table-site-user-data" class="table-responsive">
-            <table class="table table-vcenter card-table table-hover table-striped">
-              <thead>
-                <tr>
-                  <th class="flex-fill">
-                    <button class="table-sort" data-sort="sort-name">站点</button>
-                  </th>
-                  <th><span class="d-none d-lg-block">等级</span></th>
-                  <th>
-                    <button class="table-sort" data-sort="sort-data">数据量</button>
-                  </th>
-                  <th>
-                    <button class="table-sort" data-sort="sort-ratio">分享率</button>
-                  </th>
-                  <th>
-                    <button class="table-sort" data-sort="sort-seeding">做种数</button>
-                  </th>
-                  <th>
-                    <button class="table-sort" data-sort="sort-size">做种体积</button>
-                  </th>
-                  <th>
-                    <button class="table-sort" data-sort="sort-bonus">魔力值(积分)</button>
-                  </th>
-                  <th><span class="d-none d-lg-block"><button class="table-sort"
-                        data-sort="sort-jtime">加入时间</button></span></th>
-                  <th><span class="d-none d-lg-block"><button class="table-sort"
-                        data-sort="sort-rtime">更新时间</button></span></th>
-                  <th></th>
-                </tr>
-              </thead>
-              <tbody class="table-tbody" id="site-statistics-table-body">
-                <tr>
-                  <td colspan="8" align="center">加载中...</td>
-                </tr>
-              </tbody>
-            </table>
           </div>
         </div>
       </div>

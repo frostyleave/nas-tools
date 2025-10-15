@@ -220,13 +220,19 @@ body.theme-light::after {
         border: none;
     }
 
-    #litLayoutNavbar {
+    /* #litLayoutNavbar {
         padding-bottom: calc(env(safe-area-inset-bottom) + 61px);
-    }
+    } */
 
     #page_content {
         padding-bottom: calc(env(safe-area-inset-bottom) + 61px);
     }
+}
+
+@media (min-width: 992px) {
+  .navbar-expand-lg .offcanvas.lit-navbar-canvas {
+    height: 100vh !important;
+  }
 }
 
 .lit-person-card {
@@ -256,7 +262,7 @@ body.theme-light::after {
 }
 
 .grid-large-card {
-    grid-template-columns: repeat(auto-fill, minmax(24rem, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(clamp(16rem, 22vw, 24rem), 1fr));
 }
 
 .offcanvas-backdrop.show {
@@ -478,8 +484,71 @@ body.theme-light::after {
     height: 28px;
 }
 
+.navbar-secondary {
+    position: sticky;
+    z-index: 10;
+    box-shadow: 0 1px 8px rgba(0,0,0,0.08);
+    transition: all 0.2s ease;
+    --tblr-navbar-padding-y: 0.25rem;
+    min-height: 2rem;
+}
 
-.top-sub-navbar {
+.navbar-secondary .navbar-nav {
+    min-height: 2rem;
+}
+
+.navbar-secondary .nav-link {
+    color: var(--lit-menu-color) !important;
+    font-weight: 500;
+    position: relative;
+    transition: color 0.2s ease;
+    padding-top: 0.25rem;
+    padding-bottom: 0.25rem;
+    line-height: 1.2;
+    font-size: 0.95rem;
+}
+
+.navbar-secondary .nav-link:hover {
+    color: #007bff !important;;
+}
+
+.navbar-secondary .nav-link.active {
+    color: #007bff !important;;
+}
+
+.navbar-secondary .nav-link.active::after {
+    content: "";
+    position: absolute;
+    bottom: 0;
+    width: 100%;
+    height: 2px;
+    background: linear-gradient(90deg, #007bff, #00c6ff);
+    box-shadow: 0 0 8px rgba(0, 123, 255, 0.5);
+}
+
+.navbar-secondary.scrolled {
+    box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+    background: rgba(255,255,255,0.9);
+}
+
+.tab-icon {
+    display: inline-flex;
+    vertical-align: middle;
+    align-items: anchor-center;
+}
+
+.tab-text {
+    font-size: var(--tblr-body-font-size);
+    display: inline-flex;
+    max-width: 120px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    vertical-align: middle;
+    margin: 0 0.1rem;
+}
+
+.downloader-navbar {
     font-size: 1rem;
     border-bottom: 0;
     overflow-x: auto;
@@ -487,7 +556,7 @@ body.theme-light::after {
     white-space: nowrap;
 }
 
-div.top-sub-navbar>ul {
+.downloader-navbar>ul {
     display: flex;
     flex-wrap: nowrap;
     background: transparent;
@@ -495,32 +564,27 @@ div.top-sub-navbar>ul {
     border-bottom: 1px solid var(--tblr-navbar-border-color);
 }
 
-div.top-sub-navbar>ul>li {
-    min-width: 9.5rem;
+.downloader-navbar>ul>li {
+    min-width: 8rem;
 }
 
-div.top-sub-navbar>ul>li>a {
+.downloader-navbar>ul>li>a {
     display: block;
     text-align: center;
 }
 
-/* 手机屏幕上的样式 */
+
 @media (max-width: 576px) {
-    div.top-sub-navbar>ul {
-        justify-content: center;
-        padding: 0;
-        overflow-x: hidden;
+
+    .downloader-navbar>ul>li {
+        max-width: fit-content;
     }
 
-    div.top-sub-navbar>ul>li {
-        margin-left: 0;
-        min-width: auto;
-        flex: 1;
-    }
+}
 
-    div.top-sub-navbar>ul>li>a {
-        margin: 0 !important;
-    }
+.page-title {
+    gap: 0.5rem;
+    font-size: 1.05rem;
 }
 
 
@@ -715,42 +779,6 @@ div.top-sub-navbar>ul>li>a {
 .wave-loading-item:nth-child(5) {
     animation-delay: 0s;
 }
-
-.top-nav-link {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 6px;
-    margin-top: 2px;
-    padding: 8px 12px 8px 12px;
-}
-
-.tab-icon {
-    display: inline-block;
-    width: 24px;
-    height: 24px;
-    vertical-align: middle;
-
-}
-
-.tab-text {
-    display: inline-block;
-
-    max-width: 120px;
-
-    white-space: nowrap;
-
-    overflow: hidden;
-
-    text-overflow: ellipsis;
-
-    vertical-align: middle;
-
-    line-height: 1;
-
-    margin: 0 0.1rem;
-}
-
 
 .right-top-box {
     position: absolute;
@@ -969,4 +997,20 @@ h1.login_title>label {
 
 .mb-4.card-table {
     margin-bottom: 3rem !important;
+}
+
+.container-xl.page-body {
+    margin-top: .5rem !important;
+    padding-right: 0;
+    padding-left: 0;
+}
+
+.container-xl .page-header .row .col h2.page-title::before {
+    content: "";
+    left: 10px;
+    transform: translateY(10%);
+    width: 4px;
+    height: 1.2em;
+    background-color: var(--tblr-primary);
+    border-radius: 2px;
 }

@@ -1,5 +1,5 @@
 <div class="container-xl">
-  <div class="page-header d-print-none">
+  <div class="page-header d-print-none mt-2">
     <div class="row align-items-center">
       <div class="col">
         <h2 class="page-title">文件管理</h2>
@@ -9,8 +9,7 @@
     </div>
   </div>
 </div>
-<div class="page-body">
-  <div class="container-xl">
+<div class="container-xl">
     <div class="card bg-transparent border-0">
       <div class="ribbon ribbon-top g-cyan d-md-none">
         <a class="text-white" href="javascript:js_change_card()">
@@ -18,7 +17,7 @@
         </a>
       </div>
       <div class="row g-0">
-        <div class="col-md-4 border-end js-change-card-a">
+        <div class="col-md-4 border-start border-end js-change-card-a">
           <div class="card-body">
             <h4 class="subheader">目录</h4>
             <div class="input-icon mb-2">
@@ -32,7 +31,7 @@
               <i class="ti ti-arrow-back-up"></i>
               上级目录
             </a>
-            <div id="mediafile_tree" style="overflow-y: auto; overflow-x: hidden"></div>
+            <div id="mediafile_tree"></div>
           </div>
         </div>
         <div class="col d-md-block js-change-card-b" style="display: none;">
@@ -67,7 +66,6 @@
         </div>
       </div>
     </div>
-  </div>
 </div>
 <div class="modal modal-blur fade" id="modal-mediafile-modify" tabindex="-1" role="dialog" aria-hidden="true"
      data-bs-backdrop="static" data-bs-keyboard="false">
@@ -411,17 +409,6 @@
     init_mediafile_tree();
   }
 
-  // 计算高度
-  function init_mediafile_height() {
-    $("#mediafile_tree").css("height", $(window).height() - 225);
-    $("#mediafile_file_container").css("height", $(window).height() - 200);
-  }
-
-  // 窗口大小改变时重新计算高度
-  $(window).resize(function () {
-    init_mediafile_height();
-  });
-
 </script>
 <script id="mediafile_item_template" type="text/html">
   <div class="card mb-2">
@@ -516,8 +503,6 @@
         // 初始列表
         init_mediafile_tree();
 
-        // 初始化高度
-        init_mediafile_height();
       }
     }, true, true);
 

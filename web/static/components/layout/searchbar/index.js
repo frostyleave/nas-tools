@@ -60,7 +60,7 @@ export class LayoutSearchbar extends CustomElement {
       <div class="d-flex flex-row flex-grow-1 align-items-center py-1">
         <!-- 导航展开按钮 -->
         <button class="navbar-toggler d-lg-none ms-2" type="button" data-bs-toggle="offcanvas" data-bs-target="#litLayoutNavbar">
-          <span class="navbar-toggler-icon"></span>
+          <i class="ti ti-menu-2 fs-2"></i>
         </button>
 
         <!-- 搜索栏 -->
@@ -109,6 +109,7 @@ export class LayoutSearchbar extends CustomElement {
                 <div class="dropdown-divider"></div>
                 ${this.layout_useradmin === "1"
                   ? html`
+                      <a class="dropdown-item" href="javascript:navmenu('users')" role="button">用户管理</a>
                       <a class="dropdown-item" href="javascript:show_message_modal()" role="button">消息中心</a>
                       <a class="dropdown-item" href="javascript:show_logging_modal()" role="button">实时日志</a>
                       <div class="dropdown-divider"></div>

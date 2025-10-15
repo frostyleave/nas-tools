@@ -1,10 +1,10 @@
-<div class="top-sub-navbar mx-2" >
+<div class="downloader-navbar mx-2" >
   <input type="hidden" id="downloaderId" value="">
   <ul class="nav nav-tabs card-header-tabs" data-bs-toggle="tabs" role="tablist" id="downloader-tabs">
   </ul>
 </div>
 <div class="container-xl">
-  <div class="page-header d-print-none">
+  <div class="page-header d-print-none mt-2">
     <div class="row align-items-center">
       <div class="col">
         <input type="hidden" id="downloaderId" value="">
@@ -12,25 +12,25 @@
       <div class="col-auto ms-auto d-print-none">
         <div class="btn-list">
           <a href="javascript:navmenu('downloaders')" class="btn btn-primary d-none d-sm-inline-flex" title="下载器">
-            <i class="ti ti-tool fs-2"></i>
+            <i class="ti ti-tool fs-3"></i>
             下载器
           </a>
           <a href="javascript:navmenu('downloaders')" class="btn btn-primary d-sm-none btn-icon" title="下载器">
-            <i class="ti ti-tool fs-2"></i>
+            <i class="ti ti-tool fs-3"></i>
           </a>
           <a href="javascript:navmenu('download_setting')" class="btn btn-cyan d-none d-sm-inline-flex" title="下载配置">
-            <i class="ti ti-settings-down fs-2"></i>
+            <i class="ti ti-settings-down fs-3"></i>
             下载配置
           </a>
           <a href="javascript:navmenu('download_setting')" class="btn btn-cyan d-sm-none btn-icon" title="下载配置">
-            <i class="ti ti-settings-down fs-2"></i>
+            <i class="ti ti-settings-down fs-3"></i>
           </a>
           <button data-bs-toggle="dropdown" type="button" class="btn d-none d-sm-inline-flex dropdown-toggle">
-            <i class="ti ti-plus fs-2"></i>
+            <i class="ti ti-plus fs-3"></i>
             新增下载
           </button>
           <button data-bs-toggle="dropdown" type="button" class="btn d-sm-none btn-icon">
-            <i class="ti ti-plus fs-2"></i>
+            <i class="ti ti-plus fs-3"></i>
           </button>
           <div class="dropdown-menu dropdown-menu-end">
             <button class="dropdown-item" onclick="show_torrent_download_modal('torrent')">
@@ -274,9 +274,8 @@
           data.Downloaders.forEach(downloader => {
             const tabItem = `
               <li class="nav-item">
-                <a class="nav-link " href="void(0)" data-bs-toggle="tab" data-id="${downloader.id}" onclick="get_downloader_torrents('${downloader.id}')">
-                  <span class="d-md-none" style="color:var(--tblr-body-color);">${downloader.name}</span>
-                  <span class="d-none d-md-inline">${downloader.name}</span>
+                <a class="nav-link " href="javascript:void(0)" data-bs-toggle="tab" data-id="${downloader.id}" onclick="get_downloader_torrents('${downloader.id}')">
+                  ${downloader.name}
                 </a>
               </li>
             `;
@@ -284,9 +283,9 @@
           });
 
           // 模拟点击第一个
-          $("#downloader-tabs a.nav-link").first().trigger("click");
+          $("#downloader-tabs a.nav-link").first().click();
           $("#downloader-tabs a.nav-link").first().addClass("active")
-
+          
         }
 
       }

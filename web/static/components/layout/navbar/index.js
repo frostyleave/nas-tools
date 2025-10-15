@@ -36,28 +36,9 @@ export class LayoutNavbar extends CustomElement {
 
   connectedCallback() {
     super.connectedCallback();
-    // 确保组件在重新连接时能够正确显示
     this._ensureVisible();
-    // // 如果菜单为空，重新加载菜单数据
-    // if (!this.navbar_list?.length) {
-    //   this._loadMenus();
-    // }
   }
 
-  _loadMenus() {
-
-    axios_post_do("get_user_menus", {}, (ret) => {
-      if (ret.code === 0) {
-        this.navbar_list = ret.menus;
-        // lit 会在 navbar_list 变动时自动触发渲染
-        // this.requestUpdate();
-        this._init_page();
-      } else {
-        console.error('Failed to load menus:', ret);
-      }
-    }, false, false);
-    
-  }
 
   _ensureVisible() {
     // 如果组件是隐藏的，延迟显示
@@ -161,15 +142,22 @@ export class LayoutNavbar extends CustomElement {
     return html`
       <div class="container-fluid">
         <div class="offcanvas offcanvas-start d-flex lit-navbar-canvas shadow" tabindex="-1" id="litLayoutNavbar">
-          <div class="d-flex flex-row flex-grow-1 lit-navbar-hide-scrollbar">
-            <div class="d-flex flex-column flex-grow-1">
-              <h1 style="margin: 1.5rem; text-align: center;">
+          <div class="d-flex flex-column h-100 lit-navbar-hide-scrollbar">
+            <!-- 顶部标题 -->
+            <div class="flex-shrink-0">
+              <h1 class="text-center my-3">
                 <img src="../static/favicon.ico" style="vertical-align: bottom;border: 1px solid var(--tblr-navbar-toggler-border-color);border-radius: 5px;">
                 <label style="font-size: xx-large;color: var(--tblr-body-color);">nastool</label>
               </h1>
-              <div class="accordion px-2 py-2 flex-grow-1">
+            </div>
+            <!-- 中间可滚动内容 -->
+            <div class="flex-grow-1 overflow-auto px-2 py-2">
+              <div class="accordion">
               ${content}
               </div>
+            </div>
+            <!-- 底部固定 -->
+            <div class="flex-shrink-0 mt-auto">
               <div class="d-flex align-items-end">
                 <span class="d-flex flex-grow-1 justify-content-center border rounded-3 m-3 p-2">
                   <a href=${this._update_url} class="text-muted" target="_blank" rel="noreferrer">
@@ -188,6 +176,11 @@ export class LayoutNavbar extends CustomElement {
   }
 
   _render_page_item(item, child) {
+
+    if (item.hide) {
+      return nothing;
+    }
+
     return html`
     <a class="d-flex align-items-center p-2 nav-link lit-navbar-accordion-item${this._active_name === item.page ? "-active" : ""} ${child ? "ps-3" : "lit-navbar-accordion-button"}"
       href="#${item.page}" data-bs-dismiss="offcanvas" aria-label="Close"

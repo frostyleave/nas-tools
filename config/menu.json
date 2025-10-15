@@ -97,7 +97,7 @@
     "name": "文件",
     "level": 1,
     "page": "mediafile",
-    "group": "资源",
+    "group": "管理",
     "icon": "<i class=\"ti ti-files fs-2 \"></i>",
     "html": "/static/pages/mediafile.html",    
     "nav": [
@@ -124,21 +124,60 @@
         "page": "history",
         "icon": "<i class=\"ti ti-history fs-2 \"></i>",
         "html": "/static/pages/history.html"
+      },
+      {
+        "name": "缓存",
+        "page": "tmdbcache",
+        "icon": "<i class=\"ti ti-keyframes fs-2 \"></i>",
+        "html": "/static/pages/tmdbcache.html"
       }
     ]
   },
   {
-    "name": "缓存",
+    "name": "站点",
     "level": 1,
-    "page": "tmdbcache",
-    "group": "资源",
-    "icon": "<i class=\"ti ti-keyframes fs-2 \"></i>",
-    "html": "/static/pages/tmdbcache.html"
+    "page": "indexer",
+    "group": "管理",
+    "icon": "<i class=\"ti ti-world-www fs-2 \"></i>",
+    "html": "/static/pages/indexer.html?p=1",
+    "nav": [
+      {
+        "name": "BT索引",
+        "page": "indexer",
+        "icon": "<i class=\"ti ti-world-search fs-2 \"></i>",
+        "html": "/static/pages/indexer.html?p=1"
+      },
+      {
+        "name": "PT维护",
+        "page": "site",
+        "icon": "<i class=\"ti ti-settings-search fs-2 \"></i>",
+        "html": "/static/pages/site.html"
+      },
+      {
+        "name": "数据统计",
+        "page": "statistics",
+        "icon": "<i class=\"ti ti-chart-column fs-2 \"></i>",
+        "html": "/static/pages/statistics.html"
+      },
+      {
+        "name": "PT刷流",
+        "page": "brushtask",
+        "icon": "<i class=\"ti ti-list-check fs-2 \"></i>",
+        "html": "/static/pages/brushtask.html"
+      }
+    ]
+  },
+  {
+    "name": "插件",
+    "page": "plugin",
+    "group": "管理",
+    "icon": "<i class=\"ti ti-apps fs-2 \"></i>",
+    "html": "/static/pages/plugin.html"
   },
   {
     "name": "设置",
     "page": "basic",
-    "group": "系统",
+    "group": "管理",
     "icon": "<i class=\"ti ti-settings fs-2 \"></i>",
     "html": "/static/pages/basic.html",
     "nav": [
@@ -181,50 +220,10 @@
     ]
   },
   {
-    "name": "站点",
-    "level": 1,
-    "page": "indexer",
-    "group": "系统",
-    "icon": "<i class=\"ti ti-world-www fs-2 \"></i>",
-    "html": "/static/pages/indexer.html?p=1",
-    "nav": [
-      {
-        "name": "BT索引",
-        "page": "indexer",
-        "icon": "<i class=\"ti ti-world-search fs-2 \"></i>",
-        "html": "/static/pages/indexer.html?p=1"
-      },
-      {
-        "name": "PT维护",
-        "page": "site",
-        "icon": "<i class=\"ti ti-settings-search fs-2 \"></i>",
-        "html": "/static/pages/site.html"
-      },
-      {
-        "name": "数据统计",
-        "page": "statistics",
-        "icon": "<i class=\"ti ti-chart-column fs-2 \"></i>",
-        "html": "/static/pages/statistics.html"
-      },
-      {
-        "name": "PT刷流",
-        "page": "brushtask",
-        "icon": "<i class=\"ti ti-list-check fs-2 \"></i>",
-        "html": "/static/pages/brushtask.html"
-      }
-    ]
-  },
-  {
-    "name": "插件",
-    "page": "plugin",
-    "group": "系统",
-    "icon": "<i class=\"ti ti-apps fs-2 \"></i>",
-    "html": "/static/pages/plugin.html"
-  },
-  {
     "name": "用户",
     "page": "users",
-    "group": "系统",
+    "hide": true,
+    "group": "管理",
     "icon": "<i class=\"ti ti-users fs-2 \"></i>",
     "html": "/static/pages/users.html"
   }
