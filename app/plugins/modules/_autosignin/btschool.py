@@ -1,6 +1,7 @@
 
 from app.indexer.client.browser import PlaywrightHelper
 from app.plugins.modules._autosignin._base import _ISiteSigninHandler
+from app.sites import PtSite
 from app.utils import SiteUtils, RequestUtils
 from config import Config
 
@@ -26,19 +27,19 @@ class BTSchool(_ISiteSigninHandler):
         """
         return True if SiteUtils.url_equal(url, cls.site_url) else False
 
-    def signin(self, site_info: dict):
+    def signin(self, site_info: PtSite):
         """
         执行签到操作
         :param site_info: 站点信息, 含有站点Url、站点Cookie、UA等信息
         :return: 签到结果信息
         """
-        site = site_info.get("name")
-        site_cookie = site_info.get("cookie")
-        ua = site_info.get("ua")
-        proxy = True if site_info.get("proxy") else False
+        site = site_info.name
+        site_cookie = site_info.cookie
+        ua = site_info.ua
+        proxy = True if site_info.proxy else False
 
         # 首页
-        if site_info.get("chrome"):
+        if site_info.chrome:
             self.info(f"{site} 开始仿真签到")
             chrome = PlaywrightHelper()
             html_text = chrome.get_page_source(url=self.index_url,

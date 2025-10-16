@@ -46,8 +46,8 @@ class Rss:
         """
         RSS订阅搜索下载入口，由定时服务调用
         """
-        rss_sites_info = self.sites.get_sites(rss=True)
-        if not rss_sites_info:
+        rss_sites_list = self.sites.get_sites(rss=True)
+        if not rss_sites_list:
             return
 
         with lock:
@@ -99,33 +99,35 @@ class Rss:
             # 缺失的资源详情
             rss_no_exists = {}
             # 遍历站点资源
-            for site_info in rss_sites_info:
+            for site_info in rss_sites_list:
                 if not site_info:
                     continue
                 # 站点名称
-                site_name = site_info.get("name")
+                site_name = site_info.name
                 # 没有订阅的站点中的不搜索
                 if check_sites and site_name not in check_sites:
                     continue
                 # 站点rss链接
-                rss_url = site_info.get("rssurl")
+                rss_url = site_info.rssurl
                 if not rss_url:
                     log.info(f"【Rss】{site_name} 未配置rssurl，跳过...")
                     continue
                 # 站点信息
-                site_id = site_info.get("id")
-                site_cookie = site_info.get("cookie")
-                site_ua = site_info.get("ua")
+                site_id = site_info.id
+
+                site_cookie = site_info.cookie
+                site_ua = site_info.ua
+
                 # 是否解析种子详情
-                site_parse = site_info.get("parse")
+                site_parse = site_info.parse
                 # 是否使用代理
-                site_proxy = site_info.get("proxy")
+                site_proxy = site_info.proxy
                 # 使用的规则
-                site_fliter_rule = site_info.get("rule")
+                site_fliter_rule = site_info.rule
                 # 开始下载RSS
                 log.info(f"【Rss】正在处理：{site_name}")
-                if site_info.get("pri"):
-                    site_order = 100 - int(site_info.get("pri"))
+                if site_info.pri:
+                    site_order = 100 - site_info.pri
                 else:
                     site_order = 0
                 rss_acticles = self.rsshelper.parse_rssxml(url=rss_url)

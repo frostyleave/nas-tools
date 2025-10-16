@@ -42,10 +42,10 @@
       <div class="modal-content">
         <div class="modal-header">
           <h5 class="modal-title">插件市场</h5>
-          <button type="button" class="btn-action" aria-label="Settings" onclick="show_external_settings_page()"><i class="ti ti-settings fs-2"></i></button>
+          <!-- <button type="button" class="btn-action" aria-label="Settings" onclick="show_external_settings_page()"><i class="ti ti-settings fs-2"></i></button> -->
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
-        <div>
+        <!-- <div>
           <ul class="nav nav-fill card-header-tabs nav-tabs rounded-3" data-bs-toggle="tabs" role="tablist">
             <li class="nav-item" role="presentation">
               <a href="javascript:void(0)" onclick="load_plugin_apps_modal()" class="nav-link active" style="justify-content: center" data-bs-toggle="tab" aria-selected="true" role="tab">官方插件</a>
@@ -54,7 +54,7 @@
               <a href="javascript:void(0)" onclick="load_external_plugin_apps_modal()" class="nav-link" style="justify-content: center" data-bs-toggle="tab" aria-selected="false" role="tab" tabindex="-1">第三方插件</a>
             </li>
           </ul>
-        </div>
+        </div> -->
         <div class="modal-body" style="min-height:800px;">
           <div class="d-grid gap-3 grid-normal-card align-items-start" id="plugin_apps_content" style="display:none;"></div>
         </div>
@@ -223,7 +223,7 @@
     $("#plugin_apps_content").empty();
     // 获取插件列表
     axios_post_do("get_plugin_apps", {}, function(ret) {
-      draw_plugin_table(ret, true)
+      draw_plugin_table(ret, false)
     });
   }
 
@@ -234,7 +234,7 @@
 
     // 获取插件列表
     axios_post_do("get_external_plugin_apps", {}, function(ret) {
-      draw_plugin_table(ret, false)
+      draw_plugin_table(ret, true)
     });
 
   }

@@ -65,23 +65,23 @@ class BuiltinIndexer(_IIndexClient):
         indexer_sites = SystemConfig().get(SystemConfigKey.UserIndexerSites) or []
         _indexer_domains = []
 
-        # 私有站点
-        for site in SitesManager().get_sites():
-            url = site.get("signurl") or site.get("rssurl")
+        # PT站点
+        for pt_site in SitesManager().get_sites():
+            url = pt_site.signurl or pt_site.rssurl
             if not url:
                 continue
-            render = site.get("chrome")
+            render = pt_site.chrome
             indexer_conf = IndexerManager().build_indexer_conf(url=url,
-                                                  siteid=site.get("id"),
-                                                  cookie=site.get("cookie"),
-                                                  token=site.get("token"),
-                                                  apikey=site.get("apikey"),
-                                                  ua=site.get("ua"),
-                                                  name=site.get("name"),
-                                                  rule=site.get("rule"),
-                                                  pri=site.get('pri'),
+                                                  siteid=pt_site.id,
+                                                  cookie=pt_site.cookie,
+                                                  token=pt_site.token,
+                                                  apikey=pt_site.apikey,
+                                                  ua=pt_site.ua,
+                                                  name=pt_site.name,
+                                                  rule=pt_site.rule,
+                                                  pri=pt_site.pri,
                                                   public=False,
-                                                  proxy=site.get("proxy"),
+                                                  proxy=pt_site.proxy,
                                                   render=render)
             if indexer_conf:
                 if indexer_id and indexer_conf.id == indexer_id:
@@ -90,7 +90,7 @@ class BuiltinIndexer(_IIndexClient):
                     continue
                 if indexer_conf.domain not in _indexer_domains:
                     _indexer_domains.append(indexer_conf.domain)
-                    indexer_conf.name = site.get("name")
+                    indexer_conf.name = pt_site.name
                     ret_indexers.append(indexer_conf)
         # 公开站点
         for base_item in IndexerManager().get_all_indexer_Base():

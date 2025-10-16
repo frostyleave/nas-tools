@@ -368,20 +368,20 @@ class Downloader:
                             return None, "%s 转换磁力链失败" % content
                 else:
                     # 从HTTP链接下载种子
-                    site_info = self.sites.get_sites(siteurl=url)
+                    site_info = self.sites.get_site(siteurl=url)
                     if site_info:
-                        render = site_info.get("chrome")
-                        indexer_conf = IndexerManager().build_indexer_conf(url=site_info.get("strict_url"),
-                                                            siteid=site_info.get("id"),
-                                                            cookie=site_info.get("cookie"),
-                                                            token=site_info.get("token"),
-                                                            apikey=site_info.get("apikey"),
-                                                            ua=site_info.get("ua"),
-                                                            name=site_info.get("name"),
-                                                            rule=site_info.get("rule"),
-                                                            pri=site_info.get('pri'),
+                        render = site_info.chrome
+                        indexer_conf = IndexerManager().build_indexer_conf(url=site_info.strict_url,
+                                                            siteid=site_info.id,
+                                                            cookie=site_info.cookie,
+                                                            token=site_info.token,
+                                                            apikey=site_info.apikey,
+                                                            ua=site_info.ua,
+                                                            name=site_info.name,
+                                                            rule=site_info.rule,
+                                                            pri=site_info.pri,
                                                             public=False,
-                                                            proxy=site_info.get("proxy"),
+                                                            proxy=site_info.proxy,
                                                             render=render)
                     else:
                         indexer_conf = IndexerManager().build_indexer_conf(url=url)
@@ -465,13 +465,15 @@ class Downloader:
             # 做种时间
             seeding_time_limit = download_attr.get("seeding_time_limit")
 
-            # 下载目录设置
-            if not download_dir:
-                download_info = self.__get_download_dir_info(media_info, downloader_conf.get("download_dir"))
-                download_dir = download_info.get('path')
+            download_info = self.__get_download_dir_info(media_info, downloader_conf.get("download_dir"))
+            if download_info:
                 # 从下载目录中获取分类标签
                 if not category:
                     category = download_info.get('category')
+                # 下载目录设置
+                if not download_dir:
+                    download_dir = download_info.get('path')
+                
 
             # 下载ID
             download_id = None
@@ -1585,14 +1587,14 @@ class Downloader:
         解析种子文件, 获取集数
         :return: 集数列表、种子路径
         """
-        site_info = self.sites.get_sites(siteurl=url)
+        site_info = self.sites.get_site(siteurl=url)
         # 保存种子文件
         file_path, _, _, files, retmsg = self.get_torrent_info(
             url=url,
-            cookie=site_info.get("cookie"),
-            ua=site_info.get("ua"),
-            referer=page_url if site_info.get("referer") else None,
-            proxy=site_info.get("proxy")
+            cookie=site_info.cookie,
+            ua=site_info.ua,
+            # referer=page_url if site_info.referer else None,
+            proxy=site_info.proxy
         )
         if not files:
             log.error("【Downloader】读取种子文件集数出错: %s" % retmsg)

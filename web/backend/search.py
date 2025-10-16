@@ -218,13 +218,13 @@ def search_media_by_message(input_str, in_from: SearchType, user_id, user_name=N
         # 下载链接
         if SEARCH_MEDIA_TYPE[user_id] == "DOWNLOAD":
             # 检查是不是有这个站点
-            site_info = SitesManager().get_sites(siteurl=input_str)
-            # 偿试下载种子文件
+            site_info = SitesManager().get_site(siteurl=input_str)
+            # 尝试下载种子文件
             filepath, content, retmsg = Downloader().save_torrent_file(
                 url=input_str,
-                cookie=site_info.get("cookie"),
-                ua=site_info.get("ua"),
-                proxy=site_info.get("proxy")
+                cookie=site_info.cookie,
+                ua=site_info.ua,
+                proxy=site_info.proxy
             )
             # 下载种子出错
             if (not content or not filepath) and retmsg:
@@ -254,8 +254,8 @@ def search_media_by_message(input_str, in_from: SearchType, user_id, user_name=N
             # 获取字符串中可能的RSS站点列表
             rss_sites, content = StringUtils.get_idlist_from_string(input_str,
                                                                     [{
-                                                                        "id": site.get("name"),
-                                                                        "name": site.get("name")
+                                                                        "id": site.id,
+                                                                        "name": site.name
                                                                     } for site in SitesManager().get_sites(rss=True)])
 
             # 索引器

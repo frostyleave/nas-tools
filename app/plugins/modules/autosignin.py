@@ -16,6 +16,7 @@ from app.indexer.client.browser import PlaywrightHelper
 from app.message import Message
 from app.plugins import EventHandler
 from app.plugins.modules._base import _IPluginModule
+from app.sites import PtSite
 from app.sites.siteconf import SiteConf
 from app.sites.site_manager import SitesManager
 from app.utils import RequestUtils, ExceptionUtils, SiteUtils, SchedulerUtils
@@ -341,8 +342,8 @@ class AutoSignIn(_IPluginModule):
 
         # 遍历站点执行签到
         for site_info in sign_sites_info:
-            site_name = site_info.get('name')
-            site_id = str(site_info.get('id'))
+            site_name = site_info.name
+            site_id = str(site_info.id)
             # 执行签到
             success, sign_msg = self.signin_site(site_info)
             # 签到成功
@@ -402,20 +403,20 @@ class AutoSignIn(_IPluginModule):
                 ExceptionUtils.exception_traceback(e)
         return None
 
-    def signin_site(self, site_info) -> Tuple[bool, str]:
+    def signin_site(self, site_info:PtSite) -> Tuple[bool, str]:
         """
         签到一个站点
         """
-        site_module = self.__build_class(site_info.get("signurl"))
+        site_module = self.__build_class(site_info.signurl)
         if site_module and hasattr(site_module, "signin"):
             try:
                 return site_module().signin(site_info)
             except Exception as e:
-                return False, f"[{site_info.get('name')}]签到失败：{str(e)}"
+                return False, f"[{site_info.name}]签到失败：{str(e)}"
         else:
             return self.__signin_base(site_info)
 
-    def __signin_base(self, site_info) -> Tuple[bool, str]:
+    def __signin_base(self, site_info:PtSite) -> Tuple[bool, str]:
         """
         通用签到处理
         :param site_info: 站点信息
@@ -424,22 +425,22 @@ class AutoSignIn(_IPluginModule):
         if not site_info:
             return False, "站点信息获取失败"
 
-        site_name = site_info.get("name")
+        site_name = site_info.name
         try:
-            site_url = site_info.get("signurl")
-            site_cookie = site_info.get("cookie")
+            site_url = site_info.signurl
+            site_cookie = site_info.cookie
             
             if not site_url or not site_cookie:
-                err_msg = "未配置 %s 的站点地址或Cookie，无法签到" % str(site_name)
+                err_msg = "未配置 %s 的站点地址或Cookie, 无法签到" % str(site_name)
                 return False, err_msg
 
             home_url = SiteUtils.get_base_url(site_url)
             checkin_url = site_url if "pttime" in home_url else urljoin(home_url, "attendance.php")
             
-            ua = site_info.get("ua")
+            ua = site_info.ua
 
-            site_id = str(site_info.get('id'))
-            if site_info.get("chrome") or (self._render_sites and site_id in self._render_sites):
+            site_id = str(site_info.id)
+            if site_info.chrome or (self._render_sites and site_id in self._render_sites):
 
                 self.info(f"[{site_name}]开始仿真签到..")
                
@@ -488,7 +489,7 @@ class AutoSignIn(_IPluginModule):
                 result = PlaywrightHelper().action(url=checkin_url, 
                                                  ua=ua, 
                                                  cookies=site_cookie, 
-                                                 proxy=True if site_info.get("proxy") else False,
+                                                 proxy=True if site_info.proxy else False,
                                                  callback=_click_sign)
                 if result is None:
                     return False, f"[{site_name}]仿真签到失败: 请求网页异常"
@@ -499,7 +500,7 @@ class AutoSignIn(_IPluginModule):
                 self.info(f"[{site_name}]开始签到: {checkin_url}")
 
                 # 代理
-                proxies = Config().get_proxies() if site_info.get("proxy") else None
+                proxies = Config().get_proxies() if site_info.proxy else None
                 # 访问链接
                 res = RequestUtils(cookies=site_cookie, ua=ua, proxies=proxies).get_res(url=checkin_url)
                 if res is None:

@@ -2,8 +2,11 @@
 import importlib
 import pkgutil
 
+import log
+
 
 class SubmoduleHelper:
+
     @classmethod
     def import_submodules(cls, package, filter_func=lambda name, obj: True):
         """
@@ -19,11 +22,14 @@ class SubmoduleHelper:
             full_package_name = f'{package}.{package_name}'
             if full_package_name.startswith('_'):
                 continue
-            module = importlib.import_module(full_package_name)
-            for name, obj in module.__dict__.items():
-                if name.startswith('_'):
-                    continue
-                if isinstance(obj, type) and filter_func(name, obj):
-                    submodules.append(obj)
+            try:
+                module = importlib.import_module(full_package_name)
+                for name, obj in module.__dict__.items():
+                    if name.startswith('_'):
+                        continue
+                    if isinstance(obj, type) and filter_func(name, obj):
+                        submodules.append(obj)
+            except Exception as e:
+                log.exception(f'[Plugin]导入模块{full_package_name}出错: ', e)
 
         return submodules

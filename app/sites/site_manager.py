@@ -1,7 +1,9 @@
 import json
+import re
+
 from datetime import datetime
 from lxml import etree
-from typing import Optional
+from typing import List, Optional, Tuple
 
 import log
 
@@ -9,12 +11,11 @@ from app.helper import SiteHelper, DbHelper
 from app.indexer.client.browser import PlaywrightHelper
 from app.indexer.manager import BaseIndexer, IndexerManager
 from app.message import Message
-from app.sites.site_limiter import SiteRateLimiter
+from app.sites import PtSite, SiteRateLimiter
 from app.utils import RequestUtils, SiteUtils
 from app.utils.commons import singleton
 
 from config import Config
-
 
 @singleton
 class SitesManager:
@@ -24,13 +25,9 @@ class SitesManager:
     message = None
     dbhelper = None
 
-    _siteByIds = {}
-    _siteByUrls = {}
-    _rss_sites = []
-    _brush_sites = []
-    _statistic_sites = []
-    _signin_sites = []
-    _limiters : Optional[dict[str, SiteRateLimiter]] = {}
+    _siteByIds : dict[int, PtSite] = {}
+    _siteByUrls : dict[str, PtSite] = {}
+    _limiters : dict[int, SiteRateLimiter] = {}
 
     _MAX_CONCURRENCY = 10
 
@@ -41,23 +38,20 @@ class SitesManager:
         self.dbhelper = DbHelper()
         self.message = Message()
         # ID存储站点
-        self._siteByIds = {}
+        self._siteByIds : dict[int, PtSite] = {}
         # URL存储站点
-        self._siteByUrls = {}
-        # 开启订阅功能站点
-        self._rss_sites = []
-        # 开启刷流功能站点：
-        self._brush_sites = []
-        # 开启统计功能站点：
-        self._statistic_sites = []
-        # 开启签到功能站点：
-        self._signin_sites = []
+        self._siteByUrls : dict[str, PtSite] = {}
         # 站点限速器
-        self._limiters = {}
+        self._limiters : dict[int, SiteRateLimiter] = {}
         
         # 站点数据
         config_sites = self.dbhelper.get_config_site()
         for site in config_sites:
+
+            site_strict_url = SiteUtils.get_url_domain(site.SIGNURL or site.RSSURL)
+            if not site_strict_url:
+                continue
+
             # 站点属性
             site_note = self.__get_site_note_items(site.NOTE)
 
@@ -68,11 +62,7 @@ class SitesManager:
             site_token = site.TOKEN
             site_apikey = site.API_KEY
             site_uses = site.INCLUDE or ''
-            site_parser = ''
-            indexer_id = ''
-
             uses = []
-
             if site_uses:
                 rss_enable = True if "D" in site_uses and site_rssurl else False
                 brush_enable = True if "S" in site_uses and site_rssurl else False
@@ -84,104 +74,129 @@ class SitesManager:
                 rss_enable = False
                 brush_enable = False
                 statistic_enable = False
-            
+
+            site_parser = ''
+            indexer_id = ''            
             strict_url = SiteUtils.get_base_url(site_signurl or site_rssurl)
             # 解析器
             indexer_base = IndexerManager().get_indexer_base(strict_url)
             if indexer_base:
                 site_parser = indexer_base.parser
                 indexer_id = indexer_base.id
-
-            site_info = {
+            
+            # 从订阅链接解析passkey
+            passkey = ''
+            match = re.search(r'passkey=([a-zA-Z0-9]+)', site_rssurl)
+            if match:
+                passkey = match.group(1)
+            
+            site_data_dic = {
                 "id": site.ID,
                 "name": site.NAME,
                 "indexer_id": indexer_id,
                 "pri": site.PRI or 0,
                 "rssurl": site_rssurl,
                 "signurl": site_signurl,
+                "strict_url": strict_url,
+                "parser" : site_parser,
                 "cookie": site_cookie,
                 "token": site_token,
                 "apikey": site_apikey,
-                "rule": site_note.get("rule"),
-                "download_setting": site_note.get("download_setting"),
+                "passkey": passkey,
+                
                 "rss_enable": rss_enable,
                 "brush_enable": brush_enable,
                 "statistic_enable": statistic_enable,
                 "uses": uses,
+
                 "ua": site_note.get("ua"),
+                "rule": site_note.get("rule"),
+                "download_setting": site_note.get("download_setting"),
+
                 "parse": True if site_note.get("parse") == "Y" else False,
                 "unread_msg_notify": True if site_note.get("message") == "Y" else False,
                 "chrome": True if site_note.get("chrome") == "Y" else False,
                 "proxy": True if site_note.get("proxy") == "Y" else False,
-                "subtitle": True if site_note.get("subtitle") == "Y" else False,
-                "limit_interval": site_note.get("limit_interval"),
-                "limit_count": site_note.get("limit_count"),
-                "limit_seconds": site_note.get("limit_seconds"),
-                "strict_url": strict_url,
-                "parser" : site_parser
+                "subtitle": True if site_note.get("subtitle") == "Y" else False
             }
+
+            # 限流策略参数
+            limit_interval = site_note.get("limit_interval")
+            if limit_interval and str(limit_interval).isdigit():
+                site_data_dic["limit_interval"] = int(limit_interval)
+
+            limit_count = site_note.get("limit_count")
+            if limit_count and str(limit_count).isdigit():
+                site_data_dic["limit_count"] = int(limit_count)
+
+            limit_seconds = site_note.get("limit_seconds")
+            if limit_seconds and str(limit_seconds).isdigit():
+                site_data_dic["limit_seconds"] = int(limit_seconds)           
+
+            # 实例化
+            site_info = PtSite.from_datas(site_data_dic)
 
             # 以ID存储
             self._siteByIds[site.ID] = site_info
-
             # 以域名存储
-            site_strict_url = SiteUtils.get_url_domain(site.SIGNURL or site.RSSURL)
-            if site_strict_url:
-                self._siteByUrls[site_strict_url] = site_info
+            self._siteByUrls[site_strict_url] = site_info
 
             # 初始化站点限速器
             self._limiters[site.ID] = SiteRateLimiter(
-                limit_interval=int(site_note.get("limit_interval")) * 60 if site_note.get("limit_interval") and str(
-                    site_note.get("limit_interval")).isdigit() and site_note.get("limit_count") and str(
-                    site_note.get("limit_count")).isdigit() else None,
-                limit_count=int(site_note.get("limit_count")) if site_note.get("limit_interval") and str(
-                    site_note.get("limit_interval")).isdigit() and site_note.get("limit_count") and str(
-                    site_note.get("limit_count")).isdigit() else None,
-                limit_seconds=int(site_note.get("limit_seconds")) if site_note.get("limit_seconds") and str(
-                    site_note.get("limit_seconds")).isdigit() else None
+                limit_interval= site_info.limit_interval if site_info.limit_interval and site_info.limit_count else None,
+                limit_count = site_info.limit_count if site_info.limit_interval and site_info.limit_count else None,
+                limit_seconds = site_info.limit_seconds
             )
 
-    def get_sites(self,
+    def get_site(self,
                   siteid=None,
-                  siteurl=None,
+                  siteurl=None) -> Optional[PtSite]:
+        """
+        获取单个站点配置
+        """
+        if siteid:
+            return self._siteByIds.get(int(siteid)) or None
+        if siteurl:
+            url_domain = SiteUtils.get_url_domain(siteurl)
+            return self._siteByUrls.get(url_domain) or None
+        return None
+
+    def get_sites(self,
                   siteids=None,
                   rss=False,
                   brush=False,
-                  statistic=False):
+                  statistic=False) -> List[PtSite]:
         """
         获取站点配置
         """
-        if siteid:
-            return self._siteByIds.get(int(siteid)) or {}
-        if siteurl:
-            return self._siteByUrls.get(SiteUtils.get_url_domain(siteurl)) or {}
 
         ret_sites = []
         for site in self._siteByIds.values():
-            if rss and not site.get('rss_enable'):
+            if rss and not site.rss_enable:
                 continue
-            if brush and not site.get('brush_enable'):
+            if brush and not site.brush_enable:
                 continue
-            if statistic and not site.get('statistic_enable'):
+            if statistic and not site.statistic_enable:
                 continue
-            if siteids and str(site.get('id')) not in siteids:
+            if siteids and str(site.id) not in siteids:
                 continue
             ret_sites.append(site)
-        if siteid or siteurl:
-            return {}
+
         return ret_sites
 
-    def check_ratelimit(self, site_id):
+    def check_ratelimit(self, site_id) -> bool:
         """
         检查站点是否触发流控
         :param site_id: 站点ID
-        :return: True为触发了流控，False为未触发
+        :return: True为触发了流控, False为未触发
         """
-        if not self._limiters.get(site_id):
+        site_limiter = self._limiters.get(site_id)
+        if not site_limiter:
             return False
-        state, msg = self._limiters[site_id].check_rate_limit()
+
+        state, msg = site_limiter.check_rate_limit()
         if msg:
-            log.warn(f"【Sites】站点 {self._siteByIds[site_id].get('name')} {msg}")
+            log.warn(f"【Sites】站点 {self._siteByIds[site_id].name} {msg}")
         return state
 
     def get_sites_by_suffix(self, suffix):
@@ -197,23 +212,23 @@ class SitesManager:
                 return self._siteByUrls[key]
         return {}
 
-    def get_sites_by_name(self, name):
+    def get_sites_by_name(self, name) -> List[PtSite]:
         """
         根据站点名称获取站点配置
         """
         ret_sites = []
         for site in self._siteByIds.values():
-            if site.get("name") == name:
+            if site.name == name:
                 ret_sites.append(site)
         return ret_sites
 
-    def get_max_site_pri(self):
+    def get_max_site_pri(self) -> int:
         """
         获取最大站点优先级
         """
         if not self._siteByIds:
             return 0
-        return max([int(site.get("pri")) for site in self._siteByIds.values()])
+        return max([site.pri for site in self._siteByIds.values()])
 
     def get_site_dict(self,
                       rss=False,
@@ -224,8 +239,8 @@ class SitesManager:
         """
         return [
             {
-                "id": site.get("id"),
-                "name": site.get("name")
+                "id": site.id,
+                "name": site.name
             } for site in self.get_sites(
                 rss=rss,
                 brush=brush,
@@ -236,78 +251,81 @@ class SitesManager:
     def get_site_names(self,
                        rss=False,
                        brush=False,
-                       statistic=False):
+                       statistic=False) -> List[str]:
         """
-        获取站点名称
+        获取站点名称集合
         """
         return [
-            site.get("name") for site in self.get_sites(
+            site.name for site in self.get_sites(
                 rss=rss,
                 brush=brush,
                 statistic=statistic
             )
         ]
 
-    def get_site_download_setting(self, site_name=None):
+    def get_site_download_setting(self, site_name=None) -> Optional[str]:
         """
         获取站点下载设置
         """
         if site_name:
             for site in self._siteByIds.values():
-                if site.get("name") == site_name:
-                    return site.get("download_setting")
+                if site.name == site_name:
+                    return site.download_setting
         return None
 
-    def test_connection(self, site_id):
+    def test_connection(self, site_id) -> Tuple[bool, str, int]:
         """
         测试站点连通性
         :param site_id: 站点编号
         :return: 是否连通、错误信息、耗时
         """
-        site_info = self.get_sites(siteid=site_id)
+        site_info = self.get_site(siteid=site_id)
         if not site_info:
             return False, "站点不存在", 0
-        site_cookie = site_info.get("cookie")
+        
+        # todo 
+        site_cookie = site_info.cookie
         if not site_cookie:
             return False, "未配置站点Cookie", 0
-        ua = site_info.get("ua") or Config().get_ua()
-        site_url = SiteUtils.get_base_url(site_info.get("signurl") or site_info.get("rssurl"))
-        if not site_url:
-            return False, "未配置站点地址", 0
+        
+        ua = site_info.ua or Config().get_ua()
+        site_url = site_info.strict_url
 
-        if site_info.get("chrome"):
-            # 计时
-            start_time = datetime.now()
-            proxy=True if site_info.get("proxy") else False
-            # 判断是否已签到
+        # 计时
+        start_time = datetime.now()
+
+        # 仿真
+        if site_info.chrome:
+            proxy=True if site_info.proxy else False
+            # 访问主页
             html_text = PlaywrightHelper().get_page_source(url=site_url, ua=ua, cookies=site_cookie, proxy=proxy, headless=False)
             if not html_text:
                 return False, "获取站点源码失败", 0
+            
             seconds = int((datetime.now() - start_time).microseconds / 1000)
             if SiteHelper.is_logged_in(html_text):
                 return True, "连接成功", seconds
             else:
                 return False, "Cookie失效", seconds
-        else:
-            # 计时
-            start_time = datetime.now()
-            res = RequestUtils(cookies=site_cookie,
-                               ua=ua,
-                               proxies=Config().get_proxies() if site_info.get("proxy") else None
-                               ).get_res(url=site_url)
-            seconds = int((datetime.now() - start_time).microseconds / 1000)
-            if res and res.status_code == 200:
-                if not SiteHelper.is_logged_in(res.text):
-                    return False, "Cookie失效", seconds
-                else:
-                    return True, "连接成功", seconds
-            elif res is not None:
-                return False, f"连接失败，状态码：{res.status_code}", seconds
+        
+        res = RequestUtils(cookies=site_cookie,
+                           ua=ua,
+                           proxies=Config().get_proxies() if site_info.proxy else None
+                           ).get_res(url=site_url)
+        
+        seconds = int((datetime.now() - start_time).microseconds / 1000)
+        if res and res.status_code == 200:
+            if not SiteHelper.is_logged_in(res.text):
+                return False, "Cookie失效", seconds
             else:
-                return False, "无法打开网站", seconds
+                return True, "连接成功", seconds
+        elif res is not None:
+            return False, f"连接失败，状态码：{res.status_code}", seconds
+        else:
+            return False, "无法打开网站", seconds
 
     # 解析网站下载链接
-    def parse_site_download_url(self, page_url, xpath):
+    def parse_site_download_url(self, page_url, xpath) -> Optional[str]:
         """
         从站点详情页面中解析中下载链接
         :param page_url: 详情页面地址

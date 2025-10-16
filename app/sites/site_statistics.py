@@ -12,7 +12,7 @@ from app.helper import SubmoduleHelper, DbHelper
 from app.indexer.client.browser import PlaywrightHelper
 from app.message import Message
 from app.sites.siteuserinfo._base import _ISiteUserInfo
-from app.sites.site_manager import SitesManager
+from app.sites import PtSite, SitesManager
 from app.sites.siteuserinfo.mTorrent import MTorrentUserInfo
 from app.utils.types import Spider
 from app.utils import RequestUtils, StringUtils
@@ -179,25 +179,25 @@ class SitesDataStatisticsCenter(object):
         
         return html_text
 
-    def __refresh_site_data(self, site_info):
+    def __refresh_site_data(self, site_info: PtSite):
         """
         更新单个site 数据信息
         :param site_info:
         :return:
         """
-        site_url = site_info.get("strict_url")
+        site_url = site_info.strict_url
         if not site_url:
             return None
         
-        site_id = site_info.get("id")
-        site_name = site_info.get("name")
-        site_cookie = site_info.get("cookie")
-        site_appkey = site_info.get("apikey")
-        ua = site_info.get("ua")
-        unread_msg_notify = site_info.get("unread_msg_notify")
-        chrome = site_info.get("chrome")
-        proxy = site_info.get("proxy")
-        parser = site_info.get("parser")
+        site_id = site_info.id
+        site_name = site_info.name
+        site_cookie = site_info.cookie
+        site_appkey = site_info.apikey
+        ua = site_info.ua
+        unread_msg_notify = site_info.unread_msg_notify
+        chrome = site_info.chrome
+        proxy = site_info.proxy
+        parser = site_info.parser
 
         try:
             site_user_info = self.build(url=site_url,
@@ -311,7 +311,7 @@ class SitesDataStatisticsCenter(object):
                 refresh_sites = self.sites.get_sites(statistic=True)
             else:
                 refresh_sites = [site for site in self.sites.get_sites(statistic=True) if
-                                 site.get("name") in specify_sites]
+                                 site.name in specify_sites]
 
             if not refresh_sites:
                 return
@@ -336,7 +336,7 @@ class SitesDataStatisticsCenter(object):
         """
         site_urls = []
         for site in self.sites.get_sites(statistic=True):
-            site_url = site.get("strict_url")
+            site_url = site.strict_url
             if site_url:
                 site_urls.append(site_url)
 
@@ -351,10 +351,10 @@ class SitesDataStatisticsCenter(object):
         """
         statistic_sites = self.sites.get_sites(statistic=True)
         if not sites:
-            site_urls = [site.get("strict_url") for site in statistic_sites]
+            site_urls = [site.strict_url for site in statistic_sites]
         else:
-            site_urls = [site.get("strict_url") for site in statistic_sites
-                         if site.get("name") in sites]
+            site_urls = [site.strict_url for site in statistic_sites
+                         if site.name in sites]
 
         raw_statistics = self.dbhelper.get_site_user_statistics(strict_urls=site_urls)
         if encoding == "RAW":

@@ -4,10 +4,11 @@ import shutil
 from lxml import etree
 
 import log
-from app.sites.site_manager import SitesManager
-from app.sites.siteconf import SiteConf
+
+from app.sites import SiteConf, SitesManager
 from app.helper import SiteHelper
 from app.utils import RequestUtils, SiteUtils, PathUtils, SiteUtils
+
 from config import Config, RMT_SUBEXT
 
 

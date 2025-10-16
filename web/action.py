@@ -680,15 +680,15 @@ class WebAction:
             if not url:
                 continue
             # 查询站点
-            site_info = SitesManager().get_sites(siteurl=url)
+            site_info = SitesManager().get_site(siteurl=url)
             if not site_info:
                 return {"code": -1, "msg": "根据链接地址未匹配到站点"}
             # 下载种子文件，并读取信息
             file_path, _, _, _, retmsg = Downloader().get_torrent_info(
                 url=url,
-                cookie=site_info.get("cookie"),
-                ua=site_info.get("ua"),
-                proxy=site_info.get("proxy")
+                cookie=site_info.cookie,
+                ua=site_info.ua,
+                proxy=site_info.proxy
             )
             if not file_path:
                 return {"code": -1, "msg": f"下载种子文件失败： {retmsg}"}
@@ -1122,11 +1122,11 @@ class WebAction:
             return {"code": 400, "msg": "站点名称重复"}
 
         if tid:
-            sites = _sites.get_sites(siteid=tid)
+            site_data = _sites.get_site(siteid=tid)
             # 站点不存在
-            if not sites:
+            if not site_data:
                 return {"code": 400, "msg": "站点不存在"}
-            old_name = sites.get('name')
+            old_name = site_data.name
             ret = _sites.update_site(tid=tid,
                                      name=name,
                                      site_pri=site_pri,
@@ -1163,9 +1163,9 @@ class WebAction:
         site_2xfree = False
         site_hr = False
         if tid:
-            ret = SitesManager().get_sites(siteid=tid)
-            if ret.get("rssurl"):
-                site_attr = SiteConf().get_grap_conf(ret.get("rssurl"))
+            ret = SitesManager().get_site(siteid=tid)
+            if ret.rssurl:
+                site_attr = SiteConf().get_grap_conf(ret.rssurl)
                 if site_attr.get("FREE"):
                     site_free = True
                 if site_attr.get("2XFREE"):

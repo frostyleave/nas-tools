@@ -53,7 +53,6 @@
           sitesList.empty();
 
           data.Sites.forEach(site => {
-            const iconClass = site.public ? `siteicon-${site.id}` : `siteicon-${site.name.hashCode()}`;
 
             const siteCard = `
               <a class="card card-link-pop"

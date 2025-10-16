@@ -1,4 +1,6 @@
 import re
+import json
+import time
 from copy import deepcopy
 from datetime import datetime, timedelta
 from threading import Event
@@ -13,17 +15,17 @@ from app.downloader import Downloader
 from app.media.meta import MetaInfo
 from app.plugins.modules._base import _IPluginModule
 from app.plugins.modules.iyuu.iyuu_helper import IyuuHelper
-from app.sites import SitesManager
+from app.sites import Sites
 from app.utils import RequestUtils
 from app.utils.types import DownloaderType
 from config import Config
 
 
-class IYUUAutoSeed(_IPluginModule):
+class IYUUAutoSeedEnhance(_IPluginModule):
     # 插件名称
-    module_name = "IYUU自动辅种"
+    module_name = "IYUU自动辅种(增强版)"
     # 插件描述
-    module_desc = "基于IYUU官方Api实现自动辅种。"
+    module_desc = "基于原版IYUU插件修改而来"
     # 插件图标
     module_icon = "iyuu.png"
     # 主题色
@@ -31,17 +33,18 @@ class IYUUAutoSeed(_IPluginModule):
     # 插件版本
     module_version = "1.0"
     # 插件作者
-    module_author = "jxxghp"
+    module_author = "mattoid"
     # 作者主页
-    author_url = "https://github.com/jxxghp"
+    author_url = "https://github.com/Mattoids"
     # 插件配置项ID前缀
-    module_config_prefix = "iyuuautoseed_"
+    module_config_prefix = "iyuuautoseedenhance_"
     # 加载顺序
-    module_order = 20
+    module_order = 21
     # 可使用的用户级别
     user_level = 2
 
     # 私有属性
+    _rebind = False
     _scheduler = None
     downloader = None
     iyuuhelper = None
@@ -75,6 +78,7 @@ class IYUUAutoSeed(_IPluginModule):
     _success_caches = []
     # 辅种缓存，出错的种子不再重复辅种，且无法清除。种子被删除404等情况
     _permanent_error_caches = []
+    _history_list = []
     # 辅种计数
     total = 0
     realtotal = 0
@@ -83,11 +87,14 @@ class IYUUAutoSeed(_IPluginModule):
     fail = 0
     cached = 0
 
+    _version = "2.0.0"
+    _api_base = "https://api.iyuu.cn/%s"
+
     @staticmethod
     def get_fields():
         downloaders = {k: v for k, v in Downloader().get_downloader_conf_simple().items()
                        if v.get("type") in ["qbittorrent", "transmission"] and v.get("enabled")}
-        sites = {site.get("id"): site for site in SitesManager().get_site_dict()}
+        sites = {site.get("id"): site for site in Sites().get_site_dict()}
         return [
             # 同一板块
             {
@@ -208,12 +215,12 @@ class IYUUAutoSeed(_IPluginModule):
 
     def init_config(self, config=None):
         self.downloader = Downloader()
-        self.sites = SitesManager()
+        self.sites = Sites()
         # 读取配置
         if config:
             self._enable = config.get("enable")
             self._onlyonce = config.get("onlyonce")
-            self._cron = self.quartz_cron_compatible(config.get("cron"))
+            self._cron = config.get("cron")
             self._token = config.get("token")
             self._downloaders = config.get("downloaders")
             self._sites = config.get("sites")
@@ -223,6 +230,8 @@ class IYUUAutoSeed(_IPluginModule):
             self._permanent_error_caches = config.get("permanent_error_caches") or []
             self._error_caches = [] if self._clearcache else config.get("error_caches") or []
             self._success_caches = [] if self._clearcache else config.get("success_caches") or []
+
+        self._history_list = self.get_history() or []
         # 停止现有任务
         self.stop_service()
 
@@ -272,13 +281,94 @@ class IYUUAutoSeed(_IPluginModule):
         if not self.iyuuhelper:
             self.iyuuhelper = IyuuHelper(token=self._token)
         auth_sites = self.iyuuhelper.get_auth_sites()
+        if self.__get_user() and not self._rebind:
+            template = """
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col">
+                            <div class="mb-3">
+                                <div class="form-group">
+                                     <div class="col-sm-3">
+                                          <select name="iyuu_enhance_site" id="iyuu_enhance_site" class="selectpicker show-tick form-control" data-width="98%" data-first-option="false" title='站点(必选)' required data-live-search="true">
+                                              {% for Site in HistorySites %}
+                                              <option value="{{ HistorySites[Site].base_url }}">【{{ HistorySites[Site].nickname }}】{{ HistorySites[Site].base_url }}</option>
+                                              {% endfor %}
+                                          </select>
+                                     </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col">
+                            <div class="mb-3">
+                                <input type="text" id="iyuu_enhance_image" class="form-control" placeholder="镜像站；代理域名或者镜像域名(仅域名部分，例如：pt.baidu.com)，如果不理解请勿设置。">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="table-responsive table-modal-body">
+                           <table class="table table-vcenter card-table table-hover table-striped">
+                             <thead>
+                             <tr>
+                               <th>序号</th>
+                               <th>站点</th>
+                               <th>镜像</th>
+                               <th>添加时间</th>
+                               <th>操作</th>
+                             </tr>
+                             </thead>
+                             <tbody>
+                             {% if HistoryCount > 0 %}
+                                 {% for Item in HistoryList %}
+                                    <tr id="movie_iyuu_history_{{ Item.id }}">
+                                        <td>{{ Item.id }}</td>
+                                        <td>{{ Item.site }}</td>
+                                        <td>{{ Item.image }}</td>
+                                        <td>{{ Item.time }}</td>
+                                        <td>
+                                         <div class="dropdown">
+                                           <a href="#" class="btn-action" data-bs-toggle="dropdown"
+                                              aria-expanded="false">
+                                             <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-dots-vertical {{ class }}"
+                                                  width="24" height="24" viewBox="0 0 24 24"
+                                                  stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                                               <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+                                               <circle cx="12" cy="12" r="1"></circle>
+                                               <circle cx="12" cy="19" r="1"></circle>
+                                               <circle cx="12" cy="5" r="1"></circle>
+                                             </svg>
+                                           </a>
+                                           <div class="dropdown-menu dropdown-menu-end">
+                                             <a class="dropdown-item text-danger"
+                                                href='javascript:IYUUEnhance_delete_history("{{ Item.id }}", "{{ Item.site }}")'>
+                                               删除
+                                             </a>
+                                           </div>
+                                         </div>
+                                       </td>
+                                    </tr>
+                                 {% endfor %}
+                             {% endif %}
+                             </tbody>
+                           </table>
+                        </div>
+                    </div>
+                </div>
+            """
+            return "配置插件", Template(template).render(
+                HistorySites=self.__get_sites(),
+                HistoryCount=len(self._history_list),
+                HistoryList=self._history_list
+            ), "IYUUEnhanceAddImageSite()"
+
         template = """
                   <div class="modal-body">
                     <div class="row">
                         <div class="col">
                             <div class="mb-3">
                                 <label class="form-label required">IYUU合作站点</label>
-                                <select class="form-control" id="iyuuautoseed_site" onchange="">
+                                <select class="form-control" id="iyuuautoseedenhance_site" onchange="">
                                     {% for Site in AuthSites %}
                                     <option value="{{ Site.site }}">{{ Site.site }}</option>
                                     {% endfor %}
@@ -290,20 +380,20 @@ class IYUUAutoSeed(_IPluginModule):
                         <div class="col-lg">
                             <div class="mb-3">
                                 <label class="form-label required">用户ID</label>
-                                <input class="form-control" autocomplete="off" type="text" id="iyuuautoseed_uid" placeholder="uid">
+                                <input class="form-control" autocomplete="off" type="text" id="iyuuautoseedenhance_uid" placeholder="uid">
                             </div>
                         </div>
                         <div class="col-lg">
                             <div class="mb-3">
                                 <label class="form-label required">PassKey</label>
-                                <input class="form-control" autocomplete="off" type="text" id="iyuuautoseed_passkey" placeholder="passkey">
+                                <input class="form-control" autocomplete="off" type="text" id="iyuuautoseedenhance_passkey" placeholder="passkey">
                             </div>
                         </div>
                     </div>
                   </div>
                 """
         return "IYUU站点绑定", Template(template).render(AuthSites=auth_sites,
-                                                         IyuuToken=self._token), "IYUUAutoSeed_user_bind_site()"
+                                                         IyuuToken=self._token), "IYUUAutoSeedEnhance_user_bind_site()"
 
     @staticmethod
     def get_script():
@@ -311,30 +401,56 @@ class IYUUAutoSeed(_IPluginModule):
         页面JS脚本
         """
         return """
+          // 添加镜像站点
+          function IYUUEnhanceAddImageSite() {
+            let site = $("#iyuu_enhance_site").val();
+            let image = $("#iyuu_enhance_image").val();
+
+            ajax_post("run_plugin_method", {"plugin_id": 'IYUUAutoSeedEnhance', 'method': 'add_image_site', "site": site, "image": image}, function (ret) {
+                $("#modal-plugin-page").modal('hide');
+                if (ret.result.code === 0) {
+                    show_success_modal("添加成功！", function () {
+                        $("#modal-plugin-IYUUAutoSeedEnhance").modal('show');
+                    });
+                } else {
+                    show_fail_modal(ret.result.msg, function(){
+                        $("#modal-plugin-page").modal('show');
+                    });
+                }
+            });
+          }
+
+          // 删除镜像站
+          function IYUUEnhance_delete_history(id, site) {
+            ajax_post("run_plugin_method", {"plugin_id": 'IYUUAutoSeedEnhance', 'method': 'delete_iyuu_enhance_history', 'site': site}, function (ret) {
+              $("#movie_iyuu_history_" + id).remove();
+            });
+          }
+
           // IYUU站点认证
-          function IYUUAutoSeed_user_bind_site(){
-            let site = $("#iyuuautoseed_site").val();
-            let uid = $("#iyuuautoseed_uid").val();
-            let passkey = $("#iyuuautoseed_passkey").val();
+          function IYUUAutoSeedEnhance_user_bind_site(){
+            let site = $("#iyuuautoseedenhance_site").val();
+            let uid = $("#iyuuautoseedenhance_uid").val();
+            let passkey = $("#iyuuautoseedenhance_passkey").val();
             let token = '{{ IyuuToken }}';
             if (!uid) {
-                $("#iyuuautoseed_uid").addClass("is-invalid");
+                $("#iyuuautoseedenhance_uid").addClass("is-invalid");
                 return;
             } else {
-                $("#iyuuautoseed_uid").removeClass("is-invalid");
+                $("#iyuuautoseedenhance_uid").removeClass("is-invalid");
             }
             if (!passkey) {
-                $("#iyuuautoseed_passkey").addClass("is-invalid");
+                $("#iyuuautoseedenhance_passkey").addClass("is-invalid");
                 return;
             } else {
-                $("#iyuuautoseed_passkey").removeClass("is-invalid");
+                $("#iyuuautoseedenhance_passkey").removeClass("is-invalid");
             }
             // 认证
-            axios_post_do("run_plugin_method", {"plugin_id": 'IYUUAutoSeed', 'method': 'iyuu_bind_site', "site": site, "uid": uid, "passkey": passkey}, function (ret) {
+            ajax_post("run_plugin_method", {"plugin_id": 'IYUUAutoSeedEnhance', 'method': 'iyuu_bind_site', "site": site, "uid": uid, "passkey": passkey}, function (ret) {
                 $("#modal-plugin-page").modal('hide');
                 if (ret.result.code === 0) {
                     show_success_modal("IYUU用户认证成功！", function () {
-                        $("#modal-plugin-IYUUAutoSeed").modal('show');
+                        $("#modal-plugin-IYUUAutoSeedEnhance").modal('show');
                     });
                 } else {
                     show_fail_modal(ret.result.msg, function(){
@@ -345,13 +461,61 @@ class IYUUAutoSeed(_IPluginModule):
           }
         """
 
+    def resetting_bind(self):
+        key = "iyuu_bind_site"
+        self._rebind = True
+        self.history(key=key, value={})
+        return {"code": 0, "msg": "重置成功"}
+
+    def delete_iyuu_enhance_history(self, site):
+        self.delete_history(site)
+        self._history_list = self.get_history() or []
+        return {"code": 0, "msg": "删除成功"}
+
+    def add_image_site(self, site, image):
+        if not site:
+            return {"code": 1, "msg": "站点不能为空"}
+        if not image:
+            return {"code": 1, "msg": "镜像站不能为空"}
+        history = self.get_history(site)
+        print(history)
+        if history:
+            history["site"] = site
+            history["image"] = image
+            history["time"] = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time()))
+            self.update_history(site, history)
+        else:
+            history_list = self.get_history()
+            if history_list:
+                id = history_list[-1]["id"] + 1
+            else:
+                id = 1
+            data = {
+                "id": id,
+                "site": site,
+                "image": image,
+                "time": time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time()))
+            }
+            self.history(site, data)
+
+        self._history_list = self.get_history() or []
+        return {"code": 0, "msg": "添加成功"}
+
     def iyuu_bind_site(self, site, passkey, uid):
         """
         IYUU绑定合作站点
         """
+        key = "iyuu_bind_site"
+        bind_history = self.get_history(key=key) or {}
+        if bind_history:
+            return {"code": 0 if bind_history['success'] else 1, "msg": "绑定成功"}
         state, msg = self.iyuuhelper.bind_site(site=site,
                                                passkey=passkey,
                                                uid=uid)
+        if state['success']:
+            self._rebind = False
+            self.history(key=key, value=state)
+
         return {"code": 0 if state else 1, "msg": msg}
 
     def __update_config(self):
@@ -631,8 +795,11 @@ class IYUUAutoSeed(_IPluginModule):
         # 查询站点
         site_info = self.sites.get_sites(siteurl=site_url)
         if not site_info:
-            self.debug(f"没有维护种子对应的站点：{site_url}")
-            return False
+            new_site_url = self.get_history(site_url)
+            site_info = self.sites.get_sites(siteurl=new_site_url)
+            if not site_info:
+                self.debug(f"没有维护种子对应的站点：{site_url}")
+                return False
         if self._sites and str(site_info.get("id")) not in self._sites:
             self.info("当前站点不在选择的辅助站点范围，跳过 ...")
             return False
@@ -817,7 +984,7 @@ class IYUUAutoSeed(_IPluginModule):
             self.info(f"正在获取种子下载链接：{page_url} ...")
             res = RequestUtils(
                 cookies=site.get("cookie"),
-                ua=site.get("ua"),
+                headers=site.get("ua"),
                 proxies=Config().get_proxies() if site.get("proxy") else None
             ).get_res(url=page_url)
             if res is not None and res.status_code in (200, 500):
@@ -864,3 +1031,72 @@ class IYUUAutoSeed(_IPluginModule):
                 self._scheduler = None
         except Exception as e:
             print(str(e))
+
+    def __request_iyuu(self, url, method="get", params=None):
+        """
+        向IYUUApi发送请求
+        """
+        if params:
+            if not params.get("sign"):
+                params.update({"sign": self._token})
+            if not params.get("version"):
+                params.update({"version": self._version})
+        else:
+            params = {"sign": self._token, "version": self._version}
+        # 开始请求
+        if method == "get":
+            ret = RequestUtils(
+                accept_type="application/json"
+            ).get_res(f"{url}", params=params)
+        else:
+            ret = RequestUtils(
+                accept_type="application/json"
+            ).post_res(f"{url}", data=params)
+        if ret:
+            result = ret.json()
+            if result.get('ret') == 200:
+                return result.get('data'), ""
+            else:
+                return None, f"请求IYUU失败，状态码：{result.get('ret')}，返回信息：{result.get('msg')}"
+        elif ret is not None:
+            return None, f"请求IYUU失败，状态码：{ret.status_code}，错误原因：{ret.reason}"
+        else:
+            return None, f"请求IYUU失败，未获取到返回信息"
+
+    def __get_sites(self):
+        """
+        返回支持辅种的全部站点
+        :return: 站点列表、错误信息
+        {
+            "ret": 200,
+            "data": {
+                "sites": [
+                    {
+                        "id": 1,
+                        "site": "keepfrds",
+                        "nickname": "朋友",
+                        "base_url": "pt.keepfrds.com",
+                        "download_page": "download.php?id={}&passkey={passkey}",
+                        "reseed_check": "passkey",
+                        "is_https": 2
+                    },
+                ]
+            }
+        }
+        """
+        result, msg = self.__request_iyuu(url=self._api_base % 'App.Api.Sites')
+        if result:
+            ret_sites = {}
+            sites = result.get('sites') or []
+            for site in sites:
+                ret_sites[site.get('id')] = site
+            return ret_sites
+        else:
+            print(msg)
+            return {}
+
+    def __get_user(self):
+        result, msg = self.__request_iyuu(url=self._api_base % 'App.Api.GetUser')
+        if result and result.get("user") and result.get("user").get("username"):
+            return True
+        return False

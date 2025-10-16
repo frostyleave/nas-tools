@@ -359,7 +359,7 @@ async def sites_page(request: Request, current_user = Depends(get_current_user))
     cookie_cloud_cfg = SystemConfig().get(SystemConfigKey.CookieCloud)
     cookie_user_info_cfg = SystemConfig().get(SystemConfigKey.CookieUserInfo)
 
-    sorted_list = sorted(cfg_sites, key=lambda x: x.get("indexer_id", "") not in indexer_sites)
+    sorted_list = sorted(cfg_sites, key=lambda x: x.indexer_id not in indexer_sites)
 
     return response(data=
         {

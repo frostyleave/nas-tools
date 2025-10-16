@@ -2,15 +2,14 @@ import base64
 import time
 
 from lxml import etree
-from typing import Tuple, Optional
+from typing import List, Tuple, Optional
 from playwright.sync_api import Page
 
 
 import log
 from app.helper import ProgressHelper, OcrHelper, SiteHelper
 from app.indexer.client.browser import PlaywrightHelper
-from app.sites.siteconf import SiteConf
-from app.sites.site_manager import SitesManager
+from app.sites import PtSite, SitesManager, SiteConf
 from app.utils import StringUtils, RequestUtils, SiteUtils
 from app.utils.commons import singleton
 from app.utils.types import ProgressKey
@@ -271,9 +270,12 @@ class CookieManager(object):
         更新所有站点Cookie和ua
         """
         # 获取站点列表
-        sites = self.sites.get_sites(siteid=siteid)
+        sites : List[PtSite] = []
         if siteid:
-            sites = [sites]
+            site_info = self.sites.get_site(siteid=siteid)
+            sites = [site_info]
+        else:
+            sites = self.sites.get_sites()
         # 总数量
         site_num = len(sites)
         # 当前数量
@@ -283,15 +285,16 @@ class CookieManager(object):
         messages = []
         # 开始进度
         self.progress.start(ProgressKey.SiteCookie)
-        for site in sites:
-            if not site.get("signurl") and not site.get("rssurl"):
-                log.info("【Sites】%s 未设置地址，跳过" % site.get("name"))
+        for task_site in sites:
+            site_name = task_site.name
+            if not task_site.signurl and not task_site.rssurl:
+                log.info("【Sites】%s 未设置地址，跳过" % site_name)
                 continue
-            log.info("【Sites】开始更新 %s Cookie和User-Agent ..." % site.get("name"))
+            log.info("【Sites】开始更新 %s Cookie和User-Agent ..." % site_name)
             self.progress.update(ptype=ProgressKey.SiteCookie,
-                                 text="开始更新 %s Cookie和User-Agent ..." % site.get("name"))
+                                 text="开始更新 %s Cookie和User-Agent ..." % site_name)
             # 登录页面地址
-            baisc_url = SiteUtils.get_base_url(site.get("signurl") or site.get("rssurl"))
+            baisc_url = task_site.strict_url
             site_conf = self.siteconf.get_grap_conf(url=baisc_url)
             if site_conf.get("LOGIN"):
                 login_url = "%s/%s" % (baisc_url, site_conf.get("LOGIN"))
@@ -303,23 +306,23 @@ class CookieManager(object):
                                                         password=password,
                                                         twostepcode=twostepcode,
                                                         ocrflag=ocrflag,
-                                                        proxy=site.get("proxy"))
+                                                        proxy=task_site.proxy)
             # 更新进度
             curr_num += 1
             if not cookie:
-                log.error("【Sites】获取 %s 信息失败：%s" % (site.get("name"), msg))
-                messages.append("%s %s" % (site.get("name"), msg))
+                log.error("【Sites】获取 %s 信息失败：%s" % (site_name, msg))
+                messages.append("%s %s" % (site_name, msg))
                 self.progress.update(ptype=ProgressKey.SiteCookie,
                                      value=round(100 * (curr_num / site_num)),
-                                     text="%s %s" % (site.get("name"), msg))
+                                     text="%s %s" % (site_name, msg))
                 retcode = 1
             else:
-                self.sites.update_site_cookie(siteid=site.get("id"), cookie=cookie, ua=ua)
-                log.info("【Sites】更新 %s 的Cookie和User-Agent成功" % site.get("name"))
-                messages.append("%s %s" % (site.get("name"), msg or "更新Cookie和User-Agent成功"))
+                self.sites.update_site_cookie(siteid=task_site.id, cookie=cookie, ua=ua)
+                log.info("【Sites】更新 %s 的Cookie和User-Agent成功" % site_name)
+                messages.append("%s %s" % (site_name, msg or "更新Cookie和User-Agent成功"))
                 self.progress.update(ptype=ProgressKey.SiteCookie,
                                      value=round(100 * (curr_num / site_num)),
-                                     text="%s %s" % (site.get("name"), msg or "更新Cookie和User-Agent成功"))
+                                     text="%s %s" % (site_name, msg or "更新Cookie和User-Agent成功"))
         self.progress.end(ProgressKey.SiteCookie)
         return retcode, messages
 
