@@ -1476,6 +1476,11 @@
         });
       });
 
+      // 日志框关闭时清理资源
+      $('#modal-logging').on('hidden.bs.modal', function() {
+        stop_logging();
+      });
+
       // 回到顶部按钮状态
       calcToTopBtnVisitable();
 
