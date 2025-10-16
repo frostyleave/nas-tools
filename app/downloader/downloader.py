@@ -483,7 +483,7 @@ class Downloader:
                                              tag=tags,
                                              is_paused=is_paused,
                                              download_dir=download_dir,
-                                             cookie=site_info.get("cookie"))
+                                             cookie=site_info.cookie)
                 if ret:
                     download_id = ret.hashString
                     downloader.change_torrent(tid=download_id,
@@ -511,7 +511,7 @@ class Downloader:
                                              download_limit=download_limit,
                                              ratio_limit=ratio_limit,
                                              seeding_time_limit=seeding_time_limit,
-                                             cookie=site_info.get("cookie"))
+                                             cookie=site_info.cookie)
                 if ret:
                     download_id = downloader.get_torrent_id_by_tag(torrent_tag)
 
@@ -594,14 +594,14 @@ class Downloader:
                 if page_url \
                         and subtitle_dir \
                         and site_info \
-                        and site_info.get("subtitle"):
+                        and site_info.subtitle:
                     ThreadHelper().start_thread(
                         self.sitesubtitle.download,
                         (
                             media_info,
-                            site_info.get("id"),
-                            site_info.get("cookie"),
-                            site_info.get("ua"),
+                            site_info.id,
+                            site_info.cookie,
+                            site_info.ua,
                             subtitle_dir
                         )
                     )
@@ -618,9 +618,8 @@ class Downloader:
                 __download_fail("请检查下载任务是否已存在")
                 return downloader_id, None, f"下载器 {downloader_name} 添加下载任务失败, 请检查下载任务是否已存在"
         except Exception as e:
-            ExceptionUtils.exception_traceback(e)
             __download_fail(str(e))
-            log.error(f"【Downloader】下载器 {downloader_name} 添加任务出错: %s" % str(e))
+            log.exception(f"【Downloader】下载器 {downloader_name} 添加任务出错:", e)
             return None, None, str(e)
 
     def move_torrent_file_to_downloader_dir(self, torrent_file, downloader_conf):

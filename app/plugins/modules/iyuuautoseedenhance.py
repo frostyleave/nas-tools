@@ -15,7 +15,7 @@ from app.downloader import Downloader
 from app.media.meta import MetaInfo
 from app.plugins.modules._base import _IPluginModule
 from app.plugins.modules.iyuu.iyuu_helper import IyuuHelper
-from app.sites import Sites
+from app.sites import PtSite, Sites
 from app.utils import RequestUtils
 from app.utils.types import DownloaderType
 from config import Config
@@ -793,14 +793,14 @@ class IYUUAutoSeedEnhance(_IPluginModule):
             self.cached += 1
             return False
         # 查询站点
-        site_info = self.sites.get_sites(siteurl=site_url)
+        site_info = self.sites.get_site(siteurl=site_url)
         if not site_info:
             new_site_url = self.get_history(site_url)
-            site_info = self.sites.get_sites(siteurl=new_site_url)
+            site_info = self.sites.get_site(siteurl=new_site_url)
             if not site_info:
                 self.debug(f"没有维护种子对应的站点：{site_url}")
                 return False
-        if self._sites and str(site_info.get("id")) not in self._sites:
+        if self._sites and str(site_info.id) not in self._sites:
             self.info("当前站点不在选择的辅助站点范围，跳过 ...")
             return False
         self.realtotal += 1
@@ -812,7 +812,7 @@ class IYUUAutoSeedEnhance(_IPluginModule):
             self.exist += 1
             return False
         # 站点流控
-        if self.sites.check_ratelimit(site_info.get("id")):
+        if self.sites.check_ratelimit(site_info.id):
             self.fail += 1
             return False
         # 下载种子
@@ -831,7 +831,7 @@ class IYUUAutoSeedEnhance(_IPluginModule):
         else:
             torrent_url += "?https=1"
         meta_info = MetaInfo(title="IYUU自动辅种")
-        meta_info.set_torrent_info(site=site_info.get("name"),
+        meta_info.set_torrent_info(site=site_info.name,
                                    enclosure=torrent_url)
         # 辅种任务默认暂停
         _, download_id, retmsg = self.downloader.download(
@@ -863,7 +863,7 @@ class IYUUAutoSeedEnhance(_IPluginModule):
                 self._recheck_torrents[downloader] = []
             self._recheck_torrents[downloader].append(download_id)
             # 下载成功
-            self.info(f"成功添加辅种下载，站点：{site_info.get('name')}，种子链接：{torrent_url}")
+            self.info(f"成功添加辅种下载，站点：{site_info.name}，种子链接：{torrent_url}")
             # TR会自动校验
             downloader_type = self.downloader.get_downloader_type(downloader_id=downloader)
             if downloader_type == DownloaderType.QB:
@@ -919,7 +919,7 @@ class IYUUAutoSeedEnhance(_IPluginModule):
             print(str(e))
             return ""
 
-    def __get_download_url(self, seed, site, base_url):
+    def __get_download_url(self, seed, site: PtSite, base_url):
         """
         拼装种子下载链接
         """
@@ -942,7 +942,7 @@ class IYUUAutoSeedEnhance(_IPluginModule):
             return False
 
         try:
-            if __is_special_site(site.get('strict_url')):
+            if __is_special_site(site.strict_url):
                 # 从详情页面获取下载链接
                 return self.__get_torrent_url_from_page(seed=seed, site=site)
             else:
@@ -958,8 +958,8 @@ class IYUUAutoSeedEnhance(_IPluginModule):
                 ).format(
                     **{
                         "id": seed.get("torrent_id"),
-                        "passkey": site.get("passkey") or '',
-                        "uid": site.get("uid") or '',
+                        "passkey": site.passkey or '',
+                        "uid": site.uid or '',
                     }
                 )
                 if download_url.count("{"):
@@ -970,22 +970,22 @@ class IYUUAutoSeedEnhance(_IPluginModule):
                                              download_url,
                                              flags=re.IGNORECASE),
                                       flags=re.IGNORECASE)
-                return f"{site.get('strict_url')}/{download_url}"
+                return f"{site.strict_url}/{download_url}"
         except Exception as e:
-            self.warn(f"站点 {site.get('name')} Url转换失败：{str(e)}，尝试通过详情页面获取种子下载链接 ...")
+            self.warn(f"站点 {site.name} Url转换失败：{str(e)}，尝试通过详情页面获取种子下载链接 ...")
             return self.__get_torrent_url_from_page(seed=seed, site=site)
 
-    def __get_torrent_url_from_page(self, seed, site):
+    def __get_torrent_url_from_page(self, seed, site: PtSite):
         """
         从详情页面获取下载链接
         """
         try:
-            page_url = f"{site.get('strict_url')}/details.php?id={seed.get('torrent_id')}&hit=1"
+            page_url = f"{site.strict_url}/details.php?id={seed.get('torrent_id')}&hit=1"
             self.info(f"正在获取种子下载链接：{page_url} ...")
             res = RequestUtils(
-                cookies=site.get("cookie"),
-                headers=site.get("ua"),
-                proxies=Config().get_proxies() if site.get("proxy") else None
+                cookies=site.cookie,
+                headers=site.ua,
+                proxies=Config().get_proxies() if site.proxy else None
             ).get_res(url=page_url)
             if res is not None and res.status_code in (200, 500):
                 if "charset=utf-8" in res.text or "charset=UTF-8" in res.text:
@@ -1004,9 +1004,9 @@ class IYUUAutoSeedEnhance(_IPluginModule):
                         self.info(f"获取种子下载链接成功：{download_url}")
                         if not download_url.startswith("http"):
                             if download_url.startswith("/"):
-                                download_url = f"{site.get('strict_url')}{download_url}"
+                                download_url = f"{site.strict_url}{download_url}"
                             else:
-                                download_url = f"{site.get('strict_url')}/{download_url}"
+                                download_url = f"{site.strict_url}/{download_url}"
                         return download_url
                 self.warn(f"获取种子下载链接失败，未找到下载链接：{page_url}")
                 return None

@@ -111,6 +111,7 @@ class BrushTask(object):
             self._brush_tasks[str(task.ID)] = {
                 "id": task.ID,
                 "name": task.NAME,
+                "site": site_info.name,
                 "site_id": task.SITE,
                 "interval": task.INTEVAL,
                 "label": task.LABEL,
