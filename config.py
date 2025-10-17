@@ -133,26 +133,27 @@ class Config(object):
                 cfg_tp_path = cfg_tp_path.replace("\\", "/")
                 shutil.copy(cfg_tp_path, self._config_path)
                 print("【Config】config.yaml 配置文件不存在，已将配置文件模板复制到配置目录...")
+
             with open(self._config_path, mode='r', encoding='utf-8') as cf:
                 try:
                     # 读取配置
                     print("正在加载配置：%s" % self._config_path)
                     self._config = ruamel.yaml.YAML().load(cf)
                 except Exception as e:
-                    print("【Config】配置文件 config.yaml 格式出现严重错误！请检查：%s" % str(e))
+                    print("【Config】配置文件 config.yaml 格式出现严重错误! 请检查：%s" % str(e))
                     self._config = {}
 
             with open(os.path.join(inner_cfg_path, "menu.json"), "rb") as f:
                 try:
                     self.menu = json.loads(f.read())
                 except Exception as e:
-                    print("menu.json解析出现严重错误！请检查：%s" % str(e))
+                    print("menu.json解析出现严重错误! 请检查：%s" % str(e))
 
             with open(os.path.join(inner_cfg_path, "services.json"), "rb") as f:
                 try:
                     self.services = json.loads(f.read())
                 except Exception as e:
-                    print("services.json解析出现严重错误！请检查：%s" % str(e))
+                    print("services.json解析出现严重错误! 请检查：%s" % str(e))
 
         except Exception as err:
             print("【Config】加载 config.yaml 配置出错：%s" % str(err))
@@ -167,7 +168,7 @@ class Config(object):
         self._user = user
 
     def get_proxies(self):
-        return self.get_config('app').get("proxies")
+        return self.get_config('app').get("proxies", {})
 
     def get_ua(self):
         return self.get_config('app').get("user_agent") or DEFAULT_UA

@@ -55,10 +55,10 @@ class RequestUtils:
     def request(self, method: str, url: str, raise_exception: bool = False, **kwargs) -> Optional[requests.Response]:
         """
         发起HTTP请求
-        :param method: HTTP方法，如 get, post, put 等
+        :param method: HTTP方法, 如 get, post, put 等
         :param url: 请求的URL
-        :param raise_exception: 是否在发生异常时抛出异常，否则默认拦截异常返回None
-        :param kwargs: 其他请求参数，如headers, cookies, proxies等
+        :param raise_exception: 是否在发生异常时抛出异常, 否则默认拦截异常返回None
+        :param kwargs: 其他请求参数, 如headers, cookies, proxies等
         :return: HTTP响应对象
         :raises: requests.exceptions.RequestException 仅raise_exception为True时会抛出
         """
@@ -87,8 +87,8 @@ class RequestUtils:
         :param url: 请求的URL
         :param data: 请求的数据
         :param json: 请求的JSON数据
-        :param kwargs: 其他请求参数，如headers, cookies, proxies等
-        :return: HTTP响应对象，若发生RequestException则返回None
+        :param kwargs: 其他请求参数, 如headers, cookies, proxies等
+        :return: HTTP响应对象, 若发生RequestException则返回None
         """
         if json is None:
             json = {}
@@ -99,8 +99,8 @@ class RequestUtils:
         发送GET请求
         :param url: 请求的URL
         :param params: 请求的参数
-        :param kwargs: 其他请求参数，如headers, cookies, proxies等
-        :return: 响应的内容，若发生RequestException则返回None
+        :param kwargs: 其他请求参数, 如headers, cookies, proxies等
+        :return: 响应的内容, 若发生RequestException则返回None
         """
         response = self.request(method="get", url=url, params=params, **kwargs)
         return str(response.content, "utf-8") if response else None
@@ -141,29 +141,78 @@ class RequestUtils:
                             raise_exception=raise_exception,
                             **kwargs)
 
-    @staticmethod
-    def cookie_parse(cookies_str) -> dict[str, str]:
+    def get_json(self, url: str, params: dict = None, **kwargs) -> Optional[dict]:
         """
-        解析cookie，转化为字典或者数组
+        发送GET请求并返回JSON数据, 自动关闭连接
+        :param url: 请求的URL
+        :param params: 请求的参数
+        :param kwargs: 其他请求参数
+        :return: JSON数据, 若发生异常则返回None
+        """
+        response = self.request(method="get", url=url, params=params, **kwargs)
+        if response:
+            try:
+                data = response.json()
+                return data
+            except Exception as e:
+                log.warn(f"解析JSON失败: {e}")
+                return None
+            finally:
+                response.close()
+        return None
+
+    def post_json(self, url: str, data: Any = None, json: dict = None, **kwargs) -> Optional[dict]:
+        """
+        发送POST请求并返回JSON数据, 自动关闭连接
+        :param url: 请求的URL
+        :param data: 请求的数据
+        :param json: 请求的JSON数据
+        :param kwargs: 其他请求参数
+        :return: JSON数据, 若发生异常则返回None
+        """
+        if json is None:
+            json = {}
+        response = self.request(method="post", url=url, data=data, json=json, **kwargs)
+        if response:
+            try:
+                data = response.json()
+                return data
+            except Exception as e:
+                log.warn(f"解析JSON失败: {e}")
+                return None
+            finally:
+                response.close()
+        return None
+
+    @staticmethod
+    def cookie_parse(cookies_str: str, array: bool = False) -> Union[list, dict]:
+        """
+        解析cookie, 转化为字典或者数组
         :param cookies_str: cookie字符串
         :param array: 是否转化为数组
         :return: 字典或者数组
         """
         if not cookies_str:
-            return {}
+            return [] if [] else {}
+        
         cookie_dict = {}
-        cookies = cookies_str.split(';')
-        for cookie in cookies:
-            cstr = cookie.split('=')
-            if len(cstr) > 1:
-                cookie_dict[cstr[0].strip()] = cstr[1].strip()
+        try:
+            cookies = cookies_str.split(";")
+            for cookie in cookies:
+                cstr = cookie.split("=")
+                if len(cstr) > 1:
+                    cookie_dict[cstr[0].strip()] = cstr[1].strip()
+        except Exception as e:
+            log.exception(f'[Sys]cookie解析异常: ', e)
+        if array:
+            return [{"name": k, "value": v} for k, v in cookie_dict.items()]
         return cookie_dict
 
     @staticmethod
     def cookie_dict_to_string(data: dict[str, str]) -> str:
         """
         将cookie字典转换为 "key1=value1;key2=value2" 的字符串形式
-        :param data: 字典，键和值均为字符串
+        :param data: 字典, 键和值均为字符串
         :return: 转换后的字符串
         """
         return ";".join(f"{key}={value}" for key, value in data.items())

@@ -324,7 +324,7 @@ class Downloader:
         # 详情页面
         page_url = media_info.page_url
         # 默认值
-        site_info, dl_files_folder, dl_files, retmsg = {}, "", [], ""
+        site_info, dl_files_folder, dl_files, retmsg = None, "", [], ""
 
         if torrent_file:
             # 有种子文件时解析种子信息
@@ -475,6 +475,8 @@ class Downloader:
                     download_dir = download_info.get('path')
                 
 
+            site_cookie = site_info.cookie if site_info else None
+
             # 下载ID
             download_id = None
             downloader_type = downloader.get_type()
@@ -483,7 +485,7 @@ class Downloader:
                                              tag=tags,
                                              is_paused=is_paused,
                                              download_dir=download_dir,
-                                             cookie=site_info.cookie)
+                                             cookie=site_cookie)
                 if ret:
                     download_id = ret.hashString
                     downloader.change_torrent(tid=download_id,
@@ -511,7 +513,7 @@ class Downloader:
                                              download_limit=download_limit,
                                              ratio_limit=ratio_limit,
                                              seeding_time_limit=seeding_time_limit,
-                                             cookie=site_info.cookie)
+                                             cookie=site_cookie)
                 if ret:
                     download_id = downloader.get_torrent_id_by_tag(torrent_tag)
 
@@ -1587,6 +1589,10 @@ class Downloader:
         :return: 集数列表、种子路径
         """
         site_info = self.sites.get_site(siteurl=url)
+        if not site_info:
+            log.warn(f"【Downloader】根据url获取站点数据失败:{url}")
+            return [], None
+        
         # 保存种子文件
         file_path, _, _, files, retmsg = self.get_torrent_info(
             url=url,
@@ -1596,7 +1602,7 @@ class Downloader:
             proxy=site_info.proxy
         )
         if not files:
-            log.error("【Downloader】读取种子文件集数出错: %s" % retmsg)
+            log.error(f"【Downloader】读取种子文件集数出错: {retmsg}")
             return [], None
         episodes = []
         for file in files:

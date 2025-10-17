@@ -33,7 +33,6 @@ def send_text_response(content: str, status_code: int = 200) -> Response:
 
 # 微信回调
 @open_router.get("/wechat")
-@auth_required
 async def wechat(request: Request, appid: Optional[str] = None):
 
     # 当前在用的交互渠道
