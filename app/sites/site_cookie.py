@@ -9,7 +9,7 @@ from playwright.sync_api import Page
 import log
 from app.helper import ProgressHelper, OcrHelper, SiteHelper
 from app.indexer.client.browser import PlaywrightHelper
-from app.sites import PtSite, SitesManager, SiteConf
+from app.sites import PtSiteConf, SitesManager, SiteConf
 from app.utils import StringUtils, RequestUtils, SiteUtils
 from app.utils.commons import singleton
 from app.utils.types import ProgressKey
@@ -270,7 +270,7 @@ class CookieManager(object):
         更新所有站点Cookie和ua
         """
         # 获取站点列表
-        sites : List[PtSite] = []
+        sites : List[PtSiteConf] = []
         if siteid:
             site_info = self.sites.get_site(siteid=siteid)
             sites = [site_info]

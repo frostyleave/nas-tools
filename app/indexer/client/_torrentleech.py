@@ -1,6 +1,8 @@
+from typing import Tuple
 from urllib.parse import quote
 
 import log
+
 from app.utils import RequestUtils, StringUtils
 from config import Config
 
@@ -21,14 +23,16 @@ class TorrentLeech(object):
         self.init_config()
 
     def init_config(self):
-        self._size = Config().get_config('pt').get('site_search_result_num') or 100
+        self._size = 100
 
 
-    def search(self, keyword, page=0):
+    def search(self, keyword, page=0) -> Tuple[bool, list]:
+
         if keyword:
             url = self._searchurl % (self._indexer.domain, quote(keyword))
         else:
             url = self._browseurl % (self._indexer.domain, int(page) + 1)
+
         res = RequestUtils(
             headers={
                 "Content-Type": "application/json; charset=utf-8",

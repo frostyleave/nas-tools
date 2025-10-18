@@ -3,15 +3,15 @@ import datetime
 import re
 
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from typing import List
+from typing import List, Optional
 
 import log
 
-from app.media.douban import DouBan
-from app.media.meta._base import MetaBase
-from app.helper import ProgressHelper, SubmoduleHelper, DbHelper
+from app.helper import ProgressHelper, DbHelper
 from app.indexer.client.builtin import BuiltinIndexer
 from app.media import Media
+from app.media.douban import DouBan
+from app.media.meta._base import MetaBase
 from app.media.meta.metainfo import MetaInfo
 from app.utils import ExceptionUtils, StringUtils
 from app.utils.commons import singleton
@@ -92,10 +92,10 @@ class Indexer(object):
         return self._client
 
     def search_by_keyword(self,
-                          key_word: [str, list],
+                          key_word: str,
                           filter_args: dict,
-                          match_media=None,
-                          in_from: SearchType = None) -> List[MetaInfo]:
+                          match_media: Optional[MetaBase]=None,
+                          in_from: Optional[SearchType]=None) -> List[MetaInfo]:
         """
         根据关键字调用 Index API 搜索
         :param key_word: 搜索的关键字，不能为空
@@ -113,6 +113,9 @@ class Indexer(object):
         if not indexers:
             log.error("没有配置索引器，无法搜索！")
             return []
+
+        if filter_args is None:
+            filter_args = {}
 
         if filter_args.get('site'):
             sites = filter_args.get('site')
@@ -143,8 +146,7 @@ class Indexer(object):
 
             # 原始标题检索
             if 'title' == indexer.search_type and key_word:
-                _filter_args = copy.deepcopy(filter_args) if filter_args is not None else {}
-                task = executor.submit(self._client.search, order_seq, indexer, key_word, _filter_args, match_media, in_from)
+                task = executor.submit(self._client.search, order_seq, indexer, key_word, copy.deepcopy(filter_args), match_media, in_from)
                 all_task.append(task)
 
             # 其他搜索类型都需要 match_media 不为空
@@ -154,7 +156,7 @@ class Indexer(object):
             # 豆瓣id检索
             if 'douban_id' == indexer.search_type and match_media.douban_id:
                 # 剧集信息, 查询特定季的豆瓣id
-                douban_ids = self.get_douban_tv_season_id(match_media)
+                douban_ids = self.__get_douban_tv_season_id(match_media)
                 for db_id in douban_ids:
                     task = executor.submit(self._client.search, order_seq, indexer, db_id, copy.deepcopy(filter_args), match_media, in_from)
                     all_task.append(task)
@@ -167,10 +169,9 @@ class Indexer(object):
 
             # 英文名检索
             if 'en_name' == indexer.search_type or indexer.en_expand:
-                en_name = self.get_en_name(match_media)
+                en_name = self.__get_en_name(match_media)
                 if en_name:
-                    _filter_args_en = copy.deepcopy(filter_args) if filter_args is not None else {}
-                    task = executor.submit(self._client.search, order_seq, indexer, en_name, _filter_args_en, match_media, in_from)
+                    task = executor.submit(self._client.search, order_seq, indexer, en_name, copy.deepcopy(filter_args), match_media, in_from)
                     all_task.append(task)
 
         ret_array = []
@@ -178,21 +179,20 @@ class Indexer(object):
         for future in as_completed(all_task):
             result = future.result()
             finish_count += 1
-            self.progress.update(ptype=ProgressKey.Search,
-                                 value=round(100 * (finish_count / len(all_task))))
+            progress_value = round(100 * (finish_count / len(all_task)))
+            self.progress.update(ptype=ProgressKey.Search, value=progress_value)
             if result:
                 ret_array = ret_array + result
+        
         # 计算耗时
         end_time = datetime.datetime.now()
-        log.info(f"【{self._client_type.value}】所有站点搜索完成，有效资源数：%s，总耗时 %s 秒"
-                 % (len(ret_array), (end_time - start_time).seconds))
-        self.progress.update(ptype=ProgressKey.Search,
-                             text="所有站点搜索完成，有效资源数：%s，总耗时 %s 秒"
-                                  % (len(ret_array), (end_time - start_time).seconds),
-                             value=100)
+        summary_txt = f'所有站点搜索完成，有效资源数：{len(ret_array)} , 总耗时 {(end_time - start_time).seconds} 秒'
+        self.progress.update(ptype=ProgressKey.Search, text=summary_txt, value=100)
+        log.info(f"【{self._client_type.value}】{summary_txt}")
+
         return ret_array
 
-    def get_en_name(self, media_info):
+    def __get_en_name(self, media_info:MetaBase):
         """
         获取媒体数据的英文名称
         """
@@ -201,7 +201,7 @@ class Indexer(object):
         # 获取英文标题
         return Media().get_tmdb_en_title(media_info)
     
-    def get_douban_tv_season_id(self, media_info:MetaBase):
+    def __get_douban_tv_season_id(self, media_info:MetaBase):
         """
         查询剧集信息的豆瓣id
         """
@@ -227,7 +227,7 @@ class Indexer(object):
             for season_info in info.seasons:
                 if season_info.season_number == 0:
                     continue
-                season_name = self.convert_numbers_in_string(season_info.name)
+                season_name = self.__convert_numbers_in_string(season_info.name)
                 season_names.append(season_name)
             
             # 根据名称查询豆瓣剧集信息
@@ -266,7 +266,7 @@ class Indexer(object):
 
         return douban_ids
 
-    def int_to_chinese(self, num: int):
+    def __int_to_chinese(self, num: int):
         """将 0~9999 范围内的整数转换为中文数字（简单实现）。"""
         digits = ['零', '一', '二', '三', '四', '五', '六', '七', '八', '九']
         if num == 0:
@@ -297,7 +297,7 @@ class Indexer(object):
             result = result[1:]
         return result
 
-    def convert_numbers_in_string(self, s: str):
+    def __convert_numbers_in_string(self, s: str):
         """
         使用正则表达式查找字符串中所有数字（包含其两侧空白字符），
         并替换为转换后的中文数字，同时去掉两侧的空格。
@@ -307,6 +307,6 @@ class Indexer(object):
         
         def repl(match):
             num = int(match.group(1))
-            return self.int_to_chinese(num)
+            return self.__int_to_chinese(num)
         
         return pattern.sub(repl, s)

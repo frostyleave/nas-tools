@@ -4,7 +4,7 @@ from abc import ABCMeta, abstractmethod
 
 import log
 
-from app.sites import PtSite
+from app.sites import PtSiteConf
 from app.utils import SiteUtils
 
 
@@ -26,7 +26,7 @@ class _ISiteSigninHandler(metaclass=ABCMeta):
         return True if SiteUtils.url_equal(url, self.site_url) else False
 
     @abstractmethod
-    def signin(self, site_info: PtSite):
+    def signin(self, site_info: PtSiteConf):
         """
         执行签到操作
         :param site_info: 站点信息，含有站点Url、站点Cookie、UA等信息

@@ -11,7 +11,7 @@ from app.helper import SiteHelper, DbHelper
 from app.indexer.client.browser import PlaywrightHelper
 from app.indexer.manager import BaseIndexer, IndexerManager
 from app.message import Message
-from app.sites import PtSite, SiteRateLimiter
+from app.sites import PtSiteConf, SiteRateLimiter
 from app.utils import RequestUtils, SiteUtils
 from app.utils.commons import singleton
 
@@ -25,8 +25,8 @@ class SitesManager:
     message = None
     dbhelper = None
 
-    _siteByIds : dict[int, PtSite] = {}
-    _siteByUrls : dict[str, PtSite] = {}
+    _siteByIds : dict[int, PtSiteConf] = {}
+    _siteByUrls : dict[str, PtSiteConf] = {}
     _limiters : dict[int, SiteRateLimiter] = {}
 
     _MAX_CONCURRENCY = 10
@@ -38,9 +38,9 @@ class SitesManager:
         self.dbhelper = DbHelper()
         self.message = Message()
         # ID存储站点
-        self._siteByIds : dict[int, PtSite] = {}
+        self._siteByIds : dict[int, PtSiteConf] = {}
         # URL存储站点
-        self._siteByUrls : dict[str, PtSite] = {}
+        self._siteByUrls : dict[str, PtSiteConf] = {}
         # 站点限速器
         self._limiters : dict[int, SiteRateLimiter] = {}
         
@@ -134,7 +134,7 @@ class SitesManager:
                 site_data_dic["limit_seconds"] = int(limit_seconds)           
 
             # 实例化
-            site_info = PtSite.from_datas(site_data_dic)
+            site_info = PtSiteConf.from_datas(site_data_dic)
 
             # 以ID存储
             self._siteByIds[site.ID] = site_info
@@ -150,7 +150,7 @@ class SitesManager:
 
     def get_site(self,
                   siteid=None,
-                  siteurl=None) -> Optional[PtSite]:
+                  siteurl=None) -> Optional[PtSiteConf]:
         """
         获取单个站点配置
         """
@@ -165,7 +165,7 @@ class SitesManager:
                   siteids=None,
                   rss=False,
                   brush=False,
-                  statistic=False) -> List[PtSite]:
+                  statistic=False) -> List[PtSiteConf]:
         """
         获取站点配置
         """
@@ -212,7 +212,7 @@ class SitesManager:
                 return self._siteByUrls[key]
         return {}
 
-    def get_sites_by_name(self, name) -> List[PtSite]:
+    def get_sites_by_name(self, name) -> List[PtSiteConf]:
         """
         根据站点名称获取站点配置
         """

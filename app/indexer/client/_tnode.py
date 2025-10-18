@@ -1,4 +1,5 @@
 import re
+from typing import Tuple
 
 import log
 from app.utils import RequestUtils, StringUtils
@@ -31,7 +32,7 @@ class TNodeSpider(object):
         self.init_config()
 
     def init_config(self):
-        self._size = Config().get_config('pt').get('site_search_result_num') or 100
+        self._size = 100
         self.__get_token()
 
     def __get_token(self):
@@ -46,10 +47,12 @@ class TNodeSpider(object):
             if csrf_token:
                 self._token = csrf_token.group(1)
 
-    def search(self, keyword, page=0):
+    def search(self, keyword, page=0) -> Tuple[bool, list]:
+        
         if not self._token:
-            log.warn(f"【INDEXER】{self._name} 未获取到token，无法搜索")
+            log.warn(f"【INDEXER】{self._name} 未获取到token, 无法搜索")
             return True, []
+        
         params = {
             "page": int(page) + 1,
             "size": self._size,

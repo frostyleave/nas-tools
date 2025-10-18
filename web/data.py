@@ -7,7 +7,7 @@ from fastapi.responses import JSONResponse
 
 import log
 
-from app.brushtask import BrushTask
+from app.brushtaskv2 import BrushTaskV2 as BrushTask
 from app.conf.moduleconf import ModuleConf
 from app.conf.systemconfig import SystemConfig
 from app.downloader.downloader import Downloader

@@ -1,4 +1,4 @@
-from ._base import PtSite
+from ._base import PtSiteConf
 from .siteconf import SiteConf
 from .site_limiter import SiteRateLimiter
 from .site_manager import SitesManager

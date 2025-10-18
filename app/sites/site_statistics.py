@@ -12,7 +12,7 @@ from app.helper import SubmoduleHelper, DbHelper
 from app.indexer.client.browser import PlaywrightHelper
 from app.message import Message
 from app.sites.siteuserinfo._base import _ISiteUserInfo
-from app.sites import PtSite, SitesManager
+from app.sites import PtSiteConf, SitesManager
 from app.sites.siteuserinfo.mTorrent import MTorrentUserInfo
 from app.utils.types import Spider
 from app.utils import RequestUtils, StringUtils
@@ -179,7 +179,7 @@ class SitesDataStatisticsCenter(object):
         
         return html_text
 
-    def __refresh_site_data(self, site_info: PtSite):
+    def __refresh_site_data(self, site_info: PtSiteConf):
         """
         更新单个site 数据信息
         :param site_info:

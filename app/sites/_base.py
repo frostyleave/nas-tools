@@ -3,7 +3,10 @@ from typing import List, Optional
 from pydantic import BaseModel
 
 
-class PtSite(BaseModel):
+class PtSiteConf(BaseModel):
+    """
+    PT站点配置
+    """
     id: int
     name: str
     pri: int

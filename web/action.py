@@ -19,7 +19,7 @@ from urllib.parse import unquote
 import cn2an
 
 import log
-from app.brushtask import BrushTask
+from app.brushtaskv2 import BrushTaskV2 as BrushTask
 from app.conf import SystemConfig, ModuleConf
 from app.downloader import Downloader
 from app.filetransfer import FileTransfer

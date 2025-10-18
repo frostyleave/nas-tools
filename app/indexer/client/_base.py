@@ -62,7 +62,8 @@ class _IIndexClient(metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    def search(self, order_seq,
+    def search(self, 
+               order_seq,
                indexer,
                key_word,
                filter_args: dict,

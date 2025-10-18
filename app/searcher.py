@@ -43,7 +43,7 @@ class Searcher:
         self._search_auto = Config().get_config("pt").get('search_auto', True)
 
     def search_medias(self,
-                      key_word: [str, list],
+                      key_word: str,
                       filter_args: dict,
                       match_media=None,
                       in_from: SearchType = None) -> List[MetaInfo]:

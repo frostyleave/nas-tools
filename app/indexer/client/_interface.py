@@ -1,10 +1,12 @@
 # coding: utf-8
 import json
-import log
 import re
 import requests
 
+from typing import Tuple
 from urllib.parse import quote
+
+import log
 
 from app.indexer.manager import IndexerInfo
 from app.utils.string_utils import StringUtils
@@ -12,6 +14,7 @@ from config import Config
 
 
 class InterfaceSpider(object):
+
     torrents_info_array = []
     result_num = 100
 
@@ -25,7 +28,7 @@ class InterfaceSpider(object):
 
     def init_config(self):
         self.torrents_info_array = []
-        self.result_num = Config().get_config('pt').get('site_search_result_num') or 100
+        self.result_num = 100
 
         # 解析搜索配置
         self.list_selector = self._indexer.torrents.get('list')
@@ -45,7 +48,7 @@ class InterfaceSpider(object):
         # 搜索配置
         self.search_config = self._indexer.search.get('paths', [{}])[0]
 
-    def search(self, keyword, page=None, mtype=None):
+    def search(self, keyword: str, page=None, mtype=None) -> Tuple[bool, list]:
         """
         开始搜索
         :param: keyword: 搜索关键字
@@ -53,10 +56,8 @@ class InterfaceSpider(object):
         :param: mtype: 类型
         :return: (是否发生错误，种子列表)
         """
-        if not keyword:
+        if keyword is None:
             keyword = ""
-        if isinstance(keyword, list):
-            keyword = " ".join(keyword)
 
         torrents_path = self.search_config.get('path', '') or ''
         search_url = torrents_path.replace("{domain}", self._indexer.domain).replace("{keyword}", quote(keyword))

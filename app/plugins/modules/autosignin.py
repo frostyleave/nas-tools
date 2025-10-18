@@ -1,12 +1,13 @@
 import re
 import time
+import pytz
+
 from datetime import datetime, timedelta
+from lxml import etree
 from threading import Event
 from typing import Tuple
 
-import pytz
 from apscheduler.schedulers.background import BackgroundScheduler
-from lxml import etree
 from playwright.sync_api import Page
 from urllib.parse import urljoin
 
@@ -16,7 +17,7 @@ from app.indexer.client.browser import PlaywrightHelper
 from app.message import Message
 from app.plugins import EventHandler
 from app.plugins.modules._base import _IPluginModule
-from app.sites import PtSite
+from app.sites import PtSiteConf
 from app.sites.siteconf import SiteConf
 from app.sites.site_manager import SitesManager
 from app.utils import RequestUtils, ExceptionUtils, SiteUtils, SchedulerUtils
@@ -403,7 +404,7 @@ class AutoSignIn(_IPluginModule):
                 ExceptionUtils.exception_traceback(e)
         return None
 
-    def signin_site(self, site_info:PtSite) -> Tuple[bool, str]:
+    def signin_site(self, site_info:PtSiteConf) -> Tuple[bool, str]:
         """
         签到一个站点
         """
@@ -416,7 +417,7 @@ class AutoSignIn(_IPluginModule):
         else:
             return self.__signin_base(site_info)
 
-    def __signin_base(self, site_info:PtSite) -> Tuple[bool, str]:
+    def __signin_base(self, site_info:PtSiteConf) -> Tuple[bool, str]:
         """
         通用签到处理
         :param site_info: 站点信息
