@@ -895,10 +895,10 @@ class BrushTaskV2(object):
             # ID
             torrent_id = torrent.hashString
             # 做种时间
-            if not torrent.date_done or torrent.date_done.timestamp() < 1:
-                seeding_time = 0
-            else:
+            if hasattr(torrent, "date_done") and torrent.date_done and torrent.date_done.timestamp() >= 1:
                 seeding_time = date_now - int(torrent.date_done.timestamp())
+            else:
+                seeding_time = 0
             # 下载耗时
             if not torrent.date_added or torrent.date_added.timestamp() < 1:
                 dltime = 0
