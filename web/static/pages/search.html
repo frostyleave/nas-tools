@@ -347,18 +347,26 @@
           `;
         }
         if (torrent.uploadvalue !== 1.0) {
-          html += `
-          <span class="badge text-white bg-azure">${parseInt(torrent.uploadvalue * 100)}%UL</span>
-          `;
-        }
-        if (torrent.downloadvalue !== 1.0) {
           if (torrent.downloadvalue === 0.0) {
             html += `
-            <span class="badge text-white bg-lime">FREE</span>
+            <span class="badge text-white bg-lime">${parseInt(torrent.uploadvalue)}xFREE</span>
             `;
           } else {
             html += `
-            <span class="badge text-white bg-indigo">${parseInt(torrent.downloadvalue * 100)}%DL</span>
+            <span class="badge text-white bg-azure">${parseInt(torrent.uploadvalue)}X</span>
+            `;
+          }
+        }
+        if (torrent.downloadvalue !== 1.0) {
+          if (torrent.downloadvalue === 0.0) {
+            if (torrent.uploadvalue === 1.0) {
+              html += `
+              <span class="badge text-white bg-lime">FREE</span>
+              `;
+            }
+          } else {
+            html += `
+            <span class="badge text-white bg-indigo">${parseInt(torrent.downloadvalue * 100)}%</span>
             `;
           }
         }

@@ -544,7 +544,7 @@ class TorrentSpider(object):
                 downloadvolumefactor = torrent(downloadvolumefactorselector)
                 if len(downloadvolumefactor) > 0:
                     downloadvolumefactor = selector.get("case", {}).get(downloadvolumefactorselector)
-                    if downloadvolumefactor:
+                    if downloadvolumefactor is not None:
                         torrents_downloadvolumefactor = int(downloadvolumefactor)
                         break
         elif "selector" in selector:
@@ -554,7 +554,7 @@ class TorrentSpider(object):
             item = self.__index(items, selector)
             if item:
                 downloadvolumefactor = re.search(r"(\d+\.?\d*)", item)
-                if downloadvolumefactor:
+                if downloadvolumefactor is not None:
                     torrents_downloadvolumefactor = int(downloadvolumefactor.group(1))
         return torrents_downloadvolumefactor
 
@@ -570,7 +570,7 @@ class TorrentSpider(object):
                 uploadvolumefactor = torrent(uploadvolumefactorselector)
                 if len(uploadvolumefactor) > 0:
                     uploadvolumefactor = selector.get("case", {}).get(uploadvolumefactorselector)
-                    if uploadvolumefactor:
+                    if uploadvolumefactor is not None:
                         torrents_uploadvolumefactor = int(uploadvolumefactor)
                     break
         elif "selector" in selector:
@@ -580,7 +580,7 @@ class TorrentSpider(object):
             item = self.__index(items, selector)
             if item:
                 uploadvolumefactor = re.search(r"(\d+\.?\d*)", item)
-                if uploadvolumefactor:
+                if uploadvolumefactor is not None:
                     torrents_uploadvolumefactor = int(uploadvolumefactor.group(1))
         return torrents_uploadvolumefactor
 

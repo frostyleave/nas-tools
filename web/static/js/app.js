@@ -204,6 +204,10 @@ function pageNotChanged(target) {
     return true;
   }
 
+  if (current.queryString) {
+    return current.url + '?' + current.queryString === target;
+  }
+
   return current.url === target;
 
 }
@@ -285,11 +289,6 @@ function activeMenu(pageMenu) {
 
   // 当前子菜单不可见，或点击的菜单不在子菜单中，说明是大菜单切换，需要重绘或者清空子菜单
 
-  // 获取ul元素
-  const ulElement = document.querySelector('#top-sub-navbar ul');
-  // 清空现有的li元素
-  ulElement.innerHTML = '';
-
   var navList = [];
   // 找到当前页面菜单配置
   var navbarMenu = document.querySelector("#navbar-menu")
@@ -317,13 +316,18 @@ function activeMenu(pageMenu) {
   }
 
   // 没有子菜单
-  if (!navList) {
+  if (!navList || navList.length == 0) {
     // 激活主菜单
     navbarMenu.update_active(pageMenu);
     // 隐藏子菜单
     $('#top-sub-navbar').hide();
     return;
   }
+
+  // 获取ul元素
+  const ulElement = document.querySelector('#top-sub-navbar ul');
+  // 清空现有的li元素
+  ulElement.innerHTML = '';
 
   // 重新绘制子菜单
   navList.forEach(item => {
