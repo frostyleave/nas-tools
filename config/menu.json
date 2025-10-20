@@ -136,19 +136,13 @@
   {
     "name": "站点",
     "level": 1,
-    "page": "indexer",
+    "page": "site",
     "group": "管理",
     "icon": "<i class=\"ti ti-world-www fs-2 \"></i>",
-    "html": "/static/pages/indexer.html?p=1",
+    "html": "/static/pages/site.html",
     "nav": [
       {
-        "name": "BT索引",
-        "page": "indexer",
-        "icon": "<i class=\"ti ti-world-search fs-2 \"></i>",
-        "html": "/static/pages/indexer.html?p=1"
-      },
-      {
-        "name": "PT维护",
+        "name": "站点维护",
         "page": "site",
         "icon": "<i class=\"ti ti-settings-search fs-2 \"></i>",
         "html": "/static/pages/site.html"

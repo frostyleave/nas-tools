@@ -216,6 +216,7 @@ class WebAction:
             "auto_remove_torrents": self.__auto_remove_torrents,
             "list_brushtask_torrents": self.__list_brushtask_torrents,
             "set_system_config": self.__set_system_config,
+            "set_user_indexer_sites": self.__set_user_indexer_sites,
             "get_site_user_statistics": self.get_site_user_statistics,
             "send_plugin_message": self.send_plugin_message,
             "send_custom_message": self.send_custom_message,
@@ -4435,6 +4436,31 @@ class WebAction:
             return {"code": 1}
         try:
             SystemConfig().set(key=key, value=value)
+            return {"code": 0}
+        except Exception as e:
+            ExceptionUtils.exception_traceback(e)
+            return {"code": 1}
+        
+    def __set_user_indexer_sites(self, data):
+        """
+        设置系统设置（数据库）
+        """
+        site_id = data.get("site_id")
+        if not site_id:
+            return {"code": 0}
+        
+        try:
+            indexer_sites = SystemConfig().get(SystemConfigKey.UserIndexerSites) or []
+            checked = data.get("checked")
+            if checked:
+                if site_id in indexer_sites:
+                    return {"code": 0}
+                indexer_sites.append(site_id)
+            else:
+                if site_id not in indexer_sites:
+                    return {"code": 0}
+                indexer_sites.remove(site_id)
+            SystemConfig().set(key=SystemConfigKey.UserIndexerSites, value=indexer_sites)
             return {"code": 0}
         except Exception as e:
             ExceptionUtils.exception_traceback(e)
