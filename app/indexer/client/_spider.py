@@ -532,20 +532,20 @@ class TorrentSpider(object):
         torrents_date_elapsed = self.__index(items, selector)
         return self.__filter_text(torrents_date_elapsed, selector.get("filters"))
 
-    def _getdownloadvolumefactor(self, torrent) -> Optional[int]:
+    def _getdownloadvolumefactor(self, torrent) -> Optional[float]:
         # downloadvolumefactor
         selector = self.fields_conf.get("downloadvolumefactor")
         if not selector:
             return None
         
-        torrents_downloadvolumefactor = 1
+        torrents_downloadvolumefactor = 1.0
         if "case" in selector:
             for downloadvolumefactorselector in list(selector.get("case", {}).keys()):
                 downloadvolumefactor = torrent(downloadvolumefactorselector)
                 if len(downloadvolumefactor) > 0:
                     downloadvolumefactor = selector.get("case", {}).get(downloadvolumefactorselector)
                     if downloadvolumefactor is not None:
-                        torrents_downloadvolumefactor = int(downloadvolumefactor)
+                        torrents_downloadvolumefactor = float(downloadvolumefactor)
                         break
         elif "selector" in selector:
             downloadvolume = torrent(selector.get("selector", "")).clone()
@@ -555,23 +555,23 @@ class TorrentSpider(object):
             if item:
                 downloadvolumefactor = re.search(r"(\d+\.?\d*)", item)
                 if downloadvolumefactor is not None:
-                    torrents_downloadvolumefactor = int(downloadvolumefactor.group(1))
+                    torrents_downloadvolumefactor = float(downloadvolumefactor.group(1))
         return torrents_downloadvolumefactor
 
-    def _getuploadvolumefactor(self, torrent) -> Optional[int]:
+    def _getuploadvolumefactor(self, torrent) -> Optional[float]:
         # uploadvolumefactor
         selector = self.fields_conf.get("uploadvolumefactor")
         if not selector:
             return None
         
-        torrents_uploadvolumefactor = 1
+        torrents_uploadvolumefactor = 1.0
         if "case" in selector:
             for uploadvolumefactorselector in list(selector.get("case", {}).keys()):
                 uploadvolumefactor = torrent(uploadvolumefactorselector)
                 if len(uploadvolumefactor) > 0:
                     uploadvolumefactor = selector.get("case", {}).get(uploadvolumefactorselector)
                     if uploadvolumefactor is not None:
-                        torrents_uploadvolumefactor = int(uploadvolumefactor)
+                        torrents_uploadvolumefactor = float(uploadvolumefactor)
                     break
         elif "selector" in selector:
             uploadvolume = torrent(selector.get("selector", "")).clone()
@@ -581,7 +581,7 @@ class TorrentSpider(object):
             if item:
                 uploadvolumefactor = re.search(r"(\d+\.?\d*)", item)
                 if uploadvolumefactor is not None:
-                    torrents_uploadvolumefactor = int(uploadvolumefactor.group(1))
+                    torrents_uploadvolumefactor = float(uploadvolumefactor.group(1))
         return torrents_uploadvolumefactor
 
     def _getlabels(self, torrent) -> str:
