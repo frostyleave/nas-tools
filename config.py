@@ -159,14 +159,6 @@ class Config(object):
             print("【Config】加载 config.yaml 配置出错：%s" % str(err))
             return False
 
-    @property
-    def current_user(self):
-        return self._user
-
-    @current_user.setter
-    def current_user(self, user):
-        self._user = user
-
     def get_proxies(self):
         return self.get_config('app').get("proxies", {})
 

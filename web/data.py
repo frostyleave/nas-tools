@@ -190,9 +190,6 @@ async def index(request: Request, current_user: User = Depends(get_current_user)
     Librarys = MediaServer().get_libraries()
     LibrarySyncConf = SystemConfig().get(SystemConfigKey.SyncLibrary) or []
 
-    # 继续观看
-    Resumes = MediaServer().get_resume()
-
     # 最近添加
     Latests = MediaServer().get_latest()
 
@@ -211,7 +208,6 @@ async def index(request: Request, current_user: User = Depends(get_current_user)
              "mediaServerType": MSType,
              "librarys": Librarys,
              "librarySyncConf": LibrarySyncConf,
-             "resumes": Resumes,
              "latests": Latests,
         }
     )

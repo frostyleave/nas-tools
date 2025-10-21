@@ -49,7 +49,7 @@ class Jellyfin(_IMediaClient):
                     self._play_host = self._play_host + "/"
             self._apikey = self._client_config.get('api_key')
             if self._host and self._apikey:
-                self._user = self.get_user(Config().current_user)
+                self._user = self.get_user()
                 self._serverid = self.get_server_id()
 
     @classmethod
@@ -71,9 +71,10 @@ class Jellyfin(_IMediaClient):
         """
         if not self._host or not self._apikey:
             return []
-        req_url = f"{self._host}Users/{self._user}/Views?api_key={self._apikey}"
+        req_url = f"{self._host}Library/MediaFolders"
         try:
-            res = RequestUtils().get_res(req_url)
+            headers = {'X-Emby-Token':self._apikey}
+            res = RequestUtils(headers=headers).get_res(req_url)
             if res:
                 return res.json().get("Items")
             else:
@@ -103,22 +104,18 @@ class Jellyfin(_IMediaClient):
             log.error(f"【{self.client_name}】连接Users出错：" + str(e))
             return 0
 
-    def get_user(self, user_name=None):
+    def get_user(self):
         """
         获得管理员用户
         """
         if not self._host or not self._apikey:
             return None
-        req_url = "%sUsers?api_key=%s" % (self._host, self._apikey)
+        req_url = f"{self._host}Users"
         try:
-            res = RequestUtils().get_res(req_url)
+            headers = {'X-Emby-Token':self._apikey}
+            res = RequestUtils(headers=headers).get_res(req_url)
             if res:
                 users = res.json()
-                # 先查询是否有与当前用户名称匹配的
-                if user_name:
-                    for user in users:
-                        if user.get("Name") == user_name:
-                            return user.get("Id")
                 # 查询管理员
                 for user in users:
                     if user.get("Policy", {}).get("IsAdministrator"):
@@ -208,12 +205,13 @@ class Jellyfin(_IMediaClient):
         """
         根据名称查询Jellyfin中剧集的SeriesId
         """
-        if not self._host or not self._apikey or not self._user:
+        if not self._host or not self._apikey:
             return None
-        req_url = "%sUsers/%s/Items?api_key=%s&searchTerm=%s&IncludeItemTypes=Series&Limit=10&Recursive=true" % (
-            self._host, self._user, self._apikey, name)
+        req_url = "%sItems?searchTerm=%s&IncludeItemTypes=Series&Limit=10&Recursive=true" % (
+            self._host, name)
         try:
-            res = RequestUtils().get_res(req_url)
+            headers = {'X-Emby-Token':self._apikey}
+            res = RequestUtils(headers=headers).get_res(req_url)
             if res:
                 res_items = res.json().get("Items")
                 if res_items:
@@ -234,12 +232,13 @@ class Jellyfin(_IMediaClient):
         :param year: 年份，为空则不过滤
         :return: 含title、year属性的字典列表
         """
-        if not self._host or not self._apikey or not self._user:
+        if not self._host or not self._apikey:
             return None
-        req_url = "%sUsers/%s/Items?api_key=%s&searchTerm=%s&IncludeItemTypes=Movie&Limit=10&Recursive=true" % (
-            self._host, self._user, self._apikey, title)
+        req_url = "%sItems?searchTerm=%s&IncludeItemTypes=Movie&Limit=10&Recursive=true" % (
+            self._host, title)
         try:
-            res = RequestUtils().get_res(req_url)
+            headers = {'X-Emby-Token':self._apikey}
+            res = RequestUtils(headers=headers).get_res(req_url)
             if res:
                 res_items = res.json().get("Items")
                 if res_items:
@@ -271,7 +270,7 @@ class Jellyfin(_IMediaClient):
         :param season: 季
         :return: 集号的列表
         """
-        if not self._host or not self._apikey or not self._user:
+        if not self._host or not self._apikey:
             return None
         if not item_id:
             # 查TVID
@@ -287,10 +286,11 @@ class Jellyfin(_IMediaClient):
                     return []
         if not season:
             season = ""
-        req_url = "%sShows/%s/Episodes?season=%s&&userId=%s&isMissing=false&api_key=%s" % (
-            self._host, item_id, season, self._user, self._apikey)
+        req_url = "%sShows/%s/Episodes?season=%s&isMissing=false" % (
+            self._host, item_id, season)
         try:
-            res_json = RequestUtils().get_res(req_url)
+            headers = {'X-Emby-Token':self._apikey}
+            res_json = RequestUtils(headers=headers).get_res(req_url)
             if res_json:
                 res_items = res_json.json().get("Items")
                 exists_episodes = []
@@ -337,13 +337,14 @@ class Jellyfin(_IMediaClient):
         :param episode_id: 集
         :return: 图片对应在TMDB中的URL
         """
-        if not self._host or not self._apikey or not self._user:
+        if not self._host or not self._apikey:
             return None
         # 查询所有剧集
-        req_url = "%sShows/%s/Episodes?season=%s&&userId=%s&isMissing=false&api_key=%s" % (
-            self._host, item_id, season_id, self._user, self._apikey)
+        req_url = "%sShows/%s/Episodes?season=%s&isMissing=false" % (
+            self._host, item_id, season_id)
         try:
-            res_json = RequestUtils().get_res(req_url)
+            headers = {'X-Emby-Token':self._apikey}
+            res_json = RequestUtils(headers=headers).get_res(req_url)
             if res_json:
                 res_items = res_json.json().get("Items")
                 for res_item in res_items:
@@ -448,13 +449,15 @@ class Jellyfin(_IMediaClient):
             return []
         libraries = []
         for library in self.__get_jellyfin_librarys() or []:
-            match library.get("CollectionType"):
-                case "movies":
-                    library_type = MediaType.MOVIE.value
-                case "tvshows":
-                    library_type = MediaType.TV.value
-                case _:
-                    continue
+            collection_type = library.get("CollectionType")
+            # 合集、播放列表 跳过
+            if collection_type == 'boxsets' or collection_type == 'playlists':
+                continue
+            if collection_type == "movies":
+                library_type = MediaType.MOVIE.value
+            else:
+                library_type = MediaType.TV.value
+
             image = self.get_local_image_by_id(library.get("Id"), remote=False, inner=True)
             link = f"{self._play_host or self._host}web/index.html#!" \
                    f"/movies.html?topParentId={library.get('Id')}" \
@@ -523,9 +526,10 @@ class Jellyfin(_IMediaClient):
             yield {}
         if not self._host or not self._apikey:
             yield {}
-        req_url = "%sUsers/%s/Items?parentId=%s&api_key=%s" % (self._host, self._user, parent, self._apikey)
+        req_url = "%sItems?ParentId=%s" % (self._host, parent)
         try:
-            res = RequestUtils().get_res(req_url)
+            headers = {'X-Emby-Token':self._apikey}
+            res = RequestUtils(headers=headers).get_res(req_url)
             if res and res.status_code == 200:
                 results = res.json().get("Items") or []
                 for result in results:
@@ -547,8 +551,7 @@ class Jellyfin(_IMediaClient):
                         for item in self.get_items(result.get("Id")):
                             yield item
         except Exception as e:
-            ExceptionUtils.exception_traceback(e)
-            log.error(f"【{self.client_name}】连接Users/Items出错：" + str(e))
+            log.exception(f"【{self.client_name}】连接/Items出错: " + str(e))
         yield {}
 
     def get_play_url(self, item_id):

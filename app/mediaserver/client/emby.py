@@ -52,7 +52,7 @@ class Emby(_IMediaClient):
             self._apikey = self._client_config.get('api_key')
             if self._host and self._apikey:
                 self._folders = self.__get_emby_folders()
-                self._user = self.get_user(Config().current_user)
+                self._user = self.get_user()
                 self._serverid = self.get_server_id()
 
     @classmethod
@@ -93,9 +93,10 @@ class Emby(_IMediaClient):
         """
         if not self._host or not self._apikey:
             return []
-        req_url = f"{self._host}emby/Users/{self._user}/Views?api_key={self._apikey}"
+        req_url = f"{self._host}emby/Library/MediaFolders"
         try:
-            res = RequestUtils().get_res(req_url)
+            headers = {'X-Emby-Token':self._apikey}
+            res = RequestUtils(headers=headers).get_res(req_url)
             if res:
                 return res.json().get("Items")
             else:
@@ -117,11 +118,6 @@ class Emby(_IMediaClient):
             res = RequestUtils().get_res(req_url)
             if res:
                 users = res.json()
-                # 先查询是否有与当前用户名称匹配的
-                if user_name:
-                    for user in users:
-                        if user.get("Name") == user_name:
-                            return user.get("Id")
                 # 查询管理员
                 for user in users:
                     if user.get("Policy", {}).get("IsAdministrator"):
@@ -575,13 +571,14 @@ class Emby(_IMediaClient):
             return []
         libraries = []
         for library in self.__get_emby_librarys() or []:
-            match library.get("CollectionType"):
-                case "movies":
-                    library_type = MediaType.MOVIE.value
-                case "tvshows":
-                    library_type = MediaType.TV.value
-                case _:
-                    continue
+            collection_type = library.get("CollectionType")
+            # 合集、播放列表 跳过
+            if collection_type == 'boxsets' or collection_type == 'playlists':
+                continue
+            if collection_type == "movies":
+                library_type = MediaType.MOVIE.value
+            else:
+                library_type = MediaType.TV.value
             image = self.get_local_image_by_id(library.get("Id"), remote=False, inner=True)
             libraries.append({
                 "id": library.get("Id"),
@@ -626,9 +623,10 @@ class Emby(_IMediaClient):
             yield {}
         if not self._host or not self._apikey:
             yield {}
-        req_url = "%semby/Users/%s/Items?ParentId=%s&api_key=%s" % (self._host, self._user, parent, self._apikey)
+        req_url = "%semby/Items?ParentId=%s" % (self._host, parent)
         try:
-            res = RequestUtils().get_res(req_url)
+            headers = {'X-Emby-Token':self._apikey}
+            res = RequestUtils(headers=headers).get_res(req_url)
             if res and res.status_code == 200:
                 results = res.json().get("Items") or []
                 for result in results:
