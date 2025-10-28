@@ -983,31 +983,35 @@
 
             const site_card = `
               <div class="card glass-card">
-                <div class="card-body" >
-                  <div class="right-top-box">
-                    <a href="javascript:remove_site('${site.name}', '${site.id}')" class="btn-action text-danger" title="删除站点">
-                      <i class="ti ti-x fs-2"></i>
-                    </a>
-                  </div>
+                <div class="card-body p-3" >
                   <div class="col d-flex flex-column p-0" style="height: 100%;">
-                    <div class="d-flex my-1">
-                      <div class="form-switch">
-                        <input name="indexer_sites" type="checkbox" class="form-check-input" value="${site.indexer_id}" ${data.indexerSites.includes(site.indexer_id) ? 'checked' : ''}>
+                    <div class="d-flex justify-content-between pb-2 border-bottom">
+                      <div class="d-flex align-items-center ms-1">
+                        <div class="form-switch">
+                          <input name="indexer_sites" type="checkbox" class="form-check-input" value="${site.indexer_id}" ${data.indexerSites.includes(site.indexer_id) ? 'checked' : ''}>
+                        </div>
+                        <span class="text-reset card-text">${site.name}</span>
                       </div>
-                      <span class="text-reset card-text">${site.name}</span>
+                      <div class="col-auto">
+                        <a href="javascript:remove_site('${site.name}', '${site.id}')" class="text-danger" title="删除站点">
+                          <i class="ti ti-x fs-2"></i>
+                        </a>
+                      </div>
                     </div>
-                    <div class="flex-grow-1 mt-1 pt-2 ps-1 border-top mh-5">
+                    <div class="flex-grow-1 px-1 py-2 mh-5">
                       <div class="d-flex align-items-center">
-                        ${site.rule && data.RuleGroups && data.RuleGroups[site.rule] ? `<span class="badge badge-outline text-orange me-2">${data.RuleGroups[site.rule]}</span>` : ''}
-                        ${site.download_setting && data.DownloadSettings && data.DownloadSettings[site.download_setting] ? `<span class="badge badge-outline text-lime me-2">${data.DownloadSettings[site.download_setting]}</span>` : ''}
+                        <small>
+                          ${site.rss_enable && site.rssurl ? '<span class="badge badge-outline bg-azure-lt me-2">订阅</span>' : ''}
+                          ${site.brush_enable && site.rssurl ? '<span class="badge badge-outline bg-indigo-lt me-2">刷流</span>' : ''}
+                          ${site.statistic_enable && (site.signurl || site.rssurl) ? '<span class="badge badge-outline bg-purple-lt me-1">数据统计</span>' : ''}
+                        </small>
                       </div>
                       <div class="mt-2 d-flex align-items-center">
                         <small>
-                          ${site.rss_enable && site.rssurl ? '<span class="badge bg-azure-lt me-1">订阅</span>' : ''}
-                          ${site.brush_enable && site.rssurl ? '<span class="badge bg-indigo-lt me-1">刷流</span>' : ''}
-                          ${site.statistic_enable && (site.signurl || site.rssurl) ? '<span class="badge bg-purple-lt me-1">数据统计</span>' : ''}
-                          ${site.parse ? '<span class="badge bg-pink-lt me-1">解析</span>' : ''}
-                          ${site.unread_msg_notify ? '<span class="badge bg-orange-lt me-1">消息</span>' : ''}
+                          ${site.rule && data.RuleGroups && data.RuleGroups[site.rule] ? `<span class="badge badge-outline bg-orange-lt me-1">${data.RuleGroups[site.rule]}</span>` : ''}
+                          ${site.download_setting && data.DownloadSettings && data.DownloadSettings[site.download_setting] ? `<span class="badge badge-outline bg-teal-lt me-1">${data.DownloadSettings[site.download_setting]}</span>` : ''}
+                          ${site.parse ? '<span class="badge badge-outline bg-pink-lt me-1">解析</span>' : ''}
+                          ${site.unread_msg_notify ? '<span class="badge badge-outline bg-orange-lt me-1">消息</span>' : ''}
                           ${site.chrome ? '<span class="badge bg-yellow-lt me-1">仿真</span>' : ''}
                           ${site.proxy ? '<span class="badge bg-lime-lt me-1">代理</span>' : ''}
                         </small>

@@ -354,9 +354,6 @@ function render_progress(ret) {
     $("#modal_process_bar").attr("style", "width: " + ret.value + "%").attr("aria-valuenow", ret.value);
     $("#modal_process_text").text(ret.text);
   }
-  if ($("#modal-process").is(":hidden")) {
-    stop_progress();
-  }
 }
 
 // 显示全局进度框
@@ -378,6 +375,7 @@ function show_refresh_progress(title, type) {
 // 关闭全局进度框
 function hide_refresh_process() {
   $("#modal-process").modal("hide");
+  stop_progress();
 }
 
 // 显示确认提示框
@@ -2165,7 +2163,6 @@ function do_update_indexer() {
     if (ret.code === 0) {
       $("#modal-manual-indexer").modal("hide");
       show_success_modal("更新索引站点成功!");
-      window_history_refresh();
     } else {
       show_fail_modal(`更新索引站点失败：${ret.msg}!`);
     }

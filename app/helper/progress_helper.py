@@ -34,7 +34,7 @@ class ProgressHelper(object):
             ptype = ptype.value
         if not self._process_detail.get(ptype):
             return
-        self._process_detail[ptype]['enable'] = False
+        self.__reset(ptype)
 
     def update(self, value=None, text=None, ptype=ProgressKey.Search):
         if isinstance(ptype, Enum):

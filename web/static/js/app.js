@@ -107,6 +107,7 @@ function loadPage(htmlPath, queryString) {
     // 首次进入页面, 菜单数据没有加载完成
     var navbarMenu = document.querySelector("#navbar-menu")
     if (!navbarMenu || !navbarMenu.navbar_list) {
+      $('#top-sub-navbar').hide();
       return;
     }
 
@@ -293,6 +294,7 @@ function activeMenu(pageMenu) {
   // 找到当前页面菜单配置
   var navbarMenu = document.querySelector("#navbar-menu")
   if (!navbarMenu || !navbarMenu.navbar_list) {
+    $('#top-sub-navbar').hide();
     return;
   }
 

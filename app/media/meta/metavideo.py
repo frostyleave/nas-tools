@@ -481,8 +481,12 @@ class MetaVideo(MetaBase):
             if not self._source:
                 self._source = source_res.group(1)
                 self._last_token = self._source.upper()
-                if self._source.upper().startswith('WEB'):
-                    self._source = "WEB-DL"
+            return
+        elif token.upper() == "DL" \
+                and self._last_token_type == "source" \
+                and self._last_token == "WEB":
+            self._source = "WEB-DL"
+            self._continue_flag = False
             return
         elif token.upper() == "RAY" \
                 and self._last_token_type == "source" \
@@ -490,14 +494,10 @@ class MetaVideo(MetaBase):
             self._source = "BluRay"
             self._continue_flag = False
             return
-        elif token.upper().startswith('WEB'):
+        elif token.upper() == "WEBDL":
             self._source = "WEB-DL"
             self._continue_flag = False
             return
-        # elif re.search(r"(%s)" % self._source_tc_re, token, re.IGNORECASE):
-        #     self._source = "枪版"
-        #     self._continue_flag = False
-        #     return
         effect_res = re.search(r"(%s)" % self._effect_re, token, re.IGNORECASE)
         if effect_res:
             self._last_token_type = "effect"

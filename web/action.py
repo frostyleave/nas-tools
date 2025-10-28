@@ -1102,7 +1102,7 @@ class WebAction:
         def __is_site_duplicate(query_name, query_tid):
             # 检查是否重名
             for site in _sites.get_sites_by_name(name=query_name):
-                if str(site.get("id")) != str(query_tid):
+                if str(site.id) != str(query_tid):
                     return True
             return False
 
