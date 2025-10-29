@@ -1283,6 +1283,33 @@ function download_link() {
   });
 }
 
+// 显示搜索弹框
+function show_quick_search_modal() {
+  $('#modal-search-query').val('');
+  $("#quick-search-modal").modal("show");
+}
+
+// 搜索
+function quick_search_media() {
+
+  var search_keyword = $('#modal-search-query').val();
+  var types = $('input[name="search-type"]:checked').val();
+  var search_type = 'ALL';
+  if (types == 'MOV') {
+    search_type = 'MOV';
+  } else if (types == 'TV') {
+    search_type = 'TV';
+  } 
+
+  var search_source = $('input[name="search-source"]:checked').val();
+  if (search_source === "person") {
+    navmenu("discovery_person?title=演员搜索&subtitle=" + search_keyword + "&keyword=" + search_keyword);
+  } else {
+    navmenu("recommend?type=SEARCH&title=搜索结果&subtitle=" + search_keyword + "&keyword=" + search_keyword + "&source=" + search_source+ "&subtype=" + search_type);
+  }
+
+}
+
 // 显示高级搜索框
 function show_search_advanced_modal() {
   refresh_site_options("advanced_search_site", true);

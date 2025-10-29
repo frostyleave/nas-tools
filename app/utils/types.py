@@ -221,3 +221,12 @@ class IndexerSearchType(Enum):
 MovieTypes = ['MOV', '电影', MediaType.MOVIE]
 # 电视剧类型关键字
 TvTypes = ['TV', '电视剧', MediaType.TV]
+
+# 类型常量枚举映射
+MEDIA_TYPE_MAP = {
+    'TV': MediaType.TV,
+    'MOV': MediaType.MOVIE,
+    'MOVIE': MediaType.MOVIE,
+    'ANI': MediaType.ANIME,
+    'ANIME': MediaType.ANIME,
+}

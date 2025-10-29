@@ -149,6 +149,45 @@
   <div id="app-layout" class="page d-none">
     <input type="hidden" id="default_transfer_mode" />
     <input type="hidden" id="default_path" />
+    <!-- 搜索栏 -->
+    <div id="navbar-search" class="navbar fixed-top lit-searchbar d-none">
+      <div class="container-fluid nav-search-bar">
+        <div class="d-flex flex-row flex-grow-1 align-items-center py-1">
+          <!-- 导航展开按钮 -->
+          <button class="navbar-toggler d-lg-none ms-2" type="button" data-bs-toggle="offcanvas" data-bs-target="#litLayoutNavbar">
+            <i class="ti ti-menu-2 fs-2"></i>
+          </button>
+          <!-- 搜索栏 -->
+          <div class="input-group input-group-flat ms-2">
+            <!-- 搜索图标 -->
+            <span class="input-group-text">
+              <a href="javascript:void(0)" class="link-secondary d-flex align-items-center">
+                <i class="ti ti-search fs-2 text-blue"></i>
+              </a>
+            </span>
+            <!-- 输入框 -->
+            <input type="text" class="home_search_bar form-control form-control-rounded" onclick="show_quick_search_modal()" placeholder="搜索电影、电视剧">
+            <!-- 高级搜索图标 -->
+            <span class="input-group-text">
+              <a class="link-secondary d-flex align-items-center" href="javascript:show_search_advanced_modal()">
+                <i class="ti ti-adjustments fs-2"></i>
+              </a>
+            </span>
+            <!-- 头像 dropdown -->
+            <span class="input-group-text border-start-0">
+              <div class="nav-item dropdown">
+                <a href="#" class="d-flex align-items-center" data-bs-toggle="dropdown" aria-expanded="false">
+                  <i class="ti ti-user-square-rounded fs-2 text-vimeo"></i>
+                </a>
+                <div id="head-dropdown-menu" class="dropdown-menu dropdown-menu-end dropdown-menu-arrow">
+                </div>
+              </div>
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- 主界面 -->
     <div class="page-wrapper">
       <nav class="navbar navbar-expand navbar-secondary" id="top-sub-navbar">
         <div class="container-fluid d-flex justify-content-md-start justify-content-center">
@@ -203,7 +242,61 @@
       </div>
     </div>
   </div>
-
+  <!-- 搜索弹窗 -->
+  <div class="modal modal-blur fade" id="quick-search-modal" tabindex="-1" aria-labelledby="quickSearchLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="quickSearchLabel">搜索</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <div class="row mb-3 align-items-center">
+            <div class="col-md-12">
+              <input type="text" class="form-control" id="modal-search-query" placeholder="请输入关键词...">
+            </div>
+          </div>                
+          <div class="row mb-3 align-items-center">
+            <label class="form-label-fixed col-form-label">数据源</label>
+            <div class="col-md-9">
+              <div class="form-selectgroup">
+                <label class="form-selectgroup-item">
+                  <input type="radio" name="search-source" value="tmdb" class="form-selectgroup-input" checked>
+                  <span class="form-selectgroup-label">TMDB</span>
+                </label>
+                <label class="form-selectgroup-item">
+                  <input type="radio" name="search-source" value="douban" class="form-selectgroup-input">
+                  <span class="form-selectgroup-label">豆瓣</span>
+                </label>
+                <label class="form-selectgroup-item">
+                  <input type="radio" name="search-source" value="person" class="form-selectgroup-input">
+                  <span class="form-selectgroup-label">人物</span>
+                </label>
+              </div>
+            </div>
+          </div>
+          <div class="row mb-3 align-items-center">
+            <label class="form-label-fixed col-form-label">类型&nbsp;</label>
+            <div class="col-md-9">
+              <div>
+                <label class="form-check form-check-inline mb-0">
+                  <input class="form-check-input" type="checkbox" name="search-type" value="MOV" checked>
+                  <span class="form-check-label">电影</span>
+                </label>
+                <label class="form-check form-check-inline mb-0">
+                  <input class="form-check-input" type="checkbox" name="search-type" value="TV">
+                  <span class="form-check-label">电视剧</span>
+                </label>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button onclick="quick_search_media()" id="quick_advanced_btn" class="btn btn-primary">开始搜索</button>
+        </div>
+      </div>
+    </div>
+  </div>
   <!-- 等待框 -->
   <div class="modal" id="modal-wait" tabindex="-1" role="dialog" aria-hidden="true">
     <div class="modal-dialog modal-full-width modal-dialog-centered" role="document">
@@ -1035,8 +1128,8 @@
       </div>
     </div>
   </div>
-  <div class="modal modal-blur fade" id="modal-search-advanced" tabindex="-1" role="dialog" aria-hidden="true"
-    data-bs-backdrop="static" data-bs-keyboard="false">
+  <!-- 高级搜索 -->
+  <div class="modal modal-blur fade" id="modal-search-advanced" tabindex="-1" role="dialog" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
     <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable" role="document">
       <div class="modal-content">
         <div class="modal-header">
@@ -1127,15 +1220,13 @@
           </div>
         </div>
         <div class="modal-footer">
-          <button onclick="search_media_advanced()" id="search_advanced_btn" class="btn btn-primary">开始搜索
-          </button>
+          <button onclick="search_media_advanced()" class="btn btn-primary">开始搜索</button>
         </div>
       </div>
     </div>
   </div>
-
-  <div class="modal modal-blur fade" id="modal-manual-indexer" tabindex="-1" role="dialog" aria-hidden="true"
-    data-bs-backdrop="static" data-bs-keyboard="false">
+  <!-- 索引配置编辑框 -->
+  <div class="modal modal-blur fade" id="modal-manual-indexer" tabindex="-1" role="dialog" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
     <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable" role="document">
       <div class="modal-content">
         <div class="modal-header">
@@ -1510,14 +1601,25 @@
           $navbar[0].navbar_list = sysInfo.menus;
           $("#default_path").after($navbar);
 
-          // 生成搜索栏
-          if (document.getElementById("navbar-search")) {
-            $("#navbar-search").remove();
+          // 填充搜索栏下拉选项
+          $('#head-dropdown-menu').empty();
+          $('#head-dropdown-menu').append(`<a class="dropdown-item hide-theme-dark" data-id="dark" href="javascript:void(0)" onclick="theme_toggle(this)" role="button">暗黑风格</a>`);
+          $('#head-dropdown-menu').append(`<a class="dropdown-item hide-theme-light" data-id="light" href="javascript:void(0)" onclick="theme_toggle(this)" role="button">明亮风格</a>`);
+          $('#head-dropdown-menu').append(`<div class="dropdown-divider"></div>`);
+          if (sysInfo.admin) {
+            $('#head-dropdown-menu').append(`<a class="dropdown-item" href="javascript:navmenu('users')" role="button">用户管理</a>`);
+            $('#head-dropdown-menu').append(`<a class="dropdown-item" href="javascript:show_message_modal()" role="button">消息中心</a>`);
+            $('#head-dropdown-menu').append(`<a class="dropdown-item" href="javascript:show_logging_modal()" role="button">实时日志</a>`);
+            $('#head-dropdown-menu').append(`<div class="dropdown-divider"></div>`);
+            if (sysInfo.systemFlag == 'Docker' || sysInfo.systemFlag == 'Synology') {
+              $('#head-dropdown-menu').append(`<a class="dropdown-item" href="javascript:restart()">重启</a>`);
+            }
           }
-          var searchbar = `<layout-searchbar id="navbar-search"  layout-username="${sysInfo.username}" layout-systemflag="${sysInfo.systemFlag}"
-                            layout-useradmin="${sysInfo.admin}" layout-search="${sysInfo.search}">`;
-          $("#navbar-menu").after(searchbar);
-
+          $('#head-dropdown-menu').append(`<a class="dropdown-item" href="javascript:logout()"> 注销 <span class="text-muted mx-3">${sysInfo.username}</span></a>`);
+          $('#head-dropdown-menu').append(`<div class="dropdown-divider"></div>`);
+          // 显示搜索栏
+          $("#navbar-search").removeClass('d-none');
+          
           // 生成命令菜单
           generateCommandsMenu(sysInfo.commands);
 

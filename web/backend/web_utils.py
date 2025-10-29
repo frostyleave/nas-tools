@@ -219,7 +219,7 @@ class WebUtils:
         media_info.org_string = douban_name    
 
     @staticmethod
-    def search_media_infos(keyword, source=None, page=1):
+    def search_media_infos(keyword, source=None, page=1, media_type: MediaType = None):
         """
         搜索TMDB或豆瓣词条
         :param: keyword 关键字
@@ -229,7 +229,11 @@ class WebUtils:
         """
         if not keyword:
             return []
+        
         mtype, key_word, season_num, episode_num, _, content = StringUtils.get_keyword_from_string(keyword)
+        if media_type:
+            mtype = media_type
+
         if source == "tmdb":
             use_douban_titles = False
         elif source == "douban":

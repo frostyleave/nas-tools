@@ -44,7 +44,7 @@ from app.sync import Sync
 from app.torrentremover import TorrentRemover
 from app.utils import StringUtils, EpisodeFormat, RequestUtils, PathUtils, \
     SystemUtils, ExceptionUtils
-from app.utils.types import RmtMode, OsType, SearchType, SyncType, MediaType, MovieTypes, TvTypes, \
+from app.utils.types import MEDIA_TYPE_MAP, RmtMode, OsType, SearchType, SyncType, MediaType, MovieTypes, TvTypes, \
     EventType, SystemConfigKey, RssType
 from app.utils.password_hash import generate_password_hash
 
@@ -2335,7 +2335,8 @@ class WebAction:
             # 搜索词条
             Keyword = data.get("keyword")
             Source = data.get("source")
-            medias = WebUtils.search_media_infos(keyword=Keyword, source=Source, page=CurrentPage)
+            mtype = MEDIA_TYPE_MAP.get(data.get("subtype"), None)
+            medias = WebUtils.search_media_infos(keyword=Keyword, source=Source, page=CurrentPage, media_type=mtype)
             res_list = [media.to_dict() for media in medias]
             # 相关性排序
             res_list = self.sort_search_results(res_list, Keyword)
@@ -2649,6 +2650,13 @@ class WebAction:
             site_hr = True
         return {"code": 0, "site_free": site_free, "site_2xfree": site_2xfree, "site_hr": site_hr}
 
+    def init_process(self, data):
+        """
+        初始化进度条
+        """
+        ProgressHelper().reset(data.get("type"))
+        return {"code": 0}
+        
     def refresh_process(self, data):
         """
         刷新进度条
@@ -4697,11 +4705,11 @@ class WebAction:
         根据TMDBID或关键字查询TMDB演员
         """
         tmdbid = data.get("tmdbid")
-        mtype = MediaType.MOVIE if data.get("type") in MovieTypes else MediaType.TV
         keyword = data.get("keyword")
         if not tmdbid and not keyword:
             return {"code": 1, "msg": "未指定TMDBID或关键字"}
         if tmdbid:
+            mtype = MediaType.MOVIE if data.get("type") in MovieTypes else MediaType.TV
             result = Media().get_tmdb_cats(tmdbid=tmdbid, mtype=mtype)
         else:
             result = Media().search_tmdb_person(name=keyword)

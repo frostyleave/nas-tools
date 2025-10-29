@@ -120,10 +120,6 @@ def auth_required(func=None):
                 return await func(*args, **kwargs)
             
         log.warn(f"【Security】{func.__name__} 认证未通过, 请检查API Key")
-        return {
-            "code": 401,
-            "success": False,
-            "message": "安全认证未通过, 请检查ApiKey"
-        }
+        raise HTTPException(status_code=401, detail="安全认证未通过, 请检查ApiKey")
 
     return wrapper

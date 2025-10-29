@@ -1022,3 +1022,9 @@ h1.login_title>label {
     justify-content: center;
     border-radius: var(--tblr-border-radius);
 }
+
+.form-label-fixed {
+    width: 5em;
+    text-align: end;
+    flex-shrink: 0;
+}

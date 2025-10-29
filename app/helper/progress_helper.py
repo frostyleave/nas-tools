@@ -14,7 +14,7 @@ class ProgressHelper(object):
     def init_config(self):
         pass
 
-    def __reset(self, ptype=ProgressKey.Search):
+    def reset(self, ptype=ProgressKey.Search):
         if isinstance(ptype, Enum):
             ptype = ptype.value
         self._process_detail[ptype] = {
@@ -24,7 +24,7 @@ class ProgressHelper(object):
         }
 
     def start(self, ptype=ProgressKey.Search):
-        self.__reset(ptype)
+        self.reset(ptype)
         if isinstance(ptype, Enum):
             ptype = ptype.value
         self._process_detail[ptype]['enable'] = True
@@ -34,7 +34,7 @@ class ProgressHelper(object):
             ptype = ptype.value
         if not self._process_detail.get(ptype):
             return
-        self.__reset(ptype)
+        self.reset(ptype)
 
     def update(self, value=None, text=None, ptype=ProgressKey.Search):
         if isinstance(ptype, Enum):

@@ -1,5 +1,6 @@
-from functools import wraps
 import os
+
+from functools import wraps
 
 from fastapi import APIRouter, Request, Depends
 from fastapi.encoders import jsonable_encoder
@@ -29,12 +30,14 @@ from config import PT_TRANSFER_INTERVAL, TMDB_API_DOMAINS, Config
 from web.action import WebAction
 from web.backend.security import get_current_user
 from web.backend.user import User
-from web.backend.wallpaper import get_login_wallpaper
 from web.backend.web_utils import WebUtils
 
 
-# API路由
-data_router = APIRouter(prefix="/data")
+# 页面数据路由
+data_router = APIRouter(
+    prefix="/data",
+    dependencies=[Depends(get_current_user)]
+)
 
 
 # 异常捕获器
@@ -73,24 +76,9 @@ def response(code: int = 0, msg: str = "success", data=None, status_code: int = 
     )
 
 
-# bing
-@data_router.post("/bing")
-async def bing(request: Request):
-
-    image_code, img_title, img_link = get_login_wallpaper()
-
-    return response(data=
-        {
-            "imageCode" : image_code,
-            "imgTitle" : img_title,
-            "imgLink" : img_link
-        }
-    )
-
-
 # userinfo
 @data_router.post("/userinfo")
-async def sysinfo(request: Request, current_user: User = Depends(get_current_user)):
+async def sysinfo(current_user: User = Depends(get_current_user)):
 
     return response(data=
         {
@@ -101,7 +89,7 @@ async def sysinfo(request: Request, current_user: User = Depends(get_current_use
 
 # sysinfo
 @data_router.post("/sysinfo")
-async def sysinfo(request: Request, current_user: User = Depends(get_current_user)):
+async def sysinfo(current_user: User = Depends(get_current_user)):
 
     # 判断当前的运营环境
     system_flag = SystemUtils.get_system()
@@ -148,7 +136,7 @@ async def sysinfo(request: Request, current_user: User = Depends(get_current_use
 
 # 基础设置页面
 @data_router.post("/basic")
-async def basic(request: Request, current_user: User = Depends(get_current_user)):
+async def basic():
     proxy = Config().get_config('app').get("proxies", {}).get("http")
     if proxy:
         proxy = proxy.replace("http://", "")
@@ -167,7 +155,7 @@ async def basic(request: Request, current_user: User = Depends(get_current_user)
 
 # 开始页面
 @data_router.post("/index")
-async def index(request: Request, current_user: User = Depends(get_current_user)):
+async def index(current_user: User = Depends(get_current_user)):
 
     web_action = WebAction(current_user)
 
@@ -215,7 +203,7 @@ async def index(request: Request, current_user: User = Depends(get_current_user)
 
 # 资源搜索页面
 @data_router.post("/search")
-async def search(request: Request, current_user: User = Depends(get_current_user)):
+async def search(current_user: User = Depends(get_current_user)):
 
     # 结果
     res = WebAction(current_user).get_search_result()
@@ -232,7 +220,7 @@ async def search(request: Request, current_user: User = Depends(get_current_user
 
 # 订阅页面
 @data_router.post("/rss")
-async def rss(request: Request, current_user: User = Depends(get_current_user), t: str = "MOV"):
+async def rss(current_user: User = Depends(get_current_user), t: str = "MOV"):
 
     web_action = WebAction(current_user)
 
@@ -262,7 +250,7 @@ async def rss(request: Request, current_user: User = Depends(get_current_user), 
 
 # 订阅历史页面
 @data_router.post("/rss_history")
-async def rss_history(request: Request, current_user: User = Depends(get_current_user), t: str = ""):
+async def rss_history(current_user: User = Depends(get_current_user), t: str = ""):
 
     RssHistory = WebAction(current_user).get_rss_history({"type": t}).get("result")
 
@@ -276,7 +264,7 @@ async def rss_history(request: Request, current_user: User = Depends(get_current
 
 # 订阅日历页面
 @data_router.post("/rss_calendar")
-async def rss_calendar(request: Request, current_user: User = Depends(get_current_user)):
+async def rss_calendar(current_user: User = Depends(get_current_user)):
 
     web_action = WebAction(current_user)
     # 电影订阅
@@ -293,7 +281,7 @@ async def rss_calendar(request: Request, current_user: User = Depends(get_curren
 
 # 索引站点页面
 @data_router.post("/indexer")
-async def indexer(request: Request, current_user: User = Depends(get_current_user), p: int = 1):
+async def indexer(p: int = 1):
 
     indexers = Indexer().get_indexers(check=False)
     indexer_sites = SystemConfig().get(SystemConfigKey.UserIndexerSites)
@@ -343,7 +331,7 @@ async def indexer(request: Request, current_user: User = Depends(get_current_use
 
 # 站点维护页面
 @data_router.post("/site")
-async def sites_page(request: Request, current_user = Depends(get_current_user)):
+async def sites_page():
 
     indexer_sites = SystemConfig().get(SystemConfigKey.UserIndexerSites)
     if not indexer_sites:
@@ -372,7 +360,7 @@ async def sites_page(request: Request, current_user = Depends(get_current_user))
 
 # 站点资源页面
 @data_router.post("/sitelist")
-async def sitelist_page(request: Request, current_user = Depends(get_current_user)):
+async def sitelist_page():
     indexer_sites = Indexer().get_indexers(check=False)
     return response(data=
         {
@@ -384,7 +372,7 @@ async def sitelist_page(request: Request, current_user = Depends(get_current_use
 
 # 媒体库页面
 @data_router.post("/library")
-async def library(request: Request, current_user = Depends(get_current_user)):
+async def library(current_user = Depends(get_current_user)):
     RmtModeDict = WebAction(current_user).get_rmt_modes()
     ScraperConf = SystemConfig().get(SystemConfigKey.UserScraperConf) or {}
     return response(data=
@@ -398,7 +386,7 @@ async def library(request: Request, current_user = Depends(get_current_user)):
 
 # 通知消息页面
 @data_router.post("/notification")
-async def notification(request: Request, current_user = Depends(get_current_user)):
+async def notification():
     MessageClients = Message().get_message_client_info()
     Switchs = ModuleConf.MESSAGE_CONF.get("switch")
 
@@ -422,7 +410,7 @@ async def notification(request: Request, current_user = Depends(get_current_user
 
 # 用户管理页面
 @data_router.post("/users")
-async def users(request: Request, current_user = Depends(get_current_user)):
+async def users(current_user = Depends(get_current_user)):
 
     Users = []
     TopMenus = []
@@ -441,7 +429,7 @@ async def users(request: Request, current_user = Depends(get_current_user)):
 
 # 过滤规则设置页面
 @data_router.post("/filterrule")
-async def filterrule(request: Request, current_user = Depends(get_current_user)):
+async def filterrule(current_user = Depends(get_current_user)):
 
     ruleGroups = Filter().get_rule_infos()
     initRuleGroups = WebAction(current_user).get_init_filterrules()
@@ -455,7 +443,7 @@ async def filterrule(request: Request, current_user = Depends(get_current_user))
 
 # 目录同步页面
 @data_router.post("/directorysync")
-async def directorysync(request: Request, current_user = Depends(get_current_user)):
+async def directorysync(current_user = Depends(get_current_user)):
     RmtModeDict = WebAction(current_user).get_rmt_modes()
     SyncPaths = Sync().get_sync_path_conf()
     return response(data=
@@ -467,7 +455,7 @@ async def directorysync(request: Request, current_user = Depends(get_current_use
 
 # 自定义识别词设置页面
 @data_router.post("/customwords")
-async def customwords(request: Request, current_user = Depends(get_current_user)):
+async def customwords(current_user = Depends(get_current_user)):
     groups = WebAction(current_user).get_customwords().get("result")
     return response(data=
         {
@@ -478,7 +466,7 @@ async def customwords(request: Request, current_user = Depends(get_current_user)
 
 # 插件页面
 @data_router.post("/plugin")
-async def plugin(request: Request, current_user = Depends(get_current_user)):
+async def plugin(current_user = Depends(get_current_user)):
 
     # 插件
     Plugins = PluginManager().get_plugins_conf(current_user.level)
@@ -493,7 +481,7 @@ async def plugin(request: Request, current_user = Depends(get_current_user)):
 
 # 用户RSS页面
 @data_router.post("/user_rss")
-async def user_rss(request: Request, current_user: User = Depends(get_current_user)):
+async def user_rss():
     """
     用户RSS页面
     """
@@ -519,7 +507,7 @@ async def user_rss(request: Request, current_user: User = Depends(get_current_us
 
 # 服务页面
 @data_router.post("/service")
-async def service(request: Request, current_user: User = Depends(get_current_user)):
+async def service(current_user: User = Depends(get_current_user)):
     """
     服务页面
     """
@@ -597,7 +585,7 @@ async def service(request: Request, current_user: User = Depends(get_current_use
 
 # 下载器
 @data_router.post("/downloaders")
-async def downloading(request: Request, current_user: User = Depends(get_current_user)):
+async def downloading(current_user: User = Depends(get_current_user)):
     """
     正在下载页面
     """
@@ -625,7 +613,7 @@ async def downloading(request: Request, current_user: User = Depends(get_current
 
 # 正在下载页面
 @data_router.post("/downloading")
-async def downloading(request: Request, current_user: User = Depends(get_current_user)):
+async def downloading():
     """
     正在下载页面
     """
@@ -644,7 +632,7 @@ async def downloading(request: Request, current_user: User = Depends(get_current
 
 # 媒体文件管理页面
 @data_router.post("/mediafile")
-async def mediafile(request: Request, current_user: User = Depends(get_current_user)):
+async def mediafile():
     """
     媒体文件管理页面
     """
@@ -671,7 +659,7 @@ async def mediafile(request: Request, current_user: User = Depends(get_current_u
 
 # 数据统计页面
 @data_router.post("/statistics")
-async def statistics(request: Request, current_user: User = Depends(get_current_user)):
+async def statistics():
     """
     数据统计页面
     """
@@ -735,7 +723,7 @@ async def statistics(request: Request, current_user: User = Depends(get_current_
 
 # 刷流任务页面
 @data_router.post("/brushtask")
-async def brushtask(request: Request, current_user: User = Depends(get_current_user)):
+async def brushtask():
     """
     刷流任务页面
     """
@@ -758,7 +746,7 @@ async def brushtask(request: Request, current_user: User = Depends(get_current_u
 
 # RSS解析器页面
 @data_router.post("/rss_parser")
-async def rss_parser(request: Request, current_user: User = Depends(get_current_user)):
+async def rss_parser():
     """
     RSS解析器页面
     """
@@ -774,7 +762,7 @@ async def rss_parser(request: Request, current_user: User = Depends(get_current_
 
 # 自动删种页面
 @data_router.post("/torrent_remove")
-async def torrent_remove(request: Request, current_user: User = Depends(get_current_user)):
+async def torrent_remove():
     """
     自动删种页面
     """
@@ -793,7 +781,7 @@ async def torrent_remove(request: Request, current_user: User = Depends(get_curr
 
 # 近期下载页面
 @data_router.post("/downloaded")
-async def downloaded(request: Request, current_user: User = Depends(get_current_user)):
+async def downloaded(request: Request):
 
     data = await request.json()
     CurrentPage = data.get("page") or 1
@@ -809,7 +797,7 @@ async def downloaded(request: Request, current_user: User = Depends(get_current_
 
 # 下载设置页面
 @data_router.post("/download_setting")
-async def download_setting(request: Request, current_user: User = Depends(get_current_user)):
+async def download_setting():
     """
     下载设置页面
     """
@@ -829,7 +817,7 @@ async def download_setting(request: Request, current_user: User = Depends(get_cu
 
 # 豆瓣电影
 @data_router.post("/douban_movie")
-async def douban_movie(request: Request, current_user: User = Depends(get_current_user)):
+async def douban_movie():
     """
     豆瓣电影页面
     """
@@ -846,7 +834,7 @@ async def douban_movie(request: Request, current_user: User = Depends(get_curren
 
 # 豆瓣电视剧
 @data_router.post("/douban_tv")
-async def douban_tv(request: Request, current_user: User = Depends(get_current_user)):
+async def douban_tv():
     """
     豆瓣电视剧页面
     """
@@ -863,7 +851,7 @@ async def douban_tv(request: Request, current_user: User = Depends(get_current_u
 
 # TMDB电影
 @data_router.post("/tmdb_movie")
-async def tmdb_movie(request: Request, current_user: User = Depends(get_current_user)):
+async def tmdb_movie():
     """
     TMDB电影页面
     """
@@ -880,7 +868,7 @@ async def tmdb_movie(request: Request, current_user: User = Depends(get_current_
 
 # TMDB电视剧
 @data_router.post("/tmdb_tv")
-async def tmdb_tv(request: Request, current_user: User = Depends(get_current_user)):
+async def tmdb_tv():
     """
     TMDB电视剧页面
     """
@@ -897,7 +885,7 @@ async def tmdb_tv(request: Request, current_user: User = Depends(get_current_use
 
 # TMDB缓存页面
 @data_router.post("/tmdbcache")
-async def tmdbcache(request: Request, current_user: User = Depends(get_current_user)):
+async def tmdbcache(request: Request):
     """
     TMDB缓存页面
     """
@@ -929,7 +917,7 @@ async def tmdbcache(request: Request, current_user: User = Depends(get_current_u
 
 # 字幕页面
 @data_router.post("/subtitle")
-async def subtitle(request: Request, current_user: User = Depends(get_current_user)):
+async def subtitle():
     """
     字幕页面
     """
