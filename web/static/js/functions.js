@@ -1285,15 +1285,15 @@ function download_link() {
 
 // 显示搜索弹框
 function show_quick_search_modal() {
-  $('#modal-search-query').val('');
+  $('#quick-search-keywords').val('');
   $("#quick-search-modal").modal("show");
 }
 
 // 搜索
 function quick_search_media() {
 
-  var search_keyword = $('#modal-search-query').val();
-  var types = $('input[name="search-type"]:checked').val();
+  var search_keyword = $('#quick-search-keywords').val();
+  var types = [...$('input[name="search-type"]:checked')].map(el => el.value).join(',');
   var search_type = 'ALL';
   if (types == 'MOV') {
     search_type = 'MOV';
@@ -1301,7 +1301,7 @@ function quick_search_media() {
     search_type = 'TV';
   } 
 
-  var search_source = $('input[name="search-source"]:checked').val();
+  var search_source = $('#icon-source-trigger').data('id');
   if (search_source === "person") {
     navmenu("discovery_person?title=演员搜索&subtitle=" + search_keyword + "&keyword=" + search_keyword);
   } else {

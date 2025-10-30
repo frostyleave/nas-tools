@@ -166,7 +166,12 @@
               </a>
             </span>
             <!-- 输入框 -->
-            <input type="text" class="home_search_bar form-control form-control-rounded" onclick="show_quick_search_modal()" placeholder="搜索电影、电视剧">
+            <a href="javascript:show_quick_search_modal()" class="form-control" style="cursor: pointer; text-decoration: none;">
+              <span class="text-muted">
+                搜索电影、电视剧
+              </span>
+            </a>
+            <!-- <input type="text" class="home_search_bar form-control form-control-rounded" onclick="show_quick_search_modal()" placeholder="搜索电影、电视剧"> -->
             <!-- 高级搜索图标 -->
             <span class="input-group-text">
               <a class="link-secondary d-flex align-items-center" href="javascript:show_search_advanced_modal()">
@@ -251,33 +256,19 @@
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
         <div class="modal-body">
-          <div class="row mb-3 align-items-center">
-            <div class="col-md-12">
-              <input type="text" class="form-control" id="modal-search-query" placeholder="请输入关键词...">
-            </div>
-          </div>                
-          <div class="row mb-3 align-items-center">
-            <label class="form-label-fixed col-form-label">数据源</label>
-            <div class="col-md-9">
-              <div class="form-selectgroup">
-                <label class="form-selectgroup-item">
-                  <input type="radio" name="search-source" value="tmdb" class="form-selectgroup-input" checked>
-                  <span class="form-selectgroup-label">TMDB</span>
-                </label>
-                <label class="form-selectgroup-item">
-                  <input type="radio" name="search-source" value="douban" class="form-selectgroup-input">
-                  <span class="form-selectgroup-label">豆瓣</span>
-                </label>
-                <label class="form-selectgroup-item">
-                  <input type="radio" name="search-source" value="person" class="form-selectgroup-input">
-                  <span class="form-selectgroup-label">人物</span>
-                </label>
-              </div>
+          <div class="mb-2">
+            <div class="input-group input-group-flat">
+              <span class="input-group-text">
+                <a href="javascript:void(0)" id="icon-source-trigger" data-id="tmdb" class="link-secondary d-flex align-items-center">
+                  <i class="ti ti-circle-letter-t fs-2 text-blue"></i>
+                </a>
+              </span>
+              <input type="text" class="form-control" id="quick-search-keywords" placeholder="搜索电影、电视剧、人物">
             </div>
           </div>
-          <div class="row mb-3 align-items-center">
-            <label class="form-label-fixed col-form-label">类型&nbsp;</label>
-            <div class="col-md-9">
+          <div class="row mb-2 align-items-center ps-2">
+            <label class="col-md-auto col-form-label w-auto">类型</label>
+            <div class="col-md-9 w-auto">
               <div>
                 <label class="form-check form-check-inline mb-0">
                   <input class="form-check-input" type="checkbox" name="search-type" value="MOV" checked>
@@ -1390,6 +1381,14 @@
 
   <script type="text/javascript">
 
+    const search_sources_icon = [
+        { id: 'tmdb',   icon: '<i class="ti ti-circle-letter-t fs-2 text-blue"></i>' },
+        { id: 'douban', icon: '<i class="ti ti-circle-letter-d fs-2 text-green"></i>' },
+        { id: 'person', icon: '<i class="ti ti-circle-letter-p fs-2 text-purple"></i>' }
+    ];
+
+    let currentSourceIndex = 0; // 初始索引
+
     // 全局登录函数
     function performLogin() {
 
@@ -1454,6 +1453,33 @@
       $('#loginForm').on('submit', function (e) {
         e.preventDefault(); // 阻止默认表单提交
         performLogin();
+      });
+
+      // 图标触发器
+      $('#icon-source-trigger').on('click', function (e) {
+
+        currentSourceIndex = (currentSourceIndex + 1) % search_sources_icon.length;
+        
+        // 获取新的状态
+        let newSource = search_sources_icon[currentSourceIndex];
+        
+        // 更新图标的 HTML
+        $(this).html(newSource.icon);
+        
+        // 更新 data 属性，以便搜索按钮可以获取到
+        $(this).data('id', newSource.id);
+
+      });
+
+      // 回车键搜索
+      $('#quick-search-keywords').on('keypress', function (e) {
+        if (e.which === 13) {
+          quick_search_media();
+        }
+      });
+      // 自动聚焦到输入框
+      $("#quick-search-modal").on('shown.bs.modal', function () {
+        $('#quick-search-keywords').focus();
       });
 
       // 调用 /data/bing 接口获取壁纸数据
@@ -1603,20 +1629,27 @@
 
           // 填充搜索栏下拉选项
           $('#head-dropdown-menu').empty();
-          $('#head-dropdown-menu').append(`<a class="dropdown-item hide-theme-dark" data-id="dark" href="javascript:void(0)" onclick="theme_toggle(this)" role="button">暗黑风格</a>`);
-          $('#head-dropdown-menu').append(`<a class="dropdown-item hide-theme-light" data-id="light" href="javascript:void(0)" onclick="theme_toggle(this)" role="button">明亮风格</a>`);
-          $('#head-dropdown-menu').append(`<div class="dropdown-divider"></div>`);
+          $('#head-dropdown-menu').append(`
+            <a class="dropdown-item hide-theme-dark" data-id="dark" href="javascript:void(0)" onclick="theme_toggle(this)" role="button">暗黑风格</a>
+            <a class="dropdown-item hide-theme-light" data-id="light" href="javascript:void(0)" onclick="theme_toggle(this)" role="button">明亮风格</a>
+            <div class="dropdown-divider"></div>
+          `);
           if (sysInfo.admin) {
-            $('#head-dropdown-menu').append(`<a class="dropdown-item" href="javascript:navmenu('users')" role="button">用户管理</a>`);
-            $('#head-dropdown-menu').append(`<a class="dropdown-item" href="javascript:show_message_modal()" role="button">消息中心</a>`);
-            $('#head-dropdown-menu').append(`<a class="dropdown-item" href="javascript:show_logging_modal()" role="button">实时日志</a>`);
-            $('#head-dropdown-menu').append(`<div class="dropdown-divider"></div>`);
+            $('#head-dropdown-menu').append(`
+              <a class="dropdown-item" href="javascript:navmenu('users')" role="button">用户管理</a>
+              <div class="dropdown-divider"></div>
+              <a class="dropdown-item" href="javascript:show_message_modal()" role="button">消息中心</a>
+              <a class="dropdown-item" href="javascript:show_logging_modal()" role="button">实时日志</a>
+              <div class="dropdown-divider"></div>
+            `);
             if (sysInfo.systemFlag == 'Docker' || sysInfo.systemFlag == 'Synology') {
               $('#head-dropdown-menu').append(`<a class="dropdown-item" href="javascript:restart()">重启</a>`);
             }
           }
-          $('#head-dropdown-menu').append(`<a class="dropdown-item" href="javascript:logout()"> 注销 <span class="text-muted mx-3">${sysInfo.username}</span></a>`);
-          $('#head-dropdown-menu').append(`<div class="dropdown-divider"></div>`);
+          $('#head-dropdown-menu').append(`
+            <a class="dropdown-item" href="javascript:logout()"> 注销 <span class="text-muted mx-3">${sysInfo.username}</span></a>
+            <div class="dropdown-divider"></div>
+          `);
           // 显示搜索栏
           $("#navbar-search").removeClass('d-none');
           

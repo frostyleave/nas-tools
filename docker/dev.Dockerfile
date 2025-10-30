@@ -15,9 +15,9 @@ ARG BRANCH
 
 # 定义构建时和运行时的 apt 依赖
 # 构建依赖 (BUILD_DEPS) 将不会进入最终镜像
-ENV BUILD_DEPS="build-essential gcc libffi-dev libxml2-dev libxslt-dev musl-dev git unzip curl" \
-    # 运行时依赖 (RUNTIME_DEPS) 
-    RUNTIME_DEPS="bash gosu dumb-init ca-certificates libnss3 libxss1 libasound2 libxshmfence1 libxcomposite1 libxdamage1 libxrandr2 libfontconfig1 libgbm1 libdrm2 libx11-xcb1 libgtk-3-0 libappindicator3-1"
+ENV BUILD_DEPS="build-essential gcc libffi-dev libxml2-dev libxslt-dev musl-dev unzip curl" \
+    # 运行时依赖
+    RUNTIME_DEPS="bash gosu dumb-init ca-certificates libnss3 libxss1 libasound2 libxshmfence1 libxcomposite1 libxdamage1 libxrandr2 libfontconfig1 libgbm1 libdrm2 libx11-xcb1 libgtk-3-0 libappindicator3-1 git"
 
 # 安装所有依赖
 RUN apt-get update -y \
@@ -87,7 +87,7 @@ ENV DEBIAN_FRONTEND=noninteractive \
     WORKDIR="/nas-tools"
 
 # 定义运行时 apt 依赖 (必须与 builder 阶段的 RUNTIME_DEPS 一致)
-ENV RUNTIME_DEPS="bash gosu dumb-init ca-certificates libnss3 libxss1 libasound2 libxshmfence1 libxcomposite1 libxdamage1 libxrandr2 libfontconfig1 libgbm1 libdrm2 libx11-xcb1 libgtk-3-0 libappindicator3-1"
+ENV RUNTIME_DEPS="bash gosu dumb-init ca-certificates libnss3 libxss1 libasound2 libxshmfence1 libxcomposite1 libxdamage1 libxrandr2 libfontconfig1 libgbm1 libdrm2 libx11-xcb1 libgtk-3-0 libappindicator3-1 git"
 
 # 只安装运行时依赖
 RUN apt-get update -y \
