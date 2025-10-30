@@ -152,13 +152,13 @@
     <!-- 搜索栏 -->
     <div id="navbar-search" class="navbar fixed-top lit-searchbar d-none">
       <div class="container-fluid nav-search-bar">
-        <div class="d-flex flex-row flex-grow-1 align-items-center py-1">
+        <div class="d-flex flex-row flex-grow-1 align-items-center py-1 ms-2">
           <!-- 导航展开按钮 -->
-          <button class="navbar-toggler d-lg-none ms-2" type="button" data-bs-toggle="offcanvas" data-bs-target="#litLayoutNavbar">
+          <button class="navbar-toggler d-lg-none h-auto py-2 me-1" type="button" data-bs-toggle="offcanvas" data-bs-target="#litLayoutNavbar">
             <i class="ti ti-menu-2 fs-2"></i>
           </button>
           <!-- 搜索栏 -->
-          <div class="input-group input-group-flat ms-2">
+          <div class="input-group input-group-flat">
             <!-- 搜索图标 -->
             <span class="input-group-text">
               <a href="javascript:void(0)" class="link-secondary d-flex align-items-center">
@@ -171,7 +171,6 @@
                 搜索电影、电视剧
               </span>
             </a>
-            <!-- <input type="text" class="home_search_bar form-control form-control-rounded" onclick="show_quick_search_modal()" placeholder="搜索电影、电视剧"> -->
             <!-- 高级搜索图标 -->
             <span class="input-group-text">
               <a class="link-secondary d-flex align-items-center" href="javascript:show_search_advanced_modal()">
@@ -249,7 +248,7 @@
   </div>
   <!-- 搜索弹窗 -->
   <div class="modal modal-blur fade" id="quick-search-modal" tabindex="-1" aria-labelledby="quickSearchLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-dialog modal-lg modal-dialog-top-offset">
       <div class="modal-content">
         <div class="modal-header">
           <h5 class="modal-title" id="quickSearchLabel">搜索</h5>
@@ -263,10 +262,10 @@
                   <i class="ti ti-circle-letter-t fs-2 text-blue"></i>
                 </a>
               </span>
-              <input type="text" class="form-control" id="quick-search-keywords" placeholder="搜索电影、电视剧、人物">
+              <input type="text" class="form-control" id="quick-search-keywords" placeholder="搜索电影、电视剧">
             </div>
           </div>
-          <div class="row mb-2 align-items-center ps-2">
+          <div class="row mb-2 align-items-center ps-2" id="search-type-choose">
             <label class="col-md-auto col-form-label w-auto">类型</label>
             <div class="col-md-9 w-auto">
               <div>
@@ -1455,33 +1454,6 @@
         performLogin();
       });
 
-      // 图标触发器
-      $('#icon-source-trigger').on('click', function (e) {
-
-        currentSourceIndex = (currentSourceIndex + 1) % search_sources_icon.length;
-        
-        // 获取新的状态
-        let newSource = search_sources_icon[currentSourceIndex];
-        
-        // 更新图标的 HTML
-        $(this).html(newSource.icon);
-        
-        // 更新 data 属性，以便搜索按钮可以获取到
-        $(this).data('id', newSource.id);
-
-      });
-
-      // 回车键搜索
-      $('#quick-search-keywords').on('keypress', function (e) {
-        if (e.which === 13) {
-          quick_search_media();
-        }
-      });
-      // 自动聚焦到输入框
-      $("#quick-search-modal").on('shown.bs.modal', function () {
-        $('#quick-search-keywords').focus();
-      });
-
       // 调用 /data/bing 接口获取壁纸数据
       axios_post('/data/bing', {}, function (response) {
 
@@ -1505,7 +1477,6 @@
           $('#loginForm').addClass('login_window');
         }
       });
-
       
       initIndex();
 
@@ -1579,10 +1550,44 @@
         stop_progress();
       });
 
-      // tooltip点击事件处理，阻止冒泡到上级元素，避免比如`点击tooltip切换了switch`的问题
+      // tooltip点击事件处理，阻止冒泡到上级元素
       $('body').on('click', 'span[data-bs-toggle="tooltip"]', function (e) {
         e.preventDefault();
         e.stopPropagation();
+      });
+
+      // 图标触发器
+      $('#icon-source-trigger').on('click', function (e) {
+
+        currentSourceIndex = (currentSourceIndex + 1) % search_sources_icon.length;
+        
+        // 获取新的状态
+        let newSource = search_sources_icon[currentSourceIndex];
+        
+        // 更新图标的 HTML
+        $(this).html(newSource.icon);        
+        $(this).data('id', newSource.id);
+
+        if (newSource.id === "person") {
+          $('#search-type-choose').hide();
+          $('#quick-search-keywords').prop('placeholder', "搜索人物");
+        } else {
+          $('#search-type-choose').show();
+          $('#quick-search-keywords').prop('placeholder', "搜索电影、电视剧");
+        }
+
+      });
+
+      // 回车键搜索
+      $('#quick-search-keywords').on('keypress', function (e) {
+        if (e.which === 13) {
+          quick_search_media();
+        }
+      });
+      
+      // 自动聚焦到输入框
+      $("#quick-search-modal").on('shown.bs.modal', function () {
+        $('#quick-search-keywords').focus();
       });
 
       // 滚动到顶部功能绑定

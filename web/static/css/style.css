@@ -1028,3 +1028,10 @@ h1.login_title>label {
     text-align: end;
     flex-shrink: 0;
 }
+
+.navbar-toggler {
+    background: var(--tblr-bg-forms);
+}
+.modal-dialog-top-offset {
+    margin-top: 15vh;
+}
