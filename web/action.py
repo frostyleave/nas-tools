@@ -575,41 +575,51 @@ class WebAction:
         从WEB添加下载
         """
         dl_id = data.get("id")
+        results = Searcher().get_search_result_by_id(dl_id)
+
+        if not results:
+            return {"retcode": -1, "retmsg": '搜索结果查询失败, 请刷新页面后重试'}
+
         dl_dir = data.get("dir")
         dl_setting = data.get("setting")
-        results = Searcher().get_search_result_by_id(dl_id)
-        for res in results:
-            if not res.TMDBID:
-                continue
-            mtype = None
-            if res.TYPE == 'MOV':
-                mtype = MediaType.MOVIE
-            elif res.TYPE == 'ANI':
-                mtype = MediaType.ANIME
-            elif res.TYPE == 'TV':
-                mtype = MediaType.TV
 
+        # 结果只会有1个
+        res = results[0]
+
+        # 搜索结果没有被识别
+        if not res.TMDBID or res.TMDBID == '0':
+            media_info = Media().get_media_info(title=res.TORRENT_NAME, subtitle=res.DESCRIPTION)
+            if not media_info:
+                return {"retcode": -1, "retmsg": '无法识别该资源'}
+            # 更新tmdb_id
+            if media_info.tmdb_id:
+                DbHelper().update_search_results_date(res.ID, media_info.tmdb_id)
+        else:
+            # 搜索结果已被识别
+            mtype = MEDIA_TYPE_MAP.get(res.TYPE, None)
             info = Media().get_tmdb_info(tmdbid=res.TMDBID, mtype=mtype, append_to_response="all")
             if not info:
-                continue
+                return {"retcode": -1, "retmsg": '查询TMDB详情失败'}
+            
             media_info = MetaInfo(f'{res.TITLE} {res.ES_STRING}')
             media_info.year = res.YEAR
             media_info.org_string = res.TORRENT_NAME
             media_info.set_tmdb_info(info)
-            media_info.set_torrent_info(enclosure=res.ENCLOSURE,
-                                   size=res.SIZE,
-                                   site=res.SITE,
-                                   page_url=res.PAGEURL,
-                                   upload_volume_factor=float(res.UPLOAD_VOLUME_FACTOR),
-                                   download_volume_factor=float(res.DOWNLOAD_VOLUME_FACTOR))
-            # 添加下载
-            _, ret, ret_msg = Downloader().download(media_info=media_info,
-                                                    download_dir=dl_dir,
-                                                    download_setting=dl_setting,
-                                                    in_from=SearchType.WEB,
-                                                    user_name="admin")
-            if not ret:
-                return {"retcode": -1, "retmsg": ret_msg}
+
+        media_info.set_torrent_info(enclosure=res.ENCLOSURE,
+                                    size=res.SIZE,
+                                    site=res.SITE,
+                                    page_url=res.PAGEURL,
+                                    upload_volume_factor=float(res.UPLOAD_VOLUME_FACTOR),
+                                    download_volume_factor=float(res.DOWNLOAD_VOLUME_FACTOR))
+        # 添加下载
+        _, ret, ret_msg = Downloader().download(media_info=media_info,
+                                                download_dir=dl_dir,
+                                                download_setting=dl_setting,
+                                                in_from=SearchType.WEB,
+                                                user_name="admin")
+        if not ret:
+            return {"retcode": -1, "retmsg": ret_msg}
         return {"retcode": 0, "retmsg": ""}
 
     def __download_link(self, data):

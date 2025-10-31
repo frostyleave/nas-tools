@@ -724,7 +724,7 @@ class Media:
         # 识别
         meta_info = meta_info if meta_info else MetaInfo(title, subtitle=subtitle)
         if not meta_info.get_name() or not meta_info.type:
-            log.warn("【Rmt】%s 未识别出有效信息！" % meta_info.org_string)
+            log.warn("【Meta】%s 未识别出有效信息！" % meta_info.org_string)
             return None
         if mtype and not meta_info.type:
             meta_info.type = mtype
@@ -738,6 +738,14 @@ class Media:
         # 查询tmdb数据
         file_media_info = self.query_tmdb_info(search_name, meta_info.type, meta_info.year,
                                                meta_info.begin_season, append_to_response, chinese, strict, cache)
+        
+        # 没有查询出tmdb数据, 尝试从副标题中识别
+        if not file_media_info and subtitle:
+            sub_meta_info = MetaInfo(subtitle)
+            sub_meta_name = sub_meta_info.get_name()
+            if sub_meta_name != search_name:
+                file_media_info = self.query_tmdb_info(sub_meta_name, meta_info.type, meta_info.year,
+                                                       meta_info.begin_season, append_to_response, chinese, strict, cache)
                 
         # 赋值TMDB信息并返回
         meta_info.set_tmdb_info(file_media_info)

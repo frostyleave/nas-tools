@@ -78,6 +78,17 @@ class DbHelper:
         查询搜索结果的所有记录
         """
         return self._db.query(SEARCHRESULTINFO).all()
+    
+    @DbPersist(_db)
+    def update_search_results_date(self, dl_id, tmdb_id):
+        """
+        更新TMDBID
+        """
+        self._db.query(SEARCHRESULTINFO).filter(SEARCHRESULTINFO.ID == dl_id).update(
+            {
+                "TMDBID": str(tmdb_id)
+            }
+        )
 
     @DbPersist(_db)
     def delete_all_search_torrents(self):
@@ -98,6 +109,7 @@ class DbHelper:
                                                      TRANSFERHISTORY.DEST_FILENAME == dest_filename).count()
         return True if ret > 0 else False
 
+    @DbPersist(_db)
     def update_transfer_history_date(self, source_path, source_filename, dest_path, dest_filename, date):
         """
         更新历史转移记录时间

@@ -4,10 +4,13 @@ import dateparser
 import hashlib
 import random
 import re
+import string
 
 from datetime import datetime, timedelta
 from dateutil.parser import parse as parse_date, isoparse
 from typing import Optional
+
+from zhon.hanzi import punctuation as zh_punc
 
 import log
 
@@ -150,22 +153,25 @@ class StringUtils:
         return bool(re.fullmatch(pattern, s))
 
     @staticmethod
-    def is_all_chinese_and_mark(word):
+    def is_all_chinese_and_mark(text: str) -> bool:
         """
-        判断是否全是中文(包括中文标点)
+        判断字符串是否全部由中文字符或中/英文标点符号组成
+        （不包含字母、数字、emoji 等）
+
+        :param text: 待判断字符串
+        :return: True/False
         """
-        for ch in word:
-            if ch == ' ':
-                continue
-            if '\u4e00' <= ch <= '\u9fff':
-                continue
-            if '\u3000' <= ch <= '\u303f':
-                continue
-            if '\uFF00' <= ch <= '\uFFEF':
-                continue
-            else:
-                return False
-        return True
+        if not text:
+            return False
+
+        # 英文标点（string.punctuation）+ 中文标点（zhon.hanzi.punctuation）
+        allowed_punct = re.escape(zh_punc + string.punctuation)
+
+        # 匹配规则：
+        # \u4e00-\u9fff 是中文基本区（汉字）
+        pattern = f"^[\u4e00-\u9fff{allowed_punct}]+$"
+
+        return bool(re.match(pattern, text))
 
     @staticmethod
     def xstr(s):
@@ -224,7 +230,7 @@ class StringUtils:
         忽略特殊字符
         """
         # 需要忽略的特殊字符
-        CONVERT_EMPTY_CHARS = r"[、.。,，·:：;；!！'’\"“”()（）\[\]【】「」\-——\+\|\\_/&#～~]"
+        CONVERT_EMPTY_CHARS = r"[、.。,，・·:：;；!！'’\"“”()（）\[\]【】「」\-——\+\|\\_/&#～~]"
         if not text:
             return text
         if not isinstance(text, list):
