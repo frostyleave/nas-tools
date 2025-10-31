@@ -659,7 +659,7 @@ async def mediafile():
 
 # 数据统计页面
 @data_router.post("/statistics")
-async def statistics():
+async def statistics(current_user: User = Depends(get_current_user)):
     """
     数据统计页面
     """

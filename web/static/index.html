@@ -151,43 +151,43 @@
     <input type="hidden" id="default_path" />
     <!-- 搜索栏 -->
     <div id="navbar-search" class="navbar fixed-top lit-searchbar d-none">
-      <div class="container-fluid nav-search-bar">
-        <div class="d-flex flex-row flex-grow-1 align-items-center py-1 ms-2">
-          <!-- 导航展开按钮 -->
-          <button class="navbar-toggler d-lg-none h-auto py-2 me-1" type="button" data-bs-toggle="offcanvas" data-bs-target="#litLayoutNavbar">
-            <i class="ti ti-menu-2 fs-2"></i>
-          </button>
-          <!-- 搜索栏 -->
-          <div class="input-group input-group-flat">
-            <!-- 搜索图标 -->
-            <span class="input-group-text">
-              <a href="javascript:void(0)" class="link-secondary d-flex align-items-center">
-                <i class="ti ti-search fs-2 text-blue"></i>
-              </a>
-            </span>
-            <!-- 输入框 -->
-            <a href="javascript:show_quick_search_modal()" class="form-control" style="cursor: pointer; text-decoration: none;">
-              <span class="text-muted">
-                搜索电影、电视剧
-              </span>
+      <div class="nav-search-bar d-flex flex-row flex-grow-1 align-items-center">
+        <!-- <div class="d-flex flex-row flex-grow-1 align-items-center py-1 ms-2">
+        </div> -->
+        <!-- 导航展开按钮 -->
+        <button class="navbar-toggler d-lg-none py-2 me-1" type="button" data-bs-toggle="offcanvas" data-bs-target="#litLayoutNavbar">
+          <i class="ti ti-menu-2 fs-2"></i>
+        </button>
+        <!-- 搜索栏 -->
+        <div class="input-group input-group-flat">
+          <!-- 搜索图标 -->
+          <span class="input-group-text">
+            <a href="javascript:show_quick_search_modal()" class="link-secondary d-flex align-items-center">
+              <i class="ti ti-search fs-2 text-blue"></i>
             </a>
-            <!-- 高级搜索图标 -->
-            <span class="input-group-text">
-              <a class="link-secondary d-flex align-items-center" href="javascript:show_search_advanced_modal()">
-                <i class="ti ti-adjustments fs-2"></i>
+          </span>
+          <!-- 输入框 -->
+          <a href="javascript:show_quick_search_modal()" class="form-control cursor-pointer text-decoration-none">
+            <span class="text-muted">
+              搜索电影、电视剧
+            </span>
+          </a>
+          <!-- 高级搜索图标 -->
+          <span class="input-group-text">
+            <a class="link-secondary d-flex align-items-center" href="javascript:show_search_advanced_modal()">
+              <i class="ti ti-adjustments fs-2"></i>
+            </a>
+          </span>
+          <!-- 头像 dropdown -->
+          <span class="input-group-text border-start-0">
+            <div class="nav-item dropdown">
+              <a href="#" class="d-flex align-items-center" data-bs-toggle="dropdown" aria-expanded="false">
+                <i class="ti ti-user-square-rounded fs-2 text-vimeo"></i>
               </a>
-            </span>
-            <!-- 头像 dropdown -->
-            <span class="input-group-text border-start-0">
-              <div class="nav-item dropdown">
-                <a href="#" class="d-flex align-items-center" data-bs-toggle="dropdown" aria-expanded="false">
-                  <i class="ti ti-user-square-rounded fs-2 text-vimeo"></i>
-                </a>
-                <div id="head-dropdown-menu" class="dropdown-menu dropdown-menu-end dropdown-menu-arrow">
-                </div>
+              <div id="head-dropdown-menu" class="dropdown-menu dropdown-menu-end dropdown-menu-arrow">
               </div>
-            </span>
-          </div>
+            </div>
+          </span>
         </div>
       </div>
     </div>
@@ -1525,22 +1525,37 @@
         }
       }
 
+      let searchbar_blur = false;
+      function searchbar_blur_check() {
+        const scroll_length = document.body.scrollTop || window.pageYOffset;
+        // 滚动发生时改变模糊状态
+        if (!searchbar_blur && scroll_length >= 5) {
+          // 模糊状态
+          searchbar_blur = true;
+          $('#navbar-search').addClass("lit-searchbar-blur");
+        } else if (searchbar_blur && scroll_length < 5) {
+          // 非模糊状态
+          searchbar_blur = false
+          $('#navbar-search').removeClass("lit-searchbar-blur");
+        }
+      }
+
       // 监听滚动事件
       window.addEventListener('scroll', () => {
         calcToTopBtnVisitable();
         resetToTopBtnHideTime();
+        searchbar_blur_check();
       });
 
       // 监听窗口大小变化
       window.addEventListener('resize', () => {
         calcToTopBtnVisitable();
         resetToTopBtnHideTime();
+        update_tab_display();
       });
 
       // 初始化和窗口大小变化时更新
       document.addEventListener("DOMContentLoaded", update_tab_display);
-
-      window.addEventListener("resize", update_tab_display);
 
       // 浏览器关闭事件
       window.addEventListener("beforeunload", function () {

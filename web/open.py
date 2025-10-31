@@ -76,7 +76,7 @@ async def wechat(request: Request, appid: Optional[str] = None):
 
 @open_router.post("/wechat")
 @auth_required
-async def sendwechat(request: Request):
+async def wechat_post(request: Request):
 
     try:
 

@@ -493,6 +493,10 @@ body.theme-light::after {
     min-height: 2rem;
 }
 
+.theme-dark .navbar-secondary {
+    box-shadow: 0 1px 8px rgba(36, 48, 73, 0.8);
+}
+
 .navbar-secondary .navbar-nav {
     min-height: 2rem;
 }
@@ -1029,9 +1033,21 @@ h1.login_title>label {
     flex-shrink: 0;
 }
 
-.navbar-toggler {
-    background: var(--tblr-bg-forms);
+.navbar .nav-search-bar {
+    padding-left: 10px !important;
+    padding-right: 10px !important;
 }
+
+.navbar .navbar-toggler {
+    background: var(--tblr-bg-forms);
+    height: 36px;
+    border: var(--tblr-border-width) solid var(--tblr-border-color);
+}
+
+.theme-dark .navbar .navbar-toggler {
+    border-color: #243049;
+}
+
 .modal-dialog-top-offset {
     margin-top: 15vh;
 }
