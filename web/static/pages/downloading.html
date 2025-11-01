@@ -266,12 +266,12 @@
         const data = response.data;
 
         // 生成下载器导航标签
-        if (data.Downloaders && data.Downloaders.length > 0) {
+        if (data.downloaders && data.downloaders.length > 0) {
 
           const downloaderTabs = $('#downloader-tabs');
           downloaderTabs.empty();
 
-          data.Downloaders.forEach(downloader => {
+          data.downloaders.forEach(downloader => {
             const tabItem = `
               <li class="nav-item">
                 <a class="nav-link " href="javascript:void(0)" data-bs-toggle="tab" data-id="${downloader.id}" onclick="get_downloader_torrents('${downloader.id}')">

@@ -618,14 +618,19 @@ async def downloading():
     正在下载页面
     """
     downloader_proxy = Downloader()
-    Downloaders = []
+    defaultDownloader = Downloader().default_downloader_id
+    active_downloaders = []
     for key, value in downloader_proxy.get_downloader_conf().items():
-        if value.get('enabled'):
-            Downloaders.append(value)
+        if not value.get('enabled'):
+            continue
+        if key == defaultDownloader:
+            active_downloaders.insert(0, value)
+        else:
+            active_downloaders.append(value)
 
     return response(data=
         {
-            "Downloaders": Downloaders
+            "downloaders": active_downloaders
         }
     )
 

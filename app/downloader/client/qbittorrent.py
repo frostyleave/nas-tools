@@ -199,7 +199,7 @@ class Qbittorrent(_IDownloadClient):
                 return results or [], False
             return torrents or [], False
         except Exception as err:
-            log.error(f"【{self.client_name}】{self.name} 获取种子列表出错：{str(err)}")
+            log.exception(f"【{self.client_name}】{self.name} 获取种子列表出错：", err)
             return [], True
 
     def get_completed_torrents(self, ids=None, tag=None):
@@ -209,7 +209,7 @@ class Qbittorrent(_IDownloadClient):
         """
         if not self.qbc:
             return None
-        torrents, error = self.get_torrents(status=["completed"], ids=ids, tag=tag)
+        torrents, error = self.get_torrents(status="seeding", ids=ids, tag=tag)
         return None if error else torrents or []
 
     def get_downloading_torrents(self, ids=None, tag=None):
@@ -220,7 +220,7 @@ class Qbittorrent(_IDownloadClient):
         if not self.qbc:
             return None
         torrents, error = self.get_torrents(ids=ids,
-                                            status=["downloading"],
+                                            status="downloading",
                                             tag=tag)
         return None if error else torrents or []
 
