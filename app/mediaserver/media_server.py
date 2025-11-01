@@ -1,15 +1,18 @@
 import json
 import threading
 
+from typing import Tuple
+
 import log
+
 from app.conf import SystemConfig
 from app.db import MediaDb
 from app.helper import ProgressHelper, SubmoduleHelper
 from app.media import Media
 from app.message import Message
-from app.utils import ExceptionUtils
 from app.utils.commons import singleton
 from app.utils.types import MediaServerType, MovieTypes, SystemConfigKey, ProgressKey
+
 from config import Config
 
 lock = threading.Lock()
@@ -52,7 +55,7 @@ class MediaServer:
                 if mediaserver_schema.match(ctype):
                     return mediaserver_schema(conf)
             except Exception as e:
-                ExceptionUtils.exception_traceback(e)
+                log.exception("【MediaServer】实例化媒体服务器对象 出错: ", e)
         return None
 
     @property
@@ -62,7 +65,7 @@ class MediaServer:
                 self._server = self.__get_server(self._server_type)
             return self._server
 
-    def __get_server(self, ctype: [MediaServerType, str], conf=None):
+    def __get_server(self, ctype: Tuple[MediaServerType, str], conf=None):
         return self.__build_class(ctype=ctype, conf=conf)
 
     def get_type(self):
@@ -362,8 +365,8 @@ class MediaServer:
         try:
             event_info = self.server.get_webhook_message(message)
         except Exception as e:
-            ExceptionUtils.exception_traceback(e)
-            log.error(f"【MediaServer】webhook 消息解析异常")
+            log.exception(f"【MediaServer】webhook 消息解析异常: ", e)
+
         if event_info:
             # 获取消息图片
             if event_info.get("item_type") == "TV":

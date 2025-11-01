@@ -10,9 +10,11 @@ from app.helper import SiteHelper
 from app.indexer.client.browser import PlaywrightHelper
 from app.plugins import EventHandler
 from app.plugins.modules._base import _IPluginModule
-from app.utils import RequestUtils, PathUtils, ExceptionUtils
+from app.utils import RequestUtils, PathUtils
 from app.utils.types import MediaType, EventType
 from config import Config, RMT_SUBEXT
+
+import log
 
 
 class OpenSubtitles(_IPluginModule):
@@ -166,7 +168,7 @@ class OpenSubtitles(_IPluginModule):
                         shutil.rmtree(zip_path)
                         os.remove(zip_file)
                     except Exception as err:
-                        ExceptionUtils.exception_traceback(err)
+                        log.exception(f"【OpenSubtitles】删除临时文件异常: ", err)
                 else:
                     self.error("下载字幕文件失败：%s" % Download_Link)
                     continue

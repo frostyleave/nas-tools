@@ -14,10 +14,12 @@ from app.plugins import EventHandler
 from app.plugins.modules._base import _IPluginModule
 from app.searcher import Searcher
 from app.subscribe import Subscribe
-from app.utils import ExceptionUtils
 from app.utils.types import SearchType, RssType, EventType, MediaType
 from config import Config
 from web.backend.web_utils import WebUtils
+
+import log
+
 
 lock = Lock()
 
@@ -543,8 +545,7 @@ class DoubanSync(_IPluginModule):
                     else:
                         self.info(f"{media.douban_id} {media.get_name()} {media.year} 已处理过")
                 except Exception as err:
-                    self.error(f"{media.douban_id} {media.get_name()} {media.year} 处理失败：{str(err)}")
-                    ExceptionUtils.exception_traceback(err)
+                    log.exception(f"【DoubanSync】{media.douban_id} {media.get_name()} {media.year} 处理失败: ", err)
                     continue
             self.info("豆瓣数据同步完成")
 
@@ -640,8 +641,7 @@ class DoubanSync(_IPluginModule):
                             self.debug(
                                 f"{user_name or user} 第 {page_number} 页解析完成，共获取到 {sucess_urlnum} 个媒体")
                         except Exception as err:
-                            ExceptionUtils.exception_traceback(err)
-                            self.error(f"{user_name or user} 第 {page_number} 页解析出错：%s" % str(err))
+                            log.exception(f"【DoubanSync】{user_name or user} 第 {page_number} 页解析出错: ", err)
                             break
                         # 继续下一页
                         if continue_next_page:

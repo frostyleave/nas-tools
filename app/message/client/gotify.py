@@ -1,5 +1,7 @@
 from app.message.client._base import _IMessageClient
-from app.utils import RequestUtils, SiteUtils, ExceptionUtils
+from app.utils import RequestUtils, SiteUtils
+
+import log
 
 class Gotify(_IMessageClient):
     schema = "gotify"
@@ -21,7 +23,7 @@ class Gotify(_IMessageClient):
                 self._priority = int(self._client_config.get('priority'))
             except Exception as e:
                 self._priority = 8
-                ExceptionUtils.exception_traceback(e)
+                log.exception("【Gotify】初始化 出错: ", e)
 
     @classmethod
     def match(cls, ctype):
@@ -29,7 +31,7 @@ class Gotify(_IMessageClient):
 
     def send_msg(self, title, text="", image="", url="", user_id=""):
         """
-        发送Bark消息
+        发送Gotify消息
         :param title: 消息标题
         :param text: 消息内容
         :param image: 未使用
@@ -63,7 +65,7 @@ class Gotify(_IMessageClient):
             else:
                 return False, "未获取到返回信息"
         except Exception as msg_e:
-            ExceptionUtils.exception_traceback(msg_e)
+            log.exception("【Gotify】发送BGotify消息 出错: ", msg_e)
             return False, str(msg_e)
 
     def send_list_msg(self, **kwargs):

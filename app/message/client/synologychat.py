@@ -1,10 +1,13 @@
 import json
+
 from urllib.parse import quote
 from threading import Lock
 
 from app.message.client._base import _IMessageClient
-from app.utils import ExceptionUtils, RequestUtils, SiteUtils
+from app.utils import RequestUtils, SiteUtils
 from config import Config
+
+import log
 
 lock = Lock()
 
@@ -43,7 +46,7 @@ class SynologyChat(_IMessageClient):
 
     def send_msg(self, title, text="", image="", url="", user_id=""):
         """
-        发送Telegram消息
+        发送SynologyChat消息
         :param title: 消息标题
         :param text: 消息内容
         :param image: 消息图片地址
@@ -84,7 +87,7 @@ class SynologyChat(_IMessageClient):
             return self.__send_request(payload_data)
 
         except Exception as msg_e:
-            ExceptionUtils.exception_traceback(msg_e)
+            log.exception("【SynologyChat】发送SynologyChat消息 出错: ", msg_e)
             return False, str(msg_e)
 
     def send_list_msg(self, medias: list, user_id="", title="", **kwargs):
@@ -128,7 +131,7 @@ class SynologyChat(_IMessageClient):
             }
             return self.__send_request(payload_data)
         except Exception as msg_e:
-            ExceptionUtils.exception_traceback(msg_e)
+            log.exception("【SynologyChat】发送SynologyChat列表消息 出错: ", msg_e)
             return False, str(msg_e)
 
     def __get_bot_users(self):

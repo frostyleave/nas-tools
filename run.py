@@ -7,6 +7,7 @@ import uvicorn
 
 from fastapi import FastAPI
 
+import log
 
 from app.db import init_db, update_db, init_data
 from config import Config
@@ -15,8 +16,6 @@ from initializer import update_config, check_config
 # 导入FastAPI应用
 from web.app import app
 from version import APP_VERSION
-
-import log
 
 warnings.filterwarnings('ignore')
 

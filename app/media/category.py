@@ -1,13 +1,11 @@
 import os
 import shutil
-
 import ruamel.yaml
 
 import log
-from app.utils import ExceptionUtils
-from config import Config
-from app.utils.commons import singleton
 
+from app.utils.commons import singleton
+from config import Config
 
 @singleton
 class Category:
@@ -38,12 +36,10 @@ class Category:
                     yaml = ruamel.yaml.YAML()
                     self._categorys = yaml.load(f)
                 except Exception as e:
-                    ExceptionUtils.exception_traceback(e)
-                    log.warn(f"【Config】二级分类策略 {category_name} 配置文件格式出现严重错误！请检查：{str(e)}")
+                    log.exception(f"【Config】二级分类策略 {category_name} 配置文件格式出现严重错误！请检查：", e)
                     self._categorys = {}
         except Exception as err:
-            ExceptionUtils.exception_traceback(err)
-            log.warn(f"【Config】二级分类策略 {category_name} 配置文件加载出错：{str(e)}")
+            log.exception(f"【Config】二级分类策略 {category_name} 配置文件加载出错：", err)
             return False
 
         if self._categorys:

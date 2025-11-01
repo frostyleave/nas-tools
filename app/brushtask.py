@@ -15,7 +15,7 @@ from app.helper import DbHelper, RssHelper
 from app.media.meta import MetaInfo
 from app.message import Message
 from app.sites import SitesManager, SiteConf, PtSiteConf
-from app.utils import StringUtils, ExceptionUtils
+from app.utils import StringUtils
 from app.utils.commons import singleton
 from app.utils.types import BrushDeleteType
 
@@ -276,7 +276,7 @@ class BrushTask(object):
                                                        dlcount=max_dlcount):
                         break
             except Exception as err:
-                ExceptionUtils.exception_traceback(err)
+                log.exception("【Brush】RSS检查异常: ", err)
                 continue
         log.info("【Brush】任务 %s 本次添加了 %s 个下载" % (task_name, success_count))
 
@@ -524,7 +524,7 @@ class BrushTask(object):
                                                          download_size=total_downloaded,
                                                          remove_count=len(delete_ids) + len(remove_torrent_ids))
             except Exception as e:
-                ExceptionUtils.exception_traceback(e)
+                log.exception("【Brush】 检查下载任务种子信息 异常: ", e)
 
     def __is_allow_new_torrent(self, taskinfo, dlcount, torrent_size=None):
         """
@@ -788,7 +788,7 @@ class BrushTask(object):
                         return False
 
         except Exception as err:
-            ExceptionUtils.exception_traceback(err)
+            log.exception("【Brush】 检查种子是否符合刷流过滤条件 异常: ", err)
 
         return True
 
@@ -850,7 +850,7 @@ class BrushTask(object):
                         if float(iatime) > float(rule_times[1]) * 3600:
                             return True, BrushDeleteType.IATIME
         except Exception as err:
-            ExceptionUtils.exception_traceback(err)
+            log.exception("【Brush】 检查是否符合删种规则 异常: ", err)
         return False, BrushDeleteType.NOTDELETE
 
     @staticmethod

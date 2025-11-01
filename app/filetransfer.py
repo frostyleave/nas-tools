@@ -3,12 +3,14 @@ import os
 import random
 import re
 import shutil
-import traceback
+
 from enum import Enum
 from threading import Lock
 from time import sleep
+from typing import Tuple
 
 import log
+
 from app.conf import ModuleConf
 from app.helper import DbHelper, ProgressHelper
 from app.helper import ThreadHelper
@@ -17,9 +19,10 @@ from app.media.meta import MetaInfo
 from app.mediaserver import MediaServer
 from app.message import Message
 from app.plugins import EventManager
-from app.utils import EpisodeFormat, PathUtils, StringUtils, SystemUtils, ExceptionUtils, NumberUtils
+from app.utils import EpisodeFormat, PathUtils, StringUtils, SystemUtils, NumberUtils
 from app.utils.commons import singleton
 from app.utils.types import MediaType, SyncType, RmtMode, EventType, ProgressKey, MovieTypes
+
 from config import RMT_AUDIO_TRACK_EXT, RMT_SUBEXT, RMT_MEDIAEXT, RMT_FAVTYPE, RMT_MIN_FILESIZE, DEFAULT_MOVIE_FORMAT, \
     DEFAULT_TV_FORMAT, ZHTW_SUB_RE, Config
 
@@ -485,7 +488,7 @@ class FileTransfer:
                        tmdb_info=None,
                        media_type: MediaType = None,
                        season=None,
-                       episode: (EpisodeFormat, bool) = None,
+                       episode: Tuple[EpisodeFormat, bool] = None,
                        min_filesize=None,
                        udf_flag=False,
                        root_path=False):
@@ -914,8 +917,7 @@ class FileTransfer:
                 })
 
             except Exception as err:
-                ExceptionUtils.exception_traceback(err)
-                log.error("【Rmt】文件转移时发生错误：%s - %s" % (str(err), traceback.format_exc()))
+                log.exception("【Rmt】文件转移时发生错误: " , err)
         # 循环结束
         # 统计完成情况，发送通知
         if message_medias:
@@ -1174,7 +1176,7 @@ class FileTransfer:
                         max_path_len = path_len
                         max_return_path = dest_path
                 except Exception as err:
-                    ExceptionUtils.exception_traceback(err)
+                    log.exception("【Rmt】 路径匹配 发生错误: " , err)
                     continue
             if max_return_path:
                 return max_return_path
@@ -1296,8 +1298,7 @@ class FileTransfer:
                 if not file_list:
                     return [], "排除文件路径转移忽略词后，没有新文件需要处理"
             except Exception as err:
-                ExceptionUtils.exception_traceback(err)
-                log.error("【Rmt】文件路径转移忽略词设置有误：%s" % str(err))
+                log.exception("【Rmt】文件路径转移忽略词设置有误: ", err)
 
         #  过滤掉文件列表中文件名包含文件名转移忽略词的
         if self._ignored_files:
@@ -1309,8 +1310,7 @@ class FileTransfer:
                 if not file_list:
                     return [], "排除文件名转移忽略词后，没有新文件需要处理"
             except Exception as err:
-                ExceptionUtils.exception_traceback(err)
-                log.error("【Rmt】文件名转移忽略词设置有误：%s" % str(err))
+                log.exception("【Rmt】文件名转移忽略词设置有误: ", err)
 
         return file_list, ""
 

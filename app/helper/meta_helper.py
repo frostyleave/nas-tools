@@ -5,9 +5,10 @@ import time
 from enum import Enum
 from threading import RLock
 
-from app.utils import ExceptionUtils
 from app.utils.commons import singleton
 from config import Config
+
+import log
 
 lock = RLock()
 
@@ -179,7 +180,7 @@ class MetaHelper(object):
                 return data
             return {}
         except Exception as e:
-            ExceptionUtils.exception_traceback(e)
+            log.exception("从文件中加载缓存: ", e)
             return {}
 
     def update_meta_data(self, meta_data):

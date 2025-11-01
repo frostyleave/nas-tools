@@ -1,7 +1,10 @@
 from cachetools import TTLCache, cached
-from app.utils import RequestUtils, ExceptionUtils
+
+from app.utils import RequestUtils
 from app.utils.types import MediaType
 from config import Config, FANART_MOVIE_API_URL, FANART_TV_API_URL
+
+import log
 
 
 class Fanart:
@@ -63,7 +66,7 @@ class Fanart:
                             else:
                                 self._images[image_type] = ""
         except Exception as e2:
-            ExceptionUtils.exception_traceback(e2)
+            log.exception("[Fanart]生成图片出错: ", e2)
 
     @classmethod
     @cached(cache=TTLCache(maxsize=512, ttl=3600))
@@ -75,7 +78,7 @@ class Fanart:
         try:
             return RequestUtils(proxies=cls._proxies, timeout=5).get_res(image_url)
         except Exception as err:
-            ExceptionUtils.exception_traceback(err)
+            log.exception("[Fanart]请求fanart出错: ", err)
         return None
 
     def get_backdrop(self, media_type, queryid, default=""):

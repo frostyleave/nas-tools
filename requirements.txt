@@ -22,7 +22,7 @@ watchdog==6.0.0
 zhconv==1.4.3
 
 alembic==1.17.0
-APScheduler==3.11.0
+APScheduler==3.11.1
 beautifulsoup4==4.14.2
 cachetools==6.2.1
 certifi==2025.10.5

@@ -6,10 +6,11 @@ import subprocess
 
 import psutil
 
-from app.utils.exception_utils import ExceptionUtils
 from app.utils.path_utils import PathUtils
 from app.utils.types import OsType
 from config import WEBDRIVER_PATH
+
+import log
 
 
 class SystemUtils:
@@ -50,7 +51,7 @@ class SystemUtils:
             local_date = utc_date + datetime.timedelta(hours=8)
             local_date_str = datetime.datetime.strftime(local_date, '%Y-%m-%d %H:%M:%S')
         except Exception as e:
-            ExceptionUtils.exception_traceback(e)
+            log.exception("[SYS]get_local_time error:", e)
             return utc_time_str
         return local_date_str
 
@@ -109,7 +110,7 @@ class SystemUtils:
             shutil.copy2(os.path.normpath(src), os.path.normpath(dest))
             return 0, ""
         except Exception as err:
-            ExceptionUtils.exception_traceback(err)
+            log.exception("[SYS]copy error:", err)
             return -1, str(err)
 
     @staticmethod
@@ -124,7 +125,7 @@ class SystemUtils:
             shutil.move(tmp_file, os.path.normpath(dest))
             return 0, ""
         except Exception as err:
-            ExceptionUtils.exception_traceback(err)
+            log.exception("[SYS]move error:", err)
             return -1, str(err)
 
     @staticmethod
@@ -143,7 +144,7 @@ class SystemUtils:
                 os.link(os.path.normpath(src), os.path.normpath(dest))
             return 0, ""
         except Exception as err:
-            ExceptionUtils.exception_traceback(err)
+            log.exception("[SYS]link error:", err)
             return -1, str(err)
 
     @staticmethod
@@ -155,7 +156,7 @@ class SystemUtils:
             os.symlink(os.path.normpath(src), os.path.normpath(dest))
             return 0, ""
         except Exception as err:
-            ExceptionUtils.exception_traceback(err)
+            log.exception("[SYS]softlink error:", err)
             return -1, str(err)
 
     @staticmethod
@@ -172,7 +173,7 @@ class SystemUtils:
                                      startupinfo=SystemUtils.__get_hidden_shell()).returncode
             return retcode, ""
         except Exception as err:
-            ExceptionUtils.exception_traceback(err)
+            log.exception("[SYS]rclone_move error:", err)
             return -1, str(err)
 
     @staticmethod
@@ -189,7 +190,7 @@ class SystemUtils:
                                      startupinfo=SystemUtils.__get_hidden_shell()).returncode
             return retcode, ""
         except Exception as err:
-            ExceptionUtils.exception_traceback(err)
+            log.exception("[SYS]rclone_copy error:", err)
             return -1, str(err)
 
     @staticmethod
@@ -209,7 +210,7 @@ class SystemUtils:
                                      startupinfo=SystemUtils.__get_hidden_shell()).returncode
             return retcode, ""
         except Exception as err:
-            ExceptionUtils.exception_traceback(err)
+            log.exception("[SYS]minio_move error:", err)
             return -1, str(err)
 
     @staticmethod
@@ -229,7 +230,7 @@ class SystemUtils:
                                      startupinfo=SystemUtils.__get_hidden_shell()).returncode
             return retcode, ""
         except Exception as err:
-            ExceptionUtils.exception_traceback(err)
+            log.exception("[SYS]minio_copy error:", err)
             return -1, str(err)
 
     @staticmethod

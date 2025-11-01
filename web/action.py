@@ -42,8 +42,7 @@ from app.sites import SitesManager, SitesDataStatisticsCenter, CookieManager, Si
 from app.subscribe import Subscribe
 from app.sync import Sync
 from app.torrentremover import TorrentRemover
-from app.utils import StringUtils, EpisodeFormat, RequestUtils, PathUtils, \
-    SystemUtils, ExceptionUtils
+from app.utils import StringUtils, EpisodeFormat, RequestUtils, PathUtils, SystemUtils
 from app.utils.types import MEDIA_TYPE_MAP, RmtMode, OsType, SearchType, SyncType, MediaType, MovieTypes, TvTypes, \
     EventType, SystemConfigKey, RssType
 from app.utils.password_hash import generate_password_hash
@@ -1016,7 +1015,7 @@ class WebAction:
                                         "path": dest_path
                                     })
                                 except Exception as e:
-                                    ExceptionUtils.exception_traceback(e)
+                                    log.exception("[act]删除电影目录 异常:", e)
                             elif not meta_info.get_episode_string():
                                 # 电视剧但没有集数，删除季目录
                                 try:
@@ -1027,7 +1026,7 @@ class WebAction:
                                         "path": dest_path
                                     })
                                 except Exception as e:
-                                    ExceptionUtils.exception_traceback(e)
+                                    log.exception("[act]删除电视剧目录 异常:", e)
                                 rm_parent_dir = True
                             else:
                                 # 有集数的电视剧，删除对应的集数文件
@@ -1046,8 +1045,7 @@ class WebAction:
                                                 "filename": os.path.basename(dest_file)
                                             })
                                         except Exception as e:
-                                            ExceptionUtils.exception_traceback(
-                                                e)
+                                            log.exception("[act]删除电视剧集数文件 异常:", e)
                                 rm_parent_dir = True
                             if rm_parent_dir \
                                     and not PathUtils.get_dir_files(os.path.dirname(dest_path), exts=RMT_MEDIAEXT):
@@ -1055,7 +1053,7 @@ class WebAction:
                                 try:
                                     shutil.rmtree(os.path.dirname(dest_path))
                                 except Exception as e:
-                                    ExceptionUtils.exception_traceback(e)
+                                    log.exception("[act]删除指定目录 异常:", e)
         return {"retcode": 0}
 
     def delete_media_file(self, filedir, filename):
@@ -1090,7 +1088,7 @@ class WebAction:
                 shutil.rmtree(media_dir)
             return True, f"{file} 删除成功"
         except Exception as e:
-            ExceptionUtils.exception_traceback(e)
+            log.exception(f"[act]{file} 删除失败:", e)
             return True, f"{file} 删除失败"
 
     def __version(self):
@@ -1331,7 +1329,7 @@ class WebAction:
             DbHelper().drop_table("alembic_version")
             return {"code": 0}
         except Exception as e:
-            ExceptionUtils.exception_traceback(e)
+            log.exception("[act]重置数据库版本异常:", e)
             return {"code": 1, "msg": str(e)}
 
     def __logout(self):
@@ -1772,7 +1770,7 @@ class WebAction:
                         module_obj.init_config()
             except Exception as e:
                 ret = None
-                ExceptionUtils.exception_traceback(e)
+                log.exception("[act]测试连通性出错:", e)
             return {"code": 0 if ret else 1}
         return {"code": 0}
 
@@ -2106,7 +2104,7 @@ class WebAction:
                     _brushtask.update_brushtask_state(state=state)
             return {"code": 0, "msg": ""}
         except Exception as e:
-            ExceptionUtils.exception_traceback(e)
+            log.exception("[act]刷流任务设置失败:", e)
             return {"code": 1, "msg": "刷流任务设置失败"}
 
     def __name_test(self, data):
@@ -2282,7 +2280,7 @@ class WebAction:
             try:
                 _filter.delete_filtergroup(groupid)
             except Exception as err:
-                ExceptionUtils.exception_traceback(err)
+                log.exception(f"[act]删除规则组{groupid}失败:", err)
             for init_rulegroup in init_rulegroups:
                 if str(init_rulegroup.get("id")) == groupid:
                     for sql in init_rulegroup.get("sql"):
@@ -2588,8 +2586,7 @@ class WebAction:
                 try:
                     # 兼容性代码
                     peer_counts = ["lt", int(rules.get("peercount"))]
-                except Exception as err:
-                    ExceptionUtils.exception_traceback(err)
+                except Exception:
                     pass
             if peer_counts:
                 rule_htmls.append(
@@ -2642,7 +2639,7 @@ class WebAction:
             MetaHelper().clear_meta_data()
             os.remove(MetaHelper().get_meta_data_path())
         except Exception as e:
-            ExceptionUtils.exception_traceback(e)
+            log.exception("[act]清空TMDB缓存出错:", e)
             return {"code": 0, "msg": str(e)}
         return {"code": 0}
 
@@ -2690,7 +2687,7 @@ class WebAction:
                 shutil.unpack_archive(file_path, config_path, format='zip')
                 return {"code": 0, "msg": ""}
             except Exception as e:
-                ExceptionUtils.exception_traceback(e)
+                log.exception("[act]解压恢复备份文件出错:", e)
                 return {"code": 1, "msg": str(e)}
             finally:
                 if os.path.exists(file_path):
@@ -2837,7 +2834,7 @@ class WebAction:
                     _rsschecker.check_userrss_task(state=state)
             return {"code": 0, "msg": ""}
         except Exception as e:
-            ExceptionUtils.exception_traceback(e)
+            log.exception("[act]自定义订阅状态设置出错:", e)
             return {"code": 1, "msg": "自定义订阅状态设置失败"}
 
     def __get_rssparser(self, data):
@@ -2991,7 +2988,7 @@ class WebAction:
             else:
                 return {"code": 1, "msg": "无法识别媒体类型"}
         except Exception as e:
-            ExceptionUtils.exception_traceback(e)
+            log.exception("[act]增加自定义识别词组 出错:", e)
             return {"code": 1, "msg": str(e)}
 
     def __delete_custom_word_group(self, data):
@@ -3000,7 +2997,7 @@ class WebAction:
             WordsHelper().delete_custom_word_group(gid=gid)
             return {"code": 0, "msg": ""}
         except Exception as e:
-            ExceptionUtils.exception_traceback(e)
+            log.exception("[act]删除自定义识别词组 出错:", e)
             return {"code": 1, "msg": str(e)}
 
     def __add_or_edit_custom_word(self, data):
@@ -3103,7 +3100,7 @@ class WebAction:
             else:
                 return {"code": 1, "msg": ""}
         except Exception as e:
-            ExceptionUtils.exception_traceback(e)
+            log.exception("[act]新增或修改自定义识别词 出错:", e)
             return {"code": 1, "msg": str(e)}
 
     def __get_custom_word(self, data):
@@ -3128,7 +3125,7 @@ class WebAction:
                 word = {}
             return {"code": 0, "data": word}
         except Exception as e:
-            ExceptionUtils.exception_traceback(e)
+            log.exception("[act]查询识别词 出错:", e)
             return {"code": 1, "msg": "查询识别词失败"}
 
     def __delete_custom_words(self, data):
@@ -3143,7 +3140,7 @@ class WebAction:
                     _wordshelper.delete_custom_word(wid=wid)
             return {"code": 0, "msg": ""}
         except Exception as e:
-            ExceptionUtils.exception_traceback(e)
+            log.exception("[act]自定义识别词 出错:", e)
             return {"code": 1, "msg": str(e)}
 
     def __check_custom_words(self, data):
@@ -3160,7 +3157,7 @@ class WebAction:
                     _wordshelper.check_custom_word(wid=wid, enabled=enabled)
             return {"code": 0, "msg": ""}
         except Exception as e:
-            ExceptionUtils.exception_traceback(e)
+            log.exception("[act]识别词状态设置 出错:", e)
             return {"code": 1, "msg": "识别词状态设置失败"}
 
     def __export_custom_words(self, data):
@@ -3222,7 +3219,7 @@ class WebAction:
                 export_string.encode("utf-8")).decode('utf-8')
             return {"code": 0, "string": string}
         except Exception as e:
-            ExceptionUtils.exception_traceback(e)
+            log.exception("[act]导出自定义识别词 出错:", e)
             return {"code": 1, "msg": str(e)}
 
     def __analyse_import_custom_words_code(self, data):
@@ -3254,7 +3251,7 @@ class WebAction:
                                "words": words})
             return {"code": 0, "groups": groups, "note_string": note_string}
         except Exception as e:
-            ExceptionUtils.exception_traceback(e)
+            log.exception("[act]分析识别词导入Code 出错:", e)
             return {"code": 1, "msg": str(e)}
 
     def __import_custom_words(self, data):
@@ -3324,7 +3321,7 @@ class WebAction:
                                                 whelp=whelp if whelp else "")
             return {"code": 0, "msg": ""}
         except Exception as e:
-            ExceptionUtils.exception_traceback(e)
+            log.exception("[act]自定义识别词导入 出错:", e)
             return {"code": 1, "msg": str(e)}
 
     def get_categories(self, data):
@@ -3422,7 +3419,7 @@ class WebAction:
                         })
             return {"code": 0, "msg": ""}
         except Exception as err:
-            ExceptionUtils.exception_traceback(err)
+            log.exception("[act]导入过滤规则失败:", err)
             return {"code": 1, "msg": "数据格式不正确，%s" % str(err)}
 
     def get_library_spacesize(self):
@@ -3546,7 +3543,7 @@ class WebAction:
                 try:
                     res_mix = json.loads(item.RES_TYPE)
                 except Exception as err:
-                    ExceptionUtils.exception_traceback(err)
+                    log.exception("[act]解析质量配置异常:", err)
                     continue
                 respix = res_mix.get("respix") or ""
                 video_encode = res_mix.get("video_encode") or ""
@@ -4119,7 +4116,7 @@ class WebAction:
                         })
 
         except Exception as e:
-            ExceptionUtils.exception_traceback(e)
+            log.exception("[act]加载路径失败:", e)
             return {
                 "code": -1,
                 "message": '加载路径失败: %s' % str(e)
@@ -4140,7 +4137,7 @@ class WebAction:
             try:
                 shutil.move(path, os.path.join(os.path.dirname(path), name))
             except Exception as e:
-                ExceptionUtils.exception_traceback(e)
+                log.exception("[act]文件重命名 异常:", e)
                 return {"code": -1, "msg": str(e)}
         return {"code": 0}
 
@@ -4339,7 +4336,7 @@ class WebAction:
                     hardlinks[os.path.basename(file)] = SystemUtils(
                     ).find_hardlinks(file=file, fdir=file_dir)
             except Exception as e:
-                ExceptionUtils.exception_traceback(e)
+                log.exception("[act]硬链接查找 异常:", e)
                 return {"code": 1}
         return {"code": 0, "data": hardlinks}
 
@@ -4456,12 +4453,12 @@ class WebAction:
             SystemConfig().set(key=key, value=value)
             return {"code": 0}
         except Exception as e:
-            ExceptionUtils.exception_traceback(e)
+            log.exception("[act]设置系统设置 异常:", e)
             return {"code": 1}
         
     def __set_user_indexer_sites(self, data):
         """
-        设置系统设置（数据库）
+        设置索引站点（数据库）
         """
         site_id = data.get("site_id")
         if not site_id:
@@ -4481,7 +4478,7 @@ class WebAction:
             SystemConfig().set(key=SystemConfigKey.UserIndexerSites, value=indexer_sites)
             return {"code": 0}
         except Exception as e:
-            ExceptionUtils.exception_traceback(e)
+            log.exception("[act]设置索引站点 异常:", e)
             return {"code": 1}
 
     def get_site_user_statistics(self, data):
@@ -5316,7 +5313,7 @@ class WebAction:
             shutil.rmtree(str(backup_path))
             return zip_file
         except Exception as e:
-            ExceptionUtils.exception_traceback(e)
+            log.exception("[act]备份 异常:", e)
             return None
 
     def get_system_processes(self):

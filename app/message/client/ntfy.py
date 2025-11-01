@@ -1,5 +1,7 @@
 from app.message.client._base import _IMessageClient
-from app.utils import RequestUtils, SiteUtils, ExceptionUtils
+from app.utils import RequestUtils, SiteUtils
+
+import log
 
 
 class Ntfy(_IMessageClient):
@@ -30,7 +32,7 @@ class Ntfy(_IMessageClient):
                 self._priority = int(self._client_config.get('priority'))
             except Exception as e:
                 self._priority = 4
-                ExceptionUtils.exception_traceback(e)
+                log.exception("【Ntfy】初始化 出错: ", e)
 
     @classmethod
     def match(cls, ctype):
@@ -69,7 +71,7 @@ class Ntfy(_IMessageClient):
             else:
                 return False, "未获取到返回信息"
         except Exception as msg_e:
-            ExceptionUtils.exception_traceback(msg_e)
+            log.exception("【Ntfy】发送ntfy消息 出错: ", msg_e)
             return False, str(msg_e)
 
     def send_list_msg(self, **kwargs):

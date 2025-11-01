@@ -1,10 +1,13 @@
-import requests
-from lxml import etree
 import datetime
+import requests
+
+from lxml import etree
 from cachetools import TTLCache, cached
 
-from app.utils import RequestUtils, ExceptionUtils
+from app.utils import RequestUtils
 from app.utils.commons import singleton
+
+import log
 
 
 @singleton
@@ -245,7 +248,7 @@ class DoubanWeb(object):
                 if text:
                     obj[key] = text[0]
             except Exception as e:
-                ExceptionUtils.exception_traceback(e)
+                log.exception("【DoubanWeb】html 解析出错: ", e)
         return obj
 
     @classmethod

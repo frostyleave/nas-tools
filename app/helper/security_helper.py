@@ -1,7 +1,8 @@
 import ipaddress
 
-from app.utils import ExceptionUtils
 from config import Config
+
+import log
 
 
 class SecurityHelper:
@@ -61,5 +62,5 @@ class SecurityHelper:
                     if ipaddr in ipaddress.ip_network(allow_ipv6):
                         return True
         except Exception as e:
-            ExceptionUtils.exception_traceback(e)
+            log.exception("判断IP是否合法异常: ", e)
         return False

@@ -23,7 +23,7 @@ from app.mediaserver import MediaServer
 from app.message import Message
 from app.plugins import EventManager
 from app.sites import SitesManager, SiteSubtitle
-from app.utils import TorrentUtils, StringUtils, SystemUtils, ExceptionUtils, NumberUtils, RequestUtils, SiteUtils
+from app.utils import TorrentUtils, StringUtils, SystemUtils, NumberUtils, RequestUtils, SiteUtils
 from app.utils.commons import singleton
 from app.utils.types import MediaType, DownloaderType, SearchType, RmtMode, EventType, SystemConfigKey
 
@@ -183,7 +183,7 @@ class Downloader:
                 if downloader_schema.match(ctype):
                     return downloader_schema(conf)
             except Exception as e:
-                ExceptionUtils.exception_traceback(e)
+                log.exception("【Downloader】下载器实例化异常: ", e)
         return None
 
     @property
@@ -928,7 +928,7 @@ class Downloader:
                 return None
             return torrents
         except Exception as err:
-            ExceptionUtils.exception_traceback(err)
+            log.exception("【Downloader】下获取种子信息: ", err)
             return None
 
     def get_remove_torrents(self, downloader_id=None, config=None):
@@ -963,7 +963,7 @@ class Downloader:
         try:
             return _client.get_downloading_torrents(tag=tag, ids=ids)
         except Exception as err:
-            ExceptionUtils.exception_traceback(err)
+            log.exception("【Downloader】查询正在下载中的种子信息 异常: ", err)
             return None
 
     def get_downloading_progress(self, downloader_id=None, ids=None):
@@ -1644,12 +1644,12 @@ class Downloader:
         try:
             download_limit = int(download_limit) if download_limit else 0
         except Exception as err:
-            ExceptionUtils.exception_traceback(err)
+            log.exception("【Downloader】获取下载速度设置 异常: ", err)
             download_limit = 0
         try:
             upload_limit = int(upload_limit) if upload_limit else 0
         except Exception as err:
-            ExceptionUtils.exception_traceback(err)
+            log.exception("【Downloader】获取上传速度设置 异常: ", err)
             upload_limit = 0
         _client.set_speed_limit(download_limit=download_limit, upload_limit=upload_limit)
 

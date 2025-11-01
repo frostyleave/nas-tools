@@ -13,7 +13,7 @@ from app.media import Media
 from app.media.douban import DouBan
 from app.media.meta._base import MetaBase
 from app.media.meta.metainfo import MetaInfo
-from app.utils import ExceptionUtils, StringUtils
+from app.utils import StringUtils
 from app.utils.commons import singleton
 from app.utils.types import MediaType, SearchType, ProgressKey
 
@@ -262,7 +262,7 @@ class Indexer(object):
                     break
             
         except Exception as err:
-            ExceptionUtils.exception_traceback(err)
+            log.exception("查询剧集信息的豆瓣id: ", err)
 
         return douban_ids
 

@@ -9,8 +9,9 @@ from sqlalchemy.orm import sessionmaker, scoped_session
 from sqlalchemy.pool import QueuePool
 
 from app.db.models import BaseMedia, MEDIASYNCITEMS, MEDIASYNCSTATISTIC
-from app.utils import ExceptionUtils
 from config import Config
+
+import log
 
 lock = threading.Lock()
 _Engine = create_engine(
@@ -61,7 +62,7 @@ class MediaDb:
             self.session.commit()
             return True
         except Exception as e:
-            ExceptionUtils.exception_traceback(e)
+            log.exception("[Db]insert MEDIASYNC_ITEMS error:", e)
             self.session.rollback()
         return False
 
@@ -77,7 +78,7 @@ class MediaDb:
             self.session.commit()
             return True
         except Exception as e:
-            ExceptionUtils.exception_traceback(e)
+            log.exception("[Db]empty MEDIASYNC_ITEMS error:", e)
             self.session.rollback()
         return False
 
@@ -98,7 +99,7 @@ class MediaDb:
             self.session.commit()
             return True
         except Exception as e:
-            ExceptionUtils.exception_traceback(e)
+            log.exception("[Db]MEDIASYNC_STATISTICS CRUD ERROR:", e)
             self.session.rollback()
         return False
 

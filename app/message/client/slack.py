@@ -5,8 +5,8 @@ import requests
 from slack_sdk.errors import SlackApiError
 
 import log
+
 from app.message.client._base import _IMessageClient
-from app.utils import ExceptionUtils
 from config import Config
 from slack_bolt import App
 from slack_bolt.adapter.socket_mode import SocketModeHandler
@@ -39,7 +39,7 @@ class Slack(_IMessageClient):
             try:
                 slack_app = App(token=self._client_config.get("bot_token"))
             except Exception as err:
-                ExceptionUtils.exception_traceback(err)
+                log.exception("【Slack】初始化 出错: ", err)
                 return
             self._client = slack_app.client
 
@@ -77,8 +77,7 @@ class Slack(_IMessageClient):
                     self._service.connect()
                     log.info("Slack消息接收服务启动")
                 except Exception as err:
-                    ExceptionUtils.exception_traceback(err)
-                    log.error("Slack消息接收服务启动失败: %s" % str(err))
+                    log.exception("【Slack】消息接收服务启动失败: ", err)
 
     @classmethod
     def match(cls, ctype):
@@ -94,7 +93,7 @@ class Slack(_IMessageClient):
 
     def send_msg(self, title, text="", image="", url="", user_id=""):
         """
-        发送Telegram消息
+        发送Slack消息
         :param title: 消息标题
         :param text: 消息内容
         :param image: 消息图片地址
@@ -160,7 +159,7 @@ class Slack(_IMessageClient):
             )
             return True, result
         except Exception as msg_e:
-            ExceptionUtils.exception_traceback(msg_e)
+            log.exception("【Slack】发送Slack消息 出错: ", msg_e)
             return False, str(msg_e)
 
     def send_list_msg(self, medias: list, user_id="", **kwargs):
@@ -243,7 +242,7 @@ class Slack(_IMessageClient):
             )
             return True, result
         except Exception as msg_e:
-            ExceptionUtils.exception_traceback(msg_e)
+            log.exception("【Slack】发送Slack列表消息 出错: ", msg_e)
             return False, str(msg_e)
 
     def __find_public_channel(self):

@@ -1,18 +1,19 @@
 import os
 import threading
-import traceback
 
 from watchdog.events import FileSystemEventHandler
 from watchdog.observers import Observer
 from watchdog.observers.polling import PollingObserver
 
 import log
+
 from app.conf import ModuleConf
 from app.filetransfer import FileTransfer
 from app.helper import DbHelper
-from app.utils import PathUtils, ExceptionUtils
+from app.utils import PathUtils
 from app.utils.commons import singleton
 from app.utils.types import SyncType
+
 from config import RMT_MEDIAEXT
 
 lock = threading.Lock()
@@ -264,8 +265,7 @@ class Sync(object):
                         finally:
                             lock.release()
             except Exception as e:
-                ExceptionUtils.exception_traceback(e)
-                log.error("【Sync】发生错误：%s - %s" % (str(e), traceback.format_exc()))
+                log.exception("【Sync】发生错误: ", e)
 
     def transfer_mon_files(self):
         """
@@ -333,7 +333,7 @@ class Sync(object):
                 observer.start()
                 log.info(f"{mon_path} 的监控服务启动")
             except Exception as e:
-                ExceptionUtils.exception_traceback(e)
+                log.exception("【Sync】启动监控 发生错误: ", e)
                 err_msg = str(e)
                 if "inotify" in err_msg and "reached" in err_msg:
                     log.warn(f"目录监控服务启动出现异常：{err_msg}，请在宿主机上（不是docker容器内）执行以下命令并重启："
@@ -409,8 +409,7 @@ class Sync(object):
                 self.dbhelper.insert_sync_history(event_path, mon_path, target_path)
                 log.info("【Sync】%s 同步完成" % event_path)
         except Exception as err:
-            ExceptionUtils.exception_traceback(err)
-            log.error("【Sync】%s 同步失败：%s" % (event_path, str(err)))
+            log.exception(f"【Sync】{event_path} 同步失败：" , err)
 
     def delete_sync_path(self, sid):
         """

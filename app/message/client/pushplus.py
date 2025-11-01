@@ -2,7 +2,9 @@ import time
 from urllib.parse import urlencode
 
 from app.message.client._base import _IMessageClient
-from app.utils import RequestUtils, ExceptionUtils
+from app.utils import RequestUtils
+
+import log
 
 
 class PushPlus(_IMessageClient):
@@ -31,7 +33,7 @@ class PushPlus(_IMessageClient):
 
     def send_msg(self, title, text="", image="", url="", user_id=""):
         """
-        发送ServerChan消息
+        发送PushPlus消息
         :param title: 消息标题
         :param text: 消息内容
         :param image: 未使用
@@ -69,7 +71,7 @@ class PushPlus(_IMessageClient):
             else:
                 return False, "未获取到返回信息"
         except Exception as msg_e:
-            ExceptionUtils.exception_traceback(msg_e)
+            log.exception("【PushPlus】发送PushPlus消息 出错: ", msg_e)
             return False, str(msg_e)
 
     def send_list_msg(self, **kwargs):

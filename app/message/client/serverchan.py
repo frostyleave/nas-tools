@@ -1,7 +1,9 @@
 from urllib.parse import urlencode
 
 from app.message.client._base import _IMessageClient
-from app.utils import RequestUtils, ExceptionUtils
+from app.utils import RequestUtils
+
+import log
 
 
 class ServerChan(_IMessageClient):
@@ -51,7 +53,7 @@ class ServerChan(_IMessageClient):
             else:
                 return False, "未获取到返回信息"
         except Exception as msg_e:
-            ExceptionUtils.exception_traceback(msg_e)
+            log.exception("【ServerChan】发送ServerChan消息 出错: ", msg_e)
             return False, str(msg_e)
 
     def send_list_msg(self, **kwargs):

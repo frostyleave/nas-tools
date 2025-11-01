@@ -1,15 +1,18 @@
 import json
 import re
 import time
+
 from enum import Enum
 
 import log
+
 from app.conf import ModuleConf
 from app.helper import DbHelper, SubmoduleHelper
 from app.message.message_center import MessageCenter
-from app.utils import StringUtils, ExceptionUtils
+from app.utils import StringUtils
 from app.utils.commons import singleton
 from app.utils.types import SearchType, MediaType
+
 from config import Config
 from web.backend.web_utils import WebUtils
 
@@ -87,7 +90,7 @@ class Message(object):
                 if message_schema.match(ctype):
                     return message_schema(conf)
             except Exception as e:
-                ExceptionUtils.exception_traceback(e)
+                log.exception("【Message】消息对象实例化 出错: ", e)
         return None
 
     def get_status(self, ctype=None, config=None):

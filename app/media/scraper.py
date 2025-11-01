@@ -1,17 +1,18 @@
 import os.path
 import time
-from xml.dom import minidom
 
+from xml.dom import minidom
 from requests.exceptions import RequestException
 
 import log
+
 from app.conf import SystemConfig, ModuleConf
 from app.helper import FfmpegHelper
 from app.media.douban import DouBan
 from app.media.meta import MetaInfo
 from app.utils.commons import retry
 from config import Config, RMT_MEDIAEXT
-from app.utils import DomUtils, RequestUtils, ExceptionUtils, NfoReader, SystemUtils
+from app.utils import DomUtils, RequestUtils, NfoReader, SystemUtils
 from app.utils.types import MediaType, SystemConfigKey, RmtMode
 from app.media import Media
 
@@ -422,7 +423,7 @@ class Scraper:
         except RequestException:
             raise RequestException
         except Exception as err:
-            ExceptionUtils.exception_traceback(err)
+            log.exception("【Scraper】保存海报出错: ", err)
 
     def __save_nfo(self, doc, out_file):
         log.info("【Scraper】正在保存NFO文件：%s" % out_file)
@@ -664,7 +665,7 @@ class Scraper:
                                 log.info(f"【Scraper】缩略图生成完成：{episode_thumb}")
 
         except Exception as e:
-            ExceptionUtils.exception_traceback(e)
+            log.exception("【Scraper】刮削元数据 出错: ", e)
 
     def __gen_people_chinese_info(self, directors, actors, doubaninfo):
         """

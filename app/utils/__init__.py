@@ -9,7 +9,6 @@ from .system_utils import SystemUtils
 from .tokens import Tokens
 from .torrent import TorrentUtils
 from .cache_manager import cacheman, TokenCache, ConfigLoadCache, CategoryLoadCache, OpenAISessionCache
-from .exception_utils import ExceptionUtils
 from .rsstitle_utils import RssTitleUtils
 from .nfo_reader import NfoReader
 from .ip_utils import IpUtils

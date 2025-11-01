@@ -1,7 +1,9 @@
 from urllib.parse import quote_plus
 
 from app.message.client._base import _IMessageClient
-from app.utils import RequestUtils, SiteUtils, ExceptionUtils
+from app.utils import RequestUtils, SiteUtils
+
+import log
 
 class Bark(_IMessageClient):
     schema = "bark"
@@ -57,7 +59,7 @@ class Bark(_IMessageClient):
             else:
                 return False, "未获取到返回信息"
         except Exception as msg_e:
-            ExceptionUtils.exception_traceback(msg_e)
+            log.exception("【Bark】发送Bark消息 出错: ", msg_e)
             return False, str(msg_e)
 
     def send_list_msg(self, **kwargs):

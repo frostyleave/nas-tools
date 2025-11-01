@@ -1,6 +1,5 @@
 import json
 import time
-import traceback
 
 import jsonpath
 from apscheduler.executors.pool import ThreadPoolExecutor
@@ -17,7 +16,7 @@ from app.media.meta import MetaInfo
 from app.message import Message
 from app.searcher import Searcher
 from app.subscribe import Subscribe
-from app.utils import RequestUtils, StringUtils, ExceptionUtils
+from app.utils import RequestUtils, StringUtils
 from app.utils.commons import singleton
 from app.utils.types import MediaType, SearchType, RssType
 from config import Config
@@ -348,8 +347,7 @@ class RssChecker(object):
                 else:
                     continue
             except Exception as e:
-                ExceptionUtils.exception_traceback(e)
-                log.error("【RssChecker】处理RSS发生错误：%s - %s" % (str(e), traceback.format_exc()))
+                log.exception("【RssChecker】处理RSS发生错误: " , e)
                 continue
         log.info("【RssChecker】%s 处理结束，匹配到 %s 个有效资源" % (taskinfo.get("name"), res_num))
         # 添加下载
@@ -427,8 +425,7 @@ class RssChecker(object):
             try:
                 rss_parser_format = json.loads(rss_parser.get("format"))
             except Exception as e:
-                ExceptionUtils.exception_traceback(e)
-                log.error(f"【RssChecker】任务 {task_name} 配置解析器 {parser_name} 不是合法的Json格式")
+                log.exception(f"【RssChecker】任务 {task_name} 配置解析器 {parser_name} 不是合法的Json格式: ", e)
                 continue
 
             # 拼装链接
@@ -439,8 +436,7 @@ class RssChecker(object):
                 try:
                     param_url = rss_parser.get("params").format(**_dict)
                 except Exception as e:
-                    ExceptionUtils.exception_traceback(e)
-                    log.error(f"【RssChecker】任务 {task_name} 配置解析器 {parser_name} 附加参数不合法")
+                    log.exception(f"【RssChecker】任务 {task_name} 配置解析器 {parser_name} 附加参数不合法:", e)
                     continue
                 rss_url = "%s?%s" % (rss_url, param_url) if rss_url.find("?") == -1 else "%s&%s" % (rss_url, param_url)
             # 请求数据
@@ -451,7 +447,7 @@ class RssChecker(object):
                     continue
                 ret.encoding = ret.apparent_encoding
             except Exception as e2:
-                ExceptionUtils.exception_traceback(e2)
+                log.exception(f"【RssChecker】任务 {task_name} 请求rss失败:", e2)
                 continue
             # 解析数据 XPATH
             if rss_parser.get("type") == "XML":
@@ -476,15 +472,13 @@ class RssChecker(object):
                         rss_item.update({"address_index": i+1})
                         rss_result.append(rss_item)
                 except Exception as err:
-                    ExceptionUtils.exception_traceback(err)
-                    log.error(f"【RssChecker】任务 {task_name} RSS地址 {rss_url} 获取的订阅报文无法解析：{str(err)}")
+                    log.exception(f"【RssChecker】任务 {task_name} RSS地址 {rss_url} 获取的订阅报文无法解析：", err)
                     continue
             elif rss_parser.get("type") == "JSON":
                 try:
                     result_json = json.loads(ret.text)
                 except Exception as err:
-                    ExceptionUtils.exception_traceback(err)
-                    log.error(f"【RssChecker】任务 {task_name} RSS地址 {rss_url} 获取的订阅报文不是合法的Json格式：{str(err)}")
+                    log.exception(f"【RssChecker】任务 {task_name} RSS地址 {rss_url} 获取的订阅报文不是合法的Json格式: ", err)
                     continue
                 item_list = jsonpath.jsonpath(result_json, rss_parser_format.get("list"))[0]
                 if not isinstance(item_list, list):
@@ -567,8 +561,7 @@ class RssChecker(object):
                 if params not in rss_articles:
                     rss_articles.append(params)
             except Exception as e:
-                ExceptionUtils.exception_traceback(e)
-                log.error("【RssChecker】获取RSS报文发生错误：%s - %s" % (str(e), traceback.format_exc()))
+                log.exception("【RssChecker】获取RSS报文发生错误: ", e)
         return sorted(rss_articles, key=lambda x: x['date'], reverse=True)
 
     def test_rss_articles(self, taskid, title):
@@ -670,8 +663,7 @@ class RssChecker(object):
                 return False
             return True
         except Exception as e:
-            ExceptionUtils.exception_traceback(e)
-            log.error("【RssChecker】设置RSS报文状态时发生错误：%s - %s" % (str(e), traceback.format_exc()))
+            log.exception("【RssChecker】设置RSS报文状态时发生错误: ", e)
             return False
 
     def download_rss_articles(self, taskid, articles):

@@ -1,7 +1,9 @@
 from urllib import parse
 
 from app.message.client._base import _IMessageClient
-from app.utils import RequestUtils, SiteUtils, ExceptionUtils
+from app.utils import RequestUtils, SiteUtils
+
+import log
 
 class Chanify(_IMessageClient):
     schema = "chanify"
@@ -53,7 +55,7 @@ class Chanify(_IMessageClient):
             else:
                 return False, "未获取到返回信息"
         except Exception as msg_e:
-            ExceptionUtils.exception_traceback(msg_e)
+            log.exception("【Chanify】发Chanify消息 出错: ", msg_e)
             return False, str(msg_e)
 
     def send_list_msg(self, **kwargs):

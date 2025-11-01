@@ -3,10 +3,12 @@ from app.plugins import EventHandler
 from app.plugins.modules._base import _IPluginModule
 from app.utils.types import EventType
 from datetime import datetime, timedelta
-from app.utils import ExceptionUtils
+
 from apscheduler.schedulers.background import BackgroundScheduler
 
 from config import Config
+
+import log
 
 
 class LibraryRefresh(_IPluginModule):
@@ -49,7 +51,7 @@ class LibraryRefresh(_IPluginModule):
                     delay = 0
                 self._refresh_delay = delay
             except Exception as e:
-                ExceptionUtils.exception_traceback(e)
+                log.exception(f"【LibraryRefresh】延迟时间解析失败: ", e)
                 self._refresh_delay = 0
 
         self.stop_service()

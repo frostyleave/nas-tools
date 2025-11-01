@@ -1,9 +1,10 @@
+from typing import Tuple
+
 import regex as re
 import cn2an
 
 from app.helper.db_helper import DbHelper
 from app.utils.commons import singleton
-from app.utils.exception_utils import ExceptionUtils
 
 import log
 
@@ -90,29 +91,29 @@ class WordsHelper:
         return title, {"ignored": used_ignored_words, "replaced": used_replaced_words, "offset": used_offset_words}
 
     @staticmethod
-    def replace_regex(title, replaced, replace) -> (str, str, bool):
+    def replace_regex(title, replaced, replace) -> Tuple[str, str, bool]:
         try:
             if not re.findall(r'%s' % replaced, title):
                 return title, "", False
             else:
                 return re.sub(r'%s' % replaced, r'%s' % replace, title), "", True
         except Exception as err:
-            ExceptionUtils.exception_traceback(err)
+            log.exception("replace_regex error : ", err)
             return title, str(err), False
 
     @staticmethod
-    def replace_noregex(title, replaced, replace) -> (str, str, bool):
+    def replace_noregex(title, replaced, replace) -> Tuple[str, str, bool]:
         try:
             if title.find(replaced) == -1:
                 return title, "", False
             else:
                 return title.replace(replaced, replace), "", True
         except Exception as err:
-            ExceptionUtils.exception_traceback(err)
+            log.exception("replace_noregex error : ", err)
             return title, str(err), False
 
     @staticmethod
-    def episode_offset(title, front, back, offset) -> (str, str, bool):
+    def episode_offset(title, front, back, offset) -> Tuple[str, str, bool]:
         try:
             if back and not re.findall(r'%s' % back, title):
                 return title, "", False
@@ -157,7 +158,7 @@ class WordsHelper:
                 title = re.sub(episode_offset_re, r'%s' % episode_num[1], title)
             return title, "", True
         except Exception as err:
-            ExceptionUtils.exception_traceback(err)
+            log.exception("episode_offset error : ", err)
             return title, str(err), False
 
     def is_custom_words_existed(self, replaced=None, front=None, back=None):

@@ -4,7 +4,7 @@ from urllib.parse import quote
 
 import log
 from app.mediaserver.client._base import _IMediaClient
-from app.utils import RequestUtils, SystemUtils, ExceptionUtils, IpUtils
+from app.utils import RequestUtils, SystemUtils, IpUtils
 from app.utils.types import MediaType, MediaServerType
 from config import Config
 
@@ -83,8 +83,7 @@ class Emby(_IMediaClient):
                 log.error(f"【{self.client_name}】Library/SelectableMediaFolders 未获取到返回数据")
                 return []
         except Exception as e:
-            ExceptionUtils.exception_traceback(e)
-            log.error(f"【{self.client_name}】连接Library/SelectableMediaFolders 出错：" + str(e))
+            log.exception(f"【{self.client_name}】连接Library/SelectableMediaFolders 出错: ", e)
             return []
 
     def __get_emby_librarys(self):
@@ -103,8 +102,7 @@ class Emby(_IMediaClient):
                 log.error(f"【{self.client_name}】User/Views 未获取到返回数据")
                 return []
         except Exception as e:
-            ExceptionUtils.exception_traceback(e)
-            log.error(f"【{self.client_name}】连接User/Views 出错：" + str(e))
+            log.exception(f"【{self.client_name}】连接User/Views 出错: ", e)
             return []
 
     def get_user(self, user_name=None):
@@ -125,8 +123,7 @@ class Emby(_IMediaClient):
             else:
                 log.error(f"【{self.client_name}】Users 未获取到返回数据")
         except Exception as e:
-            ExceptionUtils.exception_traceback(e)
-            log.error(f"【{self.client_name}】连接Users出错：" + str(e))
+            log.exception(f"【{self.client_name}】连接Users出错: ", e)
         return None
 
     def __get_backdrop_url(self, item_id, image_tag, remote=True, inner=False):
@@ -169,8 +166,7 @@ class Emby(_IMediaClient):
             else:
                 log.error(f"【{self.client_name}】System/Info 未获取到返回数据")
         except Exception as e:
-            ExceptionUtils.exception_traceback(e)
-            log.error(f"【{self.client_name}】连接System/Info出错：" + str(e))
+            log.exception(f"【{self.client_name}】连接System/Info出错: ", e)
         return None
 
     def get_user_count(self):
@@ -188,8 +184,7 @@ class Emby(_IMediaClient):
                 log.error(f"【{self.client_name}】Users/Query 未获取到返回数据")
                 return 0
         except Exception as e:
-            ExceptionUtils.exception_traceback(e)
-            log.error(f"【{self.client_name}】连接Users/Query出错：" + str(e))
+            log.exception(f"【{self.client_name}】连接Users/Query出错: ", e)
             return 0
 
     def get_activity_log(self, num):
@@ -222,8 +217,7 @@ class Emby(_IMediaClient):
                 log.error(f"【{self.client_name}】System/ActivityLog/Entries 未获取到返回数据")
                 return []
         except Exception as e:
-            ExceptionUtils.exception_traceback(e)
-            log.error(f"【{self.client_name}】连接System/ActivityLog/Entries出错：" + str(e))
+            log.exception(f"【{self.client_name}】连接System/ActivityLog/Entries出错: ", e)
             return []
         return ret_array[:num]
 
@@ -243,8 +237,7 @@ class Emby(_IMediaClient):
                 log.error(f"【{self.client_name}】Items/Counts 未获取到返回数据")
                 return {}
         except Exception as e:
-            ExceptionUtils.exception_traceback(e)
-            log.error(f"【{self.client_name}】连接Items/Counts出错：" + str(e))
+            log.exception(f"【{self.client_name}】连接Items/Counts出错: ", e)
             return {}
 
     def __get_emby_series_id_by_name(self, name, year):
@@ -268,8 +261,7 @@ class Emby(_IMediaClient):
                                 not year or str(res_item.get('ProductionYear')) == str(year)):
                             return res_item.get('Id')
         except Exception as e:
-            ExceptionUtils.exception_traceback(e)
-            log.error(f"【{self.client_name}】连接Items出错：" + str(e))
+            log.exception(f"【{self.client_name}】连接Items出错: ", e)
             return None
         return ""
 
@@ -297,8 +289,7 @@ class Emby(_IMediaClient):
                                 {'title': res_item.get('Name'), 'year': str(res_item.get('ProductionYear'))})
                             return ret_movies
         except Exception as e:
-            ExceptionUtils.exception_traceback(e)
-            log.error(f"【{self.client_name}】连接Items出错：" + str(e))
+            log.exception(f"【{self.client_name}】连接Items出错: ", e)
             return None
         return []
 
@@ -348,8 +339,7 @@ class Emby(_IMediaClient):
                     })
                 return exists_episodes
         except Exception as e:
-            ExceptionUtils.exception_traceback(e)
-            log.error(f"【{self.client_name}】连接Shows/Id/Episodes出错：" + str(e))
+            log.exception(f"【{self.client_name}】连接Shows/Id/Episodes出错: ", e)
             return None
         return []
 
@@ -405,8 +395,7 @@ class Emby(_IMediaClient):
                                 self._play_host, res_item.get("Id"), res_item.get('ImageTags', {}).get('Primary'))
                         return img_url
         except Exception as e:
-            ExceptionUtils.exception_traceback(e)
-            log.error(f"【{self.client_name}】连接Shows/Id/Episodes出错：" + str(e))
+            log.exception(f"【{self.client_name}】连接Shows/Id/Episodes出错: ", e)
             return None
 
     def get_remote_image_by_id(self, item_id, image_type):
@@ -430,8 +419,7 @@ class Emby(_IMediaClient):
                 log.error(f"【{self.client_name}】Items/RemoteImages 未获取到返回数据")
                 return None
         except Exception as e:
-            ExceptionUtils.exception_traceback(e)
-            log.error(f"【{self.client_name}】连接Items/Id/RemoteImages出错：" + str(e))
+            log.exception(f"【{self.client_name}】连接Items/Id/RemoteImages出错: ", e)
             return None
         return None
 
@@ -470,8 +458,7 @@ class Emby(_IMediaClient):
             else:
                 log.info(f"【{self.client_name}】刷新媒体库对象 {item_id} 失败，无法连接Emby！")
         except Exception as e:
-            ExceptionUtils.exception_traceback(e)
-            log.error(f"【{self.client_name}】连接Items/Id/Refresh出错：" + str(e))
+            log.exception(f"【{self.client_name}】连接Items/Id/Refresh出错: ", e)
             return False
         return False
 
@@ -489,8 +476,7 @@ class Emby(_IMediaClient):
             else:
                 log.info(f"【{self.client_name}】刷新媒体库失败，无法连接Emby！")
         except Exception as e:
-            ExceptionUtils.exception_traceback(e)
-            log.error(f"【{self.client_name}】连接Library/Refresh出错：" + str(e))
+            log.exception(f"【{self.client_name}】连接Library/Refresh出错: ", e)
             return False
         return False
 
@@ -605,7 +591,7 @@ class Emby(_IMediaClient):
             if res and res.status_code == 200:
                 return res.json()
         except Exception as e:
-            ExceptionUtils.exception_traceback(e)
+            log.exception(f"【{self.client_name}】获取单个项目详情 出错: ", e)
             return {}
 
     def get_play_url(self, item_id):
@@ -648,8 +634,7 @@ class Emby(_IMediaClient):
                         for item in self.get_items(parent=result.get('Id')):
                             yield item
         except Exception as e:
-            ExceptionUtils.exception_traceback(e)
-            log.error(f"【{self.client_name}】连接Users/Items出错：" + str(e))
+            log.exception(f"【{self.client_name}】连接Users/Items出错: ", e)
         yield {}
 
     def get_playing_sessions(self):
@@ -669,7 +654,7 @@ class Emby(_IMediaClient):
                         playing_sessions.append(session)
             return playing_sessions
         except Exception as e:
-            ExceptionUtils.exception_traceback(e)
+            log.exception(f"【{self.client_name}】获取正在播放的会话 出错: ", e)
             return []
 
     def get_webhook_message(self, message):
@@ -774,8 +759,7 @@ class Emby(_IMediaClient):
             else:
                 log.error(f"【{self.client_name}】Users/Items/Resume 未获取到返回数据")
         except Exception as e:
-            ExceptionUtils.exception_traceback(e)
-            log.error(f"【{self.client_name}】连接Users/Items/Resume出错：" + str(e))
+            log.exception(f"【{self.client_name}】连接Users/Items/Resume出错: ", e)
         return []
 
     def get_latest(self, num=20):
@@ -807,6 +791,5 @@ class Emby(_IMediaClient):
             else:
                 log.error(f"【{self.client_name}】Users/Items/Latest 未获取到返回数据")
         except Exception as e:
-            ExceptionUtils.exception_traceback(e)
-            log.error(f"【{self.client_name}】连接Users/Items/Latest出错：" + str(e))
+            log.exception(f"【{self.client_name}】连接Users/Items/Latest出错: ", e)
         return []

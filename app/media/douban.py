@@ -1,5 +1,4 @@
 import random
-import re
 import zhconv
 import log
 
@@ -9,7 +8,7 @@ from typing import Optional
 
 from app.media.doubanapi import DoubanApi, DoubanWeb
 from app.media.meta import MetaInfo
-from app.utils import ExceptionUtils, StringUtils
+from app.utils import StringUtils
 from app.utils import RequestUtils
 from app.utils.commons import singleton
 from app.utils.types import MediaType
@@ -37,8 +36,7 @@ class DouBan:
             if res:
                 self.cookie = StringUtils.str_from_cookiejar(res.cookies)
         except Exception as err:
-            ExceptionUtils.exception_traceback(err)
-            log.warn(f"【Douban】获取cookie失败: {format(err)}")
+            log.exception(f"【Douban】获取cookie失败: ", err)
 
     def search_douban_info_by_imdbid(self, imdbid):
         """
@@ -431,7 +429,7 @@ class DouBan:
 
     def get_media_detail_from_web(self, doubanid):
         """
-        从豆瓣详情页抓紧媒体信息
+        从豆瓣详情页抓取媒体信息
         :param doubanid: 豆瓣ID
         :return: {title, year, intro, cover_url, rating{value}, episodes_count}
         """
@@ -499,7 +497,7 @@ class DouBan:
             if imdbid:
                 ret_media['imdbid'] = str(imdbid).strip()
         except Exception as err:
-            ExceptionUtils.exception_traceback(err)
+            log.exception(f"【Douban】从豆瓣详情页抓取媒体信息异常: ", err)
         if ret_media:
             log.info("【Douban】查询到数据: %s" % ret_media.get("title"))
         else:

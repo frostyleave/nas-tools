@@ -3,8 +3,9 @@ import os
 from pyvirtualdisplay import Display
 
 from app.utils.commons import singleton
-from app.utils import ExceptionUtils
 from config import XVFB_PATH
+
+import log
 
 
 @singleton
@@ -22,7 +23,7 @@ class DisplayHelper(object):
                 self._display.start()
                 os.environ["NASTOOL_DISPLAY"] = "true"
             except Exception as err:
-                ExceptionUtils.exception_traceback(err)
+                log.exception("[虚拟显示]初始化异常: ", err)
 
     def get_display(self):
         return self._display

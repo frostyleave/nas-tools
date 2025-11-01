@@ -8,7 +8,7 @@ import log
 from app.conf import SystemConfig
 from app.helper import PluginHelper
 from app.media import Category
-from app.utils import ConfigLoadCache, CategoryLoadCache, ExceptionUtils, StringUtils
+from app.utils import ConfigLoadCache, CategoryLoadCache, StringUtils
 from app.utils.commons import INSTANCES
 from app.utils.types import SystemConfigKey
 from app.utils.password_hash import generate_password_hash
@@ -98,7 +98,7 @@ def update_config():
             _config['pt']['ptrefresh_date_cron'] = '6'
             overwrite_cofig = True
     except Exception as e:
-        ExceptionUtils.exception_traceback(e)
+        log.exception("【Config】站点数据刷新时间默认配置 设置异常: ", e)
 
     # 存量插件安装情况统计
     try:
@@ -109,7 +109,7 @@ def update_config():
             if ret:
                 SystemConfig().set(SystemConfigKey.UserInstalledPluginsReport, '1')
     except Exception as e:
-        ExceptionUtils.exception_traceback(e)
+        log.exception("【Config】存量插件安装情况统计 异常: ", e)
 
     # 重写配置文件
     if overwrite_cofig:

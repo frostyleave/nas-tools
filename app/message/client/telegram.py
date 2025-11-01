@@ -4,9 +4,10 @@ from urllib.parse import urlencode
 import requests
 
 import log
+
 from app.helper import ThreadHelper
 from app.message.client._base import _IMessageClient
-from app.utils import RequestUtils, ExceptionUtils
+from app.utils import RequestUtils
 from config import Config
 
 lock = Lock()
@@ -119,7 +120,7 @@ class Telegram(_IMessageClient):
             return self.__send_request(chat_id=chat_id, image=image, caption=caption)
 
         except Exception as msg_e:
-            ExceptionUtils.exception_traceback(msg_e)
+            log.exception("【Telegram】发送Telegram消息 出错: ", msg_e)
             return False, str(msg_e)
 
     def send_list_msg(self, medias: list, user_id="", title="", **kwargs):
@@ -158,7 +159,7 @@ class Telegram(_IMessageClient):
             return self.__send_request(chat_id=chat_id, image=image, caption=caption)
 
         except Exception as msg_e:
-            ExceptionUtils.exception_traceback(msg_e)
+            log.exception("【Telegram】发送Telegram列表消息 出错: ", msg_e)
             return False, str(msg_e)
 
     def __send_request(self, chat_id="", image="", caption=""):
@@ -293,8 +294,7 @@ class Telegram(_IMessageClient):
                         local_res = requests.post(_ds_url, json=msg, timeout=10)
                         log.debug("【Telegram】message: %s processed, response is: %s" % (msg, local_res.text))
             except Exception as e:
-                ExceptionUtils.exception_traceback(e)
-                log.error("【Telegram】消息接收出现错误: %s" % e)
+                log.exception("【Telegram】消息接收出现错误: ", e)
             return _offset
 
         offset = 0
