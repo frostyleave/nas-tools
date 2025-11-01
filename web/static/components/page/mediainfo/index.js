@@ -108,8 +108,7 @@ export class PageMediainfo extends CustomElement {
             img-placeholder="0"
             img-error="0"
             .img_src_list=${this.media_info.background}
-            img-class="card-img rounded-0"
-            img-style="padding-bottom: 1px; display: block; width: 100%; height: 100%; object-fit: cover;">
+            img-class="card-img rounded-0 background-carousel-img" >
           </custom-img>
           <div class="card-img-overlay rounded-0 lit-media-info-background">
             <div class="d-flex flex-row mb-4 align-items-stretch">

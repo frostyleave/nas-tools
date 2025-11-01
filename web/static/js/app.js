@@ -22,7 +22,7 @@ router
   })
   // 探索模块
   .on("/media_detail", function (match) {
-    loadPage("/static/pages/mediainfo.html", match.queryString);
+    loadPage("/static/pages/media_detail.html", match.queryString);
   })
   .on("/recommend", function (match) {
     loadPage("/static/pages/recommend.html", match.queryString);

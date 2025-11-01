@@ -48,7 +48,7 @@ export class CustomImg extends CustomElement {
   _update_img() {
     if (this.img_src_list) {
       if (this.img_src_list.length > 1) {
-        this._query_img.classList.remove("lit-custom-img-carousel-show");
+        this._query_img?.classList.remove("lit-custom-img-carousel-show");
         setTimeout(() => {
           this.img_src = this.img_src_list[this._timeout_update_img];
           this._timeout_update_img ++;

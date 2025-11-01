@@ -1,0 +1,373 @@
+
+<div id="main-info-container" class="container-xl placeholder-glow page-wrapper-top-off lit-media-info-page-bg">
+</div>
+
+<script type="text/javascript">
+  
+  $(document).ready(function() {
+
+      // 获取URL参数
+      const [path, queryString] = window.location.hash.split("?");
+      const urlParams = new URLSearchParams(queryString);
+      const media_type = urlParams.get('type') || '';
+      const tmdbid = urlParams.get('id') || '';
+
+      if (!media_type || !tmdbid) {
+          show_fail_modal("页面参数(type/tmdbid)缺失！");
+          window.history.go(-1);
+          return;
+      }
+
+      // 执行主数据请求
+      axios_post_do("media_brief_info", { "type": media_type, "tmdbid": tmdbid },
+        (ret) => {
+          if (ret.code === 0) {
+
+            var media_info = ret.data;
+
+            // 数据绑定
+            $('#main-info-container').data("type", media_type);
+            $('#main-info-container').data("tmdbid", tmdbid + "");
+            $('#main-info-container').data("data", media_info);
+
+            // 绘制主要信息
+            const mainHtml = generateMainHtml(media_info, media_info.fav, media_info.item_url, [], tmdbid);
+            $('#main-info-container').append(mainHtml);
+
+            // 背景轮播
+            if (media_info.background && media_info.background.length > 0) {
+              const bgCarousel = document.createElement('custom-img');
+              bgCarousel.setAttribute('id', 'background-carousel');
+              bgCarousel.setAttribute('class', 'custom-media-info-height');
+              bgCarousel.setAttribute('div-style', 'display:inline;');
+              bgCarousel.setAttribute('img-placeholder', '0');
+              bgCarousel.setAttribute('img-error', '0');
+              bgCarousel.setAttribute('img-class', 'card-img rounded-0 background-carousel-img');
+              bgCarousel.img_src_list = media_info.background;
+              $('#main-info-background').before(bgCarousel);
+            }
+
+            // 演职人员、季集信息
+            asyncRenderExtraDataCard(tmdbid, media_type, media_info);
+
+            // 类似影片
+            asyncRenderSimCard(tmdbid, media_type, media_info.title);
+
+            // 推荐影片
+            asyncRenderRecommendCard(tmdbid, media_type, media_info.title);
+
+            // 绑定动态生成的元素的事件
+            bindDynamicEvents(media_info);
+
+          } else {
+            show_fail_modal("未查询到TMDB媒体信息！");
+            window.history.go(-1);
+          }
+        }
+      );
+
+      // --- HTML 生成辅助函数 ---
+      function generateMainHtml(info, fav, item_url, seasons, tmdbid) {
+          const genresHtml = info.genres ? info.genres.map(el => 
+              `<span class="badge bg-indigo mb-1 mx-1"> ${el}</span>`
+          ).join('') : '';
+
+          const doubanHtml = info.douban_id ? 
+              `<span class="mb-1 d-inline-flex"><i class="ti ti-brand-douban fs-2 text-green"></i> ${renderDoubanLink(info.douban_id)}</span>` : '';          
+          const tmdbHtml = tmdbid && !tmdbid.startsWith('DB:') && info.link ?
+              `<span class="mb-1 d-inline-flex"><i class="ti ti-badge-tm fs-2 text-blue"></i><a class="text-reset" href="${info.link}" target="_blank">${info.tmdbid}</a></span>` : '';
+
+          const searchBtnHtml = `
+              <span class="btn btn-primary d-none d-sm-inline-flex" id="search-btn">
+                <i class="ti ti-search fs-2 text-white"></i> 搜索资源
+              </span>
+              <span class="btn btn-icon bg-transparent border-0 d-sm-none" id="search-btn-icon">
+                <i class="ti ti-search fs-2"></i>
+              </span>`;
+          
+          const favBtnHtml = fav == "1" ? `
+              <span class="btn btn-pinterest d-none d-sm-inline-flex" id="fav-btn">
+                <i class="ti ti-heart-filled fs-2 text-purple"></i> 删除订阅
+              </span>
+              <span class="btn btn-icon bg-transparent border-0 d-sm-none" id="fav-btn-icon">
+                <i class="ti ti-heart-filled fs-2 text-purple"></i>
+              </span>` : `
+              <span class="btn btn-purple d-none d-sm-inline-flex" id="fav-btn">
+                <i class="ti ti-heart fs-2 text-white"></i> 添加订阅
+              </span>
+              <span class="btn btn-icon bg-transparent border-0 d-sm-none" id="fav-btn-icon">
+                <i class="ti ti-heart fs-2"></i>
+              </span>`;
+
+          const watchBtnHtml = item_url ? `
+              <span class="btn btn-green d-none d-sm-inline-flex" id="watch-btn" data-url="${item_url}">
+                <i class="ti ti-device-tv-old fs-2 text-white"></i> 在线观看
+              </span>
+              <span class="btn btn-icon bg-transparent border-0 d-sm-none" id="watch-btn-icon" data-url="${item_url}" >
+                <i class="ti ti-player-play fs-2"></i>
+              </span>` : '';
+
+          return `
+          <div id="main-card" class="card rounded-0 lit-media-info-background custom-media-info-height">
+            <div id="main-info-background" class="card-img-overlay rounded-0 lit-media-info-background">
+              <div class="d-flex flex-row mb-4 align-items-stretch">
+                <custom-img class="d-flex justify-content-center flex-shrink-0" div-style="position:relative;"
+                  img-class="rounded-3 object-cover lit-media-info-image"
+                  img-error="0"
+                  img_vote="${info.vote}"
+                  img_mark="${fav == "2" ? "1" : "0"}"
+                  img-src="${info.image}">
+                </custom-img>
+                <div class="d-flex flex-column justify-content-end ms-3 text-start">
+                  <div>
+                    <h1 class="display-7 text-start text-shadow-b1">
+                      <strong calss="d-inline">${info.title}</strong>
+                      <strong class="h3 ${!info.year ? 'd-none' : 'd-inline'} ">(${info.year})</strong>
+                    </h1>
+                  </div>
+                  <div class="text-start mt-1">${genresHtml}</div>
+                  <div class="text-start mt-1" id="tags-container">
+                    <span class="mb-1 ${!info.runtime ? 'd-none' : 'd-inline-flex'}"><i class="ti ti-clock fs-2"></i>&nbsp;${info.runtime}</span>
+                    <span class="mb-1 ${!seasons.length ? 'd-none' : 'd-inline-flex'}"><i class="ti ti-stack-2 fs-2"></i>&nbsp;共${seasons.length}季</span>
+                    ${tmdbHtml}
+                    ${doubanHtml}
+                  </div>
+                  <hr class="d-block d-sm-none mt-3 mb-0">
+                  <div class="text-start mt-1">
+                    ${searchBtnHtml}
+                    ${favBtnHtml}
+                    ${watchBtnHtml}
+                  </div>
+                </div>
+                <div id="seasons-info-container" class="d-none d-md-block position-absolute rounded" style="top: 5rem; right: 0rem; z-index: 99;width: auto; min-width: 25rem;max-width: 50rem;">
+                </div>
+              </div>
+              <h1 class="d-flex">
+                <strong>简介</strong>
+              </h1>
+            </div>
+          </div>
+          <div id="overview-container" class="row">
+            <div class="col-lg-9">
+              <h2 class="text-muted ms-3 me-2">
+                <small>${info.overview ?? ''}</small>
+              </h2>
+            </div>
+          </div>
+          `;
+      }
+      
+      function renderTagsContainer(info, seasons) {
+
+        var doubanHtml = info.douban_id ? 
+            `<span class="mb-1 d-inline-flex"><i class="ti ti-brand-douban fs-2 text-green"></i> ${renderDoubanLink(info.douban_id)}</span>` : '';        
+        var tmdbHtml = info.tmdbid && info.link ?
+            `<span class="mb-1 d-inline-flex"><i class="ti ti-badge-tm fs-2 text-blue"></i><a class="text-reset" href="${info.link}" target="_blank">${info.tmdbid}</a></span>` : '';
+        
+        var innerHtml = `
+          <span class="mb-1 ${!info.runtime ? 'd-none' : 'd-inline-flex'}"><i class="ti ti-clock fs-2"></i>&nbsp;${info.runtime}</span>
+          <span class="mb-1 ${!seasons.length ? 'd-none' : 'd-inline-flex'}"><i class="ti ti-stack-2 fs-2"></i>&nbsp;共${seasons.length}季</span>
+          ${tmdbHtml}
+          ${doubanHtml}
+        `;
+        $('#tags-container').html(innerHtml);
+
+      }
+
+      function asyncRenderExtraDataCard(tmdbid, media_type, media_info) {
+
+        // 演职人员、季集信息
+        axios_post_do("media_extra_info", { "type": media_type, "mediaid": tmdbid },
+          (ret) => {
+            if (ret.code === 0) {
+
+              var extra_data = ret.data;
+              // 填充主数据
+              media_info.tmdbid = extra_data.tmdbid;
+              media_info.douban_id = extra_data.douban_id;
+              
+              // 背景轮播
+              if (extra_data.background && extra_data.background.length > 0) {
+                $('#background-carousel').remove();
+                const bgCarousel = document.createElement('custom-img');
+                bgCarousel.setAttribute('class', 'custom-media-info-height');
+                bgCarousel.setAttribute('div-style', 'display:inline;');
+                bgCarousel.setAttribute('img-placeholder', '0');
+                bgCarousel.setAttribute('img-error', '0');
+                bgCarousel.setAttribute('img-class', 'card-img rounded-0 background-carousel-img');
+                bgCarousel.img_src_list = extra_data.background;
+                $('#main-info-background').before(bgCarousel);
+              }
+
+              // 演职人员
+              if (extra_data.crews && extra_data.crews.length > 0) {
+
+                  const personSlide = document.createElement('custom-slide');
+                  personSlide.setAttribute('slide-title', '演职人员');
+                  personSlide.setAttribute('lazy', 'person-card');
+
+                  var slide_cards = [];                      
+                  extra_data.crews.map((card, index) => {
+                    const nc = document.createElement('person-card');
+                    nc.setAttribute('lazy', '1');
+                    nc.setAttribute('person-id', card.id);
+                    nc.setAttribute('person-image', card.image);
+                    nc.setAttribute('person-name', card.original_name);
+                    nc.setAttribute('person-role', card.role);
+                    nc.onclick = () => {
+                      navmenu('recommend?type='+media_type+'&subtype=person&personid='+card.id+'&title=参与作品&subtitle='+card.original_name);
+                    };
+
+                    slide_cards.push(nc);
+                  });
+
+                  personSlide.slide_card = slide_cards;                      
+                  $('#overview-container').after(personSlide);
+
+              }
+
+              var seasons_data = extra_data.seasons || [];
+              // 重绘标签
+              renderTagsContainer(media_info, seasons_data);
+              // 生成季集信息
+              renderSeasonPanel(media_info, seasons_data);
+            }
+          }
+        );
+      }
+
+      function asyncRenderSimCard(tmdbid, media_type, media_title) {
+
+        axios_post_do("get_recommend", { "type": media_type, "subtype": "sim", "tmdbid": tmdbid, "page": 1 }, (ret) => {
+
+          if (!ret.Items || ret.Items.length == 0) {
+            return;
+          }
+
+          const similarSlide = document.createElement('custom-slide');
+          similarSlide.setAttribute('slide-title', '类似');
+          similarSlide.setAttribute('lazy', 'normal-card');
+          similarSlide.setAttribute('slide-click',
+              `javascript:navmenu('recommend?type=${media_type}&subtype=sim&tmdbid=${tmdbid}&title=类似&subtitle=${media_title}')`
+              );
+
+          var slide_cards = [];                      
+          // 生成 normal-card 集合
+          ret.Items.map((card, index) => {
+            const nc = document.createElement('normal-card');
+            nc.setAttribute('lazy', '1');
+            nc.setAttribute('card-showsub', '1');
+            nc.setAttribute('card-tmdbid', card.id);
+            nc.setAttribute('card-mediatype', card.type);
+            nc.setAttribute('card-image', card.image);
+            nc.setAttribute('card-fav', card.fav);
+            nc.setAttribute('card-vote', card.vote);
+            nc.setAttribute('card-year', card.year);
+            nc.setAttribute('card-title', card.title);
+            nc.setAttribute('card-overview', card.overview);
+            nc.setAttribute('card-restype', card.media_type);
+            slide_cards.push(nc);
+          });
+          similarSlide.slide_card = slide_cards;
+          
+          $('#main-info-container').append(similarSlide);
+
+        });
+      }
+
+      function asyncRenderRecommendCard(tmdbid, media_type, media_title) {
+
+        axios_post_do("get_recommend", { "type": media_type, "subtype": "more", "tmdbid": tmdbid, "page": 1 }, (ret) => {
+
+          if (!ret.Items || ret.Items.length == 0) {
+            return;
+          }
+
+          const customSlide = document.createElement('custom-slide');                  
+          customSlide.setAttribute('slide-title', '推荐');
+          customSlide.setAttribute('lazy', 'normal-card');
+          customSlide.setAttribute('slide-click',
+              `javascript:navmenu('recommend?type=${media_type}&subtype=more&tmdbid=${tmdbid}&title=推荐&subtitle=${media_title}')`
+              );
+
+          var slide_cards = [];                      
+          // 生成 normal-card 集合
+          ret.Items.map((card, index) => {
+            const nc = document.createElement('normal-card');
+            nc.setAttribute('lazy', '1');
+            nc.setAttribute('card-showsub', '1');
+            nc.setAttribute('card-tmdbid', card.id);
+            nc.setAttribute('card-mediatype', card.type);
+            nc.setAttribute('card-image', card.image);
+            nc.setAttribute('card-fav', card.fav);
+            nc.setAttribute('card-vote', card.vote);
+            nc.setAttribute('card-year', card.year);
+            nc.setAttribute('card-title', card.title);
+            nc.setAttribute('card-overview', card.overview);
+            nc.setAttribute('card-restype', card.media_type);
+            slide_cards.push(nc);
+          });
+          
+          customSlide.slide_card = slide_cards;
+          $('#main-info-container').append(customSlide);
+
+        });
+
+      }
+
+      function renderSeasonPanel(info, seasons_data) {
+        if (seasons_data && seasons_data.length > 0) {
+          const similarSlide = document.createElement('accordion-seasons');
+          similarSlide.setAttribute('tmdbid', info.tmdbid);
+          similarSlide.setAttribute('title', info.title);
+          similarSlide.setAttribute('year', info.year);
+          similarSlide.seasons_data = seasons_data;
+          $('#seasons-info-container').append(similarSlide);
+        }
+      }
+
+      function renderDoubanLink(douban_id) {
+          if (!douban_id) return '';
+          return douban_id.split(',').map(id => 
+              `<a class="text-reset" href="https://movie.douban.com/subject/${id}" target="_blank">${id}</a> `
+          ).join('');
+      }
+
+      // --- 事件绑定辅助函数 ---
+      function bindDynamicEvents(media_info) {
+          
+          // 使用事件委托来绑定动态添加的元素
+          const $document = $(document);
+
+          // 搜索按钮
+          $document.on('click', '#search-btn, #search-btn-icon', function(e) {
+            e.stopPropagation();
+
+            var tmdbid = $('#main-info-container').data("tmdbid");
+            var pageData = $('#main-info-container').data("data");
+            var mediaType = $('#main-info-container').data("type");
+
+            media_search(tmdbid, pageData.title, mediaType);
+          });
+
+          // 观看按钮 (来自 _openItemUrl)
+          $document.on('click', '#watch-btn, #watch-btn-icon', function(e) {
+            e.stopPropagation();
+            window.open($(this).data('url'), '_blank');
+          });
+
+          // 订阅/收藏按钮 (来自 _loveClick)
+          $document.on('click', '#fav-btn, #fav-btn-icon', function(e) {
+            e.stopPropagation();
+
+            var pageData = $('#main-info-container').data("data");
+            var mediaType = $('#main-info-container').data("type");
+            var tmdbid = $('#main-info-container').data("tmdbid");
+
+            rss_love_click(pageData.title, pageData.year, mediaType, tmdbid, pageData.fav);
+          });
+
+      }
+
+  });
+</script>

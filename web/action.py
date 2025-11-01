@@ -220,6 +220,8 @@ class WebAction:
             "send_plugin_message": self.send_plugin_message,
             "send_custom_message": self.send_custom_message,
             "media_detail": self.media_detail,
+            "media_brief_info": self.media_brief_info,
+            "media_extra_info": self.media_extra_info,
             "media_similar": self.__media_similar,
             "media_recommendations": self.__media_recommendations,
             "media_person": self.__media_person,
@@ -4537,17 +4539,74 @@ class WebAction:
         """
         # TMDBID 或 DB:豆瓣ID
         tmdbid = data.get("tmdbid")
+        if not tmdbid:
+            return {"code": 1, "msg": "未指定媒体ID"}
+
         mtype = MediaType.MOVIE if data.get("type") in MovieTypes else MediaType.TV
+        media_info = WebUtils.get_mediainfo_from_id(mediaid=tmdbid, mtype=mtype)
+        # 检查TMDB信息
+        if not media_info or not media_info.tmdb_info:
+            return {
+                "code": 1,
+                "msg": "无法查询到TMDB信息"
+            }
+        
+        # 查询存在及订阅状态
+        fav, rssid, item_url = self.get_media_exists_info(mtype=mtype,
+                                                          title=media_info.title,
+                                                          year=media_info.year,
+                                                          mediaid=media_info.tmdb_id)
+        media_handler = Media()
+        # 演职人员信息整合
+        crews = self.__get_crews_from_media_info(media_info, media_handler, mtype)
+        # 解析季信息
+        seasons = self.__resolve_season_info(media_info, media_handler, mtype)
+
+        return {
+            "code": 0,
+            "data": {
+                "tmdbid": str(media_info.tmdb_id),
+                "douban_id": media_info.douban_id,
+                "background": media_handler.get_tmdb_backdrops(tmdbinfo=media_info.tmdb_info),
+                "image": media_info.get_poster_image(),
+                "vote": media_info.vote_average,
+                "year": media_info.year,
+                "title": media_info.title,
+                "genres": media_handler.get_tmdb_genres_names(tmdbinfo=media_info.tmdb_info),
+                "overview": media_info.overview,
+                "runtime": StringUtils.str_timehours(media_info.runtime),
+                "crews": crews,
+                # "actors": actors,
+                "link": media_info.get_detail_url(),
+                "fav": fav,
+                "item_url": item_url,
+                "rssid": rssid,
+                "seasons": seasons
+            }
+        }
+
+
+    def media_brief_info(self, data):
+        """
+        获取媒体概要信息
+        :return: 不查询演职人员、季信息
+        """
+        # TMDBID 或 DB:豆瓣ID
+        tmdbid = data.get("tmdbid")
         if not tmdbid:
             return {"code": 1, "msg": "未指定媒体ID"}
         
+        mtype = MediaType.MOVIE if data.get("type") in MovieTypes else MediaType.TV
+        # 从豆瓣接口查询
         if str(tmdbid).startswith("DB:"):
+
             doubanId = tmdbid[3:].split(',')[0]
             douban_info = self._douBan.get_douban_info_byId(doubanId, mtype)
+
             if douban_info:
-
-                title = self.__try_get_ch_title_from_douban(doubanId, douban_info)    
-
+                # 名称解析
+                title = self.__try_get_ch_title_from_douban(doubanId, douban_info)
+                # 根据媒体类型赋值
                 if mtype != MediaType.MOVIE:
                     overview = douban_info.get('intro')
                     genres = douban_info.get('genres')
@@ -4568,8 +4627,6 @@ class WebAction:
                     duration = info_attr.get('movie_duration')
                     duration_str = duration[0] if duration else ''
 
-                # 查询演职人员信息
-                crews, actors = self._douBan.get_media_celebrities(doubanId)
                 # 查询存在及订阅状态
                 fav, rssid, item_url = self.get_media_exists_info(mtype,title,year,tmdbid)
 
@@ -4586,78 +4643,125 @@ class WebAction:
                         "link": douban_info.get('alt'),
                         "genres": genres,
                         "runtime": duration_str,
-                        "background": self._douBan.get_media_photo(doubanId, mtype),
-                        "crews": crews,
-                        "actors": actors,
+                        # "background": self._douBan.get_media_photo(doubanId, mtype),
                         "fav": fav,
                         "item_url": item_url,
                         "rssid": rssid,
-                        "seasons": []
                     }
                 }
 
+        info = Media().get_tmdb_info(tmdbid=tmdbid, mtype=mtype, append_to_response="all")
+        if not info:
+            return { "code": 1, "msg": "无法查询到TMDB信息" }
         
-        media_info = WebUtils.get_mediainfo_from_id(mediaid=tmdbid, mtype=mtype)
-        # 检查TMDB信息
-        if not media_info or not media_info.tmdb_info:
-            return {
-                "code": 1,
-                "msg": "无法查询到TMDB信息"
-            }
+        title = WebUtils.get_tmdb_title(info)
+        media_info = MetaInfo(title)
+        media_info.set_tmdb_info(info)
+               
         # 查询存在及订阅状态
         fav, rssid, item_url = self.get_media_exists_info(mtype=mtype,
                                                           title=media_info.title,
                                                           year=media_info.year,
                                                           mediaid=media_info.tmdb_id)
         MediaHandler = Media()
-        MediaServerHandler = MediaServer()
-        # 查询季
-        seasons = MediaHandler.get_tmdb_tv_seasons(media_info.tmdb_info)
-        # 查询季是否存在
-        if seasons:
-            for season in seasons:
-                season.update({
-                    "state": True if MediaServerHandler.check_item_exists(
-                        mtype=mtype,
-                        title=media_info.title,
-                        year=media_info.year,
-                        tmdbid=media_info.tmdb_id,
-                        season=season.get("season_number")) else False
-                })
+        return {
+            "code": 0,
+            "data": {
+                "tmdbid": str(media_info.tmdb_id),
+                "vote": media_info.vote_average,
+                "year": media_info.year,
+                "title": media_info.title,
+                "overview": media_info.overview,
+                "background": MediaHandler.get_tmdb_backdrops(tmdbinfo=media_info.tmdb_info),
+                "genres": MediaHandler.get_tmdb_genres_names(tmdbinfo=media_info.tmdb_info),
+                "runtime": StringUtils.str_timehours(media_info.runtime),
+                "image": media_info.get_poster_image(),
+                "link": media_info.get_detail_url(),
+                "fav": fav,
+                "item_url": item_url,
+                "rssid": rssid,
+            }
+        }
 
-        crews = []
-        actors = []
-        if media_info.douban_id:
-            crews, actors = self._douBan.get_media_celebrities(media_info.douban_id.split(',')[0])
-        else:
-            crews = MediaHandler.get_tmdb_crews(tmdbinfo=media_info.tmdb_info, nums=6)
-            actors = MediaHandler.get_tmdb_cats(mtype=mtype, tmdbid=media_info.tmdb_id)
 
+    def media_extra_info(self, data):
+        """
+        获取媒体概要信息
+        :return: 查询演职人员、季信息
+        """
+        # TMDBID 或 DB:豆瓣ID
+        mediaid = data.get("mediaid")
+        if not mediaid:
+            return {"code": 1, "msg": "未指定媒体ID"}        
+
+        
+        mtype = MediaType.MOVIE if data.get("type") in MovieTypes else MediaType.TV
+        media_info = WebUtils.get_mediainfo_from_id(mediaid=mediaid, mtype=mtype)
+
+        media_handler = Media()
+        # 演职人员信息整合
+        crews = self.__get_crews_from_media_info(media_info, media_handler, mtype)
+        # 解析季信息
+        seasons = self.__resolve_season_info(media_info, media_handler, mtype)
+                
         return {
             "code": 0,
             "data": {
                 "tmdbid": str(media_info.tmdb_id),
                 "douban_id": media_info.douban_id,
-                "background": MediaHandler.get_tmdb_backdrops(tmdbinfo=media_info.tmdb_info),
-                "image": media_info.get_poster_image(),
-                "vote": media_info.vote_average,
-                "year": media_info.year,
-                "title": media_info.title,
-                "genres": MediaHandler.get_tmdb_genres_names(tmdbinfo=media_info.tmdb_info),
-                "overview": media_info.overview,
-                "runtime": StringUtils.str_timehours(media_info.runtime),
+                "background": media_handler.get_tmdb_backdrops(tmdbinfo=media_info.tmdb_info),
                 "crews": crews,
-                "actors": actors,
-                "link": media_info.get_detail_url(),
-                "fav": fav,
-                "item_url": item_url,
-                "rssid": rssid,
                 "seasons": seasons
             }
         }
 
-    def __try_get_ch_title_from_douban(self, douban_id, douban_info):
 
+    def __get_crews_from_media_info(self, media_info:MetaInfo, media_handler:Media, mtype:MediaType):
+        """
+        从媒体信息获取演职人员集合
+        :return: 演职人员集合
+        """
+        crews = []
+        actors = []
+        if media_info.douban_id:
+            crews, actors = self._douBan.get_media_celebrities(media_info.douban_id.split(',')[0])
+        else:
+            crews = media_handler.get_tmdb_crews(tmdbinfo=media_info.tmdb_info, nums=6)
+            actors = media_handler.get_tmdb_cats(mtype=mtype, tmdbid=media_info.tmdb_id)
+
+        # 合并到一个集合
+        crews.extend(actors)
+        return crews
+    
+    def __resolve_season_info(self, media_info:MetaInfo, media_handler:Media, mtype:MediaType):
+
+        if mtype == MediaType.MOVIE:
+            return []
+
+        # 解析季信息
+        seasons = media_handler.get_tmdb_tv_seasons(media_info.tmdb_info)
+        if not seasons:
+            return []
+        
+        # 检查季是否入库
+        media_server = MediaServer()
+
+        for season in seasons:
+            season.update({
+                "state": True if media_server.check_item_exists(
+                    mtype=mtype,
+                    title=media_info.title,
+                    year=media_info.year,
+                    tmdbid=media_info.tmdb_id,
+                    season=season.get("season_number")) else False
+            })
+        return seasons
+
+    def __try_get_ch_title_from_douban(self, douban_id, douban_info):
+        """
+        尝试从豆瓣接口返回中获取中文名称
+        :return: 名称
+        """
         title = douban_info.get('title')
         if StringUtils.is_all_chinese_and_mark(title):
             return title

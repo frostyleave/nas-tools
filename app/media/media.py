@@ -755,8 +755,15 @@ class Media:
         return meta_info
 
     # 从tmdb查询电影信息(名称准确时可调用)
-    def query_tmdb_info(self, name, mtype, year=None, begin_season=None,
-                        append_to_response=None, chinese=True, strict=None, cache=True):
+    def query_tmdb_info(self, 
+                        name, 
+                        mtype, 
+                        year=None, 
+                        begin_season=None,
+                        append_to_response=None, 
+                        chinese=True, 
+                        strict=None, 
+                        cache=True):
 
         # 计算缓存key
         media_key = self.___make_cache_key(mtype, name, year, begin_season)
@@ -2231,7 +2238,9 @@ class Media:
             return []
         try:
             # 豆瓣
-            if str(tmdbid).startswith("DB:"):            
+            if str(tmdbid).startswith("DB:"):
+                if page > 1:
+                    return []
                 doubanid = tmdbid[3:].split(',')[0]
                 movies = self.douban.movie_recommendations(doubanid)
                 return self.__dict_dbinfos(movies)
@@ -2263,7 +2272,9 @@ class Media:
             return []
         try:
             # 豆瓣
-            if str(tmdbid).startswith("DB:"):            
+            if str(tmdbid).startswith("DB:"):
+                if page > 1:
+                    return []
                 doubanid = tmdbid[3:].split(',')[0]
                 tvs = self.douban.tv_recommendations(doubanid)
                 return self.__dict_dbinfos(tvs)
