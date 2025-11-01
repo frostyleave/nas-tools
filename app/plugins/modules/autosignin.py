@@ -20,10 +20,11 @@ from app.plugins.modules._base import _IPluginModule
 from app.sites import PtSiteConf
 from app.sites.siteconf import SiteConf
 from app.sites.site_manager import SitesManager
-from app.utils import RequestUtils, ExceptionUtils, SiteUtils, SchedulerUtils
+from app.utils import RequestUtils, SiteUtils, SchedulerUtils
 from app.utils.types import EventType
 from config import Config
 
+import log
 from web.backend.wallpaper import get_bing_wallpaper
 
 
@@ -401,7 +402,7 @@ class AutoSignIn(_IPluginModule):
                 if site_schema.match(url):
                     return site_schema
             except Exception as e:
-                ExceptionUtils.exception_traceback(e)
+                log.exception(f"【自动签到】[{url}]签到插件加载失败: ", e)
         return None
 
     def signin_site(self, site_info:PtSiteConf) -> Tuple[bool, str]:
@@ -413,6 +414,7 @@ class AutoSignIn(_IPluginModule):
             try:
                 return site_module().signin(site_info)
             except Exception as e:
+                log.exception(f"【自动签到】[{site_info.name}]签到失败: ", e)
                 return False, f"[{site_info.name}]签到失败：{str(e)}"
         else:
             return self.__signin_base(site_info)
@@ -519,7 +521,7 @@ class AutoSignIn(_IPluginModule):
                 else:
                     return False, f"[{site_name}]签到失败: 状态码：{res.status_code}"
         except Exception as e:
-            ExceptionUtils.exception_traceback(e)
+            log.exception(f"【自动签到】[{site_name}]签到出错: ", e)
             return False, f"[{site_name}]签到出错: {str(e)}"
 
     def stop_service(self):
@@ -535,6 +537,7 @@ class AutoSignIn(_IPluginModule):
                     self._event.clear()
                 self._scheduler = None
         except Exception as e:
+            log.exception("【自动签到】退出插件异常: ", e)
             print(str(e))
 
     def get_state(self):

@@ -1,18 +1,20 @@
 import json
 import os.path
-import traceback
 import importlib
+
 from pathlib import Path
 from threading import Thread
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 import log
+
 from app.conf import SystemConfig
 from app.helper import SubmoduleHelper
 from app.plugins.event_manager import EventManager
-from app.utils import SystemUtils, PathUtils, ImageUtils, RequestUtils, ExceptionUtils
+from app.utils import SystemUtils, PathUtils, ImageUtils, RequestUtils
 from app.utils.commons import singleton
 from app.utils.types import SystemConfigKey
+
 from config import Config
 
 
@@ -75,7 +77,7 @@ class PluginManager:
                         names = handler.__qualname__.split(".")
                         self.run_plugin(names[0], names[1], event)
                     except Exception as e:
-                        log.error(f"事件处理出错：{str(e)} - {traceback.format_exc()}")
+                        log.exception(f"‼️ 事件处理出错: ", e)
 
     def start_service(self):
         """
@@ -126,7 +128,7 @@ class PluginManager:
             self._running_plugins[module_id] = plugin()
             # 初始化配置
             self.reload_plugin(module_id)
-            log.info(f"加载插件：{plugin}")
+            log.info(f"✔️  已加载插件：{plugin}")
 
     def run_plugin(self, pid, method, *args, **kwargs):
         """
@@ -139,7 +141,7 @@ class PluginManager:
         try:
             return getattr(self._running_plugins[pid], method)(*args, **kwargs)
         except Exception as err:
-            print(str(err), traceback.format_exc())
+            log.exception(f"‼️ 执行插件 {pid}-{method} 方法异常: ", err)
 
     def reload_plugin(self, pid):
         """
@@ -154,7 +156,7 @@ class PluginManager:
                 self._running_plugins[pid].init_config(self.get_plugin_config(pid))
                 log.debug(f"生效插件配置：{pid}")
             except Exception as err:
-                print(str(err))
+                log.exception(f"‼️ 初始化插件{pid}配置出错: ", err)
 
     def __stop_plugins(self):
         """
@@ -334,7 +336,7 @@ class PluginManager:
                         continue
                     open(image_name, "wb").write(result_images.content)
         except Exception as e:
-            ExceptionUtils.exception_traceback(e)
+            log.exception(f"‼️ 请求第三方插件仓库地址异常: ", e)
             return {}
 
         return result
@@ -412,15 +414,15 @@ class PluginManager:
                                     all_confs[pid] = conf
 
                         except Exception as e:
-                            ExceptionUtils.exception_traceback(e)
+                            log.exception(f"‼️[三方插件]处理线程结果异常: ", e)
                             continue
 
                 except Exception as e:
-                    ExceptionUtils.exception_traceback(e)
+                    log.exception(f"‼️[三方插件]获取第三方仓库列表异常: ", e)
                     continue
 
         except Exception as e:
-            ExceptionUtils.exception_traceback(e)
+            log.exception(f"‼️[三方插件]获取第三方数据源异常: ", e)
             return all_confs
 
         return all_confs
