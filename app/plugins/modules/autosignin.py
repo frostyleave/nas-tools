@@ -13,6 +13,7 @@ from urllib.parse import urljoin
 
 from app.helper import SubmoduleHelper, SiteHelper
 from app.helper.cloudflare_helper import under_challenge
+from app.helper.thread_helper import ThreadHelper
 from app.indexer.client.browser import PlaywrightHelper
 from app.message import Message
 from app.plugins import EventHandler
@@ -239,8 +240,7 @@ class AutoSignIn(_IPluginModule):
             # 运行一次
             if self._onlyonce:
                 self.info("签到服务启动，立即运行一次")
-                run_time = datetime.now(tz=pytz.timezone(Config().get_timezone())) + timedelta(seconds=5)
-                self._scheduler.add_job(self.sign_in, 'date', run_date=run_time)
+                ThreadHelper().start_thread(self.sign_in)
 
             if self._onlyonce or self._clean:
                 # 关闭一次性开关|清理缓存开关
@@ -261,7 +261,7 @@ class AutoSignIn(_IPluginModule):
 
             # 周期运行
             if self._cron:
-                self.info(f"定时签到服务启动，周期：{self._cron}")
+                self.info(f"定时签到服务注册，周期：{self._cron}")
                 SchedulerUtils.start_job(scheduler=self._scheduler,
                                          func=self.sign_in,
                                          func_desc="自动签到",
@@ -271,6 +271,8 @@ class AutoSignIn(_IPluginModule):
             if self._scheduler.get_jobs():
                 self._scheduler.print_jobs()
                 self._scheduler.start()
+                for job_info in self._scheduler.get_jobs():
+                    self.info(f"定时签到服务启动，下次执行时间：{job_info.next_run_time.strftime('%Y-%m-%d %H:%M:%S')}")
 
     @staticmethod
     def get_command():

@@ -66,6 +66,7 @@ ARG BRANCH=dev_fastapi
 
 # 设置环境变量 (这里不需要 REPO_URL，因为 clone 已在 builder 阶段完成)
 ENV DEBIAN_FRONTEND=noninteractive \
+    PYTHONUNBUFFERED=1 \
     S6_SERVICES_GRACETIME=30000 \
     S6_KILL_GRACETIME=60000 \
     S6_CMD_WAIT_FOR_SERVICES_MAXTIME=0 \
