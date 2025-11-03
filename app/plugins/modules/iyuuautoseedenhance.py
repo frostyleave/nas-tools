@@ -1,17 +1,15 @@
 import re
-import json
 import time
+
 from copy import deepcopy
-from datetime import datetime, timedelta
 from threading import Event
 
-import pytz
 from apscheduler.schedulers.background import BackgroundScheduler
-from apscheduler.triggers.cron import CronTrigger
 from jinja2 import Template
 from lxml import etree
 
 from app.downloader import Downloader
+from app.helper.thread_helper import ThreadHelper
 from app.media.meta import MetaInfo
 from app.plugins.modules._base import _IPluginModule
 from app.plugins.modules.iyuu.iyuu_helper import IyuuHelper
@@ -45,7 +43,6 @@ class IYUUAutoSeedEnhance(_IPluginModule):
 
     # 私有属性
     _rebind = False
-    _scheduler = None
     downloader = None
     iyuuhelper = None
     sites = None
@@ -89,6 +86,7 @@ class IYUUAutoSeedEnhance(_IPluginModule):
 
     _version = "2.0.0"
     _api_base = "https://api.iyuu.cn/%s"
+
 
     @staticmethod
     def get_fields():
@@ -238,19 +236,11 @@ class IYUUAutoSeedEnhance(_IPluginModule):
         # 启动定时任务 & 立即运行一次
         if self.get_state() or self._onlyonce:
             self.iyuuhelper = IyuuHelper(token=self._token)
-            self._scheduler = BackgroundScheduler(timezone=Config().get_timezone())
-            if self._cron:
-                try:
-                    self._scheduler.add_job(self.auto_seed,
-                                            CronTrigger.from_crontab(self._cron))
-                    self.info(f"辅种服务启动，周期：{self._cron}")
-                except Exception as err:
-                    self.error(f"运行周期格式不正确：{str(err)}")
+
+            # 立即运行一次
             if self._onlyonce:
                 self.info(f"辅种服务启动，立即运行一次")
-                self._scheduler.add_job(self.auto_seed, 'date',
-                                        run_date=datetime.now(tz=pytz.timezone(Config().get_timezone())) + timedelta(
-                                            seconds=3))
+                ThreadHelper().start_thread(self.auto_seed, ())
                 # 关闭一次性开关
                 self._onlyonce = False
             if self._clearcache:
@@ -261,12 +251,18 @@ class IYUUAutoSeedEnhance(_IPluginModule):
                 # 保存配置
                 self.__update_config()
 
-            if self._scheduler.get_jobs():
-                # 追加种子校验服务
-                self._scheduler.add_job(self.check_recheck, 'interval', minutes=3)
-                # 启动服务
-                self._scheduler.print_jobs()
-                self._scheduler.start()
+            # 定时任务
+            if self._cron:
+                self._scheduler = BackgroundScheduler(executors=self.DEFAULT_EXECUTORS_CONFIG, timezone=Config().get_timezone())
+                # 注册定时任务(不立即启动)
+                self._cron_job = self.add_cron_job(self._scheduler, self.auto_seed, self._cron, '辅种服务', False)
+
+                if self._scheduler.get_jobs():
+                    # 追加种子校验服务
+                    self._scheduler.add_job(self.check_recheck, 'interval', minutes=3)
+                    # 启动服务
+                    self._scheduler.print_jobs()
+                    self._scheduler.start()
 
     def get_state(self):
         return True if self._enable and self._cron and self._token and self._downloaders else False

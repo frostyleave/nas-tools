@@ -1,12 +1,12 @@
 import random
-from datetime import datetime, timedelta
+
+from datetime import datetime
 from threading import Event
 
-import pytz
 from apscheduler.schedulers.background import BackgroundScheduler
-from apscheduler.triggers.cron import CronTrigger
 from jinja2 import Template
 
+from app.helper.thread_helper import ThreadHelper
 import log
 from app.conf import ModuleConf
 from app.helper import RssHelper
@@ -46,7 +46,6 @@ class MovieRandom(_IPluginModule):
     mediaserver = None
     rsshelper = None
     subscribe = None
-    _scheduler = None
     _enable = False
     _onlyonce = False
     _cron = None
@@ -55,6 +54,7 @@ class MovieRandom(_IPluginModule):
     _vote = None
     _date = None
 
+        
     @staticmethod
     def get_fields():
         language_options = ModuleConf.DISCOVER_FILTER_CONF.get("tmdb_movie").get("with_original_language").get(
@@ -275,16 +275,10 @@ class MovieRandom(_IPluginModule):
 
         # 启动定时任务 & 立即运行一次
         if self.get_state() or self._onlyonce:
-            self._scheduler = BackgroundScheduler(timezone=Config().get_timezone())
-            if self._cron:
-                self.info(f"电影随机服务启动，周期：{self._cron}")
-                self._scheduler.add_job(self.__random,
-                                        CronTrigger.from_crontab(self._cron))
+
             if self._onlyonce:
                 self.info(f"电影随机服务启动，立即运行一次")
-                self._scheduler.add_job(self.__random, 'date',
-                                        run_date=datetime.now(tz=pytz.timezone(Config().get_timezone())) + timedelta(
-                                            seconds=3))
+                ThreadHelper().start_thread(self.__random, ())
                 # 关闭一次性开关
                 self._onlyonce = False
                 self.update_config({
@@ -296,10 +290,11 @@ class MovieRandom(_IPluginModule):
                     "vote": self._vote,
                     "date": self._date,
                 })
-            if self._scheduler.get_jobs():
-                # 启动服务
-                self._scheduler.print_jobs()
-                self._scheduler.start()
+                
+            if self._cron:
+                self._scheduler = BackgroundScheduler(timezone=Config().get_timezone())
+                self._cron_job = self.add_cron_job(self._scheduler, self.__random, self._cron, '电影随机服务')
+
 
     def __random(self):
         """

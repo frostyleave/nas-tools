@@ -282,7 +282,7 @@
           </div>
         </div>
         <div class="modal-footer">
-          <button onclick="quick_search_media()" id="quick_advanced_btn" class="btn btn-primary">开始搜索</button>
+          <button onclick="quickSearchMedia()" id="quick_advanced_btn" class="btn btn-primary">开始搜索</button>
         </div>
       </div>
     </div>
@@ -1379,16 +1379,18 @@
   <script type="module" src="../static/components/lit-index.js"></script>
 
   <script type="text/javascript">
-
+    
+    // 搜索源图标
     const search_sources_icon = [
         { id: 'tmdb',   icon: '<i class="ti ti-circle-letter-t fs-2 text-blue"></i>' },
         { id: 'douban', icon: '<i class="ti ti-circle-letter-d fs-2 text-green"></i>' },
         { id: 'person', icon: '<i class="ti ti-circle-letter-p fs-2 text-purple"></i>' }
     ];
 
-    let currentSourceIndex = 0; // 初始索引
+    // 搜索源索引
+    let currentSourceIndex = 0;
 
-    // 全局登录函数
+    // 请求登陆
     function performLogin() {
 
       const username = $('input[name="username"]').val();
@@ -1412,9 +1414,7 @@
           submitBtn.prop('disabled', false).text(originalText);
 
           if (response.status === 200) {
-
-            // 初始化主页面
-            initSysInfo();
+            // reload
             window.location.reload(true);
 
           } else {
@@ -1433,6 +1433,7 @@
         });
     }
 
+    // 登陆异常
     function showLoginError(message) {
       const errorDiv = $('#login_retmsg');
       errorDiv.text(message).show();
@@ -1454,39 +1455,38 @@
         performLogin();
       });
 
-      // 调用 /data/bing 接口获取壁纸数据
+      // 主题设置
+      var savedTheme = localStorage.getItem("theme") || "light";
+      applyTheme(savedTheme);
+
+      // 获取壁纸数据
       axios_post('/data/bing', {}, function (response) {
-
         if (response.code === 0 && response.data) {
-
           var data = response.data;
-
           // 设置背景图片
           if (data.imageCode) {
             $("body").css("background", `url(data:image/jpg;base64,${data.imageCode}) center / cover no-repeat fixed`);
           }
-
           // 显示图片信息
           $('#image-title').text(data.imgTitle);
           if (data.imgLink) {
             $('#image-link').attr('href', data.imgLink);
           }
           $('#image-desc-container').show();
-
           // 添加登录窗口样式
           $('#loginForm').addClass('login_window');
         }
       });
-      
-      initIndex();
 
+      // 获取当前用户信息
       axios_post("/data/userinfo", {}, function (response) {
-
+        // 已登陆, 开始初始化页面
         if (response.code === 0 && response.data) {
+          // 页面初始事件
+          initIndex();
           // 初始化系统信息和组件
           initSysInfo();
-        } 
-
+        }
       });
 
     });
@@ -1494,9 +1494,6 @@
 
     // 页面初始事件
     function initIndex() {
-
-      var savedTheme = localStorage.getItem("theme") || "light";
-      apply_theme(savedTheme);
 
       let topBtnShowTime = null;
 
@@ -1526,7 +1523,7 @@
       }
 
       let searchbar_blur = false;
-      function searchbar_blur_check() {
+      function searchBarBlurCheck() {
         const scroll_length = document.body.scrollTop || window.pageYOffset;
         // 滚动发生时改变模糊状态
         if (!searchbar_blur && scroll_length >= 5) {
@@ -1544,25 +1541,25 @@
       window.addEventListener('scroll', () => {
         calcToTopBtnVisitable();
         resetToTopBtnHideTime();
-        searchbar_blur_check();
+        searchBarBlurCheck();
       });
 
       // 监听窗口大小变化
       window.addEventListener('resize', () => {
         calcToTopBtnVisitable();
         resetToTopBtnHideTime();
-        update_tab_display();
+        updateTabDisplay();
       });
 
       // 初始化和窗口大小变化时更新
-      document.addEventListener("DOMContentLoaded", update_tab_display);
+      document.addEventListener("DOMContentLoaded", updateTabDisplay);
 
       // 浏览器关闭事件
       window.addEventListener("beforeunload", function () {
         // 关闭连接
-        stop_message();
-        stop_logging();
-        stop_progress();
+        stopMessage();
+        stopLogging();
+        stopProgress();
       });
 
       // tooltip点击事件处理，阻止冒泡到上级元素
@@ -1596,7 +1593,7 @@
       // 回车键搜索
       $('#quick-search-keywords').on('keypress', function (e) {
         if (e.which === 13) {
-          quick_search_media();
+          quickSearchMedia();
         }
       });
       
@@ -1615,14 +1612,14 @@
 
       // 日志框关闭时清理资源
       $('#modal-logging').on('hidden.bs.modal', function() {
-        stop_logging();
+        stopLogging();
       });
 
       // 回到顶部按钮状态
       calcToTopBtnVisitable();
 
       // Dropzone配置
-      init_dropzone();
+      initDropzone();
 
     }
 
@@ -1684,11 +1681,11 @@
 
           // 检查tmdb配置
           if (!sysInfo.tmdbFlag) {
-            show_init_alert_modal();
+            showInitAlertModal();
           }
 
           // WebSocket刷新消息中心
-          connect_message();
+          connectMessage();
 
           // 注册路由
           registerRouter(sysInfo.menus);

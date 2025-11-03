@@ -1,13 +1,11 @@
 import glob
 import os
 import time
-from datetime import datetime, timedelta
 
-import pytz
 from apscheduler.schedulers.background import BackgroundScheduler
-from apscheduler.triggers.cron import CronTrigger
 
 from threading import Event
+from app.helper.thread_helper import ThreadHelper
 from app.plugins.modules._base import _IPluginModule
 from app.utils import SystemUtils
 from config import Config
@@ -36,9 +34,6 @@ class AutoBackup(_IPluginModule):
     # 可使用的用户级别
     auth_level = 1
 
-    # 私有属性
-    _scheduler = None
-
     # 设置开关
     _enabled = False
     # 任务执行间隔
@@ -50,6 +45,7 @@ class AutoBackup(_IPluginModule):
     _notify = False
     # 退出事件
     _event = Event()
+
 
     @staticmethod
     def get_fields():
@@ -153,14 +149,10 @@ class AutoBackup(_IPluginModule):
 
         # 启动服务
         if self._enabled or self._onlyonce:
-            self._scheduler = BackgroundScheduler(timezone=Config().get_timezone())
-
             # 运行一次
             if self._onlyonce:
+                ThreadHelper().start_thread(self.__backup, ())
                 self.info(f"备份服务启动，立即运行一次")
-                self._scheduler.add_job(self.__backup, 'date',
-                                        run_date=datetime.now(tz=pytz.timezone(Config().get_timezone())) + timedelta(
-                                            seconds=3))
                 # 关闭一次性开关
                 self._onlyonce = False
                 self.update_config({
@@ -173,16 +165,9 @@ class AutoBackup(_IPluginModule):
                     "onlyonce": self._onlyonce,
                 })
 
-            # 周期运行
             if self._cron:
-                self.info(f"定时备份服务启动，周期：{self._cron}")
-                self._scheduler.add_job(self.__backup,
-                                        CronTrigger.from_crontab(self._cron))
-
-            # 启动任务
-            if self._scheduler.get_jobs():
-                self._scheduler.print_jobs()
-                self._scheduler.start()
+                self._scheduler = BackgroundScheduler(executors=self.DEFAULT_EXECUTORS_CONFIG, timezone=Config().get_timezone())
+                self._cron_job = self.add_cron_job(self._scheduler, self.__backup, self._cron, '定时备份')
 
     def __backup(self):
         """

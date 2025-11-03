@@ -1,5 +1,4 @@
 from apscheduler.schedulers.background import BackgroundScheduler
-from apscheduler.triggers.cron import CronTrigger
 
 from app.plugins.modules._base import _IPluginModule
 from app.sync import Sync
@@ -30,10 +29,8 @@ class SyncTimer(_IPluginModule):
 
     # 私有属性
     _sync = None
-    _scheduler = None
-    # 限速开关
     _cron = None
-
+        
     @staticmethod
     def get_fields():
         return [
@@ -63,21 +60,16 @@ class SyncTimer(_IPluginModule):
     def init_config(self, config=None):
         self._sync = Sync()
 
-        # 读取配置
-        if config:
-            self._cron = self.quartz_cron_compatible(config.get("cron"))
-
         # 停止现有任务
         self.stop_service()
 
-        # 启动定时任务
-        if self._cron:
-            self._scheduler = BackgroundScheduler(timezone=Config().get_timezone())
-            self._scheduler.add_job(func=self.__timersync,
-                                    trigger=CronTrigger.from_crontab(self._cron))
-            self._scheduler.print_jobs()
-            self._scheduler.start()
-            self.info(f"目录定时同步服务启动，周期：{self._cron}")
+        # 读取配置
+        if config:
+            self._cron = self.quartz_cron_compatible(config.get("cron"))
+            # 定时任务
+            if self._cron:
+                self._scheduler = BackgroundScheduler(executors=self.DEFAULT_EXECUTORS_CONFIG, timezone=Config().get_timezone())
+                self._cron_job = self.add_cron_job(self._scheduler, self.__timersync, self._cron, '目录定时同步服务')
 
     def get_state(self):
         return True if self._cron else False

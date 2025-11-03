@@ -60,7 +60,7 @@ function hide_wait_modal() {
 }
 
 // 停止日志服务
-function stop_logging() {
+function stopLogging() {
   if (LoggingES) {
     LoggingES.close();
     LoggingES = undefined;
@@ -69,7 +69,7 @@ function stop_logging() {
 
 // 连接日志服务
 function start_logging() {
-  stop_logging();
+  stopLogging();
   LoggingES = new EventSource(`stream-logging?source=${LoggingSource}`);
   LoggingES.onmessage = function (event) {
     render_logging(JSON.parse(event.data))
@@ -143,7 +143,7 @@ function render_logging(log_list) {
     }
   }
   if ($("#modal-logging").is(":hidden")) {
-    stop_logging();
+    stopLogging();
   }
 }
 
@@ -155,7 +155,7 @@ function pause_logging() {
     start_logging()
   } else {
     btn.text("开始");
-    stop_logging();
+    stopLogging();
   }
 }
 
@@ -192,7 +192,7 @@ function logger_select(source) {
 }
 
 // 停止消息服务
-function stop_message() {
+function stopMessage() {
   if (MessageWS) {
     MessageWS.close();
     MessageWS = undefined;
@@ -200,8 +200,8 @@ function stop_message() {
 }
 
 // 连接消息服务
-function connect_message() {
-  stop_message();
+function connectMessage() {
+  stopMessage();
   MessageWS = new ReconnectingWebSocket(WSProtocol + window.location.host + '/message');
   MessageWS.onmessage = function (event) {
     render_message(JSON.parse(event.data))
@@ -294,7 +294,7 @@ function restart() {
 }
 
 // 显示配置不完整提示
-function show_init_alert_modal() {
+function showInitAlertModal() {
   GlobalModalAbort = false;
   show_fail_modal("请先配置TMDB API Key，并修改登录密码！", function () {
     GlobalModalAbort = true;
@@ -332,7 +332,7 @@ function switch_cooperation_sites(obj) {
 }
 
 // 停止刷新进度条
-function stop_progress() {
+function stopProgress() {
   if (ProgressES) {
     ProgressES.close();
     ProgressES = undefined;
@@ -341,7 +341,7 @@ function stop_progress() {
 
 // 刷新进度条
 function start_progress(type) {
-  stop_progress();
+  stopProgress();
   ProgressES = new EventSource(`stream-progress?type=${type}`);
   ProgressES.onmessage = function (event) {
     render_progress(JSON.parse(event.data))
@@ -375,7 +375,7 @@ function show_refresh_progress(title, type) {
 // 关闭全局进度框
 function hide_refresh_process() {
   $("#modal-process").modal("hide");
-  stop_progress();
+  stopProgress();
 }
 
 // 显示确认提示框
@@ -1290,7 +1290,7 @@ function show_quick_search_modal() {
 }
 
 // 搜索
-function quick_search_media() {
+function quickSearchMedia() {
 
   var search_keyword = $('#quick-search-keywords').val();
   var types = [...$('input[name="search-type"]:checked')].map(el => el.value).join(',');
@@ -1787,7 +1787,7 @@ function send_web_message(obj) {
 }
 
 // 初始化DropZone
-function init_dropzone() {
+function initDropzone() {
   TorrentDropZone = new Dropzone("#torrent_files");
   TorrentDropZone.options.acceptedFiles = ".torrent";
 }
@@ -1887,12 +1887,12 @@ function theme_toggle(element) {
   const theme = $(element).data("id");
   const newTheme = theme ?? "light";
 
-  apply_theme(newTheme);
+  applyTheme(newTheme);
 
 }
 
 // 主题设置
-function apply_theme(targetTheme) {
+function applyTheme(targetTheme) {
 
   // 先移除旧的 class
   document.body.classList.remove("theme-dark", "theme-light");

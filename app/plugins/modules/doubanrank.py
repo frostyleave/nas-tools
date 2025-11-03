@@ -1,15 +1,14 @@
-import pytz
 import re
 import xml.dom.minidom
 
-from datetime import datetime, timedelta
+from datetime import datetime
 from threading import Event
 
 from apscheduler.schedulers.background import BackgroundScheduler
-from apscheduler.triggers.cron import CronTrigger
 from jinja2 import Template
 
 from app.helper import RssHelper
+from app.helper.thread_helper import ThreadHelper
 from app.media import Media
 from app.mediaserver import MediaServer
 from app.plugins.modules._base import _IPluginModule
@@ -64,9 +63,9 @@ class DoubanRank(_IPluginModule):
     _rss_addrs = []
     _ranks = []
     _vote = 0
-    _scheduler = None
     _useproxy = False
 
+        
     def init_config(self, config: dict = None):
         self.mediaserver = MediaServer()
         self.subscribe = Subscribe()
@@ -93,17 +92,10 @@ class DoubanRank(_IPluginModule):
 
         # 启动服务
         if self.get_state() or self._onlyonce:
-            timezone = Config().get_timezone()
-            self._scheduler = BackgroundScheduler(timezone=timezone)
-
-            if self._cron:
-                self.info(f"订阅服务启动，周期: {self._cron}")
-                self._scheduler.add_job(self.__refresh_rss, CronTrigger.from_crontab(self._cron))
 
             if self._onlyonce:
                 self.info("订阅服务启动，立即运行一次")
-                self._scheduler.add_job(self.__refresh_rss, 'date',
-                                        run_date=datetime.now(tz=pytz.timezone(timezone)) + timedelta(seconds=3))
+                ThreadHelper().start_thread(self.__refresh_rss, ())
                 # 关闭一次性开关
                 self._onlyonce = False
                 self.update_config({
@@ -115,10 +107,12 @@ class DoubanRank(_IPluginModule):
                     "useproxy": self._useproxy,
                     "rss_addrs": "\n".join(self._rss_addrs)
                 })
-            if self._scheduler.get_jobs():
-                # 启动服务
-                self._scheduler.print_jobs()
-                self._scheduler.start()
+
+            if self._cron:
+                timezone = Config().get_timezone()
+                self._scheduler = BackgroundScheduler(executors=self.DEFAULT_EXECUTORS_CONFIG, timezone=timezone)
+                self._cron_job = self.add_cron_job(self._scheduler, self.__refresh_rss, self._cron, '豆瓣订阅')
+
 
     def get_state(self):
         return self._enable and self._cron and (self._ranks or self._rss_addrs)

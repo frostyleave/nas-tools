@@ -1,12 +1,19 @@
 import json
 import os
-from abc import ABCMeta, abstractmethod
 
-import log
+from abc import ABCMeta, abstractmethod
+from typing import Optional
+
+from apscheduler.job import Job
+from apscheduler.triggers.cron import CronTrigger
+from apscheduler.schedulers.background import BackgroundScheduler
+
 from app.conf import SystemConfig
 from app.helper import DbHelper
 from app.message import Message
 from config import Config
+
+import log
 
 
 class _IPluginModule(metaclass=ABCMeta):
@@ -34,6 +41,12 @@ class _IPluginModule(metaclass=ABCMeta):
     - get_command() 获取插件命令，使用消息机制通过远程控制
 
     """
+    
+    # 默认的执行器配置
+    DEFAULT_EXECUTORS_CONFIG = {
+        'default': {'type': 'threadpool', 'max_workers': 3}
+    }
+
     # 插件名称
     module_name = ""
     # 插件描述
@@ -54,6 +67,10 @@ class _IPluginModule(metaclass=ABCMeta):
     module_order = 0
     # 可使用的用户级别
     auth_level = 1
+    # 任务管理器
+    _scheduler : Optional[BackgroundScheduler] = None
+    # 定时任务
+    _cron_job : Optional[Job] = None
 
     @staticmethod
     @abstractmethod
@@ -235,3 +252,24 @@ class _IPluginModule(metaclass=ABCMeta):
             return cron_expr
         # 移除最左边的“秒”部分
         return ' '.join(values[1:]).replace('?', '*')
+    
+    def add_cron_job(self, scheduler:BackgroundScheduler, func, cron:str, func_name:str, start:bool=True) -> Optional[Job]:
+        """
+        向任务管理器添加定时任务
+        :param scheduler: 任务管理器
+        :param func: 任务函数
+        :param func_name: 任务名称
+        :param cron: cron表达式
+        :param start: 是否立即启动
+        """
+        if cron:
+            try:
+                cron_job = scheduler.add_job(func, CronTrigger.from_crontab(cron))
+                if cron_job and start:
+                    scheduler.print_jobs()
+                    scheduler.start()
+                    self.info(f"{func_name}服务启动，周期: {cron}, 下次执行时间: {cron_job.next_run_time.strftime('%Y-%m-%d %H:%M:%S')}")
+                return cron_job
+            except Exception as err:
+                log.exception(f'【Plugin】定时任务{func_name}注册失败: ', err)
+        return None

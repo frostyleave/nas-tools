@@ -1,11 +1,11 @@
 import re
 import time
-import pytz
 
+from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from lxml import etree
 from threading import Event
-from typing import Tuple
+from typing import List, Tuple
 
 from apscheduler.schedulers.background import BackgroundScheduler
 from playwright.sync_api import Page
@@ -15,7 +15,6 @@ from app.helper import SubmoduleHelper, SiteHelper
 from app.helper.cloudflare_helper import under_challenge
 from app.helper.thread_helper import ThreadHelper
 from app.indexer.client.browser import PlaywrightHelper
-from app.message import Message
 from app.plugins import EventHandler
 from app.plugins.modules._base import _IPluginModule
 from app.sites import PtSiteConf
@@ -23,10 +22,50 @@ from app.sites.siteconf import SiteConf
 from app.sites.site_manager import SitesManager
 from app.utils import RequestUtils, SiteUtils, SchedulerUtils
 from app.utils.types import EventType
+
 from config import Config
+from web.backend.wallpaper import get_bing_wallpaper
 
 import log
-from web.backend.wallpaper import get_bing_wallpaper
+
+
+@dataclass
+class SignInResults:
+    """
+    一个数据类，用于封装签到循环的结果。
+    """
+    success_names: List[str] = field(default_factory=list)
+    failed_info: List[str] = field(default_factory=list)  # 格式: '站点名:失败信息'
+    retry_names: List[str] = field(default_factory=list)
+    retry_ids: List[str] = field(default_factory=list)
+    
+    # 跟踪所有最终签到成功的站点ID（包括本次成功和历史已成功）
+    all_signed_site_ids: List[str] = field(default_factory=list)
+
+    def __post_init__(self):
+        # 允许在创建实例时传入已签到的ID列表
+        # 这里我们创建一个副本，以防修改原始列表
+        self.all_signed_site_ids = list(self.all_signed_site_ids)
+
+    def add_success(self, site_name: str, site_id: str):
+        """记录一个成功的签到"""
+        self.success_names.append(site_name)
+        # 只有当它不在列表里时才添加（防止重复）
+        if site_id not in self.all_signed_site_ids:
+            self.all_signed_site_ids.append(site_id)
+
+    def add_fail(self, site_name: str, sign_msg: str):
+        """记录一个失败的签到"""
+        self.failed_info.append(f'{site_name}:{sign_msg}')
+    
+    def add_retry(self, site_name: str, site_id: str):
+        """记录一个需要重试的签到"""
+        self.retry_names.append(site_name)
+        self.retry_ids.append(site_id)
+        
+    def add_script_error(self, site_name: str):
+        """记录一个签到脚本执行时的意外错误"""
+        self.failed_info.append(f'{site_name}:签到时发生脚本错误')
 
 
 class AutoSignIn(_IPluginModule):
@@ -54,6 +93,8 @@ class AutoSignIn(_IPluginModule):
     # 私有属性
     siteconf = None
     _scheduler = None
+    # 定时任务
+    _cron_job = None
 
     # 设置开关
     _enabled = False
@@ -228,10 +269,7 @@ class AutoSignIn(_IPluginModule):
             # 加载模块
             self._site_schema = SubmoduleHelper.import_submodules('app.plugins.modules._autosignin',
                                                                   filter_func=lambda _, obj: hasattr(obj, 'match'))
-            self.debug(f"加载站点签到：{self._site_schema}")
-
-            # 定时服务
-            self._scheduler = BackgroundScheduler(timezone=Config().get_timezone())
+            self.debug(f"加载站点签到模块：{self._site_schema}")
 
             # 清理缓存即今日历史
             if self._clean:
@@ -239,8 +277,8 @@ class AutoSignIn(_IPluginModule):
 
             # 运行一次
             if self._onlyonce:
-                self.info("签到服务启动，立即运行一次")
-                ThreadHelper().start_thread(self.sign_in)
+                ThreadHelper().start_thread(self.sign_in, ())
+                self.info("签到任务启动，立即运行一次")
 
             if self._onlyonce or self._clean:
                 # 关闭一次性开关|清理缓存开关
@@ -261,18 +299,18 @@ class AutoSignIn(_IPluginModule):
 
             # 周期运行
             if self._cron:
-                self.info(f"定时签到服务注册，周期：{self._cron}")
-                SchedulerUtils.start_job(scheduler=self._scheduler,
-                                         func=self.sign_in,
-                                         func_desc="自动签到",
-                                         cron=str(self._cron))
-
-            # 启动任务
-            if self._scheduler.get_jobs():
-                self._scheduler.print_jobs()
-                self._scheduler.start()
-                for job_info in self._scheduler.get_jobs():
-                    self.info(f"定时签到服务启动，下次执行时间：{job_info.next_run_time.strftime('%Y-%m-%d %H:%M:%S')}")
+                self._scheduler = BackgroundScheduler(executors=self.DEFAULT_EXECUTORS_CONFIG, timezone=Config().get_timezone())
+                self.info(f"注册定时签到任务，执行周期：{self._cron}")
+                self._cron_job = SchedulerUtils.add_job(scheduler=self._scheduler,
+                                                        func=self.sign_in,
+                                                        func_desc="自动签到",
+                                                        cron=str(self._cron))
+                # 启动任务
+                if self._cron_job:
+                    self._scheduler.print_jobs()
+                    self._scheduler.start()
+                    self.info(f"定时签到服务启动，下次执行时间：{self._cron_job.next_run_time.strftime('%Y-%m-%d %H:%M:%S')}")
+                    
 
     @staticmethod
     def get_command():
@@ -292,111 +330,180 @@ class AutoSignIn(_IPluginModule):
         """
         自动签到
         """
-        # 日期
-        today = datetime.today()
-        yesterday = today - timedelta(days=1)
-        yesterday_str = yesterday.strftime('%Y-%m-%d')
-        # 删除昨天历史
-        self.delete_history(yesterday_str)
+        self.info("自动签到任务开始")
+        try:
+            # 1. 准备工作：获取日期并清理昨日历史
+            today_str, yesterday_str = self._setup_dates()
+            self.delete_history(yesterday_str)
 
-        # 查看今天有没有签到历史
-        today = today.strftime('%Y-%m-%d')
-        today_history = self.get_history(key=today)
-        # 已签到站点
-        already_sign_sites = []
-
-        # 今日没数据
-        if not today_history:
-            wait_sign_sites = self._config_sites
-            self.info(f"今日 {today} 未签到，开始签到已选站点")
-        else:
-            # 今天已签到站点
-            already_sign_sites = today_history['sign']
-            # 今天需要重签站点
-            wait_retry_sites = today_history['retry']
-            # 今日未签站点
-            no_sign_sites = [site_id for site_id in self._config_sites if site_id not in already_sign_sites]
-            # 待签到站点 = 需要重签+今日未签+特殊站点
-            wait_sign_sites = list(set(wait_retry_sites + no_sign_sites + self._special_sites))
-            if wait_sign_sites:
-                self.info(f"今日 {today} 已签到，开始重签重试站点、特殊站点、未签站点")
-            else:
-                self.info(f"今日 {today} 已签到，无重新签到站点，本次任务结束")
+            # 2. 决定任务：计算需要签到的站点
+            wait_site_ids, already_signed_ids, history_exists = self._determine_sites_to_sign(today_str)
+            
+            if not wait_site_ids:
+                self.info(f"今日 {today_str} 无需签到/重签站点，任务结束")
                 return
 
-        # 查询待签到站点信息
-        sign_sites_info = SitesManager().get_sites(siteids=wait_sign_sites)
-        if not sign_sites_info:
-            self.info("没有可签到站点，停止运行")
-            return
+            # 3. 获取数据：查询站点信息
+            sites_to_sign_info = self._get_sites_info(wait_site_ids)
+            if not sites_to_sign_info:
+                self.info("没有可签到站点信息，停止运行")
+                return
 
-        # 执行签到
-        self.info("开始执行签到任务")
-   
-        # 签到成功
-        success_msg = []
-        success_sites_name = []
-        # 失败｜错误
-        failed_msg = []
-        failed_sites_info = []
-        # 命中重试词的站点
-        retry_msg = []   
-        retry_sites_name = []
-        retry_sites_id = []
+            # 4. 执行签到：遍历并处理每个站点
+            self.info("开始执行签到任务")
+            # 传入已签到列表，以便追加本次成功的站点
+            results = self._execute_sign_in_loop(sites_to_sign_info, already_signed_ids)
+            
+            # 5. 保存状态：将本次结果更新到历史记录
+            self._save_sign_in_history(
+                today_str,
+                results.all_signed_site_ids,
+                results.retry_ids,
+                history_exists
+            )
+            
+            # 6. 发送通知
+            if self._notify:
+                self._send_notification(today_str, results)
 
-        # 遍历站点执行签到
-        for site_info in sign_sites_info:
+        except Exception as ex:
+            log.exception(f'【自动签到】任务执行失败: {ex}')
+        finally:
+            self.info("站点签到任务结束")
+
+    def _setup_dates(self) -> Tuple[str, str]:
+        """获取今天和昨天的日期字符串"""
+        today_dt = datetime.today()
+        yesterday_dt = today_dt - timedelta(days=1)
+        return today_dt.strftime('%Y-%m-%d'), yesterday_dt.strftime('%Y-%m-%d')
+
+    def _determine_sites_to_sign(self, today_str: str) -> Tuple[List[str], List[str], bool]:
+        """
+        根据历史记录，决定今天要签到的站点列表。
+        
+        返回:
+            (待签到站点ID列表, 已签到站点ID列表, 今日历史是否存在)
+        """
+        today_history = self.get_history(key=today_str)
+        
+        if not today_history:
+            self.info(f"今日 {today_str} 未签到，开始签到已选站点")
+            wait_sign_sites = self._config_sites
+            already_sign_sites = []
+            history_exists = False
+        else:
+            self.info(f"今日 {today_str} 已有签到记录，检查重试/未签站点")
+            # 使用 .get 增加代码健壮性，防止 'sign' 或 'retry' 键不存在
+            already_sign_sites = today_history.get('sign', [])
+            wait_retry_sites = today_history.get('retry', [])
+            
+            # 使用集合(set)可以更高效、更清晰地处理列表逻辑
+            config_set = set(self._config_sites)
+            already_set = set(already_sign_sites)
+            special_set = set(self._special_sites)
+            retry_set = set(wait_retry_sites)
+
+            # 未签站点 = 配置中 - 已签到
+            no_sign_sites = config_set - already_set
+            
+            # 待签站点 = 重试 + 未签 + 特殊（集合会自动去重）
+            wait_sign_set = retry_set | no_sign_sites | special_set
+            wait_sign_sites = list(wait_sign_set)
+            
+            if wait_sign_sites:
+                self.info(f"开始重签重试站点、特殊站点、未签站点")
+            
+            history_exists = True
+
+        return wait_sign_sites, already_sign_sites, history_exists
+
+    def _get_sites_info(self, site_ids: List[str]) -> List[PtSiteConf]:
+        """
+        查询待签到站点信息。
+        """
+        return SitesManager().get_sites(siteids=site_ids)
+
+    def _execute_sign_in_loop(self, sites_to_sign_info: List[PtSiteConf], initial_already_signed_ids: List[str]) -> SignInResults:
+        """
+        遍历站点执行签到，并收集结果。
+        
+        **关键改进**: 在循环内部添加 try...except，
+        防止单个站点的失败导致整个签到任务中断。
+        """
+        # 传入已签到列表，并创建一个副本，用于安全地追加
+        results = SignInResults(all_signed_site_ids=list(initial_already_signed_ids))
+
+        for site_info in sites_to_sign_info:
             site_name = site_info.name
             site_id = str(site_info.id)
-            # 执行签到
-            success, sign_msg = self.signin_site(site_info)
-            # 签到成功
-            if success:
-                success_msg.append(sign_msg)
-                success_sites_name.append(site_name)
-                already_sign_sites.append(site_id)
-                continue            
-            # 失败重试检查
-            if self._retry_keyword:
-                match = re.search(self._retry_keyword, sign_msg)
-                if match:
-                    self.info(f"站点 {site_name} 命中重试关键词 {self._retry_keyword}")
-                    retry_sites_id.append(site_id)
-                    retry_msg.append(sign_msg)
-                    retry_sites_name.append(site_name)
+            
+            try:
+                success, sign_msg = self.signin_site(site_info)
+                
+                if success:
+                    results.add_success(site_name, site_id)
                     continue
-            # 记录失败
-            failed_msg.append(sign_msg)
-            failed_sites_info.append(f'{site_name}:{sign_msg}')
 
-        self.info("站点签到任务完成！")        
+                # 失败重试检查
+                if self._retry_keyword and re.search(self._retry_keyword, sign_msg):
+                    self.info(f"站点 {site_name} 命中重试关键词 {self._retry_keyword}")
+                    results.add_retry(site_name, site_id)
+                    continue
+                    
+                # 记录失败
+                results.add_fail(site_name, sign_msg)
 
-        # 存入历史
-        history = { "sign": already_sign_sites, "retry": retry_sites_id }
-        if not today_history:
-            self.history(key=today, value=history)
+            except Exception as e:
+                # 捕获单个站点的执行错误，记录并继续
+                log.exception(f"签到站点 {site_name} (ID: {site_id}) 时发生意外错误: ", e)
+                results.add_script_error(site_name)
+        
+        return results
+
+    def _save_sign_in_history(self, today_str: str, all_signed_ids: List[str], retry_ids: List[str], history_exists: bool):
+        """
+        将签到结果存入历史。
+        """
+        history = {"sign": all_signed_ids, "retry": retry_ids}
+        
+        if not history_exists:
+            self.history(key=today_str, value=history)
         else:
-            self.update_history(key=today,value=history)
+            self.update_history(key=today_str, value=history)
+        self.info(f"今日 {today_str} 签到历史已更新")
 
-        # 发送通知
-        if self._notify:
-            # 签到详细信息 登录成功、签到成功、已签到、仿真签到成功、失败--命中重试
-            signin_message = success_msg + failed_msg
-            if len(retry_msg) > 0:
-                signin_message.append("——————命中重试—————")
-                signin_message += retry_msg
-            Message().send_site_signin_message(signin_message)
-
-            next_run_time = self._scheduler.get_jobs()[0].next_run_time.strftime('%Y-%m-%d %H:%M:%S')
-            img_url, img_title, img_link = get_bing_wallpaper(today)
-            # 签到汇总信息
-            self.send_message(title="自动签到任务完成",
-                              text=f"签到成功站点: {','.join(success_sites_name)} \n"
-                                   f"签到失败站点: {','.join(failed_sites_info)} \n"
-                                   f"命中重试站点: {','.join(retry_sites_name)} \n"
-                                   f"强制签到数量: {len(self._special_sites)} \n"
-                                   f"下次签到时间: {next_run_time}",
-                              image=img_url)
+    def _send_notification(self, today_str: str, results: SignInResults):
+        """
+        发送签到结果通知。
+        **关键改进**: 将通知逻辑包裹在 try...except 中，
+        防止通知失败（如网络问题）导致任务状态显示为失败。
+        """
+        try:
+            # 获取下次执行时间
+            next_run_time = '获取失败'
+            if self._cron_job:
+                next_run_time = self._cron_job.next_run_time.strftime('%Y-%m-%d %H:%M:%S')
+            
+            # 获取Bing壁纸
+            img_url, img_title, img_link = get_bing_wallpaper(today_str)
+            
+            # 准备通知文本
+            text_parts = [
+                f"签到成功站点: {','.join(results.success_names) or '无'}",
+                f"签到失败站点: {','.join(results.failed_info) or '无'}",
+                f"命中重试站点: {','.join(results.retry_names) or '无'}",
+                f"强制签到数量: {len(self._special_sites)}",
+                f"下次签到时间: {next_run_time}"
+            ]
+            
+            self.send_message(
+                title="自动签到任务完成",
+                text=" \n".join(text_parts),
+                image=img_url
+            )
+            self.info("签到通知已发送")
+        except Exception as e:
+            log.exception(f"发送签到通知失败: ", e)
 
     def __build_class(self, url):
         for site_schema in self._site_schema:
@@ -414,7 +521,7 @@ class AutoSignIn(_IPluginModule):
         site_module = self.__build_class(site_info.signurl)
         if site_module and hasattr(site_module, "signin"):
             try:
-                return site_module().signin(site_info)
+                return site_module().signin(site_info) or (False, "签到函数未返回明确结果")
             except Exception as e:
                 log.exception(f"【自动签到】[{site_info.name}]签到失败: ", e)
                 return False, f"[{site_info.name}]签到失败：{str(e)}"

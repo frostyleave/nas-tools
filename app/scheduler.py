@@ -56,7 +56,7 @@ class Scheduler:
             ptrefresh_date_cron = self._pt.get("ptrefresh_date_cron")
             if ptrefresh_date_cron:
                 tz = pytz.timezone(Config().get_timezone())
-                SchedulerUtils.start_job(
+                SchedulerUtils.add_job(
                     scheduler=self.SCHEDULER,
                     func=SitesDataStatisticsCenter().refresh_site_data_now,
                     func_desc="数据统计",

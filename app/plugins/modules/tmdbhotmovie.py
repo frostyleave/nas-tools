@@ -13,7 +13,8 @@ from app.media.tmdbv3api.objs.movie import Movie
 from app.mediaserver import MediaServer
 from app.plugins.modules._base import _IPluginModule
 from app.subscribe import Subscribe
-from app.utils.types import MediaType, SearchType, RssType
+from app.utils.types import MediaType, RssType
+
 from config import Config
 
 class TmdbHotMovieRank(_IPluginModule):
@@ -50,7 +51,6 @@ class TmdbHotMovieRank(_IPluginModule):
     _onlyonce = False
     _cron = ""
     _vote = 0
-    _scheduler = None
 
     def init_config(self, config: dict = None):
         self.mediaserver = MediaServer()

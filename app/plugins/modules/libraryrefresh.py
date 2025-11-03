@@ -35,7 +35,6 @@ class LibraryRefresh(_IPluginModule):
 
     # 私有属性
     _enable = False
-    _scheduler = None
     _refresh_delay = 0
 
     mediaserver = None

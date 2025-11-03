@@ -1,14 +1,13 @@
 import os.path
+
 from copy import deepcopy
-from datetime import datetime, timedelta
 from threading import Event
 
-import pytz
 from apscheduler.schedulers.background import BackgroundScheduler
-from apscheduler.triggers.cron import CronTrigger
 from bencode import bdecode, bencode
 
 from app.downloader import Downloader
+from app.helper.thread_helper import ThreadHelper
 from app.media.meta import MetaInfo
 from app.plugins.modules._base import _IPluginModule
 from app.utils import TorrentUtils
@@ -39,7 +38,6 @@ class TorrentTransfer(_IPluginModule):
     user_level = 2
 
     # 私有属性
-    _scheduler = None
     downloader = None
     sites = None
     # 限速开关
@@ -63,6 +61,7 @@ class TorrentTransfer(_IPluginModule):
     _is_recheck_running = False
     # 任务标签
     _torrent_tags = ["已整理", "转移做种"]
+
 
     @staticmethod
     def get_fields():
@@ -308,16 +307,13 @@ class TorrentTransfer(_IPluginModule):
             if self._fromdownloader == self._todownloader:
                 self.error("源下载器和目的下载器不能相同")
                 return
-            self._scheduler = BackgroundScheduler(timezone=Config().get_timezone())
             if self._cron:
-                self.info(f"移转做种服务启动，周期：{self._cron}")
-                self._scheduler.add_job(self.transfer,
-                                        CronTrigger.from_crontab(self._cron))
+                self._scheduler = BackgroundScheduler(executors=self.DEFAULT_EXECUTORS_CONFIG, timezone=Config().get_timezone())
+                self._cron_job = self.add_cron_job(self._scheduler, self.transfer, self._cron, '移转做种服务', False)
+
             if self._onlyonce:
                 self.info("移转做种服务启动，立即运行一次")
-                self._scheduler.add_job(self.transfer, 'date',
-                                        run_date=datetime.now(tz=pytz.timezone(Config().get_timezone())) + timedelta(
-                                            seconds=3))
+                ThreadHelper().start_thread(self.transfer, ())
                 # 关闭一次性开关
                 self._onlyonce = False
                 self.update_config({

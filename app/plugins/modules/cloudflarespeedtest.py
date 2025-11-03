@@ -1,16 +1,16 @@
 import os
-from datetime import datetime, timedelta
+
 from pathlib import Path
 from threading import Event
 
-import pytz
 from apscheduler.schedulers.background import BackgroundScheduler
-from apscheduler.triggers.cron import CronTrigger
 
+from app.helper.thread_helper import ThreadHelper
 from app.plugins import EventManager
 from app.plugins.modules._base import _IPluginModule
 from app.utils import SystemUtils, RequestUtils, IpUtils
 from app.utils.types import EventType
+
 from config import Config
 
 
@@ -40,7 +40,6 @@ class CloudflareSpeedTest(_IPluginModule):
     eventmanager = None
     _customhosts = False
     _cf_ip = None
-    _scheduler = None
     _cron = None
     _onlyonce = False
     _ipv4 = False
@@ -59,6 +58,7 @@ class CloudflareSpeedTest(_IPluginModule):
 
     # 退出事件
     _event = Event()
+
 
     @staticmethod
     def get_fields():
@@ -207,24 +207,17 @@ class CloudflareSpeedTest(_IPluginModule):
 
         # 启动定时任务 & 立即运行一次
         if self.get_state() or self._onlyonce:
-            self._scheduler = BackgroundScheduler(timezone=Config().get_timezone())
-            if self._cron:
-                self.info(f"Cloudflare CDN优选服务启动，周期：{self._cron}")
-                self._scheduler.add_job(self.__cloudflareSpeedTest, CronTrigger.from_crontab(self._cron))
 
             if self._onlyonce:
                 self.info(f"Cloudflare CDN优选服务启动，立即运行一次")
-                self._scheduler.add_job(self.__cloudflareSpeedTest, 'date',
-                                        run_date=datetime.now(tz=pytz.timezone(Config().get_timezone())) + timedelta(
-                                            seconds=3))
+                ThreadHelper().start_thread(self.__cloudflareSpeedTest), ()
                 # 关闭一次性开关
                 self._onlyonce = False
                 self.__update_config()
 
-            if self._cron or self._onlyonce:
-                # 启动服务
-                self._scheduler.print_jobs()
-                self._scheduler.start()
+            if self._cron:
+                self._scheduler = BackgroundScheduler(executors=self.DEFAULT_EXECUTORS_CONFIG, timezone=Config().get_timezone())
+                self._cron_job = self.add_cron_job(self._scheduler, self.__cloudflareSpeedTest, self._cron, 'Cloudflare CDN优选服务')
 
     def __cloudflareSpeedTest(self):
         """

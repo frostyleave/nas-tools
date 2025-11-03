@@ -38,7 +38,6 @@ class SpeedLimiter(_IPluginModule):
     # 私有属性
     _downloader = None
     _mediaserver = None
-    _scheduler = None
     # 任务执行间隔
     _interval = 300
 

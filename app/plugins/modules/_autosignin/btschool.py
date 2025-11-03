@@ -101,3 +101,5 @@ class BTSchool(_ISiteSigninHandler):
             if self._sign_text not in sign_res.text:
                 self.info("签到成功")
                 return True, f'【{site}】签到成功'
+            
+            return False, f'【{site}】签到执行失败'

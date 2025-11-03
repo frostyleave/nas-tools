@@ -1,10 +1,8 @@
-from datetime import datetime, timedelta
 from threading import Event
 
-import pytz
 from apscheduler.schedulers.background import BackgroundScheduler
-from apscheduler.triggers.cron import CronTrigger
 
+from app.helper.thread_helper import ThreadHelper
 from app.media import Scraper
 from app.plugins import EventHandler
 from app.plugins.modules._base import _IPluginModule
@@ -35,7 +33,6 @@ class LibraryScraper(_IPluginModule):
     user_level = 1
 
     # 私有属性
-    _scheduler = None
     _scraper = None
     # 限速开关
     _cron = None
@@ -46,6 +43,7 @@ class LibraryScraper(_IPluginModule):
     # 退出事件
     _event = Event()
 
+        
     @staticmethod
     def get_fields():
         movie_path = Config().get_config('media').get('movie_path') or []
@@ -156,16 +154,9 @@ class LibraryScraper(_IPluginModule):
 
         # 启动定时任务 & 立即运行一次
         if self.get_state() or self._onlyonce:
-            self._scheduler = BackgroundScheduler(timezone=Config().get_timezone())
-            if self._cron:
-                self.info(f"刮削服务启动，周期：{self._cron}")
-                self._scheduler.add_job(self.__libraryscraper,
-                                        CronTrigger.from_crontab(self._cron))
             if self._onlyonce:
                 self.info(f"刮削服务启动，立即运行一次")
-                self._scheduler.add_job(self.__libraryscraper, 'date',
-                                        run_date=datetime.now(tz=pytz.timezone(Config().get_timezone())) + timedelta(
-                                            seconds=3))
+                ThreadHelper().start_thread(self.__libraryscraper, ())
                 # 关闭一次性开关
                 self._onlyonce = False
                 self.update_config({
@@ -175,10 +166,11 @@ class LibraryScraper(_IPluginModule):
                     "scraper_path": self._scraper_path,
                     "exclude_path": self._exclude_path
                 })
-            if self._scheduler.get_jobs():
-                # 启动服务
-                self._scheduler.print_jobs()
-                self._scheduler.start()
+
+            if self._cron:
+                self._scheduler = BackgroundScheduler(executors=self.DEFAULT_EXECUTORS_CONFIG, timezone=Config().get_timezone())
+                self._cron_job = self.add_cron_job(self._scheduler, self.__libraryscraper,  self._cron, '刮削服务')
+
 
     def get_state(self):
         return True if self._cron else False

@@ -1,11 +1,10 @@
 from collections import defaultdict
-from datetime import datetime, timedelta
 from threading import Event
+from typing import Tuple
 
-import pytz
 from apscheduler.schedulers.background import BackgroundScheduler
-from apscheduler.triggers.cron import CronTrigger
 
+from app.helper.thread_helper import ThreadHelper
 from app.indexer.manager import IndexerManager
 from app.plugins.modules._base import _IPluginModule
 from app.sites import SitesManager
@@ -37,7 +36,6 @@ class CookieCloud(_IPluginModule):
 
     # 私有属性
     sites = None
-    _scheduler = None
     _index_helper = None
     # 设置开关
     _req = None
@@ -54,6 +52,7 @@ class CookieCloud(_IPluginModule):
     _event = Event()
     # 需要忽略的Cookie
     _ignore_cookies = ['CookieAutoDeleteBrowsingDataCleanup']
+
 
     @staticmethod
     def get_fields():
@@ -180,14 +179,10 @@ class CookieCloud(_IPluginModule):
 
         # 启动服务
         if self._enabled:
-            self._scheduler = BackgroundScheduler(timezone=Config().get_timezone())
-
             # 运行一次
             if self._onlyonce:
                 self.info(f"同步服务启动，立即运行一次")
-                self._scheduler.add_job(self.__cookie_sync, 'date',
-                                        run_date=datetime.now(tz=pytz.timezone(Config().get_timezone())) + timedelta(
-                                            seconds=3))
+                ThreadHelper().start_thread(self.__cookie_sync, ())
                 # 关闭一次性开关
                 self._onlyonce = False
                 self.update_config({
@@ -198,22 +193,15 @@ class CookieCloud(_IPluginModule):
                     "notify": self._notify,
                     "onlyonce": self._onlyonce,
                 })
-
             # 周期运行
             if self._cron:
-                self.info(f"同步服务启动，周期：{self._cron}")
-                self._scheduler.add_job(self.__cookie_sync,
-                                        CronTrigger.from_crontab(self._cron))
-
-            # 启动任务
-            if self._scheduler.get_jobs():
-                self._scheduler.print_jobs()
-                self._scheduler.start()
+                self._scheduler = BackgroundScheduler(executors=self.DEFAULT_EXECUTORS_CONFIG, timezone=Config().get_timezone())
+                self._cron_job = self.add_cron_job(self._scheduler, self.__cookie_sync, self._cron, 'CookieCloud同步')
 
     def get_state(self):
         return self._enabled and self._cron
 
-    def __download_data(self) -> [dict, str, bool]:
+    def __download_data(self) -> Tuple[dict, str, bool]:
         """
         从CookieCloud下载数据
         """

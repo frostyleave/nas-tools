@@ -354,12 +354,12 @@ function activeMenu(pageMenu) {
 
   $('#top-sub-navbar').show();
   // 更新元素菜单显隐
-  update_tab_display();
+  updateTabDisplay();
 
 }
 
 // 更新子菜单图标、名称显示
-function update_tab_display() {
+function updateTabDisplay() {
   const $navbar = $('#top-sub-navbar');
   if (!$navbar.is(':visible')) return;
 

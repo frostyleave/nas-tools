@@ -1,6 +1,11 @@
 import datetime
 import random
+
+from typing import Optional
+
+from apscheduler.job import Job
 from apscheduler.triggers.cron import CronTrigger
+from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.util import undefined
 
 import math
@@ -11,7 +16,7 @@ import log
 class SchedulerUtils:
 
     @staticmethod
-    def start_job(scheduler, func, func_desc, cron, next_run_time=undefined):
+    def add_job(scheduler:BackgroundScheduler, func, func_desc:str, cron:str, next_run_time=undefined) -> Optional[Job]:
         """
         解析任务的定时规则,启动定时服务
         :param func: 可调用的一个函数,在指定时间运行
@@ -23,73 +28,84 @@ class SchedulerUtils:
           3、配置固定时间，如08:00；
           4、配置间隔，单位小时，比如23.5；
         """
-        if cron:
-            cron = cron.strip()
-            if cron.count(" ") == 4:
-                try:
-                    scheduler.add_job(func=func,
-                                      trigger=CronTrigger.from_crontab(cron),
-                                      next_run_time=next_run_time)
-                except Exception as e:
-                    log.info("%s时间cron表达式配置格式错误：%s %s" % (func_desc, cron, str(e)))
-            elif '-' in cron:
-                try:
-                    time_range = cron.split("-")
-                    start_time_range_str = time_range[0]
-                    end_time_range_str = time_range[1]
-                    start_time_range_array = start_time_range_str.split(":")
-                    end_time_range_array = end_time_range_str.split(":")
-                    start_hour = int(start_time_range_array[0])
-                    start_minute = int(start_time_range_array[1])
-                    end_hour = int(end_time_range_array[0])
-                    end_minute = int(end_time_range_array[1])
+        if not cron:
+            log.warn(f"[计划任务]%s 缺少cron表达式 ", func_desc)
+            return None
 
-                    def start_random_job():
-                        task_time_count = random.randint(start_hour * 60 + start_minute, end_hour * 60 + end_minute)
-                        SchedulerUtils.start_range_job(scheduler=scheduler,
-                                                       func=func,
-                                                       func_desc=func_desc,
-                                                       hour=math.floor(task_time_count / 60),
-                                                       minute=task_time_count % 60,
-                                                       next_run_time=next_run_time)
+        cron = cron.strip()
+        if cron.count(" ") == 4:
+            try:
+                return scheduler.add_job(func=func,
+                                         trigger=CronTrigger.from_crontab(cron),
+                                         next_run_time=next_run_time)
+            except Exception as e:
+                log.exception(f'[计划任务]{func_desc}创建失败, 时间cron表达式配置格式错误', e)
+                return None
+            
+        if '-' in cron:
+            try:
+                time_range = cron.split("-")
+                start_time_range_str = time_range[0]
+                end_time_range_str = time_range[1]
+                start_time_range_array = start_time_range_str.split(":")
+                end_time_range_array = end_time_range_str.split(":")
+                start_hour = int(start_time_range_array[0])
+                start_minute = int(start_time_range_array[1])
+                end_hour = int(end_time_range_array[0])
+                end_minute = int(end_time_range_array[1])
 
-                    scheduler.add_job(start_random_job,
-                                      "cron",
-                                      hour=start_hour,
-                                      minute=start_minute,
-                                      next_run_time=next_run_time)
-                    log.info("%s服务时间范围随机模式启动，起始时间于%s:%s" % (
-                        func_desc, str(start_hour).rjust(2, '0'), str(start_minute).rjust(2, '0')))
-                except Exception as e:
-                    log.info("%s时间 时间范围随机模式 配置格式错误：%s %s" % (func_desc, cron, str(e)))
-            elif cron.find(':') != -1:
-                try:
-                    hour = int(cron.split(":")[0])
-                    minute = int(cron.split(":")[1])
-                except Exception as e:
-                    log.info("%s时间 配置格式错误：%s" % (func_desc, str(e)))
-                    hour = minute = 0
-                scheduler.add_job(func,
-                                  "cron",
-                                  hour=hour,
-                                  minute=minute,
-                                  next_run_time=next_run_time)
-                log.info("%s服务启动" % func_desc)
-            else:
-                try:
-                    hours = float(cron)
-                except Exception as e:
-                    log.info("%s时间 配置格式错误：%s" % (func_desc, str(e)))
-                    hours = 0
-                if hours:
-                    scheduler.add_job(func,
-                                      "interval",
-                                      hours=hours,
-                                      next_run_time=next_run_time)
-                    log.info("%s服务启动" % func_desc)
+                def start_random_job():
+                    task_time_count = random.randint(start_hour * 60 + start_minute, end_hour * 60 + end_minute)
+                    SchedulerUtils.start_range_job(scheduler=scheduler,
+                                                   func=func,
+                                                   func_desc=func_desc,
+                                                   hour=math.floor(task_time_count / 60),
+                                                   minute=task_time_count % 60,
+                                                   next_run_time=next_run_time)
+
+                random_job = scheduler.add_job(start_random_job,
+                                               "cron",
+                                               hour=start_hour,
+                                               minute=start_minute,
+                                               next_run_time=next_run_time)
+                log.info("%s服务时间范围随机模式启动，起始时间于%s:%s" % (
+                    func_desc, str(start_hour).rjust(2, '0'), str(start_minute).rjust(2, '0')))
+                return random_job
+            except Exception as e:
+                log.exception(f'[计划任务]{func_desc}创建失败, 时间范围随机模式 配置格式错误：', e)
+                return None
+            
+        if cron.find(':') != -1:
+            try:
+                hour = int(cron.split(":")[0])
+                minute = int(cron.split(":")[1])
+            except Exception as e:
+                log.exception(f'[计划任务]{func_desc}时间 配置格式错误, 调整为0时0分执行: ', e)
+                hour = minute = 0
+
+            time_job = scheduler.add_job(func,
+                                         "cron",
+                                         hour=hour,
+                                         minute=minute,
+                                         next_run_time=next_run_time)
+            log.info("%s服务启动" % func_desc)
+            return time_job
+        # 小时间隔任务
+        try:
+            hours = float(cron)
+        except Exception as e:
+            log.exception(f'[计划任务]{func_desc}时间 配置格式错误：', e)
+            return None
+        
+        interval_job = scheduler.add_job(func,
+                                         "interval",
+                                         hours=hours,
+                                         next_run_time=next_run_time)
+        log.info("%s服务启动" % func_desc)
+        return interval_job
 
     @staticmethod
-    def start_range_job(scheduler, func, func_desc, hour, minute, next_run_time=None):
+    def start_range_job(scheduler, func, func_desc, hour, minute, next_run_time=None) -> Optional[Job]:
         year = datetime.datetime.now().year
         month = datetime.datetime.now().month
         day = datetime.datetime.now().day
@@ -103,11 +119,11 @@ class SchedulerUtils:
             minute = -1
         if hour < 0 or minute < 0:
             log.warn("%s时间 配置格式错误：不启动任务" % func_desc)
-            return
-        scheduler.add_job(func,
-                          "date",
-                          run_date=datetime.datetime(year, month, day, hour, minute, second),
-                          next_run_time=next_run_time)
+            return None
+        return scheduler.add_job(func,
+                                 "date",
+                                 run_date=datetime.datetime(year, month, day, hour, minute, second),
+                                 next_run_time=next_run_time)
 
     @staticmethod
     def quartz_cron_compatible(cron_expr):

@@ -1,13 +1,14 @@
 import random
-from datetime import datetime, timedelta
+
+from datetime import datetime
 from threading import Event, Lock
 from time import sleep
 
-import pytz
 from apscheduler.schedulers.background import BackgroundScheduler
 from jinja2 import Template
 
 from app.downloader import Downloader
+from app.helper.thread_helper import ThreadHelper
 from app.media import DouBan
 from app.media.meta import MetaInfo
 from app.plugins import EventHandler
@@ -64,7 +65,7 @@ class DoubanSync(_IPluginModule):
     _days = 0
     _types = []
     _cookie = None
-    _scheduler = None
+
 
     def init_config(self, config: dict = None):
         self.douban = DouBan()
@@ -113,7 +114,7 @@ class DoubanSync(_IPluginModule):
 
         # 启动服务
         if self.get_state() or self._onlyonce:
-            self._scheduler = BackgroundScheduler(timezone=Config().get_timezone())
+            self._scheduler = BackgroundScheduler(executors=self.DEFAULT_EXECUTORS_CONFIG, timezone=Config().get_timezone())
             if self._interval:
                 self.info(f"豆瓣全量同步服务启动，周期：{self._interval} 小时，类型：{self._types}，用户：{self._users}")
                 self._scheduler.add_job(self.sync, 'interval',
@@ -122,12 +123,15 @@ class DoubanSync(_IPluginModule):
                 self.info(f"豆瓣近期动态同步服务启动，周期：{self._rss_interval} 秒，类型：{self._types}，用户：{self._users}")
                 self._scheduler.add_job(self.sync, 'interval',
                                         seconds=self._rss_interval)
+            
+            # 启动服务
+            if self._scheduler.get_jobs():
+                self._scheduler.print_jobs()
+                self._scheduler.start()
 
             if self._onlyonce:
                 self.info("豆瓣同步服务启动，立即运行一次")
-                self._scheduler.add_job(self.sync, 'date',
-                                        run_date=datetime.now(tz=pytz.timezone(Config().get_timezone())) + timedelta(
-                                            seconds=3))
+                ThreadHelper().start_thread(self.sync, ())
 
                 # 关闭一次性开关
                 self._onlyonce = False
@@ -144,10 +148,6 @@ class DoubanSync(_IPluginModule):
                     "days": self._days,
                     "types": self._types
                 })
-            if self._scheduler.get_jobs():
-                # 启动服务
-                self._scheduler.print_jobs()
-                self._scheduler.start()
 
     def get_state(self):
         return self._enable \
