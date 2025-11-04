@@ -543,8 +543,11 @@
                     <!-- 标题 -->
                     <div class="row">
                       <div class="col d-flex align-items-center justify-content-between">
-                        <h2 class="mb-0" style="cursor: pointer;" >
-                          <strong onclick='navmenu("media_detail?type=${item.type_key}&id=${item.tmdbid}")'>${title}</strong>
+                        <h2 class="mb-0">
+                          <strong>${title}</strong>
+                          <a class="cursor-pointer" href='javascript:navmenu("media_detail?type=${item.type_key}&id=${item.tmdbid}")'>
+                            <i class="ti ti-chevrons-right fs-2 text-blue"></i>
+                          </a>
                         </h2>
                         <div class="d-flex gap-2 d-md-none">
                           <a class="d-flex align-items-center" href="javascript:show_search_filter_modal('${item.key}')">

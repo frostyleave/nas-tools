@@ -92,9 +92,6 @@ class AutoSignIn(_IPluginModule):
 
     # 私有属性
     siteconf = None
-    _scheduler = None
-    # 定时任务
-    _cron_job = None
 
     # 设置开关
     _enabled = False
