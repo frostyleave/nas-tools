@@ -310,7 +310,6 @@ async def indexer(p: int = 1):
             "render": idx_site.render,
             "source_type": idx_site.source_type,
             "search_type": searchTypes.get(idx_site.search_type, '关键字'),
-            "downloader": idx_site.downloader,
             "public": idx_site.public,
             "proxy": idx_site.proxy,
             "en_expand": idx_site.en_expand,

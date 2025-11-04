@@ -1720,7 +1720,7 @@ class DbHelper:
         self._db.query(SITEBRUSHTASK).filter(SITEBRUSHTASK.ID == int(brush_id)).delete()
         self._db.query(SITEBRUSHTORRENTS).filter(SITEBRUSHTORRENTS.TASK_ID == brush_id).delete()
 
-    def get_brushtasks(self, brush_id=None):
+    def get_brushtasks(self, brush_id=None) -> List[SITEBRUSHTASK]:
         """
         查询刷流任务
         """

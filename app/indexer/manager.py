@@ -1,14 +1,18 @@
+import json
+
 from typing import List, Optional
 from pydantic import BaseModel
 
 import log
 
 from app.helper import DbHelper
-from app.helper.json_helper import JsonHelper
 from app.utils import SiteUtils
 from app.utils.commons import singleton
 
-class BaseIndexer(BaseModel):
+class IndexerBase(BaseModel):
+    """
+    站点索引基础配置
+    """
     id: str = ''
     name: str = ''
     domain: str = ''
@@ -21,11 +25,9 @@ class BaseIndexer(BaseModel):
     torrents: Optional[dict] = None
     source_type: List[str]
     search_type: str = ''
-    batch:  Optional[dict] = None
     parser: Optional[str] = None
     browse: Optional[dict] = None
     category: Optional[dict] = None
-    downloader: Optional[int] = None
 
 
 class IndexerInfo(BaseModel):
@@ -35,7 +37,6 @@ class IndexerInfo(BaseModel):
     domain: Optional[str] = None
     search: dict
     torrents: dict
-    batch:  Optional[dict] = None
     render: bool = False
     parser: Optional[str] = None
     browse: Optional[dict] = None
@@ -45,7 +46,6 @@ class IndexerInfo(BaseModel):
     public: bool = True
     en_expand: bool = False
     proxy: bool = False
-    downloader: Optional[int] = None
     builtin: bool = True
     siteid: Optional[int] = None
     cookie: Optional[str] = None
@@ -71,7 +71,7 @@ class IndexerManager:
     站点索引配置管理器
     """
 
-    _indexers : List[BaseIndexer] = []
+    _indexers : List[IndexerBase] = []
 
     def __init__(self):
         self.init_config()
@@ -85,39 +85,42 @@ class IndexerManager:
             db_indexers = DbHelper().get_indexers()
 
             for db_item in db_indexers:
-                indexer_data = {
-                    'id': db_item.ID,
-                    'name': db_item.NAME,
-                    'domain': db_item.DOMAIN,
-                    'search': JsonHelper.de_json(db_item.SEARCH) if db_item.SEARCH else {},
-                    'parser': db_item.PARSER if db_item.PARSER else '',
-                    'render': db_item.RENDER,
-                    'browse': JsonHelper.de_json(db_item.BROWSE) if db_item.BROWSE else {},
-                    'torrents': JsonHelper.de_json(db_item.TORRENTS) if db_item.TORRENTS else {},
-                    'category': JsonHelper.de_json(db_item.CATEGORY) if db_item.CATEGORY else {},
-                    'source_type': db_item.SOURCE_TYPE.split(',') if db_item.SOURCE_TYPE else [],
-                    'search_type': db_item.SEARCH_TYPE,
-                    'downloader': db_item.DOWNLOADER,
-                    'public': db_item.PUBLIC,
-                    'proxy': db_item.PROXY,
-                    'en_expand': db_item.EN_EXPAND
-                }
-                indexer = BaseIndexer(**indexer_data)
-                self._indexers.append(indexer)
+                try:
+                    indexer_data = {
+                        'id': db_item.ID,
+                        'name': db_item.NAME,
+                        'domain': db_item.DOMAIN,
+                        'search': json.loads(db_item.SEARCH) if db_item.SEARCH else {},
+                        'parser': db_item.PARSER if db_item.PARSER else '',
+                        'render': db_item.RENDER,
+                        'browse': json.loads(db_item.BROWSE) if db_item.BROWSE else {},
+                        'torrents': json.loads(db_item.TORRENTS) if db_item.TORRENTS else {},
+                        'category': json.loads(db_item.CATEGORY) if db_item.CATEGORY else {},
+                        'source_type': db_item.SOURCE_TYPE.split(',') if db_item.SOURCE_TYPE else [],
+                        'search_type': db_item.SEARCH_TYPE,
+                        'downloader': db_item.DOWNLOADER,
+                        'public': db_item.PUBLIC,
+                        'proxy': db_item.PROXY,
+                        'en_expand': db_item.EN_EXPAND or False
+                    }
+                    indexer = IndexerBase(**indexer_data)
+                    self._indexers.append(indexer)
+                except Exception as e:
+                    log.exception(f"【索引器】站点{db_item.NAME} 索引配置异常：", e)
         except Exception as err:
             log.exception("【索引器】初始化出错：", err)
 
-    def get_all_indexer_Base(self) -> list[BaseIndexer]:
+    def get_all_indexer_base(self) -> list[IndexerBase]:
         """
         获取所有索引器基础配置
         """
         return self._indexers
 
-    def get_indexer_base(self, url, public=False) -> Optional[BaseIndexer]:
+    def get_indexer_base(self, url, public=False) -> Optional[IndexerBase]:
         """
-        根据url获取对应的索引器
+        根据url获取对应的站点索引基础配置
         :param url: 详情页面地址
-        :param public: 是否为公开索引站点
+        :param public: 是否为公开站点
         """
         for indexer in self._indexers:
             if not public and indexer.public:
@@ -141,7 +144,7 @@ class IndexerManager:
                     render=None,
                     pri=None) -> Optional[IndexerInfo]:
         """
-        根据url获取对应的索引器配置
+        根据url获取并生成相应的索引器配置
         """
         if not url:
             return None
@@ -167,7 +170,7 @@ class IndexerManager:
         return None
 
     def prepare_datas(self,
-                      conf_data : BaseIndexer =None,
+                      conf_data : IndexerBase =None,
                       name=None,
                       public=True,
                       proxy=None,
@@ -194,8 +197,6 @@ class IndexerManager:
             # 搜索
             result["search"] = conf_data.search
 
-            # 批量搜索，如果为空对象则表示不支持批量搜索
-            result["batch"] = conf_data.search.get("batch", {}) if builtin else {}
             # 是否启用渲染
             result["render"] = render if render is not None else (conf_data.render or False)
             # 解析器
@@ -221,8 +222,6 @@ class IndexerManager:
             result["public"] = public if public is not None else (conf_data.public or False)
             # 是否使用英文名进行扩展搜索
             result["en_expand"] = conf_data.en_expand or False
-            # 指定下载器
-            result["downloader"] = conf_data.downloader
 
             # 是否内置站点
             result["builtin"] = builtin

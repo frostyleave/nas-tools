@@ -74,7 +74,7 @@ class BuiltinIndexer(_IIndexClient):
                     indexer_conf.name = pt_site.name
                     ret_indexers.append(indexer_conf)
         # 公开站点
-        for base_item in IndexerManager().get_all_indexer_Base():
+        for base_item in IndexerManager().get_all_indexer_base():
             if not base_item.public:
                 continue
             if indexer_id and base_item.id == indexer_id:

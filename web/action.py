@@ -5098,7 +5098,6 @@ class WebAction:
                 "category": json.dumps(site.category) if site.category else '',
                 "source_type": site.source_type,
                 "search_type": site.search_type,
-                "downloader": site.downloader,
                 "public": site.public,
                 "proxy": site.proxy,
                 "en_expand": site.en_expand
