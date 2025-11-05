@@ -2,8 +2,6 @@ import glob
 import os
 import time
 
-from apscheduler.schedulers.background import BackgroundScheduler
-
 from threading import Event
 from app.helper.thread_helper import ThreadHelper
 from app.plugins.modules._base import _IPluginModule
@@ -166,7 +164,7 @@ class AutoBackup(_IPluginModule):
                 })
 
             if self._cron:
-                self._scheduler = BackgroundScheduler(executors=self.DEFAULT_EXECUTORS_CONFIG, timezone=Config().get_timezone())
+                self._scheduler = self.create_scheduler()
                 self._cron_job = self.add_cron_job(self._scheduler, self.__backup, self._cron, '定时备份')
 
     def __backup(self):

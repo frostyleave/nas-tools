@@ -42,10 +42,8 @@ class _IPluginModule(metaclass=ABCMeta):
 
     """
     
-    # 默认的执行器配置
-    DEFAULT_EXECUTORS_CONFIG = {
-        'default': {'type': 'threadpool', 'max_workers': 3}
-    }
+    # 执行器最大线程
+    MAX_EXECUTORS_WORKERS = 3
 
     # 插件名称
     module_name = ""
@@ -252,6 +250,12 @@ class _IPluginModule(metaclass=ABCMeta):
             return cron_expr
         # 移除最左边的“秒”部分
         return ' '.join(values[1:]).replace('?', '*')
+    
+    def create_scheduler(self) -> BackgroundScheduler:
+        """
+        创建任务管理器
+        """
+        return BackgroundScheduler(executors={ 'default': {'type': 'threadpool', 'max_workers': self.MAX_EXECUTORS_WORKERS} }, timezone=Config().get_timezone())
     
     def add_cron_job(self, scheduler:BackgroundScheduler, func, cron:str, func_name:str, start:bool=True) -> Optional[Job]:
         """

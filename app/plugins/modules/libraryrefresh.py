@@ -4,10 +4,6 @@ from app.plugins.modules._base import _IPluginModule
 from app.utils.types import EventType
 from datetime import datetime, timedelta
 
-from apscheduler.schedulers.background import BackgroundScheduler
-
-from config import Config
-
 import log
 
 
@@ -60,7 +56,7 @@ class LibraryRefresh(_IPluginModule):
 
         if self._refresh_delay > 0:
             self.info(f"媒体库延迟刷新服务启动，延迟 {self._refresh_delay} 秒刷新媒体库")
-            self._scheduler = BackgroundScheduler(timezone=Config().get_timezone())
+            self._scheduler = self.create_scheduler()
         else:
             self.info("媒体库实时刷新服务启动")
 

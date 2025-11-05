@@ -1,9 +1,5 @@
-from apscheduler.schedulers.background import BackgroundScheduler
-
 from app.plugins.modules._base import _IPluginModule
 from app.sync import Sync
-from config import Config
-
 
 class SyncTimer(_IPluginModule):
     # 插件名称
@@ -68,7 +64,7 @@ class SyncTimer(_IPluginModule):
             self._cron = self.quartz_cron_compatible(config.get("cron"))
             # 定时任务
             if self._cron:
-                self._scheduler = BackgroundScheduler(executors=self.DEFAULT_EXECUTORS_CONFIG, timezone=Config().get_timezone())
+                self._scheduler = self.create_scheduler()
                 self._cron_job = self.add_cron_job(self._scheduler, self.__timersync, self._cron, '目录定时同步服务')
 
     def get_state(self):

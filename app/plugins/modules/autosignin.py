@@ -7,7 +7,6 @@ from lxml import etree
 from threading import Event
 from typing import List, Tuple
 
-from apscheduler.schedulers.background import BackgroundScheduler
 from playwright.sync_api import Page
 from urllib.parse import urljoin
 
@@ -296,7 +295,7 @@ class AutoSignIn(_IPluginModule):
 
             # 周期运行
             if self._cron:
-                self._scheduler = BackgroundScheduler(executors=self.DEFAULT_EXECUTORS_CONFIG, timezone=Config().get_timezone())
+                self._scheduler = self.create_scheduler()
                 self.info(f"注册定时签到任务，执行周期：{self._cron}")
                 self._cron_job = SchedulerUtils.add_job(scheduler=self._scheduler,
                                                         func=self.sign_in,

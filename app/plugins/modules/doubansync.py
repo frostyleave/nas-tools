@@ -4,7 +4,6 @@ from datetime import datetime
 from threading import Event, Lock
 from time import sleep
 
-from apscheduler.schedulers.background import BackgroundScheduler
 from jinja2 import Template
 
 from app.downloader import Downloader
@@ -114,7 +113,7 @@ class DoubanSync(_IPluginModule):
 
         # 启动服务
         if self.get_state() or self._onlyonce:
-            self._scheduler = BackgroundScheduler(executors=self.DEFAULT_EXECUTORS_CONFIG, timezone=Config().get_timezone())
+            self._scheduler = self.create_scheduler()
             if self._interval:
                 self.info(f"豆瓣全量同步服务启动，周期：{self._interval} 小时，类型：{self._types}，用户：{self._users}")
                 self._scheduler.add_job(self.sync, 'interval',

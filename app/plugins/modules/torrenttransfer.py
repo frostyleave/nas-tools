@@ -3,7 +3,6 @@ import os.path
 from copy import deepcopy
 from threading import Event
 
-from apscheduler.schedulers.background import BackgroundScheduler
 from bencode import bdecode, bencode
 
 from app.downloader import Downloader
@@ -308,7 +307,7 @@ class TorrentTransfer(_IPluginModule):
                 self.error("源下载器和目的下载器不能相同")
                 return
             if self._cron:
-                self._scheduler = BackgroundScheduler(executors=self.DEFAULT_EXECUTORS_CONFIG, timezone=Config().get_timezone())
+                self._scheduler = self.create_scheduler()
                 self._cron_job = self.add_cron_job(self._scheduler, self.transfer, self._cron, '移转做种服务', False)
 
             if self._onlyonce:

@@ -1,7 +1,5 @@
 import time
 
-from apscheduler.schedulers.background import BackgroundScheduler
-
 from app.downloader import Downloader
 from app.helper.security_helper import SecurityHelper
 from app.mediaserver import MediaServer
@@ -277,7 +275,7 @@ class SpeedLimiter(_IPluginModule):
 
         # 启动限速任务
         if self._limit_enabled:
-            self._scheduler = BackgroundScheduler(timezone=Config().get_timezone())
+            self._scheduler = self.create_scheduler()
             self._scheduler.add_job(func=self.__check_playing_sessions,
                                     args=[self._mediaserver.get_type(), True],
                                     trigger='interval',

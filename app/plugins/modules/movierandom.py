@@ -3,7 +3,6 @@ import random
 from datetime import datetime
 from threading import Event
 
-from apscheduler.schedulers.background import BackgroundScheduler
 from jinja2 import Template
 
 from app.helper.thread_helper import ThreadHelper
@@ -292,7 +291,7 @@ class MovieRandom(_IPluginModule):
                 })
                 
             if self._cron:
-                self._scheduler = BackgroundScheduler(timezone=Config().get_timezone())
+                self._scheduler = self.create_scheduler()
                 self._cron_job = self.add_cron_job(self._scheduler, self.__random, self._cron, '电影随机服务')
 
 

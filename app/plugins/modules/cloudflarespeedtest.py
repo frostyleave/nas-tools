@@ -3,8 +3,6 @@ import os
 from pathlib import Path
 from threading import Event
 
-from apscheduler.schedulers.background import BackgroundScheduler
-
 from app.helper.thread_helper import ThreadHelper
 from app.plugins import EventManager
 from app.plugins.modules._base import _IPluginModule
@@ -216,7 +214,7 @@ class CloudflareSpeedTest(_IPluginModule):
                 self.__update_config()
 
             if self._cron:
-                self._scheduler = BackgroundScheduler(executors=self.DEFAULT_EXECUTORS_CONFIG, timezone=Config().get_timezone())
+                self._scheduler = self.create_scheduler()
                 self._cron_job = self.add_cron_job(self._scheduler, self.__cloudflareSpeedTest, self._cron, 'Cloudflare CDN优选服务')
 
     def __cloudflareSpeedTest(self):

@@ -4,7 +4,6 @@ import time
 from copy import deepcopy
 from threading import Event
 
-from apscheduler.schedulers.background import BackgroundScheduler
 from jinja2 import Template
 from lxml import etree
 
@@ -253,7 +252,7 @@ class IYUUAutoSeedEnhance(_IPluginModule):
 
             # 定时任务
             if self._cron:
-                self._scheduler = BackgroundScheduler(executors=self.DEFAULT_EXECUTORS_CONFIG, timezone=Config().get_timezone())
+                self._scheduler = self.create_scheduler()
                 # 注册定时任务(不立即启动)
                 self._cron_job = self.add_cron_job(self._scheduler, self.auto_seed, self._cron, '辅种服务', False)
 

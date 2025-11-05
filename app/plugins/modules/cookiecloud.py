@@ -2,8 +2,6 @@ from collections import defaultdict
 from threading import Event
 from typing import Tuple
 
-from apscheduler.schedulers.background import BackgroundScheduler
-
 from app.helper.thread_helper import ThreadHelper
 from app.indexer.manager import IndexerManager
 from app.plugins.modules._base import _IPluginModule
@@ -195,7 +193,7 @@ class CookieCloud(_IPluginModule):
                 })
             # 周期运行
             if self._cron:
-                self._scheduler = BackgroundScheduler(executors=self.DEFAULT_EXECUTORS_CONFIG, timezone=Config().get_timezone())
+                self._scheduler = self.create_scheduler()
                 self._cron_job = self.add_cron_job(self._scheduler, self.__cookie_sync, self._cron, 'CookieCloud同步')
 
     def get_state(self):
