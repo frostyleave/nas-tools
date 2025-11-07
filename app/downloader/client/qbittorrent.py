@@ -1,7 +1,12 @@
+import hashlib
 import os
 import re
 import time
 from datetime import datetime
+from typing import Optional, Tuple, Union
+
+import bencodepy
+
 
 import log
 import qbittorrentapi
@@ -272,17 +277,17 @@ class Qbittorrent(_IDownloadClient):
                 continue
             # 开启标签隔离，未包含指定标签的不处理
             if tag and tag not in torrent_tags:
-                log.debug(f"【{self.client_name}】{self.name} 开启标签隔离， {torrent.get('name')} 未包含指定标签：{tag}")
+                log.info(f"【{self.client_name}】{self.name} 开启标签隔离， {torrent.get('name')} 未包含指定标签：{tag}")
                 continue
             path = torrent.get("save_path")
             # 无法获取下载路径的不处理
             if not path:
-                log.debug(f"【{self.client_name}】{self.name} 未获取到 {torrent.get('name')} 下载保存路径")
+                log.info(f"【{self.client_name}】{self.name} 未获取到 {torrent.get('name')} 下载保存路径")
                 continue
             true_path, replace_flag = self.get_replace_path(path, self.download_dir)
             # 开启目录隔离，未进行目录替换的不处理
             if match_path and not replace_flag:
-                log.debug(f"【{self.client_name}】{self.name} 开启目录隔离， {torrent.get('name')} 未匹配下载目录范围")
+                log.info(f"【{self.client_name}】{self.name} 开启目录隔离， {torrent.get('name')} 未匹配下载目录范围")
                 continue
             content_path = torrent.get("content_path")
             if content_path:
@@ -410,7 +415,7 @@ class Qbittorrent(_IDownloadClient):
                     ratio_limit=None,
                     seeding_time_limit=None,
                     cookie=None
-                    ):
+                    ) -> Tuple[bool, Optional[str]]:
         """
         添加种子
         :param content: 种子urls或文件
@@ -495,10 +500,41 @@ class Qbittorrent(_IDownloadClient):
                                             seeding_time_limit=seeding_time_limit,
                                             use_auto_torrent_management=is_auto,
                                             cookie=cookie)
-            return True if qbc_ret and str(qbc_ret).find("Ok") != -1 else False
+            success = True if qbc_ret and str(qbc_ret).find("Ok") != -1 else False
+            if success:
+                torrent_hash = self._get_torrent_hash(content)
+                return True, torrent_hash
+            return False, None
         except Exception as err:
             log.exception(f"【{self.client_name}】{self.name} 添加种子出错：", err)
-            return False
+            return False, None
+        
+    @staticmethod
+    def _get_torrent_hash(content: Union[str, bytes]) -> Optional[str]:
+        """
+        从磁力链接(str)或 .torrent 文件内容(bytes)中提取 v1 info hash。
+        (这是我们上一轮中生成的辅助函数)
+        """
+        if isinstance(content, str):
+            match = re.search(r'xt=urn:btih:([a-fA-F0-9]{40})', content, re.IGNORECASE)
+            if match:
+                return match.group(1).lower()
+            else:
+                log.warn("在磁力链接字符串中未找到 v1 (btih) hash")
+                return None
+        elif isinstance(content, bytes):
+            try:
+                torrent_data = bencodepy.decode(content)
+                info_dict = torrent_data[b'info']
+                info_bencoded = bencodepy.encode(info_dict)
+                hash_v1 = hashlib.sha1(info_bencoded).hexdigest()                
+                return hash_v1.lower()
+            except Exception as e:
+                log.exception(f"[qbittorrent]解析 torrent 文件内容失败:", e)
+                return None
+        else:
+            log.error(f"输入类型错误: 需要 str 或 bytes, 但收到了 {type(content)}")
+            return None
 
     def start_torrents(self, ids):
         if not self.qbc:

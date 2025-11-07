@@ -1,8 +1,10 @@
 import re
 import time
 
+from apscheduler.job import Job
 from copy import deepcopy
 from threading import Event
+from typing import Optional
 
 from jinja2 import Template
 from lxml import etree
@@ -15,6 +17,7 @@ from app.plugins.modules.iyuu.iyuu_helper import IyuuHelper
 from app.sites import PtSiteConf, Sites
 from app.utils import RequestUtils
 from app.utils.types import DownloaderType
+
 from config import Config
 
 
@@ -86,6 +89,7 @@ class IYUUAutoSeedEnhance(_IPluginModule):
     _version = "2.0.0"
     _api_base = "https://api.iyuu.cn/%s"
 
+    _check_job : Optional[Job] = None
 
     @staticmethod
     def get_fields():
@@ -252,16 +256,10 @@ class IYUUAutoSeedEnhance(_IPluginModule):
 
             # 定时任务
             if self._cron:
-                self._scheduler = self.create_scheduler()
                 # 注册定时任务(不立即启动)
-                self._cron_job = self.add_cron_job(self._scheduler, self.auto_seed, self._cron, '辅种服务', False)
-
-                if self._scheduler.get_jobs():
-                    # 追加种子校验服务
-                    self._scheduler.add_job(self.check_recheck, 'interval', minutes=3)
-                    # 启动服务
-                    self._scheduler.print_jobs()
-                    self._scheduler.start()
+                self._cron_job = self.add_cron_job(self.auto_seed, self._cron, '辅种服务', False)
+                if self._cron_job:
+                    self._check_job = self.get_scheduler().add_job(self.check_recheck, 'interval', minutes=3)
 
     def get_state(self):
         return True if self._enable and self._cron and self._token and self._downloaders else False
@@ -1017,13 +1015,8 @@ class IYUUAutoSeedEnhance(_IPluginModule):
         退出插件
         """
         try:
-            if self._scheduler:
-                self._scheduler.remove_all_jobs()
-                if self._scheduler.running:
-                    self._event.set()
-                    self._scheduler.shutdown()
-                    self._event.clear()
-                self._scheduler = None
+            self.remove_job(self._cron_job)
+            self.remove_job(self._check_job)
         except Exception as e:
             print(str(e))
 

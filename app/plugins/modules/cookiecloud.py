@@ -7,7 +7,6 @@ from app.indexer.manager import IndexerManager
 from app.plugins.modules._base import _IPluginModule
 from app.sites import SitesManager
 from app.utils import RequestUtils
-from config import Config
 
 
 class CookieCloud(_IPluginModule):
@@ -193,8 +192,7 @@ class CookieCloud(_IPluginModule):
                 })
             # 周期运行
             if self._cron:
-                self._scheduler = self.create_scheduler()
-                self._cron_job = self.add_cron_job(self._scheduler, self.__cookie_sync, self._cron, 'CookieCloud同步')
+                self._cron_job = self.add_cron_job(self.__cookie_sync, self._cron, 'CookieCloud同步')
 
     def get_state(self):
         return self._enabled and self._cron
@@ -314,12 +312,6 @@ class CookieCloud(_IPluginModule):
         退出插件
         """
         try:
-            if self._scheduler:
-                self._scheduler.remove_all_jobs()
-                if self._scheduler.running:
-                    self._event.set()
-                    self._scheduler.shutdown()
-                    self._event.clear()
-                self._scheduler = None
+            self.remove_job(self._cron_job)
         except Exception as e:
             print(str(e))

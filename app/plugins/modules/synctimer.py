@@ -64,8 +64,7 @@ class SyncTimer(_IPluginModule):
             self._cron = self.quartz_cron_compatible(config.get("cron"))
             # 定时任务
             if self._cron:
-                self._scheduler = self.create_scheduler()
-                self._cron_job = self.add_cron_job(self._scheduler, self.__timersync, self._cron, '目录定时同步服务')
+                self._cron_job = self.add_cron_job(self.__timersync, self._cron, '目录定时同步服务')
 
     def get_state(self):
         return True if self._cron else False
@@ -83,10 +82,6 @@ class SyncTimer(_IPluginModule):
         退出插件
         """
         try:
-            if self._scheduler:
-                self._scheduler.remove_all_jobs()
-                if self._scheduler.running:
-                    self._scheduler.shutdown()
-                self._scheduler = None
+            self.remove_job(self._cron_job)
         except Exception as e:
             print(str(e))

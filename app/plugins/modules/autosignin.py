@@ -295,17 +295,11 @@ class AutoSignIn(_IPluginModule):
 
             # 周期运行
             if self._cron:
-                self._scheduler = self.create_scheduler()
                 self.info(f"注册定时签到任务，执行周期：{self._cron}")
-                self._cron_job = SchedulerUtils.add_job(scheduler=self._scheduler,
+                self._cron_job = SchedulerUtils.add_job(scheduler=self.get_scheduler(),
                                                         func=self.sign_in,
                                                         func_desc="自动签到",
                                                         cron=str(self._cron))
-                # 启动任务
-                if self._cron_job:
-                    self._scheduler.print_jobs()
-                    self._scheduler.start()
-                    self.info(f"定时签到服务启动，下次执行时间：{self._cron_job.next_run_time.strftime('%Y-%m-%d %H:%M:%S')}")
                     
 
     @staticmethod
@@ -634,16 +628,9 @@ class AutoSignIn(_IPluginModule):
         退出插件
         """
         try:
-            if self._scheduler:
-                self._scheduler.remove_all_jobs()
-                if self._scheduler.running:
-                    self._event.set()
-                    self._scheduler.shutdown()
-                    self._event.clear()
-                self._scheduler = None
+            self.remove_job(self._cron_job)
         except Exception as e:
             log.exception("【自动签到】退出插件异常: ", e)
-            print(str(e))
 
     def get_state(self):
         return self._enabled and self._cron

@@ -63,11 +63,8 @@ class TmdbHotMovieRank(_IPluginModule):
 
         # 启动服务
         if self.get_state() or self._onlyonce:
-            self._scheduler = self.create_scheduler()
-
             if self._cron:
-                self._scheduler = self.create_scheduler()
-                self._cron_job = self.add_cron_job(self._scheduler, self.__refresh_rank, self._cron, 'TMDB热门电影订阅')
+                self._cron_job = self.add_cron_job(self.__refresh_rank, self._cron, 'TMDB热门电影订阅')
 
             if self._onlyonce:
                 self.info("TMDB热门电影订阅服务启动，立即运行一次")
@@ -274,13 +271,7 @@ class TmdbHotMovieRank(_IPluginModule):
         停止服务
         """
         try:
-            if self._scheduler:
-                self._scheduler.remove_all_jobs()
-                if self._scheduler.running:
-                    self._event.set()
-                    self._scheduler.shutdown()
-                    self._event.clear()
-                self._scheduler = None
+            self.remove_job(self._cron_job)
         except Exception as e:
             print(str(e))
 

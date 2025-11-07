@@ -1,8 +1,10 @@
 import json
 import os.path
 
+from apscheduler.job import Job
 from copy import deepcopy
 from threading import Event
+from typing import Optional
 
 from bencode import bdecode, bencode
 
@@ -63,6 +65,8 @@ class TorrentTransfer(_IPluginModule):
     _is_recheck_running = False
     # 任务标签
     _torrent_tags = ["已整理", "转移做种"]
+
+    _recheck_job : Optional[Job] = None
 
 
     @staticmethod
@@ -311,8 +315,7 @@ class TorrentTransfer(_IPluginModule):
                 self.error("源下载器和目的下载器不能相同")
                 return
             if self._cron:
-                self._scheduler = self.create_scheduler()
-                self._cron_job = self.add_cron_job(self._scheduler, self.transfer, self._cron, '移转做种服务', False)
+                self._cron_job = self.add_cron_job(self.transfer, self._cron, '移转做种服务')
 
             if self._onlyonce:
                 self.info("移转做种服务启动，立即运行一次")
@@ -334,13 +337,11 @@ class TorrentTransfer(_IPluginModule):
                     "nopaths": self._nopaths,
                     "autostart": self._autostart
                 })
-            if self._scheduler.get_jobs():
+            if self._cron_job:
                 if self._autostart:
                     # 追加种子校验服务
-                    self._scheduler.add_job(self.check_recheck, 'interval', minutes=3)
-                # 启动服务
-                self._scheduler.print_jobs()
-                self._scheduler.start()
+                    self._recheck_job = self.get_scheduler().add_job(self.check_recheck, 'interval', minutes=3)
+
 
     def get_state(self):
         return True if self._enable \
@@ -678,12 +679,7 @@ class TorrentTransfer(_IPluginModule):
         退出插件
         """
         try:
-            if self._scheduler:
-                self._scheduler.remove_all_jobs()
-                if self._scheduler.running:
-                    self._event.set()
-                    self._scheduler.shutdown()
-                    self._event.clear()
-                self._scheduler = None
+            self.remove_job(self._cron_job)
+            self.remove_job(self._recheck_job)
         except Exception as e:
             print(str(e))

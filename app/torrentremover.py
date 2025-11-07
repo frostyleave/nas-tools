@@ -1,15 +1,18 @@
 import json
 from threading import Lock
+from typing import List, Optional
 
+from apscheduler.job import Job
 from apscheduler.schedulers.background import BackgroundScheduler
 
 import log
+
 from app.conf import ModuleConf
 from app.downloader import Downloader
 from app.helper import DbHelper
 from app.message import Message
 from app.utils.commons import singleton
-from config import Config
+from app.job_center import JobCenter
 
 lock = Lock()
 
@@ -20,7 +23,7 @@ class TorrentRemover(object):
     downloader = None
     dbhelper = None
 
-    _scheduler = None
+    scheduler_jobs : List[Job] = []
     _remove_tasks = {}
 
     def __init__(self):
@@ -61,20 +64,25 @@ class TorrentRemover(object):
             }
         if not self._remove_tasks:
             return
+        
         # 启动删种任务
-        self._scheduler = BackgroundScheduler(timezone=Config().get_timezone())
-        remove_flag = False
+        scheduler = self.get_scheduler()
+        
         for task in self._remove_tasks.values():
             if task.get("enabled") and task.get("interval") and task.get("config"):
-                remove_flag = True
-                self._scheduler.add_job(func=self.auto_remove_torrents,
-                                        args=[task.get("id")],
-                                        trigger='interval',
-                                        seconds=int(task.get("interval")) * 60)
-        if remove_flag:
-            self._scheduler.print_jobs()
-            self._scheduler.start()
+                job_item = scheduler.add_job(func=self.auto_remove_torrents,
+                                             args=[task.get("id")],
+                                             trigger='interval',
+                                             seconds=int(task.get("interval")) * 60)
+                if job_item:
+                    self.scheduler_jobs.append(job_item)
+
+        if self.scheduler_jobs:
             log.info("自动删种服务启动")
+
+    def get_scheduler(self) -> BackgroundScheduler:
+        """获取任务管理器"""
+        return JobCenter().get_scheduler()
 
     def get_torrent_remove_tasks(self, taskid=None):
         """
@@ -314,10 +322,10 @@ class TorrentRemover(object):
         停止服务
         """
         try:
-            if self._scheduler:
-                self._scheduler.remove_all_jobs()
-                if self._scheduler.running:
-                    self._scheduler.shutdown()
-                self._scheduler = None
+            if not self.scheduler_jobs:
+                return
+            for job_item in self.scheduler_jobs:
+                self.get_scheduler().remove_job(job_item.id)
+            self.scheduler_jobs = []
         except Exception as e:
             print(str(e))

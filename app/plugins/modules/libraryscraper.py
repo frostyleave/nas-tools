@@ -166,8 +166,7 @@ class LibraryScraper(_IPluginModule):
                 })
 
             if self._cron:
-                self._scheduler = self.create_scheduler()
-                self._cron_job = self.add_cron_job(self._scheduler, self.__libraryscraper,  self._cron, '刮削服务')
+                self._cron_job = self.add_cron_job(self.__libraryscraper,  self._cron, '刮削服务')
 
 
     def get_state(self):
@@ -214,12 +213,6 @@ class LibraryScraper(_IPluginModule):
         退出插件
         """
         try:
-            if self._scheduler:
-                self._scheduler.remove_all_jobs()
-                if self._scheduler.running:
-                    self._event.set()
-                    self._scheduler.shutdown()
-                    self._event.clear()
-                self._scheduler = None
+            self.remove_job(self._cron_job)
         except Exception as e:
             print(str(e))

@@ -15,7 +15,7 @@ from app.plugins.modules._base import _IPluginModule
 from app.searcher import Searcher
 from app.subscribe import Subscribe
 from app.utils.types import SearchType, RssType, EventType, MediaType
-from config import Config
+
 from web.backend.web_utils import WebUtils
 
 import log
@@ -65,6 +65,8 @@ class DoubanSync(_IPluginModule):
     _types = []
     _cookie = None
 
+    _hour_job = None
+    _seconds_job = None
 
     def init_config(self, config: dict = None):
         self.douban = DouBan()
@@ -113,20 +115,14 @@ class DoubanSync(_IPluginModule):
 
         # 启动服务
         if self.get_state() or self._onlyonce:
-            self._scheduler = self.create_scheduler()
             if self._interval:
                 self.info(f"豆瓣全量同步服务启动，周期：{self._interval} 小时，类型：{self._types}，用户：{self._users}")
-                self._scheduler.add_job(self.sync, 'interval',
-                                        hours=self._interval)
+                self._hour_job = self.add_cron_job(self.sync, 'interval', hours=self._interval)
+
             if self._rss_interval:
                 self.info(f"豆瓣近期动态同步服务启动，周期：{self._rss_interval} 秒，类型：{self._types}，用户：{self._users}")
-                self._scheduler.add_job(self.sync, 'interval',
-                                        seconds=self._rss_interval)
-            
-            # 启动服务
-            if self._scheduler.get_jobs():
-                self._scheduler.print_jobs()
-                self._scheduler.start()
+                self._seconds_job = self.add_cron_job(self.sync, 'interval', seconds=self._rss_interval)
+
 
             if self._onlyonce:
                 self.info("豆瓣同步服务启动，立即运行一次")
@@ -434,13 +430,8 @@ class DoubanSync(_IPluginModule):
         停止服务
         """
         try:
-            if self._scheduler:
-                self._scheduler.remove_all_jobs()
-                if self._scheduler.running:
-                    self._event.set()
-                    self._scheduler.shutdown()
-                    self._event.clear()
-                self._scheduler = None
+            self.remove_job(self._hour_job)
+            self.remove_job(self._seconds_job)
         except Exception as e:
             print(str(e))
 

@@ -1,8 +1,10 @@
 import json
 import time
 
+from typing import List
 import jsonpath
-from apscheduler.executors.pool import ThreadPoolExecutor
+
+from apscheduler.job import Job
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
 from lxml import etree
@@ -15,10 +17,12 @@ from app.media import Media
 from app.media.meta import MetaInfo
 from app.message import Message
 from app.searcher import Searcher
+from app.job_center import JobCenter
 from app.subscribe import Subscribe
 from app.utils import RequestUtils, StringUtils
 from app.utils.commons import singleton
 from app.utils.types import MediaType, SearchType, RssType
+
 from config import Config
 
 
@@ -42,6 +46,8 @@ class RssChecker(object):
         "R": "订阅",
         "S": "搜索"
     }
+
+    scheduler_jobs: List[Job] = []
 
     def __init__(self):
         self.init_config()
@@ -131,35 +137,38 @@ class RssChecker(object):
             })
         if not self._rss_tasks:
             return
+        
         # 启动RSS任务
-        self._scheduler = BackgroundScheduler(timezone=Config().get_timezone(),
-                                              executors={
-                                                  'default': ThreadPoolExecutor(30)
-                                              })
-        rss_flag = False
+        scheduler = self.get_scheduler()
+
         for task in self._rss_tasks:
-            if task.get("state") and task.get("interval"):
-                cron = str(task.get("interval")).strip()
-                if cron.isdigit():
-                    # 分钟
-                    rss_flag = True
-                    self._scheduler.add_job(func=self.check_task_rss,
-                                            args=[task.get("id")],
-                                            trigger='interval',
-                                            seconds=int(cron) * 60)
-                elif cron.count(" ") == 4:
-                    # cron表达式
-                    try:
-                        self._scheduler.add_job(func=self.check_task_rss,
-                                                args=[task.get("id")],
-                                                trigger=CronTrigger.from_crontab(cron))
-                        rss_flag = True
-                    except Exception as e:
-                        log.info("%s 自定义订阅cron表达式 配置格式错误：%s %s" % (task.get("name"), cron, str(e)))
-        if rss_flag:
-            self._scheduler.print_jobs()
-            self._scheduler.start()
+            if not task.get("state") or not task.get("interval"):
+                continue
+            cron = str(task.get("interval")).strip()
+            if cron.isdigit():
+                # 分钟
+                job_item = scheduler.add_job(func=self.check_task_rss,
+                                             args=[task.get("id")],
+                                             trigger='interval',
+                                             seconds=int(cron) * 60)
+                if job_item:
+                    self.scheduler_jobs.append(job_item)
+            elif cron.count(" ") == 4:
+                # cron表达式
+                try:
+                    job_item = scheduler.add_job(func=self.check_task_rss,
+                                                 args=[task.get("id")],
+                                                 trigger=CronTrigger.from_crontab(cron))
+                    if job_item:
+                        self.scheduler_jobs.append(job_item)
+                except Exception as e:
+                    log.error("%s 自定义订阅cron表达式 配置格式错误：%s %s" % (task.get("name"), cron, str(e)))
+        if self.scheduler_jobs:
             log.info("自定义订阅服务启动")
+
+    def get_scheduler(self) -> BackgroundScheduler:
+        """获取任务管理器"""
+        return JobCenter().get_scheduler()
 
     def get_rsstask_info(self, taskid=None):
         """
@@ -713,11 +722,11 @@ class RssChecker(object):
         停止服务
         """
         try:
-            if self._scheduler:
-                self._scheduler.remove_all_jobs()
-                if self._scheduler.running:
-                    self._scheduler.shutdown()
-                self._scheduler = None
+            if not self.scheduler_jobs:
+                return
+            for job_item in self.scheduler_jobs:
+                self.get_scheduler().remove_job(job_item.id)
+            self.scheduler_jobs = []
         except Exception as e:
             print(str(e))
 

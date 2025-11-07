@@ -3,7 +3,8 @@ from urllib import parse
 mteam_sites = [
     'kp.m-team.cc',
     'xp.m-team.cc',
-    'ap.m-team.cc'
+    'ap.m-team.cc',
+    'next.m-team.cc'
 ]
 
 _special_domains = [

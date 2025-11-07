@@ -6,7 +6,6 @@ from app.mediaserver import MediaServer
 from app.plugins import EventHandler
 from app.plugins.modules._base import _IPluginModule
 from app.utils.types import MediaServerType, EventType
-from config import Config
 
 import log
 
@@ -275,13 +274,10 @@ class SpeedLimiter(_IPluginModule):
 
         # 启动限速任务
         if self._limit_enabled:
-            self._scheduler = self.create_scheduler()
-            self._scheduler.add_job(func=self.__check_playing_sessions,
-                                    args=[self._mediaserver.get_type(), True],
-                                    trigger='interval',
-                                    seconds=self._interval)
-            self._scheduler.print_jobs()
-            self._scheduler.start()
+            self._cron_job = self.get_scheduler().add_job(func=self.__check_playing_sessions,
+                                                          args=[self._mediaserver.get_type(), True],
+                                                          trigger='interval',
+                                                          seconds=self._interval)
             self.info("播放限速服务启动")
 
     def get_state(self):
@@ -480,10 +476,6 @@ class SpeedLimiter(_IPluginModule):
         退出插件
         """
         try:
-            if self._scheduler:
-                self._scheduler.remove_all_jobs()
-                if self._scheduler.running:
-                    self._scheduler.shutdown()
-                self._scheduler = None
+            self.remove_job(self._cron_job)
         except Exception as e:
             print(str(e))

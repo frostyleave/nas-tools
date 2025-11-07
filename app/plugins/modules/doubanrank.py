@@ -108,8 +108,7 @@ class DoubanRank(_IPluginModule):
                 })
 
             if self._cron:
-                self._scheduler = self.create_scheduler()
-                self._cron_job = self.add_cron_job(self._scheduler, self.__refresh_rss, self._cron, '豆瓣订阅')
+                self._cron_job = self.add_cron_job(self.__refresh_rss, self._cron, '豆瓣订阅')
 
 
     def get_state(self):
@@ -372,13 +371,7 @@ class DoubanRank(_IPluginModule):
         停止服务
         """
         try:
-            if self._scheduler:
-                self._scheduler.remove_all_jobs()
-                if self._scheduler.running:
-                    self._event.set()
-                    self._scheduler.shutdown()
-                    self._event.clear()
-                self._scheduler = None
+            self.remove_job(self._cron_job)
         except Exception as e:
             print(str(e))
 

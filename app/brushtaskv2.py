@@ -4,7 +4,9 @@ import sys
 import time
 
 from datetime import datetime
+from typing import List
 
+from apscheduler.job import Job
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
 
@@ -16,6 +18,7 @@ from app.helper import DbHelper
 from app.indexer.client.builtin import BuiltinIndexer
 from app.media.meta import MetaInfo
 from app.message import Message
+from app.job_center import JobCenter
 from app.sites import SitesManager, SiteConf, PtSiteConf
 from app.utils import StringUtils
 from app.utils.commons import singleton
@@ -40,6 +43,8 @@ class BrushTaskV2(object):
     _qb_client = "qbittorrent"
     _tr_client = "transmission"
 
+    scheduler_jobs: List[Job] = []
+
     def __init__(self):
         self.init_config()
 
@@ -57,44 +62,53 @@ class BrushTaskV2(object):
         self.load_brushtasks()
         # 清理缓存
         self._torrents_cache = []
+        
+        if not self._brush_tasks:
+            log.info("[刷流]暂未配置刷流任务")
+            return
+        
         # 启动任务
-        if self._brush_tasks:
-            self._scheduler = BackgroundScheduler(timezone=Config().get_timezone())
-            for _, task in self._brush_tasks.items():
-                # 任务状态：Y-正常, S-停止下载新种, N-完全停止
-                task_state = task.get("state")
-                if task_state in ['Y', 'S'] and task.get("interval"):
-                    cron = str(task.get("interval")).strip()
-                    if cron.isdigit():
-                        if task_state == 'Y':
-                            self._scheduler.add_job(func=self.check_task_rss,
-                                                    args=[task.get("id")],
-                                                    trigger='interval',
-                                                    seconds=int(cron) * 60)
-                    elif cron.count(" ") == 4:
-                        if task_state == 'Y':
-                            try:
-                                self._scheduler.add_job(func=self.check_task_rss,
-                                                        args=[task.get("id")],
-                                                        trigger=CronTrigger.from_crontab(cron))
-                            except Exception as err:
-                                log.error(f"任务 {task.get('name')} 运行周期格式不正确：{str(err)}")
-                    else:
-                        log.error(f"任务 {task.get('name')} 运行周期格式不正确")
+        scheduler = self.get_scheduler()
+        for _, task in self._brush_tasks.items():
+            # 任务状态：Y-正常, S-停止下载新种, N-完全停止
+            task_state = task.get("state")
+            if task_state == 'Y' and task.get("interval"):
+                cron = str(task.get("interval")).strip()
+                if cron.isdigit():
+                    job_item = scheduler.add_job(func=self.check_task_rss,
+                                                 args=[task.get("id")],
+                                                 trigger='interval',
+                                                 seconds=int(cron) * 60)
+                    if job_item:
+                        self.scheduler_jobs.append(job_item)
+                elif cron.count(" ") == 4:
+                    try:
+                        job_item = scheduler.add_job(func=self.check_task_rss,
+                                                     args=[task.get("id")],
+                                                     trigger=CronTrigger.from_crontab(cron))
+                        if job_item:
+                            self.scheduler_jobs.append(job_item)
+                    except Exception as err:
+                        log.error(f"任务 {task.get('name')} 运行周期格式不正确：{str(err)}")
+                else:
+                    log.error(f"任务 {task.get('name')} 运行周期格式不正确")
 
-            # 正常运行任务数
-            running_task = len(self._scheduler.get_jobs())
-            # 启动删种任务
-            if running_task > 0:
-                self._scheduler.add_job(func=self.remove_tasks_torrents,
+        # 正常运行任务数
+        running_task = len(self.scheduler_jobs)
+        # 启动删种任务
+        if self.scheduler_jobs:
+            del_job = scheduler.add_job(func=self.remove_tasks_torrents,
                                         trigger='interval',
                                         seconds=BRUSH_REMOVE_TORRENTS_INTERVAL)
-                # 启动
-                self._scheduler.print_jobs()
-                self._scheduler.start()
+            if del_job:
+                self.scheduler_jobs.append(del_job)
 
-                log.info(f"{running_task} 个刷流服务正常启动")
+            log.info(f"{running_task} 个刷流服务正常启动")
 
+    def get_scheduler(self) -> BackgroundScheduler:
+        """获取任务管理器"""
+        return JobCenter().get_scheduler()
+    
     def load_brushtasks(self):
         """
         从数据库加载刷流任务
@@ -944,11 +958,11 @@ class BrushTaskV2(object):
         停止服务
         """
         try:
-            if self._scheduler:
-                self._scheduler.remove_all_jobs()
-                if self._scheduler.running:
-                    self._scheduler.shutdown()
-                self._scheduler = None
+            if not self.scheduler_jobs:
+                return
+            for job_item in self.scheduler_jobs:
+                self.get_scheduler().remove_job(job_item.id)
+            self.scheduler_jobs = []
         except Exception as e:
             print(str(e))
 

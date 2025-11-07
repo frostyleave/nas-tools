@@ -164,8 +164,7 @@ class AutoBackup(_IPluginModule):
                 })
 
             if self._cron:
-                self._scheduler = self.create_scheduler()
-                self._cron_job = self.add_cron_job(self._scheduler, self.__backup, self._cron, '定时备份')
+                self._cron_job = self.add_cron_job(self.__backup, self._cron, '定时备份')
 
     def __backup(self):
         """
@@ -211,8 +210,8 @@ class AutoBackup(_IPluginModule):
                     f"获取到 {bk_path} 路径下备份文件数量 {bk_cnt} 保留数量 {int(self._cnt)} 无需删除")
 
         # 发送通知
-        if self._notify:
-            next_run_time = self._scheduler.get_jobs()[0].next_run_time.strftime('%Y-%m-%d %H:%M:%S')
+        if self._notify and self._cron_job:
+            next_run_time = self._cron_job.next_run_time.strftime('%Y-%m-%d %H:%M:%S')
             self.send_message(title="【自动备份任务完成】",
                               text=f"创建备份{'成功' if zip_file else '失败'}\n"
                                    f"清理备份数量 {del_cnt}\n"
@@ -224,13 +223,7 @@ class AutoBackup(_IPluginModule):
         退出插件
         """
         try:
-            if self._scheduler:
-                self._scheduler.remove_all_jobs()
-                if self._scheduler.running:
-                    self._event.set()
-                    self._scheduler.shutdown()
-                    self._event.clear()
-                self._scheduler = None
+            self.remove_job(self._cron_job)
         except Exception as e:
             print(str(e))
 

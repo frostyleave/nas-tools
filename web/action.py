@@ -18,6 +18,7 @@ from urllib.parse import unquote
 
 import cn2an
 
+from app.job_center import JobCenter
 import log
 from app.brushtaskv2 import BrushTaskV2 as BrushTask
 from app.conf import SystemConfig, ModuleConf
@@ -339,9 +340,12 @@ class WebAction:
         Downloader().stop_service()
         # 关闭插件
         PluginManager().stop_service()
+        # 清理定时器
+        JobCenter().stop_service()
 
     @staticmethod
     def start_service():
+        JobCenter()
         # 加载索引器配置
         IndexerManager()
         # 加载站点配置
@@ -360,6 +364,8 @@ class WebAction:
         TorrentRemover()
         # 加载插件
         PluginManager()
+        # 打印定时任务列表
+        JobCenter().get_scheduler().print_jobs()
 
     def restart_service(self):
         """

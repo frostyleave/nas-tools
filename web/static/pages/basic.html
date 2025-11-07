@@ -4,14 +4,6 @@
     <div class="card-header" style="display: flex; align-items: center;">
       <h4 class="card-title"><strong>基础设置</strong></h4>
       <div class="card-actions btn-actions">
-        <a href="javascript:void(0)" class="btn d-none d-sm-inline-block" data-bs-toggle="modal"
-          data-bs-target="#modal-user-script">
-          自定义 CSS/JavaScript
-        </a>
-        <a href="javascript:void(0)" class="btn d-sm-none mbtn-action" data-bs-toggle="modal"
-          data-bs-target="#modal-user-script" title="自定义CSS/JavaScript">
-          <i class="ti ti-code-dots fs-2"></i>
-        </a>
         <a href="javascript:slideToggle('basic_system')" class="btn-action ms-1" title="展开/折叠">
           <i class="ti ti-menu-2 fs-2"></i>
         </a>
@@ -455,68 +447,9 @@
   </div>
 </div>
 
-<div class="modal modal-blur fade" id="modal-user-script" tabindex="-1" role="dialog" aria-hidden="true"
-  data-bs-backdrop="static" data-bs-keyboard="false">
-  <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
-    <div class="card modal-content"
-      style="border-top-left-radius:var(--tblr-modal-inner-border-radius) !important; border-top-right-radius:var(--tblr-modal-inner-border-radius) !important">
-      <div class="card-header"
-        style="border-top-left-radius:var(--tblr-modal-inner-border-radius) !important; border-top-right-radius:var(--tblr-modal-inner-border-radius) !important">
-        <ul class="nav nav-fill card-header-tabs nav-tabs rounded-3" data-bs-toggle="tabs" role="tablist">
-          <li class="nav-item" role="presentation">
-            <a href="#tabs-user-css" class="nav-link active" style="justify-content: center" data-bs-toggle="tab"
-              aria-selected="true" role="tab">
-              CSS
-            </a>
-          </li>
-          <li class="nav-item" role="presentation">
-            <a href="#tabs-user-script" class="nav-link" style="justify-content: center" data-bs-toggle="tab"
-              aria-selected="false" role="tab" tabindex="-1">
-              JavaScript
-            </a>
-          </li>
-        </ul>
-      </div>
-      <div class="card-body">
-        <div class="tab-content">
-          <div class="tab-pane fade active show" id="tabs-user-css" role="tabpanel">
-            <div class="form-control" id="user_script_css" style="height: 20rem;"></div>
-          </div>
-          <div class="tab-pane fade" id="tabs-user-script" role="tabpanel">
-            <div class="form-control" id="user_script_javascript" style="height: 20rem;"></div>
-          </div>
-        </div>
-      </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-link" data-bs-dismiss="modal">取消</button>
-        <a id="user_script_save_btn" href="javascript:save_user_script()" class="btn btn-primary ms-auto">
-          保存
-        </a>
-      </div>
-    </div>
-  </div>
-</div>
-
 <script type="text/javascript">
 
   var target_theme = localStorage.getItem("theme") === "dark" ? "ace/theme/one_dark" : "ace/theme/xcode";
-  // CSS编辑器
-  css_editor = ace.edit("user_script_css");
-  css_editor.session.setMode("ace/mode/css");
-  css_editor.setTheme(target_theme);
-  css_editor.setOptions({
-    fontFamily: "Consolas, Monaco, monospace",
-    fontSize: "10pt"
-  });
-
-  // JavaScript编辑器
-  javascript_editor = ace.edit("user_script_javascript");
-  javascript_editor.session.setMode("ace/mode/javascript");
-  javascript_editor.setTheme(target_theme);
-  javascript_editor.setOptions({
-    fontFamily: "Consolas, Monaco, monospace",
-    fontSize: "10pt"
-  });
 
   // 重新渲染部分元素
   function render_part(element_id) {
@@ -582,41 +515,21 @@
     });
   }
 
-  // 保存自定义CSS/JavsScript配置
-  function save_user_script() {
-    let css_text = css_editor.getValue();
-    let javascript_text = javascript_editor.getValue();
-    $("#user_script_save_btn").text("保存中...").attr("disabled", true);
-    axios_post_do("save_user_script", { css: css_text, javascript: javascript_text }, function (ret) {
-      $("#user_script_save_btn").text("保存").attr("disabled", false);
-    });
-    $("#modal-user-script").modal("hide");
-  }
-
 </script>
 
 <script type="text/javascript">
 
-  var mediaServerConf = {};
-
-  // 当前处理的类型
-  var currType = "";
-
-  // 保存配置
-  function save_config(type, func, test) {
-    currType = type;
-    const params = input_select_GetVal(`modal-${type}`);
-    params['test'] = test || false;
-    params['media.media_server'] = type;
-    axios_post_do("update_config", params, func);
-  }
-
-  //保存配置、关闭和刷新页面
+  // 保存配置、关闭和刷新页面
   function save_mediaserver_config(type) {
     $("#modal-" + type).modal('hide');
-    save_config(type, function (ret) {
+
+    const params = input_select_GetVal(`modal-${type}`);
+    params['test'] = false;
+    params['media.media_server'] = type;
+    axios_post_do("update_config", params, function (ret) {
       window_history_refresh();
     });
+
   }
 
   //保存配置和测试配置
@@ -624,6 +537,7 @@
 
     $("#" + type + "_test_btn").text("测试中...").attr("disabled", true);
 
+    var mediaServerConf = $("#media-server-list").data("server_conf");
     if (mediaServerConf && mediaServerConf[type]) {
       var command = mediaServerConf[type].test_command;
       axios_post_do("test_connection", {"command": command}, function (ret) {
@@ -692,6 +606,8 @@
   function renderMediaServers(mediaServerConf, configInfo) {
 
     let $list = $("#media-server-list");
+    list.data("server_conf", mediaServerConf);
+
     $.each(mediaServerConf, function (type, server) {
       let active = (configInfo.media.media_server === type) ?
         `<div class="col-auto align-self-center"><span class="badge bg-green"></span> 正在使用</div>` : "";
@@ -744,12 +660,6 @@
       if (response.code === 0 && response.data) {
 
         const data = response.data;
-
-        // 设置自定义脚本内容
-        if (data.CustomScriptCfg) {
-          css_editor.setValue(data.CustomScriptCfg.css || '', -1);
-          javascript_editor.setValue(data.CustomScriptCfg.javascript || '', -1);
-        }
 
         // 填充基础设置数据
         if (data.Config && data.Config.app) {
@@ -884,7 +794,6 @@
       
         // 渲染媒体服务器
         if (data.MediaServerConf) {
-          mediaServerConf = data.MediaServerConf;
           renderMediaServers(data.MediaServerConf, data.Config);
         }
       

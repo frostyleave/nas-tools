@@ -1,0 +1,116 @@
+from typing import Optional
+
+from apscheduler.job import Job
+from apscheduler.jobstores.base import JobLookupError
+from apscheduler.executors.pool import ThreadPoolExecutor
+from apscheduler.schedulers.background import BackgroundScheduler
+from apscheduler.events import (
+    EVENT_JOB_SUBMITTED,
+    EVENT_JOB_EXECUTED,
+    EVENT_JOB_ERROR
+)
+
+import log
+
+from app.utils.commons import singleton
+from config import Config
+
+
+
+@singleton
+class JobCenter:
+
+    _scheduler : Optional[BackgroundScheduler] = None
+
+    def __init__(self):
+        self._scheduler = BackgroundScheduler(
+            timezone=Config().get_timezone(),
+            executors={"default": ThreadPoolExecutor(50)},
+        )
+        self.init_config()
+
+    def init_config(self):
+        self.stop_service()
+        self.run_service()
+
+    def run_service(self):
+        """
+        读取配置，启动定时服务
+        """
+        if not self._scheduler:
+            return
+        
+        # 注册事件监听器
+        self._scheduler.add_listener(
+            self._job_start_listener, 
+            EVENT_JOB_SUBMITTED
+        )
+        self._scheduler.add_listener(
+            self._job_end_listener,
+            EVENT_JOB_EXECUTED | EVENT_JOB_ERROR
+        )
+
+        self._scheduler.start()
+
+    def stop_service(self):
+        """
+        停止定时服务
+        """
+        try:
+            if self._scheduler:
+                self._scheduler.remove_all_jobs()
+        except Exception as e:
+            log.exception('[Sys]停止定时服务出错: ', e)
+
+    def get_scheduler(self) -> BackgroundScheduler:
+        """获取任务管理器"""
+        return self._scheduler
+
+    def get_job(self, job_id: str) -> Optional[Job]:
+        """获取单个 job 实例"""
+        return self._scheduler.get_job(job_id)
+    
+    def remove_job(self, job_id: str):
+        """
+        移除一个任务
+        :param job_id: 任务ID
+        """
+        try:
+            self._scheduler.remove_job(job_id)
+            log.info(f"[Job]任务'{job_id}' 已移除")
+        except JobLookupError:
+            log.info(f"[Job]任务'{job_id}' 未找到，可能已被移除")    
+        except Exception as e:
+            log.exception(f"[Job]任务'{job_id}' 移除时发生错误: ", e)
+
+    def _job_start_listener(self, event):
+        """监听 job 开始执行"""
+        job = self.get_job(event.job_id)
+        if job:
+            job_name = job.name or job.id
+            log.info(f"--- [Job 开始] --- 任务: '{job_name}' (ID: {event.job_id}) 准备执行。")
+
+    def _job_end_listener(self, event):
+        """监听 job 执行完毕（无论成功还是失败）"""
+        job = self.get_job(event.job_id)
+        if not job:
+            return
+            
+        job_name = job.name or job.id
+        
+        if event.code == EVENT_JOB_EXECUTED:
+            # 成功
+            next_run = job.next_run_time
+            if next_run:
+                log.info(f"--- [Job 成功] --- 任务: '{job_name}' (ID: {event.job_id}) 已成功执行, 下次执行时间 {job.next_run_time.strftime('%Y-%m-%d %H:%M:%S %Z')}")
+            else:
+                log.info(f"--- [Job 成功] --- 任务: '{job_name}' (ID: {event.job_id}) 已执行完成")
+                
+        elif event.code == EVENT_JOB_ERROR:
+            # 失败
+            log.exception(f"[Job]{job_name} 失败, 错误信息: {event.exception}")
+            next_run = job.next_run_time
+            if next_run:
+                log.warn(f"--- [Job 失败] --- 任务: '{job_name}' (ID: {event.job_id}) 执行失败, 下次执行时间 {job.next_run_time.strftime('%Y-%m-%d %H:%M:%S %Z')}")
+            else:
+                log.warn(f"--- [Job 失败] --- 任务: '{job_name}' (ID: {event.job_id}) 执行失败")
