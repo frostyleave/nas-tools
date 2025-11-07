@@ -590,7 +590,12 @@
           Object.entries(pageData.Plugins).forEach(([id, plugin]) => {
             if (plugin.script) {
               try {
-                eval(plugin.script);
+
+                var script = document.createElement('script');
+                script.textContent = plugin.script;
+
+                $("#page_content").append(script)
+
               } catch (e) {
                 console.error('插件脚本执行错误:', id, e);
               }

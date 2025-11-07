@@ -208,16 +208,17 @@ export class PluginModal extends CustomElement {
     let id = field_content["id"];
     let onclick = field_content["onclick"] || "";
     let text_options = html``;
+    var input_type = 'checkbox'
     // 单选
     if (field_content["radio"]) {
-      onclick += `check_selectgroup_raido(this);`
+      input_type = 'radio'
     }
     for (let option in content) {
       let checkbox;
       if (this.config[id] && this.config[id].includes(option)) {
-        checkbox = html`<input type="checkbox" name="${this.prefix}${id}" value="${option}" onclick="${onclick}" class="form-selectgroup-input" checked>`
+        checkbox = html`<input type="${input_type}" name="${this.prefix}${id}" value="${option}" onclick="${onclick}" class="form-selectgroup-input" checked>`
       } else {
-        checkbox = html`<input type="checkbox" name="${this.prefix}${id}" value="${option}" onclick="${onclick}" class="form-selectgroup-input">`
+        checkbox = html`<input type="${input_type}" name="${this.prefix}${id}" value="${option}" onclick="${onclick}" class="form-selectgroup-input">`
       }
       text_options = html`${text_options}
                           <label class="form-selectgroup-item">
