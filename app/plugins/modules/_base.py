@@ -280,7 +280,7 @@ class _IPluginModule(metaclass=ABCMeta):
         """
         if job_info:
             try:
-                self.get_scheduler().remove_job(job_info.id)
+                JobCenter().remove_job(job_info.id)
             except Exception as err:
                 log.exception(f'【Plugin】定时任务{job_info.id}移除失败: ', err)
         return None

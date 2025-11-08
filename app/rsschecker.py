@@ -1,11 +1,10 @@
 import json
+import jsonpath
 import time
 
 from typing import List
-import jsonpath
 
 from apscheduler.job import Job
-from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
 from lxml import etree
 
@@ -139,7 +138,7 @@ class RssChecker(object):
             return
         
         # 启动RSS任务
-        scheduler = self.get_scheduler()
+        scheduler = JobCenter().get_scheduler()
 
         for task in self._rss_tasks:
             if not task.get("state") or not task.get("interval"):
@@ -165,10 +164,6 @@ class RssChecker(object):
                     log.error("%s 自定义订阅cron表达式 配置格式错误：%s %s" % (task.get("name"), cron, str(e)))
         if self.scheduler_jobs:
             log.info("自定义订阅服务启动")
-
-    def get_scheduler(self) -> BackgroundScheduler:
-        """获取任务管理器"""
-        return JobCenter().get_scheduler()
 
     def get_rsstask_info(self, taskid=None):
         """
@@ -725,7 +720,7 @@ class RssChecker(object):
             if not self.scheduler_jobs:
                 return
             for job_item in self.scheduler_jobs:
-                self.get_scheduler().remove_job(job_item.id)
+                JobCenter().remove_job(job_item.id)
             self.scheduler_jobs = []
         except Exception as e:
             print(str(e))

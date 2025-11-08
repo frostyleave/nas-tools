@@ -125,19 +125,21 @@ class Media:
         if (file_name.find(' ') > 0):
             part_name = file_name.split(" ")[0]
             file_names.append(StringUtils.handler_special_chars(part_name).upper())
-            zh_name = zhconv.convert(part_name, "zh-hans")
-            if zh_name != part_name:
-                file_names.append(zh_name)
+            # 原标记包含繁体, 添加相应的简体
+            if StringUtils.contain_traditional_chinese(part_name):
+                file_names.append(zhconv.convert(part_name, "zh-hans"))
 
         format_name = StringUtils.handler_special_chars(file_name).upper()
         file_names.append(format_name)
-        format_name_zh = zhconv.convert(format_name, "zh-hans")
-        if format_name_zh != format_name:
-            file_names.append(format_name_zh)
+        # 原标记包含繁体, 添加相应的简体
+        if StringUtils.contain_traditional_chinese(format_name):
+            file_names.append(zhconv.convert(format_name, "zh-hans"))
         
         for tmdb_name in tmdb_names:
             tmdb_name = StringUtils.handler_special_chars(tmdb_name).strip().upper()
-            if tmdb_name in file_names or zhconv.convert(tmdb_name, "zh-hans")in file_names:
+            if tmdb_name in file_names:
+                return True
+            if StringUtils.contain_traditional_chinese(tmdb_name) and zhconv.convert(tmdb_name, "zh-hans") in file_names:
                 return True
         return False
 
@@ -914,7 +916,10 @@ class Media:
 
     # 名称中包含季名称
     def fix_when_has_season_name(self, meta_info, tmdb_info):
-        rev_string = zhconv.convert(meta_info.rev_string, "zh-hans")
+        rev_string = meta_info.rev_string
+        if StringUtils.contain_traditional_chinese(meta_info.rev_string):
+            rev_string = zhconv.convert(meta_info.rev_string, "zh-hans")
+
         match_season = next(filter(lambda t: t.name in rev_string, tmdb_info.seasons), None)
         if match_season:
             meta_info.begin_season = match_season.season_number
@@ -2515,7 +2520,7 @@ class Media:
             iso_3166_1 = alternative_title.get("iso_3166_1")
             if iso_3166_1 == "CN":
                 title = alternative_title.get("title")
-                if title and StringUtils.contain_chinese(title) and zhconv.convert(title, "zh-hans") == title:
+                if title and StringUtils.contain_chinese(title) and StringUtils.contain_traditional_chinese(title) == False:
                     return title
         return tmdbinfo.get("title") if tmdbinfo.get("media_type") == MediaType.MOVIE else tmdbinfo.get("name")
 
@@ -2544,13 +2549,18 @@ class Media:
         for aka_name in aka_names:
             if StringUtils.contain_chinese(aka_name):
                 alter_names.append(aka_name)
+
         if len(alter_names) == 1:
-            name = alter_names[0]
-        elif len(alter_names) > 1:
+            return alter_names[0]
+        
+        if len(alter_names) > 1:
             for alter_name in alter_names:
-                if alter_name == zhconv.convert(alter_name, 'zh-hans'):
-                    name = alter_name
-        return name
+                # 繁体
+                if StringUtils.contain_traditional_chinese(alter_name):
+                    continue
+                return alter_name
+            
+        return alter_names[0]
 
     def get_tmdbperson_aka_names(self, person_id):
         """

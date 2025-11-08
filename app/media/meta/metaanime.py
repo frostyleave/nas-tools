@@ -79,7 +79,8 @@ class MetaAnime(MetaBase):
                     if self.cn_name:
                         self.cn_name = re.sub(r'%s' % self._name_nostring_re, '', self.cn_name,
                                               flags=re.IGNORECASE).strip()
-                        self.cn_name = zhconv.convert(self.cn_name, "zh-hans")
+                        if StringUtils.contain_traditional_chinese(self.cn_name):
+                            self.cn_name = zhconv.convert(self.cn_name, "zh-hans")
                 if self.en_name:
                     self.en_name = re.sub(r'%s' % self._name_nostring_re, '', self.en_name,
                                           flags=re.IGNORECASE).strip().title()

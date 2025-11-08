@@ -1,5 +1,4 @@
 import random
-import zhconv
 import log
 
 from threading import Lock
@@ -452,7 +451,7 @@ class DouBan:
                         title = titles[0]
                         for _title in titles[1:]:
                             # 忽略繁体
-                            if zhconv.convert(_title, 'zh-hans') == title:
+                            if StringUtils.contain_traditional_chinese(_title):
                                 break
                             # 忽略日韩文
                             if not StringUtils.is_japanese(_title) \

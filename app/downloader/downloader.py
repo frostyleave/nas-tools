@@ -8,8 +8,6 @@ from typing import Optional
 import log
 
 from apscheduler.job import Job
-from apscheduler.schedulers.background import BackgroundScheduler
-
 from bencode import bdecode
 from threading import Lock
 from enum import Enum
@@ -236,10 +234,6 @@ class Downloader:
         获取监控下载器ID列表
         """
         return self._monitor_downloader_ids
-    
-    def get_scheduler(self) -> BackgroundScheduler:
-        """获取任务管理器"""
-        return JobCenter().get_scheduler()
 
     def start_service(self):
         """
@@ -250,9 +244,9 @@ class Downloader:
         # 启动转移任务
         if not self._monitor_downloader_ids:
             return
-        self.transfer_job = self.get_scheduler().add_job(func=self.transfer,
-                                                         trigger='interval',
-                                                         seconds=PT_TRANSFER_INTERVAL)
+        self.transfer_job = JobCenter().get_scheduler().add_job(func=self.transfer,
+                                                                trigger='interval',
+                                                                seconds=PT_TRANSFER_INTERVAL)
 
         log.info("下载文件转移服务启动, 目的目录: 媒体库")
 
@@ -1753,7 +1747,7 @@ class Downloader:
         """
         if self.transfer_job:
             try:
-                self.get_scheduler().remove_job(self.transfer_job.id)
+                JobCenter().remove_job(self.transfer_job.id)
             except Exception as err:
                 log.exception('【Downloader】定时转移任务移除失败: ', err)
 

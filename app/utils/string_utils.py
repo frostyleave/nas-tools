@@ -10,6 +10,7 @@ from datetime import datetime, timedelta
 from dateutil.parser import parse as parse_date, isoparse
 from typing import Optional
 
+import zhconv
 from zhon.hanzi import punctuation as zh_punc
 
 import log
@@ -85,7 +86,16 @@ class StringUtils:
             return True
         else:
             return False
-
+    
+    @staticmethod
+    def contain_traditional_chinese(text: str) -> bool:
+        """
+        检查字符串是否至少包含一个非简体（即繁体或异体）字符
+        """
+        if not isinstance(text, str) or not text:
+            return False
+        return not zhconv.issimp(text)
+    
     @staticmethod
     def is_japanese(word):
         jap = re.compile(r'[\u3040-\u309F\u30A0-\u30FF]')

@@ -17,6 +17,7 @@ from typing import Optional
 from urllib.parse import unquote
 
 import cn2an
+import zhconv
 
 from app.job_center import JobCenter
 import log
@@ -393,6 +394,20 @@ class WebAction:
                 log.info("kill $(pgrep -f 'python3 run.py')")
                 os.system("kill $(pgrep -f 'python3 run.py')")
                 # os.system("pkill -f 'python3 run.py'")
+
+    @staticmethod
+    def pre_warming_zhconv():
+        print("Pre-warming zhconv cache...")
+        try:
+            # 1. 预热 convert()，使其加载 "zh-hans" 相关的字典
+            _ = zhconv.convert("预热", 'zh-hans')
+            
+            # 2. (重要) 预热 issimp()，使其加载简体字检查相关的字典
+            _ = zhconv.issimp("预热")
+            
+            print("zhconv cache pre-warmed successfully.")
+        except Exception as e:
+            print(f"Warning: Failed to pre-warm zhconv cache: {e}")
 
     def handle_message_job(self, msg, in_from=SearchType.OT, user_id=None, user_name=None, client_id=None):
         """

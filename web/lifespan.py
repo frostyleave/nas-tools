@@ -17,12 +17,13 @@ async def lifespan(app: FastAPI):
 
         log.info('服务启动中...')
         WebAction.start_service()
+        WebAction.pre_warming_zhconv()
         
         log.info('开启配置文件监控...')
         start_config_monitor()
 
         # 开始内存监控
-        tracemalloc.start()
+        tracemalloc.start(25)
 
         log.info("✅ FastAPI 应用启动完成")
         yield

@@ -830,7 +830,7 @@ class MetaBase(object):
 
         if self.title:
             # 标题统一处理为简体中文，简体资源优先
-            if re.match(ZHTW_SUB_RE, self.title):
+            if re.match(ZHTW_SUB_RE, self.title) and StringUtils.contain_traditional_chinese(self.title):
                 sort_str = '0' + zhconv.convert(self.title, 'zh-hans')
             else:
                 sort_str = '1' + self.title
