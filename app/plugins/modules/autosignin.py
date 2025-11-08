@@ -295,7 +295,6 @@ class AutoSignIn(_IPluginModule):
 
             # 周期运行
             if self._cron:
-                self.info(f"注册定时签到任务，执行周期：{self._cron}")
                 self._cron_job = SchedulerUtils.add_job(scheduler=self.get_scheduler(),
                                                         func=self.sign_in,
                                                         func_desc="自动签到",

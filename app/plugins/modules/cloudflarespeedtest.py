@@ -214,7 +214,7 @@ class CloudflareSpeedTest(_IPluginModule):
                 self.__update_config()
 
             if self._cron:
-                self._cron_job = self.add_cron_job(self.__cloudflareSpeedTest, self._cron, 'Cloudflare CDN优选服务')
+                self._cron_job = self.add_cron_job(self.__cloudflareSpeedTest, self._cron, 'Cloudflare CDN优选')
 
     def __cloudflareSpeedTest(self):
         """

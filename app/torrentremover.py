@@ -72,7 +72,8 @@ class TorrentRemover(object):
                 job_item = scheduler.add_job(func=self.auto_remove_torrents,
                                              args=[task.get("id")],
                                              trigger='interval',
-                                             seconds=int(task.get("interval")) * 60)
+                                             seconds=int(task.get("interval")) * 60,
+                                             name='[自动删种]' + task.get('name'))
                 if job_item:
                     self.scheduler_jobs.append(job_item)
 

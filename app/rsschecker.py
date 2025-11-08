@@ -149,7 +149,8 @@ class RssChecker(object):
                 job_item = scheduler.add_job(func=self.check_task_rss,
                                              args=[task.get("id")],
                                              trigger='interval',
-                                             seconds=int(cron) * 60)
+                                             seconds=int(cron) * 60,
+                                             name='[RSS]' + task.get('name'))
                 if job_item:
                     self.scheduler_jobs.append(job_item)
             elif cron.count(" ") == 4:
@@ -157,7 +158,8 @@ class RssChecker(object):
                 try:
                     job_item = scheduler.add_job(func=self.check_task_rss,
                                                  args=[task.get("id")],
-                                                 trigger=CronTrigger.from_crontab(cron))
+                                                 trigger=CronTrigger.from_crontab(cron),
+                                                 name='[RSS]' + task.get('name'))
                     if job_item:
                         self.scheduler_jobs.append(job_item)
                 except Exception as e:

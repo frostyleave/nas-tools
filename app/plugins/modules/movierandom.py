@@ -291,7 +291,7 @@ class MovieRandom(_IPluginModule):
                 })
                 
             if self._cron:
-                self._cron_job = self.add_cron_job(self.__random, self._cron, '电影随机服务')
+                self._cron_job = self.add_cron_job(self.__random, self._cron, '电影随机')
 
 
     def __random(self):

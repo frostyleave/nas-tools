@@ -64,7 +64,7 @@ class SyncTimer(_IPluginModule):
             self._cron = self.quartz_cron_compatible(config.get("cron"))
             # 定时任务
             if self._cron:
-                self._cron_job = self.add_cron_job(self.__timersync, self._cron, '目录定时同步服务')
+                self._cron_job = self.add_cron_job(self.__timersync, self._cron, '目录定时同步')
 
     def get_state(self):
         return True if self._cron else False

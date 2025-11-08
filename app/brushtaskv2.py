@@ -78,14 +78,16 @@ class BrushTaskV2(object):
                     job_item = scheduler.add_job(func=self.check_task_rss,
                                                  args=[task.get("id")],
                                                  trigger='interval',
-                                                 seconds=int(cron) * 60)
+                                                 seconds=int(cron) * 60,
+                                                 name='[刷流]' + task.get("name"))
                     if job_item:
                         self.scheduler_jobs.append(job_item)
                 elif cron.count(" ") == 4:
                     try:
                         job_item = scheduler.add_job(func=self.check_task_rss,
                                                      args=[task.get("id")],
-                                                     trigger=CronTrigger.from_crontab(cron))
+                                                     trigger=CronTrigger.from_crontab(cron),
+                                                     name='[刷流]' + task.get("name"))
                         if job_item:
                             self.scheduler_jobs.append(job_item)
                     except Exception as err:
@@ -99,11 +101,10 @@ class BrushTaskV2(object):
         if self.scheduler_jobs:
             del_job = scheduler.add_job(func=self.remove_tasks_torrents,
                                         trigger='interval',
-                                        seconds=BRUSH_REMOVE_TORRENTS_INTERVAL)
+                                        seconds=BRUSH_REMOVE_TORRENTS_INTERVAL,
+                                        name='[刷流]删种任务')
             if del_job:
                 self.scheduler_jobs.append(del_job)
-
-            log.info(f"{running_task} 个刷流服务正常启动")
 
     def get_scheduler(self) -> BackgroundScheduler:
         """获取任务管理器"""

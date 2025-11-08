@@ -63,8 +63,7 @@ class Scheduler:
                     func=SitesDataStatisticsCenter().refresh_site_data_now,
                     func_desc="数据统计",
                     cron=str(ptrefresh_date_cron),
-                    next_run_time=datetime.datetime.now(tz)
-                    + datetime.timedelta(minutes=1),
+                    next_run_time=datetime.datetime.now(tz) + datetime.timedelta(minutes=1),
                 )
 
             # RSS下载器
@@ -82,9 +81,8 @@ class Scheduler:
                     if pt_check_interval < 300:
                         pt_check_interval = 300
                     self._scheduler.add_job(
-                        Rss().rssdownload, "interval", seconds=pt_check_interval
+                        Rss().rssdownload, "interval", seconds=pt_check_interval, name='RSS订阅'
                     )
-                    log.info("RSS订阅服务启动")
 
             # RSS订阅定时搜索
             search_rss_interval = self._pt_config.get("search_rss_interval")
@@ -106,9 +104,9 @@ class Scheduler:
                     self._scheduler.add_job(
                         Subscribe().subscribe_search_all,
                         "interval",
-                        hours=search_rss_interval,
+                        hours=search_rss_interval, 
+                        name='订阅定时搜索'
                     )
-                    log.info("订阅定时搜索服务启动")
 
         # 媒体库同步
         if self._media_config:
@@ -128,22 +126,31 @@ class Scheduler:
                         MediaServer().sync_mediaserver,
                         "interval",
                         hours=mediasync_interval,
+                        name='媒体库同步'
                     )
-                    log.info("媒体库同步服务启动")
 
         # 元数据定时保存
         self._scheduler.add_job(
-            MetaHelper().save_meta_data, "interval", seconds=METAINFO_SAVE_INTERVAL
+            MetaHelper().save_meta_data, 
+            "interval", 
+            seconds=METAINFO_SAVE_INTERVAL, 
+            name='元数据定时保存'
         )
 
         # 定时把队列中的监控文件转移走
         self._scheduler.add_job(
-            Sync().transfer_mon_files, "interval", seconds=SYNC_TRANSFER_INTERVAL
+            Sync().transfer_mon_files, 
+            "interval", 
+            seconds=SYNC_TRANSFER_INTERVAL, 
+            name='批量转移文件'
         )
 
         # RSS队列中搜索
         self._scheduler.add_job(
-            Subscribe().subscribe_search, "interval", seconds=RSS_CHECK_INTERVAL
+            Subscribe().subscribe_search, 
+            "interval", 
+            seconds=RSS_CHECK_INTERVAL, 
+            name='RSS订阅队列'
         )
 
         # 豆瓣RSS转TMDB，定时更新TMDB数据
@@ -151,6 +158,7 @@ class Scheduler:
             Subscribe().refresh_rss_metainfo,
             "interval",
             hours=RSS_REFRESH_TMDB_INTERVAL,
+            name='RSS订阅队列'
         )
 
         # 定时清除未识别的缓存
@@ -158,6 +166,7 @@ class Scheduler:
             MetaHelper().delete_unknown_meta,
             "interval",
             hours=META_DELETE_UNKNOWN_INTERVAL,
+            name='清理未识别缓存'
         )
 
         # 定时刷新壁纸
@@ -166,6 +175,7 @@ class Scheduler:
             "interval",
             hours=REFRESH_WALLPAPER_INTERVAL,
             next_run_time=datetime.datetime.now(),
+            name='定时刷新壁纸'
         )
 
     def stop_service(self):

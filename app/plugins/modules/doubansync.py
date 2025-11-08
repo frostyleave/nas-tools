@@ -116,12 +116,10 @@ class DoubanSync(_IPluginModule):
         # 启动服务
         if self.get_state() or self._onlyonce:
             if self._interval:
-                self.info(f"豆瓣全量同步服务启动，周期：{self._interval} 小时，类型：{self._types}，用户：{self._users}")
-                self._hour_job = self.add_cron_job(self.sync, 'interval', hours=self._interval)
+                self._hour_job = self.add_cron_job(self.sync, 'interval', hours=self._interval, func_name='豆瓣同步(小时)')
 
             if self._rss_interval:
-                self.info(f"豆瓣近期动态同步服务启动，周期：{self._rss_interval} 秒，类型：{self._types}，用户：{self._users}")
-                self._seconds_job = self.add_cron_job(self.sync, 'interval', seconds=self._rss_interval)
+                self._seconds_job = self.add_cron_job(self.sync, 'interval', seconds=self._rss_interval, func_name='豆瓣同步(秒)')
 
 
             if self._onlyonce:

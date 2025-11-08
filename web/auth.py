@@ -58,7 +58,7 @@ async def refresh_token(request: Request):
     ip = get_real_ip(request)
     refresh_token = request.cookies.get("refresh_token")
 
-    log.info(f'[刷新授权]请求ip={ip}, refresh_token={refresh_token}')
+    log.debug(f'[刷新授权]请求ip={ip}, refresh_token={refresh_token}')
 
     if not refresh_token:
         raise HTTPException(status_code=401, detail="缺少 refresh_token")

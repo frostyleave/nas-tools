@@ -266,7 +266,7 @@ class _IPluginModule(metaclass=ABCMeta):
         """
         if cron:
             try:
-                cron_job = self.get_scheduler().add_job(func, CronTrigger.from_crontab(cron))
+                cron_job = self.get_scheduler().add_job(func, CronTrigger.from_crontab(cron), name=func_name)
                 if cron_job:
                     self.info(f"{func_name}服务启动，周期: {cron}, 下次执行时间: {cron_job.next_run_time.strftime('%Y-%m-%d %H:%M:%S')}")
                 return cron_job

@@ -77,7 +77,7 @@ class WeChat(_IMessageClient):
                 res = RequestUtils().get_res(token_url)
                 if res:
                     ret_json = res.json()
-                    log.info("[微信]获取微信Token: " + json.dumps(ret_json))
+                    log.debug("[微信]获取微信Token: " + json.dumps(ret_json))
                     if ret_json.get('errcode') == 0:
                         self._access_token = ret_json.get('access_token')
                         self._expires_in = ret_json.get('expires_in')

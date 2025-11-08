@@ -315,7 +315,7 @@ class TorrentTransfer(_IPluginModule):
                 self.error("源下载器和目的下载器不能相同")
                 return
             if self._cron:
-                self._cron_job = self.add_cron_job(self.transfer, self._cron, '移转做种服务')
+                self._cron_job = self.add_cron_job(self.transfer, self._cron, '自动移转做种')
 
             if self._onlyonce:
                 self.info("移转做种服务启动，立即运行一次")

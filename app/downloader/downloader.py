@@ -246,9 +246,8 @@ class Downloader:
             return
         self.transfer_job = JobCenter().get_scheduler().add_job(func=self.transfer,
                                                                 trigger='interval',
-                                                                seconds=PT_TRANSFER_INTERVAL)
-
-        log.info("下载文件转移服务启动, 目的目录: 媒体库")
+                                                                seconds=PT_TRANSFER_INTERVAL,
+                                                                name='下载文件转移')
 
     def __get_client(self, did=None):
         if not did:
