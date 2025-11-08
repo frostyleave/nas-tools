@@ -114,9 +114,13 @@
   function save_config_plugin(id, prefix, func) {
     let params = input_select_GetVal(`modal-plugin-${id}`, prefix);
     let selectgroup_config = {};
-    $(`#modal-plugin-${id} div[class^='form-selectgroup']`).each(function(){
+    $(`#modal-plugin-${id} div[class^='form-selectgroup']`).each(function() {
       let name = $(this).attr("id");
-      selectgroup_config[name.replace(prefix, "")] = select_GetSelectedVAL(name);
+      if ($(this).data('type') == 'radio') {
+        selectgroup_config[name.replace(prefix, "")] = select_GetSelectedRadioVAL(name);
+      } else {
+        selectgroup_config[name.replace(prefix, "")] = select_GetSelectedVAL(name);
+      }      
     })
     params = {...params, ...selectgroup_config}
     console.log(params)
@@ -390,15 +394,13 @@
         <div class="col-lg">
           <div class="mb-1">
             <label class="form-selectgroup-item" for="type_${id}">
-              <input type="radio" name="downloader_type" id="type_${id}" value="${id}"
-                     class="form-selectgroup-input">
+              <input type="radio" name="downloader_type" id="type_${id}" value="${id}" class="form-selectgroup-input">
               <span class="form-selectgroup-label d-flex align-items-center p-2">
                 <span class="me-2">
                   <span class="form-selectgroup-check"></span>
                 </span>
                 <span class="form-selectgroup-label-content d-flex align-items-center">
-                  <span class="avatar avatar-sm avatar-thumb avatar-rounded"
-                        style="background-image: url(${itemAttr.img_url})"></span>
+                  <span class="avatar avatar-sm avatar-thumb avatar-rounded" style="background-image: url(${itemAttr.img_url})"></span>
                   <span class="form-selectgroup-title strong ms-1">${itemAttr.name}</span>
                 </span>
               </span>

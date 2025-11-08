@@ -228,6 +228,19 @@ function select_GetSelectedVAL(name) {
 }
 
 /**
+ * 获取选中input元素value
+ * @param: name 被管理radio的name
+ **/
+function select_GetSelectedRadioVAL(name) {
+
+  if ($(`input[${select_name(name)}][type=radio]`)) {
+    return $(`input[${select_name(name)}][type=radio]:checked`).val();
+  }
+
+  return null;
+}
+
+/**
  * 获取隐藏input元素value
  * @param: name 被管理checkbox的name
  **/

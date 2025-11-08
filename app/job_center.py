@@ -111,7 +111,7 @@ class JobCenter:
         """
         try:
             self._scheduler.remove_job(job_id)
-            log.info(f"[Job]任务[{job_id}] 已移除")
+            log.debug(f"[Job]任务[{job_id}] 已移除")
         except JobLookupError:
             log.info(f"[Job]任务[{job_id}] 未找到，可能已被移除")    
         except Exception as e:
@@ -122,9 +122,9 @@ class JobCenter:
         job = self.get_job(event.job_id)
         if job:
             job_name = job.name or job.id
-            log.info(f"--- [Job 开始] --- 任务: '{job_name}' (id={event.job_id}) 准备执行...")
+            log.debug(f"--- [Job 开始] --- 任务: '{job_name}' (id={event.job_id}) 准备执行...")
         else:
-            log.info(f"--- [Job 开始] --- 无法查询到id={event.job_id} 的任务")
+            log.debug(f"--- [Job 开始] --- 无法查询到id={event.job_id} 的任务")
 
     def _job_end_listener(self, event):
         """监听 job 执行完毕（无论成功还是失败）"""
@@ -138,9 +138,9 @@ class JobCenter:
             # 成功
             next_run = job.next_run_time
             if next_run:
-                log.info(f"--- [Job 成功] --- 任务: '{job_name}' (id={event.job_id}) 执行成功, 下次执行时间: {job.next_run_time.strftime('%Y-%m-%d %H:%M:%S %Z')}")
+                log.debug(f"--- [Job 成功] --- 任务: '{job_name}' (id={event.job_id}) 执行成功, 下次执行时间: {job.next_run_time.strftime('%Y-%m-%d %H:%M:%S %Z')}")
             else:
-                log.info(f"--- [Job 成功] --- 任务: '{job_name}' (id={event.job_id}) 已执行完毕")
+                log.debug(f"--- [Job 成功] --- 任务: '{job_name}' (id={event.job_id}) 已执行完毕")
                 
         elif event.code == EVENT_JOB_ERROR:
             # 失败
