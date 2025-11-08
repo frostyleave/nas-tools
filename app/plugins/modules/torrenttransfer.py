@@ -391,7 +391,7 @@ class TorrentTransfer(_IPluginModule):
                 nopath_skip = False
                 for nopath in self._nopaths.split('\n'):
                     if os.path.normpath(save_path).startswith(os.path.normpath(nopath)):
-                        self.info(f"种子 {hash_str} 保存路径 {save_path} 不需要移转，跳过 ...")
+                        self.debug(f"种子 {hash_str} 保存路径 {save_path} 不需要移转，跳过 ...")
                         nopath_skip = True
                         break
                 if nopath_skip:
@@ -402,7 +402,7 @@ class TorrentTransfer(_IPluginModule):
                 is_skip = False
                 for label in self._nolabels.split(','):
                     if label in torrent_labels:
-                        self.info(f"种子 {hash_str} 含有不转移标签 {label}，跳过 ...")
+                        self.debug(f"种子 {hash_str} 含有不转移标签 {label}，跳过 ...")
                         is_skip = True
                         break
                 if is_skip:
