@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Any, Dict, List, Optional
 
 from apscheduler.job import Job
 from apscheduler.jobstores.base import JobLookupError
@@ -70,6 +70,40 @@ class JobCenter:
         """获取单个 job 实例"""
         return self._scheduler.get_job(job_id)
     
+    def get_jobs(self) -> List[Dict[str, Any]]:
+        """
+        获取所有已注册的任务，并将其格式化为适合 API 返回的列表。
+        """
+        jobs_list = []
+        
+        # 1. 调用底层的 get_jobs()
+        all_jobs = self._scheduler.get_jobs()
+        
+        if not all_jobs:
+            return []
+            
+        # 2. 遍历 Job 对象，将其转换为字典
+        for job in all_jobs:
+            job_data = {
+                "id": job.id,
+                "name": job.name or job.id, # 如果 name 为空，则使用 id
+                "func_ref": str(job.func_ref), # 运行的函数
+                "trigger_type": str(job.trigger.__class__.__name__), # 'IntervalTrigger', 'CronTrigger', 'DateTrigger'
+                "trigger_details": str(job.trigger), # 触发器的详细信息 (例如 "interval[0:00:10]")
+                "pending": job.pending, # 是否待处理
+            }
+            
+            # 3. 安全地处理 next_run_time (它可能为 None)
+            if job.next_run_time:
+                # 转换为 ISO 8601 字符串格式，这是 JSON 标准
+                job_data["next_run_time"] = job.next_run_time.isoformat() 
+            else:
+                job_data["next_run_time"] = None
+                
+            jobs_list.append(job_data)
+            
+        return jobs_list
+
     def remove_job(self, job_id: str):
         """
         移除一个任务

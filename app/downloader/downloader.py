@@ -251,9 +251,8 @@ class Downloader:
         if not self._monitor_downloader_ids:
             return
         self.transfer_job = self.get_scheduler().add_job(func=self.transfer,
-                                                     args=self._monitor_downloader_ids,
-                                                     trigger='interval',
-                                                     seconds=PT_TRANSFER_INTERVAL)
+                                                         trigger='interval',
+                                                         seconds=PT_TRANSFER_INTERVAL)
 
         log.info("下载文件转移服务启动, 目的目录: 媒体库")
 
@@ -909,42 +908,43 @@ class Downloader:
         """
         downloader_ids = [downloader_id] if downloader_id \
             else self._monitor_downloader_ids
+        
         for downloader_id in downloader_ids:
             with lock:
-                # 获取下载器配置
-                downloader_conf = self.get_downloader_conf(downloader_id)
-                name = downloader_conf.get("name")
-                only_nastool = downloader_conf.get("only_nastool")
-                match_path = downloader_conf.get("match_path")
-                rmt_mode = ModuleConf.RMT_MODES.get(downloader_conf.get("rmt_mode"))
                 # 获取下载器实例
-                _client = self.__get_client(downloader_id)
-                if not _client:
+                download_client = self.__get_client(downloader_id)
+                if not download_client:
                     log.warn(f"【Downloader】下载器id = {downloader_id} 无效")
                     continue
-                trans_tasks = _client.get_transfer_task(tag=PT_TAG if only_nastool else None, match_path=match_path)
+                
+                # 获取下载器配置
+                downloader_conf = self.get_downloader_conf(downloader_id)
+                downloader_name = downloader_conf.get("name")
+                filter_tag = PT_TAG if downloader_conf.get("only_nastool") else None
+                match_path = downloader_conf.get("match_path")
+                rmt_mode = ModuleConf.RMT_MODES.get(downloader_conf.get("rmt_mode"))
+
+                trans_tasks = download_client.get_transfer_task(tag=filter_tag, match_path=match_path)
                 if trans_tasks:
-                    log.info(f"【Downloader】下载器 {name} 开始转移下载文件...")
+                    log.info(f"【Downloader】下载器 {downloader_name} 开始转移下载文件...")
                 else:
-                    log.info(f"【Downloader】下载器 {name} 没有可以进行转移的任务")
+                    log.info(f"【Downloader】下载器 {downloader_name} 没有可以进行转移的任务")
                     continue
+
                 for task in trans_tasks:
-                    done_flag, done_msg = self.filetransfer.transfer_media(
-                        in_from=self._DownloaderEnum[str(downloader_id)],
-                        in_path=task.get("path"),
-                        rmt_mode=rmt_mode)
+                    done_flag, done_msg = self.filetransfer.transfer_media(in_from=self._DownloaderEnum[str(downloader_id)],
+                                                                           in_path=task.get("path"),
+                                                                           rmt_mode=rmt_mode)
                     if not done_flag:
-                        log.warn(f"【Downloader】下载器 {name} 任务%s 转移失败: %s" % (task.get("path"), done_msg))
-                        _client.set_torrents_status(ids=task.get("id"),
-                                                    tags=task.get("tags"))
+                        log.warn(f"【Downloader】下载器 {downloader_name} 任务%s 转移失败: %s" % (task.get("path"), done_msg))
+                        download_client.set_torrents_status(ids=task.get("id"), tags=task.get("tags"))
                     else:
                         if rmt_mode in [RmtMode.MOVE, RmtMode.RCLONE, RmtMode.MINIO]:
-                            log.warn(f"【Downloader】下载器 {name} 移动模式下删除种子文件: %s" % task.get("id"))
-                            _client.delete_torrents(delete_file=True, ids=task.get("id"))
+                            log.warn(f"【Downloader】下载器 {downloader_name} 移动模式下删除种子文件: %s" % task.get("id"))
+                            download_client.delete_torrents(delete_file=True, ids=task.get("id"))
                         else:
-                            _client.set_torrents_status(ids=task.get("id"),
-                                                        tags=task.get("tags"))
-                log.info(f"【Downloader】下载器 {name} 下载文件转移结束")
+                            download_client.set_torrents_status(ids=task.get("id"), tags=task.get("tags"))
+                log.info(f"【Downloader】下载器 {downloader_name} 下载文件转移结束")
 
     def get_torrents(self, downloader_id=None, ids=None, tag=None):
         """

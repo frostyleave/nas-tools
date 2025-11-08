@@ -10,6 +10,7 @@ from typing import Optional
 from app.conf.moduleconf import ModuleConf
 from app.helper.security_helper import SecurityHelper
 from app.helper.thread_helper import ThreadHelper
+from app.job_center import JobCenter
 from app.media.meta.metainfo import MetaInfo
 from app.mediaserver.media_server import MediaServer
 from app.message import Message
@@ -453,3 +454,10 @@ async def memory_snapshot():
         output.append(f"{stat}")
     
     return {"top_memory": output}
+
+@open_router.get("/jobs")
+def get_jobs():
+    """
+    获取所有已注册的定时任务
+    """
+    return JobCenter().get_jobs()
