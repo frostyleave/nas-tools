@@ -8,6 +8,7 @@ import re
 import shutil
 import signal
 import sqlite3
+import threading
 import time
 
 from fastapi import APIRouter, Body, Depends
@@ -61,6 +62,9 @@ action_router = APIRouter()
 # 事件响应
 @action_router.post("/do")
 def do(content: dict = Body(...), current_user: User = Depends(get_current_user)):
+    
+    start_time = time.time()
+
     try:
         cmd = content.get("cmd")
         data = content.get("data") or {}
@@ -69,6 +73,10 @@ def do(content: dict = Body(...), current_user: User = Depends(get_current_user)
     except Exception as e:
         log.exception("处理/do请求出错, cmd=" + content.get("cmd"), e)
         return {"code": -1, "msg": str(e)}
+    finally:
+        cost_time = time.time()
+        process_time = (cost_time - start_time) * 1000  # 转换为毫秒
+        log.debug(f"[{str(threading.get_ident())}] {json.dumps(content)}, 耗时: {process_time:.2f}ms")
 
 
 class WebAction:
@@ -4908,6 +4916,8 @@ class WebAction:
             tmdbid = mediaid
         else:
             tmdbid = None
+        
+        rssid = None
         if mtype in MovieTypes:
             rssid = Subscribe().get_subscribe_id(mtype=MediaType.MOVIE,
                                                  title=title,
@@ -4915,7 +4925,7 @@ class WebAction:
                                                  tmdbid=tmdbid)
         else:
             if not tmdbid:
-                meta_info = MetaInfo(title=title)
+                meta_info = MetaInfo(title=title, no_extra=True)
                 title = meta_info.get_name()
                 season = meta_info.get_season_string()
                 if season:

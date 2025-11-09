@@ -18,17 +18,31 @@ NAME_NOSTRING_RE = r"高清影视之家发布|连载|日剧|美剧|电视剧|动
                    r"|高码版|最终季|全集|合集|[多中国英葡法俄日韩德意西印泰台港粤双文语简繁体特效内封官译外挂]+[字|幕|配|音|轨]+|版本|出品|台版|港版|未删减版"
 
 
-def MetaInfo(title, subtitle=None, mtype=None):
+def MetaInfo(title, subtitle=None, mtype=None, no_extra=False):
     """
     媒体整理入口，根据名称和副标题，判断是哪种类型的识别，返回对应对象
     :param title: 标题、种子名、文件名
     :param subtitle: 副标题、描述
     :param mtype: 指定识别类型，为空则自动识别类型
+    :param mtype: 不包含除名称、季集、年份之外的其他信息
     :return: MetaAnime、MetaVideo
     """
 
     # 记录原始名称
     org_title = title
+    
+    if no_extra:
+        rev_title = title
+        anime_flag = is_anime(rev_title)
+        if mtype == MediaType.ANIME or anime_flag:
+            meta_info = MetaAnime(rev_title, subtitle, False)
+        else:
+            meta_info = MetaVideo(rev_title, subtitle, False)
+        # 设置原始名称
+        meta_info.org_string = org_title
+        # 设置识别词处理后名称
+        meta_info.rev_string = rev_title
+        return meta_info
     
     # 预去除一些无用的词
     rev_title = re.sub(r'%s' % NAME_NOSTRING_RE, "", title, flags=re.IGNORECASE)

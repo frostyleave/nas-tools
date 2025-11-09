@@ -17,7 +17,6 @@ class MetaBase(object):
     媒体信息基类
     """
     proxies = None
-    category_handler = None
     # 是否处理的文件
     fileflag = False
     # 原字符串
@@ -166,8 +165,6 @@ class MetaBase(object):
     _subtitle_episode_range_simple = r"(?:第)?(\d+)\s*-\s*(?:第)?(\d+)"
 
     def __init__(self, title, subtitle=None, fileflag=False):
-        self.category_handler = Category()
-        self.fanart = Fanart()
         if not title:
             return
         self.org_string = title
@@ -432,7 +429,7 @@ class MetaBase(object):
         if self.fanart_backdrop:
             return self.fanart_backdrop
         else:
-            self.fanart_backdrop = self.fanart.get_backdrop(media_type=self.type,
+            self.fanart_backdrop = Fanart().get_backdrop(media_type=self.type,
                                                             queryid=self.tmdb_id if self.type == MediaType.MOVIE else self.tvdb_id)
         if self.fanart_backdrop:
             return self.fanart_backdrop
@@ -449,7 +446,7 @@ class MetaBase(object):
         if self.fanart_backdrop:
             return self.fanart_backdrop
         else:
-            self.fanart_backdrop = self.fanart.get_backdrop(media_type=self.type,
+            self.fanart_backdrop = Fanart().get_backdrop(media_type=self.type,
                                                             queryid=self.tmdb_id if self.type == MediaType.MOVIE else self.tvdb_id)
         if self.fanart_backdrop:
             return self.fanart_backdrop
@@ -468,7 +465,7 @@ class MetaBase(object):
             else:
                 return self.poster_path
         if not self.fanart_poster:
-            self.fanart_poster = self.fanart.get_poster(media_type=self.type,
+            self.fanart_poster = Fanart().get_poster(media_type=self.type,
                                                         queryid=self.tmdb_id if self.type == MediaType.MOVIE else self.tvdb_id)
         return self.fanart_poster or ""
 
@@ -566,6 +563,9 @@ class MetaBase(object):
         self.overview = info.get('overview')
         self.original_language = info.get('original_language')
         self.networks = [network.get("name") for network in info.get('networks') or []]
+
+        category_handler = Category()
+
         if self.type == MediaType.MOVIE:
             self.title = info.get('title')
             self.original_title = info.get('original_title')
@@ -573,7 +573,7 @@ class MetaBase(object):
             self.release_date = info.get('release_date')
             if self.release_date:
                 self.year = self.release_date[0:4]
-            self.category = self.category_handler.get_movie_category(info)
+            self.category = category_handler.get_movie_category(info)
         else:
             self.title = info.get('name')
             self.original_title = info.get('original_name')
@@ -582,9 +582,9 @@ class MetaBase(object):
             if self.release_date:
                 self.year = self.release_date[0:4]
             if self.type == MediaType.TV:
-                self.category = self.category_handler.get_tv_category(info)
+                self.category = category_handler.get_tv_category(info)
             else:
-                self.category = self.category_handler.get_anime_category(info)
+                self.category = category_handler.get_anime_category(info)
         self.poster_path = Config().get_tmdbimage_url(info.get('poster_path')) \
             if info.get('poster_path') else ""
         self.backdrop_path = Config().get_tmdbimage_url(info.get('backdrop_path')) \

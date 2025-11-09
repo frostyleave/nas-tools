@@ -156,6 +156,8 @@
                 `javascript:navmenu('recommend?type=${rankItem.type}&subtype=${rankItem.subtype}&week=${rankItem.week ?? ""}&title=${encodeURIComponent(rankItem.title)}')`
                 );
             }
+
+            $rankContainer.append(rankSlide);
             
             // 请求接口, 查询相应榜单数据
             axios_post_do("get_recommend", { "type": rankItem.type, "subtype": rankItem.subtype, "page": 1, "week": rankItem.week}, (ret) => {
@@ -184,7 +186,6 @@
                 });
 
                 rankSlide.slide_card = slide_cards;
-                $rankContainer.append(rankSlide);
                 
             });
 
