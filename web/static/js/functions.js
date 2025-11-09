@@ -788,7 +788,12 @@ function convert_mediaid(tmdbid) {
 
 
 // 订阅按钮被点击时
-function rss_love_click(title, year, media_type, tmdb_id, fav, remove_func, add_func) {
+function rss_love_click(event, title, year, media_type, tmdb_id, fav, remove_func, add_func) {
+
+  if (event) {
+    event.stopPropagation();
+  }
+
   if (fav == "1"){
     show_ask_modal("是否确定将 " + title + " 从订阅中移除？", function () {
       hide_ask_modal();

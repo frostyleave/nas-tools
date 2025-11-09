@@ -31,7 +31,7 @@
             $('#main-info-container').data("data", media_info);
 
             // 绘制主要信息
-            const mainHtml = generateMainHtml(media_info, media_info.fav, media_info.item_url, [], tmdbid);
+            const mainHtml = generateMainHtml(media_info, media_info.fav, media_info.item_url, [], tmdbid, media_type);
             $('#main-info-container').append(mainHtml);
 
             // 背景轮播
@@ -67,7 +67,7 @@
       );
 
       // --- HTML 生成辅助函数 ---
-      function generateMainHtml(info, fav, item_url, seasons, tmdbid) {
+      function generateMainHtml(info, fav, item_url, seasons, tmdbid, media_type) {
           const genresHtml = info.genres ? info.genres.map(el => 
               `<span class="badge bg-indigo mb-1 mx-1"> ${el}</span>`
           ).join('') : '';
@@ -86,16 +86,16 @@
               </span>`;
           
           const favBtnHtml = fav == "1" ? `
-              <span class="btn btn-pinterest d-none d-sm-inline-flex" id="fav-btn">
+              <span class="btn btn-pinterest d-none d-sm-inline-flex" onclick='rss_love_click(event, "${info.title}", "${info.year}", "${media_type}", "${tmdbid}", "${fav}")'>
                 <i class="ti ti-heart-filled fs-2 text-purple"></i> 删除订阅
               </span>
-              <span class="btn btn-icon bg-transparent border-0 d-sm-none" id="fav-btn-icon">
+              <span class="btn btn-icon bg-transparent border-0 d-sm-none" onclick='rss_love_click(event, "${info.title}", "${info.year}", "${media_type}", "${tmdbid}", "${fav}")'>
                 <i class="ti ti-heart-filled fs-2 text-purple"></i>
               </span>` : `
-              <span class="btn btn-purple d-none d-sm-inline-flex" id="fav-btn">
+              <span class="btn btn-purple d-none d-sm-inline-flex" onclick='rss_love_click(event, "${info.title}", "${info.year}", "${media_type}", "${tmdbid}", "${fav}")'>
                 <i class="ti ti-heart fs-2 text-white"></i> 添加订阅
               </span>
-              <span class="btn btn-icon bg-transparent border-0 d-sm-none" id="fav-btn-icon">
+              <span class="btn btn-icon bg-transparent border-0 d-sm-none" onclick='rss_love_click(event, "${info.title}", "${info.year}", "${media_type}", "${tmdbid}", "${fav}")'>
                 <i class="ti ti-heart fs-2"></i>
               </span>`;
 
@@ -354,17 +354,6 @@
           $document.on('click', '#watch-btn, #watch-btn-icon', function(e) {
             e.stopPropagation();
             window.open($(this).data('url'), '_blank');
-          });
-
-          // 订阅/收藏按钮 (来自 _loveClick)
-          $document.on('click', '#fav-btn, #fav-btn-icon', function(e) {
-            e.stopPropagation();
-
-            var pageData = $('#main-info-container').data("data");
-            var mediaType = $('#main-info-container').data("type");
-            var tmdbid = $('#main-info-container').data("tmdbid");
-
-            rss_love_click(pageData.title, pageData.year, mediaType, tmdbid, pageData.fav);
           });
 
       }

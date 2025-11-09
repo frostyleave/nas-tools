@@ -86,6 +86,18 @@ export class NormalCard extends observeState(CustomElement) {
             </div>
           </div>
         </div>`;
+    } else if (this.show_sub == "2") {
+      return html`
+        <div class="d-flex justify-content-between">
+          <a class="text-muted" title="搜索资源" @click=${(e) => { e.stopPropagation() }}
+             href='javascript:media_search("${this.tmdb_id}", "${this.title}", "${this.media_type}")'>
+            <span class="icon-pulse text-white">
+              <i class="ti ti-search fs-2"></i>
+            </span>
+          </a>
+          <div class="ms-auto rss-btn">
+          </div>
+        </div>`;
     } else {
       return nothing;
     }

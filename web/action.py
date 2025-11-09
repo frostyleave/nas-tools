@@ -146,6 +146,7 @@ class WebAction:
             "get_site_activity": self.__get_site_activity,
             "get_site_history": self.__get_site_history,
             "get_recommend": self.get_recommend,
+            "batch_get_media_exists_info": self.batch_get_media_exists_info,
             "get_downloaded": self.get_downloaded,
             "get_site_seeding_info": self.__get_site_seeding_info,
             "clear_tmdb_cache": self.__clear_tmdb_cache,
@@ -2412,6 +2413,11 @@ class WebAction:
                                                    tags=tags,
                                                    page=CurrentPage)
 
+        fav = data.get("fav", 1)
+        # 不检查存在与订阅状态
+        if not fav:
+            return {"code": 0, "Items": res_list}
+
         # 补充存在与订阅状态
         for res in res_list:
             fav, rssid, item_url = self.get_media_exists_info(mtype=res.get("type"),
@@ -2420,9 +2426,31 @@ class WebAction:
                                                               mediaid=res.get("id"))
             res.update({
                 'fav': fav,
-                'rssid': rssid
+                'rssid': rssid,
+                'item_url': item_url
             })
         return {"code": 0, "Items": res_list}
+    
+    def batch_get_media_exists_info(self, data):
+        """
+        批量获取媒体存在标记：是否存在、是否订阅
+        """
+        media_list = data.get("list")
+        if not media_list:
+            return {"code": 0, "Items": []} 
+
+        for item in media_list:
+            fav, rssid, item_url = self.get_media_exists_info(mtype=item.get("type"),
+                                                              title=item.get("title"),
+                                                              year=item.get("year"),
+                                                              mediaid=item.get("tmdbid"))
+            item.update({
+                'fav': fav,
+                'rssid': rssid,
+                'item_url': item_url
+            })
+        return {"code": 0, "items": media_list}
+
 
     def get_randking_data(self, data, Type, SubType, CurrentPage):
         

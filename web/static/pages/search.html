@@ -219,7 +219,7 @@
                 <a class="text-muted zoom-link" title="搜索资源" href='javascript:media_search("${mediaItem.tmdbid}", "${mediaItem.title}", "${mediaItem.type_key}")'>
                   <i class="ti ti-search fs-2 text-white"></i>
                 </a>
-                <a class="text-muted zoom-link" title="加入/取消订阅" href='javascript:rss_love_click("${mediaItem.title}", "${mediaItem.year}", "${mediaItem.type_key}", "${mediaItem.tmdbid}", "${mediaItem.fav}")'>
+                <a class="text-muted zoom-link" title="加入/取消订阅" href='javascript:void(0)' onclick='rss_love_click(event, "${mediaItem.title}", "${mediaItem.year}", "${mediaItem.type_key}", "${mediaItem.tmdbid}", "${mediaItem.fav}")'>
                   ${mediaItem.fav == "1" ? `<i class="ti ti-heart-filled fs-2 text-purple"></i>` : `<i class="ti ti-heart fs-2 text-white"></i>`}
                 </a>
               </div>
