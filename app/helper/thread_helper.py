@@ -10,8 +10,8 @@ class _ThreadHelper:
     search_executor = None
 
     def __init__(self):
-        self.common_executor = ThreadPoolExecutor(max_workers=20)
-        self.search_executor = ThreadPoolExecutor(max_workers=10)
+        self.common_executor = ThreadPoolExecutor(max_workers=5)
+        self.search_executor = ThreadPoolExecutor(max_workers=8)
 
     def start_thread(self, func, kwargs):
         self.common_executor.submit(func, *kwargs)

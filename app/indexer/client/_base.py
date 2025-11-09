@@ -83,6 +83,9 @@ class _IIndexClient(metaclass=ABCMeta):
         """
         从搜索结果中匹配符合资源条件的记录
         """
+
+        filter_time = datetime.datetime.now()
+
         ret_array = []
         index_sucess = 0
         index_rule_fail = 0
@@ -304,8 +307,10 @@ class _IIndexClient(metaclass=ABCMeta):
 
         # 循环结束
         # 计算耗时
-        time_span = (datetime.datetime.now() - start_time).seconds
-        text_info = f"【{self.client_name}】{indexer.name} {len(result_array)} 条数据中，过滤:{index_rule_fail}，不匹配:{index_match_fail}，错误:{index_error}，有效:{index_sucess}，耗时:{time_span} 秒"
+        cost_time = datetime.datetime.now()
+        time_span = (cost_time - start_time).seconds
+        filter_span = (cost_time - filter_time).seconds
+        text_info = f"【{self.client_name}】{indexer.name} {len(result_array)} 条数据中，过滤:{index_rule_fail}，不匹配:{index_match_fail}，错误:{index_error}，有效:{index_sucess}，耗时:{filter_span} 秒, 总耗时:{time_span} 秒"
 
         log.info(text_info)        
         self.progress.update(ptype=ProgressKey.Search, text=text_info)
