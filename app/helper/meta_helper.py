@@ -58,16 +58,15 @@ class MetaHelper(object):
         """
         根据KEY值获取缓存值
         """
-        with lock:
-            info: dict = self._meta_data.get(key)
-            if info:
-                expire = info.get(CACHE_EXPIRE_TIMESTAMP_STR)
-                if not expire or int(time.time()) < expire:
-                    info[CACHE_EXPIRE_TIMESTAMP_STR] = int(time.time()) + EXPIRE_TIMESTAMP
-                    self.update_meta_data({key: info})
-                elif expire and self._tmdb_cache_expire:
-                    self.delete_meta_data(key)
-            return info or {}
+        info: dict = self._meta_data.get(key)
+        if info:
+            expire = info.get(CACHE_EXPIRE_TIMESTAMP_STR)
+            if not expire or int(time.time()) < expire:
+                info[CACHE_EXPIRE_TIMESTAMP_STR] = int(time.time()) + EXPIRE_TIMESTAMP
+                self.update_meta_data({key: info})
+            elif expire and self._tmdb_cache_expire:
+                self.delete_meta_data(key)
+        return info or {}
 
     def dump_meta_data(self, search, page, num):
         """

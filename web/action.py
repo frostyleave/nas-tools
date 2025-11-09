@@ -27,7 +27,7 @@ from app.conf import SystemConfig, ModuleConf
 from app.downloader import Downloader
 from app.filetransfer import FileTransfer
 from app.filter import Filter
-from app.helper import DbHelper, ProgressHelper, ThreadHelper, \
+from app.helper import DbHelper, ProgressHelper, thread_helper, \
     MetaHelper, DisplayHelper, WordsHelper
 from app.helper import RssHelper, PluginHelper
 from app.indexer import Indexer
@@ -438,7 +438,7 @@ class WebAction:
         command = self._commands.get(msg)
         if command:
             # 启动服务
-            ThreadHelper().start_thread(command.get("func"), ())
+            thread_helper.start_thread(command.get("func"), ())
             # 消息回应
             Message().send_channel_msg(
                 channel=in_from, title="正在运行 %s ..." % command.get("desc"), user_id=user_id, client_id=client_id)
@@ -456,7 +456,7 @@ class WebAction:
                 return
 
         # 站点搜索或者添加订阅
-        ThreadHelper().start_thread(search_media_by_message,
+        thread_helper.start_thread(search_media_by_message,
                                     (msg, in_from, user_id, user_name, client_id))
 
     def set_config_value(self, cfg, cfg_key, cfg_value):
@@ -574,7 +574,7 @@ class WebAction:
         }
         sch_item = data.get("item")
         if sch_item and commands.get(sch_item):
-            ThreadHelper().start_thread(commands.get(sch_item), ())
+            thread_helper.start_thread(commands.get(sch_item), ())
         return {"retmsg": "服务已启动", "item": sch_item}
 
     def __search(self, data):
@@ -1833,9 +1833,9 @@ class WebAction:
         rssid = data.get("rssid")
         page = data.get("page")
         if mtype == "MOV":
-            ThreadHelper().start_thread(Subscribe().subscribe_search_movie, (rssid,))
+            thread_helper.start_thread(Subscribe().subscribe_search_movie, (rssid,))
         else:
-            ThreadHelper().start_thread(Subscribe().subscribe_search_tv, (rssid,))
+            thread_helper.start_thread(Subscribe().subscribe_search_tv, (rssid,))
         return {"code": 0, "page": page}
 
     def get_system_message(self, lst_time):
@@ -2760,7 +2760,7 @@ class WebAction:
         """
         librarys = data.get("librarys") or []
         SystemConfig().set(key=SystemConfigKey.SyncLibrary, value=librarys)
-        ThreadHelper().start_thread(MediaServer().sync_mediaserver, ())
+        thread_helper.start_thread(MediaServer().sync_mediaserver, ())
         return {"code": 0}
 
     def __mediasync_state(self):
@@ -4244,7 +4244,7 @@ class WebAction:
         path = data.get("path")
         if not path:
             return {"code": -1, "msg": "请指定刮削路径"}
-        ThreadHelper().start_thread(Scraper().folder_scraper, (path, None, 'force_all'))
+        thread_helper.start_thread(Scraper().folder_scraper, (path, None, 'force_all'))
         return {"code": 0, "msg": "刮削任务已提交，正在后台运行。"}
 
     def __get_download_setting(self, data):
@@ -4933,7 +4933,7 @@ class WebAction:
         """
         执行单个目录的目录同步
         """
-        ThreadHelper().start_thread(Sync().transfer_sync, (data.get("sid"),))
+        thread_helper.start_thread(Sync().transfer_sync, (data.get("sid"),))
         return {"code": 0, "msg": "执行成功"}
 
     def __update_plugin_config(self, data):

@@ -16,7 +16,7 @@ from urllib.parse import unquote
 from app.conf import ModuleConf
 from app.conf import SystemConfig
 from app.filetransfer import FileTransfer
-from app.helper import DbHelper, ThreadHelper, SubmoduleHelper
+from app.helper import DbHelper, thread_helper, SubmoduleHelper
 from app.indexer.client import InterfaceSpider, MTorrentSpider
 from app.indexer.client.browser import PlaywrightHelper
 from app.indexer.manager import IndexerInfo, IndexerManager
@@ -480,7 +480,7 @@ class Downloader:
                         and subtitle_dir \
                         and site_info \
                         and site_info.subtitle:
-                    ThreadHelper().start_thread(
+                    thread_helper.start_thread(
                         self.sitesubtitle.download,
                         (
                             media_info,

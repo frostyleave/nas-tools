@@ -26,7 +26,7 @@ class JobCenter:
     def __init__(self):
         self._scheduler = BackgroundScheduler(
             timezone=Config().get_timezone(),
-            executors={"default": ThreadPoolExecutor(50)},
+            executors={"default": ThreadPoolExecutor(20)},
         )
 
         # 注册事件监听器

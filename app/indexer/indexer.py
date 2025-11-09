@@ -2,12 +2,12 @@ import copy
 import datetime
 import re
 
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from concurrent.futures import as_completed
 from typing import List, Optional
 
 import log
 
-from app.helper import ProgressHelper, DbHelper
+from app.helper import ProgressHelper, DbHelper, thread_helper
 from app.indexer.client.builtin import BuiltinIndexer
 from app.media import Media
 from app.media.douban import DouBan
@@ -139,14 +139,13 @@ class Indexer(object):
             self.progress.update(ptype=ProgressKey.Search, text=log_info)
 
         # 多线程
-        executor = ThreadPoolExecutor(max_workers=len(indexers))
         all_task = []
         for indexer in indexers:
             order_seq = 100 - int(indexer.pri)
 
             # 原始标题检索
             if 'title' == indexer.search_type and key_word:
-                task = executor.submit(self._client.search, order_seq, indexer, key_word, copy.deepcopy(filter_args), match_media, in_from)
+                task = thread_helper.submit_search(self._client.search, order_seq, indexer, key_word, copy.deepcopy(filter_args), match_media, in_from)
                 all_task.append(task)
 
             # 其他搜索类型都需要 match_media 不为空
@@ -158,20 +157,20 @@ class Indexer(object):
                 # 剧集信息, 查询特定季的豆瓣id
                 douban_ids = self.__get_douban_tv_season_id(match_media)
                 for db_id in douban_ids:
-                    task = executor.submit(self._client.search, order_seq, indexer, db_id, copy.deepcopy(filter_args), match_media, in_from)
+                    task = thread_helper.submit_search(self._client.search, order_seq, indexer, db_id, copy.deepcopy(filter_args), match_media, in_from)
                     all_task.append(task)
                         
 
             # imdb id 检索
             if 'imdb' == indexer.search_type and match_media.imdb_id:
-                task = executor.submit(self._client.search, order_seq, indexer, match_media.imdb_id, copy.deepcopy(filter_args), match_media, in_from)
+                task = thread_helper.submit_search(self._client.search, order_seq, indexer, match_media.imdb_id, copy.deepcopy(filter_args), match_media, in_from)
                 all_task.append(task)
 
             # 英文名检索
             if 'en_name' == indexer.search_type or indexer.en_expand:
                 en_name = self.__get_en_name(match_media)
                 if en_name:
-                    task = executor.submit(self._client.search, order_seq, indexer, en_name, copy.deepcopy(filter_args), match_media, in_from)
+                    task = thread_helper.submit_search(self._client.search, order_seq, indexer, en_name, copy.deepcopy(filter_args), match_media, in_from)
                     all_task.append(task)
 
         ret_array = []

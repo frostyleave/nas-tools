@@ -4,12 +4,12 @@ import importlib
 
 from pathlib import Path
 from threading import Thread
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from concurrent.futures import as_completed
 
 import log
 
 from app.conf import SystemConfig
-from app.helper import SubmoduleHelper
+from app.helper import SubmoduleHelper, thread_helper
 from app.plugins.event_manager import EventManager
 from app.utils import SystemUtils, PathUtils, ImageUtils, RequestUtils
 from app.utils.commons import singleton
@@ -365,7 +365,6 @@ class PluginManager:
                 source_url.append(url)
 
             # 创建线程池
-            executor = ThreadPoolExecutor(max_workers=len(source_url) or 1)
             for url in source_url:
                 # 如果url为空则不处理
                 if not url:
@@ -374,7 +373,7 @@ class PluginManager:
                 try:
                     all_task = []
                     # 执行获取第三方仓库列表
-                    task = executor.submit(self.get_external_plugin_list, url)
+                    task = thread_helper.start_thread(self.get_external_plugin_list, url)
                     all_task.append(task)
 
                     finish_count = 0

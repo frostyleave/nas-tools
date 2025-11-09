@@ -7,7 +7,7 @@ from time import sleep
 from jinja2 import Template
 
 from app.downloader import Downloader
-from app.helper.thread_helper import ThreadHelper
+from app.helper.thread_helper import thread_helper
 from app.media import DouBan
 from app.media.meta import MetaInfo
 from app.plugins import EventHandler
@@ -124,7 +124,7 @@ class DoubanSync(_IPluginModule):
 
             if self._onlyonce:
                 self.info("豆瓣同步服务启动，立即运行一次")
-                ThreadHelper().start_thread(self.sync, ())
+                thread_helper.start_thread(self.sync, ())
 
                 # 关闭一次性开关
                 self._onlyonce = False

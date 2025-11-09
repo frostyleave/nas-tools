@@ -12,7 +12,7 @@ from urllib.parse import urljoin
 
 from app.helper import SubmoduleHelper, SiteHelper
 from app.helper.cloudflare_helper import under_challenge
-from app.helper.thread_helper import ThreadHelper
+from app.helper.thread_helper import thread_helper
 from app.indexer.client.browser import PlaywrightHelper
 from app.plugins import EventHandler
 from app.plugins.modules._base import _IPluginModule
@@ -273,7 +273,7 @@ class AutoSignIn(_IPluginModule):
 
             # 运行一次
             if self._onlyonce:
-                ThreadHelper().start_thread(self.sign_in, ())
+                thread_helper.start_thread(self.sign_in, ())
                 self.info("签到任务启动，立即运行一次")
 
             if self._onlyonce or self._clean:

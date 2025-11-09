@@ -13,7 +13,7 @@ import log
 
 from app.conf import ModuleConf
 from app.helper import DbHelper, ProgressHelper
-from app.helper import ThreadHelper
+from app.helper import thread_helper
 from app.media import Media, Category, Scraper
 from app.media.meta import MetaInfo
 from app.mediaserver import MediaServer
@@ -36,7 +36,6 @@ class FileTransfer:
     category = None
     mediaserver = None
     scraper = None
-    threadhelper = None
     dbhelper = None
     progress = None
     eventmanager = None
@@ -67,7 +66,6 @@ class FileTransfer:
         self.message = Message()
         self.category = Category()
         self.scraper = Scraper()
-        self.threadhelper = ThreadHelper()
         self.dbhelper = DbHelper()
         self.progress = ProgressHelper()
         self.eventmanager = EventManager()

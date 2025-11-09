@@ -9,7 +9,7 @@ from typing import Optional
 
 from app.conf.moduleconf import ModuleConf
 from app.helper.security_helper import SecurityHelper
-from app.helper.thread_helper import ThreadHelper
+from app.helper.thread_helper import thread_helper
 from app.job_center import JobCenter
 from app.media.meta.metainfo import MetaInfo
 from app.mediaserver.media_server import MediaServer
@@ -222,7 +222,7 @@ async def plex_webhook(request: Request):
     is_live = request_json.get("Metadata", {}).get("live") == "1"
 
     if event_match and type_match and not is_live:
-        ThreadHelper().start_thread(MediaServer().webhook_message_handler,
+        thread_helper.start_thread(MediaServer().webhook_message_handler,
                                     (request_json, MediaServerType.PLEX))
         EventManager().send_event(EventType.PlexWebhook, request_json)
     return Response(content="Ok", status_code=200)
@@ -239,7 +239,7 @@ async def jellyfin_webhook(request: Request):
     request_json = await request.json()
     log.debug("收到Jellyfin Webhook报文: %s", request_json)
 
-    ThreadHelper().start_thread(MediaServer().webhook_message_handler,
+    thread_helper.start_thread(MediaServer().webhook_message_handler,
                                 (request_json, MediaServerType.JELLYFIN))
     EventManager().send_event(EventType.JellyfinWebhook, request_json)
     return Response(content="Ok", status_code=200)
@@ -263,7 +263,7 @@ async def emby_webhook(request: Request):
         request_json = query
 
     log.debug("收到Emby Webhook报文: %s", request_json)
-    ThreadHelper().start_thread(MediaServer().webhook_message_handler,
+    thread_helper.start_thread(MediaServer().webhook_message_handler,
                                 (request_json, MediaServerType.EMBY))
     EventManager().send_event(EventType.EmbyWebhook, request_json)
     return Response(content="Ok", status_code=200)

@@ -7,7 +7,7 @@ from threading import Event
 from jinja2 import Template
 
 from app.helper import RssHelper
-from app.helper.thread_helper import ThreadHelper
+from app.helper.thread_helper import thread_helper
 from app.media import Media
 from app.mediaserver import MediaServer
 from app.plugins.modules._base import _IPluginModule
@@ -94,7 +94,7 @@ class DoubanRank(_IPluginModule):
 
             if self._onlyonce:
                 self.info("订阅服务启动，立即运行一次")
-                ThreadHelper().start_thread(self.__refresh_rss, ())
+                thread_helper.start_thread(self.__refresh_rss, ())
                 # 关闭一次性开关
                 self._onlyonce = False
                 self.update_config({

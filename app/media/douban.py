@@ -1,7 +1,6 @@
 import random
 import log
 
-from threading import Lock
 from time import sleep
 from typing import Optional
 
@@ -11,9 +10,6 @@ from app.utils import StringUtils
 from app.utils import RequestUtils
 from app.utils.commons import singleton
 from app.utils.types import MediaType
-
-lock = Lock()
-
 
 @singleton
 class DouBan:
