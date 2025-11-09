@@ -3,6 +3,7 @@ from typing import Any, Dict, List, Optional
 from apscheduler.job import Job
 from apscheduler.jobstores.base import JobLookupError
 from apscheduler.executors.pool import ThreadPoolExecutor
+from apscheduler.schedulers import SchedulerNotRunningError, SchedulerAlreadyRunningError
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.events import (
     EVENT_JOB_SUBMITTED,
@@ -27,6 +28,17 @@ class JobCenter:
             timezone=Config().get_timezone(),
             executors={"default": ThreadPoolExecutor(50)},
         )
+
+        # 注册事件监听器
+        self._scheduler.add_listener(
+            self._job_start_listener, 
+            EVENT_JOB_SUBMITTED
+        )
+        self._scheduler.add_listener(
+            self._job_end_listener,
+            EVENT_JOB_EXECUTED | EVENT_JOB_ERROR
+        )
+
         self.init_config()
 
     def init_config(self):
@@ -40,17 +52,13 @@ class JobCenter:
         if not self._scheduler:
             return
         
-        # 注册事件监听器
-        self._scheduler.add_listener(
-            self._job_start_listener, 
-            EVENT_JOB_SUBMITTED
-        )
-        self._scheduler.add_listener(
-            self._job_end_listener,
-            EVENT_JOB_EXECUTED | EVENT_JOB_ERROR
-        )
-
-        self._scheduler.start()
+        try:
+            self._scheduler.start()
+            log.info('[Sys]定时服务已启动')
+        except SchedulerAlreadyRunningError as ex:
+            log.info('[Sys]定时服务已在运行中..')
+        except Exception as e:
+            log.exception('[Sys]启动定时服务出错: ', e)    
 
     def stop_service(self):
         """
@@ -59,6 +67,9 @@ class JobCenter:
         try:
             if self._scheduler:
                 self._scheduler.remove_all_jobs()
+                self._scheduler.shutdown()
+        except SchedulerNotRunningError as ex:
+            log.info('[Sys]定时服务不在运行中')
         except Exception as e:
             log.exception('[Sys]停止定时服务出错: ', e)
 

@@ -151,13 +151,8 @@ class WebUtils:
             media_info.set_tmdb_info(info)
         
         # 豆瓣信息补全
-        if media_info and info:
-            imdb_id = ''
-            if hasattr(info, 'imdb_id') and info.imdb_id:
-                imdb_id = info.imdb_id
-            elif hasattr(info, 'external_ids') and info.external_ids and hasattr(info.external_ids, 'imdb_id') and  info.external_ids.imdb_id:
-                imdb_id = info.external_ids.imdb_id
-            WebUtils.fill_douban_info(title, mtype, media_info, imdb_id)
+        if media_info:
+            WebUtils.fill_douban_info(mtype, media_info)
 
         return media_info
     
@@ -171,11 +166,12 @@ class WebUtils:
 
 
     @staticmethod
-    def fill_douban_info(title:str, mtype:MediaType, media_info:MetaBase, imdb_id:str = None):
+    def fill_douban_info(mtype:MediaType, media_info:MetaBase):
         """
         补全豆瓣信息: 豆瓣id, 剧集名称
         """
-        media_info.douban_id = ''
+
+        imdb_id = media_info.imdb_id
         if not imdb_id:
             return
         try:

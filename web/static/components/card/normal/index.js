@@ -124,7 +124,7 @@ export class NormalCard extends observeState(CustomElement) {
           ${this._render_right_up()}
         </div>
         <div class="card-img-overlay rounded-3 ms-auto" style="background-color: rgba(0, 0, 0, 0.2);"
-             @click=${() => { navmenu(`media_detail?type=${this.media_type}&id=${this.tmdb_id}`) }}>
+             @click=${() => { navmenu(`media_detail?type=${this.media_type}&id=${this.tmdb_id}&title=${this.title}&year=${this.year}`) }}>
           <div style="cursor: pointer;">
             ${this.year && !this.overview.startsWith(this.year)
               ? html`<div class="text-white card-secondary-text"><strong>${this.site ? this.site : this.year}</strong></div>` 

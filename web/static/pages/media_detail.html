@@ -11,6 +11,8 @@
       const urlParams = new URLSearchParams(queryString);
       const media_type = urlParams.get('type') || '';
       const tmdbid = urlParams.get('id') || '';
+      const year = urlParams.get('year') || '';
+      const title = urlParams.get('title') || '';      
 
       if (!media_type || !tmdbid) {
           show_fail_modal("页面参数(type/tmdbid)缺失！");
@@ -19,7 +21,7 @@
       }
 
       // 执行主数据请求
-      axios_post_do("media_brief_info", { "type": media_type, "tmdbid": tmdbid },
+      axios_post_do("media_brief_info", { "type": media_type, "tmdbid": tmdbid, "year": year, "title": title },
         (ret) => {
           if (ret.code === 0) {
 
@@ -176,8 +178,10 @@
 
       function asyncRenderExtraDataCard(tmdbid, media_type, media_info) {
 
+        media_id = tmdbid.startsWith('DB:') ? tmdbid : media_info.tmdbid
+
         // 演职人员、季集信息
-        axios_post_do("media_extra_info", { "type": media_type, "mediaid": tmdbid },
+        axios_post_do("media_extra_info", { "type": media_type, "mediaid": media_id },
           (ret) => {
             if (ret.code === 0) {
 

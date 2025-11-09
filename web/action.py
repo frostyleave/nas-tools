@@ -4706,14 +4706,29 @@ class WebAction:
                         "rssid": rssid,
                     }
                 }
-
-        info = Media().get_tmdb_info(tmdbid=tmdbid, mtype=mtype, append_to_response="all")
-        if not info:
-            return { "code": 1, "msg": "无法查询到TMDB信息" }
         
-        title = WebUtils.get_tmdb_title(info)
-        media_info = MetaInfo(title)
-        media_info.set_tmdb_info(info)
+        if str(tmdbid).startswith("BG:"):
+
+            title = data.get("title")
+            if not title:
+                return { "code": 1, "msg": "无法查询到BANGUMI信息" }
+
+            year = data.get("year", '')           
+            media_info = Media().get_media_info(title=f"{title} {year}",
+                                                mtype=MediaType.ANIME,
+                                                append_to_response="all")
+            
+            if not media_info or not media_info.tmdb_info:
+                return { "code": 1, "msg": "无法查询到Bangumi资源的TMDB信息" }
+            
+        else:
+            info = Media().get_tmdb_info(tmdbid=tmdbid, mtype=mtype, append_to_response="all")
+            if not info:
+                return { "code": 1, "msg": "无法查询到TMDB信息" }
+            
+            title = WebUtils.get_tmdb_title(info)
+            media_info = MetaInfo(title)
+            media_info.set_tmdb_info(info)
                
         # 查询存在及订阅状态
         fav, rssid, item_url = self.get_media_exists_info(mtype=mtype,
@@ -4749,8 +4764,7 @@ class WebAction:
         # TMDBID 或 DB:豆瓣ID
         mediaid = data.get("mediaid")
         if not mediaid:
-            return {"code": 1, "msg": "未指定媒体ID"}        
-
+            return {"code": 1, "msg": "未指定媒体ID"}
         
         mtype = MediaType.MOVIE if data.get("type") in MovieTypes else MediaType.TV
         media_info = WebUtils.get_mediainfo_from_id(mediaid=mediaid, mtype=mtype)
@@ -4783,8 +4797,11 @@ class WebAction:
         if media_info.douban_id:
             crews, actors = self._douBan.get_media_celebrities(media_info.douban_id.split(',')[0])
         else:
-            crews = media_handler.get_tmdb_crews(tmdbinfo=media_info.tmdb_info, nums=6)
-            actors = media_handler.get_tmdb_cats(mtype=mtype, tmdbid=media_info.tmdb_id)
+            if media_info.tmdb_info:
+                crews = media_info.tmdb_info.get("credits", {}).get("crew") or []
+                if crews:
+                    crews = crews[:6]
+                actors = media_handler.get_tmdb_cats(mtype=mtype, tmdbid=media_info.tmdb_id)
 
         # 合并到一个集合
         crews.extend(actors)

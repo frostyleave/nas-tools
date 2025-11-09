@@ -606,7 +606,7 @@
   function renderMediaServers(mediaServerConf, configInfo) {
 
     let $list = $("#media-server-list");
-    list.data("server_conf", mediaServerConf);
+    $list.data("server_conf", mediaServerConf);
 
     $.each(mediaServerConf, function (type, server) {
       let active = (configInfo.media.media_server === type) ?

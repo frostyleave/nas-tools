@@ -703,7 +703,8 @@ class Media:
                        language=None,
                        chinese=True,
                        append_to_response=None,
-                       meta_info = None):
+                       meta_info = None,
+                       no_extra=False):
         """
         只有名称信息，判别是电影还是电视剧并搜刮TMDB信息，用于种子名称识别
         :param title: 种子名称
@@ -724,7 +725,7 @@ class Media:
         # 设置语言
         self.__set_language(language)
         # 识别
-        meta_info = meta_info if meta_info else MetaInfo(title, subtitle=subtitle)
+        meta_info = meta_info if meta_info else MetaInfo(title, subtitle=subtitle, no_extra=no_extra)
         if not meta_info.get_name() or not meta_info.type:
             log.warn("【Meta】%s 未识别出有效信息！" % meta_info.org_string)
             return None
@@ -782,10 +783,10 @@ class Media:
                     return file_media_info
 
         # 缓存没有查询到，从接口查询
-        if mtype != MediaType.TV and not year:
+        if mtype != MediaType.TV and mtype != MediaType.ANIME and not year:
             file_media_info = self.__search_multi_tmdb(file_media_name=name)
         else:
-            if mtype == MediaType.TV:
+            if mtype == MediaType.TV or mtype == MediaType.ANIME:
                 # 确定是电视
                 file_media_info = self.__search_tmdb(file_media_name=name,
                                                      first_media_year=year,

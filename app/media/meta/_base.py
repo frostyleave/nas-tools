@@ -68,7 +68,7 @@ class MetaBase(object):
     # TVDB ID
     tvdb_id = 0
     # 豆瓣 ID
-    douban_id = 0
+    douban_id = ""
     # 自定义搜索词
     keyword = None
     # 媒体标题
