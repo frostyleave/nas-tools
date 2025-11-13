@@ -21,9 +21,6 @@ from web.lifespan import lifespan
 
 from version import APP_VERSION
 
-# 配置FastAPI日志
-log.setup_fastapi_logging()
-
 # FastAPI App
 app = FastAPI(
     title="NAStool",

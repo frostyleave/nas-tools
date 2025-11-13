@@ -167,7 +167,7 @@ class TorrentRemover(object):
                 if torrents and title and text:
                     self.message.send_auto_remove_torrents_message(title=title, text=text)
             except Exception as e:
-                log.exception(f"【TorrentRemover】自动删种任务[{task.get('name')}]异常：", e)
+                log.exception("【TorrentRemover】自动删种任务[%s]异常：", task.get('name'))
             finally:
                 lock.release()
 

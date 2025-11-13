@@ -41,7 +41,7 @@ class WebUtils:
             else:
                 return ""
         except Exception as err:
-            log.exception('[Web]根据IP址查询真实地址失败: ', err)
+            log.exception('[Web]根据IP址查询真实地址失败: ')
             return ""
 
     @staticmethod
@@ -71,7 +71,7 @@ class WebUtils:
                     version = version.split()[0]
                 return version, link
         except Exception as e:
-            log.exception('[Web]获取最新版本号: ', e)
+            log.exception('[Web]获取最新版本号: ')
         return None, None
 
     @staticmethod
@@ -202,7 +202,7 @@ class WebUtils:
             #     WebUtils.adjust_tv_search_name(mtype, douban_info.get("title"), media_info)
 
         except Exception as err:
-            log.exception('[Web]补全豆瓣信息失败: ', err)
+            log.exception('[Web]补全豆瓣信息失败: ')
 
 
     @staticmethod

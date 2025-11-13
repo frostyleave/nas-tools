@@ -98,7 +98,7 @@ class SiteSubtitle:
                             shutil.rmtree(zip_path)
                             os.remove(zip_file)
                         except Exception as err:
-                            log.exception('【Sites】删除临时文件出错: ', err)
+                            log.exception('【Sites】删除临时文件出错: ')
                     else:
                         sub_file = os.path.join(self._save_tmp_path, file_name)
                         # 保存

@@ -106,9 +106,9 @@ class IndexerManager:
                     indexer = IndexerBase(**indexer_data)
                     self._indexers.append(indexer)
                 except Exception as e:
-                    log.exception(f"【索引器】站点{db_item.NAME} 索引配置异常：", e)
+                    log.exception(f"【索引器】站点{db_item.NAME} 索引配置异常：")
         except Exception as err:
-            log.exception("【索引器】初始化出错：", err)
+            log.exception("【索引器】初始化出错：")
 
     def get_all_indexer_base(self) -> list[IndexerBase]:
         """

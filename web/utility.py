@@ -65,7 +65,7 @@ async def dirlist(request: Request):
                         e, ff.replace("\\", "/"), f.replace("\\", "/")))
         r.append('</ul>')
     except Exception as e:
-        log.exception('[App]加载路径失败: ', e)
+        log.exception('[App]加载路径失败: ')
         r.append('加载路径失败: %s' % str(e))
     r.append('</ul>')
     return Response(content=''.join(r), media_type="text/html")
@@ -105,7 +105,7 @@ async def upload(request: Request):
 
         return {"code": 0, "filepath": str(file_path)}
     except Exception as e:
-        log.exception('[App]文件上传失败: ', e)
+        log.exception('[App]文件上传失败: ')
         return {"code": 1, "msg": str(e), "filepath": ""}
 
 

@@ -179,7 +179,7 @@ class MetaHelper(object):
                 return data
             return {}
         except Exception as e:
-            log.exception("从文件中加载缓存: ", e)
+            log.exception("从文件中加载缓存: ")
             return {}
 
     def update_meta_data(self, meta_data):

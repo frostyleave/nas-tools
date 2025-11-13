@@ -90,7 +90,7 @@ class Message(object):
                 if message_schema.match(ctype):
                     return message_schema(conf)
             except Exception as e:
-                log.exception("【Message】消息对象实例化 出错: ", e)
+                log.exception("【Message】消息对象实例化 出错: ")
         return None
 
     def get_status(self, ctype=None, config=None):

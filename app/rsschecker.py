@@ -353,7 +353,7 @@ class RssChecker(object):
                 else:
                     continue
             except Exception as e:
-                log.exception("【RssChecker】处理RSS发生错误: " , e)
+                log.exception("【RssChecker】处理RSS发生错误: ")
                 continue
         log.info("【RssChecker】%s 处理结束，匹配到 %s 个有效资源" % (taskinfo.get("name"), res_num))
         # 添加下载
@@ -422,16 +422,16 @@ class RssChecker(object):
             # 检查解析器有效性
             rss_parser = self.get_userrss_parser(rss_parsers[i])
             if not rss_parser:
-                log.error(f"【RssChecker】任务 {task_name} RSS地址 {rss_url} 配置解析器不存在")
+                log.error("【RssChecker】任务 %s RSS地址 %s 配置解析器不存在", task_name, rss_url)
                 continue
             parser_name = rss_parser.get("name")
             if not rss_parser.get("format"):
-                log.error(f"【RssChecker】任务 {task_name} 配置解析器 {parser_name} 格式不正确")
+                log.error("【RssChecker】任务 %s 配置解析器 %s 格式不正确", task_name, parser_name)
                 continue
             try:
                 rss_parser_format = json.loads(rss_parser.get("format"))
             except Exception as e:
-                log.exception(f"【RssChecker】任务 {task_name} 配置解析器 {parser_name} 不是合法的Json格式: ", e)
+                log.exception("【RssChecker】任务 %s 配置解析器 %s 不是合法的Json格式: ", task_name, parser_name)
                 continue
 
             # 拼装链接
@@ -442,7 +442,7 @@ class RssChecker(object):
                 try:
                     param_url = rss_parser.get("params").format(**_dict)
                 except Exception as e:
-                    log.exception(f"【RssChecker】任务 {task_name} 配置解析器 {parser_name} 附加参数不合法:", e)
+                    log.exception("【RssChecker】任务 %s 配置解析器 %s 附加参数不合法:", task_name, parser_name)
                     continue
                 rss_url = "%s?%s" % (rss_url, param_url) if rss_url.find("?") == -1 else "%s&%s" % (rss_url, param_url)
             # 请求数据
@@ -453,7 +453,7 @@ class RssChecker(object):
                     continue
                 ret.encoding = ret.apparent_encoding
             except Exception as e2:
-                log.exception(f"【RssChecker】任务 {task_name} 请求rss失败:", e2)
+                log.exception("【RssChecker】任务 %s 请求rss失败:", task_name)
                 continue
             # 解析数据 XPATH
             if rss_parser.get("type") == "XML":
@@ -478,17 +478,17 @@ class RssChecker(object):
                         rss_item.update({"address_index": i+1})
                         rss_result.append(rss_item)
                 except Exception as err:
-                    log.exception(f"【RssChecker】任务 {task_name} RSS地址 {rss_url} 获取的订阅报文无法解析：", err)
+                    log.exception("【RssChecker】任务 %s RSS地址 %s 获取的订阅报文无法解析：", task_name, rss_url)
                     continue
             elif rss_parser.get("type") == "JSON":
                 try:
                     result_json = json.loads(ret.text)
                 except Exception as err:
-                    log.exception(f"【RssChecker】任务 {task_name} RSS地址 {rss_url} 获取的订阅报文不是合法的Json格式: ", err)
+                    log.exception("【RssChecker】任务 %s RSS地址 %s 获取的订阅报文不是合法的Json格式: ", task_name, rss_url)
                     continue
                 item_list = jsonpath.jsonpath(result_json, rss_parser_format.get("list"))[0]
                 if not isinstance(item_list, list):
-                    log.error(f"【RssChecker】任务 {task_name} RSS地址 {rss_url} 获取的订阅报文list后不是列表")
+                    log.error("【RssChecker】任务 %s RSS地址 %s 获取的订阅报文list后不是列表", task_name, rss_url)
                     continue
                 for item in item_list:
                     rss_item = {}
@@ -567,7 +567,7 @@ class RssChecker(object):
                 if params not in rss_articles:
                     rss_articles.append(params)
             except Exception as e:
-                log.exception("【RssChecker】获取RSS报文发生错误: ", e)
+                log.exception("【RssChecker】获取RSS报文发生错误: ")
         return sorted(rss_articles, key=lambda x: x['date'], reverse=True)
 
     def test_rss_articles(self, taskid, title):
@@ -626,13 +626,10 @@ class RssChecker(object):
                                                                                no_exists=no_exists)
                 if exist_flag:
                     # 已全部存在
-                    if not no_exists or not no_exists.get(
-                            media_info.tmdb_id):
-                        log.info("【RssChecker】电视剧 %s %s 已存在" % (
-                            media_info.get_title_string(), media_info.get_season_episode_string()))
+                    if not no_exists or not no_exists.get( media_info.tmdb_id):
+                        log.info("【RssChecker】电视剧 %s %s 已存在", media_info.get_title_string(), media_info.get_season_episode_string())
                 if no_exists.get(media_info.tmdb_id):
-                    log.info("【RssChecker】%s 缺失季集：%s"
-                             % (media_info.get_title_string(), no_exists.get(media_info.tmdb_id)))
+                    log.info("【RssChecker】%s 缺失季集：%s", media_info.get_title_string(), no_exists.get(media_info.tmdb_id))
         return media_info, match_flag, exist_flag
 
     def check_rss_articles(self, taskid, flag, articles):
@@ -669,7 +666,7 @@ class RssChecker(object):
                 return False
             return True
         except Exception as e:
-            log.exception("【RssChecker】设置RSS报文状态时发生错误: ", e)
+            log.exception("【RssChecker】设置RSS报文状态时发生错误: ")
             return False
 
     def download_rss_articles(self, taskid, articles):

@@ -57,13 +57,11 @@ class Scheduler:
             # 数据统计
             ptrefresh_date_cron = self._pt_config.get("ptrefresh_date_cron")
             if ptrefresh_date_cron:
-                tz = pytz.timezone(Config().get_timezone())
                 SchedulerUtils.add_job(
                     scheduler=self._scheduler,
                     func=SitesDataStatisticsCenter().refresh_site_data_now,
                     func_desc="数据统计",
-                    cron=str(ptrefresh_date_cron),
-                    next_run_time=datetime.datetime.now(tz) + datetime.timedelta(minutes=1),
+                    cron=str(ptrefresh_date_cron)
                 )
 
             # RSS下载器
@@ -186,4 +184,4 @@ class Scheduler:
             if self._scheduler:
                 self._scheduler.remove_all_jobs()
         except Exception as e:
-            log.exception('[Sys]停止定时服务出错: ', e)
+            log.exception('[System]停止定时服务出错: ')

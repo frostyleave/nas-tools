@@ -1,3 +1,4 @@
+import threading
 import regex as re
 import datetime
 
@@ -74,17 +75,22 @@ class _IIndexClient(metaclass=ABCMeta):
         """
         pass
 
-    def filter_search_results(self, result_array: list,
+    def filter_search_results(self, 
+                              result_array: list,
                               order_seq,
                               indexer,
                               filter_args: dict,
                               search_media,
-                              start_time) -> List[MetaInfo]:
+                              start_time,
+                              in_from: SearchType) -> List[MetaInfo]:
         """
         从搜索结果中匹配符合资源条件的记录
         """
 
+        thread_id = str(threading.get_ident())
         filter_time = datetime.datetime.now()
+        current_time = filter_time.strftime("%Y-%m-%d %H:%M:%S")
+        print(f'---[{thread_id}][{self.client_name}]开始执行过滤({current_time})')
 
         ret_array = []
         index_sucess = 0
@@ -136,7 +142,7 @@ class _IIndexClient(metaclass=ABCMeta):
             # 描述
             description = item.get('description') if item.get('description') else ''
             # 识别种子名称
-            log.info(f"【{self.client_name}】开始识别资源: {torrent_name} {description}")
+            log.debug(f"【{self.client_name}】开始识别资源: {torrent_name} {description}")
 
             # 公共站点的资源, 格式化剧集资源名称
             if indexer.public:
@@ -173,6 +179,7 @@ class _IIndexClient(metaclass=ABCMeta):
                 log.info(f"【{self.client_name}】{match_msg}")
                 index_rule_fail += 1
                 continue
+
             # 识别媒体信息
             if not search_media:
                 # 不过滤
@@ -312,8 +319,9 @@ class _IIndexClient(metaclass=ABCMeta):
         filter_span = (cost_time - filter_time).seconds
         text_info = f"【{self.client_name}】{indexer.name} {len(result_array)} 条数据中，过滤:{index_rule_fail}，不匹配:{index_match_fail}，错误:{index_error}，有效:{index_sucess}，耗时:{filter_span} 秒, 总耗时:{time_span} 秒"
 
-        log.info(text_info)        
-        self.progress.update(ptype=ProgressKey.Search, text=text_info)
+        log.info(text_info)
+        if SearchType.WEB == in_from:
+            self.progress.update(ptype=ProgressKey.Search, text=text_info)
 
         return ret_array
 

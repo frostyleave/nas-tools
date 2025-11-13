@@ -1,13 +1,11 @@
 # -*- coding: utf-8 -*-
 
 import logging
-import os
-import time
-from typing import Dict, Optional
-
-from cachetools import TTLCache, cached
 import requests
-import requests.exceptions
+import time
+
+from typing import Dict, Optional
+from cachetools import TTLCache, cached
 
 from config import Config
 
@@ -18,112 +16,43 @@ logger = logging.getLogger(__name__)
 
 
 class TMDb(object):
-    TMDB_API_KEY = "TMDB_API_KEY"
-    TMDB_LANGUAGE = "TMDB_LANGUAGE"
-    TMDB_WAIT_ON_RATE_LIMIT = "TMDB_WAIT_ON_RATE_LIMIT"
-    TMDB_DEBUG_ENABLED = "TMDB_DEBUG_ENABLED"
-    TMDB_CACHE_ENABLED = "TMDB_CACHE_ENABLED"
-    TMDB_PROXIES = "TMDB_PROXIES"
-    TMDB_DOMAIN = "TMDB_DOMAIN"
-    REQUEST_CACHE_MAXSIZE = 512
+
+    _proxies = 'None'
+    _language = 'zh'
+    _domain = 'https://api.themoviedb.org/3'
+    _api_key = ''
+
+    _cache = True
+    _debug = False
+    _wait_on_rate_limit = False
 
     def __init__(self, obj_cached=True, session=None):
         self._session = requests.Session() if session is None else session
         self._remaining = 40
         self._reset = None
         self.obj_cached = obj_cached
-
-        # 初始化环境变量默认值
-        if os.environ.get(self.TMDB_LANGUAGE) is None:
-            os.environ[self.TMDB_LANGUAGE] = "zh"
-        if not os.environ.get(self.TMDB_DOMAIN):
-            os.environ[self.TMDB_DOMAIN] = "https://api.themoviedb.org/3"
-
-    @property
-    def page(self):
-        return os.environ["page"]
-
-    @property
-    def total_results(self):
-        return os.environ["total_results"]
-
-    @property
-    def total_pages(self):
-        return os.environ["total_pages"]
-
-    @property
-    def api_key(self):
-        return os.environ.get(self.TMDB_API_KEY)
-
-    @property
-    def domain(self):
-        return os.environ.get(self.TMDB_DOMAIN)
-
-    @domain.setter
-    def domain(self, domain):
-        os.environ[self.TMDB_DOMAIN] = str(domain or '')
-
-    @property
-    def proxies(self):
-        return os.environ.get(self.TMDB_PROXIES)
-
-    @proxies.setter
-    def proxies(self, proxies):
-        if proxies:
+        # 域名
+        self._domain = Config().get_tmdbapi_url() or "https://api.themoviedb.org/3"
+        # api key
+        app_conf = Config().get_config('app')
+        if app_conf:
+            self._api_key = app_conf.get('rmt_tmdbkey')
+        # 语言
+        media_conf = Config().get_config('media')
+        if media_conf:
+            self._language = media_conf.get("tmdb_language", "zh") or "zh"
+        # 代理
+        proxy_conf = Config().get_proxies()
+        if proxy_conf:
             proxies_strs = []
-            for key, value in proxies.items():
+            for key, value in proxy_conf.items():
                 if not value:
                     continue
                 proxies_strs.append("'%s': '%s'" % (key, value))
             if proxies_strs:
-                os.environ[self.TMDB_PROXIES] = "{%s}" % ",".join(proxies_strs)
+                self._proxies = "{%s}" % ",".join(proxies_strs)
             else:
-                os.environ[self.TMDB_PROXIES] = 'None'
-
-    @api_key.setter
-    def api_key(self, api_key):
-        os.environ[self.TMDB_API_KEY] = str(api_key)
-
-    @property
-    def language(self):
-        return os.environ.get(self.TMDB_LANGUAGE)
-
-    @language.setter
-    def language(self, language):
-        os.environ[self.TMDB_LANGUAGE] = language
-
-    @property
-    def wait_on_rate_limit(self):
-        if os.environ.get(self.TMDB_WAIT_ON_RATE_LIMIT) == "False":
-            return False
-        else:
-            return True
-
-    @wait_on_rate_limit.setter
-    def wait_on_rate_limit(self, wait_on_rate_limit):
-        os.environ[self.TMDB_WAIT_ON_RATE_LIMIT] = str(wait_on_rate_limit)
-
-    @property
-    def debug(self):
-        if os.environ.get(self.TMDB_DEBUG_ENABLED) == "True":
-            return True
-        else:
-            return False
-
-    @debug.setter
-    def debug(self, debug):
-        os.environ[self.TMDB_DEBUG_ENABLED] = str(debug)
-
-    @property
-    def cache(self):
-        if os.environ.get(self.TMDB_CACHE_ENABLED) == "False":
-            return False
-        else:
-            return True
-
-    @cache.setter
-    def cache(self, cache):
-        os.environ[self.TMDB_CACHE_ENABLED] = str(cache)
+                self._proxies = 'None'
 
     @staticmethod
     def _get_obj(result, key="results", all_details=False):
@@ -145,24 +74,24 @@ class TMDb(object):
     def _call(
             self, action: str, append_to_response: str, call_cached: bool=True, method: str="GET", data: Optional[Dict]=None
     ):
-        if self.api_key is None or self.api_key == "":
+        if self._api_key is None or self._api_key == "":
             raise TMDbException("No API key found.")
         
         include_adult = Config().get_config('laboratory').get("search_adult")
 
         url = "%s%s?api_key=%s&%s&language=%s&include_adult=%s" % (
-            self.domain,
+            self._domain,
             action,
-            self.api_key,
+            self._api_key,
             append_to_response,
-            self.language,
+            self._language,
             str(include_adult)
         )
 
-        if self.cache and self.obj_cached and call_cached and method != "POST":
-            req = self.cached_request(method, url, data, self.proxies)
+        if self._cache and self.obj_cached and call_cached and method != "POST":
+            req = self.cached_request(method, url, data, self._proxies)
         else:
-            req = self._session.request(method, url, data=data, proxies=eval(self.proxies), timeout=10, verify=False)
+            req = self._session.request(method, url, data=data, proxies=eval(self._proxies), timeout=10, verify=False)
 
         headers = req.headers
 
@@ -176,7 +105,7 @@ class TMDb(object):
             current_time = int(time.time())
             sleep_time = self._reset - current_time
 
-            if self.wait_on_rate_limit:
+            if self._wait_on_rate_limit:
                 logger.warning("Rate limit reached. Sleeping for: %d" % sleep_time)
                 time.sleep(abs(sleep_time))
                 self._call(action, append_to_response, call_cached, method, data)
@@ -187,16 +116,7 @@ class TMDb(object):
 
         json = req.json()
 
-        if "page" in json:
-            os.environ["page"] = str(json["page"])
-
-        if "total_results" in json:
-            os.environ["total_results"] = str(json["total_results"])
-
-        if "total_pages" in json:
-            os.environ["total_pages"] = str(json["total_pages"])
-
-        if self.debug:
+        if self._debug:
             logger.info(json)
             logger.info(self.cached_request.cache_info())
 

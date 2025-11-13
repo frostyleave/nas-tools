@@ -243,6 +243,7 @@ class AutoSignIn(_IPluginModule):
 
     def init_config(self, config=None):
         self.siteconf = SiteConf()
+        self.sites = SitesManager()
 
         # 读取配置
         if config:
@@ -410,7 +411,7 @@ class AutoSignIn(_IPluginModule):
         """
         查询待签到站点信息。
         """
-        return SitesManager().get_sites(siteids=site_ids)
+        return self.sites.get_sites(siteids=site_ids)
 
     def _execute_sign_in_loop(self, sites_to_sign_info: List[PtSiteConf], initial_already_signed_ids: List[str]) -> SignInResults:
         """
@@ -444,7 +445,7 @@ class AutoSignIn(_IPluginModule):
 
             except Exception as e:
                 # 捕获单个站点的执行错误，记录并继续
-                log.exception(f"签到站点 {site_name} (ID: {site_id}) 时发生意外错误: ", e)
+                log.exception(f"签到站点 {site_name} (ID: {site_id}) 时发生意外错误: ")
                 results.add_script_error(site_name)
         
         return results
@@ -492,7 +493,7 @@ class AutoSignIn(_IPluginModule):
             )
             self.info("签到通知已发送")
         except Exception as e:
-            log.exception(f"发送签到通知失败: ", e)
+            log.exception(f"发送签到通知失败: ")
 
     def __build_class(self, url):
         for site_schema in self._site_schema:
@@ -500,7 +501,7 @@ class AutoSignIn(_IPluginModule):
                 if site_schema.match(url):
                     return site_schema
             except Exception as e:
-                log.exception(f"【自动签到】[{url}]签到插件加载失败: ", e)
+                log.exception(f"【自动签到】[{url}]签到插件加载失败: ")
         return None
 
     def signin_site(self, site_info:PtSiteConf) -> Tuple[bool, str]:
@@ -512,7 +513,7 @@ class AutoSignIn(_IPluginModule):
             try:
                 return site_module().signin(site_info) or (False, "签到函数未返回明确结果")
             except Exception as e:
-                log.exception(f"【自动签到】[{site_info.name}]签到失败: ", e)
+                log.exception(f"【自动签到】[{site_info.name}]签到失败: ")
                 return False, f"[{site_info.name}]签到失败：{str(e)}"
         else:
             return self.__signin_base(site_info)
@@ -619,7 +620,7 @@ class AutoSignIn(_IPluginModule):
                 else:
                     return False, f"[{site_name}]签到失败: 状态码：{res.status_code}"
         except Exception as e:
-            log.exception(f"【自动签到】[{site_name}]签到出错: ", e)
+            log.exception(f"【自动签到】[{site_name}]签到出错: ")
             return False, f"[{site_name}]签到出错: {str(e)}"
 
     def stop_service(self):
@@ -629,7 +630,7 @@ class AutoSignIn(_IPluginModule):
         try:
             self.remove_job(self._cron_job)
         except Exception as e:
-            log.exception("【自动签到】退出插件异常: ", e)
+            log.exception("【自动签到】退出插件异常: ")
 
     def get_state(self):
         return self._enabled and self._cron

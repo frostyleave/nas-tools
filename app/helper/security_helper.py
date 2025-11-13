@@ -62,5 +62,5 @@ class SecurityHelper:
                     if ipaddr in ipaddress.ip_network(allow_ipv6):
                         return True
         except Exception as e:
-            log.exception("判断IP是否合法异常: ", e)
+            log.exception("判断IP是否合法异常: ")
         return False

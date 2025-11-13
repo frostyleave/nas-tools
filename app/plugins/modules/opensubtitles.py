@@ -168,7 +168,7 @@ class OpenSubtitles(_IPluginModule):
                         shutil.rmtree(zip_path)
                         os.remove(zip_file)
                     except Exception as err:
-                        log.exception(f"【OpenSubtitles】删除临时文件异常: ", err)
+                        log.exception(f"【OpenSubtitles】删除临时文件异常: ")
                 else:
                     self.error("下载字幕文件失败：%s" % Download_Link)
                     continue

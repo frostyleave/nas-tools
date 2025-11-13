@@ -292,7 +292,7 @@ class BrushTaskV2(object):
                                                        dlcount=max_dlcount):
                         break
             except Exception as err:
-                log.exception('【Brush】刷流种子过滤出错: ', err)
+                log.exception('【Brush】刷流种子过滤出错: ')
                 continue
         log.info("【Brush】任务 %s 本次添加了 %s 个下载" % (task_name, success_count))
 
@@ -540,7 +540,7 @@ class BrushTaskV2(object):
                                                          download_size=total_downloaded,
                                                          remove_count=len(delete_ids) + len(remove_torrent_ids))
             except Exception as e:
-                log.exception('【Brush】按条件删除种子出错: ', e)
+                log.exception('【Brush】按条件删除种子出错: ')
 
     def __is_allow_new_torrent(self, taskinfo, dlcount, torrent_size=None):
         """
@@ -809,7 +809,7 @@ class BrushTaskV2(object):
                         return False
 
         except Exception as err:
-            log.exception('【Brush】检查种子是否符合刷流过滤条件出错: ', err)
+            log.exception('【Brush】检查种子是否符合刷流过滤条件出错: ')
 
         return True
 
@@ -871,7 +871,7 @@ class BrushTaskV2(object):
                         if float(iatime) > float(rule_times[1]) * 3600:
                             return True, BrushDeleteType.IATIME
         except Exception as err:
-            log.exception('【Brush】检查是否符合删种规则出错: ', err)
+            log.exception('【Brush】检查是否符合删种规则出错: ')
         return False, BrushDeleteType.NOTDELETE
 
     @staticmethod

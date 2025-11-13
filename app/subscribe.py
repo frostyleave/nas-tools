@@ -7,7 +7,7 @@ from app.downloader import Downloader
 from app.filter import Filter
 from app.helper import DbHelper, MetaHelper
 from app.indexer import Indexer
-from app.media import Media, DouBan
+from app.media import Media
 from app.media.meta import MetaInfo
 from app.message import Message
 from app.plugins import EventManager
@@ -30,7 +30,6 @@ class Subscribe:
     media = None
     downloader = None
     sites = None
-    douban = None
     filter = None
     eventmanager = None
     indexer = None
@@ -46,7 +45,6 @@ class Subscribe:
         self.media = Media()
         self.downloader = Downloader()
         self.sites = SitesManager()
-        self.douban = DouBan()
         self.indexer = Indexer()
         self.filter = Filter()
         self.eventmanager = EventManager()

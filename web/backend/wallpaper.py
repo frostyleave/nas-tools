@@ -63,7 +63,7 @@ def get_bing_wallpaper(today):
     try:
         resp = RequestUtils(timeout=5).get_res(url)
     except Exception as err:
-        log.exception('[Sys]获取Bing每日壁纸失败: ', err)
+        log.exception('[System]获取Bing每日壁纸失败: ')
         return ""
     if resp and resp.status_code == 200:
         try:

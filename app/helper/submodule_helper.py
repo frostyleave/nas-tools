@@ -30,6 +30,6 @@ class SubmoduleHelper:
                     if isinstance(obj, type) and filter_func(name, obj):
                         submodules.append(obj)
             except Exception as e:
-                log.exception(f'[Plugin]导入模块{full_package_name}出错: ', e)
+                log.exception(f'[Plugin]导入模块{full_package_name}出错: ')
 
         return submodules

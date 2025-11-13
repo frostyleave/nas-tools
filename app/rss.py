@@ -58,15 +58,13 @@ class Rss:
             if not rss_movies:
                 log.warn("【Rss】没有正在订阅的电影")
             else:
-                log.info("【Rss】电影订阅清单：%s"
-                         % " ".join('%s' % info.get("name") for _, info in rss_movies.items()))
+                log.info("【Rss】电影订阅清单：%s", " ".join('%s' % info.get("name") for _, info in rss_movies.items()))
             # 读取电视剧订阅
             rss_tvs = self.subscribe.get_subscribe_tvs(state='R')
             if not rss_tvs:
                 log.warn("【Rss】没有正在订阅的电视剧")
             else:
-                log.info("【Rss】电视剧订阅清单：%s"
-                         % " ".join('%s' % info.get("name") for _, info in rss_tvs.items()))
+                log.info("【Rss】电视剧订阅清单：%s", " ".join('%s' % info.get("name") for _, info in rss_tvs.items()))
             # 没有订阅退出
             if not rss_movies and not rss_tvs:
                 return
@@ -258,10 +256,10 @@ class Rss:
                                                                                       source=library_no_exists,
                                                                                       title=media_info.tmdb_id)
                                     if rss_no_exists.get(media_info.tmdb_id):
-                                        log.info("【Rss】%s 订阅缺失季集：%s" % (
+                                        log.info("【Rss】%s 订阅缺失季集：%s",
                                             media_info.get_title_string(),
                                             rss_no_exists.get(media_info.tmdb_id)
-                                        ))
+                                        )
                                 # 本地已存在
                                 if exist_flag:
                                     continue
@@ -310,10 +308,10 @@ class Rss:
                             rss_download_torrents.append(media_info)
                             res_num = res_num + 1
                     except Exception as e:
-                        log.exception(f'【Rss】处理RSS发生错误: ', e)
+                        log.exception('【Rss】处理RSS发生错误: ')
                         continue
-                log.info("【Rss】%s 处理结束，匹配到 %s 个有效资源" % (site_name, res_num))
-            log.info("【Rss】所有RSS处理结束，共 %s 个有效资源" % len(rss_download_torrents))
+                log.info("【Rss】%s 处理结束，匹配到 %s 个有效资源" , site_name, res_num)
+            log.info("【Rss】所有RSS处理结束，共 %s 个有效资源", len(rss_download_torrents))
             # 开始择优下载
             self.download_rss_torrent(rss_download_torrents=rss_download_torrents,
                                       rss_no_exists=rss_no_exists)
@@ -483,10 +481,10 @@ class Rss:
                 match_msg.append(match_filter_msg)
                 return False, match_msg, match_rss_info
             else:
-                match_msg.append("%s 识别为 %s %s 匹配订阅成功" % (
+                match_msg.append("%s 识别为 %s %s 匹配订阅成功",
                     media_info.org_string,
                     media_info.get_title_string(),
-                    media_info.get_season_episode_string()))
+                    media_info.get_season_episode_string())
                 match_msg.append(f"种子描述：{media_info.subtitle}")
                 match_rss_info.update({
                     "res_order": res_order,
@@ -495,10 +493,10 @@ class Rss:
                     "download_volume_factor": download_volume_factor})
                 return True, match_msg, match_rss_info
         else:
-            match_msg.append("%s 识别为 %s %s 不在订阅范围" % (
+            match_msg.append("%s 识别为 %s %s 不在订阅范围",
                 media_info.org_string,
                 media_info.get_title_string(),
-                media_info.get_season_episode_string()))
+                media_info.get_season_episode_string())
             return False, match_msg, match_rss_info
 
     def download_rss_torrent(self, rss_download_torrents, rss_no_exists):
@@ -573,7 +571,7 @@ class Rss:
                 else:
                     # 更新电视剧缺失剧集
                     __update_tv_rss(item, left_medias.get(item.tmdb_id))
-            log.info("【Rss】实际下载了 %s 个资源" % len(download_items))
+            log.info("【Rss】实际下载了 %s 个资源", len(download_items))
         else:
             log.info("【Rss】未下载到任何资源")
 

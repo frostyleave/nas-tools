@@ -1,3 +1,4 @@
+import logging
 import multiprocessing
 import os
 import signal
@@ -7,10 +8,14 @@ import uvicorn
 
 from fastapi import FastAPI
 
+from config import Config
+
+from log import setup_logging
+setup_logging()
+
 import log
 
 from app.db import init_db, update_db, init_data
-from config import Config
 from initializer import update_config, check_config
 
 # 导入FastAPI应用
@@ -77,13 +82,14 @@ def get_run_config(app: FastAPI) -> uvicorn.Config:
         _web_port = int(_web_port_conf) if str(_web_port_conf).isdigit() else 3000
         _log_level = app_conf.get('loglevel', 'info')
 
+    cpu_count = multiprocessing.cpu_count()
     # 生成配置
     uvicorn_config = uvicorn.Config(app, 
                                     host=_web_host, 
                                     port=_web_port,
                                     reload=False,
                                     log_level=_log_level,
-                                    workers=multiprocessing.cpu_count() * 2 + 1,
+                                    workers=cpu_count,
                                     timeout_graceful_shutdown=60)
 
     return uvicorn_config
@@ -91,7 +97,7 @@ def get_run_config(app: FastAPI) -> uvicorn.Config:
 
 def init_system():
     # 配置
-    log.console('NAStool 当前版本号：%s' % APP_VERSION)
+    log.debug('NAStool 当前版本号：%s' % APP_VERSION)
     # 数据库初始化
     init_db()
     # 数据库更新
@@ -140,4 +146,4 @@ if __name__ == '__main__':
 
     except Exception as e:
         print(str(e))
-        log.exception('启动FastAPI应用时出错', e)
+        log.exception('启动FastAPI应用时出错')

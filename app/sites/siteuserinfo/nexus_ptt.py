@@ -54,7 +54,7 @@ class NexusProjectSiteUserInfo(NexusPhpSiteUserInfo):
                     self.ratio = StringUtils.str_float(share_match.group(1).replace(',', ''))
 
             except Exception as err:
-                log.exception("PTT数据解析出错", err)
+                log.exception("PTT数据解析出错")
 
     def _parse_user_torrent_seeding_info(self, html_text, multi_page=False):
         """

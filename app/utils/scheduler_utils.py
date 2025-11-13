@@ -39,7 +39,7 @@ class SchedulerUtils:
                                          trigger=CronTrigger.from_crontab(cron),
                                          next_run_time=next_run_time)
             except Exception as e:
-                log.exception(f'[计划任务]{func_desc}创建失败, 时间cron表达式配置格式错误', e)
+                log.exception(f'[计划任务]{func_desc}创建失败, 时间cron表达式配置格式错误')
                 return None
             
         if '-' in cron:
@@ -71,7 +71,7 @@ class SchedulerUtils:
                                                next_run_time=next_run_time)
                 return random_job
             except Exception as e:
-                log.exception(f'[计划任务]{func_desc}创建失败, 时间范围随机模式 配置格式错误：', e)
+                log.exception(f'[计划任务]{func_desc}创建失败, 时间范围随机模式 配置格式错误：')
                 return None
             
         if cron.find(':') != -1:
@@ -79,7 +79,7 @@ class SchedulerUtils:
                 hour = int(cron.split(":")[0])
                 minute = int(cron.split(":")[1])
             except Exception as e:
-                log.exception(f'[计划任务]{func_desc}时间 配置格式错误, 调整为0时0分执行: ', e)
+                log.exception(f'[计划任务]{func_desc}时间 配置格式错误, 调整为0时0分执行: ')
                 hour = minute = 0
 
             time_job = scheduler.add_job(func,
@@ -93,7 +93,7 @@ class SchedulerUtils:
         try:
             hours = float(cron)
         except Exception as e:
-            log.exception(f'[计划任务]{func_desc}时间 配置格式错误：', e)
+            log.exception(f'[计划任务]{func_desc}时间 配置格式错误：')
             return None
         
         interval_job = scheduler.add_job(func,

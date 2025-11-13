@@ -98,7 +98,7 @@ class WordsHelper:
             else:
                 return re.sub(r'%s' % replaced, r'%s' % replace, title), "", True
         except Exception as err:
-            log.exception("replace_regex error : ", err)
+            log.exception("replace_regex error : ")
             return title, str(err), False
 
     @staticmethod
@@ -109,7 +109,7 @@ class WordsHelper:
             else:
                 return title.replace(replaced, replace), "", True
         except Exception as err:
-            log.exception("replace_noregex error : ", err)
+            log.exception("replace_noregex error : ")
             return title, str(err), False
 
     @staticmethod
@@ -158,7 +158,7 @@ class WordsHelper:
                 title = re.sub(episode_offset_re, r'%s' % episode_num[1], title)
             return title, "", True
         except Exception as err:
-            log.exception("episode_offset error : ", err)
+            log.exception("episode_offset error : ")
             return title, str(err), False
 
     def is_custom_words_existed(self, replaced=None, front=None, back=None):

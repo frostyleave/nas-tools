@@ -138,7 +138,7 @@ class MetaAnime(MetaBase):
                     except Exception as err:
                         self.begin_episode = None
                         self.end_episode = None
-                        log.exception('【Meta】动漫剧集范围解析出错: ', e)
+                        log.exception('【Meta】动漫剧集范围解析出错: ')
 
                     self.type = MediaType.TV
                 # 类型
@@ -180,7 +180,7 @@ class MetaAnime(MetaBase):
             if not self.type:
                 self.type = MediaType.TV
         except Exception as e:
-            log.exception(f'【Meta】解析动漫名称[{title}]出错: ', e)
+            log.exception(f'【Meta】解析动漫名称[{title}]出错: ')
 
     def __prepare_title(self, title):
         """

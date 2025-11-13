@@ -65,6 +65,7 @@ function stopLogging() {
     LoggingES.close();
     LoggingES = undefined;
   }
+  $("#logging_content").empty();
 }
 
 // 连接日志服务
@@ -75,7 +76,7 @@ function start_logging() {
     render_logging(JSON.parse(event.data))
   };
   LoggingES.onerror = function (event) {
-    console.error("日志服务连接错误:", event);
+    console.log("日志服务连接错误:", event);
     // 尝试重新连接
     setTimeout(function () {
       if (LoggingES) {
@@ -88,45 +89,46 @@ function start_logging() {
 }
 
 // 刷新日志
-function render_logging(log_list) {
-  if (log_list) {
+function render_logging(logData) {
+  if (logData) {
+
     let tdstyle = "padding-top: 0.5rem; padding-bottom: 0.5rem";
-    let tbody = "";
-    for (let log of log_list) {
-      let text = log.text;
-      const source = log.source;
-      const time = log.time;
-      const level = log.level;
-      let tcolor = '';
-      let bgcolor = '';
-      let tstyle = '-webkit-line-clamp:4; display: -webkit-box; -webkit-box-orient:vertical; overflow:hidden; text-overflow: ellipsis;';
-      if (level === "WARN") {
-        tcolor = "text-warning";
-        bgcolor = "bg-warning";
-      } else if (level === "ERROR") {
-        tcolor = "text-danger";
-        bgcolor = "bg-danger";
-      } else if (source === "System") {
-        tcolor = "text-info";
-        bgcolor = "bg-info";
-      } else {
-        tcolor = "text";
-      }
-      if (["Rmt", "Plugin"].includes(source) && text.includes(" 到 ")) {
-        tstyle = `${tstyle} white-space: pre;`
-        text = text.replace(/\s到\s/, "\n=> ")
-      }
-      if (text.includes("http") || text.includes("magnet")) {
-        tstyle = `${tstyle} word-break: break-all;`
-        text = text.replace(/：((?:http|magnet).+?)(?:\s|$)/g, "：<a href='$1' target='_blank'>$1</a>")
-      }
-      tbody = `${tbody}
-                  <tr>
-                  <td style="${tdstyle}"><span class="${tcolor}">${time}</span></td>
-                  <td style="${tdstyle}"><span class="badge ${bgcolor}">${source}</span></td>
-                  <td style="${tdstyle}"><span class="${tcolor}" style="${tstyle}" title="${text}">${text}</span></td>
-                  </tr>`;
+    
+    let text = logData.text;
+    const source = logData.source;
+    const time = logData.time;
+    const level = logData.level;
+
+    let tcolor = '';
+    let bgcolor = '';
+    let tstyle = '-webkit-line-clamp:4; display: -webkit-box; -webkit-box-orient:vertical; overflow:hidden; text-overflow: ellipsis;';
+    if (level === "WARN") {
+      tcolor = "text-warning";
+      bgcolor = "bg-warning";
+    } else if (level === "ERROR") {
+      tcolor = "text-danger";
+      bgcolor = "bg-danger";
+    } else if (source === "System") {
+      tcolor = "text-info";
+      bgcolor = "bg-info";
+    } else {
+      tcolor = "text";
     }
+    if (["Rmt", "Plugin"].includes(source) && text.includes(" 到 ")) {
+      tstyle = `${tstyle} white-space: pre;`
+      text = text.replace(/\s到\s/, "\n=> ")
+    }
+    if (text.includes("http") || text.includes("magnet")) {
+      tstyle = `${tstyle} word-break: break-all;`
+      text = text.replace(/：((?:http|magnet).+?)(?:\s|$)/g, "：<a href='$1' target='_blank'>$1</a>")
+    }
+
+    let tbody = `<tr>
+                <td style="${tdstyle}"><span class="${tcolor}">${time}</span></td>
+                <td style="${tdstyle}"><span class="badge ${bgcolor}">${source}</span></td>
+                <td style="${tdstyle}"><span class="${tcolor}" style="${tstyle}" title="${text}">${text}</span></td>
+                </tr>`;
+
     if (tbody) {
       let logging_table_obj = $("#logging_table");
       let bool_ToScrolTop = (logging_table_obj.scrollTop() + logging_table_obj.prop("offsetHeight")) >= logging_table_obj.prop("scrollHeight");

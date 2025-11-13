@@ -182,7 +182,7 @@ class FileTransfer:
                 # 复制
                 retcode, retmsg = SystemUtils.copy(file_item, target_file)
         if retcode != 0:
-            log.error("【Rmt】%s" % retmsg)
+            log.error("【Rmt】%s", retmsg)
         return retcode
 
     def __transfer_other_files(self, org_name, new_name, rmt_mode, over_flag):
@@ -222,7 +222,7 @@ class FileTransfer:
         file_name = os.path.basename(org_name)
         file_list = PathUtils.get_dir_level1_files(dir_name, RMT_SUBEXT)
         if len(file_list) == 0:
-            log.debug("【Rmt】%s 目录下没有找到字幕文件..." % dir_name)
+            log.debug("【Rmt】%s 目录下没有找到字幕文件...", dir_name)
         else:
             log.debug("【Rmt】字幕文件清单：" + str(file_list))
             metainfo = MetaInfo(title=file_name)
@@ -272,16 +272,15 @@ class FileTransfer:
                         # 如果字幕文件不存在, 直接转移字幕, 并跳出循环
                         try:
                             if not os.path.exists(new_file):
-                                log.debug("【Rmt】正在处理字幕：%s" % os.path.basename(file_item))
+                                log.debug("【Rmt】正在处理字幕：%s", os.path.basename(file_item))
                                 retcode = self.__transfer_command(file_item=file_item,
                                                                   target_file=new_file,
                                                                   rmt_mode=rmt_mode)
                                 if retcode == 0:
-                                    log.info("【Rmt】字幕 %s %s完成" % (os.path.basename(file_item), rmt_mode.value))
+                                    log.info("【Rmt】字幕 %s %s完成", os.path.basename(file_item), rmt_mode.value)
                                     break
                                 else:
-                                    log.error(
-                                        "【Rmt】字幕 %s %s失败，错误码 %s" % (file_name, rmt_mode.value, str(retcode)))
+                                    log.error("【Rmt】字幕 %s %s失败，错误码 %s", file_name, rmt_mode.value, str(retcode))
                                     return retcode
                             # 如果字幕文件的大小与已存在文件相同, 说明已经转移过了, 则跳出循环
                             elif os.path.getsize(new_file) == os.path.getsize(file_item):
@@ -289,7 +288,7 @@ class FileTransfer:
                                 break
                             # 否则 循环继续 > 通过new_sub_tag_list 获取新的tag附加到字幕文件名, 继续检查是否能转移
                         except OSError as reason:
-                            log.info("【Rmt】字幕 %s 出错了,原因: %s" % (new_file, str(reason)))
+                            log.info("【Rmt】字幕 %s 出错了,原因: %s", new_file, str(reason))
         return 0
 
     def __transfer_audio_track_files(self, org_name, new_name, rmt_mode, over_flag):
@@ -307,7 +306,7 @@ class FileTransfer:
         file_list = PathUtils.get_dir_level1_files(dir_name, RMT_AUDIO_TRACK_EXT)
         pending_file_list = [file for file in file_list if file_pre_name == os.path.splitext(os.path.basename(file))[0]]
         if len(pending_file_list) == 0:
-            log.debug("【Rmt】%s 目录下没有找到匹配的音轨文件..." % dir_name)
+            log.debug("【Rmt】%s 目录下没有找到匹配的音轨文件..." , dir_name)
         else:
             log.debug("【Rmt】音轨文件清单：" + str(pending_file_list))
             for track_file in pending_file_list:
@@ -915,7 +914,7 @@ class FileTransfer:
                 })
 
             except Exception as err:
-                log.exception("【Rmt】文件转移时发生错误: " , err)
+                log.exception("【Rmt】文件转移时发生错误: ")
         # 循环结束
         # 统计完成情况，发送通知
         if message_medias:
@@ -1174,7 +1173,7 @@ class FileTransfer:
                         max_path_len = path_len
                         max_return_path = dest_path
                 except Exception as err:
-                    log.exception("【Rmt】 路径匹配 发生错误: " , err)
+                    log.exception("【Rmt】 路径匹配 发生错误: ")
                     continue
             if max_return_path:
                 return max_return_path
@@ -1296,7 +1295,7 @@ class FileTransfer:
                 if not file_list:
                     return [], "排除文件路径转移忽略词后，没有新文件需要处理"
             except Exception as err:
-                log.exception("【Rmt】文件路径转移忽略词设置有误: ", err)
+                log.exception("【Rmt】文件路径转移忽略词设置有误: ")
 
         #  过滤掉文件列表中文件名包含文件名转移忽略词的
         if self._ignored_files:
@@ -1308,7 +1307,7 @@ class FileTransfer:
                 if not file_list:
                     return [], "排除文件名转移忽略词后，没有新文件需要处理"
             except Exception as err:
-                log.exception("【Rmt】文件名转移忽略词设置有误: ", err)
+                log.exception("【Rmt】文件名转移忽略词设置有误: ")
 
         return file_list, ""
 
@@ -1400,10 +1399,10 @@ if __name__ == "__main__":
     parser.add_argument('-d', '--target', dest='t_path', required=False, help='硬链接目的目录路径')
     args = parser.parse_args()
     if os.environ.get('NASTOOL_CONFIG'):
-        print("【Rmt】配置文件地址：%s" % os.environ.get('NASTOOL_CONFIG'))
-        print("【Rmt】源目录路径：%s" % args.s_path)
+        print("【Rmt】配置文件地址：%s", os.environ.get('NASTOOL_CONFIG'))
+        print("【Rmt】源目录路径：%s", args.s_path)
         if args.t_path:
-            print("【Rmt】目的目录路径：%s" % args.t_path)
+            print("【Rmt】目的目录路径：%s", args.t_path)
         else:
             print("【Rmt】目的目录为配置文件中的电影、电视剧媒体库目录")
         FileTransfer().transfer_manually(args.s_path, args.t_path, args.mode)

@@ -69,7 +69,6 @@ class DoubanSync(_IPluginModule):
     _seconds_job = None
 
     def init_config(self, config: dict = None):
-        self.douban = DouBan()
         self.searcher = Searcher()
         self.downloader = Downloader()
         self.subscribe = Subscribe()
@@ -533,7 +532,7 @@ class DoubanSync(_IPluginModule):
                     else:
                         self.info(f"{media.douban_id} {media.get_name()} {media.year} 已处理过")
                 except Exception as err:
-                    log.exception(f"【DoubanSync】{media.douban_id} {media.get_name()} {media.year} 处理失败: ", err)
+                    log.exception(f"【DoubanSync】{media.douban_id} {media.get_name()} {media.year} 处理失败: ")
                     continue
             self.info("豆瓣数据同步完成")
 
@@ -563,6 +562,8 @@ class DoubanSync(_IPluginModule):
         """
         self.info(f"同步方式：{'近期动态' if self._sync_type else '全量同步'}")
 
+        douban = DouBan()
+
         # 返回媒体列表
         media_list = []
         # 豆瓣ID列表
@@ -573,7 +574,7 @@ class DoubanSync(_IPluginModule):
                 continue
             # 查询用户名称
             user_name = ""
-            userinfo = self.douban.get_user_info(userid=user)
+            userinfo = douban.get_user_info(userid=user)
             if userinfo:
                 user_name = userinfo.get("name")
 
@@ -600,7 +601,7 @@ class DoubanSync(_IPluginModule):
                         continue_next_page = True
                         self.debug(f"开始解析第 {page_number} 页数据...")
                         try:
-                            items = self.douban.get_douban_wish(dtype=mtype, userid=user, start=start_number, wait=True)
+                            items = douban.get_douban_wish(dtype=mtype, userid=user, start=start_number, wait=True)
                             if not items:
                                 self.warn(f"第 {page_number} 页未获取到数据")
                                 break
@@ -629,7 +630,7 @@ class DoubanSync(_IPluginModule):
                             self.debug(
                                 f"{user_name or user} 第 {page_number} 页解析完成，共获取到 {sucess_urlnum} 个媒体")
                         except Exception as err:
-                            log.exception(f"【DoubanSync】{user_name or user} 第 {page_number} 页解析出错: ", err)
+                            log.exception(f"【DoubanSync】{user_name or user} 第 {page_number} 页解析出错: ")
                             break
                         # 继续下一页
                         if continue_next_page:
@@ -640,7 +641,7 @@ class DoubanSync(_IPluginModule):
                     self.debug(f"用户 {user_name or user} 的 {mtype} 解析完成，共获取到 {user_type_succnum} 个媒体")
                 self.info(f"用户 {user_name or user} 解析完成，共获取到 {user_succnum} 个媒体")
             else:
-                all_items = self.douban.get_latest_douban_interests(dtype='all', userid=user, wait=True)
+                all_items = douban.get_latest_douban_interests(dtype='all', userid=user, wait=True)
                 self.debug(f"开始解析 {user_name or user} 的数据...")
                 self.debug(f"共获取到 {len(all_items)} 条数据")
                 # 所有类型成功数量
@@ -673,11 +674,11 @@ class DoubanSync(_IPluginModule):
         self.info(f"所有用户解析完成，共获取到 {len(douban_ids)} 个媒体")
         # 查询豆瓣详情
         for doubanid, info in douban_ids.items():
-            douban_info = self.douban.get_douban_detail(doubanid=doubanid, wait=True)
+            douban_info = douban.get_douban_detail(doubanid=doubanid, wait=True)
             # 组装媒体信息
             if not douban_info:
                 self.warn("%s 未正确获取豆瓣详细信息，尝试使用网页获取" % doubanid)
-                douban_info = self.douban.get_media_detail_from_web(doubanid)
+                douban_info = douban.get_media_detail_from_web(doubanid)
                 if not douban_info:
                     self.warn("%s 无权限访问，需要配置豆瓣Cookie" % doubanid)
                     # 随机休眠

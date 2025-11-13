@@ -54,11 +54,11 @@ class JobCenter:
         
         try:
             self._scheduler.start()
-            log.info('[Sys]定时服务已启动')
+            log.info('[System]定时服务已启动')
         except SchedulerAlreadyRunningError as ex:
-            log.info('[Sys]定时服务已在运行中..')
+            log.info('[System]定时服务已在运行中..')
         except Exception as e:
-            log.exception('[Sys]启动定时服务出错: ', e)    
+            log.exception('[System]启动定时服务出错: ')    
 
     def stop_service(self):
         """
@@ -69,9 +69,9 @@ class JobCenter:
                 self._scheduler.remove_all_jobs()
                 self._scheduler.shutdown()
         except SchedulerNotRunningError as ex:
-            log.info('[Sys]定时服务不在运行中')
+            log.info('[System]定时服务不在运行中')
         except Exception as e:
-            log.exception('[Sys]停止定时服务出错: ', e)
+            log.exception('[System]停止定时服务出错: ')
 
     def get_scheduler(self) -> BackgroundScheduler:
         """获取任务管理器"""
@@ -122,20 +122,20 @@ class JobCenter:
         """
         try:
             self._scheduler.remove_job(job_id)
-            log.debug(f"[Job]任务[{job_id}] 已移除")
+            log.debug("[Job]任务[%s]已移除", job_id)
         except JobLookupError:
-            log.info(f"[Job]任务[{job_id}] 未找到，可能已被移除")    
+            log.info("[Job]任务[%s]未找到，可能已被移除", job_id)    
         except Exception as e:
-            log.exception(f"[Job]任务[{job_id}] 移除时发生错误: ", e)
+            log.exception("[Job]任务[[%s] 移除时发生错误: ", job_id)
 
     def _job_start_listener(self, event):
         """监听 job 开始执行"""
         job = self.get_job(event.job_id)
         if job:
             job_name = job.name or job.id
-            log.debug(f"--- [Job 开始] --- 任务: '{job_name}' (id={event.job_id}) 准备执行...")
+            log.debug("--- [Job 开始] --- 任务: %s (id=%s) 准备执行...", job_name, str(job.id))
         else:
-            log.debug(f"--- [Job 开始] --- 无法查询到id={event.job_id} 的任务")
+            log.debug("--- [Job 开始] --- 无法查询到id=%s 的任务", str(event.job_id))
 
     def _job_end_listener(self, event):
         """监听 job 执行完毕（无论成功还是失败）"""
@@ -149,15 +149,15 @@ class JobCenter:
             # 成功
             next_run = job.next_run_time
             if next_run:
-                log.debug(f"--- [Job 成功] --- 任务: '{job_name}' (id={event.job_id}) 执行成功, 下次执行时间: {job.next_run_time.strftime('%Y-%m-%d %H:%M:%S %Z')}")
+                log.debug("--- [Job 成功] --- 任务 %s (id=%s) 执行成功, 下次执行时间 %s", job_name, str(job.id), job.next_run_time.strftime('%Y-%m-%d %H:%M:%S %Z'))
             else:
-                log.debug(f"--- [Job 成功] --- 任务: '{job_name}' (id={event.job_id}) 已执行完毕")
+                log.debug("--- [Job 成功] --- 任务 %s (id=%s) 已执行完毕", job_name, str(job.id))
                 
         elif event.code == EVENT_JOB_ERROR:
             # 失败
-            log.exception(f"[Job]{job_name} 失败, 错误信息: {event.exception}")
+            log.exception("[Job]%s 失败, 错误信息: %s", job_name, event.exception)
             next_run = job.next_run_time
             if next_run:
-                log.warn(f"--- [Job 失败] --- 任务: '{job_name}' (id={event.job_id}) 执行失败, 下次执行时间 {job.next_run_time.strftime('%Y-%m-%d %H:%M:%S %Z')}")
+                log.warn("--- [Job 失败] --- 任务: %s (id=%s) 执行失败, 下次执行时间 %s", job_name, str(job.id), job.next_run_time.strftime('%Y-%m-%d %H:%M:%S %Z'))
             else:
-                log.warn(f"--- [Job 失败] --- 任务: '{job_name}' (id={event.job_id}) 执行失败")
+                log.warn("--- [Job 失败] --- 任务: %s (id=%s) 执行失败", job_name, str(job.id))

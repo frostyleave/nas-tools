@@ -39,7 +39,7 @@ class Slack(_IMessageClient):
             try:
                 slack_app = App(token=self._client_config.get("bot_token"))
             except Exception as err:
-                log.exception("【Slack】初始化 出错: ", err)
+                log.exception("【Slack】初始化 出错: ")
                 return
             self._client = slack_app.client
 
@@ -77,7 +77,7 @@ class Slack(_IMessageClient):
                     self._service.connect()
                     log.info("Slack消息接收服务启动")
                 except Exception as err:
-                    log.exception("【Slack】消息接收服务启动失败: ", err)
+                    log.exception("【Slack】消息接收服务启动失败: ")
 
     @classmethod
     def match(cls, ctype):

@@ -83,7 +83,7 @@ class WeChat(_IMessageClient):
                         self._expires_in = ret_json.get('expires_in')
                         self._access_token_time = datetime.now()
             except Exception as e:
-                log.exception("[微信]获取微信Token异常: ", e)
+                log.exception("[微信]获取微信Token异常: ")
                 return None
         return self._access_token
 
@@ -228,5 +228,5 @@ class WeChat(_IMessageClient):
             else:
                 return False, "未获取到返回信息"
         except Exception as err:
-            log.exception("[微信]发送请求异常: ", err)
+            log.exception("[微信]发送请求异常: ")
             return False, str(err)

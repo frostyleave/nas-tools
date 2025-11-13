@@ -691,7 +691,7 @@ class MetaBase(object):
                     self.type = MediaType.TV
                     self._subtitle_flag = True
                 except Exception as err:
-                    log.exception("【Meta】副标题-季集范围解析 出错: ", err)
+                    log.exception("【Meta】副标题-季集范围解析 出错: ")
                     return
             # 第x季
             season_str = re.search(r'%s' % self._subtitle_season_re, title_text, re.IGNORECASE)
@@ -711,7 +711,7 @@ class MetaBase(object):
                     else:
                         begin_season = int(cn2an.cn2an(seasons, mode='smart'))
                 except Exception as err:
-                    log.exception("【Meta】副标题-季解析 出错: ", err)
+                    log.exception("【Meta】副标题-季解析 出错: ")
                     return
                 if self.begin_season is None and isinstance(begin_season, int):
                     self.begin_season = begin_season
@@ -741,7 +741,7 @@ class MetaBase(object):
                         if len(episodes) > 1:
                             end_episode = int(cn2an.cn2an(episodes[1].strip(), mode='smart'))
                 except Exception as err:
-                    log.exception("【Meta】副标题-集解析 出错: ", err)
+                    log.exception("【Meta】副标题-集解析 出错: ")
                     return
                 if self.begin_episode is None and isinstance(begin_episode, int):
                     self.begin_episode = begin_episode
@@ -770,7 +770,7 @@ class MetaBase(object):
                     self.type = MediaType.TV
                     self._subtitle_flag = True
                 except Exception as err:
-                    log.exception("【Meta】副标题-集范围解析 出错: ", err)
+                    log.exception("【Meta】副标题-集范围解析 出错: ")
                     return
             # x集全
             episode_all_str = re.search(r'%s' % self._subtitle_episode_all_re, title_text, re.IGNORECASE)
@@ -786,7 +786,7 @@ class MetaBase(object):
                         self.type = MediaType.TV
                         self._subtitle_flag = True
                     except Exception as err:
-                        log.exception("【Meta】副标题-集范围解析 出错: ", err)
+                        log.exception("【Meta】副标题-集范围解析 出错: ")
                         return
             # 全x季 x季全
             season_all_str = re.search(r"%s" % self._subtitle_season_all_re, title_text, re.IGNORECASE)
@@ -798,7 +798,7 @@ class MetaBase(object):
                     try:
                         self.total_seasons = int(cn2an.cn2an(season_all.strip(), mode='smart'))
                     except Exception as err:
-                        log.exception("【Meta】副标题-季范围解析 出错: ", err)
+                        log.exception("【Meta】副标题-季范围解析 出错: ")
                         return
                     self.begin_season = 1
                     self.end_season = self.total_seasons
@@ -818,7 +818,7 @@ class MetaBase(object):
                     self.type = MediaType.TV
                     self._subtitle_flag = True
                 except Exception as err:
-                    log.exception("【Meta】副标题-集数解析 出错: ", err)
+                    log.exception("【Meta】副标题-集数解析 出错: ")
                     return
 
     def get_sort_str(self):

@@ -26,5 +26,5 @@ class RssTitleUtils:
                     torrent_desc = title.replace(title_search.group(), "").strip()
                     title = "%s %s" % (torrent_name, torrent_desc)
         except Exception as e:
-            log.exception(f'[Rss]处理RSS标题[{title}]出错: ', e)
+            log.exception(f'[Rss]处理RSS标题[{title}]出错: ')
         return title

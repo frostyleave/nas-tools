@@ -294,7 +294,7 @@ class Telegram(_IMessageClient):
                         local_res = requests.post(_ds_url, json=msg, timeout=10)
                         log.debug("【Telegram】message: %s processed, response is: %s" % (msg, local_res.text))
             except Exception as e:
-                log.exception("【Telegram】消息接收出现错误: ", e)
+                log.exception("【Telegram】消息接收出现错误: ")
             return _offset
 
         offset = 0

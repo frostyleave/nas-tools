@@ -365,7 +365,7 @@ class SitesManager:
                 if urls:
                     return str(urls[0]).strip()
         except Exception as err:
-            log.exception('【Sites】解析网站下载链接出错: ', err)
+            log.exception('【Sites】解析网站下载链接出错: ')
         return None
 
     def match_indexer_sites(self, url, site_name=None) -> Optional[IndexerBase]:

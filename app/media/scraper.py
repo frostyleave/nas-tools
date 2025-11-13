@@ -8,14 +8,15 @@ import log
 
 from app.conf import SystemConfig, ModuleConf
 from app.helper import FfmpegHelper
+from app.media import Media
 from app.media.douban import DouBan
 from app.media.meta import MetaInfo
+from app.media.tmdbv3api.objs.person import Person
 from app.utils.commons import retry
-from config import Config, RMT_MEDIAEXT
 from app.utils import DomUtils, RequestUtils, NfoReader, SystemUtils
 from app.utils.types import MediaType, SystemConfigKey, RmtMode
-from app.media import Media
 
+from config import Config, RMT_MEDIAEXT
 
 class Scraper:
     media = None
@@ -26,8 +27,6 @@ class Scraper:
     _temp_path = None
 
     def __init__(self):
-        self.media = Media()
-        self.douban = DouBan()
         self._scraper_flag = Config().get_config('media').get("nfo_poster")
         scraper_conf = SystemConfig().get(SystemConfigKey.UserScraperConf)
         if scraper_conf:
@@ -46,6 +45,7 @@ class Scraper:
         :param mode: 刮削模式，可选值：force_nfo, force_all
         :return:
         """
+        media_resolver = Media()
         # 模式
         force_nfo = True if mode in ["force_nfo", "force_all"] else False
         force_pic = True if mode in ["force_all"] else False
@@ -73,12 +73,12 @@ class Scraper:
                     tmdbid = self.__get_tmdbid_from_nfo(tv_nfo)
             if tmdbid and not force_nfo:
                 log.info(f"【Scraper】读取到本地nfo文件的tmdbid：{tmdbid}")
-                meta_info.set_tmdb_info(self.media.get_tmdb_info(mtype=meta_info.type,
+                meta_info.set_tmdb_info(media_resolver.get_tmdb_info(mtype=meta_info.type,
                                                                  tmdbid=tmdbid,
                                                                  append_to_response='all'))
                 media_info = meta_info
             else:
-                medias = self.media.get_media_info_on_files(file_list=[file],
+                medias = media_resolver.get_media_info_on_files(file_list=[file],
                                                             append_to_response="all")
                 if not medias:
                     continue
@@ -178,7 +178,7 @@ class Scraper:
             xoutline.appendChild(doc.createCDATASection(tmdbinfo.get("overview") or ""))
         if scraper_nfo.get("credits"):
             # 导演
-            directors, actors = self.media.get_tmdb_directors_actors(tmdbinfo=tmdbinfo)
+            directors, actors = Media.get_tmdb_directors_actors(tmdbinfo=tmdbinfo)
             if scraper_nfo.get("credits_chinese"):
                 directors, actors = self.__gen_people_chinese_info(directors, actors, doubaninfo)
             for director in directors:
@@ -423,7 +423,7 @@ class Scraper:
         except RequestException:
             raise RequestException
         except Exception as err:
-            log.exception("【Scraper】保存海报出错: ", err)
+            log.exception("【Scraper】保存海报出错: ")
 
     def __save_nfo(self, doc, out_file):
         log.info("【Scraper】正在保存NFO文件：%s" % out_file)
@@ -468,6 +468,8 @@ class Scraper:
 
         self._rmt_mode = rmt_mode
 
+        douban = DouBan()
+        media_resolver = Media()
         try:
             # 电影
             if media.type == MediaType.MOVIE:
@@ -481,7 +483,7 @@ class Scraper:
                                 and not os.path.exists(os.path.join(dir_path, "%s.nfo" % file_name))):
                         # 查询Douban信息
                         if scraper_movie_nfo.get("credits") and scraper_movie_nfo.get("credits_chinese"):
-                            doubaninfo = self.douban.get_douban_info(media)
+                            doubaninfo = douban.get_douban_info(media)
                         else:
                             doubaninfo = None
                         #  生成电影描述文件
@@ -535,7 +537,7 @@ class Scraper:
                     if scraper_tv_nfo.get("basic") or scraper_tv_nfo.get("credits"):
                         # 查询Douban信息
                         if scraper_tv_nfo.get("credits") and scraper_tv_nfo.get("credits_chinese"):
-                            doubaninfo = self.douban.get_douban_info(media)
+                            doubaninfo = douban.get_douban_info(media)
                         else:
                             doubaninfo = None
                         # 根目录描述文件
@@ -583,7 +585,7 @@ class Scraper:
                     if force_nfo \
                             or not os.path.exists(os.path.join(dir_path, "season.nfo")):
                         # season nfo
-                        seasoninfo = self.media.get_tmdb_tv_season_detail(tmdbid=media.tmdb_id,
+                        seasoninfo = media_resolver.get_tmdb_tv_season_detail(tmdbid=media.tmdb_id,
                                                                           season=int(media.get_season_seq()))
                         if seasoninfo:
                             self.__gen_tv_season_nfo_file(seasoninfo=seasoninfo,
@@ -594,7 +596,7 @@ class Scraper:
                         or scraper_tv_nfo.get("episode_credits"):
                     if force_nfo \
                             or not os.path.exists(os.path.join(dir_path, "%s.nfo" % file_name)):
-                        seasoninfo = self.media.get_tmdb_tv_season_detail(tmdbid=media.tmdb_id,
+                        seasoninfo = media_resolver.get_tmdb_tv_season_detail(tmdbid=media.tmdb_id,
                                                                           season=int(media.get_season_seq()))
                         if seasoninfo:
                             self.__gen_tv_episode_nfo_file(seasoninfo=seasoninfo,
@@ -615,7 +617,7 @@ class Scraper:
                                           season_poster,
                                           force_pic)
                     else:
-                        seasoninfo = self.media.get_tmdb_tv_season_detail(tmdbid=media.tmdb_id,
+                        seasoninfo = media_resolver.get_tmdb_tv_season_detail(tmdbid=media.tmdb_id,
                                                                           season=int(media.get_season_seq()))
                         if seasoninfo:
                             self.__save_image(Config().get_tmdbimage_url(seasoninfo.get("poster_path"),
@@ -649,7 +651,7 @@ class Scraper:
                     if not force_pic \
                             and not os.path.exists(episode_thumb):
                         # 优先从TMDB查询
-                        episode_image = self.media.get_episode_images(tv_id=media.tmdb_id,
+                        episode_image = media_resolver.get_episode_images(tv_id=media.tmdb_id,
                                                                       season_id=media.get_season_seq(),
                                                                       episode_id=media.get_episode_seq(),
                                                                       orginal=True)
@@ -665,7 +667,7 @@ class Scraper:
                                 log.info(f"【Scraper】缩略图生成完成：{episode_thumb}")
 
         except Exception as e:
-            log.exception("【Scraper】刮削元数据 出错: ", e)
+            log.exception("【Scraper】刮削元数据 出错: ")
 
     def __gen_people_chinese_info(self, directors, actors, doubaninfo):
         """
@@ -712,7 +714,7 @@ class Scraper:
         """
         名字加又名构成匹配列表
         """
-        people_aka_names = self.media.get_tmdbperson_aka_names(people.get("id")) or []
+        people_aka_names = Media().get_tmdbperson_aka_names(people.get("id")) or []
         people_aka_names.append(people.get("name"))
         for people_aka_name in people_aka_names:
             for people_douban in peoples_douban:

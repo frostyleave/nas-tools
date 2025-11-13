@@ -648,7 +648,7 @@ class TorrentTransfer(_IPluginModule):
             return torrent.status.stopped and torrent.percent_done == 1
         
         except Exception as e:
-            log.exception('【Plugin】自动转移做种 - 种子状态校验出错: ', e)
+            log.exception('【Plugin】自动转移做种 - 种子状态校验出错: ')
             return False
 
     @staticmethod

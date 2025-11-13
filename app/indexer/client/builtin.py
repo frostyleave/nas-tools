@@ -5,7 +5,6 @@ from typing import List, Optional, Tuple
 import log
 
 from app.conf import SystemConfig
-from app.helper import ProgressHelper
 from app.indexer.client._base import _IIndexClient
 from app.indexer.client import TorrentSpider, TNodeSpider, TorrentLeech, InterfaceSpider, MTorrentSpider
 from app.indexer.manager import IndexerManager, IndexerInfo
@@ -23,6 +22,15 @@ class BuiltinIndexer(_IIndexClient):
     client_type = IndexerType.BUILTIN
     # 索引器名称
     client_name = IndexerType.BUILTIN.value
+
+    sites = None
+
+    def __init__(self):
+        super().__init__()
+        self.init_config()
+
+    def init_config(self):
+        self.sites = SitesManager()
 
     @classmethod
     def match(cls, ctype):
@@ -47,7 +55,7 @@ class BuiltinIndexer(_IIndexClient):
         _indexer_domains = []
 
         # PT站点
-        for pt_site in SitesManager().get_sites():
+        for pt_site in self.sites.get_sites():
             url = pt_site.signurl or pt_site.rssurl
             if not url:
                 continue
@@ -104,16 +112,10 @@ class BuiltinIndexer(_IIndexClient):
         if not indexer or not key_word:
             return None
         
-        if SearchType.WEB == in_from:
-            search_progress = ProgressHelper()
-        else:
-            search_progress = None
-
         # 站点流控
-        sites_manager = SitesManager()
-        if sites_manager.check_ratelimit(indexer.siteid):
-            if search_progress:
-                search_progress.update(ptype=ProgressKey.Search, text=f"{indexer.name} 触发站点流控，跳过 ...")
+        if self.sites.check_ratelimit(indexer.siteid):
+            if SearchType.WEB == in_from:
+                self.progress.update(ptype=ProgressKey.Search, text=f"{indexer.name} 触发站点流控，跳过 ...")
             return []
 
         if filter_args is None:
@@ -159,8 +161,8 @@ class BuiltinIndexer(_IIndexClient):
         # 记录日志
         log.info(summary_txt)
         # 更新进度
-        if search_progress:
-            search_progress.update(ptype=ProgressKey.Search, text=summary_txt)
+        if SearchType.WEB == in_from:
+            self.progress.update(ptype=ProgressKey.Search, text=summary_txt)
 
         # 结果过滤
         return self.filter_search_results(result_array=result_array,
@@ -168,7 +170,8 @@ class BuiltinIndexer(_IIndexClient):
                                           indexer=indexer,
                                           filter_args=filter_args,
                                           search_media=match_media,
-                                          start_time=start_time)
+                                          start_time=start_time,
+                                          in_from=in_from)
 
 
     def search_torrents(self, indexer: IndexerInfo, search_word: str='', mtype: Optional[MediaType]=None) -> Tuple[bool, list]:
@@ -192,5 +195,5 @@ class BuiltinIndexer(_IIndexClient):
             return TorrentSpider(indexer).search(keyword=search_word, mtype=mtype)
         
         except Exception as err:
-            log.exception(f'【索引器】[{indexer.name}]执行搜索异常: ', err)
+            log.exception(f'【索引器】[{indexer.name}]执行搜索异常: ')
             return True, []

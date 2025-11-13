@@ -265,7 +265,7 @@ class Sync(object):
                         finally:
                             lock.release()
             except Exception as e:
-                log.exception("【Sync】发生错误: ", e)
+                log.exception("【Sync】发生错误: ")
 
     def transfer_mon_files(self):
         """
@@ -333,7 +333,7 @@ class Sync(object):
                 observer.start()
                 log.info(f"{mon_path} 的监控服务启动")
             except Exception as e:
-                log.exception("【Sync】启动监控 发生错误: ", e)
+                log.exception("【Sync】启动监控 发生错误: ")
                 err_msg = str(e)
                 if "inotify" in err_msg and "reached" in err_msg:
                     log.warn(f"目录监控服务启动出现异常：{err_msg}，请在宿主机上（不是docker容器内）执行以下命令并重启："
@@ -389,7 +389,7 @@ class Sync(object):
                                                                     unknown_dir=unknown_path,
                                                                     rmt_mode=sync_mode)
                     if not ret:
-                        log.error("【Sync】%s 处理失败：%s" % (mon_path, ret_msg))
+                        log.error("【Sync】%s 处理失败：%s", mon_path, ret_msg)
 
     def __link(self, event_path, mon_path, target_path, sync_mode):
         """
@@ -397,19 +397,19 @@ class Sync(object):
         """
         if self.dbhelper.is_sync_in_history(event_path, target_path):
             return
-        log.info("【Sync】开始同步 %s" % event_path)
+        log.info("【Sync】开始同步 %s", event_path)
         try:
             ret, msg = self.filetransfer.link_sync_file(src_path=mon_path,
                                                         in_file=event_path,
                                                         target_dir=target_path,
                                                         sync_transfer_mode=sync_mode)
             if ret != 0:
-                log.warn("【Sync】%s 同步失败，错误码：%s" % (event_path, ret))
+                log.warn("【Sync】%s 同步失败，错误码：%s", (event_path, ret))
             elif not msg:
                 self.dbhelper.insert_sync_history(event_path, mon_path, target_path)
-                log.info("【Sync】%s 同步完成" % event_path)
+                log.info("【Sync】%s 同步完成", event_path)
         except Exception as err:
-            log.exception(f"【Sync】{event_path} 同步失败：" , err)
+            log.exception("【Sync】%s 同步失败：" , event_path)
 
     def delete_sync_path(self, sid):
         """

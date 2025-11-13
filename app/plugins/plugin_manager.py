@@ -77,7 +77,7 @@ class PluginManager:
                         names = handler.__qualname__.split(".")
                         self.run_plugin(names[0], names[1], event)
                     except Exception as e:
-                        log.exception(f"‼️ 事件处理出错: ", e)
+                        log.exception(f"‼️ 事件处理出错: ")
 
     def start_service(self):
         """
@@ -141,7 +141,7 @@ class PluginManager:
         try:
             return getattr(self._running_plugins[pid], method)(*args, **kwargs)
         except Exception as err:
-            log.exception(f"‼️ 执行插件 {pid}-{method} 方法异常: ", err)
+            log.exception(f"‼️ 执行插件 {pid}-{method} 方法异常: ")
 
     def reload_plugin(self, pid):
         """
@@ -156,7 +156,7 @@ class PluginManager:
                 self._running_plugins[pid].init_config(self.get_plugin_config(pid))
                 log.debug(f"生效插件配置：{pid}")
             except Exception as err:
-                log.exception(f"‼️ 初始化插件{pid}配置出错: ", err)
+                log.exception(f"‼️ 初始化插件{pid}配置出错: ")
 
     def __stop_plugins(self):
         """
@@ -336,7 +336,7 @@ class PluginManager:
                         continue
                     open(image_name, "wb").write(result_images.content)
         except Exception as e:
-            log.exception(f"‼️ 请求第三方插件仓库地址异常: ", e)
+            log.exception(f"‼️ 请求第三方插件仓库地址异常: ")
             return {}
 
         return result
@@ -413,15 +413,15 @@ class PluginManager:
                                     all_confs[pid] = conf
 
                         except Exception as e:
-                            log.exception(f"‼️[三方插件]处理线程结果异常: ", e)
+                            log.exception(f"‼️[三方插件]处理线程结果异常: ")
                             continue
 
                 except Exception as e:
-                    log.exception(f"‼️[三方插件]获取第三方仓库列表异常: ", e)
+                    log.exception(f"‼️[三方插件]获取第三方仓库列表异常: ")
                     continue
 
         except Exception as e:
-            log.exception(f"‼️[三方插件]获取第三方数据源异常: ", e)
+            log.exception(f"‼️[三方插件]获取第三方数据源异常: ")
             return all_confs
 
         return all_confs

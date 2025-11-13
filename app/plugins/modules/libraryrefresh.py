@@ -46,7 +46,7 @@ class LibraryRefresh(_IPluginModule):
                     delay = 0
                 self._refresh_delay = delay
             except Exception as e:
-                log.exception(f"【LibraryRefresh】延迟时间解析失败: ", e)
+                log.exception(f"【LibraryRefresh】延迟时间解析失败: ")
                 self._refresh_delay = 0
 
         self.stop_service()

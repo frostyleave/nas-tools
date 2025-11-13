@@ -32,7 +32,7 @@ class Ntfy(_IMessageClient):
                 self._priority = int(self._client_config.get('priority'))
             except Exception as e:
                 self._priority = 4
-                log.exception("【Ntfy】初始化 出错: ", e)
+                log.exception("【Ntfy】初始化 出错: ")
 
     @classmethod
     def match(cls, ctype):

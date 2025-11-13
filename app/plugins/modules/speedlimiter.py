@@ -200,7 +200,7 @@ class SpeedLimiter(_IPluginModule):
                 # 总带宽
                 self._bandwidth = int(float(config.get("bandwidth") or 0)) * 1000000
             except Exception as e:
-                log.exception(f"【Limiter】总带宽读取失败:", e)
+                log.exception(f"【Limiter】总带宽读取失败:")
                 self._bandwidth = 0
             # 自动限速开关
             self._auto_limit = True if self._bandwidth else False
@@ -209,14 +209,14 @@ class SpeedLimiter(_IPluginModule):
                 # 播放下载限速
                 self._download_limit = int(float(config.get("download_limit") or 0))
             except Exception as e:
-                log.exception(f"【Limiter】下载限速配置读取失败:", e)
+                log.exception(f"【Limiter】下载限速配置读取失败:")
                 self._download_limit = 0
             
             try:
                 # 播放上传限速
                 self._upload_limit = int(float(config.get("upload_limit") or 0))
             except Exception as e:
-                log.exception(f"【Limiter】上传限速配置读取失败:", e)
+                log.exception(f"【Limiter】上传限速配置读取失败:")
                 self._upload_limit = 0
 
             # 限速服务开关
@@ -237,14 +237,14 @@ class SpeedLimiter(_IPluginModule):
                 # 未播放下载限速
                 self._download_unlimit = int(float(config.get("download_unlimit") or 0))
             except Exception as e:
-                log.exception(f"【Limiter】未播放下载限速 配置读取失败:", e)
+                log.exception(f"【Limiter】未播放下载限速 配置读取失败:")
                 self._download_unlimit = 0
 
             try:
                 # 未播放上传限速
                 self._upload_unlimit = int(float(config.get("upload_unlimit") or 0))
             except Exception as e:
-                log.exception(f"【Limiter】未播放上传限速 配置读取失败:", e)
+                log.exception(f"【Limiter】未播放上传限速 配置读取失败:")
                 self._upload_unlimit = 0
 
             # 任务时间间隔
@@ -256,7 +256,7 @@ class SpeedLimiter(_IPluginModule):
                 try:
                     self._allocation_ratio = [int(i) for i in self._allocation_ratio.split(":")]
                 except Exception as e:
-                    log.exception(f"【Limiter】下载器限速分配比例 配置解析失败:", e)
+                    log.exception(f"【Limiter】下载器限速分配比例 配置解析失败:")
                     self.warn("分配比例含有:外非数字字符，执行均分")
                     self._allocation_ratio = []
             else:

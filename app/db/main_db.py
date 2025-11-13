@@ -126,7 +126,7 @@ class DbPersist(object):
                 self.db.commit()
                 return True if ret is None else ret
             except Exception as e:
-                log.exception('[DB]数据库持久化出错: ', e)
+                log.exception('[DB]数据库持久化出错: ')
                 self.db.rollback()
                 return False
 

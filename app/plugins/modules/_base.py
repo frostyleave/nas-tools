@@ -271,7 +271,7 @@ class _IPluginModule(metaclass=ABCMeta):
                     self.info(f"{func_name}服务启动，周期: {cron}, 下次执行时间: {cron_job.next_run_time.strftime('%Y-%m-%d %H:%M:%S')}")
                 return cron_job
             except Exception as err:
-                log.exception(f'【Plugin】定时任务{func_name}注册失败: ', err)
+                log.exception(f'【Plugin】定时任务{func_name}注册失败: ')
         return None
     
     def remove_job(self, job_info:Optional[Job]):
@@ -282,5 +282,5 @@ class _IPluginModule(metaclass=ABCMeta):
             try:
                 JobCenter().remove_job(job_info.id)
             except Exception as err:
-                log.exception(f'【Plugin】定时任务{job_info.id}移除失败: ', err)
+                log.exception(f'【Plugin】定时任务{job_info.id}移除失败: ')
         return None

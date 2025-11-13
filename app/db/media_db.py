@@ -62,7 +62,7 @@ class MediaDb:
             self.session.commit()
             return True
         except Exception as e:
-            log.exception("[Db]insert MEDIASYNC_ITEMS error:", e)
+            log.exception("[Db]insert MEDIASYNC_ITEMS error:")
             self.session.rollback()
         return False
 
@@ -78,7 +78,7 @@ class MediaDb:
             self.session.commit()
             return True
         except Exception as e:
-            log.exception("[Db]empty MEDIASYNC_ITEMS error:", e)
+            log.exception("[Db]empty MEDIASYNC_ITEMS error:")
             self.session.rollback()
         return False
 
@@ -99,7 +99,7 @@ class MediaDb:
             self.session.commit()
             return True
         except Exception as e:
-            log.exception("[Db]MEDIASYNC_STATISTICS CRUD ERROR:", e)
+            log.exception("[Db]MEDIASYNC_STATISTICS CRUD ERROR:")
             self.session.rollback()
         return False
 

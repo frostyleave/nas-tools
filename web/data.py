@@ -649,7 +649,7 @@ async def mediafile():
             try:
                 rootDir = os.path.commonpath(download_dirs).replace("\\", "/")
             except Exception as err:
-                log.exception(f'管理目录转换异常: {download_dirs}', err)
+                log.exception(f'管理目录转换异常: {download_dirs}')
                 rootDir = "/"
         else:
             rootDir = "/"

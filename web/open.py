@@ -164,7 +164,7 @@ async def wechat_post(request: Request):
         return Response(content=content, status_code=200)
 
     except Exception as err:
-        log.exception('微信消息处理发生错误: ', err)
+        log.exception('微信消息处理发生错误: ')
         return Response(content="ok", status_code=200)
     
 # 微信发送消息

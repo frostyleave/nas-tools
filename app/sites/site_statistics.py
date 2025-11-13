@@ -62,7 +62,7 @@ class SitesDataStatisticsCenter(object):
                 if site_schema.match(html_text):
                     return site_schema
             except Exception as e:
-                log.exception('【Sites】实例化站点解析器出错: ', e)
+                log.exception('【Sites】实例化站点解析器出错: ')
         return None
 
     def build(self, 
@@ -230,7 +230,7 @@ class SitesDataStatisticsCenter(object):
                 return site_user_info
 
         except Exception as e:
-            log.exception(f'【Sites】站点 {site_name} 获取流量数据失败: ', e)
+            log.exception(f'【Sites】站点 {site_name} 获取流量数据失败: ')
             return None
 
     def __notify_unread_msg(self, site_name, site_user_info, unread_msg_notify):

@@ -189,7 +189,7 @@ class Downloader:
                 if downloader_schema.match(ctype):
                     return downloader_schema(conf)
             except Exception as e:
-                log.exception("【Downloader】下载器实例化异常: ", e)
+                log.exception("【Downloader】下载器实例化异常: ")
         return None
 
     @property
@@ -504,7 +504,7 @@ class Downloader:
                 return downloader_id, None, f"下载器 {downloader_name} 添加下载任务失败, 请检查下载任务是否已存在"
         except Exception as e:
             __download_fail(str(e))
-            log.exception(f"【Downloader】下载器 {downloader_name} 添加任务出错:", e)
+            log.exception("【Downloader】下载器 %s 添加任务出错:", downloader_name)
             return None, None, str(e)
 
     def add_torrent(self, 
@@ -958,7 +958,7 @@ class Downloader:
                 return None
             return torrents
         except Exception as err:
-            log.exception("【Downloader】下获取种子信息: ", err)
+            log.exception("【Downloader】下获取种子信息: ")
             return None
 
     def get_remove_torrents(self, downloader_id=None, config=None):
@@ -993,7 +993,7 @@ class Downloader:
         try:
             return _client.get_downloading_torrents(tag=tag, ids=ids)
         except Exception as err:
-            log.exception("【Downloader】查询正在下载中的种子信息 异常: ", err)
+            log.exception("【Downloader】查询正在下载中的种子信息 异常: ")
             return None
 
     def get_downloading_progress(self, downloader_id=None, ids=None):
@@ -1674,12 +1674,12 @@ class Downloader:
         try:
             download_limit = int(download_limit) if download_limit else 0
         except Exception as err:
-            log.exception("【Downloader】获取下载速度设置 异常: ", err)
+            log.exception("【Downloader】获取下载速度设置 异常: ")
             download_limit = 0
         try:
             upload_limit = int(upload_limit) if upload_limit else 0
         except Exception as err:
-            log.exception("【Downloader】获取上传速度设置 异常: ", err)
+            log.exception("【Downloader】获取上传速度设置 异常: ")
             upload_limit = 0
         _client.set_speed_limit(download_limit=download_limit, upload_limit=upload_limit)
 
@@ -1748,7 +1748,7 @@ class Downloader:
             try:
                 JobCenter().remove_job(self.transfer_job.id)
             except Exception as err:
-                log.exception('【Downloader】定时转移任务移除失败: ', err)
+                log.exception('【Downloader】定时转移任务移除失败: ')
 
     def get_download_history(self, date=None, hid=None, num=30, page=1):
         """
