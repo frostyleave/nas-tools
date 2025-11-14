@@ -129,7 +129,7 @@ class BuiltinIndexer(_IIndexClient):
         if not filter_args.get("rule") and indexer.rule:
             filter_args.update({"rule": indexer.rule})
 
-        log.info(f"【索引器】开始搜索{indexer.name} ...")
+        log.info("【索引器】%s 开始搜索 ...", indexer.name)
 
         # 特殊符号处理
         search_word = StringUtils.handler_special_chars(text=key_word, replace_word=" ", allow_space=True)
@@ -149,15 +149,15 @@ class BuiltinIndexer(_IIndexClient):
         # 没有结果
         if result_count == 0:
             result_info = '搜索失败' if error_flag else '未搜索到数据'
-            summary_txt = f"【索引器】{indexer.name} {result_info}, 用时: {seconds}s"
+            summary_txt = "【索引器】%s %s, 用时: %s s" % (indexer.name, result_info, seconds)
             log.info(summary_txt)
             # 更新进度
-            if search_progress:
-                search_progress.update(ptype=ProgressKey.Search, text=summary_txt)
+            if SearchType.WEB == in_from:
+                self.progress.update(ptype=ProgressKey.Search, text=summary_txt)
             return []
         
         # 有搜索结果
-        summary_txt = f"【索引器】{indexer.name} 返回数据：{result_count}, 用时: {seconds}s"
+        summary_txt = "【索引器】%s 返回数据：%s, 用时: %s s"% (indexer.name, result_count, seconds)
         # 记录日志
         log.info(summary_txt)
         # 更新进度
@@ -195,5 +195,5 @@ class BuiltinIndexer(_IIndexClient):
             return TorrentSpider(indexer).search(keyword=search_word, mtype=mtype)
         
         except Exception as err:
-            log.exception(f'【索引器】[{indexer.name}]执行搜索异常: ')
+            log.exception('【索引器】[%s]执行搜索异常: ', indexer.name)
             return True, []

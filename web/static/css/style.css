@@ -1060,3 +1060,11 @@ h1.login_title>label {
     object-fit: cover;
     object-position: center top;
 }
+
+.h3-span-ellipsis {
+  display: inline-block;
+  max-width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}

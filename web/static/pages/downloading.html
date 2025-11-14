@@ -119,7 +119,7 @@
                       <h3 class="card-title mb-1">
                         ${torrent.tmdbid && torrent.type ?
                           `<a href='javascript:navmenu("media_detail?type=${torrent.type}&id=${torrent.tmdbid}")' class="text-reset card-text">${torrent.title || torrent.name}</a>` :
-                          `<span class="text-reset card-text">${torrent.title || torrent.name}</span>`
+                          `<span class="text-reset card-text h3-span-ellipsis">${torrent.title || torrent.name}</span>`
                         }
                       </h3>
                       <div>

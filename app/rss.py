@@ -481,10 +481,10 @@ class Rss:
                 match_msg.append(match_filter_msg)
                 return False, match_msg, match_rss_info
             else:
-                match_msg.append("%s 识别为 %s %s 匹配订阅成功",
+                match_msg.append("%s 识别为 %s %s 匹配订阅成功" % (
                     media_info.org_string,
                     media_info.get_title_string(),
-                    media_info.get_season_episode_string())
+                    media_info.get_season_episode_string()))
                 match_msg.append(f"种子描述：{media_info.subtitle}")
                 match_rss_info.update({
                     "res_order": res_order,
@@ -493,10 +493,10 @@ class Rss:
                     "download_volume_factor": download_volume_factor})
                 return True, match_msg, match_rss_info
         else:
-            match_msg.append("%s 识别为 %s %s 不在订阅范围",
+            match_msg.append("%s 识别为 %s %s 不在订阅范围" % (
                 media_info.org_string,
                 media_info.get_title_string(),
-                media_info.get_season_episode_string())
+                media_info.get_season_episode_string()))
             return False, match_msg, match_rss_info
 
     def download_rss_torrent(self, rss_download_torrents, rss_no_exists):
