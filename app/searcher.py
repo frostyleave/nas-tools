@@ -46,7 +46,8 @@ class Searcher:
                       key_word: str,
                       filter_args: dict,
                       match_media=None,
-                      in_from: SearchType = None) -> List[MetaInfo]:
+                      in_from: SearchType = None,
+                      task_id=None) -> List[MetaInfo]:
         """
         根据关键字调用索引器检查媒体
         :param key_word: 搜索的关键字，不能为空
@@ -59,14 +60,8 @@ class Searcher:
             return []
         if not self.indexer:
             return []
-        # 触发事件
-        self.eventmanager.send_event(EventType.SearchStart, {
-            "key_word": key_word,
-            "media_info": match_media.to_dict() if match_media else None,
-            "filter_args": filter_args,
-            "search_type": in_from.value if in_from else None
-        })
-        return self.indexer.search_by_keyword(key_word, filter_args, match_media, in_from)
+
+        return self.indexer.search_by_keyword(key_word, filter_args, match_media, in_from, task_id)
 
     def search_one_media(self, media_info,
                          in_from: SearchType,

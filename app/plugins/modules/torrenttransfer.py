@@ -9,7 +9,7 @@ from typing import Optional
 from bencode import bdecode, bencode
 
 from app.downloader import Downloader
-from app.helper.thread_helper import thread_helper
+from app.helper import ThreadHelper
 from app.media.meta import MetaInfo
 from app.plugins.modules._base import _IPluginModule
 from app.utils import TorrentUtils
@@ -319,7 +319,7 @@ class TorrentTransfer(_IPluginModule):
 
             if self._onlyonce:
                 self.info("移转做种服务启动，立即运行一次")
-                thread_helper.start_thread(self.transfer, ())
+                ThreadHelper.start_thread(self.transfer, ())
                 # 关闭一次性开关
                 self._onlyonce = False
                 self.update_config({

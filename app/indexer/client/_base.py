@@ -2,7 +2,7 @@ import regex as re
 import datetime
 
 from abc import ABCMeta, abstractmethod
-from typing import List
+from typing import List, Optional
 
 import log
 
@@ -12,6 +12,8 @@ from app.media import Media
 from app.media.meta import MetaInfo
 from app.utils import StringUtils, MediaUtils
 from app.utils.types import MediaType, SearchType, ProgressKey
+from app.task_manager import GlobalTaskManager
+
 
 from config import SPLIT_CHARS
 
@@ -27,6 +29,8 @@ class _IIndexClient(metaclass=ABCMeta):
     media = None
     progress = None
     filter = None
+
+    step_fator = 5
 
     def __init__(self):
         self.media = Media()
@@ -68,11 +72,15 @@ class _IIndexClient(metaclass=ABCMeta):
                key_word,
                filter_args: dict,
                match_media,
-               in_from: SearchType):
+               in_from: SearchType,
+               task_id=None):
         """
         根据关键字多线程搜索
         """
         pass
+    
+    def set_step_fator(self, fator):
+        self.step_fator = fator
 
     def filter_search_results(self, 
                               result_array: list,
@@ -306,7 +314,6 @@ class _IIndexClient(metaclass=ABCMeta):
 
         return ret_array
 
-
     def is_result_item_name_match(self, item_tmdb_info, item_meta : MetaInfo):
         """
         检查名称是否完全匹配
@@ -356,3 +363,13 @@ class _IIndexClient(metaclass=ABCMeta):
             return False
         
         return item_tmdb_info.release_date.startswith(item_meta.year)
+    
+    def update_process(self, task_id:Optional[str], text:Optional[str]):
+        """
+        进度更新
+        """
+        if task_id:
+            GlobalTaskManager().update_task(task_id, progress=0, progress_add=self.step_fator, message=text)
+            return
+        if self.progress:
+            self.progress.update(ptype=ProgressKey.Search, text=text)    

@@ -17,7 +17,7 @@ import log
 from app.conf import ModuleConf
 from app.conf import SystemConfig
 from app.filetransfer import FileTransfer
-from app.helper import DbHelper, thread_helper, SubmoduleHelper
+from app.helper import DbHelper, ThreadHelper, SubmoduleHelper
 from app.indexer.client import InterfaceSpider, MTorrentSpider
 from app.indexer.client.browser import PlaywrightHelper
 from app.indexer.manager import IndexerInfo, IndexerManager
@@ -427,7 +427,7 @@ class Downloader:
                                                       save_dir=save_dir)
                 # 下载站点字幕文件
                 if page_url and subtitle_dir and site_info and site_info.subtitle:
-                    thread_helper.start_thread(self.sitesubtitle.download, (media_info, site_info.id, site_info.cookie, site_info.ua, subtitle_dir))
+                    ThreadHelper.start_thread(self.sitesubtitle.download, (media_info, site_info.id, site_info.cookie, site_info.ua, subtitle_dir))
 
                 # 发送下载消息
                 if in_from:

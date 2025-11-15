@@ -9,7 +9,7 @@ import log
 
 from app.conf import ModuleConf
 from app.helper import RssHelper
-from app.helper.thread_helper import thread_helper
+from app.helper import ThreadHelper
 from app.media import Media
 from app.mediaserver import MediaServer
 from app.plugins.modules._base import _IPluginModule
@@ -277,7 +277,7 @@ class MovieRandom(_IPluginModule):
 
             if self._onlyonce:
                 self.info(f"电影随机服务启动，立即运行一次")
-                thread_helper.start_thread(self.__random, ())
+                ThreadHelper.start_thread(self.__random, ())
                 # 关闭一次性开关
                 self._onlyonce = False
                 self.update_config({

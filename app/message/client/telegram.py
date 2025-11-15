@@ -5,7 +5,7 @@ import requests
 
 import log
 
-from app.helper import thread_helper
+from app.helper import ThreadHelper
 from app.message.client._base import _IMessageClient
 from app.utils import RequestUtils
 from config import Config
@@ -62,7 +62,7 @@ class Telegram(_IMessageClient):
                     if not self._message_proxy_event:
                         event = Event()
                         self._message_proxy_event = event
-                        thread_helper.start_thread(self.__start_telegram_message_proxy, [event])
+                        ThreadHelper.start_thread(self.__start_telegram_message_proxy, [event])
 
     @classmethod
     def match(cls, ctype):

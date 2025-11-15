@@ -3,7 +3,7 @@ import os
 from pathlib import Path
 from threading import Event
 
-from app.helper.thread_helper import thread_helper
+from app.helper import ThreadHelper
 from app.plugins import EventManager
 from app.plugins.modules._base import _IPluginModule
 from app.utils import SystemUtils, RequestUtils, IpUtils
@@ -208,7 +208,7 @@ class CloudflareSpeedTest(_IPluginModule):
 
             if self._onlyonce:
                 self.info(f"Cloudflare CDN优选服务启动，立即运行一次")
-                thread_helper.start_thread(self.__cloudflareSpeedTest), ()
+                ThreadHelper.start_thread(self.__cloudflareSpeedTest), ()
                 # 关闭一次性开关
                 self._onlyonce = False
                 self.__update_config()

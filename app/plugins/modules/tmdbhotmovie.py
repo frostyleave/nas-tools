@@ -4,7 +4,7 @@ from threading import Event
 from jinja2 import Template
 
 from app.helper import RssHelper
-from app.helper.thread_helper import thread_helper
+from app.helper import ThreadHelper
 from app.media.meta.metainfo import MetaInfo
 from app.media.tmdbv3api.objs.movie import Movie
 from app.mediaserver import MediaServer
@@ -68,7 +68,7 @@ class TmdbHotMovieRank(_IPluginModule):
 
             if self._onlyonce:
                 self.info("TMDB热门电影订阅服务启动，立即运行一次")
-                thread_helper.start_thread(self.__refresh_rank, ())
+                ThreadHelper.start_thread(self.__refresh_rank, ())
                 # 关闭一次性开关
                 self._onlyonce = False
                 self.update_config({

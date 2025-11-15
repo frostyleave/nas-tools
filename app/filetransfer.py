@@ -13,7 +13,6 @@ import log
 
 from app.conf import ModuleConf
 from app.helper import DbHelper, ProgressHelper
-from app.helper import thread_helper
 from app.media import Media, Category, Scraper
 from app.media.meta import MetaInfo
 from app.mediaserver import MediaServer

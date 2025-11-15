@@ -14,6 +14,7 @@ from app.media.meta.metainfo import MetaInfo
 from app.utils import StringUtils
 from app.utils.commons import singleton
 from app.utils.types import SearchType, ProgressKey
+from app.task_manager import GlobalTaskManager
 
 from config import INDEXER_CATEGORY
 
@@ -93,7 +94,8 @@ class Indexer(object):
                           key_word: str,
                           filter_args: dict,
                           match_media: Optional[MetaBase]=None,
-                          in_from: Optional[SearchType]=None) -> List[MetaInfo]:
+                          in_from: Optional[SearchType]=None,
+                          task_id=None) -> List[MetaInfo]:
         """
         根据关键字调用 Index API 搜索
         :param key_word: 搜索的关键字，不能为空
@@ -130,21 +132,23 @@ class Indexer(object):
         if filter_args and filter_args.get("site"):
             log_info = f"【{self._client_type.value}】开始搜索 %s, 站点: %s ..." % (key_word, filter_args.get("site"))
             log.info(log_info)
-            self.progress.update(ptype=ProgressKey.Search, text=log_info)
+            self.update_process(task_id=task_id, process_val=5, text=log_info)
         else:
             log_info = f"【{self._client_type.value}】开始并行搜索 {key_word} ..."
             log.info(log_info)
-            self.progress.update(ptype=ProgressKey.Search, text=log_info)
+            self.update_process(task_id=task_id, process_val=5, text=log_info)
 
+        indexr_count = len(indexers)
+        step_fator = int(40 / indexr_count)
         # 多线程
-        executor = ThreadPoolExecutor(max_workers=len(indexers))
+        executor = ThreadPoolExecutor(max_workers=indexr_count)
         all_task = []
         for indexer in indexers:
             order_seq = 100 - int(indexer.pri)
 
             # 原始标题检索
             if 'title' == indexer.search_type and key_word:
-                task = executor.submit(self._client.search, order_seq, indexer, key_word, copy.deepcopy(filter_args), match_media, in_from)
+                task = executor.submit(self._client.search, order_seq, indexer, key_word, copy.deepcopy(filter_args), match_media, in_from, task_id)
                 all_task.append(task)
 
             # 其他搜索类型都需要 match_media 不为空
@@ -154,19 +158,19 @@ class Indexer(object):
             # 豆瓣id检索
             if 'douban_id' == indexer.search_type and match_media.douban_id:
                 # 剧集信息, 查询特定季的豆瓣id
-                task = executor.submit(self._client.search, order_seq, indexer, match_media.douban_id, copy.deepcopy(filter_args), match_media, in_from)
+                task = executor.submit(self._client.search, order_seq, indexer, match_media.douban_id, copy.deepcopy(filter_args), match_media, in_from, task_id)
                 all_task.append(task)
 
             # imdb id 检索
             if 'imdb' == indexer.search_type and match_media.imdb_id:
-                task = executor.submit(self._client.search, order_seq, indexer, match_media.imdb_id, copy.deepcopy(filter_args), match_media, in_from)
+                task = executor.submit(self._client.search, order_seq, indexer, match_media.imdb_id, copy.deepcopy(filter_args), match_media, in_from, task_id)
                 all_task.append(task)
 
             # 英文名检索
             if 'en_name' == indexer.search_type or indexer.en_expand:
                 en_name = self.__get_en_name(match_media)
                 if en_name:
-                    task = executor.submit(self._client.search, order_seq, indexer, en_name, copy.deepcopy(filter_args), match_media, in_from)
+                    task = executor.submit(self._client.search, order_seq, indexer, en_name, copy.deepcopy(filter_args), match_media, in_from, task_id)
                     all_task.append(task)
 
         ret_array = []
@@ -176,7 +180,7 @@ class Indexer(object):
             finish_count += 1
             progress_value = round(100 * (finish_count / len(all_task)))
             if SearchType.WEB == in_from:
-                self.progress.update(ptype=ProgressKey.Search, value=progress_value)
+                self.update_process(task_id=task_id, process_val=progress_value)
             if result:
                 ret_array = ret_array + result
         
@@ -184,7 +188,8 @@ class Indexer(object):
         end_time = datetime.datetime.now()
         summary_txt = f'所有站点搜索完成，有效资源数：{len(ret_array)} , 总耗时 {(end_time - start_time).seconds} 秒'
         if SearchType.WEB == in_from:
-            self.progress.update(ptype=ProgressKey.Search, text=summary_txt, value=100)
+            self.update_process(task_id=task_id, process_val=100, text=summary_txt)
+            
         log.info(f"【{self._client_type.value}】{summary_txt}")
 
         return ret_array
@@ -198,3 +203,12 @@ class Indexer(object):
         # 获取英文标题
         return Media().get_tmdb_en_title(media_info)
     
+    def update_process(self, task_id:Optional[str], process_val:int, text:Optional[str]=None):
+        """
+        进度更新
+        """
+        if task_id:
+            GlobalTaskManager().update_task(task_id, progress=process_val, message=text)
+            return
+        if self.progress:
+            self.progress.update(ptype=ProgressKey.Search, text=text, value=process_val)    

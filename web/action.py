@@ -11,7 +11,7 @@ import sqlite3
 import threading
 import time
 
-from fastapi import APIRouter, Body, Depends
+from fastapi import APIRouter, BackgroundTasks, Body, Depends
 from math import floor
 from pathlib import Path
 from typing import Optional
@@ -20,18 +20,17 @@ from urllib.parse import unquote
 import cn2an
 import zhconv
 
-from app.job_center import JobCenter
 import log
+
 from app.brushtaskv2 import BrushTaskV2 as BrushTask
 from app.conf import SystemConfig, ModuleConf
 from app.downloader import Downloader
 from app.filetransfer import FileTransfer
 from app.filter import Filter
-from app.helper import DbHelper, ProgressHelper, thread_helper, \
-    MetaHelper, DisplayHelper, WordsHelper
-from app.helper import RssHelper, PluginHelper
+from app.helper import DbHelper, ProgressHelper, ThreadHelper, MetaHelper, DisplayHelper, WordsHelper, RssHelper, PluginHelper
 from app.indexer import Indexer
 from app.indexer.manager import IndexerManager
+from app.job_center import JobCenter
 from app.media import Category, Media, Bangumi, DouBan, Scraper
 from app.media.meta import MetaInfo, MetaBase
 from app.mediaserver import MediaServer
@@ -49,6 +48,7 @@ from app.utils import StringUtils, EpisodeFormat, RequestUtils, PathUtils, Syste
 from app.utils.types import MEDIA_TYPE_MAP, RmtMode, OsType, SearchType, SyncType, MediaType, MovieTypes, TvTypes, \
     EventType, SystemConfigKey, RssType
 from app.utils.password_hash import generate_password_hash
+from app.task_manager import GlobalTaskManager
 
 from config import RMT_MEDIAEXT, RMT_SUBEXT, RMT_AUDIO_TRACK_EXT, Config
 from web.backend.search import search_medias_for_web, search_media_by_message
@@ -57,18 +57,17 @@ from web.backend.web_utils import WebUtils
 from web.backend.security import get_current_user
 
 # action接口路由
-action_router = APIRouter()
+action_router = APIRouter(dependencies=[Depends(get_current_user)])
 
 # 事件响应
 @action_router.post("/do")
 def do(content: dict = Body(...), current_user: User = Depends(get_current_user)):
     
     start_time = time.time()
-
     try:
         cmd = content.get("cmd")
         data = content.get("data") or {}
-        log.debug(f"处理/do请求: cmd={cmd}, data={data}")
+        log.debug("处理/do请求: cmd={%s}, data={%s}", cmd, data)
         return WebAction(current_user).action(cmd, data)
     except Exception as e:
         log.exception("处理/do请求出错, cmd=" + content.get("cmd"))
@@ -76,7 +75,63 @@ def do(content: dict = Body(...), current_user: User = Depends(get_current_user)
     finally:
         cost_time = time.time()
         process_time = (cost_time - start_time) * 1000  # 转换为毫秒
-        log.debug(f"[{str(threading.get_ident())}] {json.dumps(content)}, 耗时: {process_time:.2f}ms")
+        log.debug("[%s] %s, 耗时: %s ms", str(threading.get_ident()), json.dumps(content), format(process_time, ".2f"))
+
+# search
+@action_router.post("/search")
+def search(background_tasks: BackgroundTasks, data: dict = Body(...)):
+    
+    start_time = time.time()
+    try:
+        search_word = data.get("search_word")
+        if not search_word:
+            return {"code": -1, "msg": '缺少搜索关键词'}
+
+        ident_flag = False if data.get("unident") else True
+        filters = data.get("filters")
+        tmdbid = data.get("tmdbid")
+        media_type = data.get("media_type")
+
+        if media_type:
+            if media_type in MovieTypes:
+                media_type = MediaType.MOVIE
+            else:
+                media_type = MediaType.TV
+
+        task_id = GlobalTaskManager().create_task()
+
+        background_tasks.add_task(search_medias_for_web,
+                                  content=search_word,
+                                  ident_flag=ident_flag,
+                                  filters=filters,
+                                  tmdbid=tmdbid,
+                                  media_type=media_type,
+                                  task_id=task_id)
+        
+        return {"code": 0, "task_id": task_id}
+    
+    except Exception as e:
+        log.exception("处理/search请求出错")
+        return {"code": -1, "msg": str(e)}
+    finally:
+        cost_time = time.time()
+        process_time = (cost_time - start_time) * 1000  # 转换为毫秒
+        log.debug("[%s] %s, 耗时: %s ms", str(threading.get_ident()), json.dumps(data), format(process_time, ".2f"))
+
+# search_progress
+@action_router.post("/search_progress")
+def get_search_progress(content: dict = Body(...)):
+
+    task_id = content.get("task_id")
+    if not task_id:
+        return {"code": -1, "msg": "任务id为空"}
+    
+    task_info = GlobalTaskManager().get_task_dict(task_id)
+    if not task_info:
+        return {"code": -1, "msg": "任务信息查询失败"}
+
+    return {"code": 0, "info": task_info}
+
 
 
 class WebAction:
@@ -85,7 +140,7 @@ class WebAction:
     _current_user : Optional[User] = None
     _douBan : Optional[DouBan] =  None
 
-    def __init__(self, current_user=None):
+    def __init__(self, current_user:Optional[User]=None):
         # WEB请求响应
         self._actions = {
             "sch": self.__sch,
@@ -356,6 +411,7 @@ class WebAction:
     @staticmethod
     def start_service():
         JobCenter()
+        ThreadHelper()
         # 加载索引器配置
         IndexerManager()
         # 加载站点配置
@@ -438,7 +494,7 @@ class WebAction:
         command = self._commands.get(msg)
         if command:
             # 启动服务
-            thread_helper.start_thread(command.get("func"), ())
+            ThreadHelper.start_thread(command.get("func"), ())
             # 消息回应
             Message().send_channel_msg(
                 channel=in_from, title="正在运行 %s ..." % command.get("desc"), user_id=user_id, client_id=client_id)
@@ -456,7 +512,7 @@ class WebAction:
                 return
 
         # 站点搜索或者添加订阅
-        thread_helper.start_thread(search_media_by_message,
+        ThreadHelper.start_thread(search_media_by_message,
                                     (msg, in_from, user_id, user_name, client_id))
 
     def set_config_value(self, cfg, cfg_key, cfg_value):
@@ -574,7 +630,7 @@ class WebAction:
         }
         sch_item = data.get("item")
         if sch_item and commands.get(sch_item):
-            thread_helper.start_thread(commands.get(sch_item), ())
+            ThreadHelper.start_thread(commands.get(sch_item), ())
         return {"retmsg": "服务已启动", "item": sch_item}
 
     def __search(self, data):
@@ -586,17 +642,20 @@ class WebAction:
         filters = data.get("filters")
         tmdbid = data.get("tmdbid")
         media_type = data.get("media_type")
+
         if media_type:
             if media_type in MovieTypes:
                 media_type = MediaType.MOVIE
             else:
                 media_type = MediaType.TV
+
         if search_word:
             ret, ret_msg = search_medias_for_web(content=search_word,
                                                  ident_flag=ident_flag,
                                                  filters=filters,
                                                  tmdbid=tmdbid,
-                                                 media_type=media_type)
+                                                 media_type=media_type,
+                                                 task_id=data.get("task_id"))
             if ret != 0:
                 return {"code": ret, "msg": ret_msg}
         return {"code": 0}
@@ -1833,9 +1892,9 @@ class WebAction:
         rssid = data.get("rssid")
         page = data.get("page")
         if mtype == "MOV":
-            thread_helper.start_thread(Subscribe().subscribe_search_movie, (rssid,))
+            ThreadHelper.start_thread(Subscribe().subscribe_search_movie, (rssid,))
         else:
-            thread_helper.start_thread(Subscribe().subscribe_search_tv, (rssid,))
+            ThreadHelper.start_thread(Subscribe().subscribe_search_tv, (rssid,))
         return {"code": 0, "page": page}
 
     def get_system_message(self, lst_time):
@@ -2760,7 +2819,7 @@ class WebAction:
         """
         librarys = data.get("librarys") or []
         SystemConfig().set(key=SystemConfigKey.SyncLibrary, value=librarys)
-        thread_helper.start_thread(MediaServer().sync_mediaserver, ())
+        ThreadHelper.start_thread(MediaServer().sync_mediaserver, ())
         return {"code": 0}
 
     def __mediasync_state(self):
@@ -4244,7 +4303,7 @@ class WebAction:
         path = data.get("path")
         if not path:
             return {"code": -1, "msg": "请指定刮削路径"}
-        thread_helper.start_thread(Scraper().folder_scraper, (path, None, 'force_all'))
+        ThreadHelper.start_thread(Scraper().folder_scraper, (path, None, 'force_all'))
         return {"code": 0, "msg": "刮削任务已提交，正在后台运行。"}
 
     def __get_download_setting(self, data):
@@ -4933,7 +4992,7 @@ class WebAction:
         """
         执行单个目录的目录同步
         """
-        thread_helper.start_thread(Sync().transfer_sync, (data.get("sid"),))
+        ThreadHelper.start_thread(Sync().transfer_sync, (data.get("sid"),))
         return {"code": 0, "msg": "执行成功"}
 
     def __update_plugin_config(self, data):

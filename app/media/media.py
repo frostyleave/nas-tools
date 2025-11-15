@@ -627,7 +627,8 @@ class Media:
             return {}
         return MetaHelper().get_meta_data_by_key(self.__make_cache_key(meta_info))
 
-    def get_media_info(self, title,
+    def get_media_info(self, 
+                       title,
                        subtitle=None,
                        mtype=None,
                        strict=None,

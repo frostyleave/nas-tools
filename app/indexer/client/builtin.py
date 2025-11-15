@@ -11,7 +11,7 @@ from app.indexer.manager import IndexerManager, IndexerInfo
 from app.media.meta.metainfo import MetaInfo
 from app.sites import SitesManager
 from app.utils import StringUtils
-from app.utils.types import MediaType, SearchType, IndexerType, ProgressKey, SystemConfigKey
+from app.utils.types import MediaType, SearchType, IndexerType, SystemConfigKey
 
 
 class BuiltinIndexer(_IIndexClient):
@@ -105,7 +105,8 @@ class BuiltinIndexer(_IIndexClient):
                key_word: str,
                filter_args: dict,
                match_media,
-               in_from: SearchType) -> List[MetaInfo]:
+               in_from: SearchType,
+               task_id=None) -> List[MetaInfo]:
         """
         根据关键字搜索资源并过滤
         """
@@ -115,7 +116,7 @@ class BuiltinIndexer(_IIndexClient):
         # 站点流控
         if self.sites.check_ratelimit(indexer.siteid):
             if SearchType.WEB == in_from:
-                self.progress.update(ptype=ProgressKey.Search, text=f"{indexer.name} 触发站点流控，跳过 ...")
+                log.info("【索引器】%s 触发站点流控，跳过 ...", indexer.name)
             return []
 
         if filter_args is None:
@@ -153,7 +154,7 @@ class BuiltinIndexer(_IIndexClient):
             log.info(summary_txt)
             # 更新进度
             if SearchType.WEB == in_from:
-                self.progress.update(ptype=ProgressKey.Search, text=summary_txt)
+                self.update_process(task_id=task_id, text=summary_txt)
             return []
         
         # 有搜索结果
@@ -162,7 +163,7 @@ class BuiltinIndexer(_IIndexClient):
         log.info(summary_txt)
         # 更新进度
         if SearchType.WEB == in_from:
-            self.progress.update(ptype=ProgressKey.Search, text=summary_txt)
+            self.update_process(task_id=task_id, text=summary_txt)
 
         # 结果过滤
         return self.filter_search_results(result_array=result_array,

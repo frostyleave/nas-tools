@@ -9,7 +9,7 @@ from concurrent.futures import as_completed
 import log
 
 from app.conf import SystemConfig
-from app.helper import SubmoduleHelper, thread_helper
+from app.helper import SubmoduleHelper, ThreadHelper
 from app.plugins.event_manager import EventManager
 from app.utils import SystemUtils, PathUtils, ImageUtils, RequestUtils
 from app.utils.commons import singleton
@@ -373,7 +373,7 @@ class PluginManager:
                 try:
                     all_task = []
                     # 执行获取第三方仓库列表
-                    task = thread_helper.start_thread(self.get_external_plugin_list, url)
+                    task = ThreadHelper.start_thread(self.get_external_plugin_list, url)
                     all_task.append(task)
 
                     finish_count = 0

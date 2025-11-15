@@ -32,16 +32,60 @@ let PageLoadedTime = new Date();
 
 // 搜索
 function media_search(tmdbid, title, type) {
+
   const param = { "tmdbid": tmdbid, "search_word": title, "media_type": type };
-  show_refresh_progress("正在搜索 " + title + " ...", "search");
-  axios_post_do("search", param, function (ret) {
-    hide_refresh_process();
-    if (ret.code === 0) {
-      navmenu('search?s=' + title);
-    } else {
+  // 显示弹窗
+  show_refresh_progress_modal("正在搜索 " + title + " ...", "search")
+  // 发起请求
+  axios_post('/search', param, function(ret) {
+    // 请求失败
+    if (ret.code != 0) {
+
+      $("#modal-process").modal("hide");
       show_fail_modal(ret.msg);
+      return;
     }
-  }, true, false);
+
+    // 刷新进度
+    checkProgress(ret.task_id, function() { navmenu('search?s=' + title) });
+
+  });
+
+}
+
+function checkProgress(task_id, onCompleteCallback) {
+
+  const param = { "task_id": task_id };
+  // 发起请求
+  axios_post('/search_progress', param, function(ret) {
+    // 请求失败
+    if (ret.code != 0) {
+
+      $("#modal-process").modal("hide");
+      show_fail_modal(ret.msg);
+      return;
+    }
+
+    var taskInfo = ret.info;
+    // $("#modal_process_bar").attr("style", "width: " + taskInfo.progress + "%").attr("aria-valuenow", taskInfo.progress);
+    $("#modal_process_bar").css("width", taskInfo.progress + "%").attr("aria-valuenow", taskInfo.progress);
+    $("#modal_process_text").text(taskInfo.message);
+
+    // 检查是否完成
+    if (taskInfo.progress >= 100 && taskInfo.status == 'finish') {
+      // 延迟调用
+      setTimeout(() => {
+        onCompleteCallback();
+      }, 200);
+
+    } else {
+      setTimeout(() => {
+        checkProgress(task_id, onCompleteCallback); 
+      }, 1000); // 1秒请求1次
+    }
+
+  }, show_progress=false);
+
 }
 
 // 显示全局加载蒙版
@@ -356,6 +400,20 @@ function render_progress(ret) {
     $("#modal_process_bar").attr("style", "width: " + ret.value + "%").attr("aria-valuenow", ret.value);
     $("#modal_process_text").text(ret.text);
   }
+}
+
+// 显示全局进度框
+function show_refresh_progress_modal(title) {
+  hideLoading();
+  if (title) {
+    $("#modal_process_title").text(title);
+  } else {
+    $("#modal_process_title").hide();
+  }
+  $("#modal_process_bar").attr("style", "width: 0%").attr("aria-valuenow", 0);
+  $("#modal_process_text").text("请稍候...");
+  $("#modal-process").modal("show");
+
 }
 
 // 显示全局进度框

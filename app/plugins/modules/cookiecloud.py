@@ -2,7 +2,7 @@ from collections import defaultdict
 from threading import Event
 from typing import Tuple
 
-from app.helper.thread_helper import thread_helper
+from app.helper import ThreadHelper
 from app.indexer.manager import IndexerManager
 from app.plugins.modules._base import _IPluginModule
 from app.sites import SitesManager
@@ -179,7 +179,7 @@ class CookieCloud(_IPluginModule):
             # 运行一次
             if self._onlyonce:
                 self.info(f"同步服务启动，立即运行一次")
-                thread_helper.start_thread(self.__cookie_sync, ())
+                ThreadHelper.start_thread(self.__cookie_sync, ())
                 # 关闭一次性开关
                 self._onlyonce = False
                 self.update_config({

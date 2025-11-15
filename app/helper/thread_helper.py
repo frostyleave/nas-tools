@@ -4,7 +4,7 @@ from app.utils.commons import singleton
 
 
 @singleton
-class _ThreadHelper:
+class ThreadHelper:
 
     common_executor = None
 
@@ -13,6 +13,3 @@ class _ThreadHelper:
 
     def start_thread(self, func, kwargs):
         self.common_executor.submit(func, *kwargs)
-
-
-thread_helper = _ThreadHelper()
