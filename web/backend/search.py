@@ -4,7 +4,6 @@ import re
 import log
 
 from app.downloader import Downloader
-from app.helper import ProgressHelper
 from app.indexer import Indexer
 from app.media import Media
 from app.message import Message
@@ -12,7 +11,7 @@ from app.searcher import Searcher
 from app.sites import SitesManager
 from app.subscribe import Subscribe
 from app.utils import StringUtils
-from app.utils.types import ProgressKey, SearchType, RssType
+from app.utils.types import SearchType, RssType
 from app.task_manager import GlobalTaskManager
 
 from config import Config
@@ -44,12 +43,6 @@ def search_medias_for_web(content, ident_flag=True, filters=None, tmdbid=None, m
 
     _searcher = Searcher()
     
-    # 开始进度
-    _process = None
-    if not task_id:
-        _process = ProgressHelper()
-        _process.start(ProgressKey.Search)
-
     # 识别媒体
     media_info = None
     if ident_flag:
@@ -127,8 +120,6 @@ def search_medias_for_web(content, ident_flag=True, filters=None, tmdbid=None, m
     log.info("【Web】开始搜索 %s ...", content)
     if task_id:
         GlobalTaskManager().update_task(task_id=task_id, progress=1, message="开始搜索 %s ..." % content)
-    else:
-        _process.update(ptype=ProgressKey.Search, value=1, text="开始搜索 %s ..." % content)
 
     # 开始搜索
     media_list = _searcher.search_medias(key_word=first_search_name,
@@ -149,8 +140,6 @@ def search_medias_for_web(content, ident_flag=True, filters=None, tmdbid=None, m
     # 结束进度
     if task_id:
         GlobalTaskManager().update_task(task_id=task_id, progress=100, message="搜索完成", status='finish')
-    else:
-        _process.end(ProgressKey.Search)
 
     if len(media_list) == 0:
         log.info("【Web】%s 未搜索到任何资源" % content)

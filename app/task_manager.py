@@ -3,7 +3,6 @@ import threading
 import uuid
 
 from typing import Dict, Any, Optional
-
 from app.utils.commons import singleton
 
 
@@ -18,6 +17,9 @@ TASK_QUEUE: queue.Queue = queue.Queue()
 _PROCESSOR_THREAD: Optional[threading.Thread] = None
 # 5. 用于优雅停止的“哨兵”
 _STOP_EVENT = object()
+
+CLEANUP_INTERVAL_SECONDS = 60  # 每 60 秒触发一次清理检查
+TASK_TTL_SECONDS = 300         # 任务“完成”后 5 分钟 (300 秒)
 
 class TaskStatus:
     """一个辅助类，用于创建任务字典"""
@@ -61,6 +63,24 @@ class GlobalTaskManager:
 
 # --- 消费者线程的逻辑 ---
 
+def _cleanup_finished_tasks():
+    """
+    (在锁的保护下) 清理所有已完成且超时的任务
+    """
+    tasks_to_delete = []
+    
+    # 这里的迭代必须在锁内
+    for task_id, task in TASK_STORE.items():
+        task_status = task.get('status')
+        if task_status and task_status == 'finish':
+            tasks_to_delete.append(task_id)
+                
+                
+    # 这里的删除也必须在锁内
+    if tasks_to_delete:
+        for task_id in tasks_to_delete:
+            TASK_STORE.pop(task_id, None) # 安全删除
+
 def _task_processor_loop():
     """
     这是“消费者”线程的唯一工作。
@@ -69,8 +89,8 @@ def _task_processor_loop():
     print(" [Task Processor Thread] 任务处理器已启动...")
     while True:
         try:
-            # .get() 是阻塞操作，会一直等待直到队列中有新消息
-            message = TASK_QUEUE.get()
+
+            message = TASK_QUEUE.get(timeout=CLEANUP_INTERVAL_SECONDS)
 
             # 收到“停止”信号
             if message is _STOP_EVENT:
@@ -99,7 +119,10 @@ def _task_processor_loop():
             
             # 标记任务完成
             TASK_QUEUE.task_done()
-
+        except queue.Empty:
+            # 5. 队列为空（超时）: 执行清理的最佳时机
+            with TASK_STORE_LOCK:
+                _cleanup_finished_tasks()
         except Exception as e:
             # 必须捕获所有异常，否则处理器线程会崩溃
             print(f" [Task Processor Thread] 处理器循环出错: {e}")

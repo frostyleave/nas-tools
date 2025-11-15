@@ -6,14 +6,14 @@ from typing import List, Optional
 
 import log
 
-from app.helper import ProgressHelper, DbHelper
+from app.helper import DbHelper
 from app.indexer.client.builtin import BuiltinIndexer
 from app.media import Media
 from app.media.meta._base import MetaBase
 from app.media.meta.metainfo import MetaInfo
 from app.utils import StringUtils
 from app.utils.commons import singleton
-from app.utils.types import SearchType, ProgressKey
+from app.utils.types import SearchType
 from app.task_manager import GlobalTaskManager
 
 from config import INDEXER_CATEGORY
@@ -24,14 +24,12 @@ class Indexer(object):
 
     _client = None
     _client_type = None
-    progress = None
     dbhelper = None
 
     def __init__(self):
         self.init_config()
 
     def init_config(self):
-        self.progress = ProgressHelper()
         self.dbhelper = DbHelper()
         self._client = BuiltinIndexer()
         self._client_type = self._client.get_type()
@@ -139,7 +137,8 @@ class Indexer(object):
             self.update_process(task_id=task_id, process_val=5, text=log_info)
 
         indexr_count = len(indexers)
-        step_fator = int(40 / indexr_count)
+        # 设置进度参数
+        self._client.set_step_fator(int(30 / indexr_count))
         # 多线程
         executor = ThreadPoolExecutor(max_workers=indexr_count)
         all_task = []
@@ -178,9 +177,6 @@ class Indexer(object):
         for future in as_completed(all_task):
             result = future.result()
             finish_count += 1
-            progress_value = round(100 * (finish_count / len(all_task)))
-            if SearchType.WEB == in_from:
-                self.update_process(task_id=task_id, process_val=progress_value)
             if result:
                 ret_array = ret_array + result
         
@@ -210,5 +206,3 @@ class Indexer(object):
         if task_id:
             GlobalTaskManager().update_task(task_id, progress=process_val, message=text)
             return
-        if self.progress:
-            self.progress.update(ptype=ProgressKey.Search, text=text, value=process_val)    

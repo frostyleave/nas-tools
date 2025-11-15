@@ -5,7 +5,7 @@ import log
 from app.db.models import SEARCHRESULTINFO
 from app.downloader import Downloader
 
-from app.helper import DbHelper, ProgressHelper
+from app.helper import DbHelper
 from app.media import Media
 from app.media.meta.metainfo import MetaInfo
 from app.message import Message
@@ -36,7 +36,6 @@ class Searcher:
         self.downloader = Downloader()
         self.media = Media()
         self.message = Message()
-        self.progress = ProgressHelper()
         self.dbhelper = DbHelper()
         self.indexer = Indexer()
         self.eventmanager = EventManager()
@@ -84,8 +83,7 @@ class Searcher:
         """
         if not media_info:
             return None, {}, 0, 0
-        # 进度计数重置
-        self.progress.start(ProgressKey.Search)
+
         # 查找的季
         if media_info.begin_season is None:
             search_season = None

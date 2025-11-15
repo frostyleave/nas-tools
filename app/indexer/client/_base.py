@@ -7,11 +7,10 @@ from typing import List, Optional
 import log
 
 from app.filter import Filter
-from app.helper import ProgressHelper
 from app.media import Media
 from app.media.meta import MetaInfo
 from app.utils import StringUtils, MediaUtils
-from app.utils.types import MediaType, SearchType, ProgressKey
+from app.utils.types import MediaType, SearchType
 from app.task_manager import GlobalTaskManager
 
 
@@ -27,7 +26,6 @@ class _IIndexClient(metaclass=ABCMeta):
     client_name = "Indexer"
 
     media = None
-    progress = None
     filter = None
 
     step_fator = 5
@@ -35,7 +33,6 @@ class _IIndexClient(metaclass=ABCMeta):
     def __init__(self):
         self.media = Media()
         self.filter = Filter()
-        self.progress = ProgressHelper()
 
     @abstractmethod
     def match(self, ctype):
@@ -89,7 +86,8 @@ class _IIndexClient(metaclass=ABCMeta):
                               filter_args: dict,
                               search_media,
                               start_time,
-                              in_from: SearchType) -> List[MetaInfo]:
+                              in_from: SearchType,
+                              task_id=None) -> List[MetaInfo]:
         """
         从搜索结果中匹配符合资源条件的记录
         """
@@ -310,7 +308,7 @@ class _IIndexClient(metaclass=ABCMeta):
 
         log.info(text_info)
         if SearchType.WEB == in_from:
-            self.progress.update(ptype=ProgressKey.Search, text=text_info)
+            self.update_process(task_id, text=text_info)
 
         return ret_array
 
@@ -371,5 +369,3 @@ class _IIndexClient(metaclass=ABCMeta):
         if task_id:
             GlobalTaskManager().update_task(task_id, progress=0, progress_add=self.step_fator, message=text)
             return
-        if self.progress:
-            self.progress.update(ptype=ProgressKey.Search, text=text)    
