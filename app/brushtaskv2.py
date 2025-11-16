@@ -16,6 +16,7 @@ from app.downloader import Downloader
 from app.filter import Filter
 from app.helper import DbHelper
 from app.indexer.client.builtin import BuiltinIndexer
+from app.indexer.manager import IndexerManager
 from app.media.meta import MetaInfo
 from app.message import Message
 from app.job_center import JobCenter
@@ -95,8 +96,6 @@ class BrushTaskV2(object):
                 else:
                     log.error(f"任务 {task.get('name')} 运行周期格式不正确")
 
-        # 正常运行任务数
-        running_task = len(self.scheduler_jobs)
         # 启动删种任务
         if self.scheduler_jobs:
             del_job = scheduler.add_job(func=self.remove_tasks_torrents,
@@ -216,8 +215,7 @@ class BrushTaskV2(object):
                                            dlcount=rss_rule.get("dlcount")):
             return
 
-
-        site_indexer = self.indexer.get_indexers(indexer_id=site_info.indexer_id)
+        site_indexer = IndexerManager().build_indexer_conf(url=site_info.strict_url)
         if not site_indexer:
             log.error("【Brush】刷流站点 %s 的站索引器获取失败, 无法刷流!" % site_name)
             return

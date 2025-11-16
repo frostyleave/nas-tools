@@ -23,15 +23,6 @@ class BuiltinIndexer(_IIndexClient):
     # 索引器名称
     client_name = IndexerType.BUILTIN.value
 
-    sites = None
-
-    def __init__(self):
-        super().__init__()
-        self.init_config()
-
-    def init_config(self):
-        self.sites = SitesManager()
-
     @classmethod
     def match(cls, ctype):
         return True if ctype in [cls.client_id, cls.client_type, cls.client_name] else False
@@ -46,8 +37,14 @@ class BuiltinIndexer(_IIndexClient):
         """
         return True
 
-    def get_indexers(self, check=True, indexer_id=None, public=True) -> List[IndexerInfo]:
-
+    def get_indexers(self, check=True, public=True, filter_limit=False) -> List[IndexerInfo]:
+        """
+        获取可用的索引站点数据
+        :param check: 是否过滤未启用的站点
+        :param indexer_id: 索引id
+        :param public: 是否返回公共站点
+        :param filter_limit: 是否过滤限流站点
+        """
         ret_indexers = []
 
         # 选中站点配置
@@ -55,26 +52,30 @@ class BuiltinIndexer(_IIndexClient):
         _indexer_domains = []
 
         # PT站点
-        for pt_site in self.sites.get_sites():
+        sites_manager = SitesManager()
+        for pt_site in sites_manager.get_sites():
             url = pt_site.signurl or pt_site.rssurl
             if not url:
                 continue
+            
+            if filter_limit and sites_manager.check_ratelimit(pt_site.id):
+                log.debug("【索引器】%s 触发站点流控，跳过 ...", pt_site.name)
+                continue
+
             render = pt_site.chrome
             indexer_conf = IndexerManager().build_indexer_conf(url=url,
-                                                  siteid=pt_site.id,
-                                                  cookie=pt_site.cookie,
-                                                  token=pt_site.token,
-                                                  apikey=pt_site.apikey,
-                                                  ua=pt_site.ua,
-                                                  name=pt_site.name,
-                                                  rule=pt_site.rule,
-                                                  pri=pt_site.pri,
-                                                  public=False,
-                                                  proxy=pt_site.proxy,
-                                                  render=render)
+                                                               siteid=pt_site.id,
+                                                               cookie=pt_site.cookie,
+                                                               token=pt_site.token,
+                                                               apikey=pt_site.apikey,
+                                                               ua=pt_site.ua,
+                                                               name=pt_site.name,
+                                                               rule=pt_site.rule,
+                                                               pri=pt_site.pri,
+                                                               public=False,
+                                                               proxy=pt_site.proxy,
+                                                               render=render)
             if indexer_conf:
-                if indexer_id and indexer_conf.id == indexer_id:
-                    return indexer_conf
                 if check and (not indexer_sites or indexer_conf.id not in indexer_sites):
                     continue
                 if indexer_conf.domain not in _indexer_domains:
@@ -82,12 +83,12 @@ class BuiltinIndexer(_IIndexClient):
                     indexer_conf.name = pt_site.name
                     ret_indexers.append(indexer_conf)
         # 公开站点
+        if not public:
+            return ret_indexers
+
         for base_item in IndexerManager().get_all_indexer_base():
             if not base_item.public:
                 continue
-            if indexer_id and base_item.id == indexer_id:
-                conf_data = IndexerManager().prepare_datas(conf_data=base_item)
-                return IndexerInfo.from_datas(conf_data)
             
             if check and (not indexer_sites or base_item.id not in indexer_sites):
                 continue
@@ -97,7 +98,7 @@ class BuiltinIndexer(_IIndexClient):
                 conf_data = IndexerManager().prepare_datas(conf_data=base_item)
                 ret_indexers.append(IndexerInfo.from_datas(conf_data))
         
-        return None if indexer_id else ret_indexers
+        return ret_indexers
 
     def search(self, 
                order_seq,
@@ -113,21 +114,10 @@ class BuiltinIndexer(_IIndexClient):
         if not indexer or not key_word:
             return None
         
-        # 站点流控
-        if self.sites.check_ratelimit(indexer.siteid):
-            if SearchType.WEB == in_from:
-                log.info("【索引器】%s 触发站点流控，跳过 ...", indexer.name)
-            return []
-
         if filter_args is None:
             filter_args = {}
-
-        # 不在设定搜索范围的站点过滤掉
-        if filter_args.get("site") and indexer.name not in filter_args.get("site"):
-            return []
-        
-        # 搜索条件没有过滤规则时，使用站点的过滤规则
-        if not filter_args.get("rule") and indexer.rule:
+        elif not filter_args.get("rule") and indexer.rule:
+            # 搜索条件没有过滤规则时，使用站点的过滤规则
             filter_args.update({"rule": indexer.rule})
 
         log.info("【索引器】%s 开始搜索 ...", indexer.name)

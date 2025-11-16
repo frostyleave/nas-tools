@@ -6,7 +6,6 @@ from typing import List, Optional
 
 import log
 
-from app.helper import DbHelper
 from app.indexer.client.builtin import BuiltinIndexer
 from app.media import Media
 from app.media.meta._base import MetaBase
@@ -24,23 +23,21 @@ class Indexer(object):
 
     _client = None
     _client_type = None
-    dbhelper = None
 
     def __init__(self):
         self.init_config()
 
     def init_config(self):
-        self.dbhelper = DbHelper()
         self._client = BuiltinIndexer()
         self._client_type = self._client.get_type()
 
-    def get_indexers(self, check=False):
+    def get_indexers(self, check=False, filter_limit=False):
         """
         获取当前索引器的索引站点
         """
         if not self._client:
             return []
-        return self._client.get_indexers(check=check)
+        return self._client.get_indexers(check=check, filter_limit=filter_limit)
 
     def get_user_indexer_dict(self):
         """
@@ -107,8 +104,8 @@ class Indexer(object):
         if not key_word:
             return []
 
-        indexers = self.get_indexers(check=True)
-        if not indexers:
+        search_indexers = self.get_indexers(check=True, filter_limit=True)
+        if not search_indexers:
             log.error("没有配置索引器，无法搜索！")
             return []
 
@@ -116,12 +113,12 @@ class Indexer(object):
             filter_args = {}
 
         if filter_args.get('site'):
-            sites = filter_args.get('site')
-            indexers = list(filter(lambda x: x.name in sites, indexers))            
+            filter_sites = filter_args.get('site')
+            search_indexers = list(filter(lambda x: x.name in filter_sites, search_indexers))            
         elif match_media and match_media.type and match_media.type.name in INDEXER_CATEGORY:
-            indexers = list(filter(lambda x: not x.source_type or match_media.type.name in x.source_type, indexers))
+            search_indexers = list(filter(lambda x: not x.source_type or match_media.type.name in x.source_type, search_indexers))
 
-        if not indexers:
+        if not search_indexers:
             log.error("没有配置符合条件的索引器，无法搜索！")
             return []
 
@@ -136,13 +133,13 @@ class Indexer(object):
             log.info(log_info)
             self.update_process(task_id=task_id, process_val=5, text=log_info)
 
-        indexr_count = len(indexers)
+        indexr_count = len(search_indexers)
         # 设置进度参数
         self._client.set_step_fator(int(30 / indexr_count))
         # 多线程
         executor = ThreadPoolExecutor(max_workers=indexr_count)
         all_task = []
-        for indexer in indexers:
+        for indexer in search_indexers:
             order_seq = 100 - int(indexer.pri)
 
             # 原始标题检索

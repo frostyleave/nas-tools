@@ -12,7 +12,7 @@ from app.message import Message
 from app.indexer import Indexer
 from app.plugins import EventManager
 from app.utils.commons import singleton
-from app.utils.types import SearchType, EventType, ProgressKey
+from app.utils.types import SearchType
 
 from config import Config
 
@@ -62,7 +62,8 @@ class Searcher:
 
         return self.indexer.search_by_keyword(key_word, filter_args, match_media, in_from, task_id)
 
-    def search_one_media(self, media_info,
+    def search_one_media(self, 
+                         media_info,
                          in_from: SearchType,
                          no_exists: dict,
                          sites: list = None,

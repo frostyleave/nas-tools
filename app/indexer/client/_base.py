@@ -25,14 +25,7 @@ class _IIndexClient(metaclass=ABCMeta):
     # 索引器名称
     client_name = "Indexer"
 
-    media = None
-    filter = None
-
     step_fator = 5
-
-    def __init__(self):
-        self.media = Media()
-        self.filter = Filter()
 
     @abstractmethod
     def match(self, ctype):
@@ -98,6 +91,9 @@ class _IIndexClient(metaclass=ABCMeta):
         index_rule_fail = 0
         index_match_fail = 0
         index_error = 0
+
+        media = Media()
+        filter = Filter()
 
         target_year = []
         item_tmdb_info = search_media.tmdb_info if search_media else None
@@ -170,10 +166,10 @@ class _IIndexClient(metaclass=ABCMeta):
                 continue
 
             # 检查订阅过滤规则匹配
-            match_flag, res_order, match_msg = self.filter.check_torrent_filter(meta_info=item_meta,
-                                                                                filter_args=filter_args,
-                                                                                uploadvolumefactor=uploadvolumefactor,
-                                                                                downloadvolumefactor=downloadvolumefactor)            
+            match_flag, res_order, match_msg = filter.check_torrent_filter(meta_info=item_meta,
+                                                                           filter_args=filter_args,
+                                                                           uploadvolumefactor=uploadvolumefactor,
+                                                                           downloadvolumefactor=downloadvolumefactor)            
             if not match_flag:
                 log.info("【%s】%s", self.client_name, match_msg)
                 index_rule_fail += 1
@@ -189,13 +185,13 @@ class _IIndexClient(metaclass=ABCMeta):
                         and search_media.imdb_id \
                         and str(item_meta.imdb_id) == str(search_media.imdb_id):
                     # IMDBID匹配，合并媒体数据
-                    media_info = self.media.merge_media_info(item_meta, search_media)
+                    media_info = media.merge_media_info(item_meta, search_media)
                 else:
                     # 查询缓存
-                    cache_info = self.media.get_cache_info(item_meta)
+                    cache_info = media.get_cache_info(item_meta)
                     if str(cache_info.get("id")) == str(search_media.tmdb_id):
                         # 缓存匹配，合并媒体数据
-                        media_info = self.media.merge_media_info(item_meta, search_media)
+                        media_info = media.merge_media_info(item_meta, search_media)
                     else:
                         # 年份不匹配, 直接跳过
                         if target_year and item_meta.year and item_meta.year not in target_year:
@@ -205,7 +201,7 @@ class _IIndexClient(metaclass=ABCMeta):
 
                         # 名称、年份 都匹配时，不再额外请求tmdb进行比对
                         if self.is_result_item_name_match(item_tmdb_info, item_meta):
-                            media_info = self.media.merge_media_info(item_meta, search_media)
+                            media_info = media.merge_media_info(item_meta, search_media)
                         else:
                             # 识别搜索结果的tmdb信息
                             search_kw = item_meta.get_name()
@@ -215,7 +211,7 @@ class _IIndexClient(metaclass=ABCMeta):
                                 search_kw = '{} {}'.format(search_kw, en_name)
 
                             # 查询tmdb数据
-                            file_tmdb_info = self.media.query_tmdb_info(search_kw, 
+                            file_tmdb_info = media.query_tmdb_info(search_kw, 
                                                                         item_meta.type, 
                                                                         item_meta.year,
                                                                         item_meta.begin_season, 
@@ -235,7 +231,7 @@ class _IIndexClient(metaclass=ABCMeta):
                                 index_match_fail += 1
                                 continue
                             # 资源匹配，合并媒体数据
-                            media_info = self.media.merge_media_info(item_meta, search_media)
+                            media_info = media.merge_media_info(item_meta, search_media)
                 filter_type = filter_args.get("type")
                 # 过滤类型
                 if filter_type:
@@ -268,11 +264,11 @@ class _IIndexClient(metaclass=ABCMeta):
                 
 
             # 检查标题是否匹配季、集、年
-            if not self.filter.is_torrent_match_sey(media_info,
-                                                    filter_args.get("season"),
-                                                    filter_args.get("season_name"),
-                                                    filter_args.get("episode"),
-                                                    filter_args.get("year")):
+            if not filter.is_torrent_match_sey(media_info,
+                                               filter_args.get("season"),
+                                               filter_args.get("season_name"),
+                                               filter_args.get("episode"),
+                                               filter_args.get("year")):
                 log.info("【%s】%s 识别为 %s/%s/%s 不匹配季/集/年份",
                          self.client_name, torrent_name, media_info.type.value, media_info.get_title_string(), media_info.get_season_episode_string())
                 index_match_fail += 1

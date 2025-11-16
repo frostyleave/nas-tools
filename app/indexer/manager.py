@@ -130,19 +130,19 @@ class IndexerManager:
         return None
 
     def build_indexer_conf(self,
-                    url,
-                    siteid=None,
-                    cookie=None,
-                    token=None,
-                    apikey=None,
-                    name=None,
-                    rule=None,
-                    public=None,
-                    proxy=None,
-                    parser=None,
-                    ua=None,
-                    render=None,
-                    pri=None) -> Optional[IndexerInfo]:
+                           url,
+                           siteid=None,
+                           cookie=None,
+                           token=None,
+                           apikey=None,
+                           name=None,
+                           rule=None,
+                           public=None,
+                           proxy=None,
+                           parser=None,
+                           ua=None,
+                           render=None,
+                           pri=None) -> Optional[IndexerInfo]:
         """
         根据url获取并生成相应的索引器配置
         """
@@ -151,26 +151,27 @@ class IndexerManager:
         for indexer in self._indexers:
             if not indexer.domain:
                 continue
-            if SiteUtils.url_equal(indexer.domain, url):
-                conf_data = self.prepare_datas(conf_data=indexer,
-                                   siteid=siteid,
-                                   cookie=cookie,
-                                   token=token,
-                                   apikey=apikey,
-                                   name=name,
-                                   rule=rule,
-                                   public=public,
-                                   proxy=proxy,
-                                   parser=parser,
-                                   ua=ua,
-                                   render=render,
-                                   builtin=True,
-                                   pri=pri)
-                return IndexerInfo.from_datas(conf_data)
+            if SiteUtils.url_equal(indexer.domain, url) == False:
+                continue            
+            conf_data = self.prepare_datas(conf_data=indexer,
+                                           siteid=siteid,
+                                           cookie=cookie,
+                                           token=token,
+                                           apikey=apikey,
+                                           name=name,
+                                           rule=rule,
+                                           public=public,
+                                           proxy=proxy,
+                                           parser=parser,
+                                           ua=ua,
+                                           render=render,
+                                           builtin=True,
+                                           pri=pri)
+            return IndexerInfo.from_datas(conf_data)
         return None
 
     def prepare_datas(self,
-                      conf_data : IndexerBase =None,
+                      conf_data:IndexerBase=None,
                       name=None,
                       public=True,
                       proxy=None,
@@ -183,7 +184,7 @@ class IndexerManager:
                       token=None,
                       apikey=None,
                       rule=None,
-                      pri=None):
+                      pri=None) -> dict:
 
         result = {}
 
