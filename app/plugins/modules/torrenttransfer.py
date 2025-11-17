@@ -319,7 +319,7 @@ class TorrentTransfer(_IPluginModule):
 
             if self._onlyonce:
                 self.info("移转做种服务启动，立即运行一次")
-                ThreadHelper.start_thread(self.transfer, ())
+                ThreadHelper().start_thread(self.transfer, ())
                 # 关闭一次性开关
                 self._onlyonce = False
                 self.update_config({

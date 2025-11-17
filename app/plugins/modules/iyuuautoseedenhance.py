@@ -243,7 +243,7 @@ class IYUUAutoSeedEnhance(_IPluginModule):
             # 立即运行一次
             if self._onlyonce:
                 self.info(f"辅种服务启动，立即运行一次")
-                ThreadHelper.start_thread(self.auto_seed, ())
+                ThreadHelper().start_thread(self.auto_seed, ())
                 # 关闭一次性开关
                 self._onlyonce = False
             if self._clearcache:

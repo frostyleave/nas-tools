@@ -277,7 +277,7 @@ class MovieRandom(_IPluginModule):
 
             if self._onlyonce:
                 self.info(f"电影随机服务启动，立即运行一次")
-                ThreadHelper.start_thread(self.__random, ())
+                ThreadHelper().start_thread(self.__random, ())
                 # 关闭一次性开关
                 self._onlyonce = False
                 self.update_config({

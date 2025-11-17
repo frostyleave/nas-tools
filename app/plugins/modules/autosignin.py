@@ -274,7 +274,7 @@ class AutoSignIn(_IPluginModule):
 
             # 运行一次
             if self._onlyonce:
-                ThreadHelper.start_thread(self.sign_in, ())
+                ThreadHelper().start_thread(self.sign_in, ())
                 self.info("签到任务启动，立即运行一次")
 
             if self._onlyonce or self._clean:

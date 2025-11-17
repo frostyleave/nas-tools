@@ -179,7 +179,7 @@ class CookieCloud(_IPluginModule):
             # 运行一次
             if self._onlyonce:
                 self.info(f"同步服务启动，立即运行一次")
-                ThreadHelper.start_thread(self.__cookie_sync, ())
+                ThreadHelper().start_thread(self.__cookie_sync, ())
                 # 关闭一次性开关
                 self._onlyonce = False
                 self.update_config({

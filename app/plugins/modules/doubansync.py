@@ -123,7 +123,7 @@ class DoubanSync(_IPluginModule):
 
             if self._onlyonce:
                 self.info("豆瓣同步服务启动，立即运行一次")
-                ThreadHelper.start_thread(self.sync, ())
+                ThreadHelper().start_thread(self.sync, ())
 
                 # 关闭一次性开关
                 self._onlyonce = False

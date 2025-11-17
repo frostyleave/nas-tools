@@ -208,7 +208,7 @@ class CloudflareSpeedTest(_IPluginModule):
 
             if self._onlyonce:
                 self.info(f"Cloudflare CDN优选服务启动，立即运行一次")
-                ThreadHelper.start_thread(self.__cloudflareSpeedTest), ()
+                ThreadHelper().start_thread(self.__cloudflareSpeedTest), ()
                 # 关闭一次性开关
                 self._onlyonce = False
                 self.__update_config()

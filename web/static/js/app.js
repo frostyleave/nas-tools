@@ -112,8 +112,8 @@ function loadPage(htmlPath, queryString) {
     }
 
     var page = window.location.hash;
-    if (page && page.startsWith('#/')) {
-      page = page.substring(1);
+    if (page) {
+      page = page.replace(/^[#/]+/, "");
     }
 
     // 激活菜单
@@ -247,24 +247,7 @@ function renderOther() {
     // 刷新filetree控件
     init_filetree_element();
   }
-
-  // var $page_title = $('.container-xl .page-header .row .col h2.page-title');
-  // if ($page_title) {
-
-  //   if ($('#top-sub-navbar').is(':visible') && $('#top-sub-navbar').find('.tab-text').is(':visible')) {
-  //     // 检查是否有按钮
-  //     const $container = $page_title.closest('.container-xl');
-  //     if ($container.find('.btn-list').length == 0) {
-  //       $container.hide();
-  //     } else {
-  //       $page_title.hide();
-  //     }
-
-  //   } else {
-  //     $page_title.show();
-  //   }
-  // }
-
+  
 }
 
 // 刷新子菜单

@@ -373,7 +373,7 @@ class PluginManager:
                 try:
                     all_task = []
                     # 执行获取第三方仓库列表
-                    task = ThreadHelper.start_thread(self.get_external_plugin_list, url)
+                    task = ThreadHelper().start_thread(self.get_external_plugin_list, url)
                     all_task.append(task)
 
                     finish_count = 0

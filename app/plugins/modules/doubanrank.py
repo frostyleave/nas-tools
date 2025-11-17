@@ -94,7 +94,7 @@ class DoubanRank(_IPluginModule):
 
             if self._onlyonce:
                 self.info("订阅服务启动，立即运行一次")
-                ThreadHelper.start_thread(self.__refresh_rss, ())
+                ThreadHelper().start_thread(self.__refresh_rss, ())
                 # 关闭一次性开关
                 self._onlyonce = False
                 self.update_config({

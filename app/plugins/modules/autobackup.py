@@ -149,7 +149,7 @@ class AutoBackup(_IPluginModule):
         if self._enabled or self._onlyonce:
             # 运行一次
             if self._onlyonce:
-                ThreadHelper.start_thread(self.__backup, ())
+                ThreadHelper().start_thread(self.__backup, ())
                 self.info(f"备份服务启动，立即运行一次")
                 # 关闭一次性开关
                 self._onlyonce = False

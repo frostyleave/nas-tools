@@ -154,7 +154,7 @@ class LibraryScraper(_IPluginModule):
         if self.get_state() or self._onlyonce:
             if self._onlyonce:
                 self.info(f"刮削服务启动，立即运行一次")
-                ThreadHelper.start_thread(self.__libraryscraper, ())
+                ThreadHelper().start_thread(self.__libraryscraper, ())
                 # 关闭一次性开关
                 self._onlyonce = False
                 self.update_config({
