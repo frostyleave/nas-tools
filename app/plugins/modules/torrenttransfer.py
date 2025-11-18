@@ -534,9 +534,6 @@ class TorrentTransfer(_IPluginModule):
                                      "to_download_id": download_id,
                                      "delete_source": self._deletesource,
                                  })
-            # 触发校验任务
-            if success > 0 and self._autostart:
-                self.check_recheck()
             # 发送通知
             if self._notify:
                 self.send_message(
@@ -641,11 +638,9 @@ class TorrentTransfer(_IPluginModule):
         判断种子是否可以做种并处于暂停状态
         """
         try:
-
             if dl_type == DownloaderType.QB:
                 return torrent.get("state") in ["pausedUP", "stoppedUP"]
-
-            return torrent.status.stopped and torrent.percent_done == 1
+            return torrent.status == 'stopped' and torrent.percent_done >= 1.0
         
         except Exception as e:
             log.exception('【Plugin】自动转移做种 - 种子状态校验出错: ')

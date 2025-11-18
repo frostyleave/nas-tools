@@ -110,8 +110,14 @@ class Transmission(_IDownloadClient):
             log.exception(f"【{self.client_name}】{self.name} 获取种子列表 出错：")
             return [], True
         
-        if status and not isinstance(status, list):
-            status = [status]
+        filter_download_pause = False
+
+        if status:
+            if not isinstance(status, list):
+                status = [status]
+            if 'downloading' in status and 'stopped' not in status:
+                status.append('stopped') # 被暂停下载的会被标记为stopped
+                filter_download_pause = True
         if tag and not isinstance(tag, list):
             tag = [tag]
 
@@ -119,8 +125,8 @@ class Transmission(_IDownloadClient):
         for torrent in torrents:
             if status and torrent.status not in status:
                 continue
-            # 暂停做种的文件
-            if torrent.status == 'stopped' and torrent.percent_done >= 1.0:
+            # 过滤暂停做种的文件
+            if filter_download_pause and torrent.status == 'stopped' and torrent.percent_done >= 1.0:
                 continue
             labels = torrent.labels if hasattr(torrent, "labels") else []
             include_flag = True
@@ -156,7 +162,7 @@ class Transmission(_IDownloadClient):
             return None
         try:
             torrents, error = self.get_torrents(ids=ids,
-                                                status=["downloading", "download_pending", "stopped"],
+                                                status=["downloading", "download_pending"],
                                                 tag=tag)
             return None if error else torrents or []
         except Exception as err:

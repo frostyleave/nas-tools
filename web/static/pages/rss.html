@@ -43,7 +43,11 @@
 <script type="text/javascript">
 
   $(document).ready(function() {
-    
+    loadPageData();
+  });
+
+  function loadPageData() {
+
     const container = document.getElementById("page_content");
     const urlParams = $(container).data("params");
     var typeParam = urlParams.t || 'MOV';
@@ -67,7 +71,7 @@
       }
     });
 
-  });
+  }
 
   // 获取当前类型的函数
   function getCurrentType() {
@@ -210,7 +214,7 @@
     }
 
     if (attr.filter_exclude) {
-      badges.push(`<span class="badge bg-red me-1 mb-1 text-wrap text-start" title="排除">${attr.filter_exclude}</span>`);
+      badges.push(`<span class="badge bg-red me-1 mb-1 text-wrap text-start text-decoration-line-through" title="排除">${attr.filter_exclude}</span>`);
     }
 
     return badges.join('');
