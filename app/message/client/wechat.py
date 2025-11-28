@@ -1,13 +1,10 @@
 import json
-import threading
 from datetime import datetime
 
 from app.message.client._base import _IMessageClient
 from app.utils import RequestUtils
 
 import log
-
-lock = threading.Lock()
 
 
 class WeChat(_IMessageClient):

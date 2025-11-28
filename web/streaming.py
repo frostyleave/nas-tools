@@ -3,9 +3,10 @@ import json
 import re
 from typing import Any, Dict
 
-from fastapi import APIRouter, Request, WebSocket, WebSocketDisconnect
+from fastapi import APIRouter, Query, Request, WebSocket, WebSocketDisconnect
 from fastapi.responses import StreamingResponse
 
+from app.task_manager import GlobalTaskManager
 import log
 from log import log_buffer, active_sse_queues
 
@@ -197,4 +198,52 @@ async def stream_progress(request: Request, type: str = ""):
 
     # 初始化进度
     web_action.init_process({"type": type})
+    return StreamingResponse(event_generator(), media_type="text/event-stream", headers={ "Content-Encoding": "identity" })
+
+
+# 进度SSE
+@streaming_router.get("/sse-progress")
+async def sse_progress(
+    request: Request, 
+    task_id: str = Query(..., min_length=5, title="任务ID")
+):
+    """
+    进度SSE
+    """    
+
+    async def event_generator():
+        try:
+            while True:
+
+                if await request.is_disconnected():
+                    log.info(f"[SSE-进度] 客户端断开连接: {task_id}")
+                    break
+
+                # 获取进度
+                task_info = GlobalTaskManager().get_task_dict(task_id)
+                if not task_info:
+                    log.info(f"[SSE-进度] 查询任务: {task_id} 进度信息失败")
+                    break
+
+                detail = {
+                    'code': 0,
+                    'task_id' : task_info.get('task_id'),
+                    'value' : task_info.get('progress'),
+                    'status' : task_info.get('status'),
+                    'text' : task_info.get('message')
+                }
+
+                # 发送进度
+                yield f"data: {json.dumps(detail)}\n\n"
+                
+                # 进度完成，结束
+                if task_info.get('progress', 0) >= 100 and task_info.get('status') == 'finish':
+                    break
+                # 等一会
+                await asyncio.sleep(0.5)
+
+        except Exception as e:
+            log.exception("[SSE-进度]连接异常: ")
+            yield f"data: {json.dumps({'code': -1, 'value': 0, 'text': f'进度连接异常: {str(e)}'})}\n\n"
+
     return StreamingResponse(event_generator(), media_type="text/event-stream", headers={ "Content-Encoding": "identity" })

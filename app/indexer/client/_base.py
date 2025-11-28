@@ -139,7 +139,7 @@ class _IIndexClient(metaclass=ABCMeta):
             # 描述
             description = item.get('description') if item.get('description') else ''
             # 识别种子名称
-            log.debug("【%s】开始识别资源: %s %s", self.client_name, torrent_name, description)
+            log.debug("【%s】[%s] 开始识别资源: %s %s", self.client_name, indexer.name, torrent_name, description)
 
             # 公共站点的资源, 格式化剧集资源名称
             if indexer.public:
@@ -148,7 +148,7 @@ class _IIndexClient(metaclass=ABCMeta):
             
             item_meta = MetaInfo(title=torrent_name, subtitle=f"{labels} {description}".strip(), mtype=mtype)
             if not item_meta.get_name():
-                log.info("【%s】%s 无法识别到名称", self.client_name, torrent_name)
+                log.info("【%s】[%s] %s 无法识别到名称", self.client_name, indexer.name, torrent_name)
                 index_match_fail += 1
                 continue
             # 大小及促销等
@@ -161,7 +161,7 @@ class _IIndexClient(metaclass=ABCMeta):
 
             # 先过滤掉可以明确的类型
             if item_meta.type == MediaType.TV and filter_args.get("type") == MediaType.MOVIE:
-                log.info("【%s】%s 是 %s, 不匹配类型：%s", self.client_name, torrent_name, item_meta.type.value, filter_args.get('type').value)
+                log.info("【%s】[%s] %s 是 %s, 不匹配类型：%s", self.client_name, indexer.name, torrent_name, item_meta.type.value, filter_args.get('type').value)
                 index_rule_fail += 1
                 continue
 
@@ -171,7 +171,7 @@ class _IIndexClient(metaclass=ABCMeta):
                                                                            uploadvolumefactor=uploadvolumefactor,
                                                                            downloadvolumefactor=downloadvolumefactor)            
             if not match_flag:
-                log.info("【%s】%s", self.client_name, match_msg)
+                log.info("【%s】[%s] %s", self.client_name, indexer.name, match_msg)
                 index_rule_fail += 1
                 continue
 
@@ -195,7 +195,7 @@ class _IIndexClient(metaclass=ABCMeta):
                     else:
                         # 年份不匹配, 直接跳过
                         if target_year and item_meta.year and item_meta.year not in target_year:
-                            log.warn("【%s】%s 资源年份不匹配", self.client_name, item_meta.get_name())
+                            log.warn("【%s】[%s] %s 资源年份不匹配", self.client_name, indexer.name,item_meta.get_name())
                             index_error += 1
                             continue                   
 
@@ -211,22 +211,22 @@ class _IIndexClient(metaclass=ABCMeta):
                                 search_kw = '{} {}'.format(search_kw, en_name)
 
                             # 查询tmdb数据
-                            file_tmdb_info = media.query_tmdb_info(search_kw, 
-                                                                        item_meta.type, 
-                                                                        item_meta.year,
-                                                                        item_meta.begin_season, 
-                                                                        append_to_response=None, 
-                                                                        chinese=StringUtils.contain_chinese(search_kw))
+                            file_tmdb_info = media.query_tmdb_info(search_kw,
+                                                                   item_meta.type,
+                                                                   item_meta.year,
+                                                                   item_meta.begin_season,
+                                                                   append_to_response=None,
+                                                                   chinese=StringUtils.contain_chinese(search_kw))
                             # 查询失败
                             if not file_tmdb_info:
-                                log.warn("【%s】%s 识别媒体信息出错！", self.client_name, search_kw)
+                                log.warn("【%s】[%s] %s 识别媒体信息出错！", self.client_name, indexer.name, search_kw)
                                 index_error += 1
                                 continue
 
                             # TMDBID是否匹配
                             if str(file_tmdb_info.id) != str(search_media.tmdb_id):
-                                log.info("【%s】%s 识别为 %s/%s/%s 与 %s/%s/%s 不匹配", 
-                                         self.client_name, search_kw, item_meta.type.value, item_meta.get_title_string(), file_tmdb_info.id,
+                                log.info("【%s】[%s] %s 识别为 %s/%s/%s 与 %s/%s/%s 不匹配", 
+                                         self.client_name, indexer.name, search_kw, item_meta.type.value, item_meta.get_title_string(), file_tmdb_info.id,
                                          search_media.type.value, search_media.get_title_string(), search_media.tmdb_id)
                                 index_match_fail += 1
                                 continue
@@ -269,14 +269,14 @@ class _IIndexClient(metaclass=ABCMeta):
                                                filter_args.get("season_name"),
                                                filter_args.get("episode"),
                                                filter_args.get("year")):
-                log.info("【%s】%s 识别为 %s/%s/%s 不匹配季/集/年份",
-                         self.client_name, torrent_name, media_info.type.value, media_info.get_title_string(), media_info.get_season_episode_string())
+                log.info("【%s】[%s] %s 识别为 %s/%s/%s 不匹配季/集/年份",
+                         self.client_name, indexer.name, torrent_name, media_info.type.value, media_info.get_title_string(), media_info.get_season_episode_string())
                 index_match_fail += 1
                 continue
 
             # 匹配到了
-            log.info("【%s】%s %s 识别为 %s %s 匹配成功", 
-                     self.client_name, torrent_name, description, media_info.get_title_string(), media_info.get_season_episode_string())
+            log.info("【%s】[%s] %s %s 识别为 %s %s 匹配成功", 
+                     self.client_name, indexer.name, torrent_name, description, media_info.get_title_string(), media_info.get_season_episode_string())
             
             media_info.set_torrent_info(site=indexer.name,
                                         site_order=order_seq,

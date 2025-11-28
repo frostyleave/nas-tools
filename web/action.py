@@ -118,22 +118,6 @@ def search(background_tasks: BackgroundTasks, data: dict = Body(...)):
         process_time = (cost_time - start_time) * 1000  # 转换为毫秒
         log.debug("[%s] %s, 耗时: %s ms", str(threading.get_ident()), json.dumps(data), format(process_time, ".2f"))
 
-# search_progress
-@action_router.post("/search_progress")
-def get_search_progress(content: dict = Body(...)):
-
-    task_id = content.get("task_id")
-    if not task_id:
-        return {"code": -1, "msg": "任务id为空"}
-    
-    task_info = GlobalTaskManager().get_task_dict(task_id)
-    if not task_info:
-        return {"code": -1, "msg": "任务信息查询失败"}
-
-    return {"code": 0, "info": task_info}
-
-
-
 class WebAction:
     _actions = {}
     _commands = {}

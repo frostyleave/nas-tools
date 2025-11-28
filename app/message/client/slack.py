@@ -1,5 +1,4 @@
 import re
-from threading import Lock
 
 import requests
 from slack_sdk.errors import SlackApiError
@@ -10,8 +9,6 @@ from app.message.client._base import _IMessageClient
 from config import Config
 from slack_bolt import App
 from slack_bolt.adapter.socket_mode import SocketModeHandler
-
-lock = Lock()
 
 
 class Slack(_IMessageClient):

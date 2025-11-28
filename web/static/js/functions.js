@@ -38,6 +38,7 @@ function media_search(tmdbid, title, type) {
   show_refresh_progress_modal("正在搜索 " + title + " ...", "search")
   // 发起请求
   axios_post('/search', param, function(ret) {
+
     // 请求失败
     if (ret.code != 0) {
 
@@ -45,44 +46,8 @@ function media_search(tmdbid, title, type) {
       show_fail_modal(ret.msg);
       return;
     }
-
     // 刷新进度
-    checkProgress(ret.task_id, function() { navmenu('search?s=' + title) });
-
-  });
-
-}
-
-function checkProgress(task_id, onCompleteCallback) {
-
-  const param = { "task_id": task_id };
-  // 发起请求
-  axios_post('/search_progress', param, function(ret) {
-    // 请求失败
-    if (ret.code != 0) {
-
-      $("#modal-process").modal("hide");
-      show_fail_modal(ret.msg);
-      return;
-    }
-
-    var taskInfo = ret.info;
-    // $("#modal_process_bar").attr("style", "width: " + taskInfo.progress + "%").attr("aria-valuenow", taskInfo.progress);
-    $("#modal_process_bar").css("width", taskInfo.progress + "%").attr("aria-valuenow", taskInfo.progress);
-    $("#modal_process_text").text(taskInfo.message);
-
-    // 检查是否完成
-    if (taskInfo.progress >= 100 && taskInfo.status == 'finish') {
-      // 延迟调用
-      setTimeout(() => {
-        onCompleteCallback();
-      }, 200);
-
-    } else {
-      setTimeout(() => {
-        checkProgress(task_id, onCompleteCallback); 
-      }, 1000); // 1秒请求1次
-    }
+    show_progress_info(ret.task_id, function() { navmenu('search?s=' + title) });
 
   }, show_progress=false);
 
@@ -394,12 +359,39 @@ function start_progress(type) {
   };
 }
 
+// 展示进度条
+function show_progress_info(task_id, callback) {
+  stopProgress();
+  ProgressES = new EventSource(`sse-progress?task_id=${task_id}`);
+  ProgressES.onmessage = function (event) {
+    render_progress(JSON.parse(event.data), callback)
+  };
+}
+
+
 // 渲染进度条
-function render_progress(ret) {
-  if (ret.code === 0 && ret.value <= 100) {
-    $("#modal_process_bar").attr("style", "width: " + ret.value + "%").attr("aria-valuenow", ret.value);
-    $("#modal_process_text").text(ret.text);
+function render_progress(ret, callback) {
+
+  if (ret.code === 0) {
+
+    if (ret.value <= 100) {
+      $("#modal_process_bar").attr("style", "width: " + ret.value + "%").attr("aria-valuenow", ret.value);
+      $("#modal_process_text").text(ret.text);
+    } 
+    
+    if (ret.value === 100 && ret.status == 'finish' && callback) {
+      // 延迟调用
+      setTimeout(() => {
+        stopProgress();
+        callback();
+      }, 200);
+    }
+
+  } else {
+    stopProgress();
+    show_fail_modal('任务进度查询失败');
   }
+
 }
 
 // 显示全局进度框
