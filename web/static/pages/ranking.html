@@ -206,16 +206,16 @@
                         // 订阅标记
                         $('#' + info_item.id + ' div.ms-auto.rss-btn').append(`
                             <a class="text-muted zoom-link" title="加入/取消订阅" href='javascript:void(0)' onclick='rss_love_click(event, "${info_item.title}", "${info_item.year}", "${info_item.type}", "${info_item.tmdbid}", "${info_item.fav}")'>
-                                ${info_item.fav == "1" ? `<i class="ti ti-heart-filled fs-2 text-purple"></i>` : `<i class="ti ti-heart fs-2 text-white"></i>`}
+                                ${info_item.fav == "1" ? `<i class="ti ti-heart-filled fs-2 text-red"></i>` : `<i class="ti ti-heart fs-2 text-white"></i>`}
                             </a>
                         `);
                         // 在库状态标记
                         if (info_item.item_url) {
-                         $('#' + info_item.id + ' img.card-img.rounded-3').append(`
-                            <div class="card-right-bottom-ribbon">
-                               <i class="ti ti-check"></i>
-                            </div> 
-                        `);                               
+                            $('#' + info_item.id + ' img.card-img.rounded-3').after(`
+                                <div class="card-right-bottom-ribbon">
+                                    <i class="ti ti-check text-white"></i>
+                                </div> 
+                            `);
                         }
                     });
                 }, show_progress = false);
