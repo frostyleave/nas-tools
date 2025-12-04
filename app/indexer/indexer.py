@@ -1,12 +1,14 @@
 import copy
 import datetime
+import multiprocessing
 
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor, as_completed
 from typing import List, Optional
 
 import log
 
 from app.indexer.client.builtin import BuiltinIndexer
+from app.indexer.manager import IndexerInfo
 from app.media import Media
 from app.media.meta._base import MetaBase
 from app.media.meta.metainfo import MetaInfo
@@ -119,8 +121,10 @@ class Indexer(object):
             search_indexers = list(filter(lambda x: not x.source_type or match_media.type.name in x.source_type, search_indexers))
 
         if not search_indexers:
-            log.error("没有配置符合条件的索引器，无法搜索！")
+            log.warn("没有配置符合条件的索引器，无法搜索！")
             return []
+        
+        ret_array = []
 
         # 计算耗时
         start_time = datetime.datetime.now()
@@ -133,49 +137,34 @@ class Indexer(object):
             log.info(log_info)
             self.update_process(task_id=task_id, process_val=5, text=log_info)
 
-        indexr_count = len(search_indexers)
+        cpu_cores = max(1, multiprocessing.cpu_count() - 2)
+        process_count = min(cpu_cores, len(search_indexers))
+
         # 设置进度参数
-        self._client.set_step_fator(int(30 / indexr_count))
-        # 多线程
-        executor = ThreadPoolExecutor(max_workers=indexr_count)
-        all_task = []
-        for indexer in search_indexers:
-            order_seq = 100 - int(indexer.pri)
+        self._client.set_step_fator(int(30 / len(search_indexers)))
 
-            # 原始标题检索
-            if 'title' == indexer.search_type and key_word:
-                task = executor.submit(self._client.search, order_seq, indexer, key_word, copy.deepcopy(filter_args), match_media, in_from, task_id)
-                all_task.append(task)
+        # 1. 将索引器列表切分为子列表
+        indexer_chunks = list(self._chunk_list(search_indexers, process_count))
 
-            # 其他搜索类型都需要 match_media 不为空
-            if not match_media:
-                continue
-
-            # 豆瓣id检索
-            if 'douban_id' == indexer.search_type and match_media.douban_id:
-                # 剧集信息, 查询特定季的豆瓣id
-                task = executor.submit(self._client.search, order_seq, indexer, match_media.douban_id, copy.deepcopy(filter_args), match_media, in_from, task_id)
-                all_task.append(task)
-
-            # imdb id 检索
-            if 'imdb' == indexer.search_type and match_media.imdb_id:
-                task = executor.submit(self._client.search, order_seq, indexer, match_media.imdb_id, copy.deepcopy(filter_args), match_media, in_from, task_id)
-                all_task.append(task)
-
-            # 英文名检索
-            if 'en_name' == indexer.search_type or indexer.en_expand:
-                en_name = self.__get_en_name(match_media)
-                if en_name:
-                    task = executor.submit(self._client.search, order_seq, indexer, en_name, copy.deepcopy(filter_args), match_media, in_from, task_id)
-                    all_task.append(task)
-
+        all_tasks = []
         ret_array = []
-        finish_count = 0
-        for future in as_completed(all_task):
-            result = future.result()
-            finish_count += 1
-            if result:
-                ret_array = ret_array + result
+
+        # 2. 提交任务给进程池
+        with ProcessPoolExecutor(max_workers=process_count) as executor:
+
+            for chunk in indexer_chunks:
+                if not chunk: 
+                    continue                
+                task = executor.submit(exec_search_by_threads, self._client, chunk, key_word, filter_args, match_media, in_from, task_id)
+                all_tasks.append(task)
+
+            for future in as_completed(all_tasks):
+                try:
+                    result_list = future.result() 
+                    if result_list:
+                        ret_array.extend(result_list)
+                except Exception as e:
+                    log.exception("【Indexer】搜索进程结果处理失败", e)
         
         # 计算耗时
         end_time = datetime.datetime.now()
@@ -186,15 +175,6 @@ class Indexer(object):
         log.info(f"【{self._client_type.value}】{summary_txt}")
 
         return ret_array
-
-    def __get_en_name(self, media_info:MetaBase):
-        """
-        获取媒体数据的英文名称
-        """
-        if media_info.original_language == "en":
-            return media_info.original_title
-        # 获取英文标题
-        return Media().get_tmdb_en_title(media_info)
     
     def update_process(self, task_id:Optional[str], process_val:int, text:Optional[str]=None):
         """
@@ -203,3 +183,66 @@ class Indexer(object):
         if task_id:
             GlobalTaskManager().update_task(task_id, progress=process_val, message=text)
             return
+
+    def _chunk_list(self, data_list, chunks):
+        """
+        将列表 data_list 尽可能平均分成 chunks 份
+        """
+        k, m = divmod(len(data_list), chunks)
+        return (data_list[i * k + min(i, m):(i + 1) * k + min(i + 1, m)] for i in range(chunks))
+    
+def exec_search_by_threads(client_instance: BuiltinIndexer,
+                           search_indexers: List[IndexerInfo],
+                           search_keywords: str,
+                           filter_args: dict,
+                           match_media: Optional[MetaBase]=None,
+                           in_from: Optional[SearchType]=None,
+                           task_id: Optional[str]=None):
+    """
+    接收一组索引器，使用线程池并发执行
+    """
+    process_results = []
+    all_tasks = []
+
+    def get_media_en_name(media_info: MetaBase):
+        if media_info.original_language == "en":
+            return media_info.original_title
+        return Media().get_tmdb_en_title(media_info)
+    
+    thread_count = min(len(search_indexers), 20)        
+    with ThreadPoolExecutor(max_workers=thread_count) as executor:
+        # 提交所有线程任务
+        for indexer in search_indexers:
+            order_seq = 100 - int(indexer.pri)
+            # 原始标题检索
+            if 'title' == indexer.search_type and search_keywords:
+                task = executor.submit(client_instance.search, order_seq, indexer, search_keywords, copy.deepcopy(filter_args), match_media, in_from, task_id)
+                all_tasks.append(task)
+            # 其他搜索类型都需要 match_media 不为空
+            if not match_media:
+                continue
+            # 豆瓣id检索
+            if 'douban_id' == indexer.search_type and match_media.douban_id:
+                # 剧集信息, 查询特定季的豆瓣id
+                task = executor.submit(client_instance.search, order_seq, indexer, match_media.douban_id, copy.deepcopy(filter_args), match_media, in_from, task_id)
+                all_tasks.append(task)
+            # imdb id 检索
+            if 'imdb' == indexer.search_type and match_media.imdb_id:
+                task = executor.submit(client_instance.search, order_seq, indexer, match_media.imdb_id, copy.deepcopy(filter_args), match_media, in_from, task_id)
+                all_tasks.append(task)
+            # 英文名检索
+            if 'en_name' == indexer.search_type or indexer.en_expand:
+                en_name = get_media_en_name(match_media)
+                if en_name:
+                    task = executor.submit(client_instance.search, order_seq, indexer, en_name, copy.deepcopy(filter_args), match_media, in_from, task_id)
+                    all_tasks.append(task)
+        
+        for future in as_completed(all_tasks):
+            try:
+                result = future.result()
+                if result:
+                    process_results.extend(result) # 聚合当前进程内所有线程的结果
+            except Exception as e:
+                log.error("【Indexer】搜索结果处理失败 %s", str(e))
+                
+    return process_results

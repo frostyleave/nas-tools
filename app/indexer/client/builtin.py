@@ -148,7 +148,7 @@ class BuiltinIndexer(_IIndexClient):
             return []
         
         # 有搜索结果
-        summary_txt = "【索引器】%s 返回数据：%s, 用时: %s s"% (indexer.name, result_count, seconds)
+        summary_txt = "【索引器】%s 返回数据：%s, 用时: %s s, 开始进行过滤... "% (indexer.name, result_count, seconds)
         # 记录日志
         log.info(summary_txt)
         # 更新进度
@@ -162,7 +162,8 @@ class BuiltinIndexer(_IIndexClient):
                                           filter_args=filter_args,
                                           search_media=match_media,
                                           start_time=start_time,
-                                          in_from=in_from)
+                                          in_from=in_from,
+                                          task_id=task_id)
 
 
     def search_torrents(self, indexer: IndexerInfo, search_word: str='', mtype: Optional[MediaType]=None) -> Tuple[bool, list]:

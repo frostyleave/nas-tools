@@ -1,4 +1,3 @@
-import multiprocessing
 import os
 import signal
 import sys
@@ -81,14 +80,13 @@ def get_run_config(app: FastAPI) -> uvicorn.Config:
         _web_port = int(_web_port_conf) if str(_web_port_conf).isdigit() else 3000
         _log_level = app_conf.get('loglevel', 'info')
 
-    cpu_count = multiprocessing.cpu_count()
     # 生成配置
     uvicorn_config = uvicorn.Config(app, 
                                     host=_web_host, 
                                     port=_web_port,
                                     reload=False,
                                     log_level=_log_level,
-                                    workers=cpu_count,
+                                    workers=1,
                                     timeout_graceful_shutdown=60)
 
     return uvicorn_config
