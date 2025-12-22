@@ -167,7 +167,8 @@
     } else {
       folder = $("#mediafile_current_dir").val();
     }
-    axios_post_do("get_sub_path", {"dir": folder, "filter": "MEDIAFILE|SUBFILE|AUDIOTRACKFILE"}, function (ret) {
+    axios_post_do("get_sub_path", {"dir": folder, "filter": "MEDIAFILE|SUBFILE|AUDIOTRACKFILE"}, 
+    function (ret) {
       $("#mediafile_file_container").empty();
       $("#mediafile_current_files").val('')
       if (ret.data) {
@@ -306,7 +307,8 @@
   // 下载字幕
   function mediafile_subtitle(name, id) {
     let path = $(`#mediafilepath_${id}`).val();
-    axios_post_do("download_subtitle", {path: path, name: name}, function (ret) {
+    axios_post_do("download_subtitle", {path: path, name: name}, 
+    function (ret) {
       if (ret.code == 0) {
         show_success_modal(ret.msg, function () {
           refresh_files();
@@ -319,7 +321,8 @@
 
   // 查询硬链接
   function find_hardlinks(files, dir) {
-    axios_post_do("find_hardlinks", {files: files, dir: dir}, function (ret) {
+    axios_post_do("find_hardlinks", {files: files, dir: dir}, 
+    function (ret) {
       if (ret.code === 0) {
         if (ret.data) {
           let table_content = '';
@@ -373,7 +376,8 @@
     }
     show_ask_modal("刮削将会覆盖已存在的nfo及图片文件，是否确认刮削当前目录下的所有文件？", function () {
       hide_ask_modal();
-      axios_post_do("media_path_scrap", {path: path}, function (ret) {
+      axios_post_do("media_path_scrap", {path: path}, 
+      function (ret) {
         if (ret.code === 0) {
           show_success_modal(ret.msg, function () {
             refresh_files();

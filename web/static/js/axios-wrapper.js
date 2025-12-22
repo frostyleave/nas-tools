@@ -52,10 +52,9 @@ apiClient.interceptors.response.use(
  * @param {string} cmd - 命令
  * @param {object} params - 参数
  * @param {function} handler - 成功回调
- * @param {boolean} async - 是否异步，默认true
  * @param {boolean} show_progress - 是否显示进度，默认true
  */
-function axios_post_do(cmd, params, handler, async = true, show_progress = true) {
+function axios_post_do(cmd, params, handler, show_progress = true) {
     if (show_progress) {
         showLoadingWave();
     }

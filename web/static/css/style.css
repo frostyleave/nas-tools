@@ -712,76 +712,79 @@ body.theme-light::after {
     text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.7);
 }
 
-/* 加载框 */
-.wave-loading {
+.loading-wrap {
     display: flex;
-    justify-content: center;
     align-items: center;
+    justify-content: center;
+    height: 120px;
     position: fixed;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    width: 100%;
-    height: 400px;
+    top: 40%;
+    left: 40%;
+    right: 40%;
     z-index: 9999;
 }
-
-/* 小竖条 */
-.wave-loading-item {
-    height: 56px;
-    width: 12px;
-    background: var(--tblr-primary);
-    margin: 0px 4px;
-    border-radius: 4px;
-    animation: loading 1.2s infinite ease-in-out;
-    box-shadow: 0 0 10px 4px rgba(255, 255, 255, 0.75);
+.cube-grid {
+    width: 72px;
+    height: 72px;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6px
 }
 
-@keyframes wave {
+.cube-grid div {
+    width: 100%;
+    height: 100%;
+    background: var(--tblr-primary);
+    animation: cubespin 1.2s ease-in-out infinite
+}
+
+.cube-grid div:nth-child(1) {
+    animation-delay: 0s
+}
+
+.cube-grid div:nth-child(2) {
+    animation-delay: .08s
+}
+
+.cube-grid div:nth-child(3) {
+    animation-delay: .16s
+}
+
+.cube-grid div:nth-child(4) {
+    animation-delay: .24s
+}
+
+.cube-grid div:nth-child(5) {
+    animation-delay: .32s
+}
+
+.cube-grid div:nth-child(6) {
+    animation-delay: .40s
+}
+
+.cube-grid div:nth-child(7) {
+    animation-delay: .48s
+}
+
+.cube-grid div:nth-child(8) {
+    animation-delay: .56s
+}
+
+.cube-grid div:nth-child(9) {
+    animation-delay: .64s
+}
+
+@keyframes cubespin {
 
     0%,
-    40%,
+    70%,
     100% {
-        transform: scaleY(0.6);
+        transform: scale(1)
     }
 
-    20% {
-        transform: scaleY(1);
+    35% {
+        transform: scale(.3)
     }
-}
-
-@keyframes loading {
-    0% {
-        height: 0px;
-    }
-
-    50% {
-        height: 50px;
-    }
-
-    100% {
-        height: 0px;
-    }
-}
-
-.wave-loading-item:nth-child(1) {
-    animation-delay: -0.4s;
-}
-
-.wave-loading-item:nth-child(2) {
-    animation-delay: -0.3s;
-}
-
-.wave-loading-item:nth-child(3) {
-    animation-delay: -0.2s;
-}
-
-.wave-loading-item:nth-child(4) {
-    animation-delay: -0.1s;
-}
-
-.wave-loading-item:nth-child(5) {
-    animation-delay: 0s;
 }
 
 .right-top-box {

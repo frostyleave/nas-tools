@@ -283,7 +283,7 @@ function check_system_online() {
     } else {
       window.location.reload(true);
     }
-  }, true, false)
+  }, false)
 }
 
 //注销
@@ -298,7 +298,7 @@ function restart() {
   show_confirm_modal("立即重启系统？", function () {
     hide_confirm_modal();
     axios_post_do("restart", {}, function (ret) {
-    }, true, false);
+    }, false);
     show_wait_modal(true);
     setTimeout("check_system_online()", 5000);
   });
@@ -1127,7 +1127,7 @@ function refresh_filter_select(obj_id, aync = true) {
       }
       rule_select.empty().append(rule_select_content);
     }
-  }, aync);
+  });
 }
 
 // 刷新RSS站点下拉框
@@ -1151,7 +1151,7 @@ function refresh_rsssites_select(obj_id, item_name, aync = true) {
       }
       rsssites_select.empty().append(rsssites_select_content);
     }
-  }, aync);
+  });
 }
 
 // 刷新搜索站点列表
@@ -1175,7 +1175,7 @@ function refresh_searchsites_select(obj_id, item_name, aync = true) {
       }
       searchsites_select.empty().append(searchsites_select_content);
     }
-  }, aync);
+  });
 }
 
 // 刷新搜索站点下拉框
@@ -1215,7 +1215,7 @@ function refresh_savepath_select(obj_id, aync = true, sid = "", is_default = fal
         savepath_input_manual.hide();
         savepath_select.show();
       }
-    }, aync);
+    });
   }
 
 }
@@ -1262,7 +1262,7 @@ function refresh_downloadsetting_select(obj_id, aync = true, is_default = false)
       }
       downloadsetting_select.empty().append(downloadsetting_select_content);
     }
-  }, aync);
+  });
 }
 
 // 刷新订阅框的下载设置及目录等选项
@@ -1424,7 +1424,7 @@ function search_media_advanced() {
         $("#modal-search-advanced").modal("show");
       });
     }
-  }, true, false);
+  }, false);
 }
 
 //刷新tooltip
@@ -1755,7 +1755,7 @@ function manual_media_transfer() {
         $('#modal-media-identification').modal('show');
       });
     }
-  }, true, false);
+  }, false);
 }
 
 // 查示查询TMDBID的对话框

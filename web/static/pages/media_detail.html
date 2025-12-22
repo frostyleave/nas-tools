@@ -242,7 +242,8 @@
 
       function asyncRenderSimCard(tmdbid, media_type, media_title) {
 
-        axios_post_do("get_recommend", { "type": media_type, "subtype": "sim", "tmdbid": tmdbid, "page": 1 }, (ret) => {
+        axios_post_do("get_recommend", { "type": media_type, "subtype": "sim", "tmdbid": tmdbid, "page": 1 }, 
+        (ret) => {
 
           if (!ret.Items || ret.Items.length == 0) {
             return;
@@ -281,7 +282,8 @@
 
       function asyncRenderRecommendCard(tmdbid, media_type, media_title) {
 
-        axios_post_do("get_recommend", { "type": media_type, "subtype": "more", "tmdbid": tmdbid, "page": 1 }, (ret) => {
+        axios_post_do("get_recommend", { "type": media_type, "subtype": "more", "tmdbid": tmdbid, "page": 1 }, 
+        (ret) => {
 
           if (!ret.Items || ret.Items.length == 0) {
             return;

@@ -206,7 +206,8 @@
   function show_edit_message_client_modal(cid) {
     $("#client_id").val(cid);
     $("#client_modal_title").text("编辑消息通知");
-    axios_post_do("get_message_client", {cid: cid}, function (ret) {
+    axios_post_do("get_message_client", {cid: cid}, 
+    function (ret) {
       if (ret.code === 0) {
         $("#client_name").val(ret.detail.name);
         $("#client_enabled").val(ret.detail.enabled);

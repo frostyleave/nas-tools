@@ -160,7 +160,8 @@
             $rankContainer.append(rankSlide);
             
             // 请求接口, 查询相应榜单数据
-            axios_post_do("get_recommend", { "type": rankItem.type, "subtype": rankItem.subtype, "page": 1, "week": rankItem.week, "fav": 0 }, (ret) => {
+            axios_post_do("get_recommend", { "type": rankItem.type, "subtype": rankItem.subtype, "page": 1, "week": rankItem.week, "fav": 0 }, 
+            (ret) => {
 
                 var slide_cards = [];
                 var data_list = []
@@ -201,7 +202,8 @@
                 rankSlide.slide_card = slide_cards;
 
                 // 请求并更新在库状态
-                axios_post_do("batch_get_media_exists_info", { "list": data_list }, (sub_ret) => {
+                axios_post_do("batch_get_media_exists_info", { "list": data_list }, 
+                (sub_ret) => {
                     sub_ret.items.map((info_item, index) => {
                         // 订阅标记
                         $('#' + info_item.id + ' div.ms-auto.rss-btn').append(`
@@ -218,9 +220,9 @@
                             `);
                         }
                     });
-                }, show_progress = false);
+                }, false);
                 
-            }, show_progress = false);
+            }, false);
 
         });
 

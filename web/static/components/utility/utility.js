@@ -106,7 +106,7 @@ export class Golbal {
       Golbal.save_page_data(api + name, ret);
       //console.log("缓存:", api + name, ret);
       func(ret)
-    }, async);
+    });
   }
 
   // 共用的fav数据更改时刷新缓存
