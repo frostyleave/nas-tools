@@ -45,7 +45,7 @@ export class LayoutNavbar extends CustomElement {
     if (this.hasAttribute('hidden')) {
       setTimeout(() => {
         this.removeAttribute("hidden");
-        const pageContent = document.querySelector("#page_content");
+        const pageContent = document.querySelector("#page-content");
         const searchbar = document.querySelector("layout-searchbar");
         const logoAnimation = document.querySelector("#logo_animation");
 

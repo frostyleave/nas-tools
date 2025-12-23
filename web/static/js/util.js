@@ -25,13 +25,13 @@ Date.prototype.format = function (format) {
 }
 
 function menuSwithWait() {
-  $("#page_content").hide();
-  $("#loading_tips").show();
+  $("#page-content").hide();
+  $("#loading-tips").show();
 }
 
 function hideLoading() {
-  $("#loading_tips").hide();
-  $("#page_content").show();
+  $("#loading-tips").hide();
+  $("#page-content").show();
 }
 
 
@@ -47,43 +47,6 @@ function showLoadingWave() {
  */
 function hideLoadingWave() {
   document.getElementById('loadingOverlay').style.display = 'none';
-}
-
-// Ajax主方法
-function ajax_post(cmd, params, handler, aync = true, show_progress = true) {
-  if (show_progress) {
-    showLoadingWave();
-  }
-  let data = {
-    cmd: cmd,
-    data: params
-  };
-  $.ajax({
-    type: "POST",
-    url: "do?random=" + Math.random(),
-    contentType: 'application/json',
-    dataType: "json",
-    data: JSON.stringify(data),
-    cache: false,
-    async: aync,
-    timeout: 0,
-    success: function (data) {
-      if (show_progress) {
-        hideLoadingWave();
-      }
-      if (handler) {
-        handler(data);
-      }
-    },
-    error: function (xhr, textStatus, errorThrown) {
-      if (show_progress) {
-        hideLoadingWave();
-      }
-      if (xhr && xhr.status === 200) {
-        handler({code: 0});
-      }
-    }
-  });
 }
 
 // 备份文件下载
@@ -377,7 +340,7 @@ function compareVersion(version1, version2) {
 // 计算滚动条相对于页面底部的距离比例
 function getScrollRate() {
   const winH = window.innerHeight; //页面可视区域高度
-  const pageH = $("#page_content").height(); //页面总高度
+  const pageH = $("#page-content").height(); //页面总高度
   const scrollT = document.body.scrollTop || window.pageYOffset; //滚动条top
   return (pageH - winH - scrollT) / winH;
 }

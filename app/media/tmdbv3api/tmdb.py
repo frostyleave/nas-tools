@@ -4,11 +4,10 @@ import logging
 import requests
 import time
 
-from requests.adapters import HTTPAdapter
-from urllib3.util.retry import Retry
-
-from typing import Dict, Optional
 from cachetools import TTLCache, cached
+from urllib3.util.retry import Retry
+from requests.adapters import HTTPAdapter
+from typing import Dict, Optional
 
 from config import Config
 

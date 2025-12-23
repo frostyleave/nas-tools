@@ -1,4 +1,5 @@
 import os
+import threading
 
 from fastapi import FastAPI, Request, Depends, HTTPException
 from fastapi.encoders import jsonable_encoder
@@ -110,3 +111,11 @@ async def bing():
         }),
         status_code=200
     )
+
+@app.get("/debug/threads")
+def thread_debug():
+    threads = threading.enumerate()
+    return {
+        "thread_count": len(threads),
+        "threads": [t.name for t in threads]
+    }

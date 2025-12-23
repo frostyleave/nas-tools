@@ -224,7 +224,7 @@ body.theme-light::after {
         padding-bottom: calc(env(safe-area-inset-bottom) + 61px);
     } */
 
-    #page_content {
+    #page-content {
         padding-bottom: calc(env(safe-area-inset-bottom) + 61px);
     }
 }

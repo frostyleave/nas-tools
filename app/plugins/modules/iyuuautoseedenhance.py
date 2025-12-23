@@ -399,7 +399,7 @@ class IYUUAutoSeedEnhance(_IPluginModule):
             let site = $("#iyuu_enhance_site").val();
             let image = $("#iyuu_enhance_image").val();
 
-            ajax_post("run_plugin_method", {"plugin_id": 'IYUUAutoSeedEnhance', 'method': 'add_image_site', "site": site, "image": image}, function (ret) {
+            axios_post_do("run_plugin_method", {"plugin_id": 'IYUUAutoSeedEnhance', 'method': 'add_image_site', "site": site, "image": image}, function (ret) {
                 $("#modal-plugin-page").modal('hide');
                 if (ret.result.code === 0) {
                     show_success_modal("添加成功！", function () {
@@ -415,7 +415,7 @@ class IYUUAutoSeedEnhance(_IPluginModule):
 
           // 删除镜像站
           function IYUUEnhance_delete_history(id, site) {
-            ajax_post("run_plugin_method", {"plugin_id": 'IYUUAutoSeedEnhance', 'method': 'delete_iyuu_enhance_history', 'site': site}, function (ret) {
+            axios_post_do("run_plugin_method", {"plugin_id": 'IYUUAutoSeedEnhance', 'method': 'delete_iyuu_enhance_history', 'site': site}, function (ret) {
               $("#movie_iyuu_history_" + id).remove();
             });
           }
@@ -439,7 +439,7 @@ class IYUUAutoSeedEnhance(_IPluginModule):
                 $("#iyuuautoseedenhance_passkey").removeClass("is-invalid");
             }
             // 认证
-            ajax_post("run_plugin_method", {"plugin_id": 'IYUUAutoSeedEnhance', 'method': 'iyuu_bind_site', "site": site, "uid": uid, "passkey": passkey}, function (ret) {
+            axios_post_do("run_plugin_method", {"plugin_id": 'IYUUAutoSeedEnhance', 'method': 'iyuu_bind_site', "site": site, "uid": uid, "passkey": passkey}, function (ret) {
                 $("#modal-plugin-page").modal('hide');
                 if (ret.result.code === 0) {
                     show_success_modal("IYUU用户认证成功！", function () {

@@ -52,9 +52,10 @@ apiClient.interceptors.response.use(
  * @param {string} cmd - 命令
  * @param {object} params - 参数
  * @param {function} handler - 成功回调
- * @param {boolean} show_progress - 是否显示进度，默认true
+ * @param {boolean} show_progress - 是否显示加载动画，默认true
  */
 function axios_post_do(cmd, params, handler, show_progress = true) {
+
     if (show_progress) {
         showLoadingWave();
     }
@@ -90,7 +91,7 @@ function axios_post_do(cmd, params, handler, show_progress = true) {
             }
             // 处理错误
             if (error.response) {
-                $("#page_content").html(`<system-error title="${error.response.status}" text="${error.response.data || '请求出错'}"></system-error>`);
+                $("#page-content").html(`<system-error title="${error.response.status}" text="${error.response.data || '请求出错'}"></system-error>`);
                 handler(error.response.data);
             } else {
                 console.error('axios_post_do failed:', error);
@@ -106,7 +107,7 @@ function axios_post_do(cmd, params, handler, show_progress = true) {
  * @param {string} req_url - 命令
  * @param {object} params - 参数
  * @param {function} handler - 成功回调
- * @param {boolean} show_progress - 是否显示进度，默认true
+ * @param {boolean} show_progress - 是否显示加载动画，默认true
  */
 function axios_post(req_url, params, handler, show_progress = true) {
 
@@ -140,7 +141,7 @@ function axios_post(req_url, params, handler, show_progress = true) {
             }
             // 处理错误
             if (error.response) {
-                $("#page_content").html(`<system-error title="${error.response.status}" text="${error.response.data || '请求出错'}"></system-error>`);
+                $("#page-content").html(`<system-error title="${error.response.status}" text="${error.response.data || '请求出错'}"></system-error>`);
             } else {
                 console.error('Request failed:', error);
             }
@@ -150,40 +151,6 @@ function axios_post(req_url, params, handler, show_progress = true) {
 }
 
 
-/**
- * API请求方法 - 用于调用RESTful API
- * @param {string} url - API路径
- * @param {object} data - 请求数据
- * @param {string} method - HTTP方法，默认POST
- * @param {boolean} show_progress - 是否显示进度，默认true
- */
-function api_request(url, data = {}, method = 'POST', show_progress = true) {
-    if (show_progress) {
-        showLoadingWave();
-    }
-
-    const config = {
-        method: method,
-        url: url,
-        [method.toLowerCase() === 'get' ? 'params' : 'data']: data,
-    };
-
-    return apiClient(config)
-        .then(response => {
-            if (show_progress) {
-                hideLoadingWave();
-            }
-            return response.data;
-        })
-        .catch(error => {
-            if (show_progress) {
-                hideLoadingWave();
-            }
-            throw error;
-        });
-}
-
 // 导出方法到全局作用域
 window.axios_post = axios_post;
-window.api_request = api_request;
 window.axios_client = apiClient;

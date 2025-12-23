@@ -55,7 +55,7 @@ router
 
   // 404处理
   .notFound(() => {
-    $("#page_content").html(`<system-error title="404" text='没有找到这个页面，请检查是不是输错地址了...'></system-error>`);
+    $("#page-content").html(`<system-error title="404" text='没有找到这个页面，请检查是不是输错地址了...'></system-error>`);
   })
   
 ;
@@ -94,10 +94,10 @@ function loadPage(htmlPath, queryString) {
       params[k] = v;
     });
   }
-  $("#page_content").data("params", params);
+  $("#page-content").data("params", params);
 
   // 直接加载HTML文件
-  $("#page_content").load(htmlPath, function(_, status, xhr) {
+  $("#page-content").load(htmlPath, function(_, status, xhr) {
 
     // 隐藏等待动画
     hideLoading();
@@ -131,7 +131,7 @@ function loadPage(htmlPath, queryString) {
     }
 
     if (status == "error") {
-      $("#page_content").html(`<system-error title="${xhr.status}" text="${xhr.statusText || ''}"></system-error>`);
+      $("#page-content").html(`<system-error title="${xhr.status}" text="${xhr.statusText || ''}"></system-error>`);
     } else {
       // 滚动到顶部
       $(window).scrollTop(0);

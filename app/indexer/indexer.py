@@ -146,12 +146,10 @@ class Indexer(object):
         # 1. 将索引器列表切分为子列表
         indexer_chunks = list(self._chunk_list(search_indexers, process_count))
 
-        all_tasks = []
         ret_array = []
-
         # 2. 提交任务给进程池
         with ProcessPoolExecutor(max_workers=process_count) as executor:
-
+            all_tasks = []
             for chunk in indexer_chunks:
                 if not chunk: 
                     continue                
