@@ -171,7 +171,7 @@ class _IIndexClient(metaclass=ABCMeta):
                                                                            uploadvolumefactor=uploadvolumefactor,
                                                                            downloadvolumefactor=downloadvolumefactor)            
             if not match_flag:
-                log.info("【%s】[%s] %s", self.client_name, indexer.name, match_msg)
+                log.debug("【%s】[%s] %s", self.client_name, indexer.name, match_msg)
                 index_rule_fail += 1
                 continue
 

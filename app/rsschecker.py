@@ -294,7 +294,7 @@ class RssChecker(object):
                                                                                         filter_args=filter_args)
                     # 未匹配
                     if not match_flag:
-                        log.info(f"【RssChecker】{match_msg}")
+                        log.debug(f"【RssChecker】{match_msg}")
                         continue
                     else:
                         # 匹配优先级
@@ -333,7 +333,7 @@ class RssChecker(object):
                                                                                 filter_args=filter_args)
                     # 未匹配
                     if not match_flag:
-                        log.info(f"【RssChecker】{match_msg}")
+                        log.debug(f"【RssChecker】{match_msg}")
                         continue
                     # 检查是否已订阅过
                     if self.dbhelper.check_rss_history(type_str="MOV" if media_info.type == MediaType.MOVIE else "TV",
