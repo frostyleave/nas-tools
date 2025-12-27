@@ -21,12 +21,12 @@ from app.helper import DbHelper, ThreadHelper, SubmoduleHelper
 from app.indexer.client import InterfaceSpider, MTorrentSpider
 from app.indexer.client.browser import PlaywrightHelper
 from app.indexer.manager import IndexerInfo, IndexerManager
+from app.job_center import JobCenter
 from app.media import Media
 from app.media.meta import MetaInfo
 from app.mediaserver import MediaServer
 from app.message import Message
 from app.plugins import EventManager
-from app.job_center import JobCenter
 from app.sites import PtSiteConf, SitesManager, SiteSubtitle
 from app.utils import TorrentUtils, StringUtils, SystemUtils, NumberUtils, RequestUtils, SiteUtils
 from app.utils.commons import singleton
@@ -964,12 +964,11 @@ class Downloader:
                 rmt_mode = ModuleConf.RMT_MODES.get(downloader_conf.get("rmt_mode"))
 
                 trans_tasks = download_client.get_transfer_task(tag=filter_tag, match_path=match_path)
-                if trans_tasks:
-                    log.info(f"【Downloader】下载器 {downloader_name} 开始转移下载文件...")
-                else:
-                    log.info(f"【Downloader】下载器 {downloader_name} 没有可以进行转移的任务")
+                if not trans_tasks:
+                    log.debug(f"【Downloader】下载器 {downloader_name} 没有可以进行转移的任务")
                     continue
-
+                    
+                log.info(f"【Downloader】下载器 {downloader_name} 开始转移下载文件...")
                 for task in trans_tasks:
                     done_flag, done_msg = self.filetransfer.transfer_media(in_from=self._DownloaderEnum[str(downloader_id)],
                                                                            in_path=task.get("path"),

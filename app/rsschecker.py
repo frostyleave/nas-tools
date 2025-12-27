@@ -256,7 +256,7 @@ class RssChecker(object):
                                 log.warn("【RssChecker】%s 识别媒体信息出错！" % title)
                                 continue
                             if not media_info.tmdb_info:
-                                log.info("【RssChecker】%s 识别为 %s 未匹配到媒体信息" % (title, media_info.get_name()))
+                                log.debug("【RssChecker】%s 识别为 %s 未匹配到媒体信息" % (title, media_info.get_name()))
                                 continue
                         # 检查是否已存在
                         if media_info.type == MediaType.MOVIE:
@@ -300,7 +300,7 @@ class RssChecker(object):
                         # 匹配优先级
                         media_info.set_torrent_info(res_order=res_order)
                         if taskinfo.get("recognization") == "Y":
-                            log.info("【RssChecker】%s 识别为 %s %s 匹配成功" % (
+                            log.debug("【RssChecker】%s 识别为 %s %s 匹配成功" % (
                                 title,
                                 media_info.get_title_string(),
                                 media_info.get_season_episode_string()))
@@ -603,9 +603,9 @@ class RssChecker(object):
                                                                             filter_args=filter_args)
         # 未匹配
         if not match_flag:
-            log.info(f"【RssChecker】{match_msg}")
+            log.debug(f"【RssChecker】{match_msg}")
         else:
-            log.info("【RssChecker】%s 识别为 %s %s 匹配成功" % (
+            log.debug("【RssChecker】%s 识别为 %s %s 匹配成功" % (
                 title,
                 media_info.get_title_string(),
                 media_info.get_season_episode_string()))
@@ -614,7 +614,7 @@ class RssChecker(object):
         no_exists = {}
         exist_flag = False
         if not media_info.tmdb_id:
-            log.info("【RssChecker】%s 识别为 %s 未匹配到媒体信息" % (title, media_info.get_name()))
+            log.debug("【RssChecker】%s 识别为 %s 未匹配到媒体信息" % (title, media_info.get_name()))
         else:
             if media_info.type == MediaType.MOVIE:
                 exist_flag, no_exists, _ = self.downloader.check_exists_medias(meta_info=media_info,

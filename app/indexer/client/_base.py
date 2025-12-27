@@ -161,7 +161,7 @@ class _IIndexClient(metaclass=ABCMeta):
 
             # 先过滤掉可以明确的类型
             if item_meta.type == MediaType.TV and filter_args.get("type") == MediaType.MOVIE:
-                log.info("【%s】[%s] %s 是 %s, 不匹配类型：%s", self.client_name, indexer.name, torrent_name, item_meta.type.value, filter_args.get('type').value)
+                log.debug("【%s】[%s] %s 是 %s, 不匹配类型：%s", self.client_name, indexer.name, torrent_name, item_meta.type.value, filter_args.get('type').value)
                 index_rule_fail += 1
                 continue
 
@@ -225,7 +225,7 @@ class _IIndexClient(metaclass=ABCMeta):
 
                             # TMDBID是否匹配
                             if str(file_tmdb_info.id) != str(search_media.tmdb_id):
-                                log.info("【%s】[%s] %s 识别为 %s/%s/%s 与 %s/%s/%s 不匹配", 
+                                log.debug("【%s】[%s] %s 识别为 %s/%s/%s 与 %s/%s/%s 不匹配", 
                                          self.client_name, indexer.name, search_kw, item_meta.type.value, item_meta.get_title_string(), file_tmdb_info.id,
                                          search_media.type.value, search_media.get_title_string(), search_media.tmdb_id)
                                 index_match_fail += 1
@@ -269,13 +269,13 @@ class _IIndexClient(metaclass=ABCMeta):
                                                filter_args.get("season_name"),
                                                filter_args.get("episode"),
                                                filter_args.get("year")):
-                log.info("【%s】[%s] %s 识别为 %s/%s/%s 不匹配季/集/年份",
+                log.debug("【%s】[%s] %s 识别为 %s/%s/%s 不匹配季/集/年份",
                          self.client_name, indexer.name, torrent_name, media_info.type.value, media_info.get_title_string(), media_info.get_season_episode_string())
                 index_match_fail += 1
                 continue
 
             # 匹配到了
-            log.info("【%s】[%s] %s %s 识别为 %s %s 匹配成功", 
+            log.debug("【%s】[%s] %s %s 识别为 %s %s 匹配成功", 
                      self.client_name, indexer.name, torrent_name, description, media_info.get_title_string(), media_info.get_season_episode_string())
             
             media_info.set_torrent_info(site=indexer.name,

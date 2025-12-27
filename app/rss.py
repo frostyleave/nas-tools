@@ -176,7 +176,7 @@ class Rss:
                                 log.warn(f"【Rss】{title} 无法识别出媒体信息！")
                                 continue
                             elif not media_info.tmdb_info:
-                                log.info(f"【Rss】{title} 识别为 {media_info.get_name()} 未匹配到TMDB媒体信息")
+                                log.debug(f"【Rss】{title} 识别为 {media_info.get_name()} 未匹配到TMDB媒体信息")
                         # 大小及种子页面
                         media_info.set_torrent_info(size=size,
                                                     page_url=page_url,
@@ -306,6 +306,7 @@ class Rss:
                         # 加入下载列表
                         if media_info not in rss_download_torrents:
                             rss_download_torrents.append(media_info)
+                            log.info("【Rss】%s 加入下载列表" , media_info.org_string)
                             res_num = res_num + 1
                     except Exception as e:
                         log.exception('【Rss】处理RSS发生错误: ')
@@ -527,7 +528,10 @@ class Rss:
             """
             更新订阅集数
             """
-            if not download_item or not left_media:
+            if not download_item:
+                return
+            if not left_media:
+                log.warn("【Rss】未找到tmdb_id=%s 的媒体信息", download_item.tmdb_id)
                 return
             if not download_item.rssid \
                     or download_item.rssid in updated_rss_torrents:
@@ -561,6 +565,7 @@ class Rss:
         if download_items:
             for item in download_items:
                 if not item.rssid:
+                    log.warn("【Rss】rssid异常")
                     continue
                 if item.over_edition:
                     # 更新洗版订阅
