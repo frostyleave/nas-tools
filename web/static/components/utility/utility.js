@@ -120,4 +120,16 @@ export class Golbal {
     }
   }
 
+  static isDoubanImgUrl(url) {
+      try {
+          const u = new URL(url);
+          return (
+              u.protocol === 'https:' &&
+              /^img\d+\.doubanio\.com$/.test(u.hostname)
+          );
+      } catch (e) {
+          return false;
+      }
+  }
+
 }

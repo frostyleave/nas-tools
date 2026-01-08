@@ -104,6 +104,11 @@ export class NormalCard extends observeState(CustomElement) {
   }
 
   render() {
+
+    if (this.image && Golbal.isDoubanImgUrl(this.image)) {
+      this.image = '/doubanimg?url=' + this.image;
+    }
+
     return html`
       <div class="card card-sm lit-normal-card rounded-3 cursor-pointer ratio shadow-sm"
            @click=${() => { if (Golbal.is_touch_device()){ cardState.more_id = this._card_id } } }

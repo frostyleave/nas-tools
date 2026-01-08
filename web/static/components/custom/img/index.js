@@ -63,6 +63,12 @@ export class CustomImg extends CustomElement {
   }
 
   render() {
+
+    if (this.img_src && Golbal.isDoubanImgUrl(this.img_src)) {
+      this.img_src = '/doubanimg?url=' + this.img_src;
+    }
+
+
     return html`
       <div class="placeholder-glow${this.img_ratio ? " ratio" : ""}"
           style=${(this.img_ratio ? "--tblr-aspect-ratio:" + this.img_ratio + ";" : "") + (this.div_style ?? "")}>

@@ -4812,6 +4812,9 @@ class WebAction:
         mtype = MediaType.MOVIE if data.get("type") in MovieTypes else MediaType.TV
         media_info = WebUtils.get_mediainfo_from_id(mediaid=mediaid, mtype=mtype)
 
+        if not media_info: 
+            return {"code": 1, "msg": "媒体信息查询失败"}
+
         media_handler = Media()
         # 演职人员信息整合
         crews = self.__get_crews_from_media_info(media_info, media_handler, mtype)

@@ -1,16 +1,18 @@
 import os
 import hashlib
 
-from urllib.parse import unquote
+from urllib.parse import unquote, urlparse, urlunparse
 from pathlib import Path
 
-from fastapi import APIRouter, Request, Depends, Response
-from fastapi.responses import FileResponse
+from fastapi import APIRouter, HTTPException, Query, Request, Depends, Response
+from fastapi.responses import FileResponse, StreamingResponse
+import httpx
 
 import log
 
 from app.utils.system_utils import SystemUtils
 from app.utils.types import *
+from app.utils.async_request import AsyncRequestUtils
 
 from config import Config
 
@@ -23,6 +25,8 @@ from web.backend.web_utils import WebUtils
 utility_router = APIRouter(
     dependencies=[Depends(get_current_user)]
 )
+
+DOUBAN_REFERER = "https://movie.douban.com/"
 
 
 # 目录事件响应
@@ -135,3 +139,62 @@ async def img(request: Request, url: str):
     response.headers['Etag'] = etag
     return response
 
+
+# 豆瓣图片中转服务
+@utility_router.get("/doubanimg")
+async def proxy_douban_image(
+    url: str = Query(..., description="Douban image url")
+):
+    parsed = urlparse(url)
+
+    # 1. 安全校验（防止 SSRF）
+    if parsed.scheme != "https":
+        raise HTTPException(status_code=400, detail="Invalid url scheme")
+
+    headers = {
+        "Referer": DOUBAN_REFERER,
+        "User-Agent": Config().get_ua(),
+    }
+
+    try:
+
+        webp_url = force_webp(url)
+        resp = await AsyncRequestUtils.http_client.get(webp_url, headers=headers)
+
+        if resp.status_code != 200:
+            raise HTTPException(
+                status_code=resp.status_code,
+                detail="Upstream request failed"
+            )
+
+        content_type = resp.headers.get("content-type", "image/webp")
+
+        return StreamingResponse(
+            resp.aiter_bytes(),
+            media_type=content_type,
+            headers={
+                "Cache-Control": "public, max-age=86400"
+            }
+        )
+
+    except httpx.RequestError:
+        raise HTTPException(status_code=502, detail="Upstream connection error")
+    
+def force_webp(url: str) -> str:
+    parsed = urlparse(url)
+    path = parsed.path
+
+    root, ext = os.path.splitext(path)
+
+    # 已经是 webp，直接返回
+    if ext.lower() == ".webp":
+        return url
+
+    # 没有后缀（理论上不会发生在豆瓣）
+    if not ext:
+        return url
+
+    # 替换为 .webp
+    new_path = root + ".webp"
+
+    return urlunparse(parsed._replace(path=new_path))
