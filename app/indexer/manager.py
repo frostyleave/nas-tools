@@ -86,6 +86,7 @@ class IndexerManager:
 
             for db_item in db_indexers:
                 try:
+                    extra_config = json.loads(db_item.EXTRA) if db_item.EXTRA else {}
                     indexer_data = {
                         'id': db_item.ID,
                         'name': db_item.NAME,
@@ -98,10 +99,10 @@ class IndexerManager:
                         'category': json.loads(db_item.CATEGORY) if db_item.CATEGORY else {},
                         'source_type': db_item.SOURCE_TYPE.split(',') if db_item.SOURCE_TYPE else [],
                         'search_type': db_item.SEARCH_TYPE,
-                        'downloader': db_item.DOWNLOADER,
                         'public': db_item.PUBLIC,
                         'proxy': db_item.PROXY,
-                        'en_expand': db_item.EN_EXPAND or False
+                        'downloader': extra_config.get('downloader', 0),
+                        'en_expand': extra_config.get('en_expand', False)
                     }
                     indexer = IndexerBase(**indexer_data)
                     self._indexers.append(indexer)

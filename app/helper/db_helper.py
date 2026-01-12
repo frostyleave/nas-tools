@@ -2660,7 +2660,7 @@ class DbHelper:
         return self._db.query(INDEXERSITE).all()
     
     @DbPersist(_db)
-    def add_indexer(self, id, name, domain, proxy, render, downloader, source_type, search_type, search, torrents, browse=None, parser=None, category=None, is_public=1, en_expand=1):
+    def add_indexer(self, id, name, domain, proxy, render, source_type, search_type, search, torrents, browse=None, parser=None, category=None, is_public=1, extra=''):
         """
         新增索引站点
         """
@@ -2671,7 +2671,6 @@ class DbHelper:
             PUBLIC=is_public,
             PROXY=proxy,
             RENDER=render,
-            DOWNLOADER=downloader,
             SOURCE_TYPE=source_type,
             SEARCH_TYPE=search_type,
             SEARCH=search,
@@ -2679,11 +2678,11 @@ class DbHelper:
             BROWSE=browse,
             PARSER=parser,
             CATEGORY=category,
-            EN_EXPAND=en_expand
+            EXTRA=extra
         ))
     
     @DbPersist(_db)
-    def update_indexer(self, id, domain, proxy, render, downloader, source_type, search_type, search, torrents, browse=None, parser=None, category=None, en_expand=None):
+    def update_indexer(self, id, domain, proxy, render, source_type, search_type, search, torrents, browse=None, parser=None, category=None, extra=None):
         """
         更新索引站点
         """
@@ -2697,8 +2696,6 @@ class DbHelper:
             update_dic['PROXY'] = proxy
         if render is not None:
             update_dic['RENDER'] = render
-        if downloader is not None:
-            update_dic['DOWNLOADER'] = downloader
         if source_type is not None:
             update_dic['SOURCE_TYPE'] = source_type
         if search_type is not None:
@@ -2713,8 +2710,8 @@ class DbHelper:
             update_dic['PARSER'] = parser
         if category is not None:
             update_dic['CATEGORY'] = category
-        if en_expand is not None:
-            update_dic['EN_EXPAND'] = en_expand
+        if extra is not None:
+            update_dic['EXTRA'] = extra
         
         if not update_dic:
             return

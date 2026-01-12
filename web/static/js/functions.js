@@ -2122,7 +2122,14 @@ function edit_indexer_conf(site_url, ispt) {
       $("[name='indexer_edit_btn']").show();
 
       $("#modal-manual-indexer").modal("show");
+      return;
     }
+
+    if (ret.msg) {
+      show_fail_modal(ret.msg);
+      return;
+    }
+
   });
 }
 
@@ -2220,11 +2227,24 @@ function do_update_indexer() {
     search_type = NaN
   }
 
-  if (indexer_url == NaN && proxy == NaN && render == NaN && downloader == NaN && en_expand == NaN
-    && source_type == NaN && search_type == NaN && search_cfg == NaN && torrent_cfg == NaN
-    && browse_cfg == NaN && parser_setting == NaN && category_cfg == NaN) {
+  if (indexer_url == NaN 
+    && proxy == NaN 
+    && render == NaN 
+    && downloader == NaN && en_expand == NaN
+    && source_type == NaN 
+    && search_type == NaN 
+    && search_cfg == NaN 
+    && torrent_cfg == NaN
+    && browse_cfg == NaN 
+    && parser_setting == NaN 
+    && category_cfg == NaN) {
     $("#modal-manual-indexer").modal("hide");
     return;
+  }
+
+  if (downloader != NaN || en_expand != NaN) {
+    en_expand = $('#en_expand').prop('checked');
+    downloader = $("#indexer_download_setting").val();
   }
 
   const data = {

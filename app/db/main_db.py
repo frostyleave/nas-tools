@@ -62,10 +62,9 @@ class MainDb:
                     sql_list = f.read().split(';\n')
                     for sql in sql_list:
                         try:
-                            self.excute(sql)
-                            self.commit()
+                            self.execute_sql_script(sql)
                         except Exception as err:
-                            print(str(err))
+                            print('SQL执行异常: ' + str(err))
                 init_files.append(os.path.basename(sql_file))
         if config_flag:
             config['app']['init_files'] = init_files
@@ -85,6 +84,17 @@ class MainDb:
         查询对象
         """
         return self.session.query(*obj)
+    
+    def execute_sql_script(self, sql: str):
+        session = self.session  # scoped_session 返回当前线程的 Session
+
+        try:
+            conn = self.session.connection()
+            conn.exec_driver_sql(sql)
+            session.commit()
+        except Exception:
+            session.rollback()
+            raise
 
     def excute(self, sql):
         """

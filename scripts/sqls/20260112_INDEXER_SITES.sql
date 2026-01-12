@@ -1,0 +1,1607 @@
+-- Auto generated SQLite UPSERT script
+-- Source DB: user.db
+-- Table: INDEXER_SITES
+-- Date: 20260112
+
+INSERT INTO INDEXER_SITES (
+    ID, NAME, DOMAIN, SEARCH, PARSER, RENDER, PUBLIC, PROXY, SOURCE_TYPE, SEARCH_TYPE, BROWSE, TORRENTS, CATEGORY
+) VALUES (
+    'acgrip', 'ACG.RIP', 'https://acg.rip/', '{"paths": [{"path": "?term={keyword}", "method": "get"}]}', '', 0, 1, 1, 'ANIME', 'title', '{"path": "page/{page}", "start": 1}', '{"list": {"selector": "table.table-hover > tr"}, "fields": {"id": {"selector": "a[href*=\"/t/\"]", "attribute": "href", "filters": [{"name": "re_search", "args": ["\\d+", 0]}]}, "title": {"selector": "span.title > a"}, "details": {"selector": "span.title > a", "attribute": "href"}, "download": {"selector": "td.action > a", "attribute": "href"}, "date_added": {"selector": "td.date > time", "attribute": "datetime"}, "size": {"selector": "td.size"}, "seeders": {"selector": "td.peers > div.seed > span"}, "leechers": {"selector": "td.peers > div.leech > span"}, "grabs": {"selector": "td.peers > div.done > span"}, "downloadvolumefactor": {"case": {"*": 0}}, "uploadvolumefactor": {"case": {"*": 1}}}}', ''
+)
+ON CONFLICT(ID) DO UPDATE SET
+    NAME = excluded.NAME,
+    DOMAIN = excluded.DOMAIN,
+    SEARCH = excluded.SEARCH,
+    PARSER = excluded.PARSER,
+    RENDER = excluded.RENDER,
+    PROXY = excluded.PROXY,
+    SOURCE_TYPE = excluded.SOURCE_TYPE,
+    SEARCH_TYPE = excluded.SEARCH_TYPE,
+    BROWSE = excluded.BROWSE,
+    TORRENTS = excluded.TORRENTS,
+    CATEGORY = excluded.CATEGORY;
+
+INSERT INTO INDEXER_SITES (
+    ID, NAME, DOMAIN, SEARCH, PARSER, RENDER, PUBLIC, PROXY, SOURCE_TYPE, SEARCH_TYPE, BROWSE, TORRENTS, CATEGORY
+) VALUES (
+    'btsow', 'BTSOW', 'https://btsow.pics/', '{"paths": [{"path": "search/{keyword}", "method": "get"}]}', '', 0, 1, 0, 'MOVIE,TV,ANIME', 'title', '', '{"list": {"selector": "div.data-list > div.row"}, "fields": {"title": {"selector": "div.row > a", "attribute": "title"}, "details": {"selector": "div.row > a", "attribute": "href"}, "download": {"selector": "div.row > a", "attribute": "href", "filters": [{"name": "re_sub", "args": [".*(magnet/detail/hash/){1}", "magnet:?xt=urn:btih:"]}]}, "date_added": {"selector": "div.date"}, "size": {"selector": "div.size"}, "downloadvolumefactor": {"case": {"*": 0}}, "uploadvolumefactor": {"case": {"*": 1}}}}', ''
+)
+ON CONFLICT(ID) DO UPDATE SET
+    NAME = excluded.NAME,
+    DOMAIN = excluded.DOMAIN,
+    SEARCH = excluded.SEARCH,
+    PARSER = excluded.PARSER,
+    RENDER = excluded.RENDER,
+    PROXY = excluded.PROXY,
+    SOURCE_TYPE = excluded.SOURCE_TYPE,
+    SEARCH_TYPE = excluded.SEARCH_TYPE,
+    BROWSE = excluded.BROWSE,
+    TORRENTS = excluded.TORRENTS,
+    CATEGORY = excluded.CATEGORY;
+
+INSERT INTO INDEXER_SITES (
+    ID, NAME, DOMAIN, SEARCH, PARSER, RENDER, PUBLIC, PROXY, SOURCE_TYPE, SEARCH_TYPE, BROWSE, TORRENTS, CATEGORY
+) VALUES (
+    'comicat', '漫猫', 'https://www.comicat.org/', '{"paths":[{"path":"search.php?keyword={keyword}+sort_id%3A1","method":"get"}]}', '', 0, 1, 0, 'ANIME', 'title', '', '{"list": {"selector": "table#listTable > tbody > tr"}, "fields": {"title": {"selector": "td:nth-child(3) > a"}, "details": {"selector": "td:nth-child(3) > a", "attribute": "href"}, "download": {"selector": "td:nth-child(3) > a", "attribute": "href", "filters": [{"name": "re_sub", "args": [".*(show-){1}", "magnet:?xt=urn:btih:"]}, {"name": "replace", "args": [".html", ""]}]}, "date_added": {"selector": "td:nth-child(1)", "optional": true}, "size": {"selector": "td:nth-child(4)"}, "seeders": {"selector": "td:nth-child(5) > span"}, "leechers": {"selector": "td:nth-child(6) > span"}, "grabs": {"selector": "td:nth-child(7) > span"}, "downloadvolumefactor": {"case": {"*": 0}}, "uploadvolumefactor": {"case": {"*": 1}}}}', ''
+)
+ON CONFLICT(ID) DO UPDATE SET
+    NAME = excluded.NAME,
+    DOMAIN = excluded.DOMAIN,
+    SEARCH = excluded.SEARCH,
+    PARSER = excluded.PARSER,
+    RENDER = excluded.RENDER,
+    PROXY = excluded.PROXY,
+    SOURCE_TYPE = excluded.SOURCE_TYPE,
+    SEARCH_TYPE = excluded.SEARCH_TYPE,
+    BROWSE = excluded.BROWSE,
+    TORRENTS = excluded.TORRENTS,
+    CATEGORY = excluded.CATEGORY;
+
+INSERT INTO INDEXER_SITES (
+    ID, NAME, DOMAIN, SEARCH, PARSER, RENDER, PUBLIC, PROXY, SOURCE_TYPE, SEARCH_TYPE, BROWSE, TORRENTS, CATEGORY
+) VALUES (
+    'dmhy', '动漫花园', 'https://dmhy.org/', '{"paths": [{"path": "topics/list?keyword={keyword}", "method": "get"}]}', '', 0, 1, 1, 'ANIME', 'title', '{"path": "topics/list/page/{page}", "start": 1}', '{"list": {"selector": "table.tablesorter > tbody > tr"}, "fields": {"id": {"selector": "a[href*=\"/topics/list/sort_id/\"]", "attribute": "href", "filters": [{"name": "re_search", "args": ["\\d+", 0]}]}, "title": {"selector": "td.title > a"}, "details": {"selector": "td.title > a", "attribute": "href"}, "download": {"selector": "a.download-arrow.arrow-magnet", "attribute": "href"}, "date_added": {"selector": "td:nth-child(1) > span", "optional": true}, "date": {"text": "{% if fields[''date_elapsed''] or fields[''date_added''] %}{{ fields[''date_elapsed''] if fields[''date_elapsed''] else fields[''date_added''] }}{% else %}now{% endif %}", "filters": [{"name": "dateparse", "args": "%Y-%m-%d %H:%M:%S"}]}, "size": {"selector": "td:nth-child(5)"}, "seeders": {"selector": "td:nth-child(6)"}, "leechers": {"selector": "td:nth-child(7)"}, "grabs": {"selector": "td:nth-child(8)"}, "downloadvolumefactor": {"case": {"*": 0}}, "uploadvolumefactor": {"case": {"*": 1}}}}', ''
+)
+ON CONFLICT(ID) DO UPDATE SET
+    NAME = excluded.NAME,
+    DOMAIN = excluded.DOMAIN,
+    SEARCH = excluded.SEARCH,
+    PARSER = excluded.PARSER,
+    RENDER = excluded.RENDER,
+    PROXY = excluded.PROXY,
+    SOURCE_TYPE = excluded.SOURCE_TYPE,
+    SEARCH_TYPE = excluded.SEARCH_TYPE,
+    BROWSE = excluded.BROWSE,
+    TORRENTS = excluded.TORRENTS,
+    CATEGORY = excluded.CATEGORY;
+
+INSERT INTO INDEXER_SITES (
+    ID, NAME, DOMAIN, SEARCH, PARSER, RENDER, PUBLIC, PROXY, SOURCE_TYPE, SEARCH_TYPE, BROWSE, TORRENTS, CATEGORY
+) VALUES (
+    'eztv', 'EZTV', 'https://eztv.re/', '{"paths": [{"path": "search/{keyword}", "method": "get"}]}', '', 0, 1, 1, 'TV', 'en_name', '{"path": "page_{page}"}', '{"list": {"selector": "table.forum_header_border > tr[name]"}, "fields": {"id": {"selector": "td:nth-child(2) > a[href*=\"/ep/\"]", "attribute": "href", "filters": [{"name": "re_search", "args": ["\\d+", 0]}]}, "title": {"selector": "td:nth-child(2) > a", "attribute": "title"}, "details": {"selector": "td:nth-child(2) > a", "attribute": "href"}, "download": {"selector": "td:nth-child(3) > a[href*=\".torrent\"]", "attribute": "href"}, "date_added": {"selector": "td:nth-child(5)", "optional": true}, "size": {"selector": "td:nth-child(4)"}, "seeders": {"selector": "td:nth-child(6) > font"}, "downloadvolumefactor": {"case": {"*": 0}}, "uploadvolumefactor": {"case": {"*": 1}}}}', ''
+)
+ON CONFLICT(ID) DO UPDATE SET
+    NAME = excluded.NAME,
+    DOMAIN = excluded.DOMAIN,
+    SEARCH = excluded.SEARCH,
+    PARSER = excluded.PARSER,
+    RENDER = excluded.RENDER,
+    PROXY = excluded.PROXY,
+    SOURCE_TYPE = excluded.SOURCE_TYPE,
+    SEARCH_TYPE = excluded.SEARCH_TYPE,
+    BROWSE = excluded.BROWSE,
+    TORRENTS = excluded.TORRENTS,
+    CATEGORY = excluded.CATEGORY;
+
+INSERT INTO INDEXER_SITES (
+    ID, NAME, DOMAIN, SEARCH, PARSER, RENDER, PUBLIC, PROXY, SOURCE_TYPE, SEARCH_TYPE, BROWSE, TORRENTS, CATEGORY
+) VALUES (
+    'mikanani', 'MiKan', 'https://mikanani.me/', '{"paths": [{"path": "Home/Search?searchstr={keyword}", "method": "get"}]}', '', 0, 1, 1, 'ANIME', 'title', '{"path": "Home/Classic/{page}", "start": 1}', '{"list": {"selector": "div.central-container > table > tbody > tr.js-search-results-row"}, "fields": {"id": {"selector": "tr.js-search-results-row", "attribute": "data-itemindex"}, "title": {"selector": "td:nth-child(1) > a.magnet-link-wrap"}, "details": {"selector": "td:nth-child(1) > a.magnet-link-wrap", "attribute": "href"}, "download": {"selector": "td:nth-child(1) > a.js-magnet.magnet-link", "attribute": "data-clipboard-text"}, "date_added": {"selector": "td:nth-child(3)"}, "size": {"selector": "td:nth-child(2)"}, "downloadvolumefactor": {"case": {"*": 0}}, "uploadvolumefactor": {"case": {"*": 1}}}}', ''
+)
+ON CONFLICT(ID) DO UPDATE SET
+    NAME = excluded.NAME,
+    DOMAIN = excluded.DOMAIN,
+    SEARCH = excluded.SEARCH,
+    PARSER = excluded.PARSER,
+    RENDER = excluded.RENDER,
+    PROXY = excluded.PROXY,
+    SOURCE_TYPE = excluded.SOURCE_TYPE,
+    SEARCH_TYPE = excluded.SEARCH_TYPE,
+    BROWSE = excluded.BROWSE,
+    TORRENTS = excluded.TORRENTS,
+    CATEGORY = excluded.CATEGORY;
+
+INSERT INTO INDEXER_SITES (
+    ID, NAME, DOMAIN, SEARCH, PARSER, RENDER, PUBLIC, PROXY, SOURCE_TYPE, SEARCH_TYPE, BROWSE, TORRENTS, CATEGORY
+) VALUES (
+    'nyaa', 'Nyaa', 'https://nyaa.si/', '{"paths": [{"path": "?f=0&c=1_0&q={keyword}", "method": "get"}]}', '', 0, 1, 1, 'ANIME', 'en_name', '{"path": "?p={page}", "start": 1}', '{"list": {"selector": "table.torrent-list > tbody > tr"}, "fields": {"id": {"selector": "a[href*=\"/view/\"]", "attribute": "href", "filters": [{"name": "re_search", "args": ["\\d+", 0]}]}, "title": {"selector": "td:nth-child(2) > a"}, "details": {"selector": "td:nth-child(2) > a", "attribute": "href"}, "download": {"selector": "td:nth-child(3) > a[href*=\"/download/\"]", "attribute": "href"}, "date_added": {"selector": "td:nth-child(5)"}, "size": {"selector": "td:nth-child(4)"}, "seeders": {"selector": "td:nth-child(6)"}, "leechers": {"selector": "td:nth-child(7)"}, "grabs": {"selector": "td:nth-child(8)"}, "downloadvolumefactor": {"case": {"*": 0}}, "uploadvolumefactor": {"case": {"*": 1}}}}', ''
+)
+ON CONFLICT(ID) DO UPDATE SET
+    NAME = excluded.NAME,
+    DOMAIN = excluded.DOMAIN,
+    SEARCH = excluded.SEARCH,
+    PARSER = excluded.PARSER,
+    RENDER = excluded.RENDER,
+    PROXY = excluded.PROXY,
+    SOURCE_TYPE = excluded.SOURCE_TYPE,
+    SEARCH_TYPE = excluded.SEARCH_TYPE,
+    BROWSE = excluded.BROWSE,
+    TORRENTS = excluded.TORRENTS,
+    CATEGORY = excluded.CATEGORY;
+
+INSERT INTO INDEXER_SITES (
+    ID, NAME, DOMAIN, SEARCH, PARSER, RENDER, PUBLIC, PROXY, SOURCE_TYPE, SEARCH_TYPE, BROWSE, TORRENTS, CATEGORY
+) VALUES (
+    '2xfree', '2xFree', 'https://pt.2xfree.org/', '{"paths": [{"path": "torrents.php", "method": "get"}], "params": {"search": "{keyword}"}, "batch": {"delimiter": " ", "space_replace": "_"}}', '', 0, 0, 0, 'MOVIE,TV,ANIME', 'title', '', '{"list": {"selector": "table.torrents > tr:has(\"table.torrentname\")"}, "fields": {"id": {"selector": "a[href*=\"details.php?id=\"]", "attribute": "href", "filters": [{"name": "re_search", "args": ["\\d+", 0]}]}, "category": {"selector": "a[href*=\"?cat=\"]", "attribute": "href", "filters": [{"name": "querystring", "args": "cat"}]}, "title_default": {"selector": "a[href*=\"details.php?id=\"]"}, "title_optional": {"optional": true, "selector": "a[title][href*=\"details.php?id=\"]", "attribute": "title"}, "title": {"text": "{% if fields[''title_optional''] %}{{ fields[''title_optional''] }}{% else %}{{ fields[''title_default''] }}{% endif %}"}, "details": {"selector": "a[href*=\"details.php?id=\"]", "attribute": "href"}, "poster": {"selector": "img[data-orig]", "attribute": "data-orig"}, "download": {"selector": "a[href*=\"download.php?id=\"]", "attribute": "href"}, "size": {"selector": "td.rowfollow:nth-child(5)"}, "grabs": {"selector": "td.rowfollow:nth-child(8)"}, "seeders": {"selector": "td.rowfollow:nth-child(6)"}, "leechers": {"selector": "td.rowfollow:nth-child(7)"}, "date_elapsed": {"selector": "td.rowfollow:nth-child(4) > span", "optional": true}, "date_added": {"selector": "td.rowfollow:nth-child(4) > span", "attribute": "title", "optional": true}, "date": {"text": "{% if fields[''date_elapsed''] or fields[''date_added''] %}{{ fields[''date_elapsed''] if fields[''date_elapsed''] else fields[''date_added''] }}{% else %}now{% endif %}", "filters": [{"name": "dateparse", "args": "%Y-%m-%d %H:%M:%S"}]}, "downloadvolumefactor": {"case": {"img.pro_free": 0, "img.pro_free2up": 0, "img.pro_50pctdown": 0.5, "img.pro_50pctdown2up": 0.5, "img.pro_30pctdown": 0.3, "*": 1}}, "uploadvolumefactor": {"case": {"img.pro_50pctdown2up": 2, "img.pro_free2up": 2, "img.pro_2up": 2, "*": 1}}, "free_deadline": {"default_value": "{% if fields[''downloadvolumefactor'']==0 %}{{max_time}}{% endif%}", "default_value_format": "%Y-%m-%d %H:%M:%S.%f", "selector": "div > b > span[title]", "attribute": "title", "filters": [{"name": "dateparse", "args": "%Y-%m-%d %H:%M:%S"}]}, "tags": {"selector": "div > a.torrents-tag"}, "subject": {"selector": "td.embedded:nth-child(2) > div > div:nth-child(2) > span", "contents": -1}, "description": {"selector": "td:nth-child(2) > table.torrentname > tr > td:nth-child(2)", "remove": "span,a,img,font,b", "contents": -1}, "labels": {"selector": "td:nth-child(2) > table.torrentname > tr > td:nth-child(2) > span"}}}', '{"movie": [{"id": 401, "cat": "Movies", "desc": "Movies(\u7535\u5f71)", "default": true}, {"id": 526, "cat": "Movies", "desc": "VRMovies(3D/VR\u7535\u5f71)", "default": true}], "tv": [{"id": 402, "cat": "TV", "desc": "TV Series(\u7535\u89c6\u5267)", "default": true}, {"id": 403, "cat": "TV", "desc": "TV Shows(\u7efc\u827a)", "default": true}, {"id": 404, "cat": "TV/Documentary", "desc": "Documentaries(\u7eaa\u5f55\u7247)", "default": true}, {"id": 405, "cat": "TV/Anime", "desc": "Animations(\u52a8\u753b)", "default": true}, {"id": 527, "cat": "TV", "desc": "VRSeries(3D/VR\u5267\u96c6)", "default": true}]}'
+)
+ON CONFLICT(ID) DO UPDATE SET
+    NAME = excluded.NAME,
+    DOMAIN = excluded.DOMAIN,
+    SEARCH = excluded.SEARCH,
+    PARSER = excluded.PARSER,
+    RENDER = excluded.RENDER,
+    PROXY = excluded.PROXY,
+    SOURCE_TYPE = excluded.SOURCE_TYPE,
+    SEARCH_TYPE = excluded.SEARCH_TYPE,
+    BROWSE = excluded.BROWSE,
+    TORRENTS = excluded.TORRENTS,
+    CATEGORY = excluded.CATEGORY;
+
+INSERT INTO INDEXER_SITES (
+    ID, NAME, DOMAIN, SEARCH, PARSER, RENDER, PUBLIC, PROXY, SOURCE_TYPE, SEARCH_TYPE, BROWSE, TORRENTS, CATEGORY
+) VALUES (
+    '52pt', '52pt', 'https://52pt.site/', '{"paths": [{"path": "torrents.php", "method": "get"}], "params": {"search": "{keyword}"}, "batch": {"delimiter": " ", "space_replace": "_"}}', '', 0, 0, 0, 'MOVIE,TV,ANIME', 'title', '', '{"list": {"selector": "table.torrents > tr:has(\"table.torrentname\")"}, "fields": {"id": {"selector": "a[href*=\"details.php?id=\"]", "attribute": "href", "filters": [{"name": "re_search", "args": ["\\d+", 0]}]}, "title_default": {"selector": "a[href*=\"details.php?id=\"]"}, "title_optional": {"optional": true, "selector": "a[title][href*=\"details.php?id=\"]", "attribute": "title"}, "title": {"text": "{% if fields[''title_optional''] %}{{ fields[''title_optional''] }}{% else %}{{ fields[''title_default''] }}{% endif %}"}, "category": {"selector": "a[href*=\"?cat=\"]", "attribute": "href", "filters": [{"name": "replace", "args": ["?", ""]}, {"name": "querystring", "args": "cat"}]}, "details": {"selector": "a[href*=\"details.php?id=\"]", "attribute": "href"}, "download": {"selector": "a[href*=\"download.php?id=\"]", "attribute": "href"}, "imdbid": {"selector": "div.imdb_100 > a", "attribute": "href", "filters": [{"name": "re_search", "args": ["tt\\d+", 0]}]}, "date_elapsed": {"selector": "td:nth-child(4) > span", "optional": true}, "date_added": {"selector": "td:nth-child(4) > span", "attribute": "title", "optional": true}, "date": {"text": "{% if fields[''date_elapsed''] or fields[''date_added''] %}{{ fields[''date_elapsed''] if fields[''date_elapsed''] else fields[''date_added''] }}{% else %}now{% endif %}", "filters": [{"name": "dateparse", "args": "%Y-%m-%d %H:%M:%S"}]}, "size": {"selector": "td:nth-child(5)"}, "seeders": {"selector": "td:nth-child(6)"}, "leechers": {"selector": "td:nth-child(7)"}, "grabs": {"selector": "td:nth-child(8)"}, "downloadvolumefactor": {"case": {"img.pro_free": 0, "img.pro_free2up": 0, "img.pro_50pctdown": 0.5, "img.pro_50pctdown2up": 0.5, "img.pro_30pctdown": 0.3, "*": 1}}, "uploadvolumefactor": {"case": {"img.pro_50pctdown2up": 2, "img.pro_free2up": 2, "img.pro_2up": 2, "*": 1}}, "free_deadline": {"default_value": "{% if fields[''downloadvolumefactor'']==0 %}{{max_time}}{% endif%}", "default_value_format": "%Y-%m-%d %H:%M:%S.%f", "selector": "img.pro_free,img.pro_free2up", "attribute": "onmouseover", "filters": [{"name": "re_search", "args": ["\\d+-\\d+-\\d+ \\d+:\\d+:\\d+", 0]}, {"name": "dateparse", "args": "%Y-%m-%d %H:%M:%S"}]}, "description": {"selector": "td:nth-child(2) > table > tr > td.embedded", "contents": -1}, "minimumratio": {"text": 1}, "minimumseedtime": {"text": 90000}}}', '{"movie": [{"id": 401, "cat": "Movies", "desc": "Movies/\u7535\u5f71"}], "tv": [{"id": 404, "cat": "TV/Documentary", "desc": "Documentaries/\u7eaa\u5f55\u7247"}, {"id": 405, "cat": "TV/Anime", "desc": "Animations/\u52a8\u6f2b"}, {"id": 402, "cat": "TV", "desc": "TV Series/\u5267\u96c6"}, {"id": 403, "cat": "TV", "desc": "TV Shows/\u7efc\u827a"}]}'
+)
+ON CONFLICT(ID) DO UPDATE SET
+    NAME = excluded.NAME,
+    DOMAIN = excluded.DOMAIN,
+    SEARCH = excluded.SEARCH,
+    PARSER = excluded.PARSER,
+    RENDER = excluded.RENDER,
+    PROXY = excluded.PROXY,
+    SOURCE_TYPE = excluded.SOURCE_TYPE,
+    SEARCH_TYPE = excluded.SEARCH_TYPE,
+    BROWSE = excluded.BROWSE,
+    TORRENTS = excluded.TORRENTS,
+    CATEGORY = excluded.CATEGORY;
+
+INSERT INTO INDEXER_SITES (
+    ID, NAME, DOMAIN, SEARCH, PARSER, RENDER, PUBLIC, PROXY, SOURCE_TYPE, SEARCH_TYPE, BROWSE, TORRENTS, CATEGORY
+) VALUES (
+    'audiences', '观众', 'https://audiences.me/', '{"paths": [{"path": "torrents.php", "method": "get"}], "params": {"search": "{keyword}"}, "batch": {"delimiter": " ", "space_replace": "_"}}', '', 0, 0, 0, 'MOVIE,TV,ANIME', 'title', '', '{"list": {"selector": "table.torrents > tr:has(\"table.torrentname\")"}, "fields": {"id": {"selector": "a[href*=\"details.php?id=\"]", "attribute": "href", "filters": [{"name": "re_search", "args": ["\\d+", 0]}]}, "title_default": {"selector": "a[href*=\"details.php?id=\"]"}, "title_optional": {"optional": true, "selector": "a[title][href*=\"details.php?id=\"]", "attribute": "title"}, "title": {"text": "{% if fields[''title_optional''] %}{{ fields[''title_optional''] }}{% else %}{{ fields[''title_default''] }}{% endif %}"}, "category": {"selector": "a[href*=\"?cat=\"]", "attribute": "href", "filters": [{"name": "replace", "args": ["?", ""]}, {"name": "querystring", "args": "cat"}]}, "details": {"selector": "a[href*=\"details.php?id=\"]", "attribute": "href"}, "download": {"selector": "a[href*=\"download.php?id=\"]", "attribute": "href"}, "imdbid": {"selector": "div.imdb_100 > a", "attribute": "href", "filters": [{"name": "re_search", "args": ["tt\\d+", 0]}]}, "date_elapsed": {"selector": "td:nth-child(4) > span", "optional": true}, "date_added": {"selector": "td:nth-child(4) > span", "attribute": "title", "optional": true}, "date": {"text": "{% if fields[''date_elapsed''] or fields[''date_added''] %}{{ fields[''date_elapsed''] if fields[''date_elapsed''] else fields[''date_added''] }}{% else %}now{% endif %}", "filters": [{"name": "dateparse", "args": "%Y-%m-%d %H:%M:%S"}]}, "size": {"selector": "td:nth-child(5)"}, "seeders": {"selector": "td:nth-child(6)"}, "leechers": {"selector": "td:nth-child(7)"}, "grabs": {"selector": "td:nth-child(8)"}, "downloadvolumefactor": {"case": {"img.pro_free": 0, "img.pro_free2up": 0, "img.pro_50pctdown": 0.5, "img.pro_50pctdown2up": 0.5, "img.pro_30pctdown": 0.3, "*": 1}}, "uploadvolumefactor": {"case": {"img.pro_50pctdown2up": 2, "img.pro_free2up": 2, "img.pro_2up": 2, "*": 1}}, "free_deadline": {"default_value": "{% if fields[''downloadvolumefactor'']==0 %}{{max_time}}{% endif%}", "default_value_format": "%Y-%m-%d %H:%M:%S.%f", "selector": "img.pro_free,img.pro_free2up", "attribute": "onmouseover", "filters": [{"name": "re_search", "args": ["\\d+-\\d+-\\d+ \\d+:\\d+:\\d+", 0]}, {"name": "dateparse", "args": "%Y-%m-%d %H:%M:%S"}]}, "description": {"selector": "td.embedded > span[style]"}, "labels": {"selector": "td.embedded > span.tags"}}}', '{"movie": [{"id": 401, "cat": "Movies", "desc": "\u7535\u5f71/Movies"}], "tv": [{"id": 402, "cat": "TV", "desc": "\u5267\u96c6/TV-Series"}, {"id": 403, "cat": "TV", "desc": "\u7efc\u827a/TV-Show"}, {"id": 406, "cat": "TV/Documentary", "desc": "\u7eaa\u5f55\u7247/Documentary"}]}'
+)
+ON CONFLICT(ID) DO UPDATE SET
+    NAME = excluded.NAME,
+    DOMAIN = excluded.DOMAIN,
+    SEARCH = excluded.SEARCH,
+    PARSER = excluded.PARSER,
+    RENDER = excluded.RENDER,
+    PROXY = excluded.PROXY,
+    SOURCE_TYPE = excluded.SOURCE_TYPE,
+    SEARCH_TYPE = excluded.SEARCH_TYPE,
+    BROWSE = excluded.BROWSE,
+    TORRENTS = excluded.TORRENTS,
+    CATEGORY = excluded.CATEGORY;
+
+INSERT INTO INDEXER_SITES (
+    ID, NAME, DOMAIN, SEARCH, PARSER, RENDER, PUBLIC, PROXY, SOURCE_TYPE, SEARCH_TYPE, BROWSE, TORRENTS, CATEGORY
+) VALUES (
+    'Avgv', '艾薇', 'https://avgv.cc/', '{"paths": [{"path": "torrents.php", "method": "get"}], "params": {"search": "{keyword}"}, "batch": {"delimiter": " ", "space_replace": "_"}}', '', 0, 0, 0, 'MOVIE,TV,ANIME', 'title', '', '{"list": {"selector": "table.torrents > tr:has(\"table.torrentname\")"}, "fields": {"id": {"selector": "a[href*=\"details.php?id=\"]", "attribute": "href", "filters": [{"name": "re_search", "args": ["\\d+", 0]}]}, "title_default": {"selector": "a[href*=\"details.php?id=\"]"}, "title_optional": {"optional": true, "selector": "a[title][href*=\"details.php?id=\"]", "attribute": "title"}, "title": {"text": "{% if fields[''title_optional''] %}{{ fields[''title_optional''] }}{% else %}{{ fields[''title_default''] }}{% endif %}"}, "category": {"selector": "a[href*=\"?cat=\"]", "attribute": "href", "filters": [{"name": "replace", "args": ["?", ""]}, {"name": "querystring", "args": "cat"}]}, "details": {"selector": "a[href*=\"details.php?id=\"]", "attribute": "href"}, "download": {"selector": "a[href*=\"download.php?id=\"]", "attribute": "href"}, "imdbid": {"selector": "div.imdb_100 > a", "attribute": "href", "filters": [{"name": "re_search", "args": ["tt\\d+", 0]}]}, "date_elapsed": {"selector": "td:nth-child(4) > span", "optional": true}, "date_added": {"selector": "td:nth-child(4) > span", "attribute": "title", "optional": true}, "date": {"text": "{% if fields[''date_elapsed''] or fields[''date_added''] %}{{ fields[''date_elapsed''] if fields[''date_elapsed''] else fields[''date_added''] }}{% else %}now{% endif %}", "filters": [{"name": "dateparse", "args": "%Y-%m-%d %H:%M:%S"}]}, "size": {"selector": "td:nth-child(5)"}, "seeders": {"selector": "td:nth-child(6)"}, "leechers": {"selector": "td:nth-child(7)"}, "grabs": {"selector": "td:nth-child(8)"}, "downloadvolumefactor": {"case": {"img.pro_free": 0, "img.pro_free2up": 0, "img.pro_50pctdown": 0.5, "img.pro_50pctdown2up": 0.5, "img.pro_30pctdown": 0.3, "*": 1}}, "uploadvolumefactor": {"case": {"img.pro_50pctdown2up": 2, "img.pro_free2up": 2, "img.pro_2up": 2, "*": 1}}, "free_deadline": {"default_value": "{% if fields[''downloadvolumefactor'']==0 %}{{max_time}}{% endif%}", "default_value_format": "%Y-%m-%d %H:%M:%S.%f", "selector": "img.pro_free,img.pro_free2up", "attribute": "onmouseover", "filters": [{"name": "re_search", "args": ["\\d+-\\d+-\\d+ \\d+:\\d+:\\d+", 0]}, {"name": "dateparse", "args": "%Y-%m-%d %H:%M:%S"}]}, "description": {"selector": "a[title][href*=\"details.php?id=\"]", "contents": -1}, "labels": {"selector": "a[title][href*=\"details.php?id=\"] > span", "contents": -1}}}', ''
+)
+ON CONFLICT(ID) DO UPDATE SET
+    NAME = excluded.NAME,
+    DOMAIN = excluded.DOMAIN,
+    SEARCH = excluded.SEARCH,
+    PARSER = excluded.PARSER,
+    RENDER = excluded.RENDER,
+    PROXY = excluded.PROXY,
+    SOURCE_TYPE = excluded.SOURCE_TYPE,
+    SEARCH_TYPE = excluded.SEARCH_TYPE,
+    BROWSE = excluded.BROWSE,
+    TORRENTS = excluded.TORRENTS,
+    CATEGORY = excluded.CATEGORY;
+
+INSERT INTO INDEXER_SITES (
+    ID, NAME, DOMAIN, SEARCH, PARSER, RENDER, PUBLIC, PROXY, SOURCE_TYPE, SEARCH_TYPE, BROWSE, TORRENTS, CATEGORY
+) VALUES (
+    'azusa', '梓喵', 'https://azusa.ru/', '{"paths": [{"path": "torrents.php", "method": "get"}], "params": {"search": "{keyword}"}, "batch": {"delimiter": " ", "space_replace": "_"}}', '', 0, 0, 0, 'MOVIE,TV,ANIME', 'title', '', '{"list": {"selector": "table.torrents > tr:has(\"table.torrentname\")"}, "fields": {"id": {"selector": "a[href*=\"details.php?id=\"]", "attribute": "href", "filters": [{"name": "re_search", "args": ["\\d+", 0]}]}, "category": {"selector": "a[href*=\"?cat=\"]", "attribute": "href", "filters": [{"name": "querystring", "args": "cat"}]}, "title_default": {"selector": "a[href*=\"details.php?id=\"]"}, "title_optional": {"optional": true, "selector": "a[title][href*=\"details.php?id=\"]", "attribute": "title"}, "title": {"text": "{% if fields[''title_optional''] %}{{ fields[''title_optional''] }}{% else %}{{ fields[''title_default''] }}{% endif %}"}, "details": {"selector": "a[href*=\"details.php?id=\"]", "attribute": "href"}, "download": {"selector": "a[href*=\"download.php?id=\"]", "attribute": "href"}, "size": {"selector": "td:nth-child(5)"}, "grabs": {"selector": "td:nth-child(8)"}, "seeders": {"selector": "td:nth-child(6)"}, "leechers": {"selector": "td:nth-child(7)"}, "date_elapsed": {"selector": "td:nth-child(4) > span", "optional": true}, "date_added": {"selector": "td:nth-child(4) > span", "attribute": "title", "optional": true}, "date": {"text": "{% if fields[''date_elapsed''] or fields[''date_added''] %}{{ fields[''date_elapsed''] if fields[''date_elapsed''] else fields[''date_added''] }}{% else %}now{% endif %}", "filters": [{"name": "dateparse", "args": "%Y-%m-%d %H:%M:%S"}]}, "downloadvolumefactor": {"case": {"img.pro_free": 0, "img.pro_free2up": 0, "img.pro_50pctdown": 0.5, "img.pro_50pctdown2up": 0.5, "img.pro_30pctdown": 0.3, "*": 1}}, "uploadvolumefactor": {"case": {"img.pro_50pctdown2up": 2, "img.pro_free2up": 2, "img.pro_2up": 2, "*": 1}}, "free_deadline": {"default_value": "{% if fields[''downloadvolumefactor'']==0 %}{{max_time}}{% endif%}", "default_value_format": "%Y-%m-%d %H:%M:%S.%f", "selector": "td[class=\"embedded\"] > b > span[title]", "attribute": "title", "filters": [{"name": "dateparse", "args": "%Y-%m-%d %H:%M:%S"}]}, "description": {"selector": "table.torrentname > tr > td.embedded", "index": -1}, "labels": {"selector": "table.torrentname > tr > td.embedded > span"}}}', ''
+)
+ON CONFLICT(ID) DO UPDATE SET
+    NAME = excluded.NAME,
+    DOMAIN = excluded.DOMAIN,
+    SEARCH = excluded.SEARCH,
+    PARSER = excluded.PARSER,
+    RENDER = excluded.RENDER,
+    PROXY = excluded.PROXY,
+    SOURCE_TYPE = excluded.SOURCE_TYPE,
+    SEARCH_TYPE = excluded.SEARCH_TYPE,
+    BROWSE = excluded.BROWSE,
+    TORRENTS = excluded.TORRENTS,
+    CATEGORY = excluded.CATEGORY;
+
+INSERT INTO INDEXER_SITES (
+    ID, NAME, DOMAIN, SEARCH, PARSER, RENDER, PUBLIC, PROXY, SOURCE_TYPE, SEARCH_TYPE, BROWSE, TORRENTS, CATEGORY
+) VALUES (
+    'beitai', '备胎', 'https://www.beitai.pt/', '{"paths": [{"path": "torrents.php", "method": "get"}], "params": {"search": "{keyword}"}, "batch": {"delimiter": " ", "space_replace": "_"}}', '', 0, 0, 0, 'MOVIE,TV,ANIME', 'title', '', '{"list": {"selector": "table.torrents > tr:has(\"table.torrentname\")"}, "fields": {"id": {"selector": "a[href*=\"details.php?id=\"]", "attribute": "href", "filters": [{"name": "re_search", "args": ["\\d+", 0]}]}, "title_default": {"selector": "a[href*=\"details.php?id=\"]"}, "title_optional": {"optional": true, "selector": "a[title][href*=\"details.php?id=\"]", "attribute": "title"}, "title": {"text": "{% if fields[''title_optional''] %}{{ fields[''title_optional''] }}{% else %}{{ fields[''title_default''] }}{% endif %}"}, "category": {"selector": "a[href*=\"?cat=\"]", "attribute": "href", "filters": [{"name": "replace", "args": ["?", ""]}, {"name": "querystring", "args": "cat"}]}, "details": {"selector": "a[href*=\"details.php?id=\"]", "attribute": "href"}, "download": {"selector": "a[href*=\"download.php?id=\"]", "attribute": "href"}, "imdbid": {"selector": "div.imdb_100 > a", "attribute": "href", "filters": [{"name": "re_search", "args": ["tt\\d+", 0]}]}, "date_elapsed": {"selector": "td:nth-child(4) > span", "optional": true}, "date_added": {"selector": "td:nth-child(4) > span", "attribute": "title", "optional": true}, "date": {"text": "{% if fields[''date_elapsed''] or fields[''date_added''] %}{{ fields[''date_elapsed''] if fields[''date_elapsed''] else fields[''date_added''] }}{% else %}now{% endif %}", "filters": [{"name": "dateparse", "args": "%Y-%m-%d %H:%M:%S"}]}, "size": {"selector": "td:nth-child(5)"}, "seeders": {"selector": "td:nth-child(6)"}, "leechers": {"selector": "td:nth-child(7)"}, "grabs": {"selector": "td:nth-child(8)"}, "downloadvolumefactor": {"case": {"img.pro_free": 0, "img.pro_free2up": 0, "img.pro_50pctdown": 0.5, "img.pro_50pctdown2up": 0.5, "img.pro_30pctdown": 0.3, "*": 1}}, "uploadvolumefactor": {"case": {"img.pro_50pctdown2up": 2, "img.pro_free2up": 2, "img.pro_2up": 2, "*": 1}}, "free_deadline": {"default_value": "{% if fields[''downloadvolumefactor'']==0 %}{{max_time}}{% endif%}", "default_value_format": "%Y-%m-%d %H:%M:%S.%f", "selector": "img.pro_free,img.pro_free2up", "attribute": "onmouseover", "filters": [{"name": "re_search", "args": ["\\d+-\\d+-\\d+ \\d+:\\d+:\\d+", 0]}, {"name": "dateparse", "args": "%Y-%m-%d %H:%M:%S"}]}, "description": {"selector": "td:nth-child(2) > table > tr > td.embedded", "contents": -1}}}', '{"movie": [{"id": 401, "cat": "Movies", "desc": "Movies/\u7535\u5f71"}], "tv": [{"id": 404, "cat": "TV/Documentary", "desc": "Documentaries/\u7eaa\u5f55\u7247"}, {"id": 405, "cat": "TV/Anime", "desc": "Animations/\u52a8\u6f2b"}, {"id": 402, "cat": "TV", "desc": "TV Series/\u5267\u96c6"}, {"id": 403, "cat": "TV", "desc": "TV Shows/\u7efc\u827a"}]}'
+)
+ON CONFLICT(ID) DO UPDATE SET
+    NAME = excluded.NAME,
+    DOMAIN = excluded.DOMAIN,
+    SEARCH = excluded.SEARCH,
+    PARSER = excluded.PARSER,
+    RENDER = excluded.RENDER,
+    PROXY = excluded.PROXY,
+    SOURCE_TYPE = excluded.SOURCE_TYPE,
+    SEARCH_TYPE = excluded.SEARCH_TYPE,
+    BROWSE = excluded.BROWSE,
+    TORRENTS = excluded.TORRENTS,
+    CATEGORY = excluded.CATEGORY;
+
+INSERT INTO INDEXER_SITES (
+    ID, NAME, DOMAIN, SEARCH, PARSER, RENDER, PUBLIC, PROXY, SOURCE_TYPE, SEARCH_TYPE, BROWSE, TORRENTS, CATEGORY
+) VALUES (
+    'chdbits', '彩虹岛', 'https://ptchdbits.co/', '{"paths": [{"path": "torrents.php", "method": "get"}], "params": {"search": "{keyword}"}, "batch": {"delimiter": " ", "space_replace": "_"}}', '', 0, 0, 0, 'MOVIE,TV,ANIME', 'title', '', '{"list": {"selector": "table.torrents > tr:has(\"table.torrentname\")"}, "fields": {"id": {"selector": "a[href*=\"details.php?id=\"]", "attribute": "href", "filters": [{"name": "re_search", "args": ["\\d+", 0]}]}, "category": {"selector": "a[href*=\"?cat=\"]", "attribute": "href", "filters": [{"name": "querystring", "args": "cat"}]}, "title_default": {"selector": "table.torrentname > tr > td.embedded > a[href*=\"details.php?id=\"]"}, "title_optional": {"optional": true, "selector": "table.torrentname > tr > td.embedded > a[title][href*=\"details.php?id=\"]", "attribute": "title"}, "title": {"text": "{% if fields[''title_optional''] %}{{ fields[''title_optional''] }}{% else %}{{ fields[''title_default''] }}{% endif %}"}, "details": {"selector": "a[href*=\"details.php?id=\"]", "attribute": "href"}, "download": {"selector": "a[href*=\"download.php?id=\"]", "attribute": "href"}, "size": {"selector": "td:nth-child(5)"}, "grabs": {"selector": "td:nth-child(8)"}, "seeders": {"selector": "td:nth-child(6)"}, "leechers": {"selector": "td:nth-child(7)"}, "date_elapsed": {"selector": "td:nth-child(4) > span", "optional": true}, "date_added": {"selector": "td:nth-child(4) > span", "attribute": "title", "optional": true}, "date": {"text": "{% if fields[''date_elapsed''] or fields[''date_added''] %}{{ fields[''date_elapsed''] if fields[''date_elapsed''] else fields[''date_added''] }}{% else %}now{% endif %}", "filters": [{"name": "dateparse", "args": "%Y-%m-%d %H:%M:%S"}]}, "downloadvolumefactor": {"case": {"img.pro_free": 0, "img.pro_free2up": 0, "img.pro_50pctdown": 0.5, "img.pro_50pctdown2up": 0.5, "img.pro_30pctdown": 0.3, "*": 1}}, "uploadvolumefactor": {"case": {"img.pro_50pctdown2up": 2, "img.pro_free2up": 2, "img.pro_2up": 2, "*": 1}}, "free_deadline": {"default_value": "{% if fields[''downloadvolumefactor'']==0 %}{{max_time}}{% endif%}", "default_value_format": "%Y-%m-%d %H:%M:%S.%f", "selector": "td[class] > span[title]", "attribute": "title", "filters": [{"name": "dateparse", "args": "%Y-%m-%d %H:%M:%S"}]}, "hr_days": {"defualt_value": 0, "selector": "div.circle > div.circle-text", "filters": [{"name": "re_search", "args": ["\\d", 0]}]}, "minimumratio": {"text": "{% if fields[ ''hr_days'' ] %}999999{% else %}0{% endif %}"}, "minimumseedtime": {"text": "{% if fields[ ''hr_days'' ] %}{{ (fields[ ''hr_days'' ]|int)*86400 }}{% else %}0{% endif %}"}, "description": {"selector": "font.subtitle", "remove": "div", "contents": -1}, "labels": {"selector": "font.subtitle > div[style] > div.tag"}}}', '{"movie": [{"id": 401, "cat": "Movies", "desc": "Movies"}], "tv": [{"id": 404, "cat": "TV/Documentary", "desc": "Documentaries"}, {"id": 405, "cat": "TV/Anime", "desc": "Animations"}, {"id": 402, "cat": "TV", "desc": "TV Series"}, {"id": 403, "cat": "TV", "desc": "TV Shows"}]}'
+)
+ON CONFLICT(ID) DO UPDATE SET
+    NAME = excluded.NAME,
+    DOMAIN = excluded.DOMAIN,
+    SEARCH = excluded.SEARCH,
+    PARSER = excluded.PARSER,
+    RENDER = excluded.RENDER,
+    PROXY = excluded.PROXY,
+    SOURCE_TYPE = excluded.SOURCE_TYPE,
+    SEARCH_TYPE = excluded.SEARCH_TYPE,
+    BROWSE = excluded.BROWSE,
+    TORRENTS = excluded.TORRENTS,
+    CATEGORY = excluded.CATEGORY;
+
+INSERT INTO INDEXER_SITES (
+    ID, NAME, DOMAIN, SEARCH, PARSER, RENDER, PUBLIC, PROXY, SOURCE_TYPE, SEARCH_TYPE, BROWSE, TORRENTS, CATEGORY
+) VALUES (
+    'cinemageddon', 'CinemaGeddon', 'https://cinemageddon.net/', '{"paths": [{"path": "browse.php?search={keyword}", "method": "get"}]}', '', 0, 0, 0, 'MOVIE,TV,ANIME', 'title', '', '{"list": {"selector": "form > table.torrenttable > tbody > tr"}, "fields": {"id": {"selector": "a[href*=\"details.php?id=\"]", "attribute": "href", "filters": [{"name": "re_search", "args": ["\\d+", 0]}]}, "title": {"selector": "a[href*=\"details.php?id=\"]", "attribute": "title"}, "category": {"selector": "a[href*=\"browse.php?cat=\"]", "attribute": "href", "filters": [{"name": "re_search", "args": ["\\d+", 0]}]}, "details": {"selector": "a[href*=\"details.php?id=\"]", "attribute": "href"}, "download": {"selector": "a[href*=\"download.php?id=\"]", "attribute": "href"}, "date_elapsed": {"selector": "td:nth-child(4) > nobr"}, "size": {"selector": "td:nth-child(5) > nobr", "remove": "span"}, "seeders": {"selector": "td:nth-child(7) > b > a > font"}, "leechers": {"selector": "td:nth-child(8) > b > a"}, "grabs": {"selector": "td:nth-child(6) > a"}, "downloadvolumefactor": {"case": {"*": 1}}, "uploadvolumefactor": {"case": {"*": 1}}}}', ''
+)
+ON CONFLICT(ID) DO UPDATE SET
+    NAME = excluded.NAME,
+    DOMAIN = excluded.DOMAIN,
+    SEARCH = excluded.SEARCH,
+    PARSER = excluded.PARSER,
+    RENDER = excluded.RENDER,
+    PROXY = excluded.PROXY,
+    SOURCE_TYPE = excluded.SOURCE_TYPE,
+    SEARCH_TYPE = excluded.SEARCH_TYPE,
+    BROWSE = excluded.BROWSE,
+    TORRENTS = excluded.TORRENTS,
+    CATEGORY = excluded.CATEGORY;
+
+INSERT INTO INDEXER_SITES (
+    ID, NAME, DOMAIN, SEARCH, PARSER, RENDER, PUBLIC, PROXY, SOURCE_TYPE, SEARCH_TYPE, BROWSE, TORRENTS, CATEGORY
+) VALUES (
+    'cyanbug', '大青虫', 'https://cyanbug.net/', '{"paths": [{"path": "torrents.php", "method": "get"}], "params": {"search": "{keyword}"}, "batch": {"delimiter": " ", "space_replace": "_"}}', '', 0, 0, 0, 'MOVIE,TV,ANIME', 'title', '', '{"list": {"selector": "table.torrents > tr:has(\"table.torrentname\")"}, "fields": {"id": {"selector": "a[href*=\"details.php?id=\"]", "attribute": "href", "filters": [{"name": "re_search", "args": ["\\d+", 0]}]}, "category": {"selector": "a[href*=\"?cat=\"]", "attribute": "href", "filters": [{"name": "querystring", "args": "cat"}]}, "title_default": {"selector": "a[href*=\"details.php?id=\"]"}, "title_optional": {"optional": true, "selector": "a[title][href*=\"details.php?id=\"]", "attribute": "title"}, "title": {"text": "{% if fields[''title_optional''] %}{{ fields[''title_optional''] }}{% else %}{{ fields[''title_default''] }}{% endif %}"}, "details": {"selector": "a[href*=\"details.php?id=\"]", "attribute": "href"}, "poster": {"selector": "img[data-orig]", "attribute": "data-orig"}, "download": {"selector": "a[href*=\"download.php?id=\"]", "attribute": "href"}, "size": {"selector": "td.rowfollow:nth-child(5)"}, "grabs": {"selector": "td.rowfollow:nth-child(8)"}, "seeders": {"selector": "td.rowfollow:nth-child(6)"}, "leechers": {"selector": "td.rowfollow:nth-child(7)"}, "date_elapsed": {"selector": "td.rowfollow:nth-child(4) > span", "optional": true}, "date_added": {"selector": "td.rowfollow:nth-child(4) > span", "attribute": "title", "optional": true}, "date": {"text": "{% if fields[''date_elapsed''] or fields[''date_added''] %}{{ fields[''date_elapsed''] if fields[''date_elapsed''] else fields[''date_added''] }}{% else %}now{% endif %}", "filters": [{"name": "dateparse", "args": "%Y-%m-%d %H:%M:%S"}]}, "downloadvolumefactor": {"case": {"img.pro_free": 0, "img.pro_free2up": 0, "img.pro_50pctdown": 0.5, "img.pro_50pctdown2up": 0.5, "img.pro_30pctdown": 0.3, "*": 1}}, "uploadvolumefactor": {"case": {"img.pro_50pctdown2up": 2, "img.pro_free2up": 2, "img.pro_2up": 2, "*": 1}}, "free_deadline": {"default_value": "{% if fields[''downloadvolumefactor'']==0 %}{{max_time}}{% endif%}", "default_value_format": "%Y-%m-%d %H:%M:%S.%f", "selector": "div > b > span[title]", "attribute": "title", "filters": [{"name": "dateparse", "args": "%Y-%m-%d %H:%M:%S"}]}, "tags": {"selector": "div > a.torrents-tag"}, "subject": {"selector": "td.embedded:nth-child(2) > div > div:nth-child(2) > span", "contents": -1}, "description": {"selector": "td:nth-child(2) > table.torrentname > tr > td:nth-child(2)", "remove": "span,a,img,font,b", "contents": -1}, "labels": {"selector": "td:nth-child(2) > table.torrentname > tr > td:nth-child(2) > span"}}}', '{"movie": [{"id": 401, "cat": "Movies", "desc": "Movies(\u7535\u5f71)", "default": true}], "tv": [{"id": 402, "cat": "TV", "desc": "TV Series(\u7535\u89c6\u5267)", "default": true}, {"id": 403, "cat": "TV", "desc": "TV Shows(\u7efc\u827a)", "default": true}, {"id": 404, "cat": "TV/Documentary", "desc": "Documentaries(\u7eaa\u5f55\u7247)", "default": true}, {"id": 405, "cat": "TV/Anime", "desc": "Animations(\u52a8\u753b)", "default": true}]}'
+)
+ON CONFLICT(ID) DO UPDATE SET
+    NAME = excluded.NAME,
+    DOMAIN = excluded.DOMAIN,
+    SEARCH = excluded.SEARCH,
+    PARSER = excluded.PARSER,
+    RENDER = excluded.RENDER,
+    PROXY = excluded.PROXY,
+    SOURCE_TYPE = excluded.SOURCE_TYPE,
+    SEARCH_TYPE = excluded.SEARCH_TYPE,
+    BROWSE = excluded.BROWSE,
+    TORRENTS = excluded.TORRENTS,
+    CATEGORY = excluded.CATEGORY;
+
+INSERT INTO INDEXER_SITES (
+    ID, NAME, DOMAIN, SEARCH, PARSER, RENDER, PUBLIC, PROXY, SOURCE_TYPE, SEARCH_TYPE, BROWSE, TORRENTS, CATEGORY
+) VALUES (
+    'discfan', '蝶粉', 'https://discfan.net/', '{"paths": [{"path": "torrents.php", "method": "get"}], "params": {"search": "{keyword}"}, "batch": {"delimiter": " ", "space_replace": "_"}}', '', 0, 0, 0, 'MOVIE,TV,ANIME', 'title', '', '{"list": {"selector": "table.torrents > tr:has(\"table.torrentname\")"}, "fields": {"id": {"selector": "a[href*=\"details.php?id=\"]", "attribute": "href", "filters": [{"name": "re_search", "args": ["\\d+", 0]}]}, "title_default": {"selector": "a[href*=\"details.php?id=\"]"}, "title_optional": {"optional": true, "selector": "a[title][href*=\"details.php?id=\"]", "attribute": "title"}, "title": {"text": "{% if fields[''title_optional''] %}{{ fields[''title_optional''] }}{% else %}{{ fields[''title_default''] }}{% endif %}"}, "category": {"selector": "a[href*=\"?cat=\"]", "attribute": "href", "filters": [{"name": "replace", "args": ["?", ""]}, {"name": "querystring", "args": "cat"}]}, "details": {"selector": "a[href*=\"details.php?id=\"]", "attribute": "href"}, "download": {"selector": "a[href*=\"download.php?id=\"]", "attribute": "href"}, "imdbid": {"selector": "div.imdb_100 > a", "attribute": "href", "filters": [{"name": "re_search", "args": ["tt\\d+", 0]}]}, "date_elapsed": {"selector": "td:nth-child(4) > span", "optional": true}, "date_added": {"selector": "td:nth-child(4) > span", "attribute": "title", "optional": true}, "date": {"text": "{% if fields[''date_elapsed''] or fields[''date_added''] %}{{ fields[''date_elapsed''] if fields[''date_elapsed''] else fields[''date_added''] }}{% else %}now{% endif %}", "filters": [{"name": "dateparse", "args": "%Y-%m-%d %H:%M:%S"}]}, "size": {"selector": "td:nth-child(5)"}, "seeders": {"selector": "td:nth-child(6)"}, "leechers": {"selector": "td:nth-child(7)"}, "grabs": {"selector": "td:nth-child(8)"}, "downloadvolumefactor": {"case": {"img.pro_free": 0, "img.pro_free2up": 0, "img.pro_50pctdown": 0.5, "img.pro_50pctdown2up": 0.5, "img.pro_30pctdown": 0.3, "*": 1}}, "uploadvolumefactor": {"case": {"img.pro_50pctdown2up": 2, "img.pro_free2up": 2, "img.pro_2up": 2, "*": 1}}, "free_deadline": {"default_value": "{% if fields[''downloadvolumefactor'']==0 %}{{max_time}}{% endif%}", "default_value_format": "%Y-%m-%d %H:%M:%S.%f", "selector": "img.pro_free,img.pro_free2up", "attribute": "onmouseover", "filters": [{"name": "re_search", "args": ["\\d+-\\d+-\\d+ \\d+:\\d+:\\d+", 0]}, {"name": "dateparse", "args": "%Y-%m-%d %H:%M:%S"}]}, "description": {"selector": "td:nth-child(2) > table > tr > td.embedded", "remove": "span,a,img,font,b", "contents": -1}}}', '{"movie": [{"id": 401, "cat": "Movies", "desc": "\u4e2d\u56fd\u5927\u9646(CHN)"}, {"id": 404, "cat": "Movies", "desc": "\u4e2d\u56fd\u9999\u6e2f\u7279\u522b\u884c\u653f\u533a(HKG)"}, {"id": 405, "cat": "Movies", "desc": "\u4e2d\u56fd\u53f0\u6e7e\u7701(TWN)"}, {"id": 402, "cat": "Movies", "desc": "\u6cf0\u56fd(THA)"}, {"id": 403, "cat": "Movies", "desc": "\u65e5\u672c(JPN)"}, {"id": 406, "cat": "Movies", "desc": "\u97e9\u56fd(KOR)"}, {"id": 410, "cat": "Movies", "desc": "\u4e16\u754c(World)"}], "tv": [{"id": 411, "cat": "TV", "desc": "\u5267\u96c6(Series)"}, {"id": 413, "cat": "TV/Documentary", "desc": "\u8bb0\u5f55(Documentary)"}, {"id": 416, "cat": "TV", "desc": "\u7efc\u827a(Variety Show)"}, {"id": 419, "cat": "TV/Anime", "desc": "\u52a8\u6f2b(Animation)"}]}'
+)
+ON CONFLICT(ID) DO UPDATE SET
+    NAME = excluded.NAME,
+    DOMAIN = excluded.DOMAIN,
+    SEARCH = excluded.SEARCH,
+    PARSER = excluded.PARSER,
+    RENDER = excluded.RENDER,
+    PROXY = excluded.PROXY,
+    SOURCE_TYPE = excluded.SOURCE_TYPE,
+    SEARCH_TYPE = excluded.SEARCH_TYPE,
+    BROWSE = excluded.BROWSE,
+    TORRENTS = excluded.TORRENTS,
+    CATEGORY = excluded.CATEGORY;
+
+INSERT INTO INDEXER_SITES (
+    ID, NAME, DOMAIN, SEARCH, PARSER, RENDER, PUBLIC, PROXY, SOURCE_TYPE, SEARCH_TYPE, BROWSE, TORRENTS, CATEGORY
+) VALUES (
+    'dragonhd', '龙之家', 'https://www.dragonhd.xyz/', '{"paths": [{"path": "torrents.php", "method": "get"}], "params": {"search": "{keyword}"}, "batch": {"delimiter": " ", "space_replace": "_"}}', '', 0, 0, 0, 'MOVIE,TV,ANIME', 'title', '', '{"list": {"selector": "table.torrents > tr:has(\"table.torrentname\")"}, "fields": {"id": {"selector": "a[href*=\"details.php?id=\"]", "attribute": "href", "filters": [{"name": "re_search", "args": ["\\d+", 0]}]}, "title_default": {"selector": "a[href*=\"details.php?id=\"]"}, "title_optional": {"optional": true, "selector": "a[title][href*=\"details.php?id=\"]", "attribute": "title"}, "title": {"text": "{% if fields[''title_optional''] %}{{ fields[''title_optional''] }}{% else %}{{ fields[''title_default''] }}{% endif %}"}, "category": {"selector": "a[href*=\"?cat=\"]", "attribute": "href", "filters": [{"name": "replace", "args": ["?", ""]}, {"name": "querystring", "args": "cat"}]}, "details": {"selector": "a[href*=\"details.php?id=\"]", "attribute": "href"}, "download": {"selector": "a[href*=\"download.php?id=\"]", "attribute": "href"}, "imdbid": {"selector": "div.imdb_100 > a", "attribute": "href", "filters": [{"name": "re_search", "args": ["tt\\d+", 0]}]}, "date_elapsed": {"selector": "td:nth-child(4) > span", "optional": true}, "date_added": {"selector": "td:nth-child(4) > span", "attribute": "title", "optional": true}, "date": {"text": "{% if fields[''date_elapsed''] or fields[''date_added''] %}{{ fields[''date_elapsed''] if fields[''date_elapsed''] else fields[''date_added''] }}{% else %}now{% endif %}", "filters": [{"name": "dateparse", "args": "%Y-%m-%d %H:%M:%S"}]}, "size": {"selector": "td:nth-child(5)"}, "seeders": {"selector": "td:nth-child(6)"}, "leechers": {"selector": "td:nth-child(7)"}, "grabs": {"selector": "td:nth-child(8)"}, "downloadvolumefactor": {"case": {"img.pro_free": 0, "img.pro_free2up": 0, "img.pro_50pctdown": 0.5, "img.pro_50pctdown2up": 0.5, "img.pro_30pctdown": 0.3, "*": 1}}, "uploadvolumefactor": {"case": {"img.pro_50pctdown2up": 2, "img.pro_free2up": 2, "img.pro_2up": 2, "*": 1}}, "free_deadline": {"default_value": "{% if fields[''downloadvolumefactor'']==0 %}{{max_time}}{% endif%}", "default_value_format": "%Y-%m-%d %H:%M:%S.%f", "selector": "img.pro_free,img.pro_free2up", "attribute": "onmouseover", "filters": [{"name": "re_search", "args": ["\\d+-\\d+-\\d+ \\d+:\\d+:\\d+", 0]}, {"name": "dateparse", "args": "%Y-%m-%d %H:%M:%S"}]}, "description": {"selector": "td:nth-child(2) > table > tr > td.embedded", "contents": -1}, "labels": {"selector": "td:nth-child(2) > table > tr > td.embedded > span"}}}', ''
+)
+ON CONFLICT(ID) DO UPDATE SET
+    NAME = excluded.NAME,
+    DOMAIN = excluded.DOMAIN,
+    SEARCH = excluded.SEARCH,
+    PARSER = excluded.PARSER,
+    RENDER = excluded.RENDER,
+    PROXY = excluded.PROXY,
+    SOURCE_TYPE = excluded.SOURCE_TYPE,
+    SEARCH_TYPE = excluded.SEARCH_TYPE,
+    BROWSE = excluded.BROWSE,
+    TORRENTS = excluded.TORRENTS,
+    CATEGORY = excluded.CATEGORY;
+
+INSERT INTO INDEXER_SITES (
+    ID, NAME, DOMAIN, SEARCH, PARSER, RENDER, PUBLIC, PROXY, SOURCE_TYPE, SEARCH_TYPE, BROWSE, TORRENTS, CATEGORY
+) VALUES (
+    'eastgame', '吐鲁番', 'https://pt.eastgame.org/', '{"paths": [{"path": "torrents.php", "method": "get"}], "params": {"search": "{keyword}"}, "batch": {"delimiter": " ", "space_replace": "_"}}', '', 0, 0, 0, 'MOVIE,TV,ANIME', 'title', '', '{"list": {"selector": "table.torrents > tr:has(\"table.torrentname\")"}, "fields": {"id": {"selector": "a[href*=\"details.php?id=\"]", "attribute": "href", "filters": [{"name": "re_search", "args": ["\\d+", 0]}]}, "title_default": {"selector": "a[href*=\"details.php?id=\"]"}, "title_optional": {"optional": true, "selector": "a[title][href*=\"details.php?id=\"]", "attribute": "title"}, "title": {"text": "{% if fields[''title_optional''] %}{{ fields[''title_optional''] }}{% else %}{{ fields[''title_default''] }}{% endif %}"}, "category": {"selector": "a[href*=\"?cat=\"]", "attribute": "href", "filters": [{"name": "replace", "args": ["?", ""]}, {"name": "querystring", "args": "cat"}]}, "details": {"selector": "a[href*=\"details.php?id=\"]", "attribute": "href"}, "download": {"selector": "a[href*=\"download.php?id=\"]", "attribute": "href"}, "imdbid": {"selector": "div.imdb_100 > a", "attribute": "href", "filters": [{"name": "re_search", "args": ["tt\\d+", 0]}]}, "date_elapsed": {"selector": "td:nth-child(4) > span", "optional": true}, "date_added": {"selector": "td:nth-child(4) > span", "attribute": "title", "optional": true}, "date": {"text": "{% if fields[''date_elapsed''] or fields[''date_added''] %}{{ fields[''date_elapsed''] if fields[''date_elapsed''] else fields[''date_added''] }}{% else %}now{% endif %}", "filters": [{"name": "dateparse", "args": "%Y-%m-%d %H:%M:%S"}]}, "size": {"selector": "td:nth-child(5)"}, "seeders": {"selector": "td:nth-child(6)"}, "leechers": {"selector": "td:nth-child(7)"}, "grabs": {"selector": "td:nth-child(8)"}, "downloadvolumefactor": {"case": {"img.pro_free": 0, "img.pro_free2up": 0, "img.pro_50pctdown": 0.5, "img.pro_50pctdown2up": 0.5, "img.pro_30pctdown": 0.3, "*": 1}}, "uploadvolumefactor": {"case": {"img.pro_50pctdown2up": 2, "img.pro_free2up": 2, "img.pro_2up": 2, "*": 1}}, "free_deadline": {"default_value": "{% if fields[''downloadvolumefactor'']==0 %}{{max_time}}{% endif%}", "default_value_format": "%Y-%m-%d %H:%M:%S.%f", "selector": "img.pro_free,img.pro_free2up", "attribute": "onmouseover", "filters": [{"name": "re_search", "args": ["\\d+-\\d+-\\d+ \\d+:\\d+:\\d+", 0]}, {"name": "dateparse", "args": "%Y-%m-%d %H:%M:%S"}]}, "description": {"selector": "td:nth-child(2) > table > tr > td.embedded", "contents": -1}, "labels": {"selector": "td:nth-child(2) > table > tr > td.embedded > span"}}}', ''
+)
+ON CONFLICT(ID) DO UPDATE SET
+    NAME = excluded.NAME,
+    DOMAIN = excluded.DOMAIN,
+    SEARCH = excluded.SEARCH,
+    PARSER = excluded.PARSER,
+    RENDER = excluded.RENDER,
+    PROXY = excluded.PROXY,
+    SOURCE_TYPE = excluded.SOURCE_TYPE,
+    SEARCH_TYPE = excluded.SEARCH_TYPE,
+    BROWSE = excluded.BROWSE,
+    TORRENTS = excluded.TORRENTS,
+    CATEGORY = excluded.CATEGORY;
+
+INSERT INTO INDEXER_SITES (
+    ID, NAME, DOMAIN, SEARCH, PARSER, RENDER, PUBLIC, PROXY, SOURCE_TYPE, SEARCH_TYPE, BROWSE, TORRENTS, CATEGORY
+) VALUES (
+    'filelist', 'FileList', 'https://filelist.io/', '{"paths": [{"path": "browse.php", "method": "get"}], "params": {"search_field": "{keyword}", "c": "M"}}', '', 0, 0, 0, 'MOVIE,TV,ANIME', 'title', '', '{"list": {"selector": "div.visitedlinks > div.torrentrow"}, "fields": {"id": {"selector": "a[href*=\"details.php?id=\"]", "attribute": "href", "filters": [{"name": "re_search", "args": ["\\d+", 0]}]}, "title": {"selector": "a[href*=\"details.php?id=\"]", "attribute": "title"}, "poster": {"selector": "span[data-toggle=\"tooltip\"]", "attribute": "title", "filters": [{"name": "re_search", "args": ["<img src=''([^'']+)''>", 1]}]}, "category": {"selector": "a[href*=\"browse.php?cat=\"]", "attribute": "href", "filters": [{"name": "querystring", "args": "cat"}]}, "details": {"selector": "a[href*=\"details.php?id=\"]", "attribute": "href"}, "download": {"selector": "a[href*=\"download.php?id=\"]", "attribute": "href"}, "date_elapsed": {"selector": "div:nth-child(6)", "optional": true}, "date_added": {"selector": "div:nth-child(6)", "optional": true}, "date": {"selector": "div:nth-child(6)", "filters": [{"name": "dateparse", "args": "%H:%M:%S%d/%m/%Y"}]}, "size": {"selector": "div:nth-child(7)"}, "seeders": {"selector": "div:nth-child(9)"}, "leechers": {"selector": "div:nth-child(10)"}, "grabs": {"selector": "div:nth-child(8) > span > font", "contents": 0}, "downloadvolumefactor": {"case": {"img[alt=\"FreeLeech\"]": 0, "*": 1}}, "uploadvolumefactor": {"case": {"img[alt=\"DoubleUp\"]": 2, "*": 1}}, "free_deadline": {"default_value": "{% if fields[''downloadvolumefactor'']==0 %}{{max_time}}{% endif%}", "default_value_format": "%Y-%m-%d %H:%M:%S.%f"}, "minimumratio": {"text": 1}, "minimumseedtime": {"text": 172800}}}', ''
+)
+ON CONFLICT(ID) DO UPDATE SET
+    NAME = excluded.NAME,
+    DOMAIN = excluded.DOMAIN,
+    SEARCH = excluded.SEARCH,
+    PARSER = excluded.PARSER,
+    RENDER = excluded.RENDER,
+    PROXY = excluded.PROXY,
+    SOURCE_TYPE = excluded.SOURCE_TYPE,
+    SEARCH_TYPE = excluded.SEARCH_TYPE,
+    BROWSE = excluded.BROWSE,
+    TORRENTS = excluded.TORRENTS,
+    CATEGORY = excluded.CATEGORY;
+
+INSERT INTO INDEXER_SITES (
+    ID, NAME, DOMAIN, SEARCH, PARSER, RENDER, PUBLIC, PROXY, SOURCE_TYPE, SEARCH_TYPE, BROWSE, TORRENTS, CATEGORY
+) VALUES (
+    'hares', '白兔', 'https://club.hares.top/', '{"paths": [{"path": "torrents.php", "method": "get"}], "params": {"search": "{keyword}"}, "batch": {"delimiter": " ", "space_replace": "_"}}', '', 0, 0, 0, 'MOVIE,TV,ANIME', 'title', '', '{"list": {"selector": "table.torrents > tr"}, "fields": {"id": {"selector": "a[href*=\"details.php?id=\"]", "attribute": "href", "filters": [{"name": "re_search", "args": ["\\d+", 0]}]}, "title_default": {"selector": "a[href*=\"details.php?id=\"]"}, "title_optional": {"optional": true, "selector": "a[title][href*=\"details.php?id=\"]", "attribute": "title"}, "title": {"text": "{% if fields[''title_optional''] %}{{ fields[''title_optional''] }}{% else %}{{ fields[''title_default''] }}{% endif %}"}, "category": {"selector": "a[href*=\"?cat=\"]", "attribute": "href", "filters": [{"name": "replace", "args": ["?", ""]}, {"name": "querystring", "args": "cat"}]}, "details": {"selector": "a[href*=\"details.php?id=\"]", "attribute": "href"}, "download": {"selector": "a[href*=\"download.php?id=\"]", "attribute": "href"}, "date_elapsed": {"selector": "td:nth-child(4) > span", "optional": true}, "date_added": {"selector": "td:nth-child(4) > span", "attribute": "title", "optional": true}, "date": {"text": "{% if fields[''date_elapsed''] or fields[''date_added''] %}{{ fields[''date_elapsed''] if fields[''date_elapsed''] else fields[''date_added''] }}{% else %}now{% endif %}", "filters": [{"name": "dateparse", "args": "%Y-%m-%d %H:%M:%S"}]}, "size": {"selector": "td:nth-child(5)"}, "seeders": {"selector": "td:nth-child(6)"}, "leechers": {"selector": "td:nth-child(7)"}, "grabs": {"selector": "td:nth-child(8)"}, "downloadvolumefactor": {"case": {"img.pro_free": 0, "img.pro_free2up": 0, "img.pro_50pctdown": 0.5, "img.pro_50pctdown2up": 0.5, "img.pro_30pctdown": 0.3, "*": 1}}, "uploadvolumefactor": {"case": {"img.pro_50pctdown2up": 2, "img.pro_free2up": 2, "img.pro_2up": 2, "*": 1}}, "free_deadline": {"default_value": "{% if fields[''downloadvolumefactor'']==0 %}{{max_time}}{% endif%}", "default_value_format": "%Y-%m-%d %H:%M:%S.%f", "selector": "img.pro_free,img.pro_free2up,img.pro_50pctdown,img.pro_50pctdown2up,img.pro_30pctdown", "attribute": "data-d", "filters": [{"name": "re_search", "args": ["\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}", 0]}, {"name": "dateparse", "args": "%Y-%m-%d %H:%M:%S"}]}, "description": {"selector": "div.layui-torrents-Subject > div.left > p.layui-elip.layui-torrents-descr-width"}, "labels": {"selector": "div.layui-torrents-Subject > div.left > p.layui-elip.layui-torrents-descr-width > span"}}}', ''
+)
+ON CONFLICT(ID) DO UPDATE SET
+    NAME = excluded.NAME,
+    DOMAIN = excluded.DOMAIN,
+    SEARCH = excluded.SEARCH,
+    PARSER = excluded.PARSER,
+    RENDER = excluded.RENDER,
+    PROXY = excluded.PROXY,
+    SOURCE_TYPE = excluded.SOURCE_TYPE,
+    SEARCH_TYPE = excluded.SEARCH_TYPE,
+    BROWSE = excluded.BROWSE,
+    TORRENTS = excluded.TORRENTS,
+    CATEGORY = excluded.CATEGORY;
+
+INSERT INTO INDEXER_SITES (
+    ID, NAME, DOMAIN, SEARCH, PARSER, RENDER, PUBLIC, PROXY, SOURCE_TYPE, SEARCH_TYPE, BROWSE, TORRENTS, CATEGORY
+) VALUES (
+    'hd', 'HDAI', 'https://www.hd.ai/', '{"paths": [{"path": "Torrents.index", "method": "chrome", "params": {"keyword": "//input[@name=\"keyword\"]", "submit": "//div[@id=\"search-container\"]//button[@type=\"submit\"]", "script": "document.querySelectorAll(''#search-container'')[0].className += \" layui-show\""}}]}', '', 1, 0, 0, 'MOVIE,TV,ANIME', 'title', '', '{"list": {"selector": "div.layui-table-body.layui-table-main > table tr"}, "fields": {"title": {"selector": "a[href*=\"details.php?id=\"] > b"}, "details": {"selector": "a[href*=\"details.php?id=\"]", "attribute": "href"}, "download": {"selector": "a[href*=\"download.php?hash=\"]", "attribute": "href"}, "date_added": {"selector": "td[data-field=\"added\"]", "attribute": "data-content", "optional": true}, "date_elapsed": {"selector": "td[data-field=\"added\"] > div", "optional": true}, "size": {"selector": "td[data-field=\"size\"] > div"}, "seeders": {"selector": "td[data-field=\"seeders\"] > div"}, "leechers": {"selector": "td[data-field=\"leechers\"] > div"}, "grabs": {"selector": "td[data-field=\"times_completed\"] > div"}, "downloadvolumefactor": {"case": {"img.pro_free": 0, "img.pro_free2up": 0, "img.pro_50pctdown": 0.5, "img.pro_50pctdown2up": 0.5, "img.pro_30pctdown": 0.3, "*": 1}}, "uploadvolumefactor": {"case": {"img.pro_50pctdown2up": 2, "img.pro_free2up": 2, "img.pro_2up": 2, "*": 1}}, "description": {"selector": "td[data-field=\"name\"] > div", "remove": "a,section,img,span", "contents": -1}, "labels": {"selector": "td[data-field=\"name\"] > div > span"}}}', ''
+)
+ON CONFLICT(ID) DO UPDATE SET
+    NAME = excluded.NAME,
+    DOMAIN = excluded.DOMAIN,
+    SEARCH = excluded.SEARCH,
+    PARSER = excluded.PARSER,
+    RENDER = excluded.RENDER,
+    PROXY = excluded.PROXY,
+    SOURCE_TYPE = excluded.SOURCE_TYPE,
+    SEARCH_TYPE = excluded.SEARCH_TYPE,
+    BROWSE = excluded.BROWSE,
+    TORRENTS = excluded.TORRENTS,
+    CATEGORY = excluded.CATEGORY;
+
+INSERT INTO INDEXER_SITES (
+    ID, NAME, DOMAIN, SEARCH, PARSER, RENDER, PUBLIC, PROXY, SOURCE_TYPE, SEARCH_TYPE, BROWSE, TORRENTS, CATEGORY
+) VALUES (
+    'hd4fans', '兽站', 'https://pt.hd4fans.org/', '{"paths": [{"path": "torrents.php", "method": "get"}], "params": {"search": "{keyword}"}, "batch": {"delimiter": " ", "space_replace": "_"}}', '', 0, 0, 0, 'MOVIE,TV,ANIME', 'title', '', '{"list": {"selector": "table.torrents > tr:has(\"table.torrentname\")"}, "fields": {"id": {"selector": "a[href*=\"details.php?id=\"]", "attribute": "href", "filters": [{"name": "re_search", "args": ["\\d+", 0]}]}, "title_default": {"selector": "a[href*=\"details.php?id=\"]"}, "title_optional": {"optional": true, "selector": "a[title][href*=\"details.php?id=\"]", "attribute": "title"}, "title": {"text": "{% if fields[''title_optional''] %}{{ fields[''title_optional''] }}{% else %}{{ fields[''title_default''] }}{% endif %}"}, "category": {"selector": "a[href*=\"?cat=\"]", "attribute": "href", "filters": [{"name": "replace", "args": ["?", ""]}, {"name": "querystring", "args": "cat"}]}, "details": {"selector": "a[href*=\"details.php?id=\"]", "attribute": "href"}, "download": {"selector": "a[href*=\"download.php?id=\"]", "attribute": "href"}, "imdbid": {"selector": "div.imdb_100 > a", "attribute": "href", "filters": [{"name": "re_search", "args": ["tt\\d+", 0]}]}, "date_elapsed": {"selector": "td:nth-child(4) > span", "optional": true}, "date_added": {"selector": "td:nth-child(4) > span", "attribute": "title", "optional": true}, "date": {"text": "{% if fields[''date_elapsed''] or fields[''date_added''] %}{{ fields[''date_elapsed''] if fields[''date_elapsed''] else fields[''date_added''] }}{% else %}now{% endif %}", "filters": [{"name": "dateparse", "args": "%Y-%m-%d %H:%M:%S"}]}, "size": {"selector": "td:nth-child(5)"}, "seeders": {"selector": "td:nth-child(6)"}, "leechers": {"selector": "td:nth-child(7)"}, "grabs": {"selector": "td:nth-child(8)"}, "downloadvolumefactor": {"case": {"img.pro_free": 0, "img.pro_free2up": 0, "img.pro_50pctdown": 0.5, "img.pro_50pctdown2up": 0.5, "img.pro_30pctdown": 0.3, "*": 1}}, "uploadvolumefactor": {"case": {"img.pro_50pctdown2up": 2, "img.pro_free2up": 2, "img.pro_2up": 2, "*": 1}}, "free_deadline": {"default_value": "{% if fields[''downloadvolumefactor'']==0 %}{{max_time}}{% endif%}", "default_value_format": "%Y-%m-%d %H:%M:%S.%f", "selector": "img.pro_free,img.pro_free2up", "attribute": "onmouseover", "filters": [{"name": "re_search", "args": ["\\d+-\\d+-\\d+ \\d+:\\d+:\\d+", 0]}, {"name": "dateparse", "args": "%Y-%m-%d %H:%M:%S"}]}, "description": {"selector": "td:nth-child(2) > table > tr > td.embedded", "contents": -1}, "labels": {"selector": "td:nth-child(2) > table > tr > td.embedded > span"}}}', '{"movie": [{"id": 401, "cat": "Movies", "desc": "Movies"}], "tv": [{"id": 404, "cat": "TV/Documentary", "desc": "Documentaries"}, {"id": 405, "cat": "TV/Anime", "desc": "Animations"}, {"id": 402, "cat": "TV", "desc": "TV Series"}, {"id": 403, "cat": "TV", "desc": "TV Shows"}]}'
+)
+ON CONFLICT(ID) DO UPDATE SET
+    NAME = excluded.NAME,
+    DOMAIN = excluded.DOMAIN,
+    SEARCH = excluded.SEARCH,
+    PARSER = excluded.PARSER,
+    RENDER = excluded.RENDER,
+    PROXY = excluded.PROXY,
+    SOURCE_TYPE = excluded.SOURCE_TYPE,
+    SEARCH_TYPE = excluded.SEARCH_TYPE,
+    BROWSE = excluded.BROWSE,
+    TORRENTS = excluded.TORRENTS,
+    CATEGORY = excluded.CATEGORY;
+
+INSERT INTO INDEXER_SITES (
+    ID, NAME, DOMAIN, SEARCH, PARSER, RENDER, PUBLIC, PROXY, SOURCE_TYPE, SEARCH_TYPE, BROWSE, TORRENTS, CATEGORY
+) VALUES (
+    'HDarea', '高清视界', 'https://www.hdarea.co/', '{"paths": [{"path": "torrents.php", "method": "get"}], "params": {"search": "{keyword}"}, "batch": {"delimiter": " ", "space_replace": "_"}}', '', 0, 0, 0, 'MOVIE,TV,ANIME', 'title', '', '{"list": {"selector": "table.torrents > tr:has(\"table.torrentname\")"}, "fields": {"id": {"selector": "a[href*=\"details.php?id=\"]", "attribute": "href", "filters": [{"name": "re_search", "args": ["\\d+", 0]}]}, "title_default": {"selector": "a[href*=\"details.php?id=\"]"}, "title_optional": {"optional": true, "selector": "a[title][href*=\"details.php?id=\"]", "attribute": "title"}, "title": {"text": "{% if fields[''title_optional''] %}{{ fields[''title_optional''] }}{% else %}{{ fields[''title_default''] }}{% endif %}"}, "category": {"selector": "a[href*=\"?cat=\"]", "attribute": "href", "filters": [{"name": "replace", "args": ["?", ""]}, {"name": "querystring", "args": "cat"}]}, "details": {"selector": "a[href*=\"details.php?id=\"]", "attribute": "href"}, "download": {"selector": "a[href*=\"download.php?id=\"]", "attribute": "href"}, "imdbid": {"selector": "div.imdb_100 > a", "attribute": "href", "filters": [{"name": "re_search", "args": ["tt\\d+", 0]}]}, "date_elapsed": {"selector": "td:nth-child(4) > span", "optional": true}, "date_added": {"selector": "td:nth-child(4) > span", "attribute": "title", "optional": true}, "date": {"text": "{% if fields[''date_elapsed''] or fields[''date_added''] %}{{ fields[''date_elapsed''] if fields[''date_elapsed''] else fields[''date_added''] }}{% else %}now{% endif %}", "filters": [{"name": "dateparse", "args": "%Y-%m-%d %H:%M:%S"}]}, "size": {"selector": "td:nth-child(5)"}, "seeders": {"selector": "td:nth-child(6)"}, "leechers": {"selector": "td:nth-child(7)"}, "grabs": {"selector": "td:nth-child(8)"}, "downloadvolumefactor": {"case": {"img.pro_free": 0, "img.pro_free2up": 0, "img.pro_50pctdown": 0.5, "img.pro_50pctdown2up": 0.5, "img.pro_30pctdown": 0.3, "*": 1}}, "uploadvolumefactor": {"case": {"img.pro_50pctdown2up": 2, "img.pro_free2up": 2, "img.pro_2up": 2, "*": 1}}, "free_deadline": {"default_value": "{% if fields[''downloadvolumefactor'']==0 %}{{max_time}}{% endif%}", "default_value_format": "%Y-%m-%d %H:%M:%S.%f", "selector": "img.pro_free,img.pro_free2up", "attribute": "onmouseover", "filters": [{"name": "re_search", "args": ["\\d+-\\d+-\\d+ \\d+:\\d+:\\d+", 0]}, {"name": "dateparse", "args": "%Y-%m-%d %H:%M:%S"}]}, "description": {"selector": "td:nth-child(2) > table > tr > td.embedded", "contents": -1}}}', '{"movie": [{"id": 300, "cat": "Movies/UHD", "desc": "Movies UHD-4K"}, {"id": 401, "cat": "Movies/BluRay", "desc": "Movies Blu-ray"}, {"id": 415, "cat": "Movies/HD", "desc": "Movies REMUX"}, {"id": 416, "cat": "Movies/3D", "desc": "Movies 3D"}, {"id": 410, "cat": "Movies/HD", "desc": "Movies 1080p"}, {"id": 411, "cat": "Movies/HD", "desc": "Movies 720p"}, {"id": 414, "cat": "Movies/DVD", "desc": "Movies DVD"}, {"id": 412, "cat": "Movies/WEB-DL", "desc": "Movies WEB-DL"}, {"id": 413, "cat": "Movies/HD", "desc": "Movies HDTV"}, {"id": 417, "cat": "Movies/Other", "desc": "Movies iPad"}], "tv": [{"id": 404, "cat": "TV/Documentary", "desc": "Documentaries"}, {"id": 405, "cat": "TV/Anime", "desc": "Animations"}, {"id": 402, "cat": "TV", "desc": "TV Series"}, {"id": 403, "cat": "TV", "desc": "TV Shows"}]}'
+)
+ON CONFLICT(ID) DO UPDATE SET
+    NAME = excluded.NAME,
+    DOMAIN = excluded.DOMAIN,
+    SEARCH = excluded.SEARCH,
+    PARSER = excluded.PARSER,
+    RENDER = excluded.RENDER,
+    PROXY = excluded.PROXY,
+    SOURCE_TYPE = excluded.SOURCE_TYPE,
+    SEARCH_TYPE = excluded.SEARCH_TYPE,
+    BROWSE = excluded.BROWSE,
+    TORRENTS = excluded.TORRENTS,
+    CATEGORY = excluded.CATEGORY;
+
+INSERT INTO INDEXER_SITES (
+    ID, NAME, DOMAIN, SEARCH, PARSER, RENDER, PUBLIC, PROXY, SOURCE_TYPE, SEARCH_TYPE, BROWSE, TORRENTS, CATEGORY
+) VALUES (
+    'hdbd', '伊甸园', 'https://pt.hdbd.us/', '{"paths": [{"path": "torrents.php", "method": "get"}], "params": {"search": "{keyword}"}, "batch": {"delimiter": " ", "space_replace": "_"}}', '', 0, 0, 0, 'MOVIE,TV,ANIME', 'title', '', '{"list": {"selector": "table.torrents > tr:has(\"table.torrentname\")"}, "fields": {"id": {"selector": "a[href*=\"details.php?id=\"]", "attribute": "href", "filters": [{"name": "re_search", "args": ["\\d+", 0]}]}, "title_default": {"selector": "a[href*=\"details.php?id=\"]"}, "title_optional": {"optional": true, "selector": "a[title][href*=\"details.php?id=\"]", "attribute": "title"}, "title": {"text": "{% if fields[''title_optional''] %}{{ fields[''title_optional''] }}{% else %}{{ fields[''title_default''] }}{% endif %}"}, "category": {"selector": "img[title][src=\"pic/cattrans.gif\"]", "attribute": "title"}, "details": {"selector": "a[href*=\"details.php?id=\"]", "attribute": "href"}, "download": {"selector": "a[href*=\"download.php?id=\"]", "attribute": "href"}, "poster": {"text": ""}, "imdbid": {"selector": "div.imdb_100 > a", "attribute": "href", "filters": [{"name": "re_search", "args": ["tt\\d+", 0]}]}, "date_elapsed": {"selector": "td:nth-child(4) > span", "optional": true}, "date_added": {"selector": "td:nth-child(4) > span", "attribute": "title", "optional": true}, "date": {"text": "{% if fields[''date_elapsed''] or fields[''date_added''] %}{{ fields[''date_elapsed''] if fields[''date_elapsed''] else fields[''date_added''] }}{% else %}now{% endif %}", "filters": [{"name": "dateparse", "args": "%Y-%m-%d %H:%M:%S"}]}, "size": {"selector": "td:nth-child(5)"}, "seeders": {"selector": "td:nth-child(6)"}, "leechers": {"selector": "td:nth-child(7)"}, "grabs": {"selector": "td:nth-child(8)"}, "downloadvolumefactor": {"case": {"img.pro_free": 0, "img.pro_free2up": 0, "img.pro_50pctdown": 0.5, "img.pro_50pctdown2up": 0.5, "img.pro_30pctdown": 0.3, "*": 1}}, "uploadvolumefactor": {"case": {"img.pro_50pctdown2up": 2, "img.pro_free2up": 2, "img.pro_2up": 2, "*": 1}}, "free_deadline": {"default_value": "{% if fields[''downloadvolumefactor'']==0 %}{{max_time}}{% endif%}", "default_value_format": "%Y-%m-%d %H:%M:%S.%f", "selector": "img.pro_free,img.pro_free2up", "attribute": "onmouseover", "filters": [{"name": "re_search", "args": ["\\d+-\\d+-\\d+ \\d+:\\d+:\\d+", 0]}, {"name": "dateparse", "args": "%Y-%m-%d %H:%M:%S"}]}, "description": {"selector": "td:nth-child(2) > table > tr > td.embedded:has(\"a[title]\")", "remove": "span, a, b"}, "labels": {"selector": "td:nth-child(2) > table > tr > td.embedded:has(\"a[title]\") > span"}}}', ''
+)
+ON CONFLICT(ID) DO UPDATE SET
+    NAME = excluded.NAME,
+    DOMAIN = excluded.DOMAIN,
+    SEARCH = excluded.SEARCH,
+    PARSER = excluded.PARSER,
+    RENDER = excluded.RENDER,
+    PROXY = excluded.PROXY,
+    SOURCE_TYPE = excluded.SOURCE_TYPE,
+    SEARCH_TYPE = excluded.SEARCH_TYPE,
+    BROWSE = excluded.BROWSE,
+    TORRENTS = excluded.TORRENTS,
+    CATEGORY = excluded.CATEGORY;
+
+INSERT INTO INDEXER_SITES (
+    ID, NAME, DOMAIN, SEARCH, PARSER, RENDER, PUBLIC, PROXY, SOURCE_TYPE, SEARCH_TYPE, BROWSE, TORRENTS, CATEGORY
+) VALUES (
+    'hddolby', '高清杜比', 'https://www.hddolby.com/', '{"paths": [{"path": "torrents.php", "method": "get"}], "params": {"search": "{keyword}"}, "batch": {"delimiter": " ", "space_replace": "_"}}', '', 0, 0, 0, 'MOVIE,TV,ANIME', 'title', '', '{"list": {"selector": "table.torrents > tr:has(\"table.torrentname\")"}, "fields": {"id": {"selector": "a[href*=\"details.php?id=\"]", "attribute": "href", "filters": [{"name": "re_search", "args": ["\\d+", 0]}]}, "title_default": {"selector": "a[href*=\"details.php?id=\"]"}, "title_optional": {"optional": true, "selector": "a[title][href*=\"details.php?id=\"]", "attribute": "title"}, "title": {"text": "{% if fields[''title_optional''] %}{{ fields[''title_optional''] }}{% else %}{{ fields[''title_default''] }}{% endif %}"}, "category": {"selector": "a[href*=\"?cat=\"]", "attribute": "href", "filters": [{"name": "replace", "args": ["?", ""]}, {"name": "querystring", "args": "cat"}]}, "details": {"selector": "a[href*=\"details.php?id=\"]", "attribute": "href"}, "download": {"selector": "a[href*=\"download.php?id=\"]", "attribute": "href"}, "imdbid": {"selector": "div.imdb_100 > a", "attribute": "href", "filters": [{"name": "re_search", "args": ["tt\\d+", 0]}]}, "date_elapsed": {"selector": "td:nth-child(4) > span", "optional": true}, "date_added": {"selector": "td:nth-child(4) > span", "attribute": "title", "optional": true}, "date": {"text": "{% if fields[''date_elapsed''] or fields[''date_added''] %}{{ fields[''date_elapsed''] if fields[''date_elapsed''] else fields[''date_added''] }}{% else %}now{% endif %}", "filters": [{"name": "dateparse", "args": "%Y-%m-%d %H:%M:%S"}]}, "size": {"selector": "td:nth-child(5)"}, "seeders": {"selector": "td:nth-child(6)"}, "leechers": {"selector": "td:nth-child(7)"}, "grabs": {"selector": "td:nth-child(8)"}, "downloadvolumefactor": {"case": {"img.pro_free": 0, "img.pro_free2up": 0, "img.pro_50pctdown": 0.5, "img.pro_50pctdown2up": 0.5, "img.pro_30pctdown": 0.3, "*": 1}}, "uploadvolumefactor": {"case": {"img.pro_50pctdown2up": 2, "img.pro_free2up": 2, "img.pro_2up": 2, "*": 1}}, "free_deadline": {"default_value": "{% if fields[''downloadvolumefactor'']==0 %}{{max_time}}{% endif%}", "default_value_format": "%Y-%m-%d %H:%M:%S.%f", "selector": "img.pro_free,img.pro_free2up", "attribute": "onmouseover", "filters": [{"name": "re_search", "args": ["\\d+-\\d+-\\d+ \\d+:\\d+:\\d+", 0]}, {"name": "dateparse", "args": "%Y-%m-%d %H:%M:%S"}]}, "description": {"selector": "td:nth-child(2) > table > tr > td.embedded > span[style]", "contents": -1}, "labels": {"selector": "td:nth-child(2) > table > tr > td.embedded > span.tags"}, "minimumratio": {"case": {"img.hitandrun": 1, "*": 0}}, "minimumseedtime": {"case": {"img.hitandrun": 86400, "*": 0}}}}', '{"movie": [{"id": 401, "cat": "Movies", "desc": "Movies\u7535\u5f71"}], "tv": [{"id": 402, "cat": "TV", "desc": "TV Series\u7535\u89c6\u5267"}, {"id": 403, "cat": "TV", "desc": "TV Shows\u7efc\u827a"}, {"id": 404, "cat": "TV/Documentary", "desc": "Documentaries\u7eaa\u5f55\u7247"}, {"id": 405, "cat": "TV/Anime", "desc": "Animations\u52a8\u6f2b"}]}'
+)
+ON CONFLICT(ID) DO UPDATE SET
+    NAME = excluded.NAME,
+    DOMAIN = excluded.DOMAIN,
+    SEARCH = excluded.SEARCH,
+    PARSER = excluded.PARSER,
+    RENDER = excluded.RENDER,
+    PROXY = excluded.PROXY,
+    SOURCE_TYPE = excluded.SOURCE_TYPE,
+    SEARCH_TYPE = excluded.SEARCH_TYPE,
+    BROWSE = excluded.BROWSE,
+    TORRENTS = excluded.TORRENTS,
+    CATEGORY = excluded.CATEGORY;
+
+INSERT INTO INDEXER_SITES (
+    ID, NAME, DOMAIN, SEARCH, PARSER, RENDER, PUBLIC, PROXY, SOURCE_TYPE, SEARCH_TYPE, BROWSE, TORRENTS, CATEGORY
+) VALUES (
+    'hdfans', '红豆饭', 'https://hdfans.org/', '{"paths": [{"path": "torrents.php", "method": "get"}], "params": {"search": "{keyword}"}, "batch": {"delimiter": " ", "space_replace": "_"}}', '', 0, 0, 0, 'MOVIE,TV,ANIME', 'title', '', '{"list": {"selector": "table.torrents > tr:has(\"table.torrentname\")"}, "fields": {"id": {"selector": "a[href*=\"details.php?id=\"]", "attribute": "href", "filters": [{"name": "re_search", "args": ["\\d+", 0]}]}, "category": {"selector": "a[href*=\"?cat=\"]", "attribute": "href", "filters": [{"name": "querystring", "args": "cat"}]}, "title_default": {"selector": "a[href*=\"details.php?id=\"]"}, "title_optional": {"optional": true, "selector": "a[title][href*=\"details.php?id=\"]", "attribute": "title"}, "title": {"text": "{% if fields[''title_optional''] %}{{ fields[''title_optional''] }}{% else %}{{ fields[''title_default''] }}{% endif %}"}, "details": {"selector": "a[href*=\"details.php?id=\"]", "attribute": "href"}, "download": {"selector": "a[href*=\"download.php?id=\"]", "attribute": "href"}, "size": {"selector": "td:nth-child(5)"}, "grabs": {"selector": "td:nth-child(8)"}, "seeders": {"selector": "td:nth-child(6)"}, "leechers": {"selector": "td:nth-child(7)"}, "date_elapsed": {"selector": "td:nth-child(4) > span", "optional": true}, "date_added": {"selector": "td:nth-child(4) > span", "attribute": "title", "optional": true}, "date": {"text": "{% if fields[''date_elapsed''] or fields[''date_added''] %}{{ fields[''date_elapsed''] if fields[''date_elapsed''] else fields[''date_added''] }}{% else %}now{% endif %}", "filters": [{"name": "dateparse", "args": "%Y-%m-%d %H:%M:%S"}]}, "downloadvolumefactor": {"case": {"img.pro_free": 0, "img.pro_free2up": 0, "img.pro_50pctdown": 0.5, "img.pro_50pctdown2up": 0.5, "img.pro_30pctdown": 0.3, "*": 1}}, "uploadvolumefactor": {"case": {"img.pro_50pctdown2up": 2, "img.pro_free2up": 2, "img.pro_2up": 2, "*": 1}}, "free_deadline": {"default_value": "{% if fields[''downloadvolumefactor'']==0 %}{{max_time}}{% endif%}", "default_value_format": "%Y-%m-%d %H:%M:%S.%f", "selector": "td[class=\"embedded\"] > font > span[title]", "attribute": "title", "filters": [{"name": "dateparse", "args": "%Y-%m-%d %H:%M:%S"}]}, "description": {"selector": "table.torrentname > tr > td:nth-child(2)", "remove": "a,img,span", "contents": -1}, "labels": {"selector": "table.torrentname > tr > td:nth-child(2) > span"}}}', '{"movie": [{"id": 401, "cat": "Movies", "desc": "Movies/\u7535\u5f71"}], "tv": [{"id": 402, "cat": "TV", "desc": "TV Series/\u7535\u89c6\u5267"}, {"id": 403, "cat": "TV/Documentary", "desc": "Documentaries/\u7eaa\u5f55\u7247"}, {"id": 416, "cat": "TV", "desc": "TV Shows/\u7efc\u827a"}, {"id": 417, "cat": "TV/Anime", "desc": "Animations/\u52a8\u6f2b"}]}'
+)
+ON CONFLICT(ID) DO UPDATE SET
+    NAME = excluded.NAME,
+    DOMAIN = excluded.DOMAIN,
+    SEARCH = excluded.SEARCH,
+    PARSER = excluded.PARSER,
+    RENDER = excluded.RENDER,
+    PROXY = excluded.PROXY,
+    SOURCE_TYPE = excluded.SOURCE_TYPE,
+    SEARCH_TYPE = excluded.SEARCH_TYPE,
+    BROWSE = excluded.BROWSE,
+    TORRENTS = excluded.TORRENTS,
+    CATEGORY = excluded.CATEGORY;
+
+INSERT INTO INDEXER_SITES (
+    ID, NAME, DOMAIN, SEARCH, PARSER, RENDER, PUBLIC, PROXY, SOURCE_TYPE, SEARCH_TYPE, BROWSE, TORRENTS, CATEGORY
+) VALUES (
+    'HDHome', '家园', 'https://hdhome.org/', '{"paths": [{"path": "torrents.php", "method": "get"}], "params": {"search": "{keyword}"}, "batch": {"delimiter": " ", "space_replace": "_"}}', '', 0, 0, 0, 'MOVIE,TV,ANIME', 'title', '', '{"list": {"selector": "table.torrents > tr:has(\"table.torrentname\")"}, "fields": {"id": {"selector": "a[href*=\"details.php?id=\"]", "attribute": "href", "filters": [{"name": "re_search", "args": ["\\d+", 0]}]}, "title_default": {"selector": "a[href*=\"details.php?id=\"]"}, "title_optional": {"optional": true, "selector": "a[title][href*=\"details.php?id=\"]", "attribute": "title"}, "title": {"text": "{% if fields[''title_optional''] %}{{ fields[''title_optional''] }}{% else %}{{ fields[''title_default''] }}{% endif %}"}, "category": {"selector": "a[href*=\"?cat=\"]", "attribute": "href", "filters": [{"name": "replace", "args": ["?", ""]}, {"name": "querystring", "args": "cat"}]}, "details": {"selector": "a[href*=\"details.php?id=\"]", "attribute": "href"}, "download": {"selector": "a[href*=\"download.php?id=\"]", "attribute": "href"}, "imdbid": {"selector": "div.imdb_100 > a", "attribute": "href", "filters": [{"name": "re_search", "args": ["tt\\d+", 0]}]}, "date_elapsed": {"selector": "td:nth-child(4) > span", "optional": true}, "date_added": {"selector": "td:nth-child(4) > span", "attribute": "title", "optional": true}, "date": {"text": "{% if fields[''date_elapsed''] or fields[''date_added''] %}{{ fields[''date_elapsed''] if fields[''date_elapsed''] else fields[''date_added''] }}{% else %}now{% endif %}", "filters": [{"name": "dateparse", "args": "%Y-%m-%d %H:%M:%S"}]}, "size": {"selector": "td:nth-child(5)"}, "seeders": {"selector": "td:nth-child(6)"}, "leechers": {"selector": "td:nth-child(7)"}, "grabs": {"selector": "td:nth-child(8)"}, "downloadvolumefactor": {"case": {"img.pro_free": 0, "img.pro_free2up": 0, "img.pro_50pctdown": 0.5, "img.pro_50pctdown2up": 0.5, "img.pro_30pctdown": 0.3, "*": 1}}, "uploadvolumefactor": {"case": {"img.pro_50pctdown2up": 2, "img.pro_free2up": 2, "img.pro_2up": 2, "*": 1}}, "free_deadline": {"default_value": "{% if fields[''downloadvolumefactor'']==0 %}{{max_time}}{% endif%}", "default_value_format": "%Y-%m-%d %H:%M:%S.%f", "selector": "img.pro_free,img.pro_free2up", "attribute": "onmouseover", "filters": [{"name": "re_search", "args": ["\\d+-\\d+-\\d+ \\d+:\\d+:\\d+", 0]}, {"name": "dateparse", "args": "%Y-%m-%d %H:%M:%S"}]}, "description": {"selector": "td:nth-child(2) > table > tr > td.embedded > span[style]", "contents": -1}, "labels": {"selector": "td:nth-child(2) > table > tr > td.embedded > span.tags"}}}', '{"movie": [{"id": 411, "cat": "Movies/SD", "desc": "Movies SD"}, {"id": 412, "cat": "Movies/SD", "desc": "Movies IPad"}, {"id": 413, "cat": "Movies/HD", "desc": "Movies 720p"}, {"id": 414, "cat": "Movies/HD", "desc": "Movies 1080p"}, {"id": 415, "cat": "Movies/HD", "desc": "Movies REMUX"}, {"id": 450, "cat": "Movies/BluRay", "desc": "Movies Bluray"}, {"id": 499, "cat": "Movies/BluRay", "desc": "Movies UHD Blu-ray"}, {"id": 416, "cat": "Movies/UHD", "desc": "Movies 2160p"}], "tv": [{"id": 417, "cat": "TV/Documentary", "desc": "Doc SD"}, {"id": 418, "cat": "TV/Documentary", "desc": "Doc IPad"}, {"id": 419, "cat": "TV/Documentary", "desc": "Doc 720p"}, {"id": 420, "cat": "TV/Documentary", "desc": "Doc 1080p"}, {"id": 421, "cat": "TV/Documentary", "desc": "Doc REMUX"}, {"id": 451, "cat": "TV/Documentary", "desc": "Doc Bluray"}, {"id": 500, "cat": "TV/Documentary", "desc": "Doc UHD Blu-ray"}, {"id": 422, "cat": "TV/Documentary", "desc": "Doc 2160p"}, {"id": 423, "cat": "TV/HD", "desc": "TVMusic 720p"}, {"id": 424, "cat": "TV/HD", "desc": "TVMusic 1080i"}, {"id": 425, "cat": "TV/SD", "desc": "TVShow SD"}, {"id": 426, "cat": "TV/SD", "desc": "TVShow IPad"}, {"id": 471, "cat": "TV/SD", "desc": "TVShow IPad"}, {"id": 427, "cat": "TV/HD", "desc": "TVShow 720p"}, {"id": 428, "cat": "TV/HD", "desc": "TVShow 1080i"}, {"id": 429, "cat": "TV/HD", "desc": "TVShow 1080p"}, {"id": 430, "cat": "TV/HD", "desc": "TVShow REMUX"}, {"id": 452, "cat": "TV/HD", "desc": "TVShows Bluray"}, {"id": 431, "cat": "TV/HD", "desc": "TVShow 2160p"}, {"id": 432, "cat": "TV/SD", "desc": "TVSeries SD"}, {"id": 433, "cat": "TV/SD", "desc": "TVSeries IPad"}, {"id": 434, "cat": "TV/HD", "desc": "TVSeries 720p"}, {"id": 435, "cat": "TV/HD", "desc": "TVSeries 1080i"}, {"id": 436, "cat": "TV/HD", "desc": "TVSeries 1080p"}, {"id": 437, "cat": "TV/HD", "desc": "TVSeries REMUX"}, {"id": 453, "cat": "TV/HD", "desc": "TVSereis Bluray"}, {"id": 438, "cat": "TV/UHD", "desc": "TVSeries 2160p"}, {"id": 502, "cat": "TV/UHD", "desc": "TVSeries 4K Bluray"}, {"id": 444, "cat": "TV/Anime", "desc": "Anime SD"}, {"id": 445, "cat": "TV/Anime", "desc": "Anime IPad"}, {"id": 446, "cat": "TV/Anime", "desc": "Anime 720p"}, {"id": 447, "cat": "TV/Anime", "desc": "Anime 1080p"}, {"id": 448, "cat": "TV/Anime", "desc": "Anime REMUX"}, {"id": 454, "cat": "TV/Anime", "desc": "Anime Bluray"}, {"id": 449, "cat": "TV/Anime", "desc": "Anime 2160p"}, {"id": 501, "cat": "TV/Anime", "desc": "Anime UHD Blu-ray"}]}'
+)
+ON CONFLICT(ID) DO UPDATE SET
+    NAME = excluded.NAME,
+    DOMAIN = excluded.DOMAIN,
+    SEARCH = excluded.SEARCH,
+    PARSER = excluded.PARSER,
+    RENDER = excluded.RENDER,
+    PROXY = excluded.PROXY,
+    SOURCE_TYPE = excluded.SOURCE_TYPE,
+    SEARCH_TYPE = excluded.SEARCH_TYPE,
+    BROWSE = excluded.BROWSE,
+    TORRENTS = excluded.TORRENTS,
+    CATEGORY = excluded.CATEGORY;
+
+INSERT INTO INDEXER_SITES (
+    ID, NAME, DOMAIN, SEARCH, PARSER, RENDER, PUBLIC, PROXY, SOURCE_TYPE, SEARCH_TYPE, BROWSE, TORRENTS, CATEGORY
+) VALUES (
+    'hdmayi', '小蚂蚁', 'http://hdmayi.com/', '{"paths": [{"path": "torrents.php", "method": "get"}], "params": {"search": "{keyword}"}, "batch": {"delimiter": " ", "space_replace": "_"}}', '', 0, 0, 0, 'MOVIE,TV,ANIME', 'title', '', '{"list": {"selector": "table.torrents > tr:has(\"table.torrentname\")"}, "fields": {"id": {"selector": "a[href*=\"details.php?id=\"]", "attribute": "href", "filters": [{"name": "re_search", "args": ["\\d+", 0]}]}, "title_default": {"selector": "a[href*=\"details.php?id=\"]"}, "title_optional": {"optional": true, "selector": "a[title][href*=\"details.php?id=\"]", "attribute": "title"}, "title": {"text": "{% if fields[''title_optional''] %}{{ fields[''title_optional''] }}{% else %}{{ fields[''title_default''] }}{% endif %}"}, "category": {"selector": "a[href*=\"?cat=\"]", "attribute": "href", "filters": [{"name": "replace", "args": ["?", ""]}, {"name": "querystring", "args": "cat"}]}, "details": {"selector": "a[href*=\"details.php?id=\"]", "attribute": "href"}, "download": {"selector": "a[href*=\"download.php?id=\"]", "attribute": "href"}, "imdbid": {"selector": "div.imdb_100 > a", "attribute": "href", "filters": [{"name": "re_search", "args": ["tt\\d+", 0]}]}, "date_elapsed": {"selector": "td:nth-child(4) > span", "optional": true}, "date_added": {"selector": "td:nth-child(4) > span", "attribute": "title", "optional": true}, "date": {"text": "{% if fields[''date_elapsed''] or fields[''date_added''] %}{{ fields[''date_elapsed''] if fields[''date_elapsed''] else fields[''date_added''] }}{% else %}now{% endif %}", "filters": [{"name": "dateparse", "args": "%Y-%m-%d %H:%M:%S"}]}, "size": {"selector": "td:nth-child(5)"}, "seeders": {"selector": "td:nth-child(6)"}, "leechers": {"selector": "td:nth-child(7)"}, "grabs": {"selector": "td:nth-child(8)"}, "downloadvolumefactor": {"case": {"img.pro_free": 0, "img.pro_free2up": 0, "img.pro_50pctdown": 0.5, "img.pro_50pctdown2up": 0.5, "img.pro_30pctdown": 0.3, "*": 1}}, "uploadvolumefactor": {"case": {"img.pro_50pctdown2up": 2, "img.pro_free2up": 2, "img.pro_2up": 2, "*": 1}}, "free_deadline": {"default_value": "{% if fields[''downloadvolumefactor'']==0 %}{{max_time}}{% endif%}", "default_value_format": "%Y-%m-%d %H:%M:%S.%f", "selector": "img.pro_free,img.pro_free2up", "attribute": "onmouseover", "filters": [{"name": "re_search", "args": ["\\d+-\\d+-\\d+ \\d+:\\d+:\\d+", 0]}, {"name": "dateparse", "args": "%Y-%m-%d %H:%M:%S"}]}, "description": {"selector": "table.torrentname > tr > td:nth-child(2)", "remove": "a,b,img,span", "contents": -1}, "labels": {"selector": "table.torrentname > tr > td:nth-child(2) > span"}, "minimumratio": {"text": 1}, "minimumseedtime": {"text": 90000}}}', '{"movie": [{"id": 401, "cat": "Movies", "desc": "\u7535\u5f71"}], "tv": [{"id": 402, "cat": "TV/Series", "desc": "\u7535\u89c6\u5267"}, {"id": 403, "cat": "TV/Shows", "desc": "\u7efc\u827a"}, {"id": 404, "cat": "TV/Documentaries", "desc": "\u7eaa\u5f55\u7247"}, {"id": 405, "cat": "TV/Animations", "desc": "\u52a8\u6f2b"}]}'
+)
+ON CONFLICT(ID) DO UPDATE SET
+    NAME = excluded.NAME,
+    DOMAIN = excluded.DOMAIN,
+    SEARCH = excluded.SEARCH,
+    PARSER = excluded.PARSER,
+    RENDER = excluded.RENDER,
+    PROXY = excluded.PROXY,
+    SOURCE_TYPE = excluded.SOURCE_TYPE,
+    SEARCH_TYPE = excluded.SEARCH_TYPE,
+    BROWSE = excluded.BROWSE,
+    TORRENTS = excluded.TORRENTS,
+    CATEGORY = excluded.CATEGORY;
+
+INSERT INTO INDEXER_SITES (
+    ID, NAME, DOMAIN, SEARCH, PARSER, RENDER, PUBLIC, PROXY, SOURCE_TYPE, SEARCH_TYPE, BROWSE, TORRENTS, CATEGORY
+) VALUES (
+    'hdsky', '天空', 'https://hdsky.me/', '{"paths": [{"path": "torrents.php", "method": "get"}], "params": {"search": "{keyword}"}, "batch": {"delimiter": " ", "space_replace": "_"}}', '', 0, 0, 0, 'MOVIE,TV,ANIME', 'title', '', '{"list": {"selector": "table.torrents > tr:has(\"table.torrentname\")"}, "fields": {"id": {"selector": "a[href*=\"details.php?id=\"]", "attribute": "href", "filters": [{"name": "re_search", "args": ["\\d+", 0]}]}, "title_default": {"selector": "a[href*=\"details.php?id=\"]"}, "title_optional": {"optional": true, "selector": "a[title][href*=\"details.php?id=\"]", "attribute": "title"}, "title": {"text": "{% if fields[''title_optional''] %}{{ fields[''title_optional''] }}{% else %}{{ fields[''title_default''] }}{% endif %}"}, "category": {"selector": "a[href*=\"?cat=\"]", "attribute": "href", "filters": [{"name": "replace", "args": ["?", ""]}, {"name": "querystring", "args": "cat"}]}, "details": {"selector": "a[href*=\"details.php?id=\"]", "attribute": "href"}, "download": {"selector": "form[action*=\"/download.php?id=\"]", "attribute": "action"}, "imdbid": {"selector": "div.imdb_100 > a", "attribute": "href"}, "date_elapsed": {"selector": "td:nth-child(4) > span", "optional": true}, "date_added": {"selector": "td:nth-child(4) > span", "attribute": "title", "optional": true}, "date": {"text": "{% if fields[''date_elapsed''] or fields[''date_added''] %}{{ fields[''date_elapsed''] if fields[''date_elapsed''] else fields[''date_added''] }}{% else %}now{% endif %}", "filters": [{"name": "dateparse", "args": "%Y-%m-%d %H:%M:%S"}]}, "size": {"selector": "td.rowfollow:nth-child(5)"}, "seeders": {"selector": "td:nth-child(6)"}, "leechers": {"selector": "td:nth-child(7)"}, "grabs": {"selector": "td:nth-child(8)"}, "downloadvolumefactor": {"case": {"img.pro_free": 0, "img.pro_free2up": 0, "img.pro_50pctdown": 0.5, "img.pro_50pctdown2up": 0.5, "img.pro_30pctdown": 0.3, "*": 1}}, "uploadvolumefactor": {"case": {"img.pro_50pctdown2up": 2, "img.pro_free2up": 2, "img.pro_2up": 2, "*": 1}}, "free_deadline": {"default_value": "{% if fields[''downloadvolumefactor'']==0 %}{{max_time}}{% endif%}", "default_value_format": "%Y-%m-%d %H:%M:%S.%f", "selector": "img.pro_free,img.pro_free2up", "attribute": "onmouseover", "filters": [{"name": "re_search", "args": ["\\d+-\\d+-\\d+ \\d+:\\d+:\\d+", 0]}, {"name": "dateparse", "args": "%Y-%m-%d %H:%M:%S"}]}, "description": {"selector": "td:nth-child(2) > table > tr > td.embedded", "remove": "img,a,b,span", "filters": [{"name": "replace", "args": ["[\u4f18\u60e0\u5269\u4f59\u65f6\u95f4\uff1a]", ""]}]}, "labels": {"selector": "td:nth-child(2) > table > tr > td.embedded > span"}}}', '{"movie": [{"id": 401, "cat": "Movies", "desc": "Movies/\u7535\u5f71"}, {"id": 410, "cat": "Movies", "desc": "iPad/iPad\u5f71\u89c6"}], "tv": [{"id": 402, "cat": "TV", "desc": "TV Series/\u5267\u96c6(\u5206\u96c6)"}, {"id": 403, "cat": "TV", "desc": "TV Shows/\u7efc\u827a"}, {"id": 404, "cat": "TV/Documentary", "desc": "Documentaries/\u7eaa\u5f55\u7247"}, {"id": 405, "cat": "TV/Anime", "desc": "Animations/\u52a8\u6f2b"}, {"id": 411, "cat": "TV", "desc": "TV Series/\u5267\u96c6(\u5408\u96c6)"}, {"id": 412, "cat": "TV", "desc": "TV Series/\u6d77\u5916\u5267\u96c6(\u5206\u96c6)"}, {"id": 413, "cat": "TV", "desc": "TV Series/\u6d77\u5916\u5267\u96c6(\u5408\u96c6)"}, {"id": 414, "cat": "TV", "desc": "TV Shows/\u6d77\u5916\u7efc\u827a(\u5206\u96c6)"}, {"id": 415, "cat": "TV", "desc": "TV Shows/\u6d77\u5916\u7efc\u827a(\u5408\u96c6)"}]}'
+)
+ON CONFLICT(ID) DO UPDATE SET
+    NAME = excluded.NAME,
+    DOMAIN = excluded.DOMAIN,
+    SEARCH = excluded.SEARCH,
+    PARSER = excluded.PARSER,
+    RENDER = excluded.RENDER,
+    PROXY = excluded.PROXY,
+    SOURCE_TYPE = excluded.SOURCE_TYPE,
+    SEARCH_TYPE = excluded.SEARCH_TYPE,
+    BROWSE = excluded.BROWSE,
+    TORRENTS = excluded.TORRENTS,
+    CATEGORY = excluded.CATEGORY;
+
+INSERT INTO INDEXER_SITES (
+    ID, NAME, DOMAIN, SEARCH, PARSER, RENDER, PUBLIC, PROXY, SOURCE_TYPE, SEARCH_TYPE, BROWSE, TORRENTS, CATEGORY
+) VALUES (
+    'HDTime', '高清时间', 'https://hdtime.org/', '{"paths": [{"path": "torrents.php", "method": "get"}], "params": {"search": "{keyword}"}, "batch": {"delimiter": " ", "space_replace": "_"}}', '', 0, 0, 0, 'MOVIE,TV,ANIME', 'title', '', '{"list": {"selector": "table.torrents > tr:has(\"table.torrentname\")"}, "fields": {"id": {"selector": "a[href*=\"details.php?id=\"]", "attribute": "href", "filters": [{"name": "re_search", "args": ["\\d+", 0]}]}, "title_default": {"selector": "a[href*=\"details.php?id=\"]"}, "title_optional": {"optional": true, "selector": "a[title][href*=\"details.php?id=\"]", "attribute": "title"}, "title": {"text": "{% if fields[''title_optional''] %}{{ fields[''title_optional''] }}{% else %}{{ fields[''title_default''] }}{% endif %}"}, "category": {"selector": "a[href*=\"?cat=\"]", "attribute": "href", "filters": [{"name": "replace", "args": ["?", ""]}, {"name": "querystring", "args": "cat"}]}, "details": {"selector": "a[href*=\"details.php?id=\"]", "attribute": "href"}, "download": {"selector": "a[href*=\"download.php?id=\"]", "attribute": "href"}, "imdbid": {"selector": "div.imdb_100 > a", "attribute": "href", "filters": [{"name": "re_search", "args": ["tt\\d+", 0]}]}, "date_elapsed": {"selector": "td:nth-child(4) > span", "optional": true}, "date_added": {"selector": "td:nth-child(4) > span", "attribute": "title", "optional": true}, "date": {"text": "{% if fields[''date_elapsed''] or fields[''date_added''] %}{{ fields[''date_elapsed''] if fields[''date_elapsed''] else fields[''date_added''] }}{% else %}now{% endif %}", "filters": [{"name": "dateparse", "args": "%Y-%m-%d %H:%M:%S"}]}, "size": {"selector": "td:nth-child(5)"}, "seeders": {"selector": "td:nth-child(6)"}, "leechers": {"selector": "td:nth-child(7)"}, "grabs": {"selector": "td:nth-child(8)"}, "downloadvolumefactor": {"case": {"img.pro_free": 0, "img.pro_free2up": 0, "img.pro_50pctdown": 0.5, "img.pro_50pctdown2up": 0.5, "img.pro_30pctdown": 0.3, "*": 1}}, "uploadvolumefactor": {"case": {"img.pro_50pctdown2up": 2, "img.pro_free2up": 2, "img.pro_2up": 2, "*": 1}}, "free_deadline": {"default_value": "{% if fields[''downloadvolumefactor'']==0 %}{{max_time}}{% endif%}", "default_value_format": "%Y-%m-%d %H:%M:%S.%f", "selector": "img.pro_free,img.pro_free2up", "attribute": "onmouseover", "filters": [{"name": "re_search", "args": ["\\d+-\\d+-\\d+ \\d+:\\d+:\\d+", 0]}, {"name": "dateparse", "args": "%Y-%m-%d %H:%M:%S"}]}, "description": {"selector": "td:nth-child(2) > table > tr > td:nth-child(2)", "remove": "span,a,img,font,b", "contents": -1}, "labels": {"selector": "td:nth-child(2) > table > tr > td:nth-child(2) > span"}}}', '{"movie": [{"id": 401, "cat": "Movies", "desc": "Movies/\u7535\u5f71"}, {"id": 424, "cat": "Movies/BluRay", "desc": "Blu-Ray\u539f\u76d8"}], "tv": [{"id": 402, "cat": "TV", "desc": "TV Series/\u5267\u96c6"}, {"id": 403, "cat": "TV", "desc": "TV Shows/\u7efc\u827a"}, {"id": 405, "cat": "TV/Anime", "desc": "Animations/\u52a8\u6f2b"}, {"id": 404, "cat": "TV/Documentary", "desc": "Documentaries/\u7eaa\u5f55\u7247"}]}'
+)
+ON CONFLICT(ID) DO UPDATE SET
+    NAME = excluded.NAME,
+    DOMAIN = excluded.DOMAIN,
+    SEARCH = excluded.SEARCH,
+    PARSER = excluded.PARSER,
+    RENDER = excluded.RENDER,
+    PROXY = excluded.PROXY,
+    SOURCE_TYPE = excluded.SOURCE_TYPE,
+    SEARCH_TYPE = excluded.SEARCH_TYPE,
+    BROWSE = excluded.BROWSE,
+    TORRENTS = excluded.TORRENTS,
+    CATEGORY = excluded.CATEGORY;
+
+INSERT INTO INDEXER_SITES (
+    ID, NAME, DOMAIN, SEARCH, PARSER, RENDER, PUBLIC, PROXY, SOURCE_TYPE, SEARCH_TYPE, BROWSE, TORRENTS, CATEGORY
+) VALUES (
+    'HDU', '好多油', 'https://pt.hdupt.com/', '{"paths": [{"path": "torrents.php", "method": "get"}], "params": {"search": "{keyword}"}, "batch": {"delimiter": " ", "space_replace": "_"}}', '', 0, 0, 0, 'MOVIE,TV,ANIME', 'title', '', '{"list": {"selector": "table.torrents > tr:has(\"table.torrentname\")"}, "fields": {"id": {"selector": "a[href*=\"details.php?id=\"]", "attribute": "href", "filters": [{"name": "re_search", "args": ["\\d+", 0]}]}, "title_default": {"selector": "a[href*=\"details.php?id=\"]"}, "title_optional": {"optional": true, "selector": "a[title][href*=\"details.php?id=\"]", "attribute": "title"}, "title": {"text": "{% if fields[''title_optional''] %}{{ fields[''title_optional''] }}{% else %}{{ fields[''title_default''] }}{% endif %}"}, "category": {"selector": "a[href*=\"?cat=\"]", "attribute": "href", "filters": [{"name": "replace", "args": ["?", ""]}, {"name": "querystring", "args": "cat"}]}, "details": {"selector": "a[href*=\"details.php?id=\"]", "attribute": "href"}, "download": {"selector": "a[href*=\"download.php?id=\"]", "attribute": "href"}, "imdbid": {"selector": "div.imdb_100 > a", "attribute": "href", "filters": [{"name": "re_search", "args": ["tt\\d+", 0]}]}, "date_elapsed": {"selector": "td:nth-child(4) > span", "optional": true}, "date_added": {"selector": "td:nth-child(4) > span", "attribute": "title", "optional": true}, "date": {"text": "{% if fields[''date_elapsed''] or fields[''date_added''] %}{{ fields[''date_elapsed''] if fields[''date_elapsed''] else fields[''date_added''] }}{% else %}now{% endif %}", "filters": [{"name": "dateparse", "args": "%Y-%m-%d %H:%M:%S"}]}, "size": {"selector": "td:nth-child(5)"}, "seeders": {"selector": "td:nth-child(6)"}, "leechers": {"selector": "td:nth-child(7)"}, "grabs": {"selector": "td:nth-child(8)"}, "downloadvolumefactor": {"case": {"img.pro_free": 0, "img.pro_free2up": 0, "img.pro_50pctdown": 0.5, "img.pro_50pctdown2up": 0.5, "img.pro_30pctdown": 0.3, "*": 1}}, "uploadvolumefactor": {"case": {"img.pro_50pctdown2up": 2, "img.pro_free2up": 2, "img.pro_2up": 2, "*": 1}}, "free_deadline": {"default_value": "{% if fields[''downloadvolumefactor'']==0 %}{{max_time}}{% endif%}", "default_value_format": "%Y-%m-%d %H:%M:%S.%f", "selector": "img.pro_free,img.pro_free2up", "attribute": "onmouseover", "filters": [{"name": "re_search", "args": ["\\d+-\\d+-\\d+ \\d+:\\d+:\\d+", 0]}, {"name": "dateparse", "args": "%Y-%m-%d %H:%M:%S"}]}, "description": {"selector": "td:nth-child(2) > table > tr > td.embedded", "contents": -1}, "labels": {"selector": "td:nth-child(2) > table > tr > td.embedded > span"}}}', ''
+)
+ON CONFLICT(ID) DO UPDATE SET
+    NAME = excluded.NAME,
+    DOMAIN = excluded.DOMAIN,
+    SEARCH = excluded.SEARCH,
+    PARSER = excluded.PARSER,
+    RENDER = excluded.RENDER,
+    PROXY = excluded.PROXY,
+    SOURCE_TYPE = excluded.SOURCE_TYPE,
+    SEARCH_TYPE = excluded.SEARCH_TYPE,
+    BROWSE = excluded.BROWSE,
+    TORRENTS = excluded.TORRENTS,
+    CATEGORY = excluded.CATEGORY;
+
+INSERT INTO INDEXER_SITES (
+    ID, NAME, DOMAIN, SEARCH, PARSER, RENDER, PUBLIC, PROXY, SOURCE_TYPE, SEARCH_TYPE, BROWSE, TORRENTS, CATEGORY
+) VALUES (
+    'hdvideo', 'HDVIDEO', 'https://hdvideo.one/', '{"paths": [{"path": "torrents.php", "method": "get"}], "params": {"search": "{keyword}"}, "batch": {"delimiter": " ", "space_replace": "_"}}', '', 0, 0, 0, 'MOVIE,TV,ANIME', 'title', '', '{"list": {"selector": "table.torrents > tr:has(\"table.torrentname\")"}, "fields": {"id": {"selector": "a[href*=\"details.php?id=\"]", "attribute": "href", "filters": [{"name": "re_search", "args": ["\\d+", 0]}]}, "category": {"selector": "a[href*=\"?cat=\"]", "attribute": "href", "filters": [{"name": "querystring", "args": "cat"}]}, "title_default": {"selector": "a[href*=\"details.php?id=\"]"}, "title_optional": {"optional": true, "selector": "a[title][href*=\"details.php?id=\"]", "attribute": "title"}, "title": {"text": "{% if fields[''title_optional''] %}{{ fields[''title_optional''] }}{% else %}{{ fields[''title_default''] }}{% endif %}"}, "details": {"selector": "a[href*=\"details.php?id=\"]", "attribute": "href"}, "poster": {"selector": "img[data-orig]", "attribute": "data-orig"}, "download": {"selector": "a[href*=\"download.php?id=\"]", "attribute": "href"}, "size": {"selector": "td.rowfollow:nth-child(5)"}, "grabs": {"selector": "td.rowfollow:nth-child(8)"}, "seeders": {"selector": "td.rowfollow:nth-child(6)"}, "leechers": {"selector": "td.rowfollow:nth-child(7)"}, "date_elapsed": {"selector": "td.rowfollow:nth-child(4) > span", "optional": true}, "date_added": {"selector": "td.rowfollow:nth-child(4) > span", "attribute": "title", "optional": true}, "date": {"text": "{% if fields[''date_elapsed''] or fields[''date_added''] %}{{ fields[''date_elapsed''] if fields[''date_elapsed''] else fields[''date_added''] }}{% else %}now{% endif %}", "filters": [{"name": "dateparse", "args": "%Y-%m-%d %H:%M:%S"}]}, "downloadvolumefactor": {"case": {"img.pro_free": 0, "img.pro_free2up": 0, "img.pro_50pctdown": 0.5, "img.pro_50pctdown2up": 0.5, "img.pro_30pctdown": 0.3, "*": 1}}, "uploadvolumefactor": {"case": {"img.pro_50pctdown2up": 2, "img.pro_free2up": 2, "img.pro_2up": 2, "*": 1}}, "free_deadline": {"default_value": "{% if fields[''downloadvolumefactor'']==0 %}{{max_time}}{% endif%}", "default_value_format": "%Y-%m-%d %H:%M:%S.%f", "selector": "div > b > span[title]", "attribute": "title", "filters": [{"name": "dateparse", "args": "%Y-%m-%d %H:%M:%S"}]}, "tags": {"selector": "div > a.torrents-tag"}, "subject": {"selector": "td.embedded:nth-child(2) > div > div[style] > span", "contents": -1}, "description": {"selector": "td:nth-child(2) > table.torrentname > tr > td:nth-child(1)", "remove": "span,a,img,font,b", "contents": -1}, "labels": {"selector": "td:nth-child(2) > table.torrentname > tr > td:nth-child(1) > span"}}}', '{"movie": [{"id": 401, "cat": "Movies", "desc": "\u7535\u5f71"}], "tv": [{"id": 402, "cat": "TV/Series", "desc": "\u7535\u89c6\u5267"}, {"id": 403, "cat": "TV/Shows", "desc": "\u7efc\u827a"}, {"id": 404, "cat": "TV/Documentaries", "desc": "\u7eaa\u5f55\u7247"}, {"id": 405, "cat": "TV/Animations", "desc": "\u52a8\u6f2b"}]}'
+)
+ON CONFLICT(ID) DO UPDATE SET
+    NAME = excluded.NAME,
+    DOMAIN = excluded.DOMAIN,
+    SEARCH = excluded.SEARCH,
+    PARSER = excluded.PARSER,
+    RENDER = excluded.RENDER,
+    PROXY = excluded.PROXY,
+    SOURCE_TYPE = excluded.SOURCE_TYPE,
+    SEARCH_TYPE = excluded.SEARCH_TYPE,
+    BROWSE = excluded.BROWSE,
+    TORRENTS = excluded.TORRENTS,
+    CATEGORY = excluded.CATEGORY;
+
+INSERT INTO INDEXER_SITES (
+    ID, NAME, DOMAIN, SEARCH, PARSER, RENDER, PUBLIC, PROXY, SOURCE_TYPE, SEARCH_TYPE, BROWSE, TORRENTS, CATEGORY
+) VALUES (
+    'HDZone', '空间', 'https://hdzone.me/', '{"paths": [{"path": "torrents.php", "method": "get"}], "params": {"search": "{keyword}"}, "batch": {"delimiter": " ", "space_replace": "_"}}', '', 0, 0, 0, 'MOVIE,TV,ANIME', 'title', '', '{"list": {"selector": "table.torrents > tr:has(\"table.torrentname\")"}, "fields": {"id": {"selector": "a[href*=\"details.php?id=\"]", "attribute": "href", "filters": [{"name": "re_search", "args": ["\\d+", 0]}]}, "title_default": {"selector": "a[href*=\"details.php?id=\"]"}, "title_optional": {"optional": true, "selector": "a[title][href*=\"details.php?id=\"]", "attribute": "title"}, "title": {"text": "{% if fields[''title_optional''] %}{{ fields[''title_optional''] }}{% else %}{{ fields[''title_default''] }}{% endif %}"}, "category": {"selector": "a[href*=\"?cat=\"]", "attribute": "href", "filters": [{"name": "replace", "args": ["?", ""]}, {"name": "querystring", "args": "cat"}]}, "details": {"selector": "a[href*=\"details.php?id=\"]", "attribute": "href"}, "download": {"selector": "a[href*=\"download.php?id=\"]", "attribute": "href"}, "imdbid": {"selector": "div.imdb_100 > a", "attribute": "href", "filters": [{"name": "re_search", "args": ["tt\\d+", 0]}]}, "date_elapsed": {"selector": "td:nth-child(4) > span", "optional": true}, "date_added": {"selector": "td:nth-child(4) > span", "attribute": "title", "optional": true}, "date": {"text": "{% if fields[''date_elapsed''] or fields[''date_added''] %}{{ fields[''date_elapsed''] if fields[''date_elapsed''] else fields[''date_added''] }}{% else %}now{% endif %}", "filters": [{"name": "dateparse", "args": "%Y-%m-%d %H:%M:%S"}]}, "size": {"selector": "td:nth-child(5)"}, "seeders": {"selector": "td:nth-child(6)"}, "leechers": {"selector": "td:nth-child(7)"}, "grabs": {"selector": "td:nth-child(8)"}, "downloadvolumefactor": {"case": {"img.pro_free": 0, "img.pro_free2up": 0, "img.pro_50pctdown": 0.5, "img.pro_50pctdown2up": 0.5, "img.pro_30pctdown": 0.3, "*": 1}}, "uploadvolumefactor": {"case": {"img.pro_50pctdown2up": 2, "img.pro_free2up": 2, "img.pro_2up": 2, "*": 1}}, "free_deadline": {"default_value": "{% if fields[''downloadvolumefactor'']==0 %}{{max_time}}{% endif%}", "default_value_format": "%Y-%m-%d %H:%M:%S.%f", "selector": "img.pro_free,img.pro_free2up", "attribute": "onmouseover", "filters": [{"name": "re_search", "args": ["\\d+-\\d+-\\d+ \\d+:\\d+:\\d+", 0]}, {"name": "dateparse", "args": "%Y-%m-%d %H:%M:%S"}]}, "description": {"selector": "td:nth-child(2) > table > tr > td.embedded", "contents": -1}, "labels": {"selector": "td:nth-child(2) > table > tr > td.embedded > span"}}}', '{"movie": [{"id": 411, "cat": "Movies/SD", "desc": "Movies SD"}, {"id": 412, "cat": "Movies", "desc": "Movies IPad"}, {"id": 413, "cat": "Movies/HD", "desc": "Movies 720p"}, {"id": 414, "cat": "Movies/HD", "desc": "Movies 1080p"}, {"id": 415, "cat": "Movies", "desc": "Movies REMUX"}, {"id": 450, "cat": "Movies/BluRay", "desc": "Movies Bluray"}, {"id": 499, "cat": "Movies/UHD", "desc": "Movies UHD Blu-ray"}, {"id": 416, "cat": "Movies/UHD", "desc": "Movies 2160p"}], "tv": [{"id": 417, "cat": "TV/Documentary", "desc": "Doc SD"}, {"id": 418, "cat": "TV/Documentary", "desc": "Doc IPad"}, {"id": 419, "cat": "TV/Documentary", "desc": "Doc 720p"}, {"id": 420, "cat": "TV/Documentary", "desc": "Doc 1080p"}, {"id": 421, "cat": "TV/Documentary", "desc": "Doc REMUX"}, {"id": 451, "cat": "TV/Documentary", "desc": "Doc Bluray"}, {"id": 500, "cat": "TV/Documentary", "desc": "Doc UHD Blu-ray"}, {"id": 422, "cat": "TV/Documentary", "desc": "Doc 2160p"}, {"id": 425, "cat": "TV/SD", "desc": "TVShow SD"}, {"id": 426, "cat": "TV", "desc": "TVShow IPad"}, {"id": 471, "cat": "TV", "desc": "TVShow IPad"}, {"id": 427, "cat": "TV/HD", "desc": "TVShow 720p"}, {"id": 472, "cat": "TV/HD", "desc": "TVShow 720p"}, {"id": 428, "cat": "TV/HD", "desc": "TVShow 1080i"}, {"id": 429, "cat": "TV/HD", "desc": "TVShow 1080p"}, {"id": 430, "cat": "TV", "desc": "TVShow REMUX"}, {"id": 452, "cat": "TV/HD", "desc": "TVShow Bluray"}, {"id": 431, "cat": "TV/UHD", "desc": "TVShow 2160p"}, {"id": 432, "cat": "TV/SD", "desc": "TVSeries SD"}, {"id": 433, "cat": "TV", "desc": "TVSeries IPad"}, {"id": 434, "cat": "TV/HD", "desc": "TVSeries 720p"}, {"id": 435, "cat": "TV/HD", "desc": "TVSeries 1080i"}, {"id": 436, "cat": "TV/HD", "desc": "TVSeries 1080p"}, {"id": 437, "cat": "TV", "desc": "TVSeries REMUX"}, {"id": 453, "cat": "TV/HD", "desc": "TVSeries Bluray"}, {"id": 438, "cat": "TV/UHD", "desc": "TVSeries 2160p"}, {"id": 444, "cat": "TV/Anime", "desc": "Anime SD"}, {"id": 445, "cat": "TV/Anime", "desc": "Anime IPad"}, {"id": 446, "cat": "TV/Anime", "desc": "Anime 720p"}, {"id": 447, "cat": "TV/Anime", "desc": "Anime 1080p"}, {"id": 448, "cat": "TV/Anime", "desc": "Anime REMUX"}, {"id": 454, "cat": "TV/Anime", "desc": "Anime Bluray"}, {"id": 449, "cat": "TV/Anime", "desc": "Anime 2160p"}, {"id": 501, "cat": "TV/Anime", "desc": "Anime UHD Blu-ray"}]}'
+)
+ON CONFLICT(ID) DO UPDATE SET
+    NAME = excluded.NAME,
+    DOMAIN = excluded.DOMAIN,
+    SEARCH = excluded.SEARCH,
+    PARSER = excluded.PARSER,
+    RENDER = excluded.RENDER,
+    PROXY = excluded.PROXY,
+    SOURCE_TYPE = excluded.SOURCE_TYPE,
+    SEARCH_TYPE = excluded.SEARCH_TYPE,
+    BROWSE = excluded.BROWSE,
+    TORRENTS = excluded.TORRENTS,
+    CATEGORY = excluded.CATEGORY;
+
+INSERT INTO INDEXER_SITES (
+    ID, NAME, DOMAIN, SEARCH, PARSER, RENDER, PUBLIC, PROXY, SOURCE_TYPE, SEARCH_TYPE, BROWSE, TORRENTS, CATEGORY
+) VALUES (
+    'hitpt', '百川', 'https://www.hitpt.com/', '{"paths": [{"path": "torrents.php", "method": "get"}], "params": {"search": "{keyword}"}, "batch": {"delimiter": " ", "space_replace": "_"}}', '', 0, 0, 0, 'MOVIE,TV,ANIME', 'title', '', '{"list": {"selector": "table.torrents > tr:has(\"table.torrentname\")"}, "fields": {"id": {"selector": "a[href*=\"details.php?id=\"]", "attribute": "href", "filters": [{"name": "re_search", "args": ["\\d+", 0]}]}, "title_default": {"selector": "a[href*=\"details.php?id=\"]"}, "title_optional": {"optional": true, "selector": "a[title][href*=\"details.php?id=\"]", "attribute": "title"}, "title": {"text": "{% if fields[''title_optional''] %}{{ fields[''title_optional''] }}{% else %}{{ fields[''title_default''] }}{% endif %}"}, "category": {"selector": "a[href*=\"?cat=\"]", "attribute": "href", "filters": [{"name": "replace", "args": ["?", ""]}, {"name": "querystring", "args": "cat"}]}, "details": {"selector": "a[href*=\"details.php?id=\"]", "attribute": "href"}, "download": {"selector": "a[href*=\"download.php?id=\"]", "attribute": "href"}, "imdbid": {"selector": "div.imdb_100 > a", "attribute": "href", "filters": [{"name": "re_search", "args": ["tt\\d+", 0]}]}, "date_elapsed": {"selector": "td:nth-child(4) > span", "optional": true}, "date_added": {"selector": "td:nth-child(4) > span", "attribute": "title", "optional": true}, "date": {"text": "{% if fields[''date_elapsed''] or fields[''date_added''] %}{{ fields[''date_elapsed''] if fields[''date_elapsed''] else fields[''date_added''] }}{% else %}now{% endif %}", "filters": [{"name": "dateparse", "args": "%Y-%m-%d %H:%M:%S"}]}, "size": {"selector": "td:nth-child(5)"}, "seeders": {"selector": "td:nth-child(6)"}, "leechers": {"selector": "td:nth-child(7)"}, "grabs": {"selector": "td:nth-child(8)"}, "downloadvolumefactor": {"case": {"img.pro_free": 0, "img.pro_free2up": 0, "img.pro_50pctdown": 0.5, "img.pro_50pctdown2up": 0.5, "img.pro_30pctdown": 0.3, "*": 1}}, "uploadvolumefactor": {"case": {"img.pro_50pctdown2up": 2, "img.pro_free2up": 2, "img.pro_2up": 2, "*": 1}}, "free_deadline": {"default_value": "{% if fields[''downloadvolumefactor'']==0 %}{{max_time}}{% endif%}", "default_value_format": "%Y-%m-%d %H:%M:%S.%f", "selector": "img.pro_free,img.pro_free2up", "attribute": "onmouseover", "filters": [{"name": "re_search", "args": ["\\d+-\\d+-\\d+ \\d+:\\d+:\\d+", 0]}, {"name": "dateparse", "args": "%Y-%m-%d %H:%M:%S"}]}, "description": {"selector": "td:nth-child(2) > table > tr > td.embedded", "contents": -1}, "labels": {"selector": "td:nth-child(2) > table > tr > td.embedded > span"}}}', ''
+)
+ON CONFLICT(ID) DO UPDATE SET
+    NAME = excluded.NAME,
+    DOMAIN = excluded.DOMAIN,
+    SEARCH = excluded.SEARCH,
+    PARSER = excluded.PARSER,
+    RENDER = excluded.RENDER,
+    PROXY = excluded.PROXY,
+    SOURCE_TYPE = excluded.SOURCE_TYPE,
+    SEARCH_TYPE = excluded.SEARCH_TYPE,
+    BROWSE = excluded.BROWSE,
+    TORRENTS = excluded.TORRENTS,
+    CATEGORY = excluded.CATEGORY;
+
+INSERT INTO INDEXER_SITES (
+    ID, NAME, DOMAIN, SEARCH, PARSER, RENDER, PUBLIC, PROXY, SOURCE_TYPE, SEARCH_TYPE, BROWSE, TORRENTS, CATEGORY
+) VALUES (
+    'htpt', '海棠', 'https://www.htpt.cc/', '{"paths": [{"path": "torrents.php", "method": "get"}], "params": {"search": "{keyword}"}, "batch": {"delimiter": " ", "space_replace": "_"}}', '', 0, 0, 0, 'MOVIE,TV,ANIME', 'title', '', '{"list": {"selector": "table.torrents > tr:has(\"table.torrentname\")"}, "fields": {"id": {"selector": "a[href*=\"details.php?id=\"]", "attribute": "href", "filters": [{"name": "re_search", "args": ["\\d+", 0]}]}, "title_default": {"selector": "a[href*=\"details.php?id=\"]"}, "title_optional": {"optional": true, "selector": "a[title][href*=\"details.php?id=\"]", "attribute": "title"}, "title": {"text": "{% if fields[''title_optional''] %}{{ fields[''title_optional''] }}{% else %}{{ fields[''title_default''] }}{% endif %}"}, "category": {"selector": "a[href*=\"?cat=\"]", "attribute": "href", "filters": [{"name": "replace", "args": ["?", ""]}, {"name": "querystring", "args": "cat"}]}, "details": {"selector": "a[href*=\"details.php?id=\"]", "attribute": "href"}, "download": {"selector": "a[href*=\"download.php?id=\"]", "attribute": "href"}, "imdbid": {"selector": "div.imdb_100 > a", "attribute": "href", "filters": [{"name": "re_search", "args": ["tt\\d+", 0]}]}, "date_elapsed": {"selector": "td:nth-child(4) > span", "optional": true}, "date_added": {"selector": "td:nth-child(4) > span", "attribute": "title", "optional": true}, "date": {"text": "{% if fields[''date_elapsed''] or fields[''date_added''] %}{{ fields[''date_elapsed''] if fields[''date_elapsed''] else fields[''date_added''] }}{% else %}now{% endif %}", "filters": [{"name": "dateparse", "args": "%Y-%m-%d %H:%M:%S"}]}, "size": {"selector": "td:nth-child(5)"}, "seeders": {"selector": "td:nth-child(6)"}, "leechers": {"selector": "td:nth-child(7)"}, "grabs": {"selector": "td:nth-child(8)"}, "downloadvolumefactor": {"case": {"img.pro_free": 0, "img.pro_free2up": 0, "img.pro_50pctdown": 0.5, "img.pro_50pctdown2up": 0.5, "img.pro_30pctdown": 0.3, "*": 1}}, "uploadvolumefactor": {"case": {"img.pro_50pctdown2up": 2, "img.pro_free2up": 2, "img.pro_2up": 2, "*": 1}}, "free_deadline": {"default_value": "{% if fields[''downloadvolumefactor'']==0 %}{{max_time}}{% endif%}", "default_value_format": "%Y-%m-%d %H:%M:%S.%f", "selector": "img.pro_free,img.pro_free2up", "attribute": "onmouseover", "filters": [{"name": "re_search", "args": ["\\d+-\\d+-\\d+ \\d+:\\d+:\\d+", 0]}, {"name": "dateparse", "args": "%Y-%m-%d %H:%M:%S"}]}, "description": {"selector": "td:nth-child(2) > table > tr > td.embedded", "contents": -1}, "labels": {"selector": "td:nth-child(2) > table > tr > td.embedded > span"}}}', ''
+)
+ON CONFLICT(ID) DO UPDATE SET
+    NAME = excluded.NAME,
+    DOMAIN = excluded.DOMAIN,
+    SEARCH = excluded.SEARCH,
+    PARSER = excluded.PARSER,
+    RENDER = excluded.RENDER,
+    PROXY = excluded.PROXY,
+    SOURCE_TYPE = excluded.SOURCE_TYPE,
+    SEARCH_TYPE = excluded.SEARCH_TYPE,
+    BROWSE = excluded.BROWSE,
+    TORRENTS = excluded.TORRENTS,
+    CATEGORY = excluded.CATEGORY;
+
+INSERT INTO INDEXER_SITES (
+    ID, NAME, DOMAIN, SEARCH, PARSER, RENDER, PUBLIC, PROXY, SOURCE_TYPE, SEARCH_TYPE, BROWSE, TORRENTS, CATEGORY
+) VALUES (
+    'icc2022', '冰淇淋', 'https://www.icc2022.com/', '{"paths": [{"path": "torrents.php", "method": "get"}], "params": {"search": "{keyword}"}, "batch": {"delimiter": " ", "space_replace": "_"}}', '', 0, 0, 0, 'MOVIE,TV,ANIME', 'title', '', '{"list": {"selector": "table.torrents > tr:has(\"table.torrentname\")"}, "fields": {"id": {"selector": "a[href*=\"details.php?id=\"]", "attribute": "href", "filters": [{"name": "re_search", "args": ["\\d+", 0]}]}, "title_default": {"selector": "a[href*=\"details.php?id=\"]"}, "title_optional": {"optional": true, "selector": "a[title][href*=\"details.php?id=\"]", "attribute": "title"}, "title": {"text": "{% if fields[''title_optional''] %}{{ fields[''title_optional''] }}{% else %}{{ fields[''title_default''] }}{% endif %}"}, "category": {"selector": "a[href*=\"?cat=\"]", "attribute": "href", "filters": [{"name": "replace", "args": ["?", ""]}, {"name": "querystring", "args": "cat"}]}, "details": {"selector": "a[href*=\"details.php?id=\"]", "attribute": "href"}, "download": {"selector": "a[href*=\"download.php?id=\"]", "attribute": "href"}, "imdbid": {"selector": "div.imdb_100 > a", "attribute": "href", "filters": [{"name": "re_search", "args": ["tt\\d+", 0]}]}, "date_elapsed": {"selector": "td:nth-child(4) > span", "optional": true}, "date_added": {"selector": "td:nth-child(4) > span", "attribute": "title", "optional": true}, "date": {"text": "{% if fields[''date_elapsed''] or fields[''date_added''] %}{{ fields[''date_elapsed''] if fields[''date_elapsed''] else fields[''date_added''] }}{% else %}now{% endif %}", "filters": [{"name": "dateparse", "args": "%Y-%m-%d %H:%M:%S"}]}, "size": {"selector": "td:nth-child(5)"}, "seeders": {"selector": "td:nth-child(6)"}, "leechers": {"selector": "td:nth-child(7)"}, "grabs": {"selector": "td:nth-child(8)"}, "downloadvolumefactor": {"case": {"img.pro_free": 0, "img.pro_free2up": 0, "img.pro_50pctdown": 0.5, "img.pro_50pctdown2up": 0.5, "img.pro_30pctdown": 0.3, "*": 1}}, "uploadvolumefactor": {"case": {"img.pro_50pctdown2up": 2, "img.pro_free2up": 2, "img.pro_2up": 2, "*": 1}}, "free_deadline": {"default_value": "{% if fields[''downloadvolumefactor'']==0 %}{{max_time}}{% endif%}", "default_value_format": "%Y-%m-%d %H:%M:%S.%f", "selector": "img.pro_free,img.pro_free2up", "attribute": "onmouseover", "filters": [{"name": "re_search", "args": ["\\d+-\\d+-\\d+ \\d+:\\d+:\\d+", 0]}, {"name": "dateparse", "args": "%Y-%m-%d %H:%M:%S"}]}, "description": {"selector": "table.torrentname > tr > td:nth-child(2)", "remove": "a,b,img,span", "contents": -1}, "labels": {"selector": "table.torrentname > tr > td:nth-child(2) > span"}, "minimumratio": {"text": 1}, "minimumseedtime": {"text": 90000}}}', '{"movie": [{"id": 401, "cat": "Movies", "desc": "Movies/\u7535\u5f71", "default": true}], "tv": [{"id": 404, "cat": "TV/Documentary", "desc": "Documentaries/\u7eaa\u5f55\u7247", "default": true}, {"id": 405, "cat": "TV/Anime", "desc": "Animations/\u52a8\u6f2b", "default": true}, {"id": 402, "cat": "TV", "desc": "TV Series/\u7535\u89c6\u5267", "default": true}, {"id": 403, "cat": "TV", "desc": "TV Shows/\u7efc\u827a", "default": true}]}'
+)
+ON CONFLICT(ID) DO UPDATE SET
+    NAME = excluded.NAME,
+    DOMAIN = excluded.DOMAIN,
+    SEARCH = excluded.SEARCH,
+    PARSER = excluded.PARSER,
+    RENDER = excluded.RENDER,
+    PROXY = excluded.PROXY,
+    SOURCE_TYPE = excluded.SOURCE_TYPE,
+    SEARCH_TYPE = excluded.SEARCH_TYPE,
+    BROWSE = excluded.BROWSE,
+    TORRENTS = excluded.TORRENTS,
+    CATEGORY = excluded.CATEGORY;
+
+INSERT INTO INDEXER_SITES (
+    ID, NAME, DOMAIN, SEARCH, PARSER, RENDER, PUBLIC, PROXY, SOURCE_TYPE, SEARCH_TYPE, BROWSE, TORRENTS, CATEGORY
+) VALUES (
+    'ihdbits', 'iHDBits', 'https://ihdbits.me/', '{"paths": [{"path": "torrents.php", "method": "get"}], "params": {"search": "{keyword}"}, "batch": {"delimiter": " ", "space_replace": "_"}}', '', 0, 0, 0, 'MOVIE,TV,ANIME', 'title', '', '{"list": {"selector": "table.torrents > tr:has(\"table.torrentname\")"}, "fields": {"id": {"selector": "a[href*=\"details.php?id=\"]", "attribute": "href", "filters": [{"name": "re_search", "args": ["\\d+", 0]}]}, "category": {"selector": "a[href*=\"?cat=\"]", "attribute": "href", "filters": [{"name": "querystring", "args": "cat"}]}, "title_default": {"selector": "a[href*=\"details.php?id=\"]"}, "title_optional": {"optional": true, "selector": "a[title][href*=\"details.php?id=\"]", "attribute": "title"}, "title": {"text": "{% if fields[''title_optional''] %}{{ fields[''title_optional''] }}{% else %}{{ fields[''title_default''] }}{% endif %}"}, "details": {"selector": "a[href*=\"details.php?id=\"]", "attribute": "href"}, "poster": {"selector": "img[data-orig]", "attribute": "data-orig"}, "download": {"selector": "a[href*=\"download.php?id=\"]", "attribute": "href"}, "size": {"selector": "td.rowfollow:nth-child(5)"}, "grabs": {"selector": "td.rowfollow:nth-child(8)"}, "seeders": {"selector": "td.rowfollow:nth-child(6)"}, "leechers": {"selector": "td.rowfollow:nth-child(7)"}, "date_elapsed": {"selector": "td.rowfollow:nth-child(4) > span", "optional": true}, "date_added": {"selector": "td.rowfollow:nth-child(4) > span", "attribute": "title", "optional": true}, "date": {"text": "{% if fields[''date_elapsed''] or fields[''date_added''] %}{{ fields[''date_elapsed''] if fields[''date_elapsed''] else fields[''date_added''] }}{% else %}now{% endif %}", "filters": [{"name": "dateparse", "args": "%Y-%m-%d %H:%M:%S"}]}, "downloadvolumefactor": {"case": {"img.pro_free": 0, "img.pro_free2up": 0, "img.pro_50pctdown": 0.5, "img.pro_50pctdown2up": 0.5, "img.pro_30pctdown": 0.3, "*": 1}}, "uploadvolumefactor": {"case": {"img.pro_50pctdown2up": 2, "img.pro_free2up": 2, "img.pro_2up": 2, "*": 1}}, "free_deadline": {"default_value": "{% if fields[''downloadvolumefactor'']==0 %}{{max_time}}{% endif%}", "default_value_format": "%Y-%m-%d %H:%M:%S.%f", "selector": "div > b > span[title]", "attribute": "title", "filters": [{"name": "dateparse", "args": "%Y-%m-%d %H:%M:%S"}]}, "tags": {"selector": "div > a.torrents-tag"}, "subject": {"selector": "td.embedded:nth-child(2) > div > div:nth-child(2) > span", "contents": -1}, "description": {"selector": "td:nth-child(2) > table.torrentname > tr > td:nth-child(2)", "remove": "span,a,img,font,b", "contents": -1}, "labels": {"selector": "td:nth-child(2) > table.torrentname > tr > td:nth-child(2) > span"}}}', '{"movie": [{"id": 401, "cat": "Movies", "desc": "Movies/\u7535\u5f71"}], "tv": [{"id": 404, "cat": "TV/Documentary", "desc": "Documentaries/\u7eaa\u5f55\u7247"}, {"id": 405, "cat": "TV/Anime", "desc": "Animations/\u52a8\u6f2b"}, {"id": 402, "cat": "TV", "desc": "TV Series/\u8fde\u7eed\u5267"}, {"id": 403, "cat": "TV", "desc": "TV Shows/\u7efc\u827a"}]}'
+)
+ON CONFLICT(ID) DO UPDATE SET
+    NAME = excluded.NAME,
+    DOMAIN = excluded.DOMAIN,
+    SEARCH = excluded.SEARCH,
+    PARSER = excluded.PARSER,
+    RENDER = excluded.RENDER,
+    PROXY = excluded.PROXY,
+    SOURCE_TYPE = excluded.SOURCE_TYPE,
+    SEARCH_TYPE = excluded.SEARCH_TYPE,
+    BROWSE = excluded.BROWSE,
+    TORRENTS = excluded.TORRENTS,
+    CATEGORY = excluded.CATEGORY;
+
+INSERT INTO INDEXER_SITES (
+    ID, NAME, DOMAIN, SEARCH, PARSER, RENDER, PUBLIC, PROXY, SOURCE_TYPE, SEARCH_TYPE, BROWSE, TORRENTS, CATEGORY
+) VALUES (
+    'iptorrents', 'IPT', 'https://iptorrents.com/', '{"paths": [{"path": "t?q={keyword}", "method": "get"}]}', '', 0, 0, 0, 'MOVIE,TV,ANIME', 'title', '', '{"list": {"selector": "table[id=\"torrents\"] tr"}, "fields": {"id": {"selector": "a[href*=\"/t/\"]", "attribute": "href", "filters": [{"name": "re_search", "args": ["\\d+", 0]}]}, "title": {"selector": "a[href*=\"/t/\"]", "contents": 0}, "category": {"selector": "a[href*=\"?\"]", "attribute": "href", "filters": [{"name": "replace", "args": ["?", ""]}]}, "details": {"selector": "a[href*=\"/t/\"]", "attribute": "href"}, "download": {"selector": "a[href*=\"/download.php/\"]", "attribute": "href", "filters": [{"name": "lstrip", "args": ["/"]}]}, "date_elapsed": {"selector": "td:nth-child(2) > div", "optional": true}, "date_added": {"selector": "td:nth-child(2) > div", "optional": true}, "date": {"selector": "td:nth-child(2) > div", "filters": [{"name": "split", "args": ["|", 1]}, {"name": "date_en_elapsed_parse"}]}, "size": {"selector": "td:nth-child(6)"}, "seeders": {"selector": "td:nth-child(8)"}, "leechers": {"selector": "td:nth-child(9)"}, "grabs": {"selector": "td:nth-child(7)"}, "downloadvolumefactor": {"case": {"span.free": 0, "*": 1}}, "uploadvolumefactor": {"case": {"*": 1}}, "free_deadline": {"default_value": "{% if fields[''downloadvolumefactor'']==0 %}{{max_time}}{% endif%}", "default_value_format": "%Y-%m-%d %H:%M:%S.%f"}, "minimumratio": {"text": 1}, "minimumseedtime": {"text": 1209600}}}', ''
+)
+ON CONFLICT(ID) DO UPDATE SET
+    NAME = excluded.NAME,
+    DOMAIN = excluded.DOMAIN,
+    SEARCH = excluded.SEARCH,
+    PARSER = excluded.PARSER,
+    RENDER = excluded.RENDER,
+    PROXY = excluded.PROXY,
+    SOURCE_TYPE = excluded.SOURCE_TYPE,
+    SEARCH_TYPE = excluded.SEARCH_TYPE,
+    BROWSE = excluded.BROWSE,
+    TORRENTS = excluded.TORRENTS,
+    CATEGORY = excluded.CATEGORY;
+
+INSERT INTO INDEXER_SITES (
+    ID, NAME, DOMAIN, SEARCH, PARSER, RENDER, PUBLIC, PROXY, SOURCE_TYPE, SEARCH_TYPE, BROWSE, TORRENTS, CATEGORY
+) VALUES (
+    'joyhd', '开心', 'https://www.joyhd.net/', '{"paths": [{"path": "torrents.php", "method": "get"}], "params": {"search": "{keyword}"}, "batch": {"delimiter": " ", "space_replace": "_"}}', '', 0, 0, 0, 'MOVIE,TV,ANIME', 'title', '', '{"list": {"selector": "table.torrents > tr:has(\"table.torrentname\")"}, "fields": {"id": {"selector": "a[href*=\"details.php?id=\"]", "attribute": "href", "filters": [{"name": "re_search", "args": ["\\d+", 0]}]}, "title_default": {"selector": "a[href*=\"details.php?id=\"]"}, "title_optional": {"optional": true, "selector": "a[title][href*=\"details.php?id=\"]", "attribute": "title"}, "title": {"text": "{% if fields[''title_optional''] %}{{ fields[''title_optional''] }}{% else %}{{ fields[''title_default''] }}{% endif %}"}, "category": {"selector": "a[href*=\"?cat=\"]", "attribute": "href", "filters": [{"name": "replace", "args": ["?", ""]}, {"name": "querystring", "args": "cat"}]}, "details": {"selector": "a[href*=\"details.php?id=\"]", "attribute": "href"}, "download": {"selector": "a[href*=\"download.php?id=\"]", "attribute": "href"}, "imdbid": {"selector": "div.imdb_100 > a", "attribute": "href", "filters": [{"name": "re_search", "args": ["tt\\d+", 0]}]}, "date_elapsed": {"selector": "td:nth-child(4) > span", "optional": true}, "date_added": {"selector": "td:nth-child(4) > span", "attribute": "title", "optional": true}, "date": {"text": "{% if fields[''date_elapsed''] or fields[''date_added''] %}{{ fields[''date_elapsed''] if fields[''date_elapsed''] else fields[''date_added''] }}{% else %}now{% endif %}", "filters": [{"name": "dateparse", "args": "%Y-%m-%d %H:%M:%S"}]}, "size": {"selector": "td:nth-child(5)"}, "seeders": {"selector": "td:nth-child(6)"}, "leechers": {"selector": "td:nth-child(7)"}, "grabs": {"selector": "td:nth-child(8)"}, "downloadvolumefactor": {"case": {"img.pro_free": 0, "img.pro_free2up": 0, "img.pro_50pctdown": 0.5, "img.pro_50pctdown2up": 0.5, "img.pro_30pctdown": 0.3, "*": 1}}, "uploadvolumefactor": {"case": {"img.pro_50pctdown2up": 2, "img.pro_free2up": 2, "img.pro_2up": 2, "*": 1}}, "free_deadline": {"default_value": "{% if fields[''downloadvolumefactor'']==0 %}{{max_time}}{% endif%}", "default_value_format": "%Y-%m-%d %H:%M:%S.%f", "selector": "img.pro_free,img.pro_free2up", "attribute": "onmouseover", "filters": [{"name": "re_search", "args": ["\\d+-\\d+-\\d+ \\d+:\\d+:\\d+", 0]}, {"name": "dateparse", "args": "%Y-%m-%d %H:%M:%S"}]}, "description": {"selector": "td:nth-child(2) > table > tr > td.embedded", "contents": -1}, "labels": {"selector": "td:nth-child(2) > table > tr > td.embedded > span"}}}', '{"movie": [{"id": 401, "cat": "Movies", "desc": "\u7535\u5f71Movies"}], "tv": [{"id": 402, "cat": "TV", "desc": "\u5267\u96c6TV Series"}, {"id": 403, "cat": "TV/Other", "desc": "\u7efc\u827aTV Shows"}, {"id": 405, "cat": "TV/Anime", "desc": "\u52a8\u6f2bAnimations"}, {"id": 404, "cat": "TV/Documentary", "desc": "\u7eaa\u5f55\u7247Documentaries"}]}'
+)
+ON CONFLICT(ID) DO UPDATE SET
+    NAME = excluded.NAME,
+    DOMAIN = excluded.DOMAIN,
+    SEARCH = excluded.SEARCH,
+    PARSER = excluded.PARSER,
+    RENDER = excluded.RENDER,
+    PROXY = excluded.PROXY,
+    SOURCE_TYPE = excluded.SOURCE_TYPE,
+    SEARCH_TYPE = excluded.SEARCH_TYPE,
+    BROWSE = excluded.BROWSE,
+    TORRENTS = excluded.TORRENTS,
+    CATEGORY = excluded.CATEGORY;
+
+INSERT INTO INDEXER_SITES (
+    ID, NAME, DOMAIN, SEARCH, PARSER, RENDER, PUBLIC, PROXY, SOURCE_TYPE, SEARCH_TYPE, BROWSE, TORRENTS, CATEGORY
+) VALUES (
+    'jptv', 'JPTV', 'https://jptv.club/', '{"paths": [{"path": "torrents/filter?search={keyword}", "method": "get"}]}', '', 0, 0, 0, 'MOVIE,TV,ANIME', 'title', '{"path": "torrents/filter?page={page}", "start": 1}', '{"list": {"selector": "div.table-responsive > table > tbody > tr"}, "fields": {"id": {"selector": "a.view-torrent", "attribute": "href", "filters": [{"name": "re_search", "args": ["\\d+", 0]}]}, "title": {"selector": "a.view-torrent"}, "details": {"selector": "a.view-torrent", "attribute": "href"}, "download": {"selector": "a[href*=\"torrents/download/\"]", "attribute": "href"}, "date_elapsed": {"selector": "td:nth-child(7) > time"}, "size": {"selector": "td:nth-child(8) > span", "remove": "span"}, "seeders": {"selector": "td:nth-child(9) > a > span"}, "leechers": {"selector": "td:nth-child(10) > a > span"}, "grabs": {"selector": "td:nth-child(11) > a > span", "filters": [{"name": "re_search", "args": ["\\d+", 0]}]}, "downloadvolumefactor": {"case": {"*": 1}}, "uploadvolumefactor": {"case": {"*": 1}}}}', ''
+)
+ON CONFLICT(ID) DO UPDATE SET
+    NAME = excluded.NAME,
+    DOMAIN = excluded.DOMAIN,
+    SEARCH = excluded.SEARCH,
+    PARSER = excluded.PARSER,
+    RENDER = excluded.RENDER,
+    PROXY = excluded.PROXY,
+    SOURCE_TYPE = excluded.SOURCE_TYPE,
+    SEARCH_TYPE = excluded.SEARCH_TYPE,
+    BROWSE = excluded.BROWSE,
+    TORRENTS = excluded.TORRENTS,
+    CATEGORY = excluded.CATEGORY;
+
+INSERT INTO INDEXER_SITES (
+    ID, NAME, DOMAIN, SEARCH, PARSER, RENDER, PUBLIC, PROXY, SOURCE_TYPE, SEARCH_TYPE, BROWSE, TORRENTS, CATEGORY
+) VALUES (
+    'keepfrds', '朋友', 'https://pt.keepfrds.com/', '{"paths": [{"path": "torrents.php", "method": "get"}], "params": {"search": "{keyword}"}, "batch": {"delimiter": " ", "space_replace": "_"}}', '', 0, 0, 0, 'MOVIE,TV,ANIME', 'title', '', '{"list": {"selector": "table.torrents > tr:has(\"table.torrentname\")"}, "fields": {"id": {"selector": "a[href*=\"details.php?id=\"]", "attribute": "href", "filters": [{"name": "re_search", "args": ["\\d+", 0]}]}, "category": {"selector": "a[href*=\"?cat=\"]", "attribute": "href", "filters": [{"name": "querystring", "args": "cat"}]}, "details": {"selector": "a[href*=\"details.php?id=\"]", "attribute": "href"}, "download": {"selector": "a[href*=\"download.php?id=\"]", "attribute": "href"}, "size": {"selector": "td:nth-child(5)"}, "grabs": {"selector": "td:nth-child(8)"}, "seeders": {"selector": "td:nth-child(6)"}, "leechers": {"selector": "td:nth-child(7)"}, "date_elapsed": {"selector": "td:nth-child(4) > span", "optional": true}, "date_added": {"selector": "td:nth-child(4) > span", "attribute": "title", "optional": true}, "date": {"text": "{% if fields[''date_elapsed''] or fields[''date_added''] %}{{ fields[''date_elapsed''] if fields[''date_elapsed''] else fields[''date_added''] }}{% else %}now{% endif %}", "filters": [{"name": "dateparse", "args": "%Y-%m-%d %H:%M:%S"}]}, "downloadvolumefactor": {"case": {"img.pro_free": 0, "img.pro_free2up": 0, "img.pro_50pctdown": 0.5, "img.pro_50pctdown2up": 0.5, "img.pro_30pctdown": 0.3, "*": 1}}, "uploadvolumefactor": {"case": {"img.pro_50pctdown2up": 2, "img.pro_free2up": 2, "img.pro_2up": 2, "*": 1}}, "free_deadline": {"selector": "img.pro_free,img.pro_free2up", "attribute": "onmouseover", "filters": [{"name": "re_search", "args": ["\\d+-\\d+-\\d+ \\d+:\\d+:\\d+", 0]}, {"name": "dateparse", "args": "%Y-%m-%d %H:%M:%S"}]}, "description": {"selector": "a[title][href*=\"details.php?id=\"]", "attribute": "title"}, "labels": {"selector": "a[title][href*=\"details.php?id=\"] > span"}, "title": {"selector": "table.torrentname > tr > td", "remove": "a,b"}}}', '{"movie": [{"id": 401, "cat": "Movies", "desc": "Movies/\u7535\u5f71"}, {"id": 301, "cat": "Movies", "desc": "Movie Packs/\u7535\u5f71(\u5408\u96c6)"}], "tv": [{"id": 404, "cat": "TV/Documentary", "desc": "Documentaries/\u7eaa\u5f55\u7247"}, {"id": 304, "cat": "TV/Documentary", "desc": "Documentary Packs/\u7eaa\u5f55\u7247(\u5408\u96c6)"}, {"id": 405, "cat": "TV/Anime", "desc": "Animations/\u52a8\u6f2b"}, {"id": 305, "cat": "TV/Anime", "desc": "Animation Packs/\u52a8\u6f2b(\u5408\u96c6)"}, {"id": 402, "cat": "TV", "desc": "TV Series/\u5267\u96c6"}, {"id": 302, "cat": "TV", "desc": "TV Serie Packs/\u5267\u96c6(\u5408\u96c6)"}, {"id": 403, "cat": "TV", "desc": "TV Shows/\u7efc\u827a"}, {"id": 303, "cat": "TV", "desc": "TV Show Packs/\u7efc\u827a(\u5408\u96c6)"}]}'
+)
+ON CONFLICT(ID) DO UPDATE SET
+    NAME = excluded.NAME,
+    DOMAIN = excluded.DOMAIN,
+    SEARCH = excluded.SEARCH,
+    PARSER = excluded.PARSER,
+    RENDER = excluded.RENDER,
+    PROXY = excluded.PROXY,
+    SOURCE_TYPE = excluded.SOURCE_TYPE,
+    SEARCH_TYPE = excluded.SEARCH_TYPE,
+    BROWSE = excluded.BROWSE,
+    TORRENTS = excluded.TORRENTS,
+    CATEGORY = excluded.CATEGORY;
+
+INSERT INTO INDEXER_SITES (
+    ID, NAME, DOMAIN, SEARCH, PARSER, RENDER, PUBLIC, PROXY, SOURCE_TYPE, SEARCH_TYPE, BROWSE, TORRENTS, CATEGORY
+) VALUES (
+    'leaves', '红叶PT', 'https://leaves.red/', '{"paths": [{"path": "torrents.php", "method": "get"}], "params": {"search": "{keyword}"}, "batch": {"delimiter": " ", "space_replace": "_"}}', '', 0, 0, 0, 'MOVIE,TV,ANIME', 'title', '', '{"list": {"selector": "table.torrents > tr:has(\"table.torrentname\")"}, "fields": {"id": {"selector": "a[href*=\"details.php?id=\"]", "attribute": "href", "filters": [{"name": "re_search", "args": ["\\d+", 0]}]}, "category": {"selector": "a[href*=\"?cat=\"]", "attribute": "href", "filters": [{"name": "querystring", "args": "cat"}]}, "title_default": {"selector": "a[href*=\"details.php?id=\"]"}, "title_optional": {"optional": true, "selector": "a[title][href*=\"details.php?id=\"]", "attribute": "title"}, "title": {"text": "{% if fields[''title_optional''] %}{{ fields[''title_optional''] }}{% else %}{{ fields[''title_default''] }}{% endif %}"}, "details": {"selector": "a[href*=\"details.php?id=\"]", "attribute": "href"}, "poster": {"selector": "img[data-orig]", "attribute": "data-orig"}, "download": {"selector": "a[href*=\"download.php?id=\"]", "attribute": "href"}, "size": {"selector": "td.rowfollow:nth-child(5)"}, "grabs": {"selector": "td.rowfollow:nth-child(8)"}, "seeders": {"selector": "td.rowfollow:nth-child(6)"}, "leechers": {"selector": "td.rowfollow:nth-child(7)"}, "date_elapsed": {"selector": "td.rowfollow:nth-child(4) > span", "optional": true}, "date_added": {"selector": "td.rowfollow:nth-child(4) > span", "attribute": "title", "optional": true}, "date": {"text": "{% if fields[''date_elapsed''] or fields[''date_added''] %}{{ fields[''date_elapsed''] if fields[''date_elapsed''] else fields[''date_added''] }}{% else %}now{% endif %}", "filters": [{"name": "dateparse", "args": "%Y-%m-%d %H:%M:%S"}]}, "downloadvolumefactor": {"case": {"img.pro_free": 0, "img.pro_free2up": 0, "img.pro_50pctdown": 0.5, "img.pro_50pctdown2up": 0.5, "img.pro_30pctdown": 0.3, "*": 1}}, "uploadvolumefactor": {"case": {"img.pro_50pctdown2up": 2, "img.pro_free2up": 2, "img.pro_2up": 2, "*": 1}}, "free_deadline": {"default_value": "{% if fields[''downloadvolumefactor'']==0 %}{{max_time}}{% endif%}", "default_value_format": "%Y-%m-%d %H:%M:%S.%f", "selector": "div > b > span[title]", "attribute": "title", "filters": [{"name": "dateparse", "args": "%Y-%m-%d %H:%M:%S"}]}, "tags": {"selector": "div > a.torrents-tag"}, "subject": {"selector": "td.embedded:nth-child(2) > div > div:nth-child(2) > span", "contents": -1}, "description": {"selector": "td:nth-child(2) > table.torrentname > tr > td:nth-child(2)"}, "labels": {"selector": "td:nth-child(2) > table.torrentname > tr > td:nth-child(2) > span", "remove": "span,a,img,font,b", "contents": -1}}}', '{"movie": [{"id": 401, "cat": "Movies", "desc": "\u7535\u5f71"}], "tv": [{"id": 402, "cat": "TV/Series", "desc": "TV Series (\u5267\u96c6)"}, {"id": 403, "cat": "TV/Shows", "desc": "TV Shows (\u7535\u89c6\u8282\u76ee)"}, {"id": 404, "cat": "TV/Documentaries", "desc": "Documentaries (\u7eaa\u5b9e)"}, {"id": 405, "cat": "TV/Animations", "desc": "Animations (\u52a8\u753b)"}]}'
+)
+ON CONFLICT(ID) DO UPDATE SET
+    NAME = excluded.NAME,
+    DOMAIN = excluded.DOMAIN,
+    SEARCH = excluded.SEARCH,
+    PARSER = excluded.PARSER,
+    RENDER = excluded.RENDER,
+    PROXY = excluded.PROXY,
+    SOURCE_TYPE = excluded.SOURCE_TYPE,
+    SEARCH_TYPE = excluded.SEARCH_TYPE,
+    BROWSE = excluded.BROWSE,
+    TORRENTS = excluded.TORRENTS,
+    CATEGORY = excluded.CATEGORY;
+
+INSERT INTO INDEXER_SITES (
+    ID, NAME, DOMAIN, SEARCH, PARSER, RENDER, PUBLIC, PROXY, SOURCE_TYPE, SEARCH_TYPE, BROWSE, TORRENTS, CATEGORY
+) VALUES (
+    'lemonhd', '柠檬', 'https://lemonhd.club/', '{"paths": [{"path": "torrents.php", "type": "all", "method": "get"}, {"path": "torrents_movie.php", "type": "movie", "method": "get"}, {"path": "torrents_tv.php", "type": "tv", "method": "get"}, {"path": "torrents_animate.php", "type": "anime", "method": "get"}], "params": {"search": "{keyword}", "stype": "s"}}', '', 0, 0, 0, 'MOVIE,TV,ANIME', 'title', '', '{"list": {"selector": "table.torrents > tr:has(\"a[href]\")"}, "fields": {"id": {"selector": "a[href*=\"details_\"]", "attribute": "href", "filters": [{"name": "re_search", "args": ["\\d+", 0]}]}, "free_deadline": {"selector": "div[style*=\"padding-left\"] > span", "attribute": "title", "filters": [{"name": "dateparse", "args": "%Y-%m-%d %H:%M:%S"}]}, "category": {"selector": "img[class*=\"cat_\"]", "attribute": "class", "filters": [{"name": "replace", "args": ["cat_", ""]}]}, "title_default": {"selector": "a[href*=\"details_\"] > b"}, "title_optional": {"optional": true, "selector": "a[title][href*=\"details_\"]", "attribute": "title"}, "title": {"text": "{% if fields[''title_optional''] %}{{ fields[''title_optional''] }}{% else %}{{ fields[''title_default''] }}{% endif %}"}, "details": {"selector": "a[href*=\"details_\"]", "attribute": "href"}, "download": {"selector": "a[href*=\"download.php?\"]", "attribute": "href"}, "imdbid": {"selector": "a[href*=\"imdb.com/title/tt\"]", "attribute": "href", "filters": [{"name": "re_search", "args": ["tt\\d+", 0]}]}, "date_elapsed": {"selector": "td:nth-last-child(7) > span", "optional": true}, "date_added": {"selector": "td:nth-last-child(7) > span", "attribute": "title", "optional": true}, "date": {"text": "{% if fields[''date_elapsed''] or fields[''date_added''] %}{{ fields[''date_elapsed''] if fields[''date_elapsed''] else fields[''date_added''] }}{% else %}now{% endif %}", "filters": [{"name": "dateparse", "args": "%Y-%m-%d %H:%M:%S"}]}, "size": {"selector": "td:nth-last-child(6)"}, "seeders": {"selector": "td:nth-last-child(5)"}, "leechers": {"selector": "td:nth-last-child(4)"}, "grabs": {"selector": "td:nth-last-child(3)"}, "downloadvolumefactor": {"case": {"div[style*=\"padding-left\"] > span": 0, "div[style*=\"padding-left\"]": 0, "*": 1}}, "uploadvolumefactor": {"case": {"*": 1}}, "description": {"selector": "td:nth-child(3) > div", "index": 1}, "labels": {"selector": "td:nth-child(3) > span"}}}', ''
+)
+ON CONFLICT(ID) DO UPDATE SET
+    NAME = excluded.NAME,
+    DOMAIN = excluded.DOMAIN,
+    SEARCH = excluded.SEARCH,
+    PARSER = excluded.PARSER,
+    RENDER = excluded.RENDER,
+    PROXY = excluded.PROXY,
+    SOURCE_TYPE = excluded.SOURCE_TYPE,
+    SEARCH_TYPE = excluded.SEARCH_TYPE,
+    BROWSE = excluded.BROWSE,
+    TORRENTS = excluded.TORRENTS,
+    CATEGORY = excluded.CATEGORY;
+
+INSERT INTO INDEXER_SITES (
+    ID, NAME, DOMAIN, SEARCH, PARSER, RENDER, PUBLIC, PROXY, SOURCE_TYPE, SEARCH_TYPE, BROWSE, TORRENTS, CATEGORY
+) VALUES (
+    'monikadesign', '莫妮卡', 'https://monikadesign.uk/', '{"paths": [{"path": "torrents?perPage=100&name={keyword}&categories[0]=6&categories[1]=7&categories[2]=5&categories[3]=1&categories[4]=8&categories[5]=2", "method": "get"}]}', '', 0, 0, 0, 'MOVIE,TV,ANIME', 'title', '{"path": "torrents?perPage=100&page={page}", "start": 1}', '{"list": {"selector": "table#torrent-list-table > tbody > tr"}, "fields": {"id": {"selector": "a.view-torrent.torrent-listings-name", "attribute": "href", "filters": [{"name": "re_search", "args": ["\\d+", 0]}]}, "title": {"selector": "a.view-torrent.torrent-listings-name"}, "description": {"selector": "span.view-torrent.torrent-listings-subhead > b"}, "details": {"selector": "a.view-torrent.torrent-listings-name", "attribute": "href"}, "download": {"selector": "a[href*=\"/torrents/download/\"]", "attribute": "href"}, "date_elapsed": {"selector": "td.torrent-listings-age > span.badge-extra"}, "date": {"text": "{% if fields[''date_elapsed''] or fields[''date_added''] %}{{ fields[''date_elapsed''] if fields[''date_elapsed''] else fields[''date_added''] }}{% else %}now{% endif %}", "filters": [{"name": "dateparse", "args": "%Y-%m-%d %H:%M:%S"}]}, "size": {"selector": "td.torrent-listings-size > span"}, "seeders": {"selector": "td.torrent-listings-seeders > a > span"}, "leechers": {"selector": "td.torrent-listings-leechers > a > span"}, "grabs": {"selector": "td.torrent-listings-completed > a > span"}, "downloadvolumefactor": {"case": {"span.torrent-listings-freeleech": 0, "*": 1}}, "uploadvolumefactor": {"case": {"*": 1}}}}', ''
+)
+ON CONFLICT(ID) DO UPDATE SET
+    NAME = excluded.NAME,
+    DOMAIN = excluded.DOMAIN,
+    SEARCH = excluded.SEARCH,
+    PARSER = excluded.PARSER,
+    RENDER = excluded.RENDER,
+    PROXY = excluded.PROXY,
+    SOURCE_TYPE = excluded.SOURCE_TYPE,
+    SEARCH_TYPE = excluded.SEARCH_TYPE,
+    BROWSE = excluded.BROWSE,
+    TORRENTS = excluded.TORRENTS,
+    CATEGORY = excluded.CATEGORY;
+
+INSERT INTO INDEXER_SITES (
+    ID, NAME, DOMAIN, SEARCH, PARSER, RENDER, PUBLIC, PROXY, SOURCE_TYPE, SEARCH_TYPE, BROWSE, TORRENTS, CATEGORY
+) VALUES (
+    'nanyangpt', '南洋', 'https://nanyangpt.com/', '{"paths": [{"path": "torrents.php", "method": "get"}], "params": {"search": "{keyword}"}, "batch": {"delimiter": " ", "space_replace": "_"}}', '', 0, 0, 0, 'MOVIE,TV,ANIME', 'title', '', '{"list": {"selector": "table.torrents > form > tr:has(\"table.torrentname\")"}, "fields": {"id": {"selector": "a[href*=\"details.php?id=\"]", "attribute": "href", "filters": [{"name": "re_search", "args": ["\\d+", 0]}]}, "title_default": {"selector": "a[href*=\"details.php?id=\"]"}, "title_optional": {"optional": true, "selector": "a[title][href*=\"details.php?id=\"]", "attribute": "title"}, "title": {"text": "{% if fields[''title_optional''] %}{{ fields[''title_optional''] }}{% else %}{{ fields[''title_default''] }}{% endif %}"}, "category": {"selector": "a[href*=\"?cat=\"]", "attribute": "href", "filters": [{"name": "replace", "args": ["?", ""]}, {"name": "querystring", "args": "cat"}]}, "details": {"selector": "a[href*=\"details.php?id=\"]", "attribute": "href"}, "download": {"selector": "a[href*=\"download.php?id=\"]", "attribute": "href"}, "imdbid": {"selector": "div.imdb_100 > a", "attribute": "href", "filters": [{"name": "re_search", "args": ["tt\\d+", 0]}]}, "date_elapsed": {"selector": "td:nth-child(4) > span", "optional": true}, "date_added": {"selector": "td:nth-child(4) > span", "attribute": "title", "optional": true}, "date": {"text": "{% if fields[''date_elapsed''] or fields[''date_added''] %}{{ fields[''date_elapsed''] if fields[''date_elapsed''] else fields[''date_added''] }}{% else %}now{% endif %}", "filters": [{"name": "dateparse", "args": "%Y-%m-%d %H:%M:%S"}]}, "size": {"selector": "td:nth-child(5)"}, "seeders": {"selector": "td:nth-child(6)"}, "leechers": {"selector": "td:nth-child(7)"}, "grabs": {"selector": "td:nth-child(8)"}, "downloadvolumefactor": {"case": {"img.pro_free": 0, "img.pro_free2up": 0, "img.pro_50pctdown": 0.5, "img.pro_50pctdown2up": 0.5, "img.pro_30pctdown": 0.3, "*": 1}}, "uploadvolumefactor": {"case": {"img.pro_50pctdown2up": 2, "img.pro_free2up": 2, "img.pro_2up": 2, "*": 1}}, "free_deadline": {"default_value": "{% if fields[''downloadvolumefactor'']==0 %}{{max_time}}{% endif%}", "default_value_format": "%Y-%m-%d %H:%M:%S.%f", "selector": "img.pro_free,img.pro_free2up", "attribute": "onmouseover", "filters": [{"name": "re_search", "args": ["\\d+-\\d+-\\d+ \\d+:\\d+:\\d+", 0]}, {"name": "dateparse", "args": "%Y-%m-%d %H:%M:%S"}]}, "description": {"selector": "td:nth-child(2) > table > tr > td.embedded", "contents": -1}, "labels": {"selector": "td:nth-child(2) > table > tr > td.embedded > span"}}}', ''
+)
+ON CONFLICT(ID) DO UPDATE SET
+    NAME = excluded.NAME,
+    DOMAIN = excluded.DOMAIN,
+    SEARCH = excluded.SEARCH,
+    PARSER = excluded.PARSER,
+    RENDER = excluded.RENDER,
+    PROXY = excluded.PROXY,
+    SOURCE_TYPE = excluded.SOURCE_TYPE,
+    SEARCH_TYPE = excluded.SEARCH_TYPE,
+    BROWSE = excluded.BROWSE,
+    TORRENTS = excluded.TORRENTS,
+    CATEGORY = excluded.CATEGORY;
+
+INSERT INTO INDEXER_SITES (
+    ID, NAME, DOMAIN, SEARCH, PARSER, RENDER, PUBLIC, PROXY, SOURCE_TYPE, SEARCH_TYPE, BROWSE, TORRENTS, CATEGORY
+) VALUES (
+    'nicept', '老师', 'https://www.nicept.net/', '{"paths": [{"path": "torrents.php", "method": "get"}], "params": {"search": "{keyword}"}, "batch": {"delimiter": " ", "space_replace": "_"}}', '', 0, 0, 0, 'MOVIE,TV,ANIME', 'title', '', '{"list": {"selector": "table.torrents > tr:has(\"table.torrentname\")"}, "fields": {"id": {"selector": "a[href*=\"details.php?id=\"]", "attribute": "href", "filters": [{"name": "re_search", "args": ["\\d+", 0]}]}, "title_default": {"selector": "a[href*=\"details.php?id=\"]"}, "title_optional": {"optional": true, "selector": "a[title][href*=\"details.php?id=\"]", "attribute": "title"}, "title": {"text": "{% if fields[''title_optional''] %}{{ fields[''title_optional''] }}{% else %}{{ fields[''title_default''] }}{% endif %}"}, "category": {"selector": "a[href*=\"?cat=\"]", "attribute": "href", "filters": [{"name": "replace", "args": ["?", ""]}, {"name": "querystring", "args": "cat"}]}, "details": {"selector": "a[href*=\"details.php?id=\"]", "attribute": "href"}, "download": {"selector": "a[href*=\"download.php?id=\"]", "attribute": "href"}, "poster": {"text": ""}, "imdbid": {"selector": "div.imdb_100 > a", "attribute": "href", "filters": [{"name": "re_search", "args": ["tt\\d+", 0]}]}, "date_elapsed": {"selector": "td:nth-child(4) > span", "optional": true}, "date_added": {"selector": "td:nth-child(4) > span", "attribute": "title", "optional": true}, "date": {"text": "{% if fields[''date_elapsed''] or fields[''date_added''] %}{{ fields[''date_elapsed''] if fields[''date_elapsed''] else fields[''date_added''] }}{% else %}now{% endif %}", "filters": [{"name": "dateparse", "args": "%Y-%m-%d %H:%M:%S"}]}, "size": {"selector": "td:nth-child(5)"}, "seeders": {"selector": "td:nth-child(6)"}, "leechers": {"selector": "td:nth-child(7)"}, "grabs": {"selector": "td:nth-child(8)"}, "downloadvolumefactor": {"case": {"img.pro_free": 0, "img.pro_free2up": 0, "img.pro_50pctdown": 0.5, "img.pro_50pctdown2up": 0.5, "img.pro_30pctdown": 0.3, "*": 1}}, "uploadvolumefactor": {"case": {"img.pro_50pctdown2up": 2, "img.pro_free2up": 2, "img.pro_2up": 2, "*": 1}}, "free_deadline": {"default_value": "{% if fields[''downloadvolumefactor'']==0 %}{{max_time}}{% endif%}", "default_value_format": "%Y-%m-%d %H:%M:%S.%f", "selector": "img.pro_free,img.pro_free2up", "attribute": "onmouseover", "filters": [{"name": "re_search", "args": ["\\d+-\\d+-\\d+ \\d+:\\d+:\\d+", 0]}, {"name": "dateparse", "args": "%Y-%m-%d %H:%M:%S"}]}, "description": {"selector": "td:nth-child(2) > table > tr > td.embedded", "contents": -1}, "labels": {"selector": "td:nth-child(2) > table > tr > td.embedded > span"}}}', ''
+)
+ON CONFLICT(ID) DO UPDATE SET
+    NAME = excluded.NAME,
+    DOMAIN = excluded.DOMAIN,
+    SEARCH = excluded.SEARCH,
+    PARSER = excluded.PARSER,
+    RENDER = excluded.RENDER,
+    PROXY = excluded.PROXY,
+    SOURCE_TYPE = excluded.SOURCE_TYPE,
+    SEARCH_TYPE = excluded.SEARCH_TYPE,
+    BROWSE = excluded.BROWSE,
+    TORRENTS = excluded.TORRENTS,
+    CATEGORY = excluded.CATEGORY;
+
+INSERT INTO INDEXER_SITES (
+    ID, NAME, DOMAIN, SEARCH, PARSER, RENDER, PUBLIC, PROXY, SOURCE_TYPE, SEARCH_TYPE, BROWSE, TORRENTS, CATEGORY
+) VALUES (
+    'oshenpt', 'OshenPT', 'https://www.oshen.win/', '{"paths": [{"path": "torrents.php", "method": "get"}], "params": {"search": "{keyword}"}, "batch": {"delimiter": " ", "space_replace": "_"}}', '', 0, 0, 0, 'MOVIE,TV,ANIME', 'title', '', '{"list": {"selector": "table.torrents > tr:has(\"table.torrentname\")"}, "fields": {"id": {"selector": "a[href*=\"details.php?id=\"]", "attribute": "href", "filters": [{"name": "re_search", "args": ["\\d+", 0]}]}, "category": {"selector": "a[href*=\"?cat=\"]", "attribute": "href", "filters": [{"name": "querystring", "args": "cat"}]}, "title_default": {"selector": "a[href*=\"details.php?id=\"]"}, "title_optional": {"optional": true, "selector": "a[title][href*=\"details.php?id=\"]", "attribute": "title"}, "title": {"text": "{% if fields[''title_optional''] %}{{ fields[''title_optional''] }}{% else %}{{ fields[''title_default''] }}{% endif %}"}, "details": {"selector": "a[href*=\"details.php?id=\"]", "attribute": "href"}, "poster": {"selector": "img[data-orig]", "attribute": "data-orig"}, "download": {"selector": "a[href*=\"download.php?id=\"]", "attribute": "href"}, "size": {"selector": "td.rowfollow:nth-child(5)"}, "grabs": {"selector": "td.rowfollow:nth-child(8)"}, "seeders": {"selector": "td.rowfollow:nth-child(6)"}, "leechers": {"selector": "td.rowfollow:nth-child(7)"}, "date_elapsed": {"selector": "td.rowfollow:nth-child(4) > span", "optional": true}, "date_added": {"selector": "td.rowfollow:nth-child(4) > span", "attribute": "title", "optional": true}, "date": {"text": "{% if fields[''date_elapsed''] or fields[''date_added''] %}{{ fields[''date_elapsed''] if fields[''date_elapsed''] else fields[''date_added''] }}{% else %}now{% endif %}", "filters": [{"name": "dateparse", "args": "%Y-%m-%d %H:%M:%S"}]}, "downloadvolumefactor": {"case": {"img.pro_free": 0, "img.pro_free2up": 0, "img.pro_50pctdown": 0.5, "img.pro_50pctdown2up": 0.5, "img.pro_30pctdown": 0.3, "*": 1}}, "uploadvolumefactor": {"case": {"img.pro_50pctdown2up": 2, "img.pro_free2up": 2, "img.pro_2up": 2, "*": 1}}, "free_deadline": {"default_value": "{% if fields[''downloadvolumefactor'']==0 %}{{max_time}}{% endif%}", "default_value_format": "%Y-%m-%d %H:%M:%S.%f", "selector": "div > b > span[title]", "attribute": "title", "filters": [{"name": "dateparse", "args": "%Y-%m-%d %H:%M:%S"}]}, "tags": {"selector": "div > a.torrents-tag"}, "subject": {"selector": "td.embedded:nth-child(2) > div > div:nth-child(2) > span", "contents": -1}, "description": {"selector": "td:nth-child(2) > table.torrentname > tr > td:nth-child(2)", "remove": "span,a,img,font,b", "contents": -1}, "labels": {"selector": "td:nth-child(2) > table.torrentname > tr > td:nth-child(2) > span"}}}', '{"movie": [{"id": 401, "cat": "Movies", "desc": "Movies/\u7535\u5f71"}], "tv": [{"id": 404, "cat": "TV/Documentary", "desc": "Documentaries/\u7eaa\u5f55\u7247"}, {"id": 405, "cat": "TV/Anime", "desc": "Animations/\u52a8\u6f2b"}, {"id": 402, "cat": "TV", "desc": "TV Series/\u8fde\u7eed\u5267"}, {"id": 403, "cat": "TV", "desc": "TV Shows/\u7efc\u827a"}]}'
+)
+ON CONFLICT(ID) DO UPDATE SET
+    NAME = excluded.NAME,
+    DOMAIN = excluded.DOMAIN,
+    SEARCH = excluded.SEARCH,
+    PARSER = excluded.PARSER,
+    RENDER = excluded.RENDER,
+    PROXY = excluded.PROXY,
+    SOURCE_TYPE = excluded.SOURCE_TYPE,
+    SEARCH_TYPE = excluded.SEARCH_TYPE,
+    BROWSE = excluded.BROWSE,
+    TORRENTS = excluded.TORRENTS,
+    CATEGORY = excluded.CATEGORY;
+
+INSERT INTO INDEXER_SITES (
+    ID, NAME, DOMAIN, SEARCH, PARSER, RENDER, PUBLIC, PROXY, SOURCE_TYPE, SEARCH_TYPE, BROWSE, TORRENTS, CATEGORY
+) VALUES (
+    'piggo', '猪猪', 'https://piggo.me/', '{"paths": [{"path": "search.php", "method": "get"}], "params": {"search": "{keyword}"}, "batch": {"delimiter": " ", "space_replace": "_"}}', '', 0, 0, 0, 'MOVIE,TV,ANIME', 'title', '{"path": "torrents.php"}', '{"list": {"selector": "table.torrents > tr:has(\"table.torrentname\")"}, "fields": {"id": {"selector": "a[href*=\"details.php?id=\"]", "attribute": "href", "filters": [{"name": "re_search", "args": ["\\d+", 0]}]}, "category": {"selector": "a[href*=\"?cat=\"]", "attribute": "href", "filters": [{"name": "querystring", "args": "cat"}]}, "title_default": {"selector": "a[href*=\"details.php?id=\"]"}, "title_optional": {"optional": true, "selector": "a[title][href*=\"details.php?id=\"]", "attribute": "title"}, "title": {"text": "{% if fields[''title_optional''] %}{{ fields[''title_optional''] }}{% else %}{{ fields[''title_default''] }}{% endif %}"}, "details": {"selector": "a[href*=\"details.php?id=\"]", "attribute": "href"}, "poster": {"selector": "img[data-orig]", "attribute": "data-orig"}, "download": {"selector": "a[href*=\"download.php?id=\"]", "attribute": "href"}, "size": {"selector": "td.rowfollow:nth-child(5)"}, "grabs": {"selector": "td.rowfollow:nth-child(8)"}, "seeders": {"selector": "td.rowfollow:nth-child(6)"}, "leechers": {"selector": "td.rowfollow:nth-child(7)"}, "date_elapsed": {"selector": "td.rowfollow:nth-child(4) > span", "optional": true}, "date_added": {"selector": "td.rowfollow:nth-child(4) > span", "attribute": "title", "optional": true}, "date": {"text": "{% if fields[''date_elapsed''] or fields[''date_added''] %}{{ fields[''date_elapsed''] if fields[''date_elapsed''] else fields[''date_added''] }}{% else %}now{% endif %}", "filters": [{"name": "dateparse", "args": "%Y-%m-%d %H:%M:%S"}]}, "downloadvolumefactor": {"case": {"img.pro_free": 0, "img.pro_free2up": 0, "img.pro_50pctdown": 0.5, "img.pro_50pctdown2up": 0.5, "img.pro_30pctdown": 0.3, "*": 1}}, "uploadvolumefactor": {"case": {"img.pro_50pctdown2up": 2, "img.pro_free2up": 2, "img.pro_2up": 2, "*": 1}}, "free_deadline": {"default_value": "{% if fields[''downloadvolumefactor'']==0 %}{{max_time}}{% endif%}", "default_value_format": "%Y-%m-%d %H:%M:%S.%f", "selector": "div > b > span[title]", "attribute": "title", "filters": [{"name": "dateparse", "args": "%Y-%m-%d %H:%M:%S"}]}, "tags": {"selector": "div > a.torrents-tag"}, "subject": {"selector": "td.embedded:nth-child(2) > div > div[style] > span", "contents": -1}, "description": {"selector": "td:nth-child(2) > table.torrentname > td:has(\"a[href*=''details.php?id='']\")", "remove": "span,a,img,font,b", "contents": -1}, "labels": {"selector": "td:nth-child(2) > table.torrentname > td:has(\"a[href*=''details.php?id='']\") > span"}}}', '{"movie": [{"id": 401, "cat": "Movies", "desc": "\u7535\u5f71"}], "tv": [{"id": 402, "cat": "TV/Series", "desc": "\u7535\u89c6\u5267"}, {"id": 403, "cat": "TV/Shows", "desc": "\u7efc\u827a"}, {"id": 404, "cat": "TV/Documentaries", "desc": "\u7eaa\u5f55\u7247"}, {"id": 405, "cat": "TV/Animations", "desc": "\u52a8\u6f2b"}, {"id": 908, "cat": "TV/Series", "desc": "\u513f\u7ae5\u5267\u96c6"}, {"id": 909, "cat": "Movies", "desc": "\u513f\u7ae5\u7535\u5f71"}]}'
+)
+ON CONFLICT(ID) DO UPDATE SET
+    NAME = excluded.NAME,
+    DOMAIN = excluded.DOMAIN,
+    SEARCH = excluded.SEARCH,
+    PARSER = excluded.PARSER,
+    RENDER = excluded.RENDER,
+    PROXY = excluded.PROXY,
+    SOURCE_TYPE = excluded.SOURCE_TYPE,
+    SEARCH_TYPE = excluded.SEARCH_TYPE,
+    BROWSE = excluded.BROWSE,
+    TORRENTS = excluded.TORRENTS,
+    CATEGORY = excluded.CATEGORY;
+
+INSERT INTO INDEXER_SITES (
+    ID, NAME, DOMAIN, SEARCH, PARSER, RENDER, PUBLIC, PROXY, SOURCE_TYPE, SEARCH_TYPE, BROWSE, TORRENTS, CATEGORY
+) VALUES (
+    'ptchina', '铂金学院', 'https://ptchina.org/', '{"paths": [{"path": "torrents.php", "method": "get"}], "params": {"search": "{keyword}"}, "batch": {"delimiter": " ", "space_replace": "_"}}', '', 0, 0, 0, 'MOVIE,TV,ANIME', 'title', '', '{"list": {"selector": "table.torrents > tr:has(\"table.torrentname\")"}, "fields": {"id": {"selector": "a[href*=\"details.php?id=\"]", "attribute": "href", "filters": [{"name": "re_search", "args": ["\\d+", 0]}]}, "category": {"selector": "a[href*=\"?cat=\"]", "attribute": "href", "filters": [{"name": "querystring", "args": "cat"}]}, "title_default": {"selector": "a[href*=\"details.php?id=\"]"}, "title_optional": {"optional": true, "selector": "a[title][href*=\"details.php?id=\"]", "attribute": "title"}, "title": {"text": "{% if fields[''title_optional''] %}{{ fields[''title_optional''] }}{% else %}{{ fields[''title_default''] }}{% endif %}"}, "details": {"selector": "a[href*=\"details.php?id=\"]", "attribute": "href"}, "poster": {"selector": "img[data-orig]", "attribute": "data-orig"}, "download": {"selector": "a[href*=\"download.php?id=\"]", "attribute": "href"}, "size": {"selector": "td.rowfollow:nth-child(5)"}, "grabs": {"selector": "td.rowfollow:nth-child(8)"}, "seeders": {"selector": "td.rowfollow:nth-child(6)"}, "leechers": {"selector": "td.rowfollow:nth-child(7)"}, "date_elapsed": {"selector": "td.rowfollow:nth-child(4) > span", "optional": true}, "date_added": {"selector": "td.rowfollow:nth-child(4) > span", "attribute": "title", "optional": true}, "date": {"text": "{% if fields[''date_elapsed''] or fields[''date_added''] %}{{ fields[''date_elapsed''] if fields[''date_elapsed''] else fields[''date_added''] }}{% else %}now{% endif %}", "filters": [{"name": "dateparse", "args": "%Y-%m-%d %H:%M:%S"}]}, "downloadvolumefactor": {"case": {"img.pro_free": 0, "img.pro_free2up": 0, "img.pro_50pctdown": 0.5, "img.pro_50pctdown2up": 0.5, "img.pro_30pctdown": 0.3, "*": 1}}, "uploadvolumefactor": {"case": {"img.pro_50pctdown2up": 2, "img.pro_free2up": 2, "img.pro_2up": 2, "*": 1}}, "free_deadline": {"default_value": "{% if fields[''downloadvolumefactor'']==0 %}{{max_time}}{% endif%}", "default_value_format": "%Y-%m-%d %H:%M:%S.%f", "selector": "div > b > span[title]", "attribute": "title", "filters": [{"name": "dateparse", "args": "%Y-%m-%d %H:%M:%S"}]}, "tags": {"selector": "div > a.torrents-tag"}, "subject": {"selector": "td.embedded:nth-child(2) > div > div[style] > span", "contents": -1}, "description": {"selector": "td:nth-child(2) > table.torrentname > tr > td:nth-child(1)", "remove": "span,a,img,font,b", "contents": -1}, "labels": {"selector": "td:nth-child(2) > table.torrentname > tr > td:nth-child(1) > span"}}}', '{"movie": [{"id": 401, "cat": "Movies", "desc": "Movies/\u7535\u5f71"}], "tv": [{"id": 402, "cat": "TV", "desc": "TV Series/\u7535\u89c6\u5267"}, {"id": 404, "cat": "TV/Documentary", "desc": "Documentaries/\u7eaa\u5f55\u7247"}]}'
+)
+ON CONFLICT(ID) DO UPDATE SET
+    NAME = excluded.NAME,
+    DOMAIN = excluded.DOMAIN,
+    SEARCH = excluded.SEARCH,
+    PARSER = excluded.PARSER,
+    RENDER = excluded.RENDER,
+    PROXY = excluded.PROXY,
+    SOURCE_TYPE = excluded.SOURCE_TYPE,
+    SEARCH_TYPE = excluded.SEARCH_TYPE,
+    BROWSE = excluded.BROWSE,
+    TORRENTS = excluded.TORRENTS,
+    CATEGORY = excluded.CATEGORY;
+
+INSERT INTO INDEXER_SITES (
+    ID, NAME, DOMAIN, SEARCH, PARSER, RENDER, PUBLIC, PROXY, SOURCE_TYPE, SEARCH_TYPE, BROWSE, TORRENTS, CATEGORY
+) VALUES (
+    'pterclub', '猫站', 'https://pterclub.com/', '{"paths": [{"path": "torrents.php", "method": "get"}], "params": {"search": "{keyword}"}, "batch": {"delimiter": " ", "space_replace": "_"}}', '', 0, 0, 0, 'MOVIE,TV,ANIME', 'title', '', '{"list": {"selector": "table.torrents > tr:has(\"table.torrentname\")"}, "fields": {"id": {"selector": "a[href*=\"details.php?id=\"]", "attribute": "href", "filters": [{"name": "re_search", "args": ["\\d+", 0]}]}, "category": {"selector": "a[href*=\"?cat=\"]", "attribute": "href", "filters": [{"name": "querystring", "args": "cat"}]}, "title": {"selector": "td:nth-child(2) > div > div:nth-child(1) > a > b"}, "details": {"selector": "a[href*=\"details.php?id=\"]", "attribute": "href"}, "poster": {"selector": "img[data-orig]", "attribute": "data-orig"}, "download": {"selector": "a[href*=\"download.php?id=\"]", "attribute": "href"}, "size": {"selector": "td.rowfollow:nth-child(5)"}, "grabs": {"selector": "td.rowfollow:nth-child(8)"}, "seeders": {"selector": "td.rowfollow:nth-child(6)"}, "leechers": {"selector": "td.rowfollow:nth-child(7)"}, "date_elapsed": {"selector": "td.rowfollow:nth-child(4) > span", "optional": true}, "date_added": {"selector": "td.rowfollow:nth-child(4) > span", "attribute": "title", "optional": true}, "date": {"text": "{% if fields[''date_elapsed''] or fields[''date_added''] %}{{ fields[''date_elapsed''] if fields[''date_elapsed''] else fields[''date_added''] }}{% else %}now{% endif %}", "filters": [{"name": "dateparse", "args": "%Y-%m-%d %H:%M:%S"}]}, "downloadvolumefactor": {"case": {"img.pro_free": 0, "img.pro_free2up": 0, "img.pro_50pctdown": 0.5, "img.pro_50pctdown2up": 0.5, "img.pro_30pctdown": 0.3, "*": 1}}, "uploadvolumefactor": {"case": {"img.pro_50pctdown2up": 2, "img.pro_free2up": 2, "img.pro_2up": 2, "*": 1}}, "free_deadline": {"default_value": "{% if fields[''downloadvolumefactor'']==0 %}{{max_time}}{% endif%}", "default_value_format": "%Y-%m-%d %H:%M:%S.%f", "selector": "div > b > span[title]", "attribute": "title", "filters": [{"name": "dateparse", "args": "%Y-%m-%d %H:%M:%S"}]}, "description": {"selector": "td:nth-child(2) > div > div:nth-child(2) > span"}, "labels": {"selector": "td:nth-child(2) > div > div:nth-child(2) > a.torrents-tag"}}}', '{"movie": [{"id": 401, "cat": "Movies", "desc": "\u7535\u5f71 (Movie)"}], "tv": [{"id": 404, "cat": "TV", "desc": "\u7535\u89c6\u5267 (TV Play)"}, {"id": 403, "cat": "TV/Anime", "desc": "\u52a8\u6f2b (Anime)"}, {"id": 405, "cat": "TV", "desc": "\u7efc\u827a (TV Show)"}, {"id": 402, "cat": "TV/Documentary", "desc": "\u7eaa\u5f55\u7247 (Documentary)"}]}'
+)
+ON CONFLICT(ID) DO UPDATE SET
+    NAME = excluded.NAME,
+    DOMAIN = excluded.DOMAIN,
+    SEARCH = excluded.SEARCH,
+    PARSER = excluded.PARSER,
+    RENDER = excluded.RENDER,
+    PROXY = excluded.PROXY,
+    SOURCE_TYPE = excluded.SOURCE_TYPE,
+    SEARCH_TYPE = excluded.SEARCH_TYPE,
+    BROWSE = excluded.BROWSE,
+    TORRENTS = excluded.TORRENTS,
+    CATEGORY = excluded.CATEGORY;
+
+INSERT INTO INDEXER_SITES (
+    ID, NAME, DOMAIN, SEARCH, PARSER, RENDER, PUBLIC, PROXY, SOURCE_TYPE, SEARCH_TYPE, BROWSE, TORRENTS, CATEGORY
+) VALUES (
+    'pthome', '铂金家', 'https://pthome.net/', '{"paths": [{"path": "torrents.php", "method": "get"}], "params": {"search": "{keyword}"}, "batch": {"delimiter": " ", "space_replace": "_"}}', '', 0, 0, 0, 'MOVIE,TV,ANIME', 'title', '', '{"list": {"selector": "table.torrents > tr:has(\"table.torrentname\")"}, "fields": {"id": {"selector": "a[href*=\"details.php?id=\"]", "attribute": "href", "filters": [{"name": "re_search", "args": ["\\d+", 0]}]}, "category": {"selector": "a[href*=\"?cat=\"]", "attribute": "href", "filters": [{"name": "querystring", "args": "cat"}]}, "title_default": {"selector": "a[href*=\"details.php?id=\"]"}, "title_optional": {"optional": true, "selector": "a[title][href*=\"details.php?id=\"]", "attribute": "title"}, "title": {"text": "{% if fields[''title_optional''] %}{{ fields[''title_optional''] }}{% else %}{{ fields[''title_default''] }}{% endif %}"}, "details": {"selector": "a[href*=\"details.php?id=\"]", "attribute": "href"}, "download": {"selector": "a[href*=\"download.php?id=\"]", "attribute": "href"}, "size": {"selector": "td:nth-child(5)"}, "grabs": {"selector": "td:nth-child(8)"}, "seeders": {"selector": "td:nth-child(6)"}, "leechers": {"selector": "td:nth-child(7)"}, "date_elapsed": {"selector": "td:nth-child(4) > span", "optional": true}, "date_added": {"selector": "td:nth-child(4) > span", "attribute": "title", "optional": true}, "date": {"text": "{% if fields[''date_elapsed''] or fields[''date_added''] %}{{ fields[''date_elapsed''] if fields[''date_elapsed''] else fields[''date_added''] }}{% else %}now{% endif %}", "filters": [{"name": "dateparse", "args": "%Y-%m-%d %H:%M:%S"}]}, "downloadvolumefactor": {"case": {"img.pro_free": 0, "img.pro_free2up": 0, "img.pro_50pctdown": 0.5, "img.pro_50pctdown2up": 0.5, "img.pro_30pctdown": 0.3, "*": 1}}, "uploadvolumefactor": {"case": {"img.pro_50pctdown2up": 2, "img.pro_free2up": 2, "img.pro_2up": 2, "*": 1}}, "free_deadline": {"default_value": "{% if fields[''downloadvolumefactor'']==0 %}{{max_time}}{% endif%}", "default_value_format": "%Y-%m-%d %H:%M:%S.%f", "selector": "td[class=\"embedded\"] > b > span[title]", "attribute": "title", "filters": [{"name": "dateparse", "args": "%Y-%m-%d %H:%M:%S"}]}, "description": {"selector": "table.torrentname > tr > td.embedded > span[style]", "index": -1}, "labels": {"selector": "table.torrentname > tr > td.embedded > span.tags"}}}', '{"movie": [{"id": 401, "cat": "Movies", "desc": "Movies(\u7535\u5f71)"}], "tv": [{"id": 404, "cat": "TV/Documentary", "desc": "Documentaries(\u8bb0\u5f55\u7247)"}, {"id": 405, "cat": "TV/Anime", "desc": "Animations(\u52a8\u6f2b)"}, {"id": 402, "cat": "TV", "desc": "TV Series(\u7535\u89c6\u5267)"}, {"id": 403, "cat": "TV/Other", "desc": "TV Shows(\u7efc\u827a)"}]}'
+)
+ON CONFLICT(ID) DO UPDATE SET
+    NAME = excluded.NAME,
+    DOMAIN = excluded.DOMAIN,
+    SEARCH = excluded.SEARCH,
+    PARSER = excluded.PARSER,
+    RENDER = excluded.RENDER,
+    PROXY = excluded.PROXY,
+    SOURCE_TYPE = excluded.SOURCE_TYPE,
+    SEARCH_TYPE = excluded.SEARCH_TYPE,
+    BROWSE = excluded.BROWSE,
+    TORRENTS = excluded.TORRENTS,
+    CATEGORY = excluded.CATEGORY;
+
+INSERT INTO INDEXER_SITES (
+    ID, NAME, DOMAIN, SEARCH, PARSER, RENDER, PUBLIC, PROXY, SOURCE_TYPE, SEARCH_TYPE, BROWSE, TORRENTS, CATEGORY
+) VALUES (
+    'PTMSG', '马杀鸡', 'https://pt.msg.vg/', '{"paths": [{"path": "torrents.php", "method": "get"}], "params": {"search": "{keyword}"}, "batch": {"delimiter": " ", "space_replace": "_"}}', '', 0, 0, 0, 'MOVIE,TV,ANIME', 'title', '', '{"list": {"selector": "table.torrents > tr:has(\"table.torrentname\")"}, "fields": {"id": {"selector": "a[href*=\"details.php?id=\"]", "attribute": "href", "filters": [{"name": "re_search", "args": ["\\d+", 0]}]}, "title_default": {"selector": "a[href*=\"details.php?id=\"]"}, "title_optional": {"optional": true, "selector": "a[title][href*=\"details.php?id=\"]", "attribute": "title"}, "title": {"text": "{% if fields[''title_optional''] %}{{ fields[''title_optional''] }}{% else %}{{ fields[''title_default''] }}{% endif %}"}, "category": {"selector": "a[href*=\"?cat=\"]", "attribute": "href", "filters": [{"name": "replace", "args": ["?", ""]}, {"name": "querystring", "args": "cat"}]}, "details": {"selector": "a[href*=\"details.php?id=\"]", "attribute": "href"}, "download": {"selector": "a[href*=\"download.php?id=\"]", "attribute": "href"}, "imdbid": {"selector": "div.imdb_100 > a", "attribute": "href", "filters": [{"name": "re_search", "args": ["tt\\d+", 0]}]}, "date_elapsed": {"selector": "td:nth-child(4) > span", "optional": true}, "date_added": {"selector": "td:nth-child(4) > span", "attribute": "title", "optional": true}, "date": {"text": "{% if fields[''date_elapsed''] or fields[''date_added''] %}{{ fields[''date_elapsed''] if fields[''date_elapsed''] else fields[''date_added''] }}{% else %}now{% endif %}", "filters": [{"name": "dateparse", "args": "%Y-%m-%d %H:%M:%S"}]}, "size": {"selector": "td:nth-child(5)"}, "seeders": {"selector": "td:nth-child(6)"}, "leechers": {"selector": "td:nth-child(7)"}, "grabs": {"selector": "td:nth-child(8)"}, "downloadvolumefactor": {"case": {"img.pro_free": 0, "img.pro_free2up": 0, "img.pro_50pctdown": 0.5, "img.pro_50pctdown2up": 0.5, "img.pro_30pctdown": 0.3, "*": 1}}, "uploadvolumefactor": {"case": {"img.pro_50pctdown2up": 2, "img.pro_free2up": 2, "img.pro_2up": 2, "*": 1}}, "free_deadline": {"default_value": "{% if fields[''downloadvolumefactor'']==0 %}{{max_time}}{% endif%}", "default_value_format": "%Y-%m-%d %H:%M:%S.%f", "selector": "img.pro_free,img.pro_free2up", "attribute": "onmouseover", "filters": [{"name": "re_search", "args": ["\\d+-\\d+-\\d+ \\d+:\\d+:\\d+", 0]}, {"name": "dateparse", "args": "%Y-%m-%d %H:%M:%S"}]}, "description": {"selector": "td:nth-child(2) > table > tr > td:nth-child(1)", "remove": "b, a, font, span", "contents": -1}, "labels": {"selector": "td:nth-child(2) > table > tr > td:nth-child(1) > span"}}}', '{"movie": [{"id": 401, "cat": "Movies", "desc": "Movies/\u7535\u5f71"}], "tv": [{"id": 404, "cat": "TV/Documentary", "desc": "Documentaries/\u7eaa\u5f55\u7247"}, {"id": 405, "cat": "TV/Anime", "desc": "Animations/\u52a8\u6f2b"}, {"id": 402, "cat": "TV", "desc": "TV Series/\u5267\u96c6"}, {"id": 403, "cat": "TV", "desc": "TV Shows/\u7efc\u827a"}]}'
+)
+ON CONFLICT(ID) DO UPDATE SET
+    NAME = excluded.NAME,
+    DOMAIN = excluded.DOMAIN,
+    SEARCH = excluded.SEARCH,
+    PARSER = excluded.PARSER,
+    RENDER = excluded.RENDER,
+    PROXY = excluded.PROXY,
+    SOURCE_TYPE = excluded.SOURCE_TYPE,
+    SEARCH_TYPE = excluded.SEARCH_TYPE,
+    BROWSE = excluded.BROWSE,
+    TORRENTS = excluded.TORRENTS,
+    CATEGORY = excluded.CATEGORY;
+
+INSERT INTO INDEXER_SITES (
+    ID, NAME, DOMAIN, SEARCH, PARSER, RENDER, PUBLIC, PROXY, SOURCE_TYPE, SEARCH_TYPE, BROWSE, TORRENTS, CATEGORY
+) VALUES (
+    'ptsbao', '烧包乐园', 'https://ptsbao.club/', '{"paths": [{"path": "torrents.php", "method": "get"}], "params": {"search": "{keyword}"}, "batch": {"delimiter": " ", "space_replace": "_"}}', '', 0, 0, 0, 'MOVIE,TV,ANIME', 'title', '', '{"list": {"selector": "table.torrents tr:has(\"table.torrentname\")"}, "fields": {"id": {"selector": "a[href*=\"details.php?id=\"]", "attribute": "href", "filters": [{"name": "re_search", "args": ["\\d+", 0]}]}, "category": {"selector": "a[href*=\"torrents.php?cat=\"]", "attribute": "href", "filters": [{"name": "querystring", "args": "cat"}]}, "title_default": {"selector": "a[href*=\"details.php?id=\"]"}, "title_optional": {"optional": true, "selector": "a[title][href*=\"details.php?id=\"]", "attribute": "title"}, "title": {"text": "{% if fields[''title_optional''] %}{{ fields[''title_optional''] }}{% else %}{{ fields[''title_default''] }}{% endif %}"}, "details": {"selector": "a[href*=\"details.php?id=\"]", "attribute": "href"}, "download": {"selector": "a[href*=\"download.php?id=\"]", "attribute": "href"}, "size": {"selector": "td:nth-child(6)"}, "grabs": {"selector": "td:nth-child(9)"}, "seeders": {"selector": "td:nth-child(7)"}, "leechers": {"selector": "td:nth-child(8)"}, "date_elapsed": {"selector": "td:nth-child(5) > span", "optional": true}, "date_added": {"selector": "td:nth-child(5) > span", "attribute": "title", "optional": true}, "date": {"text": "{% if fields[''date_elapsed''] or fields[''date_added''] %}{{ fields[''date_elapsed''] if fields[''date_elapsed''] else fields[''date_added''] }}{% else %}now{% endif %}", "filters": [{"name": "dateparse", "args": "%Y-%m-%d %H:%M:%S"}]}, "downloadvolumefactor": {"case": {"img.pro_free": 0, "img.pro_free2up": 0, "img.pro_50pctdown": 0.5, "img.pro_50pctdown2up": 0.5, "img.pro_30pctdown": 0.3, "*": 1}}, "uploadvolumefactor": {"case": {"img.pro_50pctdown2up": 2, "img.pro_free2up": 2, "img.pro_2up": 2, "*": 1}}, "free_deadline": {"default_value": "{% if fields[''downloadvolumefactor'']==0 %}{{max_time}}{% endif%}", "default_value_format": "%Y-%m-%d %H:%M:%S.%f", "selector": "td[class=\"embedded\"] > font > span[title]", "attribute": "title", "filters": [{"name": "dateparse", "args": "%Y-%m-%d %H:%M:%S"}]}, "description": {"selector": "table.torrentname > td", "contents": -1}, "labels": {"selector": "table.torrentname > td > span"}}}', '{"movie": [{"id": 401, "cat": "Movies", "desc": "Movies(\u7535\u5f71)"}], "tv": [{"id": 402, "cat": "TV", "desc": "TV Series(\u7535\u89c6\u5267)"}, {"id": 403, "cat": "TV/Other", "desc": "TV Shows(\u7535\u89c6\u8282\u76ee)"}, {"id": 405, "cat": "TV/Anime", "desc": "Animations(\u52a8\u6f2b)"}, {"id": 404, "cat": "TV/Documentary", "desc": "Documentaries(\u8bb0\u5f55\u7247)"}]}'
+)
+ON CONFLICT(ID) DO UPDATE SET
+    NAME = excluded.NAME,
+    DOMAIN = excluded.DOMAIN,
+    SEARCH = excluded.SEARCH,
+    PARSER = excluded.PARSER,
+    RENDER = excluded.RENDER,
+    PROXY = excluded.PROXY,
+    SOURCE_TYPE = excluded.SOURCE_TYPE,
+    SEARCH_TYPE = excluded.SEARCH_TYPE,
+    BROWSE = excluded.BROWSE,
+    TORRENTS = excluded.TORRENTS,
+    CATEGORY = excluded.CATEGORY;
+
+INSERT INTO INDEXER_SITES (
+    ID, NAME, DOMAIN, SEARCH, PARSER, RENDER, PUBLIC, PROXY, SOURCE_TYPE, SEARCH_TYPE, BROWSE, TORRENTS, CATEGORY
+) VALUES (
+    'pttime', 'PT时间', 'https://www.pttime.org/', '{"paths": [{"path": "torrents.php", "method": "get"}], "params": {"search": "{keyword}"}, "batch": {"delimiter": " ", "space_replace": "_"}}', '', 0, 0, 0, 'MOVIE,TV,ANIME', 'title', '', '{"list": {"selector": "table.torrents > tr:has(\"table.torrentname\")"}, "fields": {"id": {"selector": "a[href*=\"details.php?id=\"]", "attribute": "href", "filters": [{"name": "re_search", "args": ["\\d+", 0]}]}, "title_default": {"selector": "a[href*=\"details.php?id=\"]"}, "title_optional": {"optional": true, "selector": "a[title][href*=\"details.php?id=\"]", "attribute": "title"}, "title": {"text": "{% if fields[''title_optional''] %}{{ fields[''title_optional''] }}{% else %}{{ fields[''title_default''] }}{% endif %}"}, "category": {"selector": "a[href*=\"?cat=\"]", "attribute": "href", "filters": [{"name": "replace", "args": ["?", ""]}, {"name": "querystring", "args": "cat"}]}, "details": {"selector": "a[href*=\"details.php?id=\"]", "attribute": "href"}, "download": {"selector": "a[href*=\"download.php?id=\"]", "attribute": "href"}, "poster": {"default_value": "", "selector": "img.pr5", "attribute": "src"}, "imdbid": {"selector": "div.imdb_100 > a", "attribute": "href", "filters": [{"name": "re_search", "args": ["tt\\d+", 0]}]}, "date_elapsed": {"selector": "td:nth-child(5) > span", "optional": true}, "date_added": {"selector": "td:nth-child(5) > span", "attribute": "title", "optional": true}, "date": {"text": "{% if fields[''date_elapsed''] or fields[''date_added''] %}{{ fields[''date_elapsed''] if fields[''date_elapsed''] else fields[''date_added''] }}{% else %}now{% endif %}", "filters": [{"name": "dateparse", "args": "%Y-%m-%d %H:%M:%S"}]}, "size": {"selector": "td:nth-child(6)"}, "seeders": {"selector": "td:nth-child(7)"}, "leechers": {"selector": "td:nth-child(8)"}, "grabs": {"selector": "td:nth-child(9)"}, "downloadvolumefactor": {"case": {"font.promotion.free": 0, "font.promotion.twoupfree": 0, "font.promotion.twouphalfdown": 0.5, "font.promotion.halfdown": 0.5, "font.promotion.thirtypercent": 0.3, "*": 1}}, "uploadvolumefactor": {"case": {"font.promotion.twoup": 2, "font.promotion.twouphalfdown": 2, "font.promotion.twoupfree": 2, "*": 1}}, "free_deadline": {"default_value": "{% if fields[''downloadvolumefactor'']==0 %}{{max_time}}{% endif%}", "default_value_format": "%Y-%m-%d %H:%M:%S.%f", "selector": "td:nth-child(2) > table > tr > td.embedded > span[title]", "attribute": "title", "filters": [{"name": "re_search", "args": ["\\d+-\\d+-\\d+ \\d+:\\d+:\\d+", 0]}, {"name": "dateparse", "args": "%Y-%m-%d %H:%M:%S"}]}, "description": {"selector": "td:nth-child(2) > table.torrentname > tr > td.embedded > font", "remove": "span,a,img,font,b", "contents": -1}, "labels": {"selector": "td:nth-child(2) > table > tr > td.embedded > a > span.tags"}}}', '{"movie": [{"id": 401, "cat": "Movies", "desc": "Movies(\u7535\u5f71)", "default": true}], "tv": [{"id": 402, "cat": "TV", "desc": "TV Series(\u7535\u89c6\u5267)", "default": true}, {"id": 403, "cat": "TV", "desc": "TV Shows(\u7efc\u827a)", "default": true}, {"id": 404, "cat": "TV/Documentary", "desc": "Documentaries(\u7eaa\u5f55\u7247)", "default": true}, {"id": 430, "cat": "TV/Anime", "desc": "Animate(3D\u52a8\u753b\u30012.5\u6b21\u5143)", "default": true}, {"id": 431, "cat": "TV/Anime", "desc": "ACGN(\u4e8c\u6b21\u5143)", "default": true}]}'
+)
+ON CONFLICT(ID) DO UPDATE SET
+    NAME = excluded.NAME,
+    DOMAIN = excluded.DOMAIN,
+    SEARCH = excluded.SEARCH,
+    PARSER = excluded.PARSER,
+    RENDER = excluded.RENDER,
+    PROXY = excluded.PROXY,
+    SOURCE_TYPE = excluded.SOURCE_TYPE,
+    SEARCH_TYPE = excluded.SEARCH_TYPE,
+    BROWSE = excluded.BROWSE,
+    TORRENTS = excluded.TORRENTS,
+    CATEGORY = excluded.CATEGORY;
+
+INSERT INTO INDEXER_SITES (
+    ID, NAME, DOMAIN, SEARCH, PARSER, RENDER, PUBLIC, PROXY, SOURCE_TYPE, SEARCH_TYPE, BROWSE, TORRENTS, CATEGORY
+) VALUES (
+    'putao', '葡萄', 'https://pt.sjtu.edu.cn/', '{"paths": [{"path": "torrents.php", "method": "get"}], "params": {"search": "{keyword}"}, "batch": {"delimiter": " ", "space_replace": "_"}}', '', 0, 0, 0, 'MOVIE,TV,ANIME', 'title', '', '{"list": {"selector": "table.torrents > tr:has(\"table.torrentname\")"}, "fields": {"id": {"selector": "a[href*=\"details.php?id=\"]", "attribute": "href", "filters": [{"name": "re_search", "args": ["\\d+", 0]}]}, "category": {"selector": "a[href*=\"?cat=\"]", "attribute": "href", "filters": [{"name": "querystring", "args": "cat"}]}, "title_default": {"selector": "a[href*=\"details.php?id=\"]"}, "title_optional": {"optional": true, "selector": "a[title][href*=\"details.php?id=\"]", "attribute": "title"}, "title": {"text": "{% if fields[''title_optional''] %}{{ fields[''title_optional''] }}{% else %}{{ fields[''title_default''] }}{% endif %}"}, "details": {"selector": "a[href*=\"details.php?id=\"]", "attribute": "href"}, "download": {"selector": "a[href*=\"download.php?id=\"]", "attribute": "href"}, "size": {"selector": "td:nth-child(5)"}, "grabs": {"selector": "td:nth-child(8)"}, "seeders": {"selector": "td:nth-child(6)"}, "leechers": {"selector": "td:nth-child(7)"}, "date_elapsed": {"selector": "td:nth-child(4) > span", "optional": true}, "date_added": {"selector": "td:nth-child(4) > span", "attribute": "title", "optional": true}, "date": {"text": "{% if fields[''date_elapsed''] or fields[''date_added''] %}{{ fields[''date_elapsed''] if fields[''date_elapsed''] else fields[''date_added''] }}{% else %}now{% endif %}", "filters": [{"name": "dateparse", "args": "%Y-%m-%d %H:%M:%S"}]}, "downloadvolumefactor": {"case": {"tr.free_bg": 0, "tr.twoup_bg": 0, "tr.d30down_bg": 0.3, "tr.halfdown_bg": 0.5, "tr.d70down_bg": 0.7, "*": 1}}, "uploadvolumefactor": {"case": {"tr.twoup_bg": 2, "*": 1}}, "free_deadline": {"default_value": "{% if fields[''downloadvolumefactor'']==0 %}{{max_time}}{% endif%}", "default_value_format": "%Y-%m-%d %H:%M:%S.%f", "selector": "font[style][title]", "attribute": "title", "filters": [{"name": "dateparse", "args": "%Y-%m-%d %H:%M:%S"}]}, "description": {"selector": "table.torrentname > tr > td.embedded", "contents": -1}, "labels": {"selector": "table.torrentname > tr > td.embedded > span"}}}', '{"movie": [{"id": 401, "cat": "Movies", "desc": "Movies CHN \u534e\u8bed\u7535\u5f71"}, {"id": 402, "cat": "Movies", "desc": "Movies Eng \u6b27\u7f8e\u7535\u5f71"}, {"id": 403, "cat": "Movies", "desc": "Movies Asian \u4e9a\u6d32\u7535\u5f71"}], "tv": [{"id": 406, "cat": "TV/Documentary", "desc": "Documentary \u7eaa\u5f55\u7247"}, {"id": 407, "cat": "TV", "desc": "TV Series HKTW \u6e2f\u53f0\u7535\u89c6\u5267"}, {"id": 408, "cat": "TV", "desc": "TV Series Asian \u4e9a\u6d32\u7535\u89c6\u5267"}, {"id": 409, "cat": "TV", "desc": "TV Series CHN \u5927\u9646\u7535\u89c6\u5267"}, {"id": 410, "cat": "TV", "desc": "TV Series Eng \u6b27\u7f8e\u7535\u89c6\u5267"}, {"id": 411, "cat": "TV", "desc": "TV CHN \u5927\u9646\u7efc\u827a\u8282\u76ee"}, {"id": 412, "cat": "TV", "desc": "TV HKTW \u6e2f\u53f0\u7efc\u827a\u8282\u76ee"}, {"id": 413, "cat": "TV", "desc": "TV Eng \u6b27\u7f8e\u7efc\u827a\u8282\u76ee"}, {"id": 414, "cat": "TV", "desc": "TV JPKR \u65e5\u97e9\u7efc\u827a\u8282\u76ee"}, {"id": 431, "cat": "TV/Anime", "desc": "Anime \u52a8\u6f2b"}]}'
+)
+ON CONFLICT(ID) DO UPDATE SET
+    NAME = excluded.NAME,
+    DOMAIN = excluded.DOMAIN,
+    SEARCH = excluded.SEARCH,
+    PARSER = excluded.PARSER,
+    RENDER = excluded.RENDER,
+    PROXY = excluded.PROXY,
+    SOURCE_TYPE = excluded.SOURCE_TYPE,
+    SEARCH_TYPE = excluded.SEARCH_TYPE,
+    BROWSE = excluded.BROWSE,
+    TORRENTS = excluded.TORRENTS,
+    CATEGORY = excluded.CATEGORY;
+
+INSERT INTO INDEXER_SITES (
+    ID, NAME, DOMAIN, SEARCH, PARSER, RENDER, PUBLIC, PROXY, SOURCE_TYPE, SEARCH_TYPE, BROWSE, TORRENTS, CATEGORY
+) VALUES (
+    'sharkpt', '鲨鱼', 'https://sharkpt.net/', '{"paths": [{"path": "torrents.php", "method": "get"}], "params": {"search": "{keyword}"}, "batch": {"delimiter": " ", "space_replace": "_"}}', '', 0, 0, 0, 'MOVIE,TV,ANIME', 'title', '', '{"list": {"selector": "div.s-table-body-item > div.torrent-item"}, "fields": {"id": {"selector": "a[href*=\"details.php?id=\"]", "attribute": "href", "filters": [{"name": "re_search", "args": ["\\d+", 0]}]}, "title": {"selector": "div.torrent-title > a"}, "details": {"selector": "div.torrent-title > a", "attribute": "href"}, "download": {"selector": "shark-icon.torrent-action-download", "attribute": "onclick", "filters": [{"name": "re_search", "args": ["download.php\\?id=\\d+", 0]}]}, "size": {"selector": "div.torrent-size"}, "grabs": {"selector": "div.torrent-snatches > a"}, "seeders": {"selector": "div.torrent-seeders > a"}, "leechers": {"selector": "div.torrent-leechers > a"}, "date_elapsed": {"selector": "div.torrent-when > span"}, "date_added": {"selector": "div.torrent-when > span", "attribute": "title"}, "date": {"text": "{% if fields[''date_elapsed''] or fields[''date_added''] %}{{ fields[''date_elapsed''] if fields[''date_elapsed''] else fields[''date_added''] }}{% else %}now{% endif %}", "filters": [{"name": "dateparse", "args": "%Y-%m-%d %H:%M:%S"}]}, "downloadvolumefactor": {"case": {"font.free": 0, "font.twoupfree": 0, "*": 1}}, "uploadvolumefactor": {"case": {"font.twoupfree": 2, "*": 1}}, "free_deadline": {"default_value": "{% if fields[''downloadvolumefactor'']==0 %}{{max_time}}{% endif%}", "default_value_format": "%Y-%m-%d %H:%M:%S.%f", "selector": "div.torrent-tags > font > span", "attribute": "title", "filters": [{"name": "dateparse", "args": "%Y-%m-%d %H:%M:%S"}]}, "tags": {"selector": "div > a.torrents-tag"}, "description": {"selector": "div.torrent-subtitle"}, "labels": {"selector": "div.torrent-tags > span > a.s-tag"}}}', '{"movie": [{"id": 401, "cat": "Movies", "desc": "\u7535\u5f71"}], "tv": [{"id": 402, "cat": "TV/Series", "desc": "\u7535\u89c6\u5267"}, {"id": 403, "cat": "TV/Shows", "desc": "\u7efc\u827a"}, {"id": 404, "cat": "TV/Documentaries", "desc": "\u7eaa\u5f55\u7247"}, {"id": 405, "cat": "TV/Animations", "desc": "\u52a8\u6f2b"}]}'
+)
+ON CONFLICT(ID) DO UPDATE SET
+    NAME = excluded.NAME,
+    DOMAIN = excluded.DOMAIN,
+    SEARCH = excluded.SEARCH,
+    PARSER = excluded.PARSER,
+    RENDER = excluded.RENDER,
+    PROXY = excluded.PROXY,
+    SOURCE_TYPE = excluded.SOURCE_TYPE,
+    SEARCH_TYPE = excluded.SEARCH_TYPE,
+    BROWSE = excluded.BROWSE,
+    TORRENTS = excluded.TORRENTS,
+    CATEGORY = excluded.CATEGORY;
+
+INSERT INTO INDEXER_SITES (
+    ID, NAME, DOMAIN, SEARCH, PARSER, RENDER, PUBLIC, PROXY, SOURCE_TYPE, SEARCH_TYPE, BROWSE, TORRENTS, CATEGORY
+) VALUES (
+    'skyeysnow', '天雪', 'https://skyeysnow.com/', '{"paths": [{"path": "forum.php?mod=torrents&cat=1&search={keyword}", "method": "get"}]}', '', 0, 0, 0, 'MOVIE,TV,ANIME', 'title', '{"path": "forum.php?mod=torrents&page={page}"}', '{"list": {"selector": "table.torrents > tbody > tr:has(\"td.rowfollow\")"}, "fields": {"id": {"selector": "a[href*=\"/download.php?id=\"]", "attribute": "href", "filters": [{"name": "re_search", "args": ["\\d+", 0]}]}, "title": {"selector": "table.torrentname > tbody > tr > td > a[title]", "attribute": "title"}, "details": {"selector": "table.torrentname > tbody > tr > td > a[title]", "attribute": "href"}, "download": {"selector": "a[href*=\"/download.php?id=\"]", "attribute": "href"}, "date_added": {"selector": "td:nth-child(3)"}, "date": {"text": "{% if fields[''date_elapsed''] or fields[''date_added''] %}{{ fields[''date_elapsed''] if fields[''date_elapsed''] else fields[''date_added''] }}{% else %}now{% endif %}", "filters": [{"name": "dateparse", "args": "%Y-%m-%d %H:%M:%S"}]}, "size": {"selector": "td:nth-child(4)"}, "seeders": {"selector": "td:nth-child(7)"}, "leechers": {"selector": "td:nth-child(6)"}, "grabs": {"selector": "td:nth-child(5)"}, "downloadvolumefactor": {"case": {"img.sp_4": 0, "*": 1}}, "uploadvolumefactor": {"case": {"*": 1}}}}', ''
+)
+ON CONFLICT(ID) DO UPDATE SET
+    NAME = excluded.NAME,
+    DOMAIN = excluded.DOMAIN,
+    SEARCH = excluded.SEARCH,
+    PARSER = excluded.PARSER,
+    RENDER = excluded.RENDER,
+    PROXY = excluded.PROXY,
+    SOURCE_TYPE = excluded.SOURCE_TYPE,
+    SEARCH_TYPE = excluded.SEARCH_TYPE,
+    BROWSE = excluded.BROWSE,
+    TORRENTS = excluded.TORRENTS,
+    CATEGORY = excluded.CATEGORY;
+
+INSERT INTO INDEXER_SITES (
+    ID, NAME, DOMAIN, SEARCH, PARSER, RENDER, PUBLIC, PROXY, SOURCE_TYPE, SEARCH_TYPE, BROWSE, TORRENTS, CATEGORY
+) VALUES (
+    'soulvoice', '聆音', 'https://pt.soulvoice.club/', '{"paths": [{"path": "torrents.php", "method": "get"}], "params": {"search": "{keyword}"}, "batch": {"delimiter": " ", "space_replace": "_"}}', '', 0, 0, 0, 'MOVIE,TV,ANIME', 'title', '', '{"list": {"selector": "table.torrents > tr:has(\"table.torrentname\")"}, "fields": {"id": {"selector": "a[href*=\"details.php?id=\"]", "attribute": "href", "filters": [{"name": "re_search", "args": ["\\d+", 0]}]}, "title_default": {"selector": "a[href*=\"details.php?id=\"]"}, "title_optional": {"optional": true, "selector": "a[title][href*=\"details.php?id=\"]", "attribute": "title"}, "title": {"text": "{% if fields[''title_optional''] %}{{ fields[''title_optional''] }}{% else %}{{ fields[''title_default''] }}{% endif %}"}, "category": {"selector": "a[href*=\"?cat=\"]", "attribute": "href", "filters": [{"name": "replace", "args": ["?", ""]}, {"name": "querystring", "args": "cat"}]}, "details": {"selector": "a[href*=\"details.php?id=\"]", "attribute": "href"}, "download": {"selector": "a[href*=\"download.php?id=\"]", "attribute": "href"}, "imdbid": {"selector": "a[href*=\"imdb.com/title/tt\"]", "attribute": "href", "filters": [{"name": "re_search", "args": ["tt\\d+", 0]}]}, "date_elapsed": {"selector": "td:nth-child(4) > span", "optional": true}, "date_added": {"selector": "td:nth-child(4) > span", "attribute": "title", "optional": true}, "date": {"text": "{% if fields[''date_elapsed''] or fields[''date_added''] %}{{ fields[''date_elapsed''] if fields[''date_elapsed''] else fields[''date_added''] }}{% else %}now{% endif %}", "filters": [{"name": "dateparse", "args": "%Y-%m-%d %H:%M:%S"}]}, "size": {"selector": "td:nth-child(5)"}, "seeders": {"selector": "td:nth-child(6)"}, "leechers": {"selector": "td:nth-child(7)"}, "grabs": {"selector": "td:nth-child(8)"}, "downloadvolumefactor": {"case": {"img.pro_free": 0, "img.pro_free2up": 0, "img.pro_50pctdown": 0.5, "img.pro_50pctdown2up": 0.5, "img.pro_30pctdown": 0.3, "*": 1}}, "uploadvolumefactor": {"case": {"img.pro_50pctdown2up": 2, "img.pro_free2up": 2, "img.pro_2up": 2, "*": 1}}, "free_deadline": {"default_value": "{% if fields[''downloadvolumefactor'']==0 %}{{max_time}}{% endif%}", "default_value_format": "%Y-%m-%d %H:%M:%S.%f", "selector": "img.pro_free,img.pro_free2up", "attribute": "onmouseover", "filters": [{"name": "re_search", "args": ["\\d+-\\d+-\\d+ \\d+:\\d+:\\d+", 0]}, {"name": "dateparse", "args": "%Y-%m-%d %H:%M:%S"}]}, "description": {"selector": "table.torrentname > tr > td:nth-child(2)", "remove": "a,img,span", "contents": -1}, "minimumratio": {"case": {"img[title=\"H&R\"]": 2, "*": 0}}, "minimumseedtime": {"case": {"img[title=\"H&R\"]": 259200, "*": 0}}, "labels": {"selector": "table.torrentname > tr > td:nth-child(2) > span"}}}', '{"movie": [{"id": 401, "cat": "Movies", "desc": "Movies/\u7535\u5f71"}], "tv": [{"id": 402, "cat": "TV", "desc": "TV Series/\u7535\u89c6\u5267"}, {"id": 404, "cat": "TV/Documentary", "desc": "Documentaries/\u7eaa\u5f55\u7247"}, {"id": 405, "cat": "TV/Anime", "desc": "Animations/\u52a8\u6f2b"}, {"id": 403, "cat": "TV", "desc": "TV Show/\u7efc\u827a"}]}'
+)
+ON CONFLICT(ID) DO UPDATE SET
+    NAME = excluded.NAME,
+    DOMAIN = excluded.DOMAIN,
+    SEARCH = excluded.SEARCH,
+    PARSER = excluded.PARSER,
+    RENDER = excluded.RENDER,
+    PROXY = excluded.PROXY,
+    SOURCE_TYPE = excluded.SOURCE_TYPE,
+    SEARCH_TYPE = excluded.SEARCH_TYPE,
+    BROWSE = excluded.BROWSE,
+    TORRENTS = excluded.TORRENTS,
+    CATEGORY = excluded.CATEGORY;
+
+INSERT INTO INDEXER_SITES (
+    ID, NAME, DOMAIN, SEARCH, PARSER, RENDER, PUBLIC, PROXY, SOURCE_TYPE, SEARCH_TYPE, BROWSE, TORRENTS, CATEGORY
+) VALUES (
+    'ssd', '春天', 'https://springsunday.net/', '{"paths": [{"path": "torrents.php", "method": "get"}], "params": {"search": "{keyword}"}}', '', 0, 0, 0, 'MOVIE,TV,ANIME', 'title', '', '{"list": {"selector": "table.torrents > tr:has(\"table.torrentname\")"}, "fields": {"id": {"selector": "a[href*=\"details.php?id=\"]", "attribute": "href", "filters": [{"name": "re_search", "args": ["\\d+", 0]}]}, "category": {"selector": "a[href*=\"?cat=\"]", "attribute": "href", "filters": [{"name": "querystring", "args": "cat"}]}, "title_default": {"selector": "a[href*=\"details.php?id=\"]"}, "title_optional": {"optional": true, "selector": "a[title][href*=\"details.php?id=\"]", "attribute": "title"}, "title": {"text": "{% if fields[''title_optional''] %}{{ fields[''title_optional''] }}{% else %}{{ fields[''title_default''] }}{% endif %}"}, "details": {"selector": "a[href*=\"details.php?id=\"]", "attribute": "href"}, "download": {"selector": "a[href*=\"download.php?id=\"]", "attribute": "href"}, "imdbid": {"selector": "a[href*=\"imdb.com/title/tt\"]", "attribute": "href", "filters": [{"name": "re_search", "args": ["tt\\d+", 0]}]}, "date_elapsed": {"selector": "td.rowfollow:nth-last-child(6) > span", "optional": true}, "date_added": {"selector": "td.rowfollow:nth-last-child(6) > span", "attribute": "title", "optional": true}, "date": {"text": "{% if fields[''date_elapsed''] or fields[''date_added''] %}{{ fields[''date_elapsed''] if fields[''date_elapsed''] else fields[''date_added''] }}{% else %}now{% endif %}", "filters": [{"name": "dateparse", "args": "%Y-%m-%d %H:%M:%S"}]}, "size": {"selector": "td.rowfollow:nth-last-child(5)"}, "seeders": {"selector": "td.rowfollow:nth-last-child(4)"}, "leechers": {"selector": "td.rowfollow:nth-last-child(3)"}, "grabs": {"selector": "td.rowfollow:nth-last-child(2)"}, "downloadvolumefactor": {"case": {"img.pro_free": 0, "img.pro_free2up": 0, "img.pro_50pctdown": 0.5, "img.pro_50pctdown2up": 0.5, "img.pro_30pctdown": 0.3, "*": 1}}, "uploadvolumefactor": {"case": {"img.pro_50pctdown2up": 2, "img.pro_free2up": 2, "img.pro_2up": 2, "*": 1}}, "free_deadline": {"default_value": "{% if fields[''downloadvolumefactor'']==0 %}{{max_time}}{% endif%}", "default_value_format": "%Y-%m-%d %H:%M:%S.%f", "selector": "img.pro_free,img.pro_free2up", "attribute": "onmouseover", "filters": [{"name": "re_search", "args": ["\\d+-\\d+-\\d+ \\d+:\\d+:\\d+", 0]}, {"name": "dateparse", "args": "%Y-%m-%d %H:%M:%S"}]}, "description": {"selector": "table.torrentname > tr > td > div.torrent-smalldescr", "remove": "a, b, img, span", "contents": 0}, "labels": {"selector": "table.torrentname > tr > td > div.torrent-smalldescr > a > span"}}}', '{"movie": [{"id": 501, "cat": "Movies", "desc": "Movies(\u7535\u5f71)"}], "tv": [{"id": 502, "cat": "TV", "desc": "TV Series(\u5267\u96c6)"}, {"id": 503, "cat": "TV/Documentary", "desc": "Docs(\u7eaa\u5f55)"}, {"id": 504, "cat": "TV/Anime", "desc": "Animations(\u52a8\u753b)"}, {"id": 505, "cat": "TV", "desc": "TV Shows(\u7efc\u827a)"}]}'
+)
+ON CONFLICT(ID) DO UPDATE SET
+    NAME = excluded.NAME,
+    DOMAIN = excluded.DOMAIN,
+    SEARCH = excluded.SEARCH,
+    PARSER = excluded.PARSER,
+    RENDER = excluded.RENDER,
+    PROXY = excluded.PROXY,
+    SOURCE_TYPE = excluded.SOURCE_TYPE,
+    SEARCH_TYPE = excluded.SEARCH_TYPE,
+    BROWSE = excluded.BROWSE,
+    TORRENTS = excluded.TORRENTS,
+    CATEGORY = excluded.CATEGORY;
+
+INSERT INTO INDEXER_SITES (
+    ID, NAME, DOMAIN, SEARCH, PARSER, RENDER, PUBLIC, PROXY, SOURCE_TYPE, SEARCH_TYPE, BROWSE, TORRENTS, CATEGORY
+) VALUES (
+    'TCCF', '他吹吹风', 'https://et8.org/', '{"paths": [{"path": "torrents.php", "method": "get"}], "params": {"search": "{keyword}"}, "batch": {"delimiter": " ", "space_replace": "_"}}', '', 0, 0, 0, 'MOVIE,TV,ANIME', 'title', '', '{"list": {"selector": "table.torrents > tr:has(\"table.torrentname\")"}, "fields": {"id": {"selector": "a[href*=\"details.php?id=\"]", "attribute": "href", "filters": [{"name": "re_search", "args": ["\\d+", 0]}]}, "title_default": {"selector": "a[href*=\"details.php?id=\"]"}, "title_optional": {"optional": true, "selector": "a[title][href*=\"details.php?id=\"]", "attribute": "title"}, "title": {"text": "{% if fields[''title_optional''] %}{{ fields[''title_optional''] }}{% else %}{{ fields[''title_default''] }}{% endif %}"}, "category": {"selector": "a[href*=\"?cat=\"]", "attribute": "href", "filters": [{"name": "replace", "args": ["?", ""]}, {"name": "querystring", "args": "cat"}]}, "details": {"selector": "a[href*=\"details.php?id=\"]", "attribute": "href"}, "download": {"selector": "a[href*=\"download.php?id=\"]", "attribute": "href"}, "imdbid": {"selector": "div.imdb_100 > a", "attribute": "href", "filters": [{"name": "re_search", "args": ["tt\\d+", 0]}]}, "date_elapsed": {"selector": "td:nth-child(4) > span", "optional": true}, "date_added": {"selector": "td:nth-child(4) > span", "attribute": "title", "optional": true}, "date": {"text": "{% if fields[''date_elapsed''] or fields[''date_added''] %}{{ fields[''date_elapsed''] if fields[''date_elapsed''] else fields[''date_added''] }}{% else %}now{% endif %}", "filters": [{"name": "dateparse", "args": "%Y-%m-%d %H:%M:%S"}]}, "size": {"selector": "td:nth-child(5)"}, "seeders": {"selector": "td:nth-child(6)"}, "leechers": {"selector": "td:nth-child(7)"}, "grabs": {"selector": "td:nth-child(8)"}, "downloadvolumefactor": {"case": {"img.pro_free": 0, "img.pro_free2up": 0, "img.pro_50pctdown": 0.5, "img.pro_50pctdown2up": 0.5, "img.pro_30pctdown": 0.3, "*": 1}}, "uploadvolumefactor": {"case": {"img.pro_50pctdown2up": 2, "img.pro_free2up": 2, "img.pro_2up": 2, "*": 1}}, "free_deadline": {"default_value": "{% if fields[''downloadvolumefactor'']==0 %}{{max_time}}{% endif%}", "default_value_format": "%Y-%m-%d %H:%M:%S.%f", "selector": "img.pro_free,img.pro_free2up", "attribute": "onmouseover", "filters": [{"name": "re_search", "args": ["\\d+-\\d+-\\d+ \\d+:\\d+:\\d+", 0]}, {"name": "dateparse", "args": "%Y-%m-%d %H:%M:%S"}]}, "description": {"selector": "td:nth-child(2) > table > tr > td.embedded", "contents": -1}, "labels": {"selector": "td:nth-child(2) > table > tr > td.embedded > span"}}}', ''
+)
+ON CONFLICT(ID) DO UPDATE SET
+    NAME = excluded.NAME,
+    DOMAIN = excluded.DOMAIN,
+    SEARCH = excluded.SEARCH,
+    PARSER = excluded.PARSER,
+    RENDER = excluded.RENDER,
+    PROXY = excluded.PROXY,
+    SOURCE_TYPE = excluded.SOURCE_TYPE,
+    SEARCH_TYPE = excluded.SEARCH_TYPE,
+    BROWSE = excluded.BROWSE,
+    TORRENTS = excluded.TORRENTS,
+    CATEGORY = excluded.CATEGORY;
+
+INSERT INTO INDEXER_SITES (
+    ID, NAME, DOMAIN, SEARCH, PARSER, RENDER, PUBLIC, PROXY, SOURCE_TYPE, SEARCH_TYPE, BROWSE, TORRENTS, CATEGORY
+) VALUES (
+    'tjupt', '北洋园', 'https://www.tjupt.org/', '{"paths": [{"path": "torrents.php", "method": "get"}], "params": {"search": "{keyword}"}, "batch": {"delimiter": " ", "space_replace": "-"}}', '', 0, 0, 0, 'MOVIE,TV,ANIME', 'title', '', '{"list": {"selector": "table.torrents > tr:has(\"table.torrentname\")"}, "fields": {"id": {"selector": "a[href*=\"details.php?id=\"]", "attribute": "href", "filters": [{"name": "re_search", "args": ["\\d+", 0]}]}, "category": {"selector": "a[href*=\"cat=\"]", "attribute": "href", "filters": [{"name": "querystring", "args": "cat"}]}, "title_default": {"selector": "a[href*=\"details.php?id=\"]"}, "title_optional": {"optional": true, "selector": "a[title][href*=\"details.php?id=\"]", "attribute": "title"}, "title": {"text": "{% if fields[''title_optional''] %}{{ fields[''title_optional''] }}{% else %}{{ fields[''title_default''] }}{% endif %}"}, "details": {"selector": "a[href*=\"details.php?id=\"]", "attribute": "href"}, "download": {"selector": "a[href*=\"download.php?id=\"]", "attribute": "href"}, "imdbid": {"selector": "a[href*=\"imdb.com/title/tt\"]", "attribute": "href", "filters": [{"name": "re_search", "args": ["tt\\d+", 0]}]}, "date_elapsed": {"selector": "td:nth-child(4) > span", "optional": true}, "date_added": {"selector": "td:nth-child(4) > span", "attribute": "title", "optional": true}, "date": {"text": "{% if fields[''date_elapsed''] or fields[''date_added''] %}{{ fields[''date_elapsed''] if fields[''date_elapsed''] else fields[''date_added''] }}{% else %}now{% endif %}", "filters": [{"name": "dateparse", "args": "%Y-%m-%d %H:%M:%S"}]}, "size": {"selector": "td:nth-child(5)"}, "seeders": {"selector": "td:nth-child(6)"}, "leechers": {"selector": "td:nth-child(7)"}, "grabs": {"selector": "td:nth-child(8)"}, "downloadvolumefactor": {"case": {"font.free": 0, "font.twoupfree": 0, "font.halfdown": 0.5, "font.twouphalfdown": 0.5, "font.thirtypercent": 0.3, "*": 1}}, "uploadvolumefactor": {"case": {"font.twouphalfdown": 2, "font.twoupfree": 2, "font.twoup": 2, "*": 1}}, "description": {"selector": "table.torrentname > tr:nth-child(1) > td:nth-child(2)", "remove": "a, img, div", "contents": -1}, "labels": {"selector": "table.torrentname > tr:nth-child(2) > td:nth-child(2) > div#tag > font.tag"}, "minimumratio": {"text": 0.8}}}', '{"movie": [{"id": 401, "cat": "Movies", "desc": "Movies\u7535\u5f71"}], "tv": [{"id": 402, "cat": "TV", "desc": "TV Series\u5267\u96c6"}, {"id": 403, "cat": "TV", "desc": "TV Shows\u7efc\u827a"}, {"id": 405, "cat": "TV/Anime", "desc": "Animations\u52a8\u6f2b"}]}'
+)
+ON CONFLICT(ID) DO UPDATE SET
+    NAME = excluded.NAME,
+    DOMAIN = excluded.DOMAIN,
+    SEARCH = excluded.SEARCH,
+    PARSER = excluded.PARSER,
+    RENDER = excluded.RENDER,
+    PROXY = excluded.PROXY,
+    SOURCE_TYPE = excluded.SOURCE_TYPE,
+    SEARCH_TYPE = excluded.SEARCH_TYPE,
+    BROWSE = excluded.BROWSE,
+    TORRENTS = excluded.TORRENTS,
+    CATEGORY = excluded.CATEGORY;
+
+INSERT INTO INDEXER_SITES (
+    ID, NAME, DOMAIN, SEARCH, PARSER, RENDER, PUBLIC, PROXY, SOURCE_TYPE, SEARCH_TYPE, BROWSE, TORRENTS, CATEGORY
+) VALUES (
+    'torrentleech', 'TorrentLeech', 'https://www.torrentleech.org/', '', 'TorrentLeech', 0, 0, 0, 'MOVIE,TV,ANIME', 'title', '', '', ''
+)
+ON CONFLICT(ID) DO UPDATE SET
+    NAME = excluded.NAME,
+    DOMAIN = excluded.DOMAIN,
+    SEARCH = excluded.SEARCH,
+    PARSER = excluded.PARSER,
+    RENDER = excluded.RENDER,
+    PROXY = excluded.PROXY,
+    SOURCE_TYPE = excluded.SOURCE_TYPE,
+    SEARCH_TYPE = excluded.SEARCH_TYPE,
+    BROWSE = excluded.BROWSE,
+    TORRENTS = excluded.TORRENTS,
+    CATEGORY = excluded.CATEGORY;
+
+INSERT INTO INDEXER_SITES (
+    ID, NAME, DOMAIN, SEARCH, PARSER, RENDER, PUBLIC, PROXY, SOURCE_TYPE, SEARCH_TYPE, BROWSE, TORRENTS, CATEGORY
+) VALUES (
+    'ttg', '听听歌', 'https://totheglory.im/', '{"paths": [{"path": "browse.php"}], "params": {"search_field": "{keyword}", "c": "M"}, "batch": {"delimiter": "+", "space_replace": "+"}}', '', 0, 0, 0, 'MOVIE,TV,ANIME', 'title', '', '{"list": {"selector": "table#torrent_table tr[id]"}, "fields": {"id": {"selector": "div.name_left > a", "attribute": "href", "filters": [{"name": "re_search", "args": ["\\d+", 0]}]}, "description_free_forever": {"selector": "div.name_left > a > b > font > span"}, "description_normal": {"selector": "div.name_left > a > b > span"}, "description": {"text": "{% if fields[''description_free_forever''] %}{{ fields[''description_free_forever''] }}{% else %}{{ fields[''description_normal''] }}{% endif %}"}, "labels": {"selector": "div.name_left > span > b"}, "title": {"selector": "div.name_left > a > b", "remove": "span", "contents": 0}, "category": {"selector": "tr[id] td:nth-child(1) > a > img", "attribute": "alt"}, "details": {"selector": "div.name_left > a", "attribute": "href"}, "download": {"selector": "a.dl_a", "attribute": "href"}, "files": {"selector": "td:nth-child(3)"}, "size": {"selector": "td:nth-child(7)"}, "seeders": {"selector": "td:nth-child(9) > b > a >font"}, "leechers": {"selector": "td:nth-child(9) > b:nth-child(2) > a"}, "grabs": {"selector": "td:nth-child(8)", "contents": 0}, "date_elapsed": {"selector": "td:nth-child(6)", "optional": true}, "date_added": {"selector": "td:nth-child(5) > nobr", "optional": true}, "date": {"selector": "td:nth-child(5)", "filters": [{"name": "dateparse", "args": "%Y-%m-%d%H:%M:%S"}]}, "imdbid": {"selector": "span.imdb_rate > a", "attribute": "href", "filters": [{"name": "re_search", "args": ["tt\\d+", 0]}]}, "downloadvolumefactor": {"case": {"img[alt=\"free\"]": 0, "img[alt=\"50%\"]": 0.5, "img[alt=\"30%\"]": 0.3, "*": 1}}, "uploadvolumefactor": {"case": {"img[alt=\"200%\"]": 2, "*": 1}}, "free_deadline": {"default_value": "{% if fields[''downloadvolumefactor'']==0 %}{{max_time}}{% endif%}", "default_value_format": "%Y-%m-%d %H:%M:%S.%f", "selector": "span[onclick]", "attribute": "onclick", "filters": [{"name": "re_search", "args": ["\\d+\u5e74\\d+\u6708\\d+\u65e5\\d+\u70b9\\d+\u5206", 0]}, {"name": "dateparse", "args": "%Y\u5e74%m\u6708%d\u65e5%H\u70b9%M\u5206"}]}, "minimumratio": {"case": {"img[title=\"Hit and Run\"]": 1, "*": 0}}, "minimumseedtime": {"case": {"img[title=\"Hit and Run\"]": 216000, "*": 0}}}}', '{"field": "search_field", "delimiter": " \u5206\u7c7b:", "movie": [{"id": "\u7535\u5f71DVDRip", "cat": "Movies/SD"}, {"id": "\u7535\u5f71720p", "cat": "Movies/HD"}, {"id": "\u7535\u5f711080i/p", "cat": "Movies/HD"}, {"id": "BluRay\u539f\u76d8", "cat": "Movies/BluRay"}, {"id": "\u5f71\u89c62160p", "cat": "Movies/UHD"}, {"id": "UHD\u539f\u76d8", "cat": "Movies/UHD"}], "tv": [{"id": "\u7eaa\u5f55\u7247720p", "cat": "Movies/HD"}, {"id": "\u7eaa\u5f55\u72471080i/p", "cat": "Movies/HD"}, {"id": "\u7eaa\u5f55\u7247BluRay\u539f\u76d8", "cat": "Movies/BluRay"}, {"id": "\u6b27\u7f8e\u5267720p", "cat": "TV/HD"}, {"id": "\u6b27\u7f8e\u52671080i/p", "cat": "TV/HD"}, {"id": "\u9ad8\u6e05\u65e5\u5267", "cat": "TV/HD"}, {"id": "\u5927\u9646\u6e2f\u53f0\u52671080i/p", "cat": "TV/HD"}, {"id": "\u5927\u9646\u6e2f\u53f0\u5267720p", "cat": "TV/HD"}, {"id": "\u9ad8\u6e05\u97e9\u5267", "cat": "TV/HD"}, {"id": "\u6b27\u7f8e\u5267\u5305", "cat": "TV/HD"}, {"id": "\u65e5\u5267\u5305", "cat": "TV/HD"}, {"id": "\u97e9\u5267\u5305", "cat": "TV/HD"}, {"id": "\u534e\u8bed\u5267\u5305", "cat": "TV/HD"}, {"id": "\u9ad8\u6e05\u52a8\u6f2b", "cat": "TV/HD"}, {"id": "\u97e9\u56fd\u7efc\u827a", "cat": "TV/HD"}, {"id": "\u65e5\u672c\u7efc\u827a", "cat": "TV/HD"}, {"id": "\u9ad8\u6e05\u7efc\u827a", "cat": "TV/HD"}, {"id": "\u52a8\u6f2b\u539f\u76d8", "cat": "TV/BluRay"}]}'
+)
+ON CONFLICT(ID) DO UPDATE SET
+    NAME = excluded.NAME,
+    DOMAIN = excluded.DOMAIN,
+    SEARCH = excluded.SEARCH,
+    PARSER = excluded.PARSER,
+    RENDER = excluded.RENDER,
+    PROXY = excluded.PROXY,
+    SOURCE_TYPE = excluded.SOURCE_TYPE,
+    SEARCH_TYPE = excluded.SEARCH_TYPE,
+    BROWSE = excluded.BROWSE,
+    TORRENTS = excluded.TORRENTS,
+    CATEGORY = excluded.CATEGORY;
+
+INSERT INTO INDEXER_SITES (
+    ID, NAME, DOMAIN, SEARCH, PARSER, RENDER, PUBLIC, PROXY, SOURCE_TYPE, SEARCH_TYPE, BROWSE, TORRENTS, CATEGORY
+) VALUES (
+    'U2', '幼儿园', 'https://u2.dmhy.org/', '{"paths": [{"path": "torrents.php", "method": "get"}], "params": {"search": "{keyword}"}, "batch": {"delimiter": " ", "space_replace": "_"}}', '', 0, 0, 0, 'MOVIE,TV,ANIME', 'title', '', '{"list": {"selector": "table.torrents > tr:has(\"table.torrentname\")"}, "fields": {"id": {"selector": "a[href*=\"details.php?id=\"]", "attribute": "href", "filters": [{"name": "re_search", "args": ["\\d+", 0]}]}, "title_default": {"selector": "a[href*=\"details.php?id=\"]"}, "title_optional": {"optional": true, "selector": "a[title][href*=\"details.php?id=\"]", "attribute": "title"}, "title": {"text": "{% if fields[''title_optional''] %}{{ fields[''title_optional''] }}{% else %}{{ fields[''title_default''] }}{% endif %}"}, "category": {"selector": "a[href*=\"?cat=\"]", "attribute": "href", "filters": [{"name": "replace", "args": ["?", ""]}, {"name": "querystring", "args": "cat"}]}, "details": {"selector": "a[href*=\"details.php?id=\"]", "attribute": "href"}, "download": {"selector": "a[href*=\"download.php?id=\"]", "attribute": "href"}, "imdbid": {"selector": "div.imdb_100 > a", "attribute": "href", "filters": [{"name": "re_search", "args": ["tt\\d+", 0]}]}, "date_elapsed": {"selector": "td:nth-child(4) > time", "optional": true}, "date_added": {"selector": "td:nth-child(4) > time", "attribute": "title", "optional": true}, "date": {"text": "{% if fields[''date_elapsed''] or fields[''date_added''] %}{{ fields[''date_elapsed''] if fields[''date_elapsed''] else fields[''date_added''] }}{% else %}now{% endif %}", "filters": [{"name": "dateparse", "args": "%Y-%m-%d %H:%M:%S"}]}, "size": {"selector": "td:nth-child(5)"}, "seeders": {"selector": "td:nth-child(6)"}, "leechers": {"selector": "td:nth-child(7)"}, "grabs": {"selector": "td:nth-child(8)"}, "downloadvolumefactor": {"case": {"img.pro_free": 0, "img.pro_free2up": 0, "img.pro_50pctdown": 0.5, "img.pro_50pctdown2up": 0.5, "img.pro_30pctdown": 0.3, "*": 1}}, "uploadvolumefactor": {"case": {"img.pro_50pctdown2up": 2, "img.pro_free2up": 2, "img.pro_2up": 2, "*": 1}}, "free_deadline": {"default_value": "{% if fields[''downloadvolumefactor'']==0 %}{{max_time}}{% endif%}", "default_value_format": "%Y-%m-%d %H:%M:%S.%f", "selector": "td > b > time[title]", "attribute": "title", "filters": [{"name": "dateparse", "args": "%Y-%m-%d %H:%M:%S"}]}, "description": {"selector": "td:nth-child(2) > table > tr > td.embedded", "remove": "span,a,img,font,b", "contents": -1}, "labels": {"selector": "td:nth-child(2) > table > tr > td.embedded > span"}}}', '{"movie": [{"id": 9, "cat": "Movies/Other", "desc": "U2-Rip"}, {"id": 411, "cat": "Movies/Other", "desc": "U2-RBD"}, {"id": 413, "cat": "Movies/Other", "desc": "Web"}, {"id": 12, "cat": "Movies/HD", "desc": "BDRip"}, {"id": 13, "cat": "Movies/Other", "desc": "DVDRip"}, {"id": 14, "cat": "Movies/Other", "desc": "HDTVRip"}, {"id": 15, "cat": "Movies/Other", "desc": "DVDISO"}, {"id": 16, "cat": "Movies/BluRay", "desc": "BDMV"}, {"id": 17, "cat": "Movies/Other", "desc": "LQRip"}, {"id": 412, "cat": "Movies/BluRay", "desc": "\u52a0\u6d41\u91cd\u704c (Modded Blu-rays)"}], "tv": [{"id": 9, "cat": "TV/Anime", "desc": "U2-Rip"}, {"id": 411, "cat": "TV/Anime", "desc": "U2-RBD"}, {"id": 413, "cat": "TV/Anime", "desc": "Web"}, {"id": 12, "cat": "TV/Anime", "desc": "BDRip"}, {"id": 13, "cat": "TV/Anime", "desc": "DVDRip"}, {"id": 14, "cat": "TV/Anime", "desc": "HDTVRip"}, {"id": 15, "cat": "TV/Anime", "desc": "DVDISO"}, {"id": 16, "cat": "TV/Anime", "desc": "BDMV"}, {"id": 17, "cat": "TV/Anime", "desc": "LQRip"}, {"id": 410, "cat": "TV/Anime", "desc": "\u5916\u6302\u7ed3\u6784 (TV Series)"}, {"id": 412, "cat": "TV/Anime", "desc": "\u52a0\u6d41\u91cd\u704c (Modded Blu-rays)"}]}'
+)
+ON CONFLICT(ID) DO UPDATE SET
+    NAME = excluded.NAME,
+    DOMAIN = excluded.DOMAIN,
+    SEARCH = excluded.SEARCH,
+    PARSER = excluded.PARSER,
+    RENDER = excluded.RENDER,
+    PROXY = excluded.PROXY,
+    SOURCE_TYPE = excluded.SOURCE_TYPE,
+    SEARCH_TYPE = excluded.SEARCH_TYPE,
+    BROWSE = excluded.BROWSE,
+    TORRENTS = excluded.TORRENTS,
+    CATEGORY = excluded.CATEGORY;
+
+INSERT INTO INDEXER_SITES (
+    ID, NAME, DOMAIN, SEARCH, PARSER, RENDER, PUBLIC, PROXY, SOURCE_TYPE, SEARCH_TYPE, BROWSE, TORRENTS, CATEGORY
+) VALUES (
+    'ultrahd', 'ultrahd', 'https://ultrahd.net/', '{"paths": [{"path": "torrents.php", "method": "get"}], "params": {"search": "{keyword}"}}', '', 0, 0, 0, 'MOVIE,TV,ANIME', 'title', '', '{"list": {"selector": "table.torrents > tr:has(\"table.torrentname\")"}, "fields": {"id": {"selector": "a[href*=\"details.php?id=\"]", "attribute": "href", "filters": [{"name": "re_search", "args": ["\\d+", 0]}]}, "title_default": {"selector": "a[href*=\"details.php?id=\"]"}, "title_optional": {"optional": true, "selector": "a[title][href*=\"details.php?id=\"]", "attribute": "title"}, "title": {"text": "{% if fields[''title_optional''] %}{{ fields[''title_optional''] }}{% else %}{{ fields[''title_default''] }}{% endif %}"}, "category": {"selector": "a[href*=\"?cat=\"]", "attribute": "href", "filters": [{"name": "replace", "args": ["?", ""]}, {"name": "querystring", "args": "cat"}]}, "details": {"selector": "a[href*=\"details.php?id=\"]", "attribute": "href"}, "download": {"selector": "a[href*=\"download.php?id=\"]", "attribute": "href"}, "imdbid": {"selector": "div.imdb_100 > a", "attribute": "href", "filters": [{"name": "re_search", "args": ["tt\\d+", 0]}]}, "date_elapsed": {"selector": "td:nth-child(4) > span", "optional": true}, "date_added": {"selector": "td:nth-child(4) > span", "attribute": "title", "optional": true}, "date": {"text": "{% if fields[''date_elapsed''] or fields[''date_added''] %}{{ fields[''date_elapsed''] if fields[''date_elapsed''] else fields[''date_added''] }}{% else %}now{% endif %}", "filters": [{"name": "dateparse", "args": "%Y-%m-%d %H:%M:%S"}]}, "size": {"selector": "td:nth-child(5)"}, "seeders": {"selector": "td:nth-child(6)"}, "leechers": {"selector": "td:nth-child(7)"}, "grabs": {"selector": "td:nth-child(8)"}, "downloadvolumefactor": {"case": {"img.pro_free": 0, "img.pro_free2up": 0, "img.pro_50pctdown": 0.5, "img.pro_50pctdown2up": 0.5, "img.pro_30pctdown": 0.3, "*": 1}}, "uploadvolumefactor": {"case": {"img.pro_50pctdown2up": 2, "img.pro_free2up": 2, "img.pro_2up": 2, "*": 1}}, "free_deadline": {"default_value": "{% if fields[''downloadvolumefactor'']==0 %}{{max_time}}{% endif%}", "default_value_format": "%Y-%m-%d %H:%M:%S.%f", "selector": "img.pro_free,img.pro_free2up", "attribute": "onmouseover", "filters": [{"name": "re_search", "args": ["\\d+-\\d+-\\d+ \\d+:\\d+:\\d+", 0]}, {"name": "dateparse", "args": "%Y-%m-%d %H:%M:%S"}]}, "description": {"selector": "td:nth-child(2) > table > tr > td.embedded", "contents": -1}, "labels": {"selector": "td:nth-child(2) > table > tr > td.embedded > span"}, "minimumratio": {"case": {"img.hitandrun": 3, "*": 0}}, "minimumseedtime": {"case": {"img.hitandrun": 1209600, "*": 0}}}}', ''
+)
+ON CONFLICT(ID) DO UPDATE SET
+    NAME = excluded.NAME,
+    DOMAIN = excluded.DOMAIN,
+    SEARCH = excluded.SEARCH,
+    PARSER = excluded.PARSER,
+    RENDER = excluded.RENDER,
+    PROXY = excluded.PROXY,
+    SOURCE_TYPE = excluded.SOURCE_TYPE,
+    SEARCH_TYPE = excluded.SEARCH_TYPE,
+    BROWSE = excluded.BROWSE,
+    TORRENTS = excluded.TORRENTS,
+    CATEGORY = excluded.CATEGORY;
+
+INSERT INTO INDEXER_SITES (
+    ID, NAME, DOMAIN, SEARCH, PARSER, RENDER, PUBLIC, PROXY, SOURCE_TYPE, SEARCH_TYPE, BROWSE, TORRENTS, CATEGORY
+) VALUES (
+    'uploads', 'Uploads', 'http://uploads.ltd/', '{"paths": [{"path": "torrents.php", "method": "get"}], "params": {"search": "{keyword}"}, "batch": {"delimiter": " ", "space_replace": "_"}}', '', 0, 0, 0, 'MOVIE,TV,ANIME', 'title', '', '{"list": {"selector": "table.torrents > tr:has(\"table.torrentname\")"}, "fields": {"id": {"selector": "a[href*=\"details.php?id=\"]", "attribute": "href", "filters": [{"name": "re_search", "args": ["\\d+", 0]}]}, "title_default": {"selector": "a[href*=\"details.php?id=\"]"}, "title_optional": {"optional": true, "selector": "a[title][href*=\"details.php?id=\"]", "attribute": "title"}, "title": {"text": "{% if fields[''title_optional''] %}{{ fields[''title_optional''] }}{% else %}{{ fields[''title_default''] }}{% endif %}"}, "category": {"selector": "a[href*=\"?cat=\"]", "attribute": "href", "filters": [{"name": "replace", "args": ["?", ""]}, {"name": "querystring", "args": "cat"}]}, "details": {"selector": "a[href*=\"details.php?id=\"]", "attribute": "href"}, "download": {"selector": "a[href*=\"download.php?id=\"]", "attribute": "href"}, "imdbid": {"selector": "div.imdb_100 > a", "attribute": "href", "filters": [{"name": "re_search", "args": ["tt\\d+", 0]}]}, "date_elapsed": {"selector": "td:nth-child(4) > span", "optional": true}, "date_added": {"selector": "td:nth-child(4) > span", "attribute": "title", "optional": true}, "date": {"text": "{% if fields[''date_elapsed''] or fields[''date_added''] %}{{ fields[''date_elapsed''] if fields[''date_elapsed''] else fields[''date_added''] }}{% else %}now{% endif %}", "filters": [{"name": "dateparse", "args": "%Y-%m-%d %H:%M:%S"}]}, "size": {"selector": "td:nth-child(5)"}, "seeders": {"selector": "td:nth-child(6)"}, "leechers": {"selector": "td:nth-child(7)"}, "grabs": {"selector": "td:nth-child(8)"}, "downloadvolumefactor": {"case": {"img.pro_free": 0, "img.pro_free2up": 0, "img.pro_50pctdown": 0.5, "img.pro_50pctdown2up": 0.5, "img.pro_30pctdown": 0.3, "*": 1}}, "uploadvolumefactor": {"case": {"img.pro_50pctdown2up": 2, "img.pro_free2up": 2, "img.pro_2up": 2, "*": 1}}, "free_deadline": {"default_value": "{% if fields[''downloadvolumefactor'']==0 %}{{max_time}}{% endif%}", "default_value_format": "%Y-%m-%d %H:%M:%S.%f", "selector": "img.pro_free,img.pro_free2up", "attribute": "onmouseover", "filters": [{"name": "re_search", "args": ["\\d+-\\d+-\\d+ \\d+:\\d+:\\d+", 0]}, {"name": "dateparse", "args": "%Y-%m-%d %H:%M:%S"}]}, "description": {"selector": "table.torrentname > tr > td:nth-child(2)", "remove": "a,b,img,span", "contents": -1}, "labels": {"selector": "table.torrentname > tr > td:nth-child(2) > span"}, "minimumratio": {"text": 1}, "minimumseedtime": {"text": 90000}}}', '{"movie": [{"id": 401, "cat": "Movies", "desc": "\u7535\u5f71"}], "tv": [{"id": 402, "cat": "TV/Series", "desc": "\u7535\u89c6\u5267"}, {"id": 403, "cat": "TV/Shows", "desc": "\u7efc\u827a"}, {"id": 404, "cat": "TV/Documentaries", "desc": "\u7eaa\u5f55\u7247"}, {"id": 405, "cat": "TV/Animations", "desc": "\u52a8\u6f2b"}]}'
+)
+ON CONFLICT(ID) DO UPDATE SET
+    NAME = excluded.NAME,
+    DOMAIN = excluded.DOMAIN,
+    SEARCH = excluded.SEARCH,
+    PARSER = excluded.PARSER,
+    RENDER = excluded.RENDER,
+    PROXY = excluded.PROXY,
+    SOURCE_TYPE = excluded.SOURCE_TYPE,
+    SEARCH_TYPE = excluded.SEARCH_TYPE,
+    BROWSE = excluded.BROWSE,
+    TORRENTS = excluded.TORRENTS,
+    CATEGORY = excluded.CATEGORY;
+
+INSERT INTO INDEXER_SITES (
+    ID, NAME, DOMAIN, SEARCH, PARSER, RENDER, PUBLIC, PROXY, SOURCE_TYPE, SEARCH_TYPE, BROWSE, TORRENTS, CATEGORY
+) VALUES (
+    'wintersakura', '冬樱', 'https://wintersakura.net/', '{"paths": [{"path": "torrents.php", "method": "get"}], "params": {"search": "{keyword}"}, "batch": {"delimiter": " ", "space_replace": "_"}}', '', 0, 0, 0, 'MOVIE,TV,ANIME', 'title', '', '{"list": {"selector": "table.torrents > tr:has(\"table.torrentname\")"}, "fields": {"id": {"selector": "a[href*=\"details.php?id=\"]", "attribute": "href", "filters": [{"name": "re_search", "args": ["\\d+", 0]}]}, "category": {"selector": "a[href*=\"?cat=\"]", "attribute": "href", "filters": [{"name": "querystring", "args": "cat"}]}, "title_default": {"selector": "a[href*=\"details.php?id=\"]"}, "title_optional": {"optional": true, "selector": "a[title][href*=\"details.php?id=\"]", "attribute": "title"}, "title": {"text": "{% if fields[''title_optional''] %}{{ fields[''title_optional''] }}{% else %}{{ fields[''title_default''] }}{% endif %}"}, "details": {"selector": "a[href*=\"details.php?id=\"]", "attribute": "href"}, "poster": {"selector": "img[data-orig]", "attribute": "data-orig"}, "download": {"selector": "a[href*=\"download.php?id=\"]", "attribute": "href"}, "size": {"selector": "td.rowfollow:nth-child(5)"}, "grabs": {"selector": "td.rowfollow:nth-child(8)"}, "seeders": {"selector": "td.rowfollow:nth-child(6)"}, "leechers": {"selector": "td.rowfollow:nth-child(7)"}, "date_elapsed": {"selector": "td.rowfollow:nth-child(4) > span", "optional": true}, "date_added": {"selector": "td.rowfollow:nth-child(4) > span", "attribute": "title", "optional": true}, "date": {"text": "{% if fields[''date_elapsed''] or fields[''date_added''] %}{{ fields[''date_elapsed''] if fields[''date_elapsed''] else fields[''date_added''] }}{% else %}now{% endif %}", "filters": [{"name": "dateparse", "args": "%Y-%m-%d %H:%M:%S"}]}, "downloadvolumefactor": {"case": {"img.pro_free": 0, "img.pro_free2up": 0, "img.pro_50pctdown": 0.5, "img.pro_50pctdown2up": 0.5, "img.pro_30pctdown": 0.3, "*": 1}}, "uploadvolumefactor": {"case": {"img.pro_50pctdown2up": 2, "img.pro_free2up": 2, "img.pro_2up": 2, "*": 1}}, "free_deadline": {"default_value": "{% if fields[''downloadvolumefactor'']==0 %}{{max_time}}{% endif%}", "default_value_format": "%Y-%m-%d %H:%M:%S.%f", "selector": "div > b > span[title]", "attribute": "title", "filters": [{"name": "dateparse", "args": "%Y-%m-%d %H:%M:%S"}]}, "tags": {"selector": "div > a.torrents-tag"}, "subject": {"selector": "td.embedded:nth-child(2) > div > div:nth-child(2) > span", "contents": -1}, "description": {"selector": "td:nth-child(2) > table.torrentname > tr > td:nth-child(2)", "remove": "span,a,img,font,b", "contents": -1}, "labels": {"selector": "td:nth-child(2) > table.torrentname > tr > td:nth-child(2) > span"}}}', '{"movie": [{"id": 401, "cat": "Movies", "desc": "Movies/\u7535\u5f71"}, {"id": 422, "cat": "Movies", "desc": "Animation flims/\u52a8\u6f2b\u7535\u5f71"}], "tv": [{"id": 410, "cat": "TV/Documentary", "desc": "Documentaries/\u7eaa\u5f55\u7247"}, {"id": 413, "cat": "TV/Anime", "desc": "Animation series/\u52a8\u6f2b\u5267\u96c6(\u5206\u96c6)"}, {"id": 423, "cat": "TV/Anime", "desc": "Animation series/\u52a8\u6f2b\u5267\u96c6(\u5408\u96c6)\t"}, {"id": 414, "cat": "TV/Series", "desc": "TV Series/\u5267\u96c6(\u5408\u96c6\uff09"}, {"id": 402, "cat": "TV/Series", "desc": "TV Series/\u5267\u96c6(\u5206\u96c6\uff09"}, {"id": 403, "cat": "TV/Shows", "desc": "TV Shows/\u7efc\u827a(\u5408\u96c6)"}, {"id": 418, "cat": "TV/Shows", "desc": "TV Shows/\u7efc\u827a(\u5206\u96c6\uff09"}]}'
+)
+ON CONFLICT(ID) DO UPDATE SET
+    NAME = excluded.NAME,
+    DOMAIN = excluded.DOMAIN,
+    SEARCH = excluded.SEARCH,
+    PARSER = excluded.PARSER,
+    RENDER = excluded.RENDER,
+    PROXY = excluded.PROXY,
+    SOURCE_TYPE = excluded.SOURCE_TYPE,
+    SEARCH_TYPE = excluded.SEARCH_TYPE,
+    BROWSE = excluded.BROWSE,
+    TORRENTS = excluded.TORRENTS,
+    CATEGORY = excluded.CATEGORY;
+
+INSERT INTO INDEXER_SITES (
+    ID, NAME, DOMAIN, SEARCH, PARSER, RENDER, PUBLIC, PROXY, SOURCE_TYPE, SEARCH_TYPE, BROWSE, TORRENTS, CATEGORY
+) VALUES (
+    'zhuque', '朱雀', 'https://zhuque.in/', '{"paths": [{"path": "torrent/search", "method": "chrome", "params": {"keyword": "//input[@id=\"form_item_keyword\"]", "submit": "//form//button[@type=\"submit\"]"}}]}', 'TNodeSpider', 0, 0, 0, 'MOVIE,TV,ANIME', 'title', '', '', ''
+)
+ON CONFLICT(ID) DO UPDATE SET
+    NAME = excluded.NAME,
+    DOMAIN = excluded.DOMAIN,
+    SEARCH = excluded.SEARCH,
+    PARSER = excluded.PARSER,
+    RENDER = excluded.RENDER,
+    PROXY = excluded.PROXY,
+    SOURCE_TYPE = excluded.SOURCE_TYPE,
+    SEARCH_TYPE = excluded.SEARCH_TYPE,
+    BROWSE = excluded.BROWSE,
+    TORRENTS = excluded.TORRENTS,
+    CATEGORY = excluded.CATEGORY;
+
+INSERT INTO INDEXER_SITES (
+    ID, NAME, DOMAIN, SEARCH, PARSER, RENDER, PUBLIC, PROXY, SOURCE_TYPE, SEARCH_TYPE, BROWSE, TORRENTS, CATEGORY
+) VALUES (
+    'ningmengbutian', '柠檬不甜', 'https://lemonhd.net/', '{"paths": [{"path": "torrents.php", "method": "get"}], "params": {"search": "{keyword}"}, "batch": {"delimiter": " ", "space_replace": "_"}}', '', 0, 0, 0, 'MOVIE,TV,ANIME', 'title', '', '{"list": {"selector": "table.torrents > tr:has(\"table.torrentname\")"}, "fields": {"id": {"selector": "a[href*=\"details.php?id=\"]", "attribute": "href", "filters": [{"name": "re_search", "args": ["\\d+", 0]}]}, "category": {"selector": "a[href*=\"?cat=\"]", "attribute": "href", "filters": [{"name": "querystring", "args": "cat"}]}, "title_default": {"selector": "a[href*=\"details.php?id=\"]"}, "title_optional": {"optional": true, "selector": "a[title][href*=\"details.php?id=\"]", "attribute": "title"}, "title": {"text": "{% if fields[''title_optional''] %}{{ fields[''title_optional''] }}{% else %}{{ fields[''title_default''] }}{% endif %}"}, "details": {"selector": "a[href*=\"details.php?id=\"]", "attribute": "href"}, "poster": {"selector": "img[data-orig]", "attribute": "data-orig"}, "download": {"selector": "a[href*=\"download.php?id=\"]", "attribute": "href"}, "size": {"selector": "td.rowfollow:nth-child(5)"}, "grabs": {"selector": "td.rowfollow:nth-child(8)"}, "seeders": {"selector": "td.rowfollow:nth-child(6)"}, "leechers": {"selector": "td.rowfollow:nth-child(7)"}, "date_elapsed": {"selector": "td.rowfollow:nth-child(4) > span", "optional": true}, "date_added": {"selector": "td.rowfollow:nth-child(4) > span", "attribute": "title", "optional": true}, "date": {"text": "{% if fields[''date_elapsed''] or fields[''date_added''] %}{{ fields[''date_elapsed''] if fields[''date_elapsed''] else fields[''date_added''] }}{% else %}now{% endif %}", "filters": [{"name": "dateparse", "args": "%Y-%m-%d %H:%M:%S"}]}, "downloadvolumefactor": {"case": {"img.pro_free": 0, "img.pro_free2up": 0, "img.pro_50pctdown": 0.5, "img.pro_50pctdown2up": 0.5, "img.pro_30pctdown": 0.3, "*": 1}}, "uploadvolumefactor": {"case": {"img.pro_50pctdown2up": 2, "img.pro_free2up": 2, "img.pro_2up": 2, "*": 1}}, "free_deadline": {"default_value": "{% if fields[''downloadvolumefactor'']==0 %}{{max_time}}{% endif%}", "default_value_format": "%Y-%m-%d %H:%M:%S.%f", "selector": "div > b > span[title]", "attribute": "title", "filters": [{"name": "dateparse", "args": "%Y-%m-%d %H:%M:%S"}]}, "tags": {"selector": "div > a.torrents-tag"}, "subject": {"selector": "td.embedded:nth-child(2) > div > div:nth-child(2) > span", "contents": -1}, "description": {"selector": "td:nth-child(2) > table.torrentname > tr > td:nth-child(2)", "remove": "span,a,img,font,b", "contents": -1}, "labels": {"selector": "td:nth-child(2) > table.torrentname > tr > td:nth-child(2) > span"}}}', '{"movie": [{"id": 401, "cat": "Movies", "desc": "Movies(\u7535\u5f71)", "default": true}], "tv": [{"id": 402, "cat": "TV", "desc": "TV Series(\u7535\u89c6\u5267)", "default": true}, {"id": 403, "cat": "TV", "desc": "TV Shows(\u7efc\u827a)", "default": true}, {"id": 404, "cat": "TV/Documentary", "desc": "Documentaries(\u7eaa\u5f55\u7247)", "default": true}, {"id": 405, "cat": "TV/Anime", "desc": "Animations(\u52a8\u753b)", "default": true}]}'
+)
+ON CONFLICT(ID) DO UPDATE SET
+    NAME = excluded.NAME,
+    DOMAIN = excluded.DOMAIN,
+    SEARCH = excluded.SEARCH,
+    PARSER = excluded.PARSER,
+    RENDER = excluded.RENDER,
+    PROXY = excluded.PROXY,
+    SOURCE_TYPE = excluded.SOURCE_TYPE,
+    SEARCH_TYPE = excluded.SEARCH_TYPE,
+    BROWSE = excluded.BROWSE,
+    TORRENTS = excluded.TORRENTS,
+    CATEGORY = excluded.CATEGORY;
+
+INSERT INTO INDEXER_SITES (
+    ID, NAME, DOMAIN, SEARCH, PARSER, RENDER, PUBLIC, PROXY, SOURCE_TYPE, SEARCH_TYPE, BROWSE, TORRENTS, CATEGORY
+) VALUES (
+    'zmpt', '织梦', 'https://zmpt.cc/', '{"paths": [{"path": "torrents.php", "method": "get"}], "params": {"search": "{keyword}"}, "batch": {"delimiter": " ", "space_replace": "_"}}', '', 0, 0, 0, 'MOVIE,TV,ANIME', 'title', '', '{"a":"zm","list":{"selector":"table.torrents > tr:has(\"table.torrentname\")"},"fields":{"id":{"selector":"a[href*=\"details.php?id=\"]","attribute":"href","filters":[{"name":"re_search","args":["\\d+",0]}]},"title_default":{"selector":"a[href*=\"details.php?id=\"]"},"title_optional":{"optional":true,"selector":"a[title][href*=\"details.php?id=\"]","attribute":"title"},"title":{"text":"{% if fields[''title_optional''] %}{{ fields[''title_optional''] }}{% else %}{{ fields[''title_default''] }}{% endif %}"},"category":{"selector":"a[href*=\"?cat=\"]","attribute":"href","filters":[{"name":"replace","args":["?",""]},{"name":"querystring","args":"cat"}]},"details":{"selector":"a[href*=\"details.php?id=\"]","attribute":"href"},"download":{"selector":"a[href*=\"download.php?id=\"]","attribute":"href"},"imdbid":{"selector":"div.imdb_100 > a","attribute":"href","filters":[{"name":"re_search","args":["tt\\d+",0]}]},"date_elapsed":{"selector":"td:nth-child(4) > span","optional":true},"date_added":{"selector":"td:nth-child(4) > span","attribute":"title","optional":true},"date":{"text":"{% if fields[''date_elapsed''] or fields[''date_added''] %}{{ fields[''date_elapsed''] if fields[''date_elapsed''] else fields[''date_added''] }}{% else %}now{% endif %}","filters":[{"name":"dateparse","args":"%Y-%m-%d %H:%M:%S"}]},"size":{"selector":"td:nth-child(5)"},"seeders":{"selector":"td:nth-child(6)"},"leechers":{"selector":"td:nth-child(7)"},"grabs":{"selector":"td:nth-child(8)"},"downloadvolumefactor":{"case":{"img.pro_free":0,"img.pro_free2up":0,"img.pro_50pctdown":0.5,"img.pro_50pctdown2up":0.5,"img.pro_30pctdown":0.3,"*":1}},"uploadvolumefactor":{"case":{"img.pro_50pctdown2up":2,"img.pro_free2up":2,"img.pro_2up":2,"*":1}},"free_deadline":{"default_value":"{% if fields[''downloadvolumefactor'']==0 %}{{max_time}}{% endif%}","default_value_format":"%Y-%m-%d %H:%M:%S.%f","selector":"img.pro_free,img.pro_free2up","attribute":"onmouseover","filters":[{"name":"re_search","args":["\\d+-\\d+-\\d+ \\d+:\\d+:\\d+",0]},{"name":"dateparse","args":"%Y-%m-%d %H:%M:%S"}]},"description":{"selector":"table.torrentname > tr > td.embedded:nth-child(1)","remove":"span,a,img,font,b","contents":-1},"labels":{"selector":"table.torrentname > tr > td.embedded > span"},"minimumratio":{"text":1},"minimumseedtime":{"text":75600}}}', '{"movie":[{"id":401,"cat":"Movies","desc":"Movies/综合-电影"}],"tv":[{"id":422,"cat":"TV/Documentary","desc":"Documentaries/综合-纪录片"},{"id":402,"cat":"TV","desc":"TV Series/综合-电视剧"},{"id":403,"cat":"TV","desc":"TV Shows/综合-综艺"},{"id":417,"cat":"TV/Anime","desc":"Anime China/动漫-国漫"},{"id":418,"cat":"TV/Anime","desc":"Anime Japan/动漫-日漫"},{"id":419,"cat":"TV/Anime","desc":"Anime Korean/动漫-韩漫"},{"id":420,"cat":"TV/Anime","desc":"Anime Europe and America/动漫-欧美"},{"id":421,"cat":"TV/Anime","desc":"Anime Other/动漫-其他"}]}'
+)
+ON CONFLICT(ID) DO UPDATE SET
+    NAME = excluded.NAME,
+    DOMAIN = excluded.DOMAIN,
+    SEARCH = excluded.SEARCH,
+    PARSER = excluded.PARSER,
+    RENDER = excluded.RENDER,
+    PROXY = excluded.PROXY,
+    SOURCE_TYPE = excluded.SOURCE_TYPE,
+    SEARCH_TYPE = excluded.SEARCH_TYPE,
+    BROWSE = excluded.BROWSE,
+    TORRENTS = excluded.TORRENTS,
+    CATEGORY = excluded.CATEGORY;
+
+INSERT INTO INDEXER_SITES (
+    ID, NAME, DOMAIN, SEARCH, PARSER, RENDER, PUBLIC, PROXY, SOURCE_TYPE, SEARCH_TYPE, BROWSE, TORRENTS, CATEGORY
+) VALUES (
+    '0ff', '自由农场', 'https://pt.0ff.cc/', '{"paths": [{"path": "torrents.php", "method": "get"}], "params": {"search": "{keyword}"}, "batch": {"delimiter": " ", "space_replace": "_"}}', '', 0, 0, 0, 'MOVIE,TV,ANIME', 'title', '', '{"list":{"selector":"table.torrents > tr:has(\"table.torrentname\")"},"fields":{"id":{"selector":"a[href*=\"details.php?id=\"]","attribute":"href","filters":[{"name":"re_search","args":["\\d+",0]}]},"title_default":{"selector":"a[href*=\"details.php?id=\"]"},"title_optional":{"optional":true,"selector":"a[title][href*=\"details.php?id=\"]","attribute":"title"},"title":{"text":"{% if fields[''title_optional''] %}{{ fields[''title_optional''] }}{% else %}{{ fields[''title_default''] }}{% endif %}"},"category":{"selector":"a[href*=\"?cat=\"]","attribute":"href","filters":[{"name":"replace","args":["?",""]},{"name":"querystring","args":"cat"}]},"details":{"selector":"a[href*=\"details.php?id=\"]","attribute":"href"},"download":{"selector":"a[href*=\"download.php?id=\"]","attribute":"href"},"imdbid":{"selector":"div.imdb_100 > a","attribute":"href","filters":[{"name":"re_search","args":["tt\\d+",0]}]},"date_elapsed":{"selector":"td:nth-child(4) > span","optional":true},"date_added":{"selector":"td:nth-child(4) > span","attribute":"title","optional":true},"date":{"text":"{% if fields[''date_elapsed''] or fields[''date_added''] %}{{ fields[''date_elapsed''] if fields[''date_elapsed''] else fields[''date_added''] }}{% else %}now{% endif %}","filters":[{"name":"dateparse","args":"%Y-%m-%d %H:%M:%S"}]},"size":{"selector":"td:nth-child(5)"},"seeders":{"selector":"td:nth-child(6)"},"leechers":{"selector":"td:nth-child(7)"},"grabs":{"selector":"td:nth-child(8)"},"downloadvolumefactor":{"case":{"img.pro_free":0,"img.pro_free2up":0,"img.pro_50pctdown":0.5,"img.pro_50pctdown2up":0.5,"img.pro_30pctdown":0.3,"*":1}},"uploadvolumefactor":{"case":{"img.pro_50pctdown2up":2,"img.pro_free2up":2,"img.pro_2up":2,"*":1}},"free_deadline":{"default_value":"{% if fields[''downloadvolumefactor'']==0 %}{{max_time}}{% endif%}","default_value_format":"%Y-%m-%d %H:%M:%S.%f","selector":"img.pro_free,img.pro_free2up","attribute":"onmouseover","filters":[{"name":"re_search","args":["\\d+-\\d+-\\d+ \\d+:\\d+:\\d+",0]},{"name":"dateparse","args":"%Y-%m-%d %H:%M:%S"}]},"description":{"selector":"table.torrentname > tr > td.embedded:nth-child(1)","remove":"span,a,img,font,b","contents":-1},"labels":{"selector":"table.torrentname > tr > td.embedded > span"},"minimumratio":{"text":1},"minimumseedtime":{"text":75600}}}', '{"movie":[{"id":401,"cat":"Movies","desc":"Movies/综合-电影"}],"tv":[{"id":422,"cat":"TV/Documentary","desc":"Documentaries/综合-纪录片"},{"id":402,"cat":"TV","desc":"TV Series/综合-电视剧"},{"id":403,"cat":"TV","desc":"TV Shows/综合-综艺"},{"id":417,"cat":"TV/Anime","desc":"Anime China/动漫-国漫"},{"id":418,"cat":"TV/Anime","desc":"Anime Japan/动漫-日漫"},{"id":419,"cat":"TV/Anime","desc":"Anime Korean/动漫-韩漫"},{"id":420,"cat":"TV/Anime","desc":"Anime Europe and America/动漫-欧美"},{"id":421,"cat":"TV/Anime","desc":"Anime Other/动漫-其他"}]}'
+)
+ON CONFLICT(ID) DO UPDATE SET
+    NAME = excluded.NAME,
+    DOMAIN = excluded.DOMAIN,
+    SEARCH = excluded.SEARCH,
+    PARSER = excluded.PARSER,
+    RENDER = excluded.RENDER,
+    PROXY = excluded.PROXY,
+    SOURCE_TYPE = excluded.SOURCE_TYPE,
+    SEARCH_TYPE = excluded.SEARCH_TYPE,
+    BROWSE = excluded.BROWSE,
+    TORRENTS = excluded.TORRENTS,
+    CATEGORY = excluded.CATEGORY;
+
+INSERT INTO INDEXER_SITES (
+    ID, NAME, DOMAIN, SEARCH, PARSER, RENDER, PUBLIC, PROXY, SOURCE_TYPE, SEARCH_TYPE, BROWSE, TORRENTS, CATEGORY
+) VALUES (
+    '1ptba', '1PTBA', 'https://1ptba.com/', '{"paths": [{"path": "torrents.php", "method": "get"}], "params": {"search": "{keyword}"}, "batch": {"delimiter": " ", "space_replace": "_"}}', '', 0, 0, 0, 'MOVIE,TV,ANIME', 'title', '', '{"list":{"selector":"table.torrents > tr:has(\"table.torrentname\")"},"fields":{"id":{"selector":"a[href*=\"details.php?id=\"]","attribute":"href","filters":[{"name":"re_search","args":["\\d+",0]}]},"category":{"selector":"a[href*=\"?cat=\"]","attribute":"href","filters":[{"name":"querystring","args":"cat"}]},"title_default":{"selector":"a[href*=\"details.php?id=\"]"},"title_optional":{"optional":true,"selector":"a[title][href*=\"details.php?id=\"]","attribute":"title"},"title":{"text":"{% if fields[''title_optional''] %}{{ fields[''title_optional''] }}{% else %}{{ fields[''title_default''] }}{% endif %}"},"details":{"selector":"a[href*=\"details.php?id=\"]","attribute":"href"},"poster":{"selector":"img[data-orig]","attribute":"data-orig"},"download":{"selector":"a[href*=\"download.php?id=\"]","attribute":"href"},"size":{"selector":"td.rowfollow:nth-child(5)"},"grabs":{"selector":"td.rowfollow:nth-child(8)"},"seeders":{"selector":"td.rowfollow:nth-child(6)"},"leechers":{"selector":"td.rowfollow:nth-child(7)"},"date_elapsed":{"selector":"td.rowfollow:nth-child(4) > span","optional":true},"date_added":{"selector":"td.rowfollow:nth-child(4) > span","attribute":"title","optional":true},"date":{"text":"{% if fields[''date_elapsed''] or fields[''date_added''] %}{{ fields[''date_elapsed''] if fields[''date_elapsed''] else fields[''date_added''] }}{% else %}now{% endif %}","filters":[{"name":"dateparse","args":"%Y-%m-%d %H:%M:%S"}]},"downloadvolumefactor":{"case":{"img.pro_free":0,"img.pro_free2up":0,"img.pro_50pctdown":0.5,"img.pro_50pctdown2up":0.5,"img.pro_30pctdown":0.3,"*":1}},"uploadvolumefactor":{"case":{"img.pro_50pctdown2up":2,"img.pro_free2up":2,"img.pro_2up":2,"*":1}},"free_deadline":{"default_value":"{% if fields[''downloadvolumefactor'']==0 %}{{max_time}}{% endif%}","default_value_format":"%Y-%m-%d %H:%M:%S.%f","selector":"div > b > span[title]","attribute":"title","filters":[{"name":"dateparse","args":"%Y-%m-%d %H:%M:%S"}]},"tags":{"selector":"div > a.torrents-tag"},"subject":{"selector":"td.embedded:nth-child(2) > div > div:nth-child(2) > span","contents":-1},"description":{"selector":"td:nth-child(2) > table.torrentname > tr > td:nth-child(1)","remove":"span,a,img,font,b","contents":-1},"labels":{"selector":"td:nth-child(2) > table.torrentname > tr > td:nth-child(1) > a > span"}}}', '{"movie":[{"id":401,"cat":"Movies","desc":"电影"}],"tv":[{"id":402,"cat":"TV/Series","desc":"TV Series (剧集)"},{"id":403,"cat":"TV/Shows","desc":"TV Shows (电视节目)"},{"id":404,"cat":"TV/Documentaries","desc":"Documentaries (纪实)"},{"id":405,"cat":"TV/Animations","desc":"Animations (动画)"}]}'
+)
+ON CONFLICT(ID) DO UPDATE SET
+    NAME = excluded.NAME,
+    DOMAIN = excluded.DOMAIN,
+    SEARCH = excluded.SEARCH,
+    PARSER = excluded.PARSER,
+    RENDER = excluded.RENDER,
+    PROXY = excluded.PROXY,
+    SOURCE_TYPE = excluded.SOURCE_TYPE,
+    SEARCH_TYPE = excluded.SEARCH_TYPE,
+    BROWSE = excluded.BROWSE,
+    TORRENTS = excluded.TORRENTS,
+    CATEGORY = excluded.CATEGORY;
+
+INSERT INTO INDEXER_SITES (
+    ID, NAME, DOMAIN, SEARCH, PARSER, RENDER, PUBLIC, PROXY, SOURCE_TYPE, SEARCH_TYPE, BROWSE, TORRENTS, CATEGORY
+) VALUES (
+    'btschool', '学校', 'https://pt.btschool.club/', '{"paths": [{"path": "torrents.php", "method": "get"}], "params": {"search": "{keyword}"}, "batch": {"delimiter": " ", "space_replace": "_"}}', '', 0, 0, 0, 'MOVIE,TV,ANIME', 'title', '', '{"list": {"selector": "table.torrents > tr:has(\"table.torrentname\")"}, "fields": {"id": {"selector": "a[href*=\"details.php?id=\"]", "attribute": "href", "filters": [{"name": "re_search", "args": ["\\d+", 0]}]}, "title_default": {"selector": "a[href*=\"details.php?id=\"]"}, "title_optional": {"optional": true, "selector": "a[title][href*=\"details.php?id=\"]", "attribute": "title"}, "title": {"text": "{% if fields[''title_optional''] %}{{ fields[''title_optional''] }}{% else %}{{ fields[''title_default''] }}{% endif %}"}, "category": {"selector": "a[href*=\"?cat=\"]", "attribute": "href", "filters": [{"name": "replace", "args": ["?", ""]}, {"name": "querystring", "args": "cat"}]}, "details": {"selector": "a[href*=\"details.php?id=\"]", "attribute": "href"}, "download": {"selector": "a[href*=\"download.php?id=\"]", "attribute": "href"}, "imdbid": {"selector": "div.imdb_100 > a", "attribute": "href", "filters": [{"name": "re_search", "args": ["tt\\d+", 0]}]}, "date_elapsed": {"selector": "td:nth-child(4) > span", "optional": true}, "date_added": {"selector": "td:nth-child(4) > span", "attribute": "title", "optional": true}, "date": {"text": "{% if fields[''date_elapsed''] or fields[''date_added''] %}{{ fields[''date_elapsed''] if fields[''date_elapsed''] else fields[''date_added''] }}{% else %}now{% endif %}", "filters": [{"name": "dateparse", "args": "%Y-%m-%d %H:%M:%S"}]}, "size": {"selector": "td:nth-child(5)"}, "seeders": {"selector": "td:nth-child(6)"}, "leechers": {"selector": "td:nth-child(7)"}, "grabs": {"selector": "td:nth-child(8)"}, "downloadvolumefactor": {"case": {"img.pro_free": 0, "img.pro_free2up": 0, "img.pro_50pctdown": 0.5, "img.pro_50pctdown2up": 0.5, "img.pro_30pctdown": 0.3, "*": 1}}, "uploadvolumefactor": {"case": {"img.pro_50pctdown2up": 2, "img.pro_free2up": 2, "img.pro_2up": 2, "*": 1}}, "free_deadline": {"default_value": "{% if fields[''downloadvolumefactor'']==0 %}{{max_time}}{% endif%}", "default_value_format": "%Y-%m-%d %H:%M:%S.%f", "selector": "img.pro_free,img.pro_free2up", "attribute": "onmouseover", "filters": [{"name": "re_search", "args": ["\\d+-\\d+-\\d+ \\d+:\\d+:\\d+", 0]}, {"name": "dateparse", "args": "%Y-%m-%d %H:%M:%S"}]}, "description": {"selector": "table.torrentname > tr > td.embedded", "remove": "span,a,img,font,b", "contents": -1}, "labels": {"selector": "table.torrentname > tr > td.embedded > span"}, "minimumratio": {"text": 1}, "minimumseedtime": {"text": 75600}}}', '{"movie":[{"id":405,"cat":"Movies","desc":"电影/Movies"}],"tv":[{"id":406,"cat":"TV","desc":"连续剧/TV-Series"},{"id":407,"cat":"TV/Anime","desc":"动漫/Animation"},{"id":408,"cat":"TV/Documentary","desc":"纪录片/Documentary"},{"id":412,"cat":"TV","desc":"综艺/TV-Show"}]}'
+)
+ON CONFLICT(ID) DO UPDATE SET
+    NAME = excluded.NAME,
+    DOMAIN = excluded.DOMAIN,
+    SEARCH = excluded.SEARCH,
+    PARSER = excluded.PARSER,
+    RENDER = excluded.RENDER,
+    PROXY = excluded.PROXY,
+    SOURCE_TYPE = excluded.SOURCE_TYPE,
+    SEARCH_TYPE = excluded.SEARCH_TYPE,
+    BROWSE = excluded.BROWSE,
+    TORRENTS = excluded.TORRENTS,
+    CATEGORY = excluded.CATEGORY;
+
+INSERT INTO INDEXER_SITES (
+    ID, NAME, DOMAIN, SEARCH, PARSER, RENDER, PUBLIC, PROXY, SOURCE_TYPE, SEARCH_TYPE, BROWSE, TORRENTS, CATEGORY
+) VALUES (
+    'carpt', 'CARPT', 'https://carpt.net/', '{"paths": [{"path": "torrents.php", "method": "get"}], "params": {"search": "{keyword}"}, "batch": {"delimiter": " ", "space_replace": "_"}}', '', 0, 0, 0, 'MOVIE,TV,ANIME', 'title', '', '{"list":{"selector":"table.torrents > tr:has(\"table.torrentname\")"},"fields":{"id":{"selector":"a[href*=\"details.php?id=\"]","attribute":"href","filters":[{"name":"re_search","args":["\\d+",0]}]},"category":{"selector":"a[href*=\"?cat=\"]","attribute":"href","filters":[{"name":"querystring","args":"cat"}]},"title_default":{"selector":"a[href*=\"details.php?id=\"]"},"title_optional":{"optional":true,"selector":"a[title][href*=\"details.php?id=\"]","attribute":"title"},"title":{"text":"{% if fields[''title_optional''] %}{{ fields[''title_optional''] }}{% else %}{{ fields[''title_default''] }}{% endif %}"},"details":{"selector":"a[href*=\"details.php?id=\"]","attribute":"href"},"download":{"selector":"a[href*=\"download.php?id=\"]","attribute":"href"},"size":{"selector":"td:nth-child(5)"},"grabs":{"selector":"td:nth-child(8)"},"seeders":{"selector":"td:nth-child(6)"},"leechers":{"selector":"td:nth-child(7)"},"date_elapsed":{"selector":"td:nth-child(4) > span","optional":true},"date_added":{"selector":"td:nth-child(4) > span","attribute":"title","optional":true},"date":{"text":"{% if fields[''date_elapsed''] or fields[''date_added''] %}{{ fields[''date_elapsed''] if fields[''date_elapsed''] else fields[''date_added''] }}{% else %}now{% endif %}","filters":[{"name":"dateparse","args":"%Y-%m-%d %H:%M:%S"}]},"downloadvolumefactor":{"case":{"img.pro_free":0,"img.pro_free2up":0,"img.pro_50pctdown":0.5,"img.pro_50pctdown2up":0.5,"img.pro_30pctdown":0.3,"*":1}},"uploadvolumefactor":{"case":{"img.pro_50pctdown2up":2,"img.pro_free2up":2,"img.pro_2up":2,"*":1}},"free_deadline":{"default_value":"{% if fields[''downloadvolumefactor'']==0 %}{{max_time}}{% endif%}","default_value_format":"%Y-%m-%d %H:%M:%S.%f","selector":"td[class=\"embedded\"] > b > span[title]","attribute":"title","filters":[{"name":"dateparse","args":"%Y-%m-%d %H:%M:%S"}]},"description":{"selector":"td:nth-child(2) > table.torrentname > tr > td:nth-child(1)","remove":"span,a,img,font,b","contents":-1},"labels":{"selector":"td:nth-child(2) > table.torrentname > tr > td:nth-child(1) > span"}}}', '{"movie":[{"id":401,"cat":"Movies","desc":"Movies/电影"}],"tv":[{"id":402,"cat":"TV","desc":"TV Series/连续剧"},{"id":403,"cat":"TV/Anime","desc":"Animations/动漫"},{"id":404,"cat":"TV/Documentary","desc":"Documentaries/纪录片"},{"id":405,"cat":"TV","desc":"TV Shows/综艺"}]}'
+)
+ON CONFLICT(ID) DO UPDATE SET
+    NAME = excluded.NAME,
+    DOMAIN = excluded.DOMAIN,
+    SEARCH = excluded.SEARCH,
+    PARSER = excluded.PARSER,
+    RENDER = excluded.RENDER,
+    PROXY = excluded.PROXY,
+    SOURCE_TYPE = excluded.SOURCE_TYPE,
+    SEARCH_TYPE = excluded.SEARCH_TYPE,
+    BROWSE = excluded.BROWSE,
+    TORRENTS = excluded.TORRENTS,
+    CATEGORY = excluded.CATEGORY;
+
+INSERT INTO INDEXER_SITES (
+    ID, NAME, DOMAIN, SEARCH, PARSER, RENDER, PUBLIC, PROXY, SOURCE_TYPE, SEARCH_TYPE, BROWSE, TORRENTS, CATEGORY
+) VALUES (
+    'hhanclub', '憨憨', 'https://hhanclub.top/', '{"paths": [{"path": "torrents.php", "method": "get"}], "params": {"search": "{keyword}"}, "batch": {"delimiter": " ", "space_replace": "_"}}', '', 0, 0, 0, 'MOVIE,TV', 'title', '', '{"a":"hanhan","list":{"selector":"div.torrent-table-sub-info"},"fields":{"id":{"selector":"a[href*=\"details.php?id=\"]","attribute":"href","filters":[{"name":"re_search","args":["\\d+",0]}]},"category":{"selector":"a[href*=\"?cat[]=\"]","attribute":"href","filters":[{"name":"querystring","args":"cat[]"}]},"title_default":{"selector":"a[href*=\"details.php?id=\"]"},"title_optional":{"optional":true,"selector":"a[title][href*=\"details.php?id=\"]","attribute":"title"},"title":{"text":"{% if fields[''title_optional''] %}{{ fields[''title_optional''] }}{% else %}{{ fields[''title_default''] }}{% endif %}"},"details":{"selector":"a[href*=\"details.php?id=\"]","attribute":"href"},"download":{"selector":"a[href*=\"download.php?id=\"]","attribute":"href"},"size":{"selector":"div.torrent-info-text-size"},"seeders":{"selector":"div.torrent-info-text-seeders > a[href*=\"#seeders\"]"},"leechers":{"selector":"div.torrent-info-text-leechers > a[href*=\"#leechers\"]"},"date_elapsed":{"selector":"div.torrent-info-text-added > span","optional":true},"date_added":{"selector":"div.torrent-info-text-added > span","attribute":"title","optional":true},"date":{"text":"{% if fields[''date_elapsed''] or fields[''date_added''] %}{{ fields[''date_elapsed''] if fields[''date_elapsed''] else fields[''date_added''] }}{% else %}now{% endif %}","filters":[{"name":"dateparse","args":"%Y-%m-%d %H:%M:%S"}]},"downloadvolumefactor":{"case":{"span.promotion-tag-free":0,"span.promotion-tag-free2up":0,"span.promotion-tag-50pctdown":0.5,"span.promotion-tag-50pctdown2up":0.5,"span.promotion-tag-30pctdown":0.3,"*":1}},"uploadvolumefactor":{"case":{"span.promotion-tag-50pctdown2up":2,"span.promotion-tag-free2up":2,"span.promotion-tag-2up":2,"*":1}},"description":{"selector":"div.torrent-info-text-small_name"},"labels":{"selector":"a > span.tag"},"freedate":{"selector":"span.flex > span[title]","attribute":"title"}}}', '{"movie":[{"id":401,"cat":"Movies","desc":"Movies/电影"}],"tv":[{"id":404,"cat":"TV/Documentary","desc":"Documentaries/纪录片"},{"id":405,"cat":"TV/Anime","desc":"Animations/动漫"},{"id":402,"cat":"TV","desc":"TV Series/连续剧"},{"id":403,"cat":"TV","desc":"TV Shows/综艺"}]}'
+)
+ON CONFLICT(ID) DO UPDATE SET
+    NAME = excluded.NAME,
+    DOMAIN = excluded.DOMAIN,
+    SEARCH = excluded.SEARCH,
+    PARSER = excluded.PARSER,
+    RENDER = excluded.RENDER,
+    PROXY = excluded.PROXY,
+    SOURCE_TYPE = excluded.SOURCE_TYPE,
+    SEARCH_TYPE = excluded.SEARCH_TYPE,
+    BROWSE = excluded.BROWSE,
+    TORRENTS = excluded.TORRENTS,
+    CATEGORY = excluded.CATEGORY;
+
+INSERT INTO INDEXER_SITES (
+    ID, NAME, DOMAIN, SEARCH, PARSER, RENDER, PUBLIC, PROXY, SOURCE_TYPE, SEARCH_TYPE, BROWSE, TORRENTS, CATEGORY
+) VALUES (
+    'mteam', '馒头', 'https://kp.m-team.cc/', '{"paths": [{"path": "torrents.php", "method": "get"}], "params": {"search": "{keyword}"}}', 'MTorrentSpider', 0, 0, 0, 'MOVIE,TV,ANIME', 'title', '', '{"list":{"selector":"table.torrents > tr:has(\"table.torrentname\")"},"fields":{"id":{"selector":"a[href*=\"details.php?id=\"]","attribute":"href","filters":[{"name":"re_search","args":["\\d+",0]}]},"title_default":{"selector":"a[href*=\"details.php?id=\"] > b"},"title_optional":{"optional":true,"selector":"a[title][href*=\"details.php?id=\"]","attribute":"title"},"title":{"text":"{% if fields[''title_optional''] %}{{ fields[''title_optional''] }}{% else %}{{ fields[''title_default''] }}{% endif %}"},"category":{"selector":"a[href*=\"?cat=\"]","attribute":"href","filters":[{"name":"querystring","args":"cat"}]},"details":{"selector":"a[href*=\"details.php?id=\"]","attribute":"href"},"download":{"selector":"a[href*=\"download.php?id=\"]","attribute":"href"},"poster":{"selector":"img[alt=\"torrent thumbnail\"]","attribute":"src","filters":[{"name":"replace","args":["pic/nopic.jpg",""]}]},"imdbid":{"selector":"a[href*=\"imdb.com/title/tt\"]","attribute":"href","filters":[{"name":"re_search","args":["tt\\d+",0]}]},"size":{"selector":"td.rowfollow:nth-last-child(6)"},"grabs":{"selector":"td.rowfollow:nth-last-child(3)"},"seeders":{"selector":"td.rowfollow:nth-last-child(5)"},"leechers":{"selector":"td.rowfollow:nth-last-child(4)"},"date_added":{"selector":"td.rowfollow:nth-last-child(7) > span","attribute":"title","optional":true},"date_elapsed":{"selector":"tr > td > span","optional":true},"date":{"text":"{% if fields[''date_elapsed''] or fields[''date_added''] %}{{ fields[''date_elapsed''] if fields[''date_elapsed''] else fields[''date_added''] }}{% else %}now{% endif %}","filters":[{"name":"dateparse","args":"%Y-%m-%d %H:%M:%S"}]},"downloadvolumefactor":{"case":{"img.pro_free":0,"img.pro_free2up":0,"img.pro_50pctdown":0.5,"img.pro_50pctdown2up":0.5,"img.pro_30pctdown":0.3,"*":1}},"uploadvolumefactor":{"case":{"img.pro_50pctdown2up":2,"img.pro_free2up":2,"img.pro_2up":2,"*":1}},"free_deadline":{"default_value":"{% if fields[''downloadvolumefactor'']==0 %}{{max_time}}{% endif%}","default_value_format":"%Y-%m-%d %H:%M:%S.%f","selector":"span[style=\"font-weight:normal\"]","filters":[{"name":"re_search","args":["(?:限時：\\s*)((?:\\d+日)?(?:\\d+時)?(?:\\d+分)?)",1]},{"name":"date_elapsed_parse"}]},"description":{"selector":"table.torrentname > tr > td.embedded","contents":-1},"labels":{"selector":"table.torrentname > tr > td.embedded > img[class*=\"label_\"]","attribute":"alt"}}}', '{"movie":[{"id":401,"cat":"Movies/SD","desc":"Movie(電影)/SD","default":true},{"id":419,"cat":"Movies/HD","desc":"Movie(電影)/HD","default":true},{"id":420,"cat":"Movies/DVD","desc":"Movie(電影)/DVDiSo","default":true},{"id":421,"cat":"Movies/BluRay","desc":"Movie(電影)/Blu-Ray","default":true},{"id":439,"cat":"Movies/Other","desc":"Movie(電影)/Remux","default":true}],"tv":[{"id":403,"cat":"TV/SD","desc":"TV Series(影劇/綜藝)/SD","default":true},{"id":402,"cat":"TV/HD","desc":"TV Series(影劇/綜藝)/HD","default":true},{"id":435,"cat":"TV/SD","desc":"TV Series(影劇/綜藝)/DVDiSo","default":true},{"id":438,"cat":"TV/HD","desc":"TV Series(影劇/綜藝)/BD","default":true},{"id":404,"cat":"TV/Documentary","desc":"紀錄教育","default":true},{"id":405,"cat":"TV/Anime","desc":"Anime(動畫)","default":true}]}'
+)
+ON CONFLICT(ID) DO UPDATE SET
+    NAME = excluded.NAME,
+    DOMAIN = excluded.DOMAIN,
+    SEARCH = excluded.SEARCH,
+    PARSER = excluded.PARSER,
+    RENDER = excluded.RENDER,
+    PROXY = excluded.PROXY,
+    SOURCE_TYPE = excluded.SOURCE_TYPE,
+    SEARCH_TYPE = excluded.SEARCH_TYPE,
+    BROWSE = excluded.BROWSE,
+    TORRENTS = excluded.TORRENTS,
+    CATEGORY = excluded.CATEGORY;
+
+INSERT INTO INDEXER_SITES (
+    ID, NAME, DOMAIN, SEARCH, PARSER, RENDER, PUBLIC, PROXY, SOURCE_TYPE, SEARCH_TYPE, BROWSE, TORRENTS, CATEGORY
+) VALUES (
+    'ourbits', '我堡', 'https://ourbits.club/', '{"paths": [{"path": "torrents.php", "method": "get"}], "params": {"search": "{keyword}"}, "batch": {"delimiter": " ", "space_replace": "_"}}', '', 0, 0, 0, 'MOVIE,TV,ANIME', 'title', '', '{"list":{"selector":"table.torrents > tr:has(\"table.torrentname\")"},"fields":{"id":{"selector":"a[href*=\"details.php?id=\"]","attribute":"href","filters":[{"name":"re_search","args":["\\d+",0]}]},"category":{"selector":"a[href*=\"?cat=\"]","attribute":"href","filters":[{"name":"querystring","args":"cat"}]},"title_default":{"selector":"a[href*=\"details.php?id=\"]"},"title_optional":{"optional":true,"selector":"a[title][href*=\"details.php?id=\"]","attribute":"title"},"title":{"text":"{% if fields[''title_optional''] %}{{ fields[''title_optional''] }}{% else %}{{ fields[''title_default''] }}{% endif %}"},"details":{"selector":"a[href*=\"details.php?id=\"]","attribute":"href"},"download":{"selector":"a[href*=\"download.php?id=\"]","attribute":"href"},"size":{"selector":"td:nth-child(5)","index":1},"grabs":{"selector":"td:nth-child(8)"},"seeders":{"selector":"td:nth-child(6)"},"leechers":{"selector":"td:nth-child(7)"},"date_elapsed":{"selector":"td:nth-child(4) > span","attribute":"title","optional":true},"date_added":{"selector":"td:nth-child(4) > span","attribute":"title","optional":true},"date":{"text":"{% if fields[''date_elapsed''] or fields[''date_added''] %}{{ fields[''date_elapsed''] if fields[''date_elapsed''] else fields[''date_added''] }}{% else %}now{% endif %}","filters":[{"name":"dateparse","args":"%Y-%m-%d %H:%M:%S"}]},"downloadvolumefactor":{"case":{"img.pro_free":0,"img.pro_free2up":0,"img.pro_50pctdown":0.5,"img.pro_50pctdown2up":0.5,"img.pro_30pctdown":0.3,"*":1}},"uploadvolumefactor":{"case":{"img.pro_50pctdown2up":2,"img.pro_free2up":2,"img.pro_2up":2,"*":1}},"free_deadline":{"default_value":"{% if fields[''downloadvolumefactor'']==0 %}{{max_time}}{% endif%}","default_value_format":"%Y-%m-%d %H:%M:%S.%f","selector":"td[class=\"embedded\"] > b > span[title]","attribute":"title","filters":[{"name":"dateparse","args":"%Y-%m-%d %H:%M:%S"}]},"tags":{"selector":"table.torrentname > tr > td.embedded > div:has(\"a\")"},"subject":{"selector":"table.torrentname > tr > td.embedded","remove":"div,a,img,b"},"description":{"text":"{% if fields[''tags'']%}{{ fields[''subject'']+'' ''+fields[''tags''] }}{% else %}{{ fields[''subject''] }}{% endif %}"},"labels":{"selector":"table.torrentname > tr > td.embedded > div > a > div.tag"},"hr":["//h1[@id=''top'']/img[@class=''hitandrun'']"]}}', '{"movie": [{"id": 401, "cat": "Movies", "desc": "Movies"}, {"id": 402, "cat": "Movies/3D", "desc": "Movies 3D"}], "tv": [{"id": 405, "cat": "TV", "desc": "TV Packs"}, {"id": 410, "cat": "TV/Documentary", "desc": "Documentaries"}, {"id": 411, "cat": "TV/Anime", "desc": "Animations"}, {"id": 412, "cat": "TV", "desc": "TV Episodes"}, {"id": 413, "cat": "TV", "desc": "TV Shows"}, {"id": 419, "cat": "TV", "desc": "Concert"}]}'
+)
+ON CONFLICT(ID) DO UPDATE SET
+    NAME = excluded.NAME,
+    DOMAIN = excluded.DOMAIN,
+    SEARCH = excluded.SEARCH,
+    PARSER = excluded.PARSER,
+    RENDER = excluded.RENDER,
+    PROXY = excluded.PROXY,
+    SOURCE_TYPE = excluded.SOURCE_TYPE,
+    SEARCH_TYPE = excluded.SEARCH_TYPE,
+    BROWSE = excluded.BROWSE,
+    TORRENTS = excluded.TORRENTS,
+    CATEGORY = excluded.CATEGORY;
+
+INSERT INTO INDEXER_SITES (
+    ID, NAME, DOMAIN, SEARCH, PARSER, RENDER, PUBLIC, PROXY, SOURCE_TYPE, SEARCH_TYPE, BROWSE, TORRENTS, CATEGORY
+) VALUES (
+    'ubits', 'UBits', 'https://ubits.club/', '{"paths": [{"path": "torrents.php", "method": "get"}], "params": {"search": "{keyword}"}, "batch": {"delimiter": " ", "space_replace": "_"}}', '', 0, 0, 0, 'MOVIE,TV,ANIME', 'title', '', '{"a":"ub","list":{"selector":"table.torrents > tr:has(\"table.torrentname\")"},"fields":{"id":{"selector":"a[href*=\"details.php?id=\"]","attribute":"href","filters":[{"name":"re_search","args":["\\d+",0]}]},"category":{"selector":"a[href*=\"?cat=\"]","attribute":"href","filters":[{"name":"querystring","args":"cat"}]},"title_default":{"selector":"a[href*=\"details.php?id=\"]"},"title_optional":{"optional":true,"selector":"a[title][href*=\"details.php?id=\"]","attribute":"title"},"title":{"text":"{% if fields[''title_optional''] %}{{ fields[''title_optional''] }}{% else %}{{ fields[''title_default''] }}{% endif %}"},"details":{"selector":"a[href*=\"details.php?id=\"]","attribute":"href"},"poster":{"selector":"img[data-orig]","attribute":"data-orig"},"download":{"selector":"a[href*=\"download.php?id=\"]","attribute":"href"},"size":{"selector":"td.rowfollow:nth-child(5)"},"grabs":{"selector":"td.rowfollow:nth-child(8)"},"seeders":{"selector":"td.rowfollow:nth-child(6)"},"leechers":{"selector":"td.rowfollow:nth-child(7)"},"date_elapsed":{"selector":"td.rowfollow:nth-child(4) > span","optional":true},"date_added":{"selector":"td.rowfollow:nth-child(4) > span","attribute":"title","optional":true},"date":{"text":"{% if fields[''date_elapsed''] or fields[''date_added''] %}{{ fields[''date_elapsed''] if fields[''date_elapsed''] else fields[''date_added''] }}{% else %}now{% endif %}","filters":[{"name":"dateparse","args":"%Y-%m-%d %H:%M:%S"}]},"downloadvolumefactor":{"case":{"img.pro_free":0,"img.pro_free2up":0,"img.pro_50pctdown":0.5,"img.pro_50pctdown2up":0.5,"img.pro_30pctdown":0.3,"*":1}},"uploadvolumefactor":{"case":{"img.pro_50pctdown2up":2,"img.pro_free2up":2,"img.pro_2up":2,"*":1}},"free_deadline":{"default_value":"{% if fields[''downloadvolumefactor'']==0 %}{{max_time}}{% endif%}","default_value_format":"%Y-%m-%d %H:%M:%S.%f","selector":"div > b > span[title]","attribute":"title","filters":[{"name":"dateparse","args":"%Y-%m-%d %H:%M:%S"}]},"tags":{"selector":"div > a.torrents-tag"},"subject":{"selector":"td.embedded:nth-child(2) > div > div:nth-child(2) > span","contents":-1},"description":{"selector":"td:nth-child(2) > table.torrentname > tr > td:nth-child(1)","remove":"span,a,img,font,b","contents":-1},"labels":{"selector":"td:nth-child(2) > table.torrentname > tr > td:nth-child(1) > a > span"}}}', '{"movie":[{"id":401,"cat":"Movies","desc":"Movies/电影"}],"tv":[{"id":404,"cat":"TV/Documentary","desc":"Documentaries/纪录片"},{"id":405,"cat":"TV/Anime","desc":"Animations/动漫"},{"id":402,"cat":"TV","desc":"TV Series/连续剧"},{"id":403,"cat":"TV","desc":"TV Shows/综艺"}]}'
+)
+ON CONFLICT(ID) DO UPDATE SET
+    NAME = excluded.NAME,
+    DOMAIN = excluded.DOMAIN,
+    SEARCH = excluded.SEARCH,
+    PARSER = excluded.PARSER,
+    RENDER = excluded.RENDER,
+    PROXY = excluded.PROXY,
+    SOURCE_TYPE = excluded.SOURCE_TYPE,
+    SEARCH_TYPE = excluded.SEARCH_TYPE,
+    BROWSE = excluded.BROWSE,
+    TORRENTS = excluded.TORRENTS,
+    CATEGORY = excluded.CATEGORY;
+
+INSERT INTO INDEXER_SITES (
+    ID, NAME, DOMAIN, SEARCH, PARSER, RENDER, PUBLIC, PROXY, SOURCE_TYPE, SEARCH_TYPE, BROWSE, TORRENTS, CATEGORY
+) VALUES (
+    'torrentgalaxy', 'TorrentGalaxy', 'https://tgx.sb/', '{"paths":[{"path":"torrents.php","method":"get"}],"params":{"search":"{keyword}"},"navigation":"#loader:hidden"}', '', 1, 1, 1, 'MOVIE', 'imdb', '', '{"list":{"selector":"div.tgxtable > div.tgxtablerow.txlight"},"fields":{"id":{"selector":"a[href~=\"/torrent/\"]","attribute":"href","filters":[{"name":"re_search","args":["\\d+",0]}]},"title":{"selector":"a.txlight","attribute":"title"},"details":{"selector":"a.txlight","attribute":"href"},"download":{"selector":"div.txlight > a[href*=\"magnet:\"]","attribute":"href"},"date_added":{"selector":"div:nth-child(12)"},"size":{"selector":"div.txlight > span.badge.badge-secondary.txlight"},"seeders":{"selector":"span[title=\"Seeders/Leechers\"] > font[color=\"green\"] > b"},"leechers":{"selector":"span[title=\"Seeders/Leechers\"] > font[color=\"#ff0000\"] > b"},"downloadvolumefactor":{"case":{"*":0}},"uploadvolumefactor":{"case":{"*":1}}}}', ''
+)
+ON CONFLICT(ID) DO UPDATE SET
+    NAME = excluded.NAME,
+    DOMAIN = excluded.DOMAIN,
+    SEARCH = excluded.SEARCH,
+    PARSER = excluded.PARSER,
+    RENDER = excluded.RENDER,
+    PROXY = excluded.PROXY,
+    SOURCE_TYPE = excluded.SOURCE_TYPE,
+    SEARCH_TYPE = excluded.SEARCH_TYPE,
+    BROWSE = excluded.BROWSE,
+    TORRENTS = excluded.TORRENTS,
+    CATEGORY = excluded.CATEGORY;
+
+INSERT INTO INDEXER_SITES (
+    ID, NAME, DOMAIN, SEARCH, PARSER, RENDER, PUBLIC, PROXY, SOURCE_TYPE, SEARCH_TYPE, BROWSE, TORRENTS, CATEGORY
+) VALUES (
+    'pandapt', '熊猫', 'https://pandapt.net/', '{"paths": [{"path": "torrents.php", "method": "get"}], "params": {"search": "{keyword}"}, "batch": {"delimiter": " ", "space_replace": "_"}}', '', 0, 0, 0, 'MOVIE,TV,ANIME', 'title', '', '{"list":{"selector":"table.torrents > tr:has(\"table.torrentname\")"},"fields":{"id":{"selector":"a[href*=\"details.php?id=\"]","attribute":"href","filters":[{"name":"re_search","args":["\\d+",0]}]},"title_default":{"selector":"a[href*=\"details.php?id=\"]"},"title_optional":{"optional":true,"selector":"a[title][href*=\"details.php?id=\"]","attribute":"title"},"title":{"text":"{% if fields[''title_optional''] %}{{ fields[''title_optional''] }}{% else %}{{ fields[''title_default''] }}{% endif %}"},"category":{"selector":"a[href*=\"?cat=\"]","attribute":"href","filters":[{"name":"replace","args":["?",""]},{"name":"querystring","args":"cat"}]},"details":{"selector":"a[href*=\"details.php?id=\"]","attribute":"href"},"download":{"selector":"a[href*=\"download.php?id=\"]","attribute":"href"},"imdbid":{"selector":"div.imdb_100 > a","attribute":"href","filters":[{"name":"re_search","args":["tt\\d+",0]}]},"date_elapsed":{"selector":"td:nth-child(4) > span","optional":true},"date_added":{"selector":"td:nth-child(4) > span","attribute":"title","optional":true},"date":{"text":"{% if fields[''date_elapsed''] or fields[''date_added''] %}{{ fields[''date_elapsed''] if fields[''date_elapsed''] else fields[''date_added''] }}{% else %}now{% endif %}","filters":[{"name":"dateparse","args":"%Y-%m-%d %H:%M:%S"}]},"size":{"selector":"td:nth-child(5)"},"seeders":{"selector":"td:nth-child(6)"},"leechers":{"selector":"td:nth-child(7)"},"grabs":{"selector":"td:nth-child(8)"},"downloadvolumefactor":{"case":{"img.pro_free":0,"img.pro_free2up":0,"img.pro_50pctdown":0.5,"img.pro_50pctdown2up":0.5,"img.pro_30pctdown":0.3,"*":1}},"uploadvolumefactor":{"case":{"img.pro_50pctdown2up":2,"img.pro_free2up":2,"img.pro_2up":2,"*":1}},"free_deadline":{"default_value":"{% if fields[''downloadvolumefactor'']==0 %}{{max_time}}{% endif%}","default_value_format":"%Y-%m-%d %H:%M:%S.%f","selector":"img.pro_free,img.pro_free2up","attribute":"onmouseover","filters":[{"name":"re_search","args":["\\d+-\\d+-\\d+ \\d+:\\d+:\\d+",0]},{"name":"dateparse","args":"%Y-%m-%d %H:%M:%S"}]},"description":{"selector":"table.torrentname > tr > td.embedded:nth-child(2)","remove":"span,a,img,font,b","contents":-1},"labels":{"selector":"table.torrentname > tr > td.embedded > span"},"minimumratio":{"text":1},"minimumseedtime":{"text":75600}}}', '{"movie":[{"id":401,"cat":"Movies","desc":"Movies/电影"}],"tv":[{"id":404,"cat":"TV/Documentary","desc":"Documentaries/纪录片"},{"id":405,"cat":"TV/Anime","desc":"Animations/动漫"},{"id":402,"cat":"TV","desc":"TV Series/连续剧"},{"id":403,"cat":"TV","desc":"TV Shows/综艺"}]}'
+)
+ON CONFLICT(ID) DO UPDATE SET
+    NAME = excluded.NAME,
+    DOMAIN = excluded.DOMAIN,
+    SEARCH = excluded.SEARCH,
+    PARSER = excluded.PARSER,
+    RENDER = excluded.RENDER,
+    PROXY = excluded.PROXY,
+    SOURCE_TYPE = excluded.SOURCE_TYPE,
+    SEARCH_TYPE = excluded.SEARCH_TYPE,
+    BROWSE = excluded.BROWSE,
+    TORRENTS = excluded.TORRENTS,
+    CATEGORY = excluded.CATEGORY;
+
+INSERT INTO INDEXER_SITES (
+    ID, NAME, DOMAIN, SEARCH, PARSER, RENDER, PUBLIC, PROXY, SOURCE_TYPE, SEARCH_TYPE, BROWSE, TORRENTS, CATEGORY
+) VALUES (
+    'cspt', '财神', 'https://cspt.top/', '{"paths": [{"path": "torrents.php", "method": "get"}], "params": {"search": "{keyword}"}, "batch": {"delimiter": " ", "space_replace": "_"}}', '', 0, 0, 0, 'MOVIE,TV,ANIME', 'title', '', '{"list":{"selector":"div.torrent-table-sub-info"},"fields":{"id":{"selector":"a[href*=\"details.php?id=\"]","attribute":"href","filters":[{"name":"re_search","args":["\\d+",0]}]},"category":{"selector":"a[href*=\"?cat[]=\"]","attribute":"href","filters":[{"name":"querystring","args":"cat[]"}]},"title_default":{"selector":"a[href*=\"details.php?id=\"]"},"title_optional":{"optional":true,"selector":"a[title][href*=\"details.php?id=\"]","attribute":"title"},"title":{"text":"{% if fields[''title_optional''] %}{{ fields[''title_optional''] }}{% else %}{{ fields[''title_default''] }}{% endif %}"},"details":{"selector":"a[href*=\"details.php?id=\"]","attribute":"href"},"download":{"selector":"a[href*=\"download.php?id=\"]","attribute":"href"},"size":{"selector":"div.torrent-info-text-size"},"seeders":{"selector":"div.torrent-info-text-seeders > a[href*=\"#seeders\"]"},"leechers":{"selector":"div.torrent-info-text-leechers > a[href*=\"#leechers\"]"},"date_elapsed":{"selector":"div.torrent-info-text-added > span","optional":true},"date_added":{"selector":"div.torrent-info-text-added > span","attribute":"title","optional":true},"date":{"text":"{% if fields[''date_elapsed''] or fields[''date_added''] %}{{ fields[''date_elapsed''] if fields[''date_elapsed''] else fields[''date_added''] }}{% else %}now{% endif %}","filters":[{"name":"dateparse","args":"%Y-%m-%d %H:%M:%S"}]},"downloadvolumefactor":{"case":{"span.promotion-tag-free":0,"span.promotion-tag-free2up":0,"span.promotion-tag-50pctdown":0.5,"span.promotion-tag-50pctdown2up":0.5,"span.promotion-tag-30pctdown":0.3,"*":1}},"uploadvolumefactor":{"case":{"span.promotion-tag-50pctdown2up":2,"span.promotion-tag-free2up":2,"span.promotion-tag-2up":2,"*":1}},"description":{"selector":"div.torrent-info-text-small_name"},"labels":{"selector":"a > span.tag"},"freedate":{"selector":"span.flex > span[title]","attribute":"title"}}}', '{"movie":[{"id":401,"cat":"Movies","desc":"Movies/电影"}],"tv":[{"id":404,"cat":"TV/Documentary","desc":"Documentaries/纪录片"},{"id":405,"cat":"TV/Anime","desc":"Animations/动漫"},{"id":402,"cat":"TV","desc":"TV Series/连续剧"},{"id":403,"cat":"TV","desc":"TV Shows/综艺"}]}'
+)
+ON CONFLICT(ID) DO UPDATE SET
+    NAME = excluded.NAME,
+    DOMAIN = excluded.DOMAIN,
+    SEARCH = excluded.SEARCH,
+    PARSER = excluded.PARSER,
+    RENDER = excluded.RENDER,
+    PROXY = excluded.PROXY,
+    SOURCE_TYPE = excluded.SOURCE_TYPE,
+    SEARCH_TYPE = excluded.SEARCH_TYPE,
+    BROWSE = excluded.BROWSE,
+    TORRENTS = excluded.TORRENTS,
+    CATEGORY = excluded.CATEGORY;
+
+INSERT INTO INDEXER_SITES (
+    ID, NAME, DOMAIN, SEARCH, PARSER, RENDER, PUBLIC, PROXY, SOURCE_TYPE, SEARCH_TYPE, BROWSE, TORRENTS, CATEGORY
+) VALUES (
+    'ptskit', 'ptskit', 'https://www.ptskit.org/', '{"paths": [{"path": "torrents.php", "method": "get"}], "params": {"search": "{keyword}"}, "batch": {"delimiter": " ", "space_replace": "_"}}', '', 0, 0, 0, 'MOVIE,TV,ANIME', 'title', '', '{"list": {"selector": "table.torrents > tr:has(\"table.torrentname\")"}, "fields": {"id": {"selector": "a[href*=\"details.php?id=\"]", "attribute": "href", "filters": [{"name": "re_search", "args": ["\\d+", 0]}]}, "category": {"selector": "a[href*=\"?cat=\"]", "attribute": "href", "filters": [{"name": "querystring", "args": "cat"}]}, "title_default": {"selector": "a[href*=\"details.php?id=\"]"}, "title_optional": {"optional": true, "selector": "a[title][href*=\"details.php?id=\"]", "attribute": "title"}, "title": {"text": "{% if fields[''title_optional''] %}{{ fields[''title_optional''] }}{% else %}{{ fields[''title_default''] }}{% endif %}"}, "details": {"selector": "a[href*=\"details.php?id=\"]", "attribute": "href"}, "poster": {"selector": "img[data-orig]", "attribute": "data-orig"}, "download": {"selector": "a[href*=\"download.php?id=\"]", "attribute": "href"}, "size": {"selector": "td.rowfollow:nth-child(5)"}, "grabs": {"selector": "td.rowfollow:nth-child(8)"}, "seeders": {"selector": "td.rowfollow:nth-child(6)"}, "leechers": {"selector": "td.rowfollow:nth-child(7)"}, "date_elapsed": {"selector": "td.rowfollow:nth-child(4) > span", "optional": true}, "date_added": {"selector": "td.rowfollow:nth-child(4) > span", "attribute": "title", "optional": true}, "date": {"text": "{% if fields[''date_elapsed''] or fields[''date_added''] %}{{ fields[''date_elapsed''] if fields[''date_elapsed''] else fields[''date_added''] }}{% else %}now{% endif %}", "filters": [{"name": "dateparse", "args": "%Y-%m-%d %H:%M:%S"}]}, "downloadvolumefactor": {"case": {"img.pro_free": 0, "img.pro_free2up": 0, "img.pro_50pctdown": 0.5, "img.pro_50pctdown2up": 0.5, "img.pro_30pctdown": 0.3, "*": 1}}, "uploadvolumefactor": {"case": {"img.pro_50pctdown2up": 2, "img.pro_free2up": 2, "img.pro_2up": 2, "*": 1}}, "free_deadline": {"default_value": "{% if fields[''downloadvolumefactor'']==0 %}{{max_time}}{% endif%}", "default_value_format": "%Y-%m-%d %H:%M:%S.%f", "selector": "div > b > span[title]", "attribute": "title", "filters": [{"name": "dateparse", "args": "%Y-%m-%d %H:%M:%S"}]}, "tags": {"selector": "div > a.torrents-tag"}, "subject": {"selector": "td.embedded:nth-child(2) > div > div[style] > span", "contents": -1}, "description": {"selector": "td:nth-child(2) > table.torrentname > tr > td:nth-child(2)", "remove": "span,a,img,font,b", "contents": -1}, "labels": {"selector": "td:nth-child(2) > table.torrentname > tr > td:nth-child(2) > span"}}}', '{"movie":[{"id":401,"cat":"Movies","desc":"Movies/电影"}],"tv":[{"id":404,"cat":"TV/Documentary","desc":"Documentaries/纪录片"},{"id":405,"cat":"TV/Anime","desc":"Animations/动漫"},{"id":402,"cat":"TV","desc":"TV Series/连续剧"},{"id":403,"cat":"TV","desc":"TV Shows/综艺"}]}'
+)
+ON CONFLICT(ID) DO UPDATE SET
+    NAME = excluded.NAME,
+    DOMAIN = excluded.DOMAIN,
+    SEARCH = excluded.SEARCH,
+    PARSER = excluded.PARSER,
+    RENDER = excluded.RENDER,
+    PROXY = excluded.PROXY,
+    SOURCE_TYPE = excluded.SOURCE_TYPE,
+    SEARCH_TYPE = excluded.SEARCH_TYPE,
+    BROWSE = excluded.BROWSE,
+    TORRENTS = excluded.TORRENTS,
+    CATEGORY = excluded.CATEGORY;
+
+INSERT INTO INDEXER_SITES (
+    ID, NAME, DOMAIN, SEARCH, PARSER, RENDER, PUBLIC, PROXY, SOURCE_TYPE, SEARCH_TYPE, BROWSE, TORRENTS, CATEGORY
+) VALUES (
+    'hdkyl', '麒麟', 'https://www.hdkyl.in/', '{"paths": [{"path": "torrents.php", "method": "get"}], "params": {"search": "{keyword}"}, "batch": {"delimiter": " ", "space_replace": "_"}}', '', 0, 0, 0, 'MOVIE,TV,ANIME', 'title', '', '{"list":{"selector":"table.torrents > tr:has(\"table.torrentname\")"},"fields":{"id":{"selector":"a[href*=\"details.php?id=\"]","attribute":"href","filters":[{"name":"re_search","args":["\\d+",0]}]},"title_default":{"selector":"a[href*=\"details.php?id=\"]"},"title_optional":{"optional":true,"selector":"a[title][href*=\"details.php?id=\"]","attribute":"title"},"title":{"text":"{% if fields[''title_optional''] %}{{ fields[''title_optional''] }}{% else %}{{ fields[''title_default''] }}{% endif %}"},"category":{"selector":"a[href*=\"?cat=\"]","attribute":"href","filters":[{"name":"replace","args":["?",""]},{"name":"querystring","args":"cat"}]},"details":{"selector":"a[href*=\"details.php?id=\"]","attribute":"href"},"download":{"selector":"a[href*=\"download.php?id=\"]","attribute":"href"},"imdbid":{"selector":"div.imdb_100 > a","attribute":"href","filters":[{"name":"re_search","args":["tt\\d+",0]}]},"date_elapsed":{"selector":"td:nth-child(4) > span","optional":true},"date_added":{"selector":"td:nth-child(4) > span","attribute":"title","optional":true},"date":{"text":"{% if fields[''date_elapsed''] or fields[''date_added''] %}{{ fields[''date_elapsed''] if fields[''date_elapsed''] else fields[''date_added''] }}{% else %}now{% endif %}","filters":[{"name":"dateparse","args":"%Y-%m-%d %H:%M:%S"}]},"size":{"selector":"td:nth-child(5)"},"seeders":{"selector":"td:nth-child(6)"},"leechers":{"selector":"td:nth-child(7)"},"grabs":{"selector":"td:nth-child(8)"},"downloadvolumefactor":{"case":{"img.pro_free":0,"img.pro_free2up":0,"img.pro_50pctdown":0.5,"img.pro_50pctdown2up":0.5,"img.pro_30pctdown":0.3,"*":1}},"uploadvolumefactor":{"case":{"img.pro_50pctdown2up":2,"img.pro_free2up":2,"img.pro_2up":2,"*":1}},"free_deadline":{"default_value":"{% if fields[''downloadvolumefactor'']==0 %}{{max_time}}{% endif%}","default_value_format":"%Y-%m-%d %H:%M:%S.%f","selector":"img.pro_free,img.pro_free2up","attribute":"onmouseover","filters":[{"name":"re_search","args":["\\d+-\\d+-\\d+ \\d+:\\d+:\\d+",0]},{"name":"dateparse","args":"%Y-%m-%d %H:%M:%S"}]},"description":{"selector":"table.torrentname > tr > td.embedded","remove":"span,a,img,font,b","contents":-1},"labels":{"selector":"table.torrentname > tr > td.embedded > span"},"minimumratio":{"text":1},"minimumseedtime":{"text":75600}}}', '{"movie":[{"id":401,"cat":"Movies","desc":"Movies/电影"}],"tv":[{"id":404,"cat":"TV/Documentary","desc":"Documentaries/纪录片"},{"id":405,"cat":"TV/Anime","desc":"Animations/动漫"},{"id":402,"cat":"TV","desc":"TV Series/连续剧"},{"id":403,"cat":"TV","desc":"TV Shows/综艺"}]}'
+)
+ON CONFLICT(ID) DO UPDATE SET
+    NAME = excluded.NAME,
+    DOMAIN = excluded.DOMAIN,
+    SEARCH = excluded.SEARCH,
+    PARSER = excluded.PARSER,
+    RENDER = excluded.RENDER,
+    PROXY = excluded.PROXY,
+    SOURCE_TYPE = excluded.SOURCE_TYPE,
+    SEARCH_TYPE = excluded.SEARCH_TYPE,
+    BROWSE = excluded.BROWSE,
+    TORRENTS = excluded.TORRENTS,
+    CATEGORY = excluded.CATEGORY;
+
+INSERT INTO INDEXER_SITES (
+    ID, NAME, DOMAIN, SEARCH, PARSER, RENDER, PUBLIC, PROXY, SOURCE_TYPE, SEARCH_TYPE, BROWSE, TORRENTS, CATEGORY
+) VALUES (
+    'crabpt', '蟹黄堡', 'https://crabpt.vip/', '{"paths": [{"path": "torrents.php", "method": "get"}], "params": {"search": "{keyword}"}, "batch": {"delimiter": " ", "space_replace": "_"}}', '', 0, 0, 0, 'MOVIE,TV,ANIME', 'title', '', '{"list": {"selector": "table.torrents > tr:has(\"table.torrentname\")"}, "fields": {"id": {"selector": "a[href*=\"details.php?id=\"]", "attribute": "href", "filters": [{"name": "re_search", "args": ["\\d+", 0]}]}, "category": {"selector": "a[href*=\"?cat=\"]", "attribute": "href", "filters": [{"name": "querystring", "args": "cat"}]}, "title_default": {"selector": "a[href*=\"details.php?id=\"]"}, "title_optional": {"optional": true, "selector": "a[title][href*=\"details.php?id=\"]", "attribute": "title"}, "title": {"text": "{% if fields[''title_optional''] %}{{ fields[''title_optional''] }}{% else %}{{ fields[''title_default''] }}{% endif %}"}, "details": {"selector": "a[href*=\"details.php?id=\"]", "attribute": "href"}, "poster": {"selector": "img[data-orig]", "attribute": "data-orig"}, "download": {"selector": "a[href*=\"download.php?id=\"]", "attribute": "href"}, "size": {"selector": "td.rowfollow:nth-child(5)"}, "grabs": {"selector": "td.rowfollow:nth-child(8)"}, "seeders": {"selector": "td.rowfollow:nth-child(6)"}, "leechers": {"selector": "td.rowfollow:nth-child(7)"}, "date_elapsed": {"selector": "td.rowfollow:nth-child(4) > span", "optional": true}, "date_added": {"selector": "td.rowfollow:nth-child(4) > span", "attribute": "title", "optional": true}, "date": {"text": "{% if fields[''date_elapsed''] or fields[''date_added''] %}{{ fields[''date_elapsed''] if fields[''date_elapsed''] else fields[''date_added''] }}{% else %}now{% endif %}", "filters": [{"name": "dateparse", "args": "%Y-%m-%d %H:%M:%S"}]}, "downloadvolumefactor": {"case": {"img.pro_free": 0, "img.pro_free2up": 0, "img.pro_50pctdown": 0.5, "img.pro_50pctdown2up": 0.5, "img.pro_30pctdown": 0.3, "*": 1}}, "uploadvolumefactor": {"case": {"img.pro_50pctdown2up": 2, "img.pro_free2up": 2, "img.pro_2up": 2, "*": 1}}, "free_deadline": {"default_value": "{% if fields[''downloadvolumefactor'']==0 %}{{max_time}}{% endif%}", "default_value_format": "%Y-%m-%d %H:%M:%S.%f", "selector": "div > b > span[title]", "attribute": "title", "filters": [{"name": "dateparse", "args": "%Y-%m-%d %H:%M:%S"}]}, "tags": {"selector": "div > a.torrents-tag"}, "subject": {"selector": "td.embedded:nth-child(2) > div > div:nth-child(2) > span", "contents": -1}, "description": {"selector": "td:nth-child(2) > table.torrentname > tr > td:nth-child(2)"}, "labels": {"selector": "td:nth-child(2) > table.torrentname > tr > td:nth-child(2) > span", "remove": "span,a,img,font,b", "contents": -1}}}', '{"movie":[{"id":401,"cat":"Movies","desc":"电影"}],"tv":[{"id":402,"cat":"TV/Series","desc":"TV Series (剧集)"},{"id":403,"cat":"TV/Shows","desc":"TV Shows (电视节目)"},{"id":404,"cat":"TV/Documentaries","desc":"Documentaries (纪实)"},{"id":405,"cat":"TV/Animations","desc":"Animations (动画)"}]}'
+)
+ON CONFLICT(ID) DO UPDATE SET
+    NAME = excluded.NAME,
+    DOMAIN = excluded.DOMAIN,
+    SEARCH = excluded.SEARCH,
+    PARSER = excluded.PARSER,
+    RENDER = excluded.RENDER,
+    PROXY = excluded.PROXY,
+    SOURCE_TYPE = excluded.SOURCE_TYPE,
+    SEARCH_TYPE = excluded.SEARCH_TYPE,
+    BROWSE = excluded.BROWSE,
+    TORRENTS = excluded.TORRENTS,
+    CATEGORY = excluded.CATEGORY;
+
+INSERT INTO INDEXER_SITES (
+    ID, NAME, DOMAIN, SEARCH, PARSER, RENDER, PUBLIC, PROXY, SOURCE_TYPE, SEARCH_TYPE, BROWSE, TORRENTS, CATEGORY
+) VALUES (
+    'cangbao', '藏宝阁', 'https://cangbao.ge/', '{"paths": [{"path": "torrents.php", "method": "get"}], "params": {"search": "{keyword}"}, "batch": {"delimiter": " ", "space_replace": "_"}}', '', 0, 0, 0, 'MOVIE,TV,ANIME', 'title', '', '{"list":{"selector":"table.torrents > tr:has(\"table.torrentname\")"},"fields":{"id":{"selector":"a[href*=\"details.php?id=\"]","attribute":"href","filters":[{"name":"re_search","args":["\\d+",0]}]},"title_default":{"selector":"a[href*=\"details.php?id=\"]"},"title_optional":{"optional":true,"selector":"a[title][href*=\"details.php?id=\"]","attribute":"title"},"title":{"text":"{% if fields[''title_optional''] %}{{ fields[''title_optional''] }}{% else %}{{ fields[''title_default''] }}{% endif %}"},"category":{"selector":"a[href*=\"?cat=\"]","attribute":"href","filters":[{"name":"replace","args":["?",""]},{"name":"querystring","args":"cat"}]},"details":{"selector":"a[href*=\"details.php?id=\"]","attribute":"href"},"download":{"selector":"a[href*=\"download.php?id=\"]","attribute":"href"},"imdbid":{"selector":"div.imdb_100 > a","attribute":"href","filters":[{"name":"re_search","args":["tt\\d+",0]}]},"date_elapsed":{"selector":"td:nth-child(4) > span","optional":true},"date_added":{"selector":"td:nth-child(4) > span","attribute":"title","optional":true},"date":{"text":"{% if fields[''date_elapsed''] or fields[''date_added''] %}{{ fields[''date_elapsed''] if fields[''date_elapsed''] else fields[''date_added''] }}{% else %}now{% endif %}","filters":[{"name":"dateparse","args":"%Y-%m-%d %H:%M:%S"}]},"size":{"selector":"td:nth-child(5)"},"seeders":{"selector":"td:nth-child(6)"},"leechers":{"selector":"td:nth-child(7)"},"grabs":{"selector":"td:nth-child(8)"},"downloadvolumefactor":{"case":{"img.pro_free":0,"img.pro_free2up":0,"img.pro_50pctdown":0.5,"img.pro_50pctdown2up":0.5,"img.pro_30pctdown":0.3,"*":1}},"uploadvolumefactor":{"case":{"img.pro_50pctdown2up":2,"img.pro_free2up":2,"img.pro_2up":2,"*":1}},"free_deadline":{"default_value":"{% if fields[''downloadvolumefactor'']==0 %}{{max_time}}{% endif%}","default_value_format":"%Y-%m-%d %H:%M:%S.%f","selector":"img.pro_free,img.pro_free2up","attribute":"onmouseover","filters":[{"name":"re_search","args":["\\d+-\\d+-\\d+ \\d+:\\d+:\\d+",0]},{"name":"dateparse","args":"%Y-%m-%d %H:%M:%S"}]},"description":{"selector":"table.torrentname > tr > td.embedded:nth-child(2)","remove":"span,a,img,font,b","contents":-1},"labels":{"selector":"table.torrentname > tr > td.embedded > span"},"minimumratio":{"text":1},"minimumseedtime":{"text":75600}}}', '{"movie":[{"id":401,"cat":"Movies","desc":"Movies/电影"}],"tv":[{"id":404,"cat":"TV/Documentary","desc":"Documentaries/纪录片"},{"id":405,"cat":"TV/Anime","desc":"Animations/动漫"},{"id":402,"cat":"TV","desc":"TV Series/连续剧"},{"id":403,"cat":"TV","desc":"TV Shows/综艺"}]}'
+)
+ON CONFLICT(ID) DO UPDATE SET
+    NAME = excluded.NAME,
+    DOMAIN = excluded.DOMAIN,
+    SEARCH = excluded.SEARCH,
+    PARSER = excluded.PARSER,
+    RENDER = excluded.RENDER,
+    PROXY = excluded.PROXY,
+    SOURCE_TYPE = excluded.SOURCE_TYPE,
+    SEARCH_TYPE = excluded.SEARCH_TYPE,
+    BROWSE = excluded.BROWSE,
+    TORRENTS = excluded.TORRENTS,
+    CATEGORY = excluded.CATEGORY;
+
+INSERT INTO INDEXER_SITES (
+    ID, NAME, DOMAIN, SEARCH, PARSER, RENDER, PUBLIC, PROXY, SOURCE_TYPE, SEARCH_TYPE, BROWSE, TORRENTS, CATEGORY
+) VALUES (
+    'tmpt', '唐门', 'https://tmpt.top/', '{"paths": [{"path": "torrents.php", "method": "get"}], "params": {"search": "{keyword}"}, "batch": {"delimiter": " ", "space_replace": "_"}}', '', 0, 0, 0, 'MOVIE,TV,ANIME', 'title', '', '{"list":{"selector":"table.torrents > tr:has(\"table.torrentname\")"},"fields":{"id":{"selector":"a[href*=\"details.php?id=\"]","attribute":"href","filters":[{"name":"re_search","args":["\\d+",0]}]},"title_default":{"selector":"a[href*=\"details.php?id=\"]"},"title_optional":{"optional":true,"selector":"a[title][href*=\"details.php?id=\"]","attribute":"title"},"title":{"text":"{% if fields[''title_optional''] %}{{ fields[''title_optional''] }}{% else %}{{ fields[''title_default''] }}{% endif %}"},"category":{"selector":"a[href*=\"?cat=\"]","attribute":"href","filters":[{"name":"replace","args":["?",""]},{"name":"querystring","args":"cat"}]},"details":{"selector":"a[href*=\"details.php?id=\"]","attribute":"href"},"download":{"selector":"a[href*=\"download.php?id=\"]","attribute":"href"},"imdbid":{"selector":"div.imdb_100 > a","attribute":"href","filters":[{"name":"re_search","args":["tt\\d+",0]}]},"date_elapsed":{"selector":"td:nth-child(4) > span","optional":true},"date_added":{"selector":"td:nth-child(4) > span","attribute":"title","optional":true},"date":{"text":"{% if fields[''date_elapsed''] or fields[''date_added''] %}{{ fields[''date_elapsed''] if fields[''date_elapsed''] else fields[''date_added''] }}{% else %}now{% endif %}","filters":[{"name":"dateparse","args":"%Y-%m-%d %H:%M:%S"}]},"size":{"selector":"td:nth-child(5)"},"seeders":{"selector":"td:nth-child(6)"},"leechers":{"selector":"td:nth-child(7)"},"grabs":{"selector":"td:nth-child(8)"},"downloadvolumefactor":{"case":{"img.pro_free":0,"img.pro_free2up":0,"img.pro_50pctdown":0.5,"img.pro_50pctdown2up":0.5,"img.pro_30pctdown":0.3,"*":1}},"uploadvolumefactor":{"case":{"img.pro_50pctdown2up":2,"img.pro_free2up":2,"img.pro_2up":2,"*":1}},"free_deadline":{"default_value":"{% if fields[''downloadvolumefactor'']==0 %}{{max_time}}{% endif%}","default_value_format":"%Y-%m-%d %H:%M:%S.%f","selector":"img.pro_free,img.pro_free2up","attribute":"onmouseover","filters":[{"name":"re_search","args":["\\d+-\\d+-\\d+ \\d+:\\d+:\\d+",0]},{"name":"dateparse","args":"%Y-%m-%d %H:%M:%S"}]},"description":{"selector":"table.torrentname > tr > td.embedded:nth-child(2)","remove":"span,a,img,font,b","contents":-1},"labels":{"selector":"table.torrentname > tr > td.embedded > span"},"minimumratio":{"text":1},"minimumseedtime":{"text":75600}}}', '{"movie":[{"id":401,"cat":"Movies","desc":"电影"}],"tv":[{"id":402,"cat":"TV/Series","desc":"TV Series (剧集)"},{"id":403,"cat":"TV/Shows","desc":"TV Shows (电视节目)"},{"id":404,"cat":"TV/Documentaries","desc":"Documentaries (纪实)"},{"id":405,"cat":"TV/Animations","desc":"Animations (动画)"}]}'
+)
+ON CONFLICT(ID) DO UPDATE SET
+    NAME = excluded.NAME,
+    DOMAIN = excluded.DOMAIN,
+    SEARCH = excluded.SEARCH,
+    PARSER = excluded.PARSER,
+    RENDER = excluded.RENDER,
+    PROXY = excluded.PROXY,
+    SOURCE_TYPE = excluded.SOURCE_TYPE,
+    SEARCH_TYPE = excluded.SEARCH_TYPE,
+    BROWSE = excluded.BROWSE,
+    TORRENTS = excluded.TORRENTS,
+    CATEGORY = excluded.CATEGORY;
+
+INSERT INTO INDEXER_SITES (
+    ID, NAME, DOMAIN, SEARCH, PARSER, RENDER, PUBLIC, PROXY, SOURCE_TYPE, SEARCH_TYPE, BROWSE, TORRENTS, CATEGORY
+) VALUES (
+    '13city', '13city', 'https://13city.org/', '{"paths": [{"path": "torrents.php", "method": "get"}], "params": {"search": "{keyword}"}, "batch": {"delimiter": " ", "space_replace": "_"}}', '', 0, 0, 0, 'MOVIE,TV,ANIME', 'title', '', '{"list":{"selector":"table.torrents > tr:has(\"table.torrentname\")"},"fields":{"id":{"selector":"a[href*=\"details.php?id=\"]","attribute":"href","filters":[{"name":"re_search","args":["\\d+",0]}]},"title_default":{"selector":"a[href*=\"details.php?id=\"]"},"title_optional":{"optional":true,"selector":"a[title][href*=\"details.php?id=\"]","attribute":"title"},"title":{"text":"{% if fields[''title_optional''] %}{{ fields[''title_optional''] }}{% else %}{{ fields[''title_default''] }}{% endif %}"},"category":{"selector":"a[href*=\"?cat=\"]","attribute":"href","filters":[{"name":"replace","args":["?",""]},{"name":"querystring","args":"cat"}]},"details":{"selector":"a[href*=\"details.php?id=\"]","attribute":"href"},"download":{"selector":"a[href*=\"download.php?id=\"]","attribute":"href"},"imdbid":{"selector":"div.imdb_100 > a","attribute":"href","filters":[{"name":"re_search","args":["tt\\d+",0]}]},"date_elapsed":{"selector":"td:nth-child(4) > span","optional":true},"date_added":{"selector":"td:nth-child(4) > span","attribute":"title","optional":true},"date":{"text":"{% if fields[''date_elapsed''] or fields[''date_added''] %}{{ fields[''date_elapsed''] if fields[''date_elapsed''] else fields[''date_added''] }}{% else %}now{% endif %}","filters":[{"name":"dateparse","args":"%Y-%m-%d %H:%M:%S"}]},"size":{"selector":"td:nth-child(5)"},"seeders":{"selector":"td:nth-child(6)"},"leechers":{"selector":"td:nth-child(7)"},"grabs":{"selector":"td:nth-child(8)"},"downloadvolumefactor":{"case":{"img.pro_free":0,"img.pro_free2up":0,"img.pro_50pctdown":0.5,"img.pro_50pctdown2up":0.5,"img.pro_30pctdown":0.3,"*":1}},"uploadvolumefactor":{"case":{"img.pro_50pctdown2up":2,"img.pro_free2up":2,"img.pro_2up":2,"*":1}},"free_deadline":{"default_value":"{% if fields[''downloadvolumefactor'']==0 %}{{max_time}}{% endif%}","default_value_format":"%Y-%m-%d %H:%M:%S.%f","selector":"img.pro_free,img.pro_free2up","attribute":"onmouseover","filters":[{"name":"re_search","args":["\\d+-\\d+-\\d+ \\d+:\\d+:\\d+",0]},{"name":"dateparse","args":"%Y-%m-%d %H:%M:%S"}]},"description":{"selector":"table.torrentname > tr > td.embedded:nth-child(2)","remove":"span,a,img,font,b","contents":-1},"labels":{"selector":"table.torrentname > tr > td.embedded > span"},"minimumratio":{"text":1},"minimumseedtime":{"text":75600}}}', '{"movie":[{"id":401,"cat":"Movies","desc":"Movies/综合-电影"}],"tv":[{"id":422,"cat":"TV/Documentary","desc":"Documentaries/综合-纪录片"},{"id":402,"cat":"TV","desc":"TV Series/综合-电视剧"},{"id":403,"cat":"TV","desc":"TV Shows/综合-综艺"},{"id":417,"cat":"TV/Anime","desc":"Anime China/动漫-国漫"},{"id":418,"cat":"TV/Anime","desc":"Anime Japan/动漫-日漫"},{"id":419,"cat":"TV/Anime","desc":"Anime Korean/动漫-韩漫"},{"id":420,"cat":"TV/Anime","desc":"Anime Europe and America/动漫-欧美"},{"id":421,"cat":"TV/Anime","desc":"Anime Other/动漫-其他"}]}'
+)
+ON CONFLICT(ID) DO UPDATE SET
+    NAME = excluded.NAME,
+    DOMAIN = excluded.DOMAIN,
+    SEARCH = excluded.SEARCH,
+    PARSER = excluded.PARSER,
+    RENDER = excluded.RENDER,
+    PROXY = excluded.PROXY,
+    SOURCE_TYPE = excluded.SOURCE_TYPE,
+    SEARCH_TYPE = excluded.SEARCH_TYPE,
+    BROWSE = excluded.BROWSE,
+    TORRENTS = excluded.TORRENTS,
+    CATEGORY = excluded.CATEGORY;
+
+INSERT INTO INDEXER_SITES (
+    ID, NAME, DOMAIN, SEARCH, PARSER, RENDER, PUBLIC, PROXY, SOURCE_TYPE, SEARCH_TYPE, BROWSE, TORRENTS, CATEGORY
+) VALUES (
+    'ptzone', 'ptzone', 'https://ptzone.xyz', '{"paths": [{"path": "torrents.php", "method": "get"}], "params": {"search": "{keyword}"}, "batch": {"delimiter": " ", "space_replace": "_"}}', '', 0, 0, 0, 'MOVIE,TV,ANIME', 'title', '', '{"list":{"selector":"table.torrents > tr:has(\"table.torrentname\")"},"fields":{"id":{"selector":"a[href*=\"details.php?id=\"]","attribute":"href","filters":[{"name":"re_search","args":["\\d+",0]}]},"title_default":{"selector":"a[href*=\"details.php?id=\"]"},"title_optional":{"optional":true,"selector":"a[title][href*=\"details.php?id=\"]","attribute":"title"},"title":{"text":"{% if fields[''title_optional''] %}{{ fields[''title_optional''] }}{% else %}{{ fields[''title_default''] }}{% endif %}"},"category":{"selector":"a[href*=\"?cat=\"]","attribute":"href","filters":[{"name":"replace","args":["?",""]},{"name":"querystring","args":"cat"}]},"details":{"selector":"a[href*=\"details.php?id=\"]","attribute":"href"},"download":{"selector":"a[href*=\"download.php?id=\"]","attribute":"href"},"imdbid":{"selector":"div.imdb_100 > a","attribute":"href","filters":[{"name":"re_search","args":["tt\\d+",0]}]},"date_elapsed":{"selector":"td:nth-child(4) > span","optional":true},"date_added":{"selector":"td:nth-child(4) > span","attribute":"title","optional":true},"date":{"text":"{% if fields[''date_elapsed''] or fields[''date_added''] %}{{ fields[''date_elapsed''] if fields[''date_elapsed''] else fields[''date_added''] }}{% else %}now{% endif %}","filters":[{"name":"dateparse","args":"%Y-%m-%d %H:%M:%S"}]},"size":{"selector":"td:nth-child(5)"},"seeders":{"selector":"td:nth-child(6)"},"leechers":{"selector":"td:nth-child(7)"},"grabs":{"selector":"td:nth-child(8)"},"downloadvolumefactor":{"case":{"img.pro_free":0,"img.pro_free2up":0,"img.pro_50pctdown":0.5,"img.pro_50pctdown2up":0.5,"img.pro_30pctdown":0.3,"*":1}},"uploadvolumefactor":{"case":{"img.pro_50pctdown2up":2,"img.pro_free2up":2,"img.pro_2up":2,"*":1}},"free_deadline":{"default_value":"{% if fields[''downloadvolumefactor'']==0 %}{{max_time}}{% endif%}","default_value_format":"%Y-%m-%d %H:%M:%S.%f","selector":"img.pro_free,img.pro_free2up","attribute":"onmouseover","filters":[{"name":"re_search","args":["\\d+-\\d+-\\d+ \\d+:\\d+:\\d+",0]},{"name":"dateparse","args":"%Y-%m-%d %H:%M:%S"}]},"description":{"selector":"table.torrentname > tr > td.embedded:nth-child(2)","remove":"span,a,img,font,b","contents":-1},"labels":{"selector":"table.torrentname > tr > td.embedded > span"},"minimumratio":{"text":1},"minimumseedtime":{"text":75600}}}', '{"movie":[{"id":401,"cat":"Movies","desc":"电影"}],"tv":[{"id":402,"cat":"TV/Series","desc":"TV Series (剧集)"},{"id":403,"cat":"TV/Shows","desc":"TV Shows (电视节目)"},{"id":404,"cat":"TV/Documentaries","desc":"Documentaries (纪实)"},{"id":405,"cat":"TV/Animations","desc":"Animations (动画)"}]}'
+)
+ON CONFLICT(ID) DO UPDATE SET
+    NAME = excluded.NAME,
+    DOMAIN = excluded.DOMAIN,
+    SEARCH = excluded.SEARCH,
+    PARSER = excluded.PARSER,
+    RENDER = excluded.RENDER,
+    PROXY = excluded.PROXY,
+    SOURCE_TYPE = excluded.SOURCE_TYPE,
+    SEARCH_TYPE = excluded.SEARCH_TYPE,
+    BROWSE = excluded.BROWSE,
+    TORRENTS = excluded.TORRENTS,
+    CATEGORY = excluded.CATEGORY;
+

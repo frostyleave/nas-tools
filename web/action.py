@@ -5227,13 +5227,20 @@ class WebAction:
         }
 
     def __add_indexer(self, data):
+
+        extra_json = None
+        if data.get('downloader') is not None or data.get('en_expand') is not None:
+            extra_config = {}
+            extra_config['downloader'] = data.get('downloader')
+            extra_config['en_expand'] = data.get('en_expand')
+            extra_json = json.dumps(extra_config)
+
         DbHelper().add_indexer(
             data.get('id'),
             data.get('name'),
             data.get('domain'),
             data.get('proxy'),
             data.get('render'),
-            data.get('downloader'),
             data.get('source_type'),
             data.get('search_type'),
             data.get('search'),
@@ -5242,18 +5249,25 @@ class WebAction:
             data.get('parser'),
             data.get('category'),
             data.get('public'),
-            data.get('en_expand')
+            extra_json
         )
         IndexerManager().init_config()
         return {"code": 0, "msg": "已插入"}
 
     def __update_indexer(self, data):
+
+        extra_json = None
+        if data.get('downloader') is not None or data.get('en_expand') is not None:
+            extra_config = {}
+            extra_config['downloader'] = data.get('downloader')
+            extra_config['en_expand'] = data.get('en_expand')
+            extra_json = json.dumps(extra_config)
+
         success = DbHelper().update_indexer(
             data.get('id'),
             data.get('domain'),
             data.get('proxy'),
             data.get('render'),
-            data.get('downloader'),
             data.get('source_type'),
             data.get('search_type'),
             data.get('search'),
@@ -5261,8 +5275,9 @@ class WebAction:
             data.get('browse'),
             data.get('parser'),
             data.get('category'),
-            data.get('en_expand')
+            extra_json
         )
+        
         if success:
             IndexerManager().init_config()
             return {"code": 0, "msg": "更新成功"}
