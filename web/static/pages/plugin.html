@@ -150,7 +150,6 @@
 
     for (let pid in plugin_query_result.result) {
       let plugin = plugin_query_result.result[pid];
-      let count = plugin_query_result.statistic[pid];
 
       let plugin_html = `
         <div class="card card-link-pop card-borderless p-0 shadow-sm rounded-3 overflow-hidden" href="javascript:void(0)">
@@ -161,7 +160,6 @@
                 style="background-image: url('../static/img/plugins/${plugin.icon.split('/').pop()}')"
             >
             </span>
-            ${count ? `<span class="badge bg-dark position-absolute" style="top: 10px; right: 10px;">${count.toLocaleString()}</span>` : ''}
           </div>
           <div class="card-body text-start">
             <div class="card-title mb-1">${plugin.name}</div>

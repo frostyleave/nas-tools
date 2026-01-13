@@ -5,12 +5,10 @@ from watchdog.events import FileSystemEventHandler
 from watchdog.observers import Observer
 
 import log
-from app.conf import SystemConfig
-from app.helper import PluginHelper
+
 from app.media import Category
 from app.utils import ConfigLoadCache, CategoryLoadCache, StringUtils
 from app.utils.commons import INSTANCES
-from app.utils.types import SystemConfigKey
 from app.utils.password_hash import generate_password_hash
 
 from config import Config
@@ -99,17 +97,6 @@ def update_config():
             overwrite_cofig = True
     except Exception as e:
         log.exception("【Config】站点数据刷新时间默认配置 设置异常: ")
-
-    # 存量插件安装情况统计
-    try:
-        plugin_report_state = SystemConfig().get(SystemConfigKey.UserInstalledPluginsReport)
-        installed_plugins = SystemConfig().get(SystemConfigKey.UserInstalledPlugins)
-        if not plugin_report_state and installed_plugins:
-            ret = PluginHelper().report(installed_plugins)
-            if ret:
-                SystemConfig().set(SystemConfigKey.UserInstalledPluginsReport, '1')
-    except Exception as e:
-        log.exception("【Config】存量插件安装情况统计 异常: ")
 
     # 重写配置文件
     if overwrite_cofig:

@@ -27,7 +27,7 @@ from app.conf import SystemConfig, ModuleConf
 from app.downloader import Downloader
 from app.filetransfer import FileTransfer
 from app.filter import Filter
-from app.helper import DbHelper, ProgressHelper, ThreadHelper, MetaHelper, DisplayHelper, WordsHelper, RssHelper, PluginHelper
+from app.helper import DbHelper, ProgressHelper, ThreadHelper, MetaHelper, DisplayHelper, WordsHelper, RssHelper
 from app.indexer import Indexer
 from app.indexer.manager import IndexerManager
 from app.job_center import JobCenter
@@ -5395,7 +5395,6 @@ class WebAction:
         user_plugins = SystemConfig().get(SystemConfigKey.UserInstalledPlugins) or []
         if module_id not in user_plugins:
             user_plugins.append(module_id)
-            PluginHelper.install(module_id)
         # 保存配置
         SystemConfig().set(SystemConfigKey.UserInstalledPlugins, user_plugins)
         # 重新加载插件
@@ -5437,8 +5436,7 @@ class WebAction:
                 user_level = admin_user.level
 
         plugins = PluginManager().get_plugin_apps(user_level)
-        statistic = PluginHelper.statistic()
-        return {"code": 0, "result": plugins, "statistic": statistic}
+        return {"code": 0, "result": plugins}
 
     def get_plugin_page(self, data):
         """
@@ -5593,8 +5591,7 @@ class WebAction:
 
         # 获取插件列表
         plugins = PluginManager().get_external_plugin_apps(user_level)
-        statistic = PluginHelper.statistic()
-        return {"code": 0, "result": plugins, "statistic": statistic}
+        return {"code": 0, "result": plugins}
 
     def save_external_source_settings(self, data):
 
@@ -5642,7 +5639,6 @@ class WebAction:
 
         if module_id not in user_plugins:
             user_plugins.append(module_id)
-            PluginHelper.install(module_id)
 
         if module_id not in external_plugins:
             external_plugins.append(module_id)
