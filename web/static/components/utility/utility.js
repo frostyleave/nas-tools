@@ -106,7 +106,7 @@ export class Golbal {
       Golbal.save_page_data(api + name, ret);
       //console.log("缓存:", api + name, ret);
       func(ret)
-    }, async);
+    });
   }
 
   // 共用的fav数据更改时刷新缓存
@@ -118,6 +118,18 @@ export class Golbal {
       Golbal.save_page_data(key, extra);
       //console.log("更新fav", extra);
     }
+  }
+
+  static isDoubanImgUrl(url) {
+      try {
+          const u = new URL(url);
+          return (
+              u.protocol === 'https:' &&
+              /^img\d+\.doubanio\.com$/.test(u.hostname)
+          );
+      } catch (e) {
+          return false;
+      }
   }
 
 }

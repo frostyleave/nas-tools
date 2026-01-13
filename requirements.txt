@@ -22,6 +22,8 @@ watchdog==6.0.0
 zhconv==1.4.3
 
 alembic==1.17.0
+aiohttp==3.13.2
+anyio==4.11.0
 APScheduler==3.11.1
 beautifulsoup4==4.14.2
 cachetools==6.2.1
@@ -31,10 +33,8 @@ cssselect==1.3.0
 dateparser==1.2.2
 fast-bencode==1.1.7
 fastapi==0.120.1
-anyio==4.11.0
-starlette==0.49.0
-pydantic==2.12.3
 h11==0.16.0
+httpx==0.28.1
 icalendar==6.3.1
 Jinja2==3.1.6
 lxml==6.0.2
@@ -43,6 +43,7 @@ Pillow==12.0.0
 plexapi==4.17.1
 psutil==7.1.2
 pycryptodome==3.23.0
+pydantic==2.12.3
 python-hosts==1.1.2
 pytz==2025.2
 qbittorrent_api==2025.7.0
@@ -54,9 +55,10 @@ slack-bolt==1.26.0
 slack-sdk==3.37.0
 soupsieve==2.8
 SQLAlchemy==2.0.44
+starlette==0.49.1
 typing-extensions==4.15.0
 tzdata==2025.2
-urllib3==2.5.0
+urllib3==2.6.3
 wcwidth==0.2.14
 zhon==2.1.1
 python-jose[cryptography]

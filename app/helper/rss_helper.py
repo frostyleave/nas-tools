@@ -298,7 +298,7 @@ class RssHelper:
                 return []
             ret.encoding = ret.apparent_encoding
         except Exception as e2:
-            log.exception("解析RSS订阅URL异常: ", e2)
+            log.exception("解析RSS订阅URL异常: ")
             return []
         if ret:
             ret_xml = ret.text
@@ -348,13 +348,13 @@ class RssHelper:
                                     'pubdate': pubdate}
                         ret_array.append(tmp_dict)
                     except Exception as e1:
-                        log.exception("RSS订阅结果解析异常: ", e1)
+                        log.exception("RSS订阅结果解析异常: ")
                         continue
             except Exception as e2:
                 # RSS过期 观众RSS 链接已过期，您需要获得一个新的！  pthome RSS Link has expired, You need to get a new one!
                 if ret_xml in _rss_expired_msg:
                     return None
-                log.exception("RSS解析异常: ", e2)
+                log.exception("RSS解析异常: ")
         return ret_array
 
     @DbPersist(_db)

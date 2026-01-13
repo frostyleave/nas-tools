@@ -4,7 +4,6 @@ import re
 import log
 
 from app.downloader import Downloader
-from app.helper import ProgressHelper
 from app.indexer import Indexer
 from app.media import Media
 from app.message import Message
@@ -12,7 +11,8 @@ from app.searcher import Searcher
 from app.sites import SitesManager
 from app.subscribe import Subscribe
 from app.utils import StringUtils
-from app.utils.types import SearchType, IndexerType, ProgressKey, RssType
+from app.utils.types import SearchType, RssType
+from app.task_manager import GlobalTaskManager
 
 from config import Config
 
@@ -22,39 +22,37 @@ SEARCH_MEDIA_CACHE = {}
 SEARCH_MEDIA_TYPE = {}
 
 
-def search_medias_for_web(content, ident_flag=True, filters=None, tmdbid=None, media_type=None):
+def search_medias_for_web(content, ident_flag=True, filters=None, tmdbid=None, media_type=None, task_id=None):
     """
     WEB资源搜索
     :param content: 关键字文本，可以包括 类型、标题、季、集、年份等信息，使用 空格分隔，也支持种子的命名格式
     :param ident_flag: 是否进行媒体信息识别
     :param filters: 其它过滤条件
     :param tmdbid: TMDBID或DB:豆瓣ID
-    :param media_type: 媒体类型，配合tmdbid传入
+    :param media_type: 媒体类型, 配合tmdbid传入
     :return: 错误码，错误原因，成功时直接插入数据库
     """
     mtype, key_word, season_num, episode_num, year, content = StringUtils.get_keyword_from_string(content)
     if not key_word:
         log.info("【Web】%s 搜索关键字有误！" % content)
         return -1, "%s 未识别到搜索关键字！" % content
+    
     # 类型
     if media_type:
         mtype = media_type
-    # 开始进度
+
     _searcher = Searcher()
-    _process = ProgressHelper()
-    _media = Media()
-    _process.start(ProgressKey.Search)
+    
     # 识别媒体
     media_info = None
     if ident_flag:
-
         # 有TMDBID或豆瓣ID
         if tmdbid:
             media_info = WebUtils.get_mediainfo_from_id(mediaid=tmdbid, mtype=mtype)
         else:
             # 按输入名称查
-            media_info = _media.get_media_info(mtype=media_type or mtype,
-                                               title=content)
+            _media = Media()
+            media_info = _media.get_media_info(mtype=media_type or mtype, title=content)
 
         # 整合集
         if media_info:
@@ -65,7 +63,8 @@ def search_medias_for_web(content, ident_flag=True, filters=None, tmdbid=None, m
 
         if media_info and media_info.tmdb_info:
             # 查询到TMDB信息
-            log.info(f"【Web】从TMDB中匹配到{media_info.type.value}：{media_info.get_title_string()}")
+            log.info("【Web】从TMDB中匹配到 %s: %s", media_info.type.value, media_info.get_title_string())
+
             # 查找的季
             if media_info.begin_season is None:
                 search_season = None
@@ -96,7 +95,7 @@ def search_medias_for_web(content, ident_flag=True, filters=None, tmdbid=None, m
                            "type": media_info.type}
         else:
             # 查询不到数据，使用快速搜索
-            log.info(f"【Web】{content} 未从TMDB匹配到媒体信息，将使用快速搜索...")
+            log.info("【Web】 未从TMDB匹配到媒体信息, 将使用快速搜索...", content)
             ident_flag = False
             media_info = None
             first_search_name = key_word
@@ -104,39 +103,49 @@ def search_medias_for_web(content, ident_flag=True, filters=None, tmdbid=None, m
                 "season": season_num,
                 "episode": episode_num,
                 "year": year
-            }
-    # 快速搜索
+            }    
     else:
+        # 快速搜索
         first_search_name = key_word
         filter_args = {
             "season": season_num,
             "episode": episode_num,
             "year": year
         }
+
     # 整合高级查询条件
     if filters:
         filter_args.update(filters)
+
+    log.info("【Web】开始搜索 %s ...", content)
+    if task_id:
+        GlobalTaskManager().update_task(task_id=task_id, progress=1, message="开始搜索 %s ..." % content)
+
     # 开始搜索
-    log.info("【Web】开始搜索 %s ..." % content)
     media_list = _searcher.search_medias(key_word=first_search_name,
                                          filter_args=filter_args,
                                          match_media=media_info,
-                                         in_from=SearchType.WEB)
+                                         in_from=SearchType.WEB,
+                                         task_id=task_id)
 
     # 清空缓存结果
     _searcher.delete_all_search_torrents()
+
+    if media_list:
+        # 排序
+        media_list = sorted(media_list, key=lambda x: x.get_sort_str(), reverse=True)
+        # 插入数据库
+        _searcher.insert_search_results(media_items=media_list, ident_flag=ident_flag, title=content)
+
     # 结束进度
-    _process.end(ProgressKey.Search)
+    if task_id:
+        GlobalTaskManager().update_task(task_id=task_id, progress=100, message="搜索完成", status='finish')
+
     if len(media_list) == 0:
         log.info("【Web】%s 未搜索到任何资源" % content)
         return 1, "%s 未搜索到任何资源" % content
     else:
-        log.info("【Web】共搜索到 %s 个有效资源" % len(media_list))
-        # 插入数据库
-        media_list = sorted(media_list, key=lambda x: x.get_sort_str(), reverse=True)
-        _searcher.insert_search_results(media_items=media_list,
-                                        ident_flag=ident_flag,
-                                        title=content)
+        log.info("【Web】共搜索到 %s 个有效资源" % len(media_list))       
         return 0, ""
 
 

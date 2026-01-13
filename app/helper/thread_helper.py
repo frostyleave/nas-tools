@@ -5,14 +5,11 @@ from app.utils.commons import singleton
 
 @singleton
 class ThreadHelper:
-    _thread_num = 100
-    executor = None
+
+    common_executor = None
 
     def __init__(self):
-        self.executor = ThreadPoolExecutor(max_workers=self._thread_num)
-
-    def init_config(self):
-        pass
+        self.common_executor = ThreadPoolExecutor(max_workers=5)
 
     def start_thread(self, func, kwargs):
-        self.executor.submit(func, *kwargs)
+        self.common_executor.submit(func, *kwargs)

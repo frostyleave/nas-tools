@@ -1,9 +1,7 @@
 import os.path
 import regex as re
-import PTN
-import anitopy
 
-import log
+import anitopy
 
 from app.conf import ModuleConf
 from app.helper import WordsHelper
@@ -18,17 +16,31 @@ NAME_NOSTRING_RE = r"高清影视之家发布|连载|日剧|美剧|电视剧|动
                    r"|高码版|最终季|全集|合集|[多中国英葡法俄日韩德意西印泰台港粤双文语简繁体特效内封官译外挂]+[字|幕|配|音|轨]+|版本|出品|台版|港版|未删减版"
 
 
-def MetaInfo(title, subtitle=None, mtype=None):
+def MetaInfo(title, subtitle=None, mtype=None, no_extra=False):
     """
     媒体整理入口，根据名称和副标题，判断是哪种类型的识别，返回对应对象
     :param title: 标题、种子名、文件名
     :param subtitle: 副标题、描述
     :param mtype: 指定识别类型，为空则自动识别类型
+    :param mtype: 不包含除名称、季集、年份之外的其他信息
     :return: MetaAnime、MetaVideo
     """
 
     # 记录原始名称
     org_title = title
+    
+    if no_extra:
+        rev_title = title
+        anime_flag = is_anime(rev_title)
+        if mtype == MediaType.ANIME or anime_flag:
+            meta_info = MetaAnime(rev_title, subtitle, False)
+        else:
+            meta_info = MetaVideo(rev_title, subtitle, False)
+        # 设置原始名称
+        meta_info.org_string = org_title
+        # 设置识别词处理后名称
+        meta_info.rev_string = rev_title
+        return meta_info
     
     # 预去除一些无用的词
     rev_title = re.sub(r'%s' % NAME_NOSTRING_RE, "", title, flags=re.IGNORECASE)
@@ -92,58 +104,10 @@ def MetaInfo(title, subtitle=None, mtype=None):
     return meta_info
 
 
-def info_fix(meta_info, rev_title):
-    # 移除字幕组信息
-    resource_team = meta_info.resource_team if meta_info.resource_team else ''
-    # 移除部分副标题
-    title = re.sub(meta_info._subtitle_season_all_re, '', rev_title, flags=re.IGNORECASE)
-    title = re.sub(meta_info._subtitle_episode_all_re, '', title, flags=re.IGNORECASE)
-    # 移除年份
-    if hasattr(meta_info, 'year') and meta_info.year:
-        title = title.replace(meta_info.year, '')
-
-    title = StringUtils.remve_redundant_symbol(title.replace(resource_team, '')).strip('.')
-    title = title.replace('-', '_')
-
-    t = PTN.parse(title)
-    t_title = t.get('title')
-
-    if t_title:
-        # 如果没有解析出中文名，或解析出的中文名中不包含中文，则尝试进行修正
-        if (not meta_info.cn_name or StringUtils.is_all_chinese_and_mark(meta_info.cn_name) == False) \
-                and StringUtils.contain_chinese(t_title):
-            meta_info.cn_name = t_title
-        if not meta_info.en_name and StringUtils.is_english_or_number(t_title):
-            meta_info.en_name = t_title
-
-    t_episode = t.get('episode')
-    if t_episode:
-        meta_info.type = MediaType.TV
-        if isinstance(t_episode, list):
-            meta_info.begin_episode = t_episode[0]
-            meta_info.end_episode = t_episode[len(t_episode) - 1]
-        elif not meta_info.begin_episode:
-            meta_info.begin_episode = t_episode
-
-
 # 标题信息预处理
 def preprocess_title(rev_title):
     # 提取制作组/字幕组
     resource_team = ReleaseGroupsMatcher().match_list(title=rev_title)
-    # anitopy 辅助提取
-    try:
-        # 调用 anitopy
-        anitopy_info_origin = anitopy.parse(rev_title)
-        if anitopy_info_origin and anitopy_info_origin.get("release_group"):
-            release_group = anitopy_info_origin.get("release_group")
-            if not resource_team:
-                resource_team = []
-                resource_team.append(release_group)
-            elif release_group not in resource_team:
-                resource_team.append(release_group)
-    except Exception as err:
-        log.warn("【Meta】anitopy提取字幕组信息出错: %s 不存在" % str(err))
-
     # 把标题中的制作组/字幕组去掉
     if resource_team:
         for item in resource_team:

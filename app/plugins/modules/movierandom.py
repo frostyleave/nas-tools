@@ -3,19 +3,18 @@ import random
 from datetime import datetime
 from threading import Event
 
-from apscheduler.schedulers.background import BackgroundScheduler
 from jinja2 import Template
 
-from app.helper.thread_helper import ThreadHelper
 import log
+
 from app.conf import ModuleConf
 from app.helper import RssHelper
+from app.helper import ThreadHelper
 from app.media import Media
 from app.mediaserver import MediaServer
 from app.plugins.modules._base import _IPluginModule
 from app.subscribe import Subscribe
 from app.utils.types import SearchType, RssType, MediaType
-from config import Config
 
 
 class MovieRandom(_IPluginModule):
@@ -292,8 +291,7 @@ class MovieRandom(_IPluginModule):
                 })
                 
             if self._cron:
-                self._scheduler = BackgroundScheduler(timezone=Config().get_timezone())
-                self._cron_job = self.add_cron_job(self._scheduler, self.__random, self._cron, '电影随机服务')
+                self._cron_job = self.add_cron_job(self.__random, self._cron, '电影随机')
 
 
     def __random(self):
@@ -472,12 +470,6 @@ class MovieRandom(_IPluginModule):
         停止服务
         """
         try:
-            if self._scheduler:
-                self._scheduler.remove_all_jobs()
-                if self._scheduler.running:
-                    self._event.set()
-                    self._scheduler.shutdown()
-                    self._event.clear()
-                self._scheduler = None
+            self.remove_job(self._cron_job)
         except Exception as e:
             print(str(e))

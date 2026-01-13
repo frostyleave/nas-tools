@@ -23,7 +23,7 @@ class DisplayHelper(object):
                 self._display.start()
                 os.environ["NASTOOL_DISPLAY"] = "true"
             except Exception as err:
-                log.exception("[虚拟显示]初始化异常: ", err)
+                log.exception("[虚拟显示]初始化异常: ")
 
     def get_display(self):
         return self._display

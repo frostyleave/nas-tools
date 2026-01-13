@@ -248,7 +248,7 @@ class DoubanWeb(object):
                 if text:
                     obj[key] = text[0]
             except Exception as e:
-                log.exception("【DoubanWeb】html 解析出错: ", e)
+                log.exception("【DoubanWeb】html 解析出错: ")
         return obj
 
     @classmethod

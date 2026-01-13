@@ -1,11 +1,14 @@
 import asyncio
 import json
 import re
+from typing import Any, Dict
 
-from fastapi import APIRouter, Request, WebSocket, WebSocketDisconnect
+from fastapi import APIRouter, Query, Request, WebSocket, WebSocketDisconnect
 from fastapi.responses import StreamingResponse
 
+from app.task_manager import GlobalTaskManager
 import log
+from log import log_buffer, active_sse_queues
 
 from web.action import WebAction
 from web.backend.security import get_current_user
@@ -32,7 +35,7 @@ async def message_handler(websocket: WebSocket):
             user_id = user_info.id
             log.debug(f"[WebSocket-消息]会话用户ID: {user_id}")
     except Exception as e:
-        log.exception("[WebSocket-消息]会话获取失败: ", e)
+        log.exception("[WebSocket-消息]会话获取失败: ")
 
     try:
         while True:
@@ -103,7 +106,7 @@ async def message_handler(websocket: WebSocket):
                         # 连接已关闭
                         break
             except Exception as e:
-                log.exception("[WebSocket-消息]处理消息失败: ", e)
+                log.exception("[WebSocket-消息]处理消息失败: ")
                 # 检查连接状态，避免在连接已关闭时发送消息
                 try:
                     await websocket.send_text(json.dumps({"error": str(e)}))
@@ -122,37 +125,48 @@ async def stream_logging(request: Request, source: str = ""):
     """
     实时日志SSE
     """
-    # 全局变量，用于跟踪日志源和索引
-    logging_source = source
-
-    # 重置日志索引
-    log.LOG_INDEX = len(log.LOG_QUEUE)
+    
+    # 创建此客户端专用的队列
+    my_queue: asyncio.Queue[Dict[str, Any]] = asyncio.Queue()
 
     async def event_generator():
-        nonlocal logging_source
         try:
+            for log_data in list(log_buffer):
+                if source and log_data.get('source') != source:
+                    continue
+                json_message = json.dumps(log_data)
+                yield f"data: {json_message}\n\n"
+                # 短暂释放控制权, 以防历史日志过多导致堵塞
+                await asyncio.sleep(0)
+            
+            # 注册到广播列表, 开始接收"直播"
+            active_sse_queues.append(my_queue)
+
             while True:
                 try:
-                    # 获取新日志
-                    logs = []
-                    if log.LOG_INDEX > 0:
-                        logs = list(log.LOG_QUEUE)[-log.LOG_INDEX:]
-                        log.LOG_INDEX = 0
-                        if logging_source:
-                            logs = [lg for lg in logs if lg.get("source") == logging_source]
+                    log_data = await my_queue.get()
+                    my_queue.task_done()
 
-                    # 发送日志
-                    yield f"data: {json.dumps(logs)}\n\n"
-                    # 等待一段时间
-                    await asyncio.sleep(1)
+                    if source and log_data.get('source') != source:
+                        continue
+                    yield f"data: {json.dumps(log_data)}\n\n"
 
                 except Exception as e:
-                    log.exception("[SSE-日志]处理失败: ", e)
-                    await asyncio.sleep(1)
+                    log.exception("[SSE-日志]处理失败: ")
+                finally:
+                    await asyncio.sleep(0.2)
 
+        except asyncio.CancelledError:
+            log.debug("SSE client disconnected.")
         except Exception as e:
-            log.exception("[SSE-日志]连接异常: ", e)
+            log.exception("[SSE-日志]连接异常: ")
             yield f"data: {json.dumps({'code': -1, 'value': 0, 'text': f'实时日志连接异常: {str(e)}'})}\n\n"
+        finally:
+            log.debug("Removing client queue from active SSE listeners.")
+            try:
+                active_sse_queues.remove(my_queue)
+            except ValueError:
+                log.debug("SSE queue was already removed.")
 
     return StreamingResponse(event_generator(), media_type="text/event-stream", headers={ "Content-Encoding": "identity" })
 
@@ -179,9 +193,57 @@ async def stream_progress(request: Request, type: str = ""):
                 # 等待一段时间
                 await asyncio.sleep(0.5)
         except Exception as e:
-            log.exception("[SSE-进度]连接异常: ", e)
+            log.exception("[SSE-进度]连接异常: ")
             yield f"data: {json.dumps({'code': -1, 'value': 0, 'text': f'进度连接异常: {str(e)}'})}\n\n"
 
     # 初始化进度
     web_action.init_process({"type": type})
+    return StreamingResponse(event_generator(), media_type="text/event-stream", headers={ "Content-Encoding": "identity" })
+
+
+# 进度SSE
+@streaming_router.get("/sse-progress")
+async def sse_progress(
+    request: Request, 
+    task_id: str = Query(..., min_length=5, title="任务ID")
+):
+    """
+    进度SSE
+    """    
+
+    async def event_generator():
+        try:
+            while True:
+
+                if await request.is_disconnected():
+                    log.info(f"[SSE-进度] 客户端断开连接: {task_id}")
+                    break
+
+                # 获取进度
+                task_info = GlobalTaskManager().get_task_dict(task_id)
+                if not task_info:
+                    log.info(f"[SSE-进度] 查询任务: {task_id} 进度信息失败")
+                    break
+
+                detail = {
+                    'code': 0,
+                    'task_id' : task_info.get('task_id'),
+                    'value' : task_info.get('progress'),
+                    'status' : task_info.get('status'),
+                    'text' : task_info.get('message')
+                }
+
+                # 发送进度
+                yield f"data: {json.dumps(detail)}\n\n"
+                
+                # 进度完成，结束
+                if task_info.get('progress', 0) >= 100 and task_info.get('status') == 'finish':
+                    break
+                # 等一会
+                await asyncio.sleep(0.5)
+
+        except Exception as e:
+            log.exception("[SSE-进度]连接异常: ")
+            yield f"data: {json.dumps({'code': -1, 'value': 0, 'text': f'进度连接异常: {str(e)}'})}\n\n"
+
     return StreamingResponse(event_generator(), media_type="text/event-stream", headers={ "Content-Encoding": "identity" })

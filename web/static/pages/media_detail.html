@@ -11,6 +11,8 @@
       const urlParams = new URLSearchParams(queryString);
       const media_type = urlParams.get('type') || '';
       const tmdbid = urlParams.get('id') || '';
+      const year = urlParams.get('year') || '';
+      const title = urlParams.get('title') || '';      
 
       if (!media_type || !tmdbid) {
           show_fail_modal("页面参数(type/tmdbid)缺失！");
@@ -19,7 +21,7 @@
       }
 
       // 执行主数据请求
-      axios_post_do("media_brief_info", { "type": media_type, "tmdbid": tmdbid },
+      axios_post_do("media_brief_info", { "type": media_type, "tmdbid": tmdbid, "year": year, "title": title },
         (ret) => {
           if (ret.code === 0) {
 
@@ -31,7 +33,7 @@
             $('#main-info-container').data("data", media_info);
 
             // 绘制主要信息
-            const mainHtml = generateMainHtml(media_info, media_info.fav, media_info.item_url, [], tmdbid);
+            const mainHtml = generateMainHtml(media_info, media_info.fav, media_info.item_url, [], tmdbid, media_type);
             $('#main-info-container').append(mainHtml);
 
             // 背景轮播
@@ -67,7 +69,7 @@
       );
 
       // --- HTML 生成辅助函数 ---
-      function generateMainHtml(info, fav, item_url, seasons, tmdbid) {
+      function generateMainHtml(info, fav, item_url, seasons, tmdbid, media_type) {
           const genresHtml = info.genres ? info.genres.map(el => 
               `<span class="badge bg-indigo mb-1 mx-1"> ${el}</span>`
           ).join('') : '';
@@ -86,16 +88,16 @@
               </span>`;
           
           const favBtnHtml = fav == "1" ? `
-              <span class="btn btn-pinterest d-none d-sm-inline-flex" id="fav-btn">
+              <span class="btn btn-pinterest d-none d-sm-inline-flex" onclick='rss_love_click(event, "${info.title}", "${info.year}", "${media_type}", "${tmdbid}", "${fav}")'>
                 <i class="ti ti-heart-filled fs-2 text-purple"></i> 删除订阅
               </span>
-              <span class="btn btn-icon bg-transparent border-0 d-sm-none" id="fav-btn-icon">
+              <span class="btn btn-icon bg-transparent border-0 d-sm-none" onclick='rss_love_click(event, "${info.title}", "${info.year}", "${media_type}", "${tmdbid}", "${fav}")'>
                 <i class="ti ti-heart-filled fs-2 text-purple"></i>
               </span>` : `
-              <span class="btn btn-purple d-none d-sm-inline-flex" id="fav-btn">
+              <span class="btn btn-purple d-none d-sm-inline-flex" onclick='rss_love_click(event, "${info.title}", "${info.year}", "${media_type}", "${tmdbid}", "${fav}")'>
                 <i class="ti ti-heart fs-2 text-white"></i> 添加订阅
               </span>
-              <span class="btn btn-icon bg-transparent border-0 d-sm-none" id="fav-btn-icon">
+              <span class="btn btn-icon bg-transparent border-0 d-sm-none" onclick='rss_love_click(event, "${info.title}", "${info.year}", "${media_type}", "${tmdbid}", "${fav}")'>
                 <i class="ti ti-heart fs-2"></i>
               </span>`;
 
@@ -176,8 +178,10 @@
 
       function asyncRenderExtraDataCard(tmdbid, media_type, media_info) {
 
+        media_id = tmdbid.startsWith('DB:') ? tmdbid : media_info.tmdbid
+
         // 演职人员、季集信息
-        axios_post_do("media_extra_info", { "type": media_type, "mediaid": tmdbid },
+        axios_post_do("media_extra_info", { "type": media_type, "mediaid": media_id },
           (ret) => {
             if (ret.code === 0) {
 
@@ -238,7 +242,8 @@
 
       function asyncRenderSimCard(tmdbid, media_type, media_title) {
 
-        axios_post_do("get_recommend", { "type": media_type, "subtype": "sim", "tmdbid": tmdbid, "page": 1 }, (ret) => {
+        axios_post_do("get_recommend", { "type": media_type, "subtype": "sim", "tmdbid": tmdbid, "page": 1 }, 
+        (ret) => {
 
           if (!ret.Items || ret.Items.length == 0) {
             return;
@@ -277,7 +282,8 @@
 
       function asyncRenderRecommendCard(tmdbid, media_type, media_title) {
 
-        axios_post_do("get_recommend", { "type": media_type, "subtype": "more", "tmdbid": tmdbid, "page": 1 }, (ret) => {
+        axios_post_do("get_recommend", { "type": media_type, "subtype": "more", "tmdbid": tmdbid, "page": 1 }, 
+        (ret) => {
 
           if (!ret.Items || ret.Items.length == 0) {
             return;
@@ -354,17 +360,6 @@
           $document.on('click', '#watch-btn, #watch-btn-icon', function(e) {
             e.stopPropagation();
             window.open($(this).data('url'), '_blank');
-          });
-
-          // 订阅/收藏按钮 (来自 _loveClick)
-          $document.on('click', '#fav-btn, #fav-btn-icon', function(e) {
-            e.stopPropagation();
-
-            var pageData = $('#main-info-container').data("data");
-            var mediaType = $('#main-info-container').data("type");
-            var tmdbid = $('#main-info-container').data("tmdbid");
-
-            rss_love_click(pageData.title, pageData.year, mediaType, tmdbid, pageData.fav);
           });
 
       }

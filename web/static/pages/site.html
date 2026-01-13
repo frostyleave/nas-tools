@@ -160,8 +160,8 @@
               <label class="form-label required">使用代理服务器 <span class="form-help"
                   title="开启后该站点的访问将使用代理服务器，代理需在基础设置->系统->代理服务器中设置" data-bs-toggle="tooltip">?</span></label>
               <select class="form-select" id="site_proxy">
-                <option value="Y" selected>是</option>
-                <option value="N">否</option>
+                <option value="Y">是</option>
+                <option value="N" selected>否</option>
               </select>
             </div>
           </div>
@@ -186,8 +186,7 @@
             <div class="mb-3">
               <label class="form-label">订阅优先级 <span class="form-help" title="多个站点同时命中订阅时选择下载的优先级，数值越小优先级越高"
                   data-bs-toggle="tooltip">?</span></label>
-              <select class="form-select" id="site_pri">
-              </select>
+              <input type="number" class="form-control" id="site_pri" value="">
             </div>
           </div>
           <div class="col-lg-4">
@@ -228,8 +227,8 @@
               <label class="form-label required">从详情页下载字幕 <span class="form-help"
                   title="开启后将查询该种子详情页是否有提供字幕，如有则会自动下载" data-bs-toggle="tooltip">?</span></label>
               <select class="form-select" id="site_subtitle">
-                <option value="Y" selected>是</option>
-                <option value="N">否</option>
+                <option value="Y">是</option>
+                <option value="N" selected>否</option>
               </select>
             </div>
           </div>
@@ -439,9 +438,9 @@
     $("#site_ua").val('');
     $("#site_chrome").val('N');
     $("#site_proxy").val('N');
-    $("#site_parse").val('Y');
+    $("#site_parse").val('N');
     $("#site_subtitle").val('N');
-    $("#site_unread_msg_notify").val('Y');
+    $("#site_unread_msg_notify").val('N');
     $("#sitelimit_interval").val('');
     $("#sitelimit_count").val('');
     $("#sitelimit_seconds").val('');
@@ -793,7 +792,7 @@
       }
       $("#cookieua_result_div").show();
       refresh_sitecookie_current = "";
-    }, true, false);
+    }, false);
     // 刷新进度
     refresh_sitecookie_current = siteid;
     refresh_sitecookie_process(siteid);
@@ -926,15 +925,8 @@
     axios_post('/data/site', {}, function(response) {
 
       if (response.code === 0 && response.data) {
-        const data = response.data;
 
-        // 填充站点优先级选项（1-50）
-        const sitePriSelect = $('#site_pri');
-        sitePriSelect.empty();
-        for (let i = 1; i <= 50; i++) {
-          const selected = i === 1 ? 'selected' : '';
-          sitePriSelect.append(`<option value="${i}" ${selected}>${i}</option>`);
-        }
+        const data = response.data;
 
         // 填充过滤规则选项
         if (data.RuleGroups) {
@@ -1064,7 +1056,7 @@
           $('#no-sites').show();
         }
       }
-    }, true, true);
+    });
     
   });
 

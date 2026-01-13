@@ -23,7 +23,7 @@ class Gotify(_IMessageClient):
                 self._priority = int(self._client_config.get('priority'))
             except Exception as e:
                 self._priority = 8
-                log.exception("【Gotify】初始化 出错: ", e)
+                log.exception("【Gotify】初始化 出错: ")
 
     @classmethod
     def match(cls, ctype):

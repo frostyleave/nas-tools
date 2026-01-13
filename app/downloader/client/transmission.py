@@ -79,7 +79,7 @@ class Transmission(_IDownloadClient):
                                           timeout=60)
             return trt
         except Exception as err:
-            log.exception(f"【{self.client_name}】{self.name} 连接出错：", err)
+            log.exception(f"【{self.client_name}】{self.name} 连接出错：")
             return None
 
     def get_status(self):
@@ -107,11 +107,17 @@ class Transmission(_IDownloadClient):
         try:
             torrents = self.trc.get_torrents(ids=ids, arguments=self._trarg)
         except Exception as err:
-            log.exception(f"【{self.client_name}】{self.name} 获取种子列表 出错：", err)
+            log.exception(f"【{self.client_name}】{self.name} 获取种子列表 出错：")
             return [], True
         
-        if status and not isinstance(status, list):
-            status = [status]
+        filter_download_pause = False
+
+        if status:
+            if not isinstance(status, list):
+                status = [status]
+            if 'downloading' in status and 'stopped' not in status:
+                status.append('stopped') # 被暂停下载的会被标记为stopped
+                filter_download_pause = True
         if tag and not isinstance(tag, list):
             tag = [tag]
 
@@ -119,8 +125,8 @@ class Transmission(_IDownloadClient):
         for torrent in torrents:
             if status and torrent.status not in status:
                 continue
-            # 暂停做种的文件
-            if torrent.status == 'stopped' and torrent.percent_done >= 1.0:
+            # 过滤暂停做种的文件
+            if filter_download_pause and torrent.status == 'stopped' and torrent.percent_done >= 1.0:
                 continue
             labels = torrent.labels if hasattr(torrent, "labels") else []
             include_flag = True
@@ -144,7 +150,7 @@ class Transmission(_IDownloadClient):
             torrents, error = self.get_torrents(status=["seeding", "seed_pending"], ids=ids, tag=tag)
             return None if error else torrents or []
         except Exception as err:
-            log.exception(f"【{self.client_name}】{self.name} 获取已完成的种子列表异常：", err)
+            log.exception(f"【{self.client_name}】{self.name} 获取已完成的种子列表异常：")
             return None
 
     def get_downloading_torrents(self, ids=None, tag=None):
@@ -156,11 +162,11 @@ class Transmission(_IDownloadClient):
             return None
         try:
             torrents, error = self.get_torrents(ids=ids,
-                                                status=["downloading", "download_pending", "stopped"],
+                                                status=["downloading", "download_pending"],
                                                 tag=tag)
             return None if error else torrents or []
         except Exception as err:
-            log.exception(f"【{self.client_name}】{self.name} 获取正在下载的种子列表异常：", err)
+            log.exception(f"【{self.client_name}】{self.name} 获取正在下载的种子列表异常：")
             return None
 
     def set_torrents_status(self, ids, tags=None):
@@ -183,7 +189,7 @@ class Transmission(_IDownloadClient):
             self.trc.change_torrent(labels=tags, ids=ids)
             log.info(f"【{self.client_name}】{self.name} 设置种子标签成功")
         except Exception as err:
-            log.exception(f"【{self.client_name}】{self.name} 设置种子为已整理状态异常：", err)
+            log.exception(f"【{self.client_name}】{self.name} 设置种子为已整理状态异常：")
 
     def set_torrent_tag(self, tid, tag):
         """
@@ -195,7 +201,7 @@ class Transmission(_IDownloadClient):
         try:
             self.trc.change_torrent(labels=tag, ids=ids)
         except Exception as err:
-            log.exception(f"【{self.client_name}】{self.name} 设置种子标签异常：", err)
+            log.exception(f"【{self.client_name}】{self.name} 设置种子标签异常：")
 
     def change_torrent(self,
                        tid,
@@ -261,7 +267,7 @@ class Transmission(_IDownloadClient):
                                     seedIdleMode=seedIdleMode,
                                     seedIdleLimit=seedIdleLimit)
         except Exception as err:
-            log.exception(f"【{self.client_name}】{self.name} 设置种子参数异常：", err)
+            log.exception(f"【{self.client_name}】{self.name} 设置种子参数异常：")
 
     def get_transfer_task(self, tag=None, match_path=None):
         """
@@ -398,7 +404,7 @@ class Transmission(_IDownloadClient):
                     self.set_downloadspeed_limit(ret.hashString, int(download_limit))
             return ret
         except Exception as err:
-            log.exception(f"【{self.client_name}】{self.name} 添加下载异常：", err)
+            log.exception(f"【{self.client_name}】{self.name} 添加下载异常：")
             return False
 
     def start_torrents(self, ids):
@@ -408,7 +414,7 @@ class Transmission(_IDownloadClient):
         try:
             return self.trc.start_torrent(ids=ids)
         except Exception as err:
-            log.exception(f"【{self.client_name}】{self.name} 发起下载异常：", err)
+            log.exception(f"【{self.client_name}】{self.name} 发起下载异常：")
             return False
 
     def stop_torrents(self, ids):
@@ -418,7 +424,7 @@ class Transmission(_IDownloadClient):
         try:
             return self.trc.stop_torrent(ids=ids)
         except Exception as err:
-            log.exception(f"【{self.client_name}】{self.name} 暂停下载 异常：", err)
+            log.exception(f"【{self.client_name}】{self.name} 暂停下载 异常：")
             return False
 
     def delete_torrents(self, delete_file, ids):
@@ -430,7 +436,7 @@ class Transmission(_IDownloadClient):
         try:
             return self.trc.remove_torrent(delete_data=delete_file, ids=ids)
         except Exception as err:
-            log.exception(f"【{self.client_name}】{self.name} 删除下载 异常：", err)
+            log.exception(f"【{self.client_name}】{self.name} 删除下载 异常：")
             return False
 
     def get_files(self, tid):
@@ -442,7 +448,7 @@ class Transmission(_IDownloadClient):
         try:
             torrent = self.trc.get_torrent(tid)
         except Exception as err:
-            log.exception(f"【{self.client_name}】{self.name} 获取种子文件列表 异常：", err)
+            log.exception(f"【{self.client_name}】{self.name} 获取种子文件列表 异常：")
             return None
         if torrent:
             return torrent.get_files()
@@ -459,7 +465,7 @@ class Transmission(_IDownloadClient):
             self.trc.change_torrent(ids=tid, files_unwanted=files_unwanted)
             return True
         except Exception as err:
-            log.exception(f"【{self.client_name}】{self.name} 设置不需要下载的文件 异常：", err)
+            log.exception(f"【{self.client_name}】{self.name} 设置不需要下载的文件 异常：")
             return False
 
     def get_download_dirs(self):
@@ -468,7 +474,7 @@ class Transmission(_IDownloadClient):
         try:
             return [self.trc.get_session(timeout=30).download_dir]
         except Exception as err:
-            log.exception(f"【{self.client_name}】{self.name} 获取下载目录 异常：", err)
+            log.exception(f"【{self.client_name}】{self.name} 获取下载目录 异常：")
             return []
 
     def set_uploadspeed_limit(self, ids, limit):
@@ -560,7 +566,7 @@ class Transmission(_IDownloadClient):
                 speed_limit_up_enabled=upload_limit_enabled
             )
         except Exception as err:
-            log.exception(f"【{self.client_name}】{self.name} 设置速度限制 异常：", err)
+            log.exception(f"【{self.client_name}】{self.name} 设置速度限制 异常：")
             return False
 
     def recheck_torrents(self, ids):
@@ -570,5 +576,5 @@ class Transmission(_IDownloadClient):
         try:
             return self.trc.verify_torrent(ids=ids)
         except Exception as err:
-            log.exception(f"【{self.client_name}】{self.name} 验证种子状态 异常：", err)
+            log.exception(f"【{self.client_name}】{self.name} 验证种子状态 异常：")
             return False

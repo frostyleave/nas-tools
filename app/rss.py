@@ -58,15 +58,13 @@ class Rss:
             if not rss_movies:
                 log.warn("【Rss】没有正在订阅的电影")
             else:
-                log.info("【Rss】电影订阅清单：%s"
-                         % " ".join('%s' % info.get("name") for _, info in rss_movies.items()))
+                log.info("【Rss】电影订阅清单：%s", " ".join('%s' % info.get("name") for _, info in rss_movies.items()))
             # 读取电视剧订阅
             rss_tvs = self.subscribe.get_subscribe_tvs(state='R')
             if not rss_tvs:
                 log.warn("【Rss】没有正在订阅的电视剧")
             else:
-                log.info("【Rss】电视剧订阅清单：%s"
-                         % " ".join('%s' % info.get("name") for _, info in rss_tvs.items()))
+                log.info("【Rss】电视剧订阅清单：%s", " ".join('%s' % info.get("name") for _, info in rss_tvs.items()))
             # 没有订阅退出
             if not rss_movies and not rss_tvs:
                 return
@@ -178,7 +176,7 @@ class Rss:
                                 log.warn(f"【Rss】{title} 无法识别出媒体信息！")
                                 continue
                             elif not media_info.tmdb_info:
-                                log.info(f"【Rss】{title} 识别为 {media_info.get_name()} 未匹配到TMDB媒体信息")
+                                log.debug(f"【Rss】{title} 识别为 {media_info.get_name()} 未匹配到TMDB媒体信息")
                         # 大小及种子页面
                         media_info.set_torrent_info(size=size,
                                                     page_url=page_url,
@@ -258,10 +256,10 @@ class Rss:
                                                                                       source=library_no_exists,
                                                                                       title=media_info.tmdb_id)
                                     if rss_no_exists.get(media_info.tmdb_id):
-                                        log.info("【Rss】%s 订阅缺失季集：%s" % (
+                                        log.info("【Rss】%s 订阅缺失季集：%s",
                                             media_info.get_title_string(),
                                             rss_no_exists.get(media_info.tmdb_id)
-                                        ))
+                                        )
                                 # 本地已存在
                                 if exist_flag:
                                     continue
@@ -308,12 +306,13 @@ class Rss:
                         # 加入下载列表
                         if media_info not in rss_download_torrents:
                             rss_download_torrents.append(media_info)
+                            log.info("【Rss】%s 加入下载列表" , media_info.org_string)
                             res_num = res_num + 1
                     except Exception as e:
-                        log.exception(f'【Rss】处理RSS发生错误: ', e)
+                        log.exception('【Rss】处理RSS发生错误: ')
                         continue
-                log.info("【Rss】%s 处理结束，匹配到 %s 个有效资源" % (site_name, res_num))
-            log.info("【Rss】所有RSS处理结束，共 %s 个有效资源" % len(rss_download_torrents))
+                log.info("【Rss】%s 处理结束，匹配到 %s 个有效资源" , site_name, res_num)
+            log.info("【Rss】所有RSS处理结束，共 %s 个有效资源", len(rss_download_torrents))
             # 开始择优下载
             self.download_rss_torrent(rss_download_torrents=rss_download_torrents,
                                       rss_no_exists=rss_no_exists)
@@ -529,7 +528,10 @@ class Rss:
             """
             更新订阅集数
             """
-            if not download_item or not left_media:
+            if not download_item:
+                return
+            if not left_media:
+                log.warn("【Rss】未找到tmdb_id=%s 的媒体信息", download_item.tmdb_id)
                 return
             if not download_item.rssid \
                     or download_item.rssid in updated_rss_torrents:
@@ -563,6 +565,7 @@ class Rss:
         if download_items:
             for item in download_items:
                 if not item.rssid:
+                    log.warn("【Rss】rssid异常")
                     continue
                 if item.over_edition:
                     # 更新洗版订阅
@@ -573,7 +576,7 @@ class Rss:
                 else:
                     # 更新电视剧缺失剧集
                     __update_tv_rss(item, left_medias.get(item.tmdb_id))
-            log.info("【Rss】实际下载了 %s 个资源" % len(download_items))
+            log.info("【Rss】实际下载了 %s 个资源", len(download_items))
         else:
             log.info("【Rss】未下载到任何资源")
 

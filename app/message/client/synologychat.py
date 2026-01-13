@@ -1,16 +1,12 @@
 import json
 
 from urllib.parse import quote
-from threading import Lock
 
 from app.message.client._base import _IMessageClient
 from app.utils import RequestUtils, SiteUtils
 from config import Config
 
 import log
-
-lock = Lock()
-
 
 class SynologyChat(_IMessageClient):
     schema = "synologychat"

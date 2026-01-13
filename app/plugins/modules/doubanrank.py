@@ -4,11 +4,10 @@ import xml.dom.minidom
 from datetime import datetime
 from threading import Event
 
-from apscheduler.schedulers.background import BackgroundScheduler
 from jinja2 import Template
 
 from app.helper import RssHelper
-from app.helper.thread_helper import ThreadHelper
+from app.helper import ThreadHelper
 from app.media import Media
 from app.mediaserver import MediaServer
 from app.plugins.modules._base import _IPluginModule
@@ -109,9 +108,7 @@ class DoubanRank(_IPluginModule):
                 })
 
             if self._cron:
-                timezone = Config().get_timezone()
-                self._scheduler = BackgroundScheduler(executors=self.DEFAULT_EXECUTORS_CONFIG, timezone=timezone)
-                self._cron_job = self.add_cron_job(self._scheduler, self.__refresh_rss, self._cron, '豆瓣订阅')
+                self._cron_job = self.add_cron_job(self.__refresh_rss, self._cron, '豆瓣订阅')
 
 
     def get_state(self):
@@ -374,13 +371,7 @@ class DoubanRank(_IPluginModule):
         停止服务
         """
         try:
-            if self._scheduler:
-                self._scheduler.remove_all_jobs()
-                if self._scheduler.running:
-                    self._event.set()
-                    self._scheduler.shutdown()
-                    self._event.clear()
-                self._scheduler = None
+            self.remove_job(self._cron_job)
         except Exception as e:
             print(str(e))
 

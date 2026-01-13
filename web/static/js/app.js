@@ -55,7 +55,7 @@ router
 
   // 404处理
   .notFound(() => {
-    $("#page_content").html(`<system-error title="404" text='没有找到这个页面，请检查是不是输错地址了...'></system-error>`);
+    $("#page-content").html(`<system-error title="404" text='没有找到这个页面，请检查是不是输错地址了...'></system-error>`);
   })
   
 ;
@@ -94,10 +94,10 @@ function loadPage(htmlPath, queryString) {
       params[k] = v;
     });
   }
-  $("#page_content").data("params", params);
+  $("#page-content").data("params", params);
 
   // 直接加载HTML文件
-  $("#page_content").load(htmlPath, function(_, status, xhr) {
+  $("#page-content").load(htmlPath, function(_, status, xhr) {
 
     // 隐藏等待动画
     hideLoading();
@@ -112,8 +112,8 @@ function loadPage(htmlPath, queryString) {
     }
 
     var page = window.location.hash;
-    if (page && page.startsWith('#/')) {
-      page = page.substring(1);
+    if (page) {
+      page = page.replace(/^[#/]+/, "");
     }
 
     // 激活菜单
@@ -131,7 +131,7 @@ function loadPage(htmlPath, queryString) {
     }
 
     if (status == "error") {
-      $("#page_content").html(`<system-error title="${xhr.status}" text="${xhr.statusText || ''}"></system-error>`);
+      $("#page-content").html(`<system-error title="${xhr.status}" text="${xhr.statusText || ''}"></system-error>`);
     } else {
       // 滚动到顶部
       $(window).scrollTop(0);
@@ -247,24 +247,7 @@ function renderOther() {
     // 刷新filetree控件
     init_filetree_element();
   }
-
-  // var $page_title = $('.container-xl .page-header .row .col h2.page-title');
-  // if ($page_title) {
-
-  //   if ($('#top-sub-navbar').is(':visible') && $('#top-sub-navbar').find('.tab-text').is(':visible')) {
-  //     // 检查是否有按钮
-  //     const $container = $page_title.closest('.container-xl');
-  //     if ($container.find('.btn-list').length == 0) {
-  //       $container.hide();
-  //     } else {
-  //       $page_title.hide();
-  //     }
-
-  //   } else {
-  //     $page_title.show();
-  //   }
-  // }
-
+  
 }
 
 // 刷新子菜单

@@ -32,16 +32,25 @@ let PageLoadedTime = new Date();
 
 // 搜索
 function media_search(tmdbid, title, type) {
+
   const param = { "tmdbid": tmdbid, "search_word": title, "media_type": type };
-  show_refresh_progress("正在搜索 " + title + " ...", "search");
-  axios_post_do("search", param, function (ret) {
-    hide_refresh_process();
-    if (ret.code === 0) {
-      navmenu('search?s=' + title);
-    } else {
+  // 显示弹窗
+  show_refresh_progress_modal("正在搜索 " + title + " ...", "search")
+  // 发起请求
+  axios_post('/search', param, function(ret) {
+
+    // 请求失败
+    if (ret.code != 0) {
+
+      $("#modal-process").modal("hide");
       show_fail_modal(ret.msg);
+      return;
     }
-  }, true, false);
+    // 刷新进度
+    show_progress_info(ret.task_id, function() { navmenu('search?s=' + title) });
+
+  }, show_progress=false);
+
 }
 
 // 显示全局加载蒙版
@@ -65,6 +74,7 @@ function stopLogging() {
     LoggingES.close();
     LoggingES = undefined;
   }
+  $("#logging_content").empty();
 }
 
 // 连接日志服务
@@ -75,7 +85,7 @@ function start_logging() {
     render_logging(JSON.parse(event.data))
   };
   LoggingES.onerror = function (event) {
-    console.error("日志服务连接错误:", event);
+    console.log("日志服务连接错误:", event);
     // 尝试重新连接
     setTimeout(function () {
       if (LoggingES) {
@@ -88,45 +98,46 @@ function start_logging() {
 }
 
 // 刷新日志
-function render_logging(log_list) {
-  if (log_list) {
+function render_logging(logData) {
+  if (logData) {
+
     let tdstyle = "padding-top: 0.5rem; padding-bottom: 0.5rem";
-    let tbody = "";
-    for (let log of log_list) {
-      let text = log.text;
-      const source = log.source;
-      const time = log.time;
-      const level = log.level;
-      let tcolor = '';
-      let bgcolor = '';
-      let tstyle = '-webkit-line-clamp:4; display: -webkit-box; -webkit-box-orient:vertical; overflow:hidden; text-overflow: ellipsis;';
-      if (level === "WARN") {
-        tcolor = "text-warning";
-        bgcolor = "bg-warning";
-      } else if (level === "ERROR") {
-        tcolor = "text-danger";
-        bgcolor = "bg-danger";
-      } else if (source === "System") {
-        tcolor = "text-info";
-        bgcolor = "bg-info";
-      } else {
-        tcolor = "text";
-      }
-      if (["Rmt", "Plugin"].includes(source) && text.includes(" 到 ")) {
-        tstyle = `${tstyle} white-space: pre;`
-        text = text.replace(/\s到\s/, "\n=> ")
-      }
-      if (text.includes("http") || text.includes("magnet")) {
-        tstyle = `${tstyle} word-break: break-all;`
-        text = text.replace(/：((?:http|magnet).+?)(?:\s|$)/g, "：<a href='$1' target='_blank'>$1</a>")
-      }
-      tbody = `${tbody}
-                  <tr>
-                  <td style="${tdstyle}"><span class="${tcolor}">${time}</span></td>
-                  <td style="${tdstyle}"><span class="badge ${bgcolor}">${source}</span></td>
-                  <td style="${tdstyle}"><span class="${tcolor}" style="${tstyle}" title="${text}">${text}</span></td>
-                  </tr>`;
+    
+    let text = logData.text;
+    const source = logData.source;
+    const time = logData.time;
+    const level = logData.level;
+
+    let tcolor = '';
+    let bgcolor = '';
+    let tstyle = '-webkit-line-clamp:4; display: -webkit-box; -webkit-box-orient:vertical; overflow:hidden; text-overflow: ellipsis;';
+    if (level === "WARN") {
+      tcolor = "text-warning";
+      bgcolor = "bg-warning";
+    } else if (level === "ERROR") {
+      tcolor = "text-danger";
+      bgcolor = "bg-danger";
+    } else if (source === "System") {
+      tcolor = "text-info";
+      bgcolor = "bg-info";
+    } else {
+      tcolor = "text";
     }
+    if (["Rmt", "Plugin"].includes(source) && text.includes(" 到 ")) {
+      tstyle = `${tstyle} white-space: pre;`
+      text = text.replace(/\s到\s/, "\n=> ")
+    }
+    if (text.includes("http") || text.includes("magnet")) {
+      tstyle = `${tstyle} word-break: break-all;`
+      text = text.replace(/：((?:http|magnet).+?)(?:\s|$)/g, "：<a href='$1' target='_blank'>$1</a>")
+    }
+
+    let tbody = `<tr>
+                <td style="${tdstyle}"><span class="${tcolor}">${time}</span></td>
+                <td style="${tdstyle}"><span class="badge ${bgcolor}">${source}</span></td>
+                <td style="${tdstyle}"><span class="${tcolor}" style="${tstyle}" title="${text}">${text}</span></td>
+                </tr>`;
+
     if (tbody) {
       let logging_table_obj = $("#logging_table");
       let bool_ToScrolTop = (logging_table_obj.scrollTop() + logging_table_obj.prop("offsetHeight")) >= logging_table_obj.prop("scrollHeight");
@@ -272,7 +283,7 @@ function check_system_online() {
     } else {
       window.location.reload(true);
     }
-  }, true, false)
+  }, false)
 }
 
 //注销
@@ -287,7 +298,7 @@ function restart() {
   show_confirm_modal("立即重启系统？", function () {
     hide_confirm_modal();
     axios_post_do("restart", {}, function (ret) {
-    }, true, false);
+    }, false);
     show_wait_modal(true);
     setTimeout("check_system_online()", 5000);
   });
@@ -348,12 +359,53 @@ function start_progress(type) {
   };
 }
 
+// 展示进度条
+function show_progress_info(task_id, callback) {
+  stopProgress();
+  ProgressES = new EventSource(`sse-progress?task_id=${task_id}`);
+  ProgressES.onmessage = function (event) {
+    render_progress(JSON.parse(event.data), callback)
+  };
+}
+
+
 // 渲染进度条
-function render_progress(ret) {
-  if (ret.code === 0 && ret.value <= 100) {
-    $("#modal_process_bar").attr("style", "width: " + ret.value + "%").attr("aria-valuenow", ret.value);
-    $("#modal_process_text").text(ret.text);
+function render_progress(ret, callback) {
+
+  if (ret.code === 0) {
+
+    if (ret.value <= 100) {
+      $("#modal_process_bar").attr("style", "width: " + ret.value + "%").attr("aria-valuenow", ret.value);
+      $("#modal_process_text").text(ret.text);
+    } 
+    
+    if (ret.value === 100 && ret.status == 'finish' && callback) {
+      // 延迟调用
+      setTimeout(() => {
+        stopProgress();
+        callback();
+      }, 200);
+    }
+
+  } else {
+    stopProgress();
+    show_fail_modal('任务进度查询失败');
   }
+
+}
+
+// 显示全局进度框
+function show_refresh_progress_modal(title) {
+  hideLoading();
+  if (title) {
+    $("#modal_process_title").text(title);
+  } else {
+    $("#modal_process_title").hide();
+  }
+  $("#modal_process_bar").attr("style", "width: 0%").attr("aria-valuenow", 0);
+  $("#modal_process_text").text("请稍候...");
+  $("#modal-process").modal("show");
+
 }
 
 // 显示全局进度框
@@ -788,7 +840,12 @@ function convert_mediaid(tmdbid) {
 
 
 // 订阅按钮被点击时
-function rss_love_click(title, year, media_type, tmdb_id, fav, remove_func, add_func) {
+function rss_love_click(event, title, year, media_type, tmdb_id, fav, remove_func, add_func) {
+
+  if (event) {
+    event.stopPropagation();
+  }
+
   if (fav == "1"){
     show_ask_modal("是否确定将 " + title + " 从订阅中移除？", function () {
       hide_ask_modal();
@@ -1070,7 +1127,7 @@ function refresh_filter_select(obj_id, aync = true) {
       }
       rule_select.empty().append(rule_select_content);
     }
-  }, aync);
+  });
 }
 
 // 刷新RSS站点下拉框
@@ -1094,7 +1151,7 @@ function refresh_rsssites_select(obj_id, item_name, aync = true) {
       }
       rsssites_select.empty().append(rsssites_select_content);
     }
-  }, aync);
+  });
 }
 
 // 刷新搜索站点列表
@@ -1118,7 +1175,7 @@ function refresh_searchsites_select(obj_id, item_name, aync = true) {
       }
       searchsites_select.empty().append(searchsites_select_content);
     }
-  }, aync);
+  });
 }
 
 // 刷新搜索站点下拉框
@@ -1158,7 +1215,7 @@ function refresh_savepath_select(obj_id, aync = true, sid = "", is_default = fal
         savepath_input_manual.hide();
         savepath_select.show();
       }
-    }, aync);
+    });
   }
 
 }
@@ -1205,7 +1262,7 @@ function refresh_downloadsetting_select(obj_id, aync = true, is_default = false)
       }
       downloadsetting_select.empty().append(downloadsetting_select_content);
     }
-  }, aync);
+  });
 }
 
 // 刷新订阅框的下载设置及目录等选项
@@ -1367,7 +1424,7 @@ function search_media_advanced() {
         $("#modal-search-advanced").modal("show");
       });
     }
-  }, true, false);
+  }, false);
 }
 
 //刷新tooltip
@@ -1698,7 +1755,7 @@ function manual_media_transfer() {
         $('#modal-media-identification').modal('show');
       });
     }
-  }, true, false);
+  }, false);
 }
 
 // 查示查询TMDBID的对话框
@@ -2065,7 +2122,14 @@ function edit_indexer_conf(site_url, ispt) {
       $("[name='indexer_edit_btn']").show();
 
       $("#modal-manual-indexer").modal("show");
+      return;
     }
+
+    if (ret.msg) {
+      show_fail_modal(ret.msg);
+      return;
+    }
+
   });
 }
 
@@ -2163,11 +2227,24 @@ function do_update_indexer() {
     search_type = NaN
   }
 
-  if (indexer_url == NaN && proxy == NaN && render == NaN && downloader == NaN && en_expand == NaN
-    && source_type == NaN && search_type == NaN && search_cfg == NaN && torrent_cfg == NaN
-    && browse_cfg == NaN && parser_setting == NaN && category_cfg == NaN) {
+  if (indexer_url == NaN 
+    && proxy == NaN 
+    && render == NaN 
+    && downloader == NaN && en_expand == NaN
+    && source_type == NaN 
+    && search_type == NaN 
+    && search_cfg == NaN 
+    && torrent_cfg == NaN
+    && browse_cfg == NaN 
+    && parser_setting == NaN 
+    && category_cfg == NaN) {
     $("#modal-manual-indexer").modal("hide");
     return;
+  }
+
+  if (downloader != NaN || en_expand != NaN) {
+    en_expand = $('#en_expand').prop('checked');
+    downloader = $("#indexer_download_setting").val();
   }
 
   const data = {

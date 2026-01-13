@@ -8,27 +8,29 @@ import re
 import shutil
 import signal
 import sqlite3
+import threading
 import time
 
-from fastapi import APIRouter, Body, Depends
+from fastapi import APIRouter, BackgroundTasks, Body, Depends
 from math import floor
 from pathlib import Path
 from typing import Optional
 from urllib.parse import unquote
 
 import cn2an
+import zhconv
 
 import log
+
 from app.brushtaskv2 import BrushTaskV2 as BrushTask
 from app.conf import SystemConfig, ModuleConf
 from app.downloader import Downloader
 from app.filetransfer import FileTransfer
 from app.filter import Filter
-from app.helper import DbHelper, ProgressHelper, ThreadHelper, \
-    MetaHelper, DisplayHelper, WordsHelper
-from app.helper import RssHelper, PluginHelper
+from app.helper import DbHelper, ProgressHelper, ThreadHelper, MetaHelper, DisplayHelper, WordsHelper, RssHelper, PluginHelper
 from app.indexer import Indexer
 from app.indexer.manager import IndexerManager
+from app.job_center import JobCenter
 from app.media import Category, Media, Bangumi, DouBan, Scraper
 from app.media.meta import MetaInfo, MetaBase
 from app.mediaserver import MediaServer
@@ -46,6 +48,7 @@ from app.utils import StringUtils, EpisodeFormat, RequestUtils, PathUtils, Syste
 from app.utils.types import MEDIA_TYPE_MAP, RmtMode, OsType, SearchType, SyncType, MediaType, MovieTypes, TvTypes, \
     EventType, SystemConfigKey, RssType
 from app.utils.password_hash import generate_password_hash
+from app.task_manager import GlobalTaskManager
 
 from config import RMT_MEDIAEXT, RMT_SUBEXT, RMT_AUDIO_TRACK_EXT, Config
 from web.backend.search import search_medias_for_web, search_media_by_message
@@ -54,20 +57,66 @@ from web.backend.web_utils import WebUtils
 from web.backend.security import get_current_user
 
 # action接口路由
-action_router = APIRouter()
+action_router = APIRouter(dependencies=[Depends(get_current_user)])
 
 # 事件响应
 @action_router.post("/do")
 def do(content: dict = Body(...), current_user: User = Depends(get_current_user)):
+    
+    start_time = time.time()
     try:
         cmd = content.get("cmd")
         data = content.get("data") or {}
-        log.debug(f"处理/do请求: cmd={cmd}, data={data}")
+        log.debug("处理/do请求: cmd={%s}, data={%s}", cmd, data)
         return WebAction(current_user).action(cmd, data)
     except Exception as e:
-        log.exception("处理/do请求出错, cmd=" + content.get("cmd"), e)
+        log.exception("处理/do请求出错, cmd=" + content.get("cmd"))
         return {"code": -1, "msg": str(e)}
+    finally:
+        cost_time = time.time()
+        process_time = (cost_time - start_time) * 1000  # 转换为毫秒
+        log.debug("[%s] %s, 耗时: %s ms", str(threading.get_ident()), json.dumps(content), format(process_time, ".2f"))
 
+# search
+@action_router.post("/search")
+def search(background_tasks: BackgroundTasks, data: dict = Body(...)):
+    
+    start_time = time.time()
+    try:
+        search_word = data.get("search_word")
+        if not search_word:
+            return {"code": -1, "msg": '缺少搜索关键词'}
+
+        ident_flag = False if data.get("unident") else True
+        filters = data.get("filters")
+        tmdbid = data.get("tmdbid")
+        media_type = data.get("media_type")
+
+        if media_type:
+            if media_type in MovieTypes:
+                media_type = MediaType.MOVIE
+            else:
+                media_type = MediaType.TV
+
+        task_id = GlobalTaskManager().create_task()
+
+        background_tasks.add_task(search_medias_for_web,
+                                  content=search_word,
+                                  ident_flag=ident_flag,
+                                  filters=filters,
+                                  tmdbid=tmdbid,
+                                  media_type=media_type,
+                                  task_id=task_id)
+        
+        return {"code": 0, "task_id": task_id}
+    
+    except Exception as e:
+        log.exception("处理/search请求出错")
+        return {"code": -1, "msg": str(e)}
+    finally:
+        cost_time = time.time()
+        process_time = (cost_time - start_time) * 1000  # 转换为毫秒
+        log.debug("[%s] %s, 耗时: %s ms", str(threading.get_ident()), json.dumps(data), format(process_time, ".2f"))
 
 class WebAction:
     _actions = {}
@@ -75,7 +124,7 @@ class WebAction:
     _current_user : Optional[User] = None
     _douBan : Optional[DouBan] =  None
 
-    def __init__(self, current_user=None):
+    def __init__(self, current_user:Optional[User]=None):
         # WEB请求响应
         self._actions = {
             "sch": self.__sch,
@@ -136,6 +185,7 @@ class WebAction:
             "get_site_activity": self.__get_site_activity,
             "get_site_history": self.__get_site_history,
             "get_recommend": self.get_recommend,
+            "batch_get_media_exists_info": self.batch_get_media_exists_info,
             "get_downloaded": self.get_downloaded,
             "get_site_seeding_info": self.__get_site_seeding_info,
             "clear_tmdb_cache": self.__clear_tmdb_cache,
@@ -339,9 +389,13 @@ class WebAction:
         Downloader().stop_service()
         # 关闭插件
         PluginManager().stop_service()
+        # 清理定时器
+        JobCenter().stop_service()
 
     @staticmethod
     def start_service():
+        JobCenter()
+        ThreadHelper()
         # 加载索引器配置
         IndexerManager()
         # 加载站点配置
@@ -360,6 +414,8 @@ class WebAction:
         TorrentRemover()
         # 加载插件
         PluginManager()
+        # 打印定时任务列表
+        JobCenter().get_scheduler().print_jobs()
 
     def restart_service(self):
         """
@@ -387,6 +443,20 @@ class WebAction:
                 log.info("kill $(pgrep -f 'python3 run.py')")
                 os.system("kill $(pgrep -f 'python3 run.py')")
                 # os.system("pkill -f 'python3 run.py'")
+
+    @staticmethod
+    def pre_warming_zhconv():
+        print("Pre-warming zhconv cache...")
+        try:
+            # 1. 预热 convert()，使其加载 "zh-hans" 相关的字典
+            _ = zhconv.convert("预热", 'zh-hans')
+            
+            # 2. (重要) 预热 issimp()，使其加载简体字检查相关的字典
+            _ = zhconv.issimp("预热")
+            
+            print("zhconv cache pre-warmed successfully.")
+        except Exception as e:
+            print(f"Warning: Failed to pre-warm zhconv cache: {e}")
 
     def handle_message_job(self, msg, in_from=SearchType.OT, user_id=None, user_name=None, client_id=None):
         """
@@ -556,17 +626,20 @@ class WebAction:
         filters = data.get("filters")
         tmdbid = data.get("tmdbid")
         media_type = data.get("media_type")
+
         if media_type:
             if media_type in MovieTypes:
                 media_type = MediaType.MOVIE
             else:
                 media_type = MediaType.TV
+
         if search_word:
             ret, ret_msg = search_medias_for_web(content=search_word,
                                                  ident_flag=ident_flag,
                                                  filters=filters,
                                                  tmdbid=tmdbid,
-                                                 media_type=media_type)
+                                                 media_type=media_type,
+                                                 task_id=data.get("task_id"))
             if ret != 0:
                 return {"code": ret, "msg": ret_msg}
         return {"code": 0}
@@ -1017,7 +1090,7 @@ class WebAction:
                                         "path": dest_path
                                     })
                                 except Exception as e:
-                                    log.exception("[act]删除电影目录 异常:", e)
+                                    log.exception("[act]删除电影目录 异常:")
                             elif not meta_info.get_episode_string():
                                 # 电视剧但没有集数，删除季目录
                                 try:
@@ -1028,7 +1101,7 @@ class WebAction:
                                         "path": dest_path
                                     })
                                 except Exception as e:
-                                    log.exception("[act]删除电视剧目录 异常:", e)
+                                    log.exception("[act]删除电视剧目录 异常:")
                                 rm_parent_dir = True
                             else:
                                 # 有集数的电视剧，删除对应的集数文件
@@ -1047,7 +1120,7 @@ class WebAction:
                                                 "filename": os.path.basename(dest_file)
                                             })
                                         except Exception as e:
-                                            log.exception("[act]删除电视剧集数文件 异常:", e)
+                                            log.exception("[act]删除电视剧集数文件 异常:")
                                 rm_parent_dir = True
                             if rm_parent_dir \
                                     and not PathUtils.get_dir_files(os.path.dirname(dest_path), exts=RMT_MEDIAEXT):
@@ -1055,7 +1128,7 @@ class WebAction:
                                 try:
                                     shutil.rmtree(os.path.dirname(dest_path))
                                 except Exception as e:
-                                    log.exception("[act]删除指定目录 异常:", e)
+                                    log.exception("[act]删除指定目录 异常:")
         return {"retcode": 0}
 
     def delete_media_file(self, filedir, filename):
@@ -1090,7 +1163,7 @@ class WebAction:
                 shutil.rmtree(media_dir)
             return True, f"{file} 删除成功"
         except Exception as e:
-            log.exception(f"[act]{file} 删除失败:", e)
+            log.exception(f"[act]{file} 删除失败:")
             return True, f"{file} 删除失败"
 
     def __version(self):
@@ -1331,7 +1404,7 @@ class WebAction:
             DbHelper().drop_table("alembic_version")
             return {"code": 0}
         except Exception as e:
-            log.exception("[act]重置数据库版本异常:", e)
+            log.exception("[act]重置数据库版本异常:")
             return {"code": 1, "msg": str(e)}
 
     def __logout(self):
@@ -1772,7 +1845,7 @@ class WebAction:
                         module_obj.init_config()
             except Exception as e:
                 ret = None
-                log.exception("[act]测试连通性出错:", e)
+                log.exception("[act]测试连通性出错:")
             return {"code": 0 if ret else 1}
         return {"code": 0}
 
@@ -2106,7 +2179,7 @@ class WebAction:
                     _brushtask.update_brushtask_state(state=state)
             return {"code": 0, "msg": ""}
         except Exception as e:
-            log.exception("[act]刷流任务设置失败:", e)
+            log.exception("[act]刷流任务设置失败:")
             return {"code": 1, "msg": "刷流任务设置失败"}
 
     def __name_test(self, data):
@@ -2282,7 +2355,7 @@ class WebAction:
             try:
                 _filter.delete_filtergroup(groupid)
             except Exception as err:
-                log.exception(f"[act]删除规则组{groupid}失败:", err)
+                log.exception(f"[act]删除规则组{groupid}失败:")
             for init_rulegroup in init_rulegroups:
                 if str(init_rulegroup.get("id")) == groupid:
                     for sql in init_rulegroup.get("sql"):
@@ -2383,6 +2456,11 @@ class WebAction:
                                                    tags=tags,
                                                    page=CurrentPage)
 
+        fav = data.get("fav", 1)
+        # 不检查存在与订阅状态
+        if not fav:
+            return {"code": 0, "Items": res_list}
+
         # 补充存在与订阅状态
         for res in res_list:
             fav, rssid, item_url = self.get_media_exists_info(mtype=res.get("type"),
@@ -2391,9 +2469,31 @@ class WebAction:
                                                               mediaid=res.get("id"))
             res.update({
                 'fav': fav,
-                'rssid': rssid
+                'rssid': rssid,
+                'item_url': item_url
             })
         return {"code": 0, "Items": res_list}
+    
+    def batch_get_media_exists_info(self, data):
+        """
+        批量获取媒体存在标记：是否存在、是否订阅
+        """
+        media_list = data.get("list")
+        if not media_list:
+            return {"code": 0, "Items": []} 
+
+        for item in media_list:
+            fav, rssid, item_url = self.get_media_exists_info(mtype=item.get("type"),
+                                                              title=item.get("title"),
+                                                              year=item.get("year"),
+                                                              mediaid=item.get("tmdbid"))
+            item.update({
+                'fav': fav,
+                'rssid': rssid,
+                'item_url': item_url
+            })
+        return {"code": 0, "items": media_list}
+
 
     def get_randking_data(self, data, Type, SubType, CurrentPage):
         
@@ -2641,7 +2741,7 @@ class WebAction:
             MetaHelper().clear_meta_data()
             os.remove(MetaHelper().get_meta_data_path())
         except Exception as e:
-            log.exception("[act]清空TMDB缓存出错:", e)
+            log.exception("[act]清空TMDB缓存出错:")
             return {"code": 0, "msg": str(e)}
         return {"code": 0}
 
@@ -2689,7 +2789,7 @@ class WebAction:
                 shutil.unpack_archive(file_path, config_path, format='zip')
                 return {"code": 0, "msg": ""}
             except Exception as e:
-                log.exception("[act]解压恢复备份文件出错:", e)
+                log.exception("[act]解压恢复备份文件出错:")
                 return {"code": 1, "msg": str(e)}
             finally:
                 if os.path.exists(file_path):
@@ -2836,7 +2936,7 @@ class WebAction:
                     _rsschecker.check_userrss_task(state=state)
             return {"code": 0, "msg": ""}
         except Exception as e:
-            log.exception("[act]自定义订阅状态设置出错:", e)
+            log.exception("[act]自定义订阅状态设置出错:")
             return {"code": 1, "msg": "自定义订阅状态设置失败"}
 
     def __get_rssparser(self, data):
@@ -2990,7 +3090,7 @@ class WebAction:
             else:
                 return {"code": 1, "msg": "无法识别媒体类型"}
         except Exception as e:
-            log.exception("[act]增加自定义识别词组 出错:", e)
+            log.exception("[act]增加自定义识别词组 出错:")
             return {"code": 1, "msg": str(e)}
 
     def __delete_custom_word_group(self, data):
@@ -2999,7 +3099,7 @@ class WebAction:
             WordsHelper().delete_custom_word_group(gid=gid)
             return {"code": 0, "msg": ""}
         except Exception as e:
-            log.exception("[act]删除自定义识别词组 出错:", e)
+            log.exception("[act]删除自定义识别词组 出错:")
             return {"code": 1, "msg": str(e)}
 
     def __add_or_edit_custom_word(self, data):
@@ -3102,7 +3202,7 @@ class WebAction:
             else:
                 return {"code": 1, "msg": ""}
         except Exception as e:
-            log.exception("[act]新增或修改自定义识别词 出错:", e)
+            log.exception("[act]新增或修改自定义识别词 出错:")
             return {"code": 1, "msg": str(e)}
 
     def __get_custom_word(self, data):
@@ -3127,7 +3227,7 @@ class WebAction:
                 word = {}
             return {"code": 0, "data": word}
         except Exception as e:
-            log.exception("[act]查询识别词 出错:", e)
+            log.exception("[act]查询识别词 出错:")
             return {"code": 1, "msg": "查询识别词失败"}
 
     def __delete_custom_words(self, data):
@@ -3142,7 +3242,7 @@ class WebAction:
                     _wordshelper.delete_custom_word(wid=wid)
             return {"code": 0, "msg": ""}
         except Exception as e:
-            log.exception("[act]自定义识别词 出错:", e)
+            log.exception("[act]自定义识别词 出错:")
             return {"code": 1, "msg": str(e)}
 
     def __check_custom_words(self, data):
@@ -3159,7 +3259,7 @@ class WebAction:
                     _wordshelper.check_custom_word(wid=wid, enabled=enabled)
             return {"code": 0, "msg": ""}
         except Exception as e:
-            log.exception("[act]识别词状态设置 出错:", e)
+            log.exception("[act]识别词状态设置 出错:")
             return {"code": 1, "msg": "识别词状态设置失败"}
 
     def __export_custom_words(self, data):
@@ -3221,7 +3321,7 @@ class WebAction:
                 export_string.encode("utf-8")).decode('utf-8')
             return {"code": 0, "string": string}
         except Exception as e:
-            log.exception("[act]导出自定义识别词 出错:", e)
+            log.exception("[act]导出自定义识别词 出错:")
             return {"code": 1, "msg": str(e)}
 
     def __analyse_import_custom_words_code(self, data):
@@ -3253,7 +3353,7 @@ class WebAction:
                                "words": words})
             return {"code": 0, "groups": groups, "note_string": note_string}
         except Exception as e:
-            log.exception("[act]分析识别词导入Code 出错:", e)
+            log.exception("[act]分析识别词导入Code 出错:")
             return {"code": 1, "msg": str(e)}
 
     def __import_custom_words(self, data):
@@ -3323,7 +3423,7 @@ class WebAction:
                                                 whelp=whelp if whelp else "")
             return {"code": 0, "msg": ""}
         except Exception as e:
-            log.exception("[act]自定义识别词导入 出错:", e)
+            log.exception("[act]自定义识别词导入 出错:")
             return {"code": 1, "msg": str(e)}
 
     def get_categories(self, data):
@@ -3421,7 +3521,7 @@ class WebAction:
                         })
             return {"code": 0, "msg": ""}
         except Exception as err:
-            log.exception("[act]导入过滤规则失败:", err)
+            log.exception("[act]导入过滤规则失败:")
             return {"code": 1, "msg": "数据格式不正确，%s" % str(err)}
 
     def get_library_spacesize(self):
@@ -3545,7 +3645,7 @@ class WebAction:
                 try:
                     res_mix = json.loads(item.RES_TYPE)
                 except Exception as err:
-                    log.exception("[act]解析质量配置异常:", err)
+                    log.exception("[act]解析质量配置异常:")
                     continue
                 respix = res_mix.get("respix") or ""
                 video_encode = res_mix.get("video_encode") or ""
@@ -4118,7 +4218,7 @@ class WebAction:
                         })
 
         except Exception as e:
-            log.exception("[act]加载路径失败:", e)
+            log.exception("[act]加载路径失败:")
             return {
                 "code": -1,
                 "message": '加载路径失败: %s' % str(e)
@@ -4139,7 +4239,7 @@ class WebAction:
             try:
                 shutil.move(path, os.path.join(os.path.dirname(path), name))
             except Exception as e:
-                log.exception("[act]文件重命名 异常:", e)
+                log.exception("[act]文件重命名 异常:")
                 return {"code": -1, "msg": str(e)}
         return {"code": 0}
 
@@ -4338,7 +4438,7 @@ class WebAction:
                     hardlinks[os.path.basename(file)] = SystemUtils(
                     ).find_hardlinks(file=file, fdir=file_dir)
             except Exception as e:
-                log.exception("[act]硬链接查找 异常:", e)
+                log.exception("[act]硬链接查找 异常:")
                 return {"code": 1}
         return {"code": 0, "data": hardlinks}
 
@@ -4455,7 +4555,7 @@ class WebAction:
             SystemConfig().set(key=key, value=value)
             return {"code": 0}
         except Exception as e:
-            log.exception("[act]设置系统设置 异常:", e)
+            log.exception("[act]设置系统设置 异常:")
             return {"code": 1}
         
     def __set_user_indexer_sites(self, data):
@@ -4480,7 +4580,7 @@ class WebAction:
             SystemConfig().set(key=SystemConfigKey.UserIndexerSites, value=indexer_sites)
             return {"code": 0}
         except Exception as e:
-            log.exception("[act]设置索引站点 异常:", e)
+            log.exception("[act]设置索引站点 异常:")
             return {"code": 1}
 
     def get_site_user_statistics(self, data):
@@ -4649,14 +4749,29 @@ class WebAction:
                         "rssid": rssid,
                     }
                 }
-
-        info = Media().get_tmdb_info(tmdbid=tmdbid, mtype=mtype, append_to_response="all")
-        if not info:
-            return { "code": 1, "msg": "无法查询到TMDB信息" }
         
-        title = WebUtils.get_tmdb_title(info)
-        media_info = MetaInfo(title)
-        media_info.set_tmdb_info(info)
+        if str(tmdbid).startswith("BG:"):
+
+            title = data.get("title")
+            if not title:
+                return { "code": 1, "msg": "无法查询到BANGUMI信息" }
+
+            year = data.get("year", '')           
+            media_info = Media().get_media_info(title=f"{title} {year}",
+                                                mtype=MediaType.ANIME,
+                                                append_to_response="all")
+            
+            if not media_info or not media_info.tmdb_info:
+                return { "code": 1, "msg": "无法查询到Bangumi资源的TMDB信息" }
+            
+        else:
+            info = Media().get_tmdb_info(tmdbid=tmdbid, mtype=mtype, append_to_response="all")
+            if not info:
+                return { "code": 1, "msg": "无法查询到TMDB信息" }
+            
+            title = WebUtils.get_tmdb_title(info)
+            media_info = MetaInfo(title)
+            media_info.set_tmdb_info(info)
                
         # 查询存在及订阅状态
         fav, rssid, item_url = self.get_media_exists_info(mtype=mtype,
@@ -4692,11 +4807,13 @@ class WebAction:
         # TMDBID 或 DB:豆瓣ID
         mediaid = data.get("mediaid")
         if not mediaid:
-            return {"code": 1, "msg": "未指定媒体ID"}        
-
+            return {"code": 1, "msg": "未指定媒体ID"}
         
         mtype = MediaType.MOVIE if data.get("type") in MovieTypes else MediaType.TV
         media_info = WebUtils.get_mediainfo_from_id(mediaid=mediaid, mtype=mtype)
+
+        if not media_info: 
+            return {"code": 1, "msg": "媒体信息查询失败"}
 
         media_handler = Media()
         # 演职人员信息整合
@@ -4726,8 +4843,11 @@ class WebAction:
         if media_info.douban_id:
             crews, actors = self._douBan.get_media_celebrities(media_info.douban_id.split(',')[0])
         else:
-            crews = media_handler.get_tmdb_crews(tmdbinfo=media_info.tmdb_info, nums=6)
-            actors = media_handler.get_tmdb_cats(mtype=mtype, tmdbid=media_info.tmdb_id)
+            if media_info.tmdb_info:
+                crews = media_info.tmdb_info.get("credits", {}).get("crew") or []
+                if crews:
+                    crews = crews[:6]
+                actors = media_handler.get_tmdb_cats(mtype=mtype, tmdbid=media_info.tmdb_id)
 
         # 合并到一个集合
         crews.extend(actors)
@@ -4887,6 +5007,8 @@ class WebAction:
             tmdbid = mediaid
         else:
             tmdbid = None
+        
+        rssid = None
         if mtype in MovieTypes:
             rssid = Subscribe().get_subscribe_id(mtype=MediaType.MOVIE,
                                                  title=title,
@@ -4894,7 +5016,7 @@ class WebAction:
                                                  tmdbid=tmdbid)
         else:
             if not tmdbid:
-                meta_info = MetaInfo(title=title)
+                meta_info = MetaInfo(title=title, no_extra=True)
                 title = meta_info.get_name()
                 season = meta_info.get_season_string()
                 if season:
@@ -5098,7 +5220,6 @@ class WebAction:
                 "category": json.dumps(site.category) if site.category else '',
                 "source_type": site.source_type,
                 "search_type": site.search_type,
-                "downloader": site.downloader,
                 "public": site.public,
                 "proxy": site.proxy,
                 "en_expand": site.en_expand
@@ -5106,13 +5227,20 @@ class WebAction:
         }
 
     def __add_indexer(self, data):
+
+        extra_json = None
+        if data.get('downloader') is not None or data.get('en_expand') is not None:
+            extra_config = {}
+            extra_config['downloader'] = data.get('downloader')
+            extra_config['en_expand'] = data.get('en_expand')
+            extra_json = json.dumps(extra_config)
+
         DbHelper().add_indexer(
             data.get('id'),
             data.get('name'),
             data.get('domain'),
             data.get('proxy'),
             data.get('render'),
-            data.get('downloader'),
             data.get('source_type'),
             data.get('search_type'),
             data.get('search'),
@@ -5121,18 +5249,25 @@ class WebAction:
             data.get('parser'),
             data.get('category'),
             data.get('public'),
-            data.get('en_expand')
+            extra_json
         )
         IndexerManager().init_config()
         return {"code": 0, "msg": "已插入"}
 
     def __update_indexer(self, data):
+
+        extra_json = None
+        if data.get('downloader') is not None or data.get('en_expand') is not None:
+            extra_config = {}
+            extra_config['downloader'] = data.get('downloader')
+            extra_config['en_expand'] = data.get('en_expand')
+            extra_json = json.dumps(extra_config)
+
         success = DbHelper().update_indexer(
             data.get('id'),
             data.get('domain'),
             data.get('proxy'),
             data.get('render'),
-            data.get('downloader'),
             data.get('source_type'),
             data.get('search_type'),
             data.get('search'),
@@ -5140,8 +5275,9 @@ class WebAction:
             data.get('browse'),
             data.get('parser'),
             data.get('category'),
-            data.get('en_expand')
+            extra_json
         )
+        
         if success:
             IndexerManager().init_config()
             return {"code": 0, "msg": "更新成功"}
@@ -5417,7 +5553,7 @@ class WebAction:
             shutil.rmtree(str(backup_path))
             return zip_file
         except Exception as e:
-            log.exception("[act]备份 异常:", e)
+            log.exception("[act]备份 异常:")
             return None
 
     def get_system_processes(self):

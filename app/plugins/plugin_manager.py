@@ -4,12 +4,12 @@ import importlib
 
 from pathlib import Path
 from threading import Thread
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from concurrent.futures import as_completed
 
 import log
 
 from app.conf import SystemConfig
-from app.helper import SubmoduleHelper
+from app.helper import SubmoduleHelper, ThreadHelper
 from app.plugins.event_manager import EventManager
 from app.utils import SystemUtils, PathUtils, ImageUtils, RequestUtils
 from app.utils.commons import singleton
@@ -77,7 +77,7 @@ class PluginManager:
                         names = handler.__qualname__.split(".")
                         self.run_plugin(names[0], names[1], event)
                     except Exception as e:
-                        log.exception(f"‼️ 事件处理出错: ", e)
+                        log.exception(f"‼️ 事件处理出错: ")
 
     def start_service(self):
         """
@@ -141,7 +141,7 @@ class PluginManager:
         try:
             return getattr(self._running_plugins[pid], method)(*args, **kwargs)
         except Exception as err:
-            log.exception(f"‼️ 执行插件 {pid}-{method} 方法异常: ", err)
+            log.exception(f"‼️ 执行插件 {pid}-{method} 方法异常: ")
 
     def reload_plugin(self, pid):
         """
@@ -156,7 +156,7 @@ class PluginManager:
                 self._running_plugins[pid].init_config(self.get_plugin_config(pid))
                 log.debug(f"生效插件配置：{pid}")
             except Exception as err:
-                log.exception(f"‼️ 初始化插件{pid}配置出错: ", err)
+                log.exception(f"‼️ 初始化插件{pid}配置出错: ")
 
     def __stop_plugins(self):
         """
@@ -336,7 +336,7 @@ class PluginManager:
                         continue
                     open(image_name, "wb").write(result_images.content)
         except Exception as e:
-            log.exception(f"‼️ 请求第三方插件仓库地址异常: ", e)
+            log.exception(f"‼️ 请求第三方插件仓库地址异常: ")
             return {}
 
         return result
@@ -365,7 +365,6 @@ class PluginManager:
                 source_url.append(url)
 
             # 创建线程池
-            executor = ThreadPoolExecutor(max_workers=len(source_url) or 1)
             for url in source_url:
                 # 如果url为空则不处理
                 if not url:
@@ -374,7 +373,7 @@ class PluginManager:
                 try:
                     all_task = []
                     # 执行获取第三方仓库列表
-                    task = executor.submit(self.get_external_plugin_list, url)
+                    task = ThreadHelper().start_thread(self.get_external_plugin_list, url)
                     all_task.append(task)
 
                     finish_count = 0
@@ -414,15 +413,15 @@ class PluginManager:
                                     all_confs[pid] = conf
 
                         except Exception as e:
-                            log.exception(f"‼️[三方插件]处理线程结果异常: ", e)
+                            log.exception(f"‼️[三方插件]处理线程结果异常: ")
                             continue
 
                 except Exception as e:
-                    log.exception(f"‼️[三方插件]获取第三方仓库列表异常: ", e)
+                    log.exception(f"‼️[三方插件]获取第三方仓库列表异常: ")
                     continue
 
         except Exception as e:
-            log.exception(f"‼️[三方插件]获取第三方数据源异常: ", e)
+            log.exception(f"‼️[三方插件]获取第三方数据源异常: ")
             return all_confs
 
         return all_confs

@@ -86,12 +86,29 @@ export class NormalCard extends observeState(CustomElement) {
             </div>
           </div>
         </div>`;
+    } else if (this.show_sub == "2") {
+      return html`
+        <div class="d-flex justify-content-between">
+          <a class="text-muted" title="搜索资源" @click=${(e) => { e.stopPropagation() }}
+             href='javascript:media_search("${this.tmdb_id}", "${this.title}", "${this.media_type}")'>
+            <span class="icon-pulse text-white">
+              <i class="ti ti-search fs-2"></i>
+            </span>
+          </a>
+          <div class="ms-auto rss-btn">
+          </div>
+        </div>`;
     } else {
       return nothing;
     }
   }
 
   render() {
+
+    if (this.image && Golbal.isDoubanImgUrl(this.image)) {
+      this.image = '/doubanimg?url=' + this.image;
+    }
+
     return html`
       <div class="card card-sm lit-normal-card rounded-3 cursor-pointer ratio shadow-sm"
            @click=${() => { if (Golbal.is_touch_device()){ cardState.more_id = this._card_id } } }
@@ -112,7 +129,7 @@ export class NormalCard extends observeState(CustomElement) {
           ${this._render_right_up()}
         </div>
         <div class="card-img-overlay rounded-3 ms-auto" style="background-color: rgba(0, 0, 0, 0.2);"
-             @click=${() => { navmenu(`media_detail?type=${this.media_type}&id=${this.tmdb_id}`) }}>
+             @click=${() => { navmenu(`media_detail?type=${this.media_type}&id=${this.tmdb_id}&title=${this.title}&year=${this.year}`) }}>
           <div style="cursor: pointer;">
             ${this.year && !this.overview.startsWith(this.year)
               ? html`<div class="text-white card-secondary-text"><strong>${this.site ? this.site : this.year}</strong></div>` 

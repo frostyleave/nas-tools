@@ -248,7 +248,7 @@ class TorrentSpider(object):
                 # 解码为字符串
                 return raw_data.decode(encoding)
             except Exception as e:
-                log.warn(f"chardet解码失败: {str(e)}")
+                log.debug(f"chardet解码失败: {str(e)}")
                 # 探测utf-8解码
                 if re.search(r"charset=\"?utf-8\"?", ret.text, re.IGNORECASE):
                     ret.encoding = "utf-8"
@@ -631,7 +631,7 @@ class TorrentSpider(object):
             torrents_info["labels"] = self._getlabels(torrent_html)
             torrents_info["hr"] = self._checkhr(torrent_html)
         except Exception as err:
-            log.exception(f"【Spider】{self.indexername} 搜索出现错误：", err)
+            log.exception(f"【Spider】{self.indexername} 搜索出现错误：")
         return torrents_info
 
     def __filter_text(self, text, filters):
@@ -667,7 +667,7 @@ class TorrentSpider(object):
                 elif method_name == "appendleft":
                     text = f"{args}{text}"
             except Exception as err:
-                log.exception(f"【Spider】{self.indexername} 文本过滤出错: ", err)
+                log.exception(f"【Spider】{self.indexername} 文本过滤出错: ")
         return text.strip()
 
     def __format_string(self, pattern: str, template: str, param_str: str) -> str:
@@ -757,5 +757,5 @@ class TorrentSpider(object):
             return False, self.torrents_info_array
         except Exception as err:
             self.is_error = True
-            log.exception(f"【Spider】{self.indexername} 错误: ", err)
+            log.exception(f"【Spider】{self.indexername} 错误: ")
             return True, []

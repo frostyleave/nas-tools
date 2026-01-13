@@ -69,13 +69,13 @@ class Plex(_IMediaClient):
                     self._plex = PlexServer(self._host, self._token)
                 except Exception as e:
                     self._plex = None
-                    log.exception(f"【{self.client_name}】Plex服务器连接失败:", e)
+                    log.exception(f"【{self.client_name}】Plex服务器连接失败:")
             elif self._username and self._password and self._servername:
                 try:
                     self._plex = MyPlexAccount(self._username, self._password).resource(self._servername).connect()
                 except Exception as e:
                     self._plex = None
-                    log.exception(f"【{self.client_name}】Plex服务器访问失败: ", e)
+                    log.exception(f"【{self.client_name}】Plex服务器访问失败: ")
 
     @classmethod
     def match(cls, ctype):
@@ -129,7 +129,7 @@ class Plex(_IMediaClient):
                     activity = {"type": event_type, "event": event_str, "date": event_date}
                     ret_array.append(activity)
         except Exception as e:
-            log.exception(f"【{self.client_name}】连接System/ActivityLog/Entries出错: ", e)
+            log.exception(f"【{self.client_name}】连接System/ActivityLog/Entries出错: ")
             return []
         if ret_array:
             ret_array = sorted(ret_array, key=lambda x: x['date'], reverse=True)
@@ -248,7 +248,7 @@ class Plex(_IMediaClient):
                     return image.key
             return None
         except Exception as e:
-            log.exception(f"【{self.client_name}】获取剧集封面出错：", e)
+            log.exception(f"【{self.client_name}】获取剧集封面出错：")
             return None
 
     def get_remote_image_by_id(self, item_id, image_type):
@@ -269,7 +269,7 @@ class Plex(_IMediaClient):
                 if hasattr(image, 'key') and image.key.startswith('http'):
                     return image.key
         except Exception as e:
-            log.exception(f"【{self.client_name}】获取封面出错：", e)
+            log.exception(f"【{self.client_name}】获取封面出错：")
         return None
 
     def get_local_image_by_id(self, item_id, remote=True):
@@ -299,7 +299,7 @@ class Plex(_IMediaClient):
             try:
                 self._libraries = self._plex.library.sections()
             except Exception as err:
-                log.exception(f"【{self.client_name}】尝试初始化媒体库链接失败: ", err)
+                log.exception(f"【{self.client_name}】尝试初始化媒体库链接失败: ")
         result_dict = {}
         for item in items:
             file_path = item.get("file_path")
@@ -333,7 +333,7 @@ class Plex(_IMediaClient):
                         if os.path.commonprefix([dir_path, location]) == location:
                             return lib.key, dir_path
         except Exception as err:
-            log.exception("【Plex】判断path归属媒体库异常: ", err)
+            log.exception("【Plex】判断path归属媒体库异常: ")
         return "", ""
 
     def get_libraries(self):
@@ -345,7 +345,7 @@ class Plex(_IMediaClient):
         try:
             self._libraries = self._plex.library.sections()
         except Exception as err:
-            log.exception(f"【{self.client_name}】尝试初始化媒体库连接失败: ", err)
+            log.exception(f"【{self.client_name}】尝试初始化媒体库连接失败: ")
             return []
         libraries = []
         for library in self._libraries:
@@ -420,7 +420,7 @@ class Plex(_IMediaClient):
             ids = self.__get_ids(item.guids)
             return {'ProviderIds': {'Tmdb': ids['tmdb_id'], 'Imdb': ids['imdb_id']}}
         except Exception as err:
-            log.exception(f"【{self.client_name}】获取单个项目详情异常: ", err)
+            log.exception(f"【{self.client_name}】获取单个项目详情异常: ")
             return {}
 
     def get_play_url(self, item_id):
@@ -459,7 +459,7 @@ class Plex(_IMediaClient):
                            "tvdbid": ids['tvdb_id'],
                            "path": path}
         except Exception as err:
-            log.exception(f"【{self.client_name}】获取媒体服务器所有媒体库列表失败: ", err)
+            log.exception(f"【{self.client_name}】获取媒体服务器所有媒体库列表失败: ")
         yield {}
 
     @staticmethod

@@ -147,7 +147,7 @@ class NexusPhpSiteUserInfo(_ISiteUserInfo):
             if bonus_match and bonus_match.group(1).strip():
                 self.bonus = StringUtils.str_float(bonus_match.group(1).strip('"'))
         except Exception as e:
-            log.exception('解析用户流量数据异常: ', e)
+            log.exception('解析用户流量数据异常: ')
 
     def __parse_user_infopanel(self, panel):
 

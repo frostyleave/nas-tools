@@ -51,7 +51,7 @@ class SystemUtils:
             local_date = utc_date + datetime.timedelta(hours=8)
             local_date_str = datetime.datetime.strftime(local_date, '%Y-%m-%d %H:%M:%S')
         except Exception as e:
-            log.exception("[SYS]get_local_time error:", e)
+            log.exception("[SYS]get_local_time error:")
             return utc_time_str
         return local_date_str
 
@@ -110,7 +110,7 @@ class SystemUtils:
             shutil.copy2(os.path.normpath(src), os.path.normpath(dest))
             return 0, ""
         except Exception as err:
-            log.exception("[SYS]copy error:", err)
+            log.exception("[SYS]copy error:")
             return -1, str(err)
 
     @staticmethod
@@ -125,7 +125,7 @@ class SystemUtils:
             shutil.move(tmp_file, os.path.normpath(dest))
             return 0, ""
         except Exception as err:
-            log.exception("[SYS]move error:", err)
+            log.exception("[SYS]move error:")
             return -1, str(err)
 
     @staticmethod
@@ -144,7 +144,7 @@ class SystemUtils:
                 os.link(os.path.normpath(src), os.path.normpath(dest))
             return 0, ""
         except Exception as err:
-            log.exception("[SYS]link error:", err)
+            log.exception("[SYS]link error:")
             return -1, str(err)
 
     @staticmethod
@@ -156,7 +156,7 @@ class SystemUtils:
             os.symlink(os.path.normpath(src), os.path.normpath(dest))
             return 0, ""
         except Exception as err:
-            log.exception("[SYS]softlink error:", err)
+            log.exception("[SYS]softlink error:")
             return -1, str(err)
 
     @staticmethod
@@ -173,7 +173,7 @@ class SystemUtils:
                                      startupinfo=SystemUtils.__get_hidden_shell()).returncode
             return retcode, ""
         except Exception as err:
-            log.exception("[SYS]rclone_move error:", err)
+            log.exception("[SYS]rclone_move error:")
             return -1, str(err)
 
     @staticmethod
@@ -190,7 +190,7 @@ class SystemUtils:
                                      startupinfo=SystemUtils.__get_hidden_shell()).returncode
             return retcode, ""
         except Exception as err:
-            log.exception("[SYS]rclone_copy error:", err)
+            log.exception("[SYS]rclone_copy error:")
             return -1, str(err)
 
     @staticmethod
@@ -210,7 +210,7 @@ class SystemUtils:
                                      startupinfo=SystemUtils.__get_hidden_shell()).returncode
             return retcode, ""
         except Exception as err:
-            log.exception("[SYS]minio_move error:", err)
+            log.exception("[SYS]minio_move error:")
             return -1, str(err)
 
     @staticmethod
@@ -230,7 +230,7 @@ class SystemUtils:
                                      startupinfo=SystemUtils.__get_hidden_shell()).returncode
             return retcode, ""
         except Exception as err:
-            log.exception("[SYS]minio_copy error:", err)
+            log.exception("[SYS]minio_copy error:")
             return -1, str(err)
 
     @staticmethod

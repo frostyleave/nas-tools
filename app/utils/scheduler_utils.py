@@ -1,4 +1,5 @@
 import datetime
+import math
 import random
 
 from typing import Optional
@@ -7,8 +8,6 @@ from apscheduler.job import Job
 from apscheduler.triggers.cron import CronTrigger
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.util import undefined
-
-import math
 
 import log
 
@@ -23,10 +22,10 @@ class SchedulerUtils:
         :param func_desc: 函数的描述,在日志中提现
         :param cron 时间表达式 三种配置方法：
         :param next_run_time: 下次运行时间
-          1、配置cron表达式，只支持5位的cron表达式
-          2、配置时间范围，如08:00-09:00，表示在该时间范围内随机执行一次；
-          3、配置固定时间，如08:00；
-          4、配置间隔，单位小时，比如23.5；
+          1、配置cron表达式, 只支持5位的cron表达式
+          2、配置时间范围, 如08:00-09:00, 表示在该时间范围内随机执行一次
+          3、配置固定时间, 如08:00
+          4、配置间隔, 单位小时, 比如23.5
         """
         if not cron:
             log.warn(f"[计划任务]%s 缺少cron表达式 ", func_desc)
@@ -36,10 +35,11 @@ class SchedulerUtils:
         if cron.count(" ") == 4:
             try:
                 return scheduler.add_job(func=func,
+                                         name=func_desc,
                                          trigger=CronTrigger.from_crontab(cron),
                                          next_run_time=next_run_time)
             except Exception as e:
-                log.exception(f'[计划任务]{func_desc}创建失败, 时间cron表达式配置格式错误', e)
+                log.exception(f'[计划任务]{func_desc}创建失败, 时间cron表达式配置格式错误')
                 return None
             
         if '-' in cron:
@@ -65,14 +65,13 @@ class SchedulerUtils:
 
                 random_job = scheduler.add_job(start_random_job,
                                                "cron",
+                                               name=func_desc,
                                                hour=start_hour,
                                                minute=start_minute,
                                                next_run_time=next_run_time)
-                log.info("%s服务时间范围随机模式启动，起始时间于%s:%s" % (
-                    func_desc, str(start_hour).rjust(2, '0'), str(start_minute).rjust(2, '0')))
                 return random_job
             except Exception as e:
-                log.exception(f'[计划任务]{func_desc}创建失败, 时间范围随机模式 配置格式错误：', e)
+                log.exception(f'[计划任务]{func_desc}创建失败, 时间范围随机模式 配置格式错误：')
                 return None
             
         if cron.find(':') != -1:
@@ -80,36 +79,36 @@ class SchedulerUtils:
                 hour = int(cron.split(":")[0])
                 minute = int(cron.split(":")[1])
             except Exception as e:
-                log.exception(f'[计划任务]{func_desc}时间 配置格式错误, 调整为0时0分执行: ', e)
+                log.exception(f'[计划任务]{func_desc}时间 配置格式错误, 调整为0时0分执行: ')
                 hour = minute = 0
 
             time_job = scheduler.add_job(func,
                                          "cron",
+                                         name=func_desc,
                                          hour=hour,
                                          minute=minute,
                                          next_run_time=next_run_time)
-            log.info("%s服务启动" % func_desc)
             return time_job
         # 小时间隔任务
         try:
             hours = float(cron)
         except Exception as e:
-            log.exception(f'[计划任务]{func_desc}时间 配置格式错误：', e)
+            log.exception(f'[计划任务]{func_desc}时间 配置格式错误：')
             return None
         
         interval_job = scheduler.add_job(func,
                                          "interval",
+                                         name=func_desc,
                                          hours=hours,
                                          next_run_time=next_run_time)
-        log.info("%s服务启动" % func_desc)
         return interval_job
 
     @staticmethod
-    def start_range_job(scheduler, func, func_desc, hour, minute, next_run_time=None) -> Optional[Job]:
+    def start_range_job(scheduler:BackgroundScheduler, func, func_desc, hour, minute, next_run_time=None) -> Optional[Job]:
         year = datetime.datetime.now().year
         month = datetime.datetime.now().month
         day = datetime.datetime.now().day
-        # 随机数从1秒开始，不在整点签到
+        # 随机数从1秒开始, 不在整点签到
         second = random.randint(1, 59)
         log.info("%s到时间 即将在%s-%s-%s,%s:%s:%s签到" % (
             func_desc, str(year), str(month), str(day), str(hour), str(minute), str(second)))
@@ -122,6 +121,7 @@ class SchedulerUtils:
             return None
         return scheduler.add_job(func,
                                  "date",
+                                 name=func_desc,
                                  run_date=datetime.datetime(year, month, day, hour, minute, second),
                                  next_run_time=next_run_time)
 

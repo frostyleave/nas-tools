@@ -36,10 +36,10 @@ class Category:
                     yaml = ruamel.yaml.YAML()
                     self._categorys = yaml.load(f)
                 except Exception as e:
-                    log.exception(f"【Config】二级分类策略 {category_name} 配置文件格式出现严重错误！请检查：", e)
+                    log.exception(f"【Config】二级分类策略 {category_name} 配置文件格式出现严重错误！请检查：")
                     self._categorys = {}
         except Exception as err:
-            log.exception(f"【Config】二级分类策略 {category_name} 配置文件加载出错：", err)
+            log.exception(f"【Config】二级分类策略 {category_name} 配置文件加载出错：")
             return False
 
         if self._categorys:

@@ -131,7 +131,7 @@
 
     $(document).ready(function () {
 
-        const container = document.getElementById("page_content");
+        const container = document.getElementById("page-content");
         const urlParams = $(container).data("params");
         var discovery_type = urlParams.t || 'RANKING';
 
@@ -158,10 +158,14 @@
             }
 
             $rankContainer.append(rankSlide);
+            
+            var rankParams = { "type": rankItem.type, "subtype": rankItem.subtype, "page": 1, "week": rankItem.week, "fav": 0 };
             // 请求接口, 查询相应榜单数据
-            axios_post_do("get_recommend", { "type": rankItem.type, "subtype": rankItem.subtype, "page": 1, "week": rankItem.week}, (ret) => {
+            axios_post_do("get_recommend", rankParams, 
+            (ret) => {
 
                 var slide_cards = [];
+                var data_list = []
                 
                 // 生成 normal-card 集合
                 ret.Items.map((card, index) => {
@@ -169,7 +173,7 @@
                     const nc = document.createElement('normal-card');
 
                     nc.setAttribute('lazy', '1');
-                    nc.setAttribute('card-showsub', '1');
+                    nc.setAttribute('card-showsub', '2');
                     nc.setAttribute('card-tmdbid', card.id);
                     nc.setAttribute('card-mediatype', card.type);
                     nc.setAttribute('card-image', card.image);
@@ -182,11 +186,44 @@
 
                     slide_cards.push(nc);
 
+                    // 生成唯一id
+                    var card_id = (rankItem.type + rankItem.subtype + card.id).replace(':', '_');
+                    nc.setAttribute('id', card_id);
+
+                    data_list.push({
+                        'id': card_id,
+                        'tmdbid': card.id,
+                        'type': card.type,
+                        'title': card.title,
+                        'year': card.year,
+                    });
+
                 });
 
                 rankSlide.slide_card = slide_cards;
 
-            });
+                // 请求并更新在库状态
+                axios_post_do("batch_get_media_exists_info", { "list": data_list }, 
+                (sub_ret) => {
+                    sub_ret.items.map((info_item, index) => {
+                        // 订阅标记
+                        $('#' + info_item.id + ' div.ms-auto.rss-btn').append(`
+                            <a class="text-muted zoom-link" title="加入/取消订阅" href='javascript:void(0)' onclick='rss_love_click(event, "${info_item.title}", "${info_item.year}", "${info_item.type}", "${info_item.tmdbid}", "${info_item.fav}")'>
+                                ${info_item.fav == "1" ? `<i class="ti ti-heart-filled fs-2 text-red"></i>` : `<i class="ti ti-heart fs-2 text-white"></i>`}
+                            </a>
+                        `);
+                        // 在库状态标记
+                        if (info_item.item_url) {
+                            $('#' + info_item.id + ' img.card-img.rounded-3').after(`
+                                <div class="card-right-bottom-ribbon">
+                                    <i class="ti ti-check text-white"></i>
+                                </div> 
+                            `);
+                        }
+                    });
+                }, false);
+                
+            }, false);
 
         });
 

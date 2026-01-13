@@ -98,7 +98,7 @@ def update_config():
             _config['pt']['ptrefresh_date_cron'] = '6'
             overwrite_cofig = True
     except Exception as e:
-        log.exception("【Config】站点数据刷新时间默认配置 设置异常: ", e)
+        log.exception("【Config】站点数据刷新时间默认配置 设置异常: ")
 
     # 存量插件安装情况统计
     try:
@@ -109,7 +109,7 @@ def update_config():
             if ret:
                 SystemConfig().set(SystemConfigKey.UserInstalledPluginsReport, '1')
     except Exception as e:
-        log.exception("【Config】存量插件安装情况统计 异常: ", e)
+        log.exception("【Config】存量插件安装情况统计 异常: ")
 
     # 重写配置文件
     if overwrite_cofig:

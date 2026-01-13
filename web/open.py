@@ -1,6 +1,5 @@
 import json
 import re
-import traceback
 import tracemalloc
 import xml.dom.minidom
 
@@ -9,7 +8,8 @@ from typing import Optional
 
 from app.conf.moduleconf import ModuleConf
 from app.helper.security_helper import SecurityHelper
-from app.helper.thread_helper import ThreadHelper
+from app.helper import ThreadHelper
+from app.job_center import JobCenter
 from app.media.meta.metainfo import MetaInfo
 from app.mediaserver.media_server import MediaServer
 from app.message import Message
@@ -163,7 +163,7 @@ async def wechat_post(request: Request):
         return Response(content=content, status_code=200)
 
     except Exception as err:
-        log.exception('微信消息处理发生错误: ', err)
+        log.exception('微信消息处理发生错误: ')
         return Response(content="ok", status_code=200)
     
 # 微信发送消息
@@ -445,11 +445,42 @@ async def subscribe(request: Request):
 @open_router.get("/memory")
 async def memory_snapshot():
     
-    snapshot = tracemalloc.take_snapshot()
-    top_stats = snapshot.statistics('filename')
-
-    output = []
-    for stat in top_stats[:10]:
-        output.append(f"{stat}")
+    global snapshot1
+    snapshot1 = tracemalloc.take_snapshot()
     
-    return {"top_memory": output}
+    print("--- 内存快照1 已拍摄 ---")
+    return {"message": "Memory snapshot 1 taken."}
+
+@open_router.get("/mem_compare")
+async def memory_snapshot():
+    """
+    拍下“快照2”, 并与“快照1”对比, 将结果打印到 Docker 日志。
+    """
+    global snapshot1
+    if not snapshot1:
+        return {"error": "Snapshot 1 not taken. Call /debug/mem_snapshot first."}
+
+    print("--- 正在拍摄快照2并对比 ---")
+    snapshot2 = tracemalloc.take_snapshot()
+    
+    # 核心：对比两个快照，按代码行分组
+    stats = snapshot2.compare_to(snapshot1, 'traceback')
+
+    print("--- 内存泄漏 TOP 10 (按代码行) ---")
+    # 3. (关键) 将结果打印到日志！
+    for i, stat in enumerate(stats[:10], 1):
+        print(f"#{i}: {stat.size_diff / 1024:.1f} KiB new memory ({stat.count_diff} new objects)")
+        # 打印完整的调用链
+        for line in stat.traceback.format():
+            print(f"  {line}")
+        print("-" * 20) # 添加分隔符
+        
+
+    return {"message": "Memory comparison complete. Check Docker logs."}
+
+@open_router.get("/jobs")
+def get_jobs():
+    """
+    获取所有已注册的定时任务
+    """
+    return JobCenter().get_jobs()

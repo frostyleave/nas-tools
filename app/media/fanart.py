@@ -66,7 +66,7 @@ class Fanart:
                             else:
                                 self._images[image_type] = ""
         except Exception as e2:
-            log.exception("[Fanart]生成图片出错: ", e2)
+            log.exception("[Fanart]生成图片出错: ")
 
     @classmethod
     @cached(cache=TTLCache(maxsize=512, ttl=3600))
@@ -78,7 +78,7 @@ class Fanart:
         try:
             return RequestUtils(proxies=cls._proxies, timeout=5).get_res(image_url)
         except Exception as err:
-            log.exception("[Fanart]请求fanart出错: ", err)
+            log.exception("[Fanart]请求fanart出错: ")
         return None
 
     def get_backdrop(self, media_type, queryid, default=""):

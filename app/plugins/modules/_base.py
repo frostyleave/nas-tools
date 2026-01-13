@@ -11,6 +11,8 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from app.conf import SystemConfig
 from app.helper import DbHelper
 from app.message import Message
+from app.job_center import JobCenter
+
 from config import Config
 
 import log
@@ -42,10 +44,8 @@ class _IPluginModule(metaclass=ABCMeta):
 
     """
     
-    # 默认的执行器配置
-    DEFAULT_EXECUTORS_CONFIG = {
-        'default': {'type': 'threadpool', 'max_workers': 3}
-    }
+    # 执行器最大线程
+    MAX_EXECUTORS_WORKERS = 3
 
     # 插件名称
     module_name = ""
@@ -67,8 +67,6 @@ class _IPluginModule(metaclass=ABCMeta):
     module_order = 0
     # 可使用的用户级别
     auth_level = 1
-    # 任务管理器
-    _scheduler : Optional[BackgroundScheduler] = None
     # 定时任务
     _cron_job : Optional[Job] = None
 
@@ -253,7 +251,11 @@ class _IPluginModule(metaclass=ABCMeta):
         # 移除最左边的“秒”部分
         return ' '.join(values[1:]).replace('?', '*')
     
-    def add_cron_job(self, scheduler:BackgroundScheduler, func, cron:str, func_name:str, start:bool=True) -> Optional[Job]:
+    def get_scheduler(self) -> BackgroundScheduler:
+        """获取任务管理器"""
+        return JobCenter().get_scheduler()
+    
+    def add_cron_job(self, func, cron:str, func_name:str) -> Optional[Job]:
         """
         向任务管理器添加定时任务
         :param scheduler: 任务管理器
@@ -264,12 +266,21 @@ class _IPluginModule(metaclass=ABCMeta):
         """
         if cron:
             try:
-                cron_job = scheduler.add_job(func, CronTrigger.from_crontab(cron))
-                if cron_job and start:
-                    scheduler.print_jobs()
-                    scheduler.start()
+                cron_job = self.get_scheduler().add_job(func, CronTrigger.from_crontab(cron), name=func_name)
+                if cron_job:
                     self.info(f"{func_name}服务启动，周期: {cron}, 下次执行时间: {cron_job.next_run_time.strftime('%Y-%m-%d %H:%M:%S')}")
                 return cron_job
             except Exception as err:
-                log.exception(f'【Plugin】定时任务{func_name}注册失败: ', err)
+                log.exception(f'【Plugin】定时任务{func_name}注册失败: ')
+        return None
+    
+    def remove_job(self, job_info:Optional[Job]):
+        """
+        移除任务管理器中的定时任务
+        """
+        if job_info:
+            try:
+                JobCenter().remove_job(job_info.id)
+            except Exception as err:
+                log.exception(f'【Plugin】定时任务{job_info.id}移除失败: ')
         return None

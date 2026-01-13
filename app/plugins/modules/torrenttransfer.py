@@ -1,18 +1,22 @@
+import json
 import os.path
 
+from apscheduler.job import Job
 from copy import deepcopy
 from threading import Event
+from typing import Optional
 
-from apscheduler.schedulers.background import BackgroundScheduler
 from bencode import bdecode, bencode
 
 from app.downloader import Downloader
-from app.helper.thread_helper import ThreadHelper
+from app.helper import ThreadHelper
 from app.media.meta import MetaInfo
 from app.plugins.modules._base import _IPluginModule
 from app.utils import TorrentUtils
 from app.utils.types import DownloaderType
 from config import Config
+
+import log
 
 
 class TorrentTransfer(_IPluginModule):
@@ -61,6 +65,8 @@ class TorrentTransfer(_IPluginModule):
     _is_recheck_running = False
     # 任务标签
     _torrent_tags = ["已整理", "转移做种"]
+
+    _recheck_job : Optional[Job] = None
 
 
     @staticmethod
@@ -113,6 +119,7 @@ class TorrentTransfer(_IPluginModule):
             {
                 'type': 'details',
                 'summary': '源下载器',
+                'open': True,
                 'tooltip': '只有选中的下载器才会执行转移任务，只能选择一个',
                 'content': [
                     # 同一行
@@ -156,6 +163,7 @@ class TorrentTransfer(_IPluginModule):
             {
                 'type': 'details',
                 'summary': '目的下载器',
+                'open': True,
                 'tooltip': '将做种任务转移到这个下载器，只能选择一个',
                 'content': [
                     # 同一行
@@ -164,7 +172,6 @@ class TorrentTransfer(_IPluginModule):
                             'id': 'todownloader',
                             'type': 'form-selectgroup',
                             'radio': True,
-                            'onclick': 'torrenttransfer_check(this);',
                             'content': downloaders
                         },
                     ],
@@ -254,7 +261,7 @@ class TorrentTransfer(_IPluginModule):
             let val = $(obj).val();
             let name = $(obj).attr("name") === "torrenttransfer_fromdownloader" ? "torrenttransfer_todownloader" : "torrenttransfer_fromdownloader";
             if ($(obj).prop("checked")) {
-                $(`input[name^=${name}][type=checkbox]`).each(function () {
+                $(`input[name^=${name}][type=radio]`).each(function () {
                     if ($(this).val() === val) {
                         $(this).prop('checked',false).prop('disabled', true);
                     } else {
@@ -262,7 +269,7 @@ class TorrentTransfer(_IPluginModule):
                     }
                 });
             } else {
-                $(`input[name^=${name}][type=checkbox]`).each(function () {
+                $(`input[name^=${name}][type=radio]`).each(function () {
                     if ($(this).val() === val) {
                         $(this).prop('disabled', false);
                     }
@@ -308,8 +315,7 @@ class TorrentTransfer(_IPluginModule):
                 self.error("源下载器和目的下载器不能相同")
                 return
             if self._cron:
-                self._scheduler = BackgroundScheduler(executors=self.DEFAULT_EXECUTORS_CONFIG, timezone=Config().get_timezone())
-                self._cron_job = self.add_cron_job(self._scheduler, self.transfer, self._cron, '移转做种服务', False)
+                self._cron_job = self.add_cron_job(self.transfer, self._cron, '自动移转做种')
 
             if self._onlyonce:
                 self.info("移转做种服务启动，立即运行一次")
@@ -331,13 +337,11 @@ class TorrentTransfer(_IPluginModule):
                     "nopaths": self._nopaths,
                     "autostart": self._autostart
                 })
-            if self._scheduler.get_jobs():
+            if self._cron_job:
                 if self._autostart:
                     # 追加种子校验服务
-                    self._scheduler.add_job(self.check_recheck, 'interval', minutes=3)
-                # 启动服务
-                self._scheduler.print_jobs()
-                self._scheduler.start()
+                    self._recheck_job = self.get_scheduler().add_job(self.check_recheck, 'interval', minutes=3)
+
 
     def get_state(self):
         return True if self._enable \
@@ -387,7 +391,7 @@ class TorrentTransfer(_IPluginModule):
                 nopath_skip = False
                 for nopath in self._nopaths.split('\n'):
                     if os.path.normpath(save_path).startswith(os.path.normpath(nopath)):
-                        self.info(f"种子 {hash_str} 保存路径 {save_path} 不需要移转，跳过 ...")
+                        self.debug(f"种子 {hash_str} 保存路径 {save_path} 不需要移转，跳过 ...")
                         nopath_skip = True
                         break
                 if nopath_skip:
@@ -398,7 +402,7 @@ class TorrentTransfer(_IPluginModule):
                 is_skip = False
                 for label in self._nolabels.split(','):
                     if label in torrent_labels:
-                        self.info(f"种子 {hash_str} 含有不转移标签 {label}，跳过 ...")
+                        self.debug(f"种子 {hash_str} 含有不转移标签 {label}，跳过 ...")
                         is_skip = True
                         break
                 if is_skip:
@@ -530,9 +534,6 @@ class TorrentTransfer(_IPluginModule):
                                      "to_download_id": download_id,
                                      "delete_source": self._deletesource,
                                  })
-            # 触发校验任务
-            if success > 0 and self._autostart:
-                self.check_recheck()
             # 发送通知
             if self._notify:
                 self.send_message(
@@ -558,32 +559,45 @@ class TorrentTransfer(_IPluginModule):
         recheck_torrents = self._recheck_torrents.get(downloader, [])
         if not recheck_torrents:
             return
-        self.info(f"开始检查下载器 {downloader} 的校验任务 ...")
-        self._is_recheck_running = True
-        # 下载器类型
-        downloader_type = self.downloader.get_downloader_type(downloader_id=downloader)
-        # 获取下载器中的种子
-        torrents = self.downloader.get_torrents(downloader_id=downloader,
-                                                ids=recheck_torrents)
-        if torrents:
-            can_seeding_torrents = []
-            for torrent in torrents:
-                # 获取种子hash
-                hash_str = self.__get_hash(torrent, downloader_type)
-                if self.__can_seeding(torrent, downloader_type):
-                    can_seeding_torrents.append(hash_str)
-            if can_seeding_torrents:
-                self.info(f"共 {len(can_seeding_torrents)} 个任务校验完成，开始辅种 ...")
-                self.downloader.start_torrents(downloader_id=downloader, ids=can_seeding_torrents)
-                # 去除已经处理过的种子
-                self._recheck_torrents[downloader] = list(
-                    set(recheck_torrents).difference(set(can_seeding_torrents)))
-        elif torrents is None:
-            self.info(f"下载器 {downloader} 查询校验任务失败，将在下次继续查询 ...")
-        else:
-            self.info(f"下载器 {downloader} 中没有需要检查的校验任务，清空待处理列表 ...")
-            self._recheck_torrents[downloader] = []
-        self._is_recheck_running = False
+        try:
+            self.info(f"开始检查下载器 {downloader} 的校验任务: {json.dumps(recheck_torrents)}")
+            self._is_recheck_running = True
+            # 下载器类型
+            downloader_type = self.downloader.get_downloader_type(downloader_id=downloader)
+            # 获取下载器中的种子
+            torrents = self.downloader.get_torrents(downloader_id=downloader, ids=recheck_torrents)
+            if torrents:
+                can_seeding_torrents = self.filter_checked_seeds(downloader_type, torrents)
+                if can_seeding_torrents:
+                    self.downloader.start_torrents(downloader_id=downloader, ids=can_seeding_torrents)
+                    # 去除已经处理过的种子
+                    left_torrents = list(set(recheck_torrents).difference(set(can_seeding_torrents)))
+                    self._recheck_torrents[downloader] = left_torrents
+                    self.info(f"共 {len(can_seeding_torrents)} 个任务校验完成，开始做种; 剩余任务 {len(left_torrents)} 个")
+                else:
+                    self.info(f"下载器 {downloader} 没有可以开始做种的任务")
+            elif torrents is None:
+                self.info(f"下载器 {downloader} 查询校验任务失败，将在下次继续查询 ...")
+            else:
+                self.info(f"下载器 {downloader} 中没有需要检查的校验任务，清空待处理列表 ...")
+                self._recheck_torrents[downloader] = []
+        except Exception as ex:
+            log.exception(f"【Plugin】自动转移做种 - 下载器 {downloader} 校验任务执行异常: ", ex)
+        finally:
+            self._is_recheck_running = False
+
+
+    def filter_checked_seeds(self, downloader_type, torrents):
+        """
+        筛选校验完成的种子
+        """
+        can_seeding_torrents = []
+        for torrent in torrents:
+            # 获取种子hash
+            hash_str = self.__get_hash(torrent, downloader_type)
+            if self.__can_seeding(torrent, downloader_type):
+                can_seeding_torrents.append(hash_str)
+        return can_seeding_torrents
 
     @staticmethod
     def __get_hash(torrent, dl_type):
@@ -624,10 +638,12 @@ class TorrentTransfer(_IPluginModule):
         判断种子是否可以做种并处于暂停状态
         """
         try:
-            return torrent.get("state") == "pausedUP" and torrent.get("tracker") if dl_type == DownloaderType.QB \
-                else (torrent.status.stopped and torrent.percent_done == 1 and torrent.trackers)
+            if dl_type == DownloaderType.QB:
+                return torrent.get("state") in ["pausedUP", "stoppedUP"]
+            return torrent.status == 'stopped' and torrent.percent_done >= 1.0
+        
         except Exception as e:
-            print(str(e))
+            log.exception('【Plugin】自动转移做种 - 种子状态校验出错: ')
             return False
 
     @staticmethod
@@ -658,12 +674,7 @@ class TorrentTransfer(_IPluginModule):
         退出插件
         """
         try:
-            if self._scheduler:
-                self._scheduler.remove_all_jobs()
-                if self._scheduler.running:
-                    self._event.set()
-                    self._scheduler.shutdown()
-                    self._event.clear()
-                self._scheduler = None
+            self.remove_job(self._cron_job)
+            self.remove_job(self._recheck_job)
         except Exception as e:
             print(str(e))

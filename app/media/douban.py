@@ -1,8 +1,6 @@
 import random
-import zhconv
 import log
 
-from threading import Lock
 from time import sleep
 from typing import Optional
 
@@ -12,9 +10,6 @@ from app.utils import StringUtils
 from app.utils import RequestUtils
 from app.utils.commons import singleton
 from app.utils.types import MediaType
-
-lock = Lock()
-
 
 @singleton
 class DouBan:
@@ -36,7 +31,7 @@ class DouBan:
             if res:
                 self.cookie = StringUtils.str_from_cookiejar(res.cookies)
         except Exception as err:
-            log.exception(f"【Douban】获取cookie失败: ", err)
+            log.exception(f"【Douban】获取cookie失败: ")
 
     def search_douban_info_by_imdbid(self, imdbid):
         """
@@ -452,7 +447,7 @@ class DouBan:
                         title = titles[0]
                         for _title in titles[1:]:
                             # 忽略繁体
-                            if zhconv.convert(_title, 'zh-hans') == title:
+                            if StringUtils.contain_traditional_chinese(_title):
                                 break
                             # 忽略日韩文
                             if not StringUtils.is_japanese(_title) \
@@ -497,7 +492,7 @@ class DouBan:
             if imdbid:
                 ret_media['imdbid'] = str(imdbid).strip()
         except Exception as err:
-            log.exception(f"【Douban】从豆瓣详情页抓取媒体信息异常: ", err)
+            log.exception(f"【Douban】从豆瓣详情页抓取媒体信息异常: ")
         if ret_media:
             log.info("【Douban】查询到数据: %s" % ret_media.get("title"))
         else:

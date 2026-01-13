@@ -39,7 +39,7 @@ class NexusRabbitSiteUserInfo(NexusPhpSiteUserInfo):
         try:
             torrents = json.loads(html_text).get('data')
         except Exception as e:
-            log.exception('[Site]解析做种信息出错: ', e)
+            log.exception('[Site]解析做种信息出错: ')
             return
 
         page_seeding_size = 0

@@ -531,7 +531,7 @@ class TRANSFERHISTORY(Base):
         return {c.name: getattr(self, c.name) for c in self.__table__.columns}
 
 class INDEXERSITE(Base):
-    __tablename__ = 'INDEXER_SITE'
+    __tablename__ = 'INDEXER_SITES'
 
     ID = Column(String(length=10), primary_key=True)
     NAME = Column(String(length=50), index=True)
@@ -545,9 +545,8 @@ class INDEXERSITE(Base):
     SEARCH_TYPE = Column(String(length=50))
     BROWSE = Column(Text)
     TORRENTS = Column(Text)
-    DOWNLOADER = Column(Integer)
     CATEGORY = Column(Text)
-    EN_EXPAND = Column(Boolean)
+    EXTRA = Column(Text)
 
 class INDEXERCUSTOMSITE(Base):
     __tablename__ = 'INDEXER_CUSTOM_SITE'

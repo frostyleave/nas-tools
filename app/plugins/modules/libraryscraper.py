@@ -1,8 +1,6 @@
 from threading import Event
 
-from apscheduler.schedulers.background import BackgroundScheduler
-
-from app.helper.thread_helper import ThreadHelper
+from app.helper import ThreadHelper
 from app.media import Scraper
 from app.plugins import EventHandler
 from app.plugins.modules._base import _IPluginModule
@@ -168,8 +166,7 @@ class LibraryScraper(_IPluginModule):
                 })
 
             if self._cron:
-                self._scheduler = BackgroundScheduler(executors=self.DEFAULT_EXECUTORS_CONFIG, timezone=Config().get_timezone())
-                self._cron_job = self.add_cron_job(self._scheduler, self.__libraryscraper,  self._cron, '刮削服务')
+                self._cron_job = self.add_cron_job(self.__libraryscraper,  self._cron, '刮削服务')
 
 
     def get_state(self):
@@ -216,12 +213,6 @@ class LibraryScraper(_IPluginModule):
         退出插件
         """
         try:
-            if self._scheduler:
-                self._scheduler.remove_all_jobs()
-                if self._scheduler.running:
-                    self._event.set()
-                    self._scheduler.shutdown()
-                    self._event.clear()
-                self._scheduler = None
+            self.remove_job(self._cron_job)
         except Exception as e:
             print(str(e))

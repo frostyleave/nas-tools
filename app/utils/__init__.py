@@ -1,5 +1,6 @@
 from .dom_utils import DomUtils
 from .episode_format import EpisodeFormat
+from .async_request import AsyncRequestUtils
 from .http_utils import RequestUtils
 from .json_utils import JsonUtils
 from .number_utils import NumberUtils

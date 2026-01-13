@@ -5,14 +5,14 @@ import log
 from app.db.models import SEARCHRESULTINFO
 from app.downloader import Downloader
 
-from app.helper import DbHelper, ProgressHelper
+from app.helper import DbHelper
 from app.media import Media
 from app.media.meta.metainfo import MetaInfo
 from app.message import Message
 from app.indexer import Indexer
 from app.plugins import EventManager
 from app.utils.commons import singleton
-from app.utils.types import SearchType, EventType, ProgressKey
+from app.utils.types import SearchType
 
 from config import Config
 
@@ -36,7 +36,6 @@ class Searcher:
         self.downloader = Downloader()
         self.media = Media()
         self.message = Message()
-        self.progress = ProgressHelper()
         self.dbhelper = DbHelper()
         self.indexer = Indexer()
         self.eventmanager = EventManager()
@@ -46,7 +45,8 @@ class Searcher:
                       key_word: str,
                       filter_args: dict,
                       match_media=None,
-                      in_from: SearchType = None) -> List[MetaInfo]:
+                      in_from: SearchType = None,
+                      task_id=None) -> List[MetaInfo]:
         """
         根据关键字调用索引器检查媒体
         :param key_word: 搜索的关键字，不能为空
@@ -59,16 +59,11 @@ class Searcher:
             return []
         if not self.indexer:
             return []
-        # 触发事件
-        self.eventmanager.send_event(EventType.SearchStart, {
-            "key_word": key_word,
-            "media_info": match_media.to_dict() if match_media else None,
-            "filter_args": filter_args,
-            "search_type": in_from.value if in_from else None
-        })
-        return self.indexer.search_by_keyword(key_word, filter_args, match_media, in_from)
 
-    def search_one_media(self, media_info,
+        return self.indexer.search_by_keyword(key_word, filter_args, match_media, in_from, task_id)
+
+    def search_one_media(self, 
+                         media_info,
                          in_from: SearchType,
                          no_exists: dict,
                          sites: list = None,
@@ -89,8 +84,7 @@ class Searcher:
         """
         if not media_info:
             return None, {}, 0, 0
-        # 进度计数重置
-        self.progress.start(ProgressKey.Search)
+
         # 查找的季
         if media_info.begin_season is None:
             search_season = None

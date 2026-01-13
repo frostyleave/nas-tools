@@ -1,21 +1,21 @@
 import copy
 import datetime
-import re
+import multiprocessing
 
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor, as_completed
 from typing import List, Optional
 
 import log
 
-from app.helper import ProgressHelper, DbHelper
 from app.indexer.client.builtin import BuiltinIndexer
+from app.indexer.manager import IndexerInfo
 from app.media import Media
-from app.media.douban import DouBan
 from app.media.meta._base import MetaBase
 from app.media.meta.metainfo import MetaInfo
 from app.utils import StringUtils
 from app.utils.commons import singleton
-from app.utils.types import MediaType, SearchType, ProgressKey
+from app.utils.types import SearchType
+from app.task_manager import GlobalTaskManager
 
 from config import INDEXER_CATEGORY
 
@@ -25,25 +25,21 @@ class Indexer(object):
 
     _client = None
     _client_type = None
-    progress = None
-    dbhelper = None
 
     def __init__(self):
         self.init_config()
 
     def init_config(self):
-        self.progress = ProgressHelper()
-        self.dbhelper = DbHelper()
         self._client = BuiltinIndexer()
         self._client_type = self._client.get_type()
 
-    def get_indexers(self, check=False):
+    def get_indexers(self, check=False, filter_limit=False):
         """
         获取当前索引器的索引站点
         """
         if not self._client:
             return []
-        return self._client.get_indexers(check=check)
+        return self._client.get_indexers(check=check, filter_limit=filter_limit)
 
     def get_user_indexer_dict(self):
         """
@@ -95,7 +91,8 @@ class Indexer(object):
                           key_word: str,
                           filter_args: dict,
                           match_media: Optional[MetaBase]=None,
-                          in_from: Optional[SearchType]=None) -> List[MetaInfo]:
+                          in_from: Optional[SearchType]=None,
+                          task_id=None) -> List[MetaInfo]:
         """
         根据关键字调用 Index API 搜索
         :param key_word: 搜索的关键字，不能为空
@@ -109,8 +106,8 @@ class Indexer(object):
         if not key_word:
             return []
 
-        indexers = self.get_indexers(check=True)
-        if not indexers:
+        search_indexers = self.get_indexers(check=True, filter_limit=True)
+        if not search_indexers:
             log.error("没有配置索引器，无法搜索！")
             return []
 
@@ -118,195 +115,132 @@ class Indexer(object):
             filter_args = {}
 
         if filter_args.get('site'):
-            sites = filter_args.get('site')
-            indexers = list(filter(lambda x: x.name in sites, indexers))            
+            filter_sites = filter_args.get('site')
+            search_indexers = list(filter(lambda x: x.name in filter_sites, search_indexers))            
         elif match_media and match_media.type and match_media.type.name in INDEXER_CATEGORY:
-            indexers = list(filter(lambda x: not x.source_type or match_media.type.name in x.source_type, indexers))
+            search_indexers = list(filter(lambda x: not x.source_type or match_media.type.name in x.source_type, search_indexers))
 
-        if not indexers:
-            log.error("没有配置符合条件的索引器，无法搜索！")
+        if not search_indexers:
+            log.warn("没有配置符合条件的索引器，无法搜索！")
             return []
+        
+        ret_array = []
 
         # 计算耗时
         start_time = datetime.datetime.now()
         if filter_args and filter_args.get("site"):
             log_info = f"【{self._client_type.value}】开始搜索 %s, 站点: %s ..." % (key_word, filter_args.get("site"))
             log.info(log_info)
-            self.progress.update(ptype=ProgressKey.Search, text=log_info)
+            self.update_process(task_id=task_id, process_val=5, text=log_info)
         else:
-            log_info = f"【{self._client_type.value}】开始并行搜索 %s, 线程数: %s ..." % (key_word, len(indexers))
+            log_info = f"【{self._client_type.value}】开始并行搜索 {key_word} ..."
             log.info(log_info)
-            self.progress.update(ptype=ProgressKey.Search, text=log_info)
+            self.update_process(task_id=task_id, process_val=5, text=log_info)
 
-        # 多线程
-        executor = ThreadPoolExecutor(max_workers=len(indexers))
-        all_task = []
-        for indexer in indexers:
-            order_seq = 100 - int(indexer.pri)
+        cpu_cores = max(1, multiprocessing.cpu_count() - 2)
+        process_count = min(cpu_cores, len(search_indexers))
 
-            # 原始标题检索
-            if 'title' == indexer.search_type and key_word:
-                task = executor.submit(self._client.search, order_seq, indexer, key_word, copy.deepcopy(filter_args), match_media, in_from)
-                all_task.append(task)
+        # 设置进度参数
+        self._client.set_step_fator(int(30 / len(search_indexers)))
 
-            # 其他搜索类型都需要 match_media 不为空
-            if not match_media:
-                continue
-
-            # 豆瓣id检索
-            if 'douban_id' == indexer.search_type and match_media.douban_id:
-                # 剧集信息, 查询特定季的豆瓣id
-                douban_ids = self.__get_douban_tv_season_id(match_media)
-                for db_id in douban_ids:
-                    task = executor.submit(self._client.search, order_seq, indexer, db_id, copy.deepcopy(filter_args), match_media, in_from)
-                    all_task.append(task)
-                        
-
-            # imdb id 检索
-            if 'imdb' == indexer.search_type and match_media.imdb_id:
-                task = executor.submit(self._client.search, order_seq, indexer, match_media.imdb_id, copy.deepcopy(filter_args), match_media, in_from)
-                all_task.append(task)
-
-            # 英文名检索
-            if 'en_name' == indexer.search_type or indexer.en_expand:
-                en_name = self.__get_en_name(match_media)
-                if en_name:
-                    task = executor.submit(self._client.search, order_seq, indexer, en_name, copy.deepcopy(filter_args), match_media, in_from)
-                    all_task.append(task)
+        # 1. 将索引器列表切分为子列表
+        indexer_chunks = list(self._chunk_list(search_indexers, process_count))
 
         ret_array = []
-        finish_count = 0
-        for future in as_completed(all_task):
-            result = future.result()
-            finish_count += 1
-            progress_value = round(100 * (finish_count / len(all_task)))
-            self.progress.update(ptype=ProgressKey.Search, value=progress_value)
-            if result:
-                ret_array = ret_array + result
+        # 2. 提交任务给进程池
+        with ProcessPoolExecutor(max_workers=process_count) as executor:
+            all_tasks = []
+            for chunk in indexer_chunks:
+                if not chunk: 
+                    continue                
+                task = executor.submit(exec_search_by_threads, self._client, chunk, key_word, filter_args, match_media, in_from, task_id)
+                all_tasks.append(task)
+
+            for future in as_completed(all_tasks):
+                try:
+                    result_list = future.result() 
+                    if result_list:
+                        ret_array.extend(result_list)
+                except Exception as e:
+                    log.exception("【Indexer】搜索进程结果处理失败", e)
         
         # 计算耗时
         end_time = datetime.datetime.now()
         summary_txt = f'所有站点搜索完成，有效资源数：{len(ret_array)} , 总耗时 {(end_time - start_time).seconds} 秒'
-        self.progress.update(ptype=ProgressKey.Search, text=summary_txt, value=100)
+        if SearchType.WEB == in_from:
+            self.update_process(task_id=task_id, process_val=100, text=summary_txt)
+            
         log.info(f"【{self._client_type.value}】{summary_txt}")
 
         return ret_array
+    
+    def update_process(self, task_id:Optional[str], process_val:int, text:Optional[str]=None):
+        """
+        进度更新
+        """
+        if task_id:
+            GlobalTaskManager().update_task(task_id, progress=process_val, message=text)
+            return
 
-    def __get_en_name(self, media_info:MetaBase):
+    def _chunk_list(self, data_list, chunks):
         """
-        获取媒体数据的英文名称
+        将列表 data_list 尽可能平均分成 chunks 份
         """
+        k, m = divmod(len(data_list), chunks)
+        return (data_list[i * k + min(i, m):(i + 1) * k + min(i + 1, m)] for i in range(chunks))
+    
+def exec_search_by_threads(client_instance: BuiltinIndexer,
+                           search_indexers: List[IndexerInfo],
+                           search_keywords: str,
+                           filter_args: dict,
+                           match_media: Optional[MetaBase]=None,
+                           in_from: Optional[SearchType]=None,
+                           task_id: Optional[str]=None):
+    """
+    接收一组索引器，使用线程池并发执行
+    """
+    process_results = []
+    all_tasks = []
+
+    def get_media_en_name(media_info: MetaBase):
         if media_info.original_language == "en":
             return media_info.original_title
-        # 获取英文标题
         return Media().get_tmdb_en_title(media_info)
     
-    def __get_douban_tv_season_id(self, media_info:MetaBase):
-        """
-        查询剧集信息的豆瓣id
-        """
-        douban_ids = []
-        if not media_info.douban_id:
-            return douban_ids
+    thread_count = min(len(search_indexers), 20)        
+    with ThreadPoolExecutor(max_workers=thread_count) as executor:
+        # 提交所有线程任务
+        for indexer in search_indexers:
+            order_seq = 100 - int(indexer.pri)
+            # 原始标题检索
+            if 'title' == indexer.search_type and search_keywords:
+                task = executor.submit(client_instance.search, order_seq, indexer, search_keywords, copy.deepcopy(filter_args), match_media, in_from, task_id)
+                all_tasks.append(task)
+            # 其他搜索类型都需要 match_media 不为空
+            if not match_media:
+                continue
+            # 豆瓣id检索
+            if 'douban_id' == indexer.search_type and match_media.douban_id:
+                # 剧集信息, 查询特定季的豆瓣id
+                task = executor.submit(client_instance.search, order_seq, indexer, match_media.douban_id, copy.deepcopy(filter_args), match_media, in_from, task_id)
+                all_tasks.append(task)
+            # imdb id 检索
+            if 'imdb' == indexer.search_type and match_media.imdb_id:
+                task = executor.submit(client_instance.search, order_seq, indexer, match_media.imdb_id, copy.deepcopy(filter_args), match_media, in_from, task_id)
+                all_tasks.append(task)
+            # 英文名检索
+            if 'en_name' == indexer.search_type or indexer.en_expand:
+                en_name = get_media_en_name(match_media)
+                if en_name:
+                    task = executor.submit(client_instance.search, order_seq, indexer, en_name, copy.deepcopy(filter_args), match_media, in_from, task_id)
+                    all_tasks.append(task)
         
-        douban_ids.append(media_info.douban_id)
-
-        doubanapi = DouBan()
-        try:
-            # 剧集类型时，如果只有1季，也不在进行扩展搜索
-            info = media_info.tmdb_info
-            if info and len(info.seasons) <= 1:
-                return douban_ids
-            # 计算季数大于0的季
-            season_cnt = len(list(filter(lambda t: t.season_number > 0, info.seasons)))
-            if season_cnt == 1:
-                return douban_ids
-            
-            # 解析季名称
-            season_names = []
-            for season_info in info.seasons:
-                if season_info.season_number == 0:
-                    continue
-                season_name = self.__convert_numbers_in_string(season_info.name)
-                season_names.append(season_name)
-            
-            # 根据名称查询豆瓣剧集信息
-            start = 0
-            page_size = 30
-            tv_name = media_info.title
-            while True:
-                search_res = doubanapi.tv_search(tv_name, start, page_size)
-                for res_item in search_res:
-                    if not doubanapi.is_target_type_match(res_item.get("target_type"), MediaType.TV):
-                        continue
-                    target_info = res_item.get("target")
-                    if not target_info:
-                        continue
-                    item_title = target_info.get("title")
-                    if not item_title:
-                        continue
-
-                    res_item_id = target_info.get("id")
-                    if res_item_id == media_info.douban_id:
-                        continue
-                    if item_title == tv_name:
-                        douban_ids.append(target_info.get("id"))
-                        continue
-                    # 移除名称
-                    left_part = item_title.replace(tv_name, "", 1).strip()
-                    if left_part in season_names:
-                        douban_ids.append(target_info.get("id"))
-                if len(search_res) == page_size:
-                    start += page_size
-                else:
-                    break
-            
-        except Exception as err:
-            log.exception("查询剧集信息的豆瓣id: ", err)
-
-        return douban_ids
-
-    def __int_to_chinese(self, num: int):
-        """将 0~9999 范围内的整数转换为中文数字（简单实现）。"""
-        digits = ['零', '一', '二', '三', '四', '五', '六', '七', '八', '九']
-        if num == 0:
-            return digits[0]
-        
-        num_str = str(num)
-        length = len(num_str)
-        result = ""
-        for i, ch in enumerate(num_str):
-            digit = int(ch)
-            unit = length - i - 1  # 当前位数对应的单位（十、百、千）
-            if digit != 0:
-                result += digits[digit]
-                if unit == 1:
-                    result += "十"
-                elif unit == 2:
-                    result += "百"
-                elif unit == 3:
-                    result += "千"
-            else:
-                # 避免连续“零”
-                if not result.endswith("零") and i != length - 1:
-                    result += "零"
-        # 去除末尾可能多余的“零”
-        result = result.rstrip("零")
-        # 特殊处理：例如 10、11 转换结果为“一十…”，改为“十…”
-        if result.startswith("一十"):
-            result = result[1:]
-        return result
-
-    def __convert_numbers_in_string(self, s: str):
-        """
-        使用正则表达式查找字符串中所有数字（包含其两侧空白字符），
-        并替换为转换后的中文数字，同时去掉两侧的空格。
-        """
-        # 匹配：任意数量空格 + 一段数字 + 任意数量空格
-        pattern = re.compile(r'\s*(\d+)\s*')
-        
-        def repl(match):
-            num = int(match.group(1))
-            return self.__int_to_chinese(num)
-        
-        return pattern.sub(repl, s)
+        for future in as_completed(all_tasks):
+            try:
+                result = future.result()
+                if result:
+                    process_results.extend(result) # 聚合当前进程内所有线程的结果
+            except Exception as e:
+                log.error("【Indexer】搜索结果处理失败 %s", str(e))
+                
+    return process_results

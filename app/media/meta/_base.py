@@ -17,7 +17,6 @@ class MetaBase(object):
     媒体信息基类
     """
     proxies = None
-    category_handler = None
     # 是否处理的文件
     fileflag = False
     # 原字符串
@@ -69,7 +68,7 @@ class MetaBase(object):
     # TVDB ID
     tvdb_id = 0
     # 豆瓣 ID
-    douban_id = 0
+    douban_id = ""
     # 自定义搜索词
     keyword = None
     # 媒体标题
@@ -166,8 +165,6 @@ class MetaBase(object):
     _subtitle_episode_range_simple = r"(?:第)?(\d+)\s*-\s*(?:第)?(\d+)"
 
     def __init__(self, title, subtitle=None, fileflag=False):
-        self.category_handler = Category()
-        self.fanart = Fanart()
         if not title:
             return
         self.org_string = title
@@ -432,7 +429,7 @@ class MetaBase(object):
         if self.fanart_backdrop:
             return self.fanart_backdrop
         else:
-            self.fanart_backdrop = self.fanart.get_backdrop(media_type=self.type,
+            self.fanart_backdrop = Fanart().get_backdrop(media_type=self.type,
                                                             queryid=self.tmdb_id if self.type == MediaType.MOVIE else self.tvdb_id)
         if self.fanart_backdrop:
             return self.fanart_backdrop
@@ -449,7 +446,7 @@ class MetaBase(object):
         if self.fanart_backdrop:
             return self.fanart_backdrop
         else:
-            self.fanart_backdrop = self.fanart.get_backdrop(media_type=self.type,
+            self.fanart_backdrop = Fanart().get_backdrop(media_type=self.type,
                                                             queryid=self.tmdb_id if self.type == MediaType.MOVIE else self.tvdb_id)
         if self.fanart_backdrop:
             return self.fanart_backdrop
@@ -468,7 +465,7 @@ class MetaBase(object):
             else:
                 return self.poster_path
         if not self.fanart_poster:
-            self.fanart_poster = self.fanart.get_poster(media_type=self.type,
+            self.fanart_poster = Fanart().get_poster(media_type=self.type,
                                                         queryid=self.tmdb_id if self.type == MediaType.MOVIE else self.tvdb_id)
         return self.fanart_poster or ""
 
@@ -566,6 +563,9 @@ class MetaBase(object):
         self.overview = info.get('overview')
         self.original_language = info.get('original_language')
         self.networks = [network.get("name") for network in info.get('networks') or []]
+
+        category_handler = Category()
+
         if self.type == MediaType.MOVIE:
             self.title = info.get('title')
             self.original_title = info.get('original_title')
@@ -573,7 +573,7 @@ class MetaBase(object):
             self.release_date = info.get('release_date')
             if self.release_date:
                 self.year = self.release_date[0:4]
-            self.category = self.category_handler.get_movie_category(info)
+            self.category = category_handler.get_movie_category(info)
         else:
             self.title = info.get('name')
             self.original_title = info.get('original_name')
@@ -582,9 +582,9 @@ class MetaBase(object):
             if self.release_date:
                 self.year = self.release_date[0:4]
             if self.type == MediaType.TV:
-                self.category = self.category_handler.get_tv_category(info)
+                self.category = category_handler.get_tv_category(info)
             else:
-                self.category = self.category_handler.get_anime_category(info)
+                self.category = category_handler.get_anime_category(info)
         self.poster_path = Config().get_tmdbimage_url(info.get('poster_path')) \
             if info.get('poster_path') else ""
         self.backdrop_path = Config().get_tmdbimage_url(info.get('backdrop_path')) \
@@ -691,7 +691,7 @@ class MetaBase(object):
                     self.type = MediaType.TV
                     self._subtitle_flag = True
                 except Exception as err:
-                    log.exception("【Meta】副标题-季集范围解析 出错: ", err)
+                    log.exception("【Meta】副标题-季集范围解析 出错: ")
                     return
             # 第x季
             season_str = re.search(r'%s' % self._subtitle_season_re, title_text, re.IGNORECASE)
@@ -711,7 +711,7 @@ class MetaBase(object):
                     else:
                         begin_season = int(cn2an.cn2an(seasons, mode='smart'))
                 except Exception as err:
-                    log.exception("【Meta】副标题-季解析 出错: ", err)
+                    log.exception("【Meta】副标题-季解析 出错: ")
                     return
                 if self.begin_season is None and isinstance(begin_season, int):
                     self.begin_season = begin_season
@@ -741,7 +741,7 @@ class MetaBase(object):
                         if len(episodes) > 1:
                             end_episode = int(cn2an.cn2an(episodes[1].strip(), mode='smart'))
                 except Exception as err:
-                    log.exception("【Meta】副标题-集解析 出错: ", err)
+                    log.exception("【Meta】副标题-集解析 出错: ")
                     return
                 if self.begin_episode is None and isinstance(begin_episode, int):
                     self.begin_episode = begin_episode
@@ -770,7 +770,7 @@ class MetaBase(object):
                     self.type = MediaType.TV
                     self._subtitle_flag = True
                 except Exception as err:
-                    log.exception("【Meta】副标题-集范围解析 出错: ", err)
+                    log.exception("【Meta】副标题-集范围解析 出错: ")
                     return
             # x集全
             episode_all_str = re.search(r'%s' % self._subtitle_episode_all_re, title_text, re.IGNORECASE)
@@ -786,7 +786,7 @@ class MetaBase(object):
                         self.type = MediaType.TV
                         self._subtitle_flag = True
                     except Exception as err:
-                        log.exception("【Meta】副标题-集范围解析 出错: ", err)
+                        log.exception("【Meta】副标题-集范围解析 出错: ")
                         return
             # 全x季 x季全
             season_all_str = re.search(r"%s" % self._subtitle_season_all_re, title_text, re.IGNORECASE)
@@ -798,7 +798,7 @@ class MetaBase(object):
                     try:
                         self.total_seasons = int(cn2an.cn2an(season_all.strip(), mode='smart'))
                     except Exception as err:
-                        log.exception("【Meta】副标题-季范围解析 出错: ", err)
+                        log.exception("【Meta】副标题-季范围解析 出错: ")
                         return
                     self.begin_season = 1
                     self.end_season = self.total_seasons
@@ -818,7 +818,7 @@ class MetaBase(object):
                     self.type = MediaType.TV
                     self._subtitle_flag = True
                 except Exception as err:
-                    log.exception("【Meta】副标题-集数解析 出错: ", err)
+                    log.exception("【Meta】副标题-集数解析 出错: ")
                     return
 
     def get_sort_str(self):
@@ -830,7 +830,7 @@ class MetaBase(object):
 
         if self.title:
             # 标题统一处理为简体中文，简体资源优先
-            if re.match(ZHTW_SUB_RE, self.title):
+            if re.match(ZHTW_SUB_RE, self.title) and StringUtils.contain_traditional_chinese(self.title):
                 sort_str = '0' + zhconv.convert(self.title, 'zh-hans')
             else:
                 sort_str = '1' + self.title

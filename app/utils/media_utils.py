@@ -166,7 +166,7 @@ class MediaUtils:
                     title = title[:start] + new_part + title[end:]
                     
         except Exception as e:
-            log.exception("格式化标题中的季集编号出错: ", e)
+            log.exception("格式化标题中的季集编号出错: ")
                 
         return title
 
@@ -266,7 +266,7 @@ class MediaUtils:
                     subtitle += ' 第{}集'.format(ep_name).replace('E', '')
 
         except Exception as e:
-            log.exception("调整剧集文件的季集信息所在位置出错: ", e)
+            log.exception("调整剧集文件的季集信息所在位置出错: ")
 
         return re.sub(r"\s+", " ", cleaned_filename).strip(), subtitle.strip()
 

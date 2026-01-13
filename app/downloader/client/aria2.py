@@ -125,7 +125,7 @@ class Aria2(_IDownloadClient):
                     if p and p.headers.get("Location"):
                         content = p.headers.get("Location")
                 except Exception as ex:
-                    log.exception(f"【{self.client_name}】{self.name} 处理重定向出错：", ex)
+                    log.exception("【%s】%s 处理重定向出错：", self.client_name, self.name)
             # 直接添加url
             return self._client.addUri(uris=[content], options=dict(dir=download_dir))
         elif isinstance(content, bytes):
@@ -209,7 +209,7 @@ class Aria2(_IDownloadClient):
                 speed_opt['max-overall-download-limit'] = download_limit
             return self._client.changeGlobalOption(speed_opt)
         except Exception as err:
-            log.exception(f"【{self.client_name}】{self.name} 设置速度限制 出错：", err)
+            log.exception("【%s】%s 设置速度限制 出错：", self.client_name, self.name)
             return False
 
     def get_type(self):
@@ -219,7 +219,7 @@ class Aria2(_IDownloadClient):
         try:
             return self._client.getFiles(gid=tid)
         except Exception as err:
-            log.exception(f"【{self.client_name}】{self.name} 获取种子文件 出错：", err)
+            log.exception("【%s】%s 获取种子文件 出错：", self.client_name, self.name)
             return None
 
     def recheck_torrents(self, ids):

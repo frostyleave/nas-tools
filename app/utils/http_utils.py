@@ -3,7 +3,9 @@ import urllib3
 
 from typing import Any, Optional, Union
 from requests import Session, Response
+from requests.adapters import HTTPAdapter
 from urllib3.exceptions import InsecureRequestWarning
+from urllib3.util.retry import Retry
 
 from config import Config
 import log
@@ -12,6 +14,9 @@ urllib3.disable_warnings(InsecureRequestWarning)
 
 
 class RequestUtils:
+
+    _shared_session = None
+
     _headers = None
     _proxies = None
     _timeout = 20
@@ -28,8 +33,10 @@ class RequestUtils:
                  referer: str = None,
                  content_type: str = None,
                  accept_type: str = None):
+        
         if not content_type:
             content_type = "application/x-www-form-urlencoded; charset=UTF-8"
+
         if headers:
             self._headers = headers
         else:
@@ -47,10 +54,44 @@ class RequestUtils:
                 self._cookies = cookies
         if proxies:
             self._proxies = proxies
-        if session:
-            self._session = session
         if timeout:
             self._timeout = timeout
+        
+        self._external_session = session
+
+
+    @classmethod
+    def _get_shared_session(cls):
+        """
+        获取或创建全局共享的 Session
+        """
+        if cls._shared_session is None:
+            cls._shared_session = requests.Session()
+            
+            # 配置连接池和重试策略
+            # pool_connections: 缓存的连接数
+            # pool_maxsize: 最大连接数（并发高时需要调大）
+            retry_strategy = Retry(
+                total=3,
+                backoff_factor=1,
+                status_forcelist=[429, 500, 502, 503, 504],
+            )
+            adapter = HTTPAdapter(pool_connections=20, pool_maxsize=100, max_retries=retry_strategy)
+            
+            cls._shared_session.mount("https://", adapter)
+            cls._shared_session.mount("http://", adapter)
+            
+        return cls._shared_session
+    
+    @property
+    def _session(self):
+        """
+        属性包装器：优先返回外部传入的 session，否则返回全局共享 session
+        """
+        if self._external_session:
+            return self._external_session
+        return self._get_shared_session()
+
 
     def request(self, method: str, url: str, raise_exception: bool = False, **kwargs) -> Optional[requests.Response]:
         """
@@ -76,7 +117,7 @@ class RequestUtils:
         try:
             return req_method(method, url, **kwargs)
         except requests.exceptions.RequestException as e:
-            log.exception(f"【RequestUtils】请求{url},method={method}  异常:", e)
+            log.exception(f"【RequestUtils】请求{url},method={method}  异常:")
             if raise_exception:
                 raise
             return None
@@ -203,7 +244,7 @@ class RequestUtils:
                 if len(cstr) > 1:
                     cookie_dict[cstr[0].strip()] = cstr[1].strip()
         except Exception as e:
-            log.exception(f'[Sys]cookie解析异常: ', e)
+            log.exception(f'[System]cookie解析异常: ')
         if array:
             return [{"name": k, "value": v} for k, v in cookie_dict.items()]
         return cookie_dict

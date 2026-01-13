@@ -146,7 +146,7 @@ class _ISiteUserInfo(metaclass=ABCMeta):
             self.seeding_info = json.dumps(self.seeding_info)
             
         except Exception as e:
-            log.exception(f"【Sites】{self.site_name} 解析站点信息出错", e)
+            log.exception(f"【Sites】{self.site_name} 解析站点信息出错")
         finally:
             # 关闭连接
             self.close()

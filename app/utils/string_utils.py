@@ -10,6 +10,7 @@ from datetime import datetime, timedelta
 from dateutil.parser import parse as parse_date, isoparse
 from typing import Optional
 
+import zhconv
 from zhon.hanzi import punctuation as zh_punc
 
 import log
@@ -39,7 +40,7 @@ class StringUtils:
         try:
             size = float(size)
         except Exception as e:
-            log.exception('num_filesize error:', e)
+            log.exception('num_filesize error:')
             return 0
         if text.find("PB") != -1 or text.find("PIB") != -1:
             size *= 1024 ** 5
@@ -62,7 +63,7 @@ class StringUtils:
             try:
                 time_sec = float(time_sec)
             except Exception as e:
-                log.exception('str_timelong error:', e)
+                log.exception('str_timelong error:')
                 return ""
         d = [(0, '秒'), (60 - 1, '分'), (3600 - 1, '小时'), (86400 - 1, '天')]
         s = [x[0] for x in d]
@@ -85,7 +86,16 @@ class StringUtils:
             return True
         else:
             return False
-
+    
+    @staticmethod
+    def contain_traditional_chinese(text: str) -> bool:
+        """
+        检查字符串是否至少包含一个非简体（即繁体或异体）字符
+        """
+        if not isinstance(text, str) or not text:
+            return False
+        return not zhconv.issimp(text)
+    
     @staticmethod
     def is_japanese(word):
         jap = re.compile(r'[\u3040-\u309F\u30A0-\u30FF]')
@@ -200,7 +210,7 @@ class StringUtils:
         try:
             int_val = int(text.strip().replace(',', ''))
         except Exception as e:
-            log.exception('str_int error:', e)
+            log.exception('str_int error:')
 
         return int_val
 
@@ -221,7 +231,7 @@ class StringUtils:
             else:
                 float_val = 0.0
         except Exception as e:
-            log.exception('str_float error:', e)
+            log.exception('str_float error:')
         return float_val
 
     @staticmethod
@@ -265,7 +275,7 @@ class StringUtils:
                     b, u = d[index]
                 return str(round(size / (b + 1), pre)) + u
             except Exception as e:
-                log.exception('str_filesize error:', e)
+                log.exception('str_filesize error:')
                 return ""
         if re.findall(r"[KMGTP]", size, re.I):
             return size
@@ -345,7 +355,7 @@ class StringUtils:
         try:
             tempsTime = parse_date(date)
         except Exception as e:
-            log.exception('get_time_stamp error:', e)
+            log.exception('get_time_stamp error:')
         return tempsTime
 
     @staticmethod
@@ -369,7 +379,7 @@ class StringUtils:
         try:
             return dateparser.parse(datetime_str).strftime('%Y-%m-%d %H:%M:%S')
         except Exception as e:
-            log.exception('unify_datetime_str error:', e)
+            log.exception('unify_datetime_str error:')
             return datetime_str
 
     @staticmethod
@@ -385,7 +395,7 @@ class StringUtils:
         try:
             return datetime.fromtimestamp(int(timestamp)).strftime(date_format)
         except Exception as e:
-            log.exception('timestamp_to_date error:', e)
+            log.exception('timestamp_to_date error:')
             return timestamp
 
     @staticmethod

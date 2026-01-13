@@ -9,7 +9,7 @@ import log
 
 from app.helper import SiteHelper, DbHelper
 from app.indexer.client.browser import PlaywrightHelper
-from app.indexer.manager import BaseIndexer, IndexerManager
+from app.indexer.manager import IndexerBase, IndexerManager
 from app.message import Message
 from app.sites import PtSiteConf, SiteRateLimiter
 from app.utils import RequestUtils, SiteUtils
@@ -365,14 +365,14 @@ class SitesManager:
                 if urls:
                     return str(urls[0]).strip()
         except Exception as err:
-            log.exception('【Sites】解析网站下载链接出错: ', err)
+            log.exception('【Sites】解析网站下载链接出错: ')
         return None
 
-    def match_indexer_sites(self, url, site_name=None) -> Optional[BaseIndexer]:
+    def match_indexer_sites(self, url, site_name=None) -> Optional[IndexerBase]:
         """
         根据url匹配索引站点信息
         """
-        indexers = IndexerManager().get_all_indexer_Base()
+        indexers = IndexerManager().get_all_indexer_base()
         if url:
             base_url = SiteUtils.get_base_url(url)            
             sites_info = next(filter(lambda x: x.domain.startswith(base_url), indexers), None)

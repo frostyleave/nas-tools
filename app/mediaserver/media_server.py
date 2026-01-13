@@ -55,7 +55,7 @@ class MediaServer:
                 if mediaserver_schema.match(ctype):
                     return mediaserver_schema(conf)
             except Exception as e:
-                log.exception("【MediaServer】实例化媒体服务器对象 出错: ", e)
+                log.exception("【MediaServer】实例化媒体服务器对象 出错: ")
         return None
 
     @property
@@ -365,7 +365,7 @@ class MediaServer:
         try:
             event_info = self.server.get_webhook_message(message)
         except Exception as e:
-            log.exception(f"【MediaServer】webhook 消息解析异常: ", e)
+            log.exception(f"【MediaServer】webhook 消息解析异常: ")
 
         if event_info:
             # 获取消息图片

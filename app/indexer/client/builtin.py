@@ -5,14 +5,13 @@ from typing import List, Optional, Tuple
 import log
 
 from app.conf import SystemConfig
-from app.helper import ProgressHelper
 from app.indexer.client._base import _IIndexClient
 from app.indexer.client import TorrentSpider, TNodeSpider, TorrentLeech, InterfaceSpider, MTorrentSpider
 from app.indexer.manager import IndexerManager, IndexerInfo
 from app.media.meta.metainfo import MetaInfo
 from app.sites import SitesManager
 from app.utils import StringUtils
-from app.utils.types import MediaType, SearchType, IndexerType, ProgressKey, SystemConfigKey
+from app.utils.types import MediaType, SearchType, IndexerType, SystemConfigKey
 
 
 class BuiltinIndexer(_IIndexClient):
@@ -38,8 +37,14 @@ class BuiltinIndexer(_IIndexClient):
         """
         return True
 
-    def get_indexers(self, check=True, indexer_id=None, public=True) -> List[IndexerInfo]:
-
+    def get_indexers(self, check=True, public=True, filter_limit=False) -> List[IndexerInfo]:
+        """
+        获取可用的索引站点数据
+        :param check: 是否过滤未启用的站点
+        :param indexer_id: 索引id
+        :param public: 是否返回公共站点
+        :param filter_limit: 是否过滤限流站点
+        """
         ret_indexers = []
 
         # 选中站点配置
@@ -47,26 +52,30 @@ class BuiltinIndexer(_IIndexClient):
         _indexer_domains = []
 
         # PT站点
-        for pt_site in SitesManager().get_sites():
+        sites_manager = SitesManager()
+        for pt_site in sites_manager.get_sites():
             url = pt_site.signurl or pt_site.rssurl
             if not url:
                 continue
+            
+            if filter_limit and sites_manager.check_ratelimit(pt_site.id):
+                log.debug("【索引器】%s 触发站点流控，跳过 ...", pt_site.name)
+                continue
+
             render = pt_site.chrome
             indexer_conf = IndexerManager().build_indexer_conf(url=url,
-                                                  siteid=pt_site.id,
-                                                  cookie=pt_site.cookie,
-                                                  token=pt_site.token,
-                                                  apikey=pt_site.apikey,
-                                                  ua=pt_site.ua,
-                                                  name=pt_site.name,
-                                                  rule=pt_site.rule,
-                                                  pri=pt_site.pri,
-                                                  public=False,
-                                                  proxy=pt_site.proxy,
-                                                  render=render)
+                                                               siteid=pt_site.id,
+                                                               cookie=pt_site.cookie,
+                                                               token=pt_site.token,
+                                                               apikey=pt_site.apikey,
+                                                               ua=pt_site.ua,
+                                                               name=pt_site.name,
+                                                               rule=pt_site.rule,
+                                                               pri=pt_site.pri,
+                                                               public=False,
+                                                               proxy=pt_site.proxy,
+                                                               render=render)
             if indexer_conf:
-                if indexer_id and indexer_conf.id == indexer_id:
-                    return indexer_conf
                 if check and (not indexer_sites or indexer_conf.id not in indexer_sites):
                     continue
                 if indexer_conf.domain not in _indexer_domains:
@@ -74,12 +83,12 @@ class BuiltinIndexer(_IIndexClient):
                     indexer_conf.name = pt_site.name
                     ret_indexers.append(indexer_conf)
         # 公开站点
-        for base_item in IndexerManager().get_all_indexer_Base():
+        if not public:
+            return ret_indexers
+
+        for base_item in IndexerManager().get_all_indexer_base():
             if not base_item.public:
                 continue
-            if indexer_id and base_item.id == indexer_id:
-                conf_data = IndexerManager().prepare_datas(conf_data=base_item)
-                return IndexerInfo.from_datas(conf_data)
             
             if check and (not indexer_sites or base_item.id not in indexer_sites):
                 continue
@@ -89,7 +98,7 @@ class BuiltinIndexer(_IIndexClient):
                 conf_data = IndexerManager().prepare_datas(conf_data=base_item)
                 ret_indexers.append(IndexerInfo.from_datas(conf_data))
         
-        return None if indexer_id else ret_indexers
+        return ret_indexers
 
     def search(self, 
                order_seq,
@@ -97,37 +106,21 @@ class BuiltinIndexer(_IIndexClient):
                key_word: str,
                filter_args: dict,
                match_media,
-               in_from: SearchType) -> List[MetaInfo]:
+               in_from: SearchType,
+               task_id=None) -> List[MetaInfo]:
         """
         根据关键字搜索资源并过滤
         """
         if not indexer or not key_word:
             return None
         
-        if SearchType.WEB == in_from:
-            search_progress = ProgressHelper()
-        else:
-            search_progress = None
-
-        # 站点流控
-        sites_manager = SitesManager()
-        if sites_manager.check_ratelimit(indexer.siteid):
-            if search_progress:
-                search_progress.update(ptype=ProgressKey.Search, text=f"{indexer.name} 触发站点流控，跳过 ...")
-            return []
-
         if filter_args is None:
             filter_args = {}
-
-        # 不在设定搜索范围的站点过滤掉
-        if filter_args.get("site") and indexer.name not in filter_args.get("site"):
-            return []
-        
-        # 搜索条件没有过滤规则时，使用站点的过滤规则
-        if not filter_args.get("rule") and indexer.rule:
+        elif not filter_args.get("rule") and indexer.rule:
+            # 搜索条件没有过滤规则时，使用站点的过滤规则
             filter_args.update({"rule": indexer.rule})
 
-        log.info(f"【索引器】开始搜索{indexer.name} ...")
+        log.info("【索引器】%s 开始搜索 ...", indexer.name)
 
         # 特殊符号处理
         search_word = StringUtils.handler_special_chars(text=key_word, replace_word=" ", allow_space=True)
@@ -147,20 +140,20 @@ class BuiltinIndexer(_IIndexClient):
         # 没有结果
         if result_count == 0:
             result_info = '搜索失败' if error_flag else '未搜索到数据'
-            summary_txt = f"【索引器】{indexer.name} {result_info}, 用时: {seconds}s"
+            summary_txt = "【索引器】%s %s, 用时: %s s" % (indexer.name, result_info, seconds)
             log.info(summary_txt)
             # 更新进度
-            if search_progress:
-                search_progress.update(ptype=ProgressKey.Search, text=summary_txt)
+            if SearchType.WEB == in_from:
+                self.update_process(task_id=task_id, text=summary_txt)
             return []
         
         # 有搜索结果
-        summary_txt = f"【索引器】{indexer.name} 返回数据：{result_count}, 用时: {seconds}s"
+        summary_txt = "【索引器】%s 返回数据：%s, 用时: %s s, 开始进行过滤... "% (indexer.name, result_count, seconds)
         # 记录日志
         log.info(summary_txt)
         # 更新进度
-        if search_progress:
-            search_progress.update(ptype=ProgressKey.Search, text=summary_txt)
+        if SearchType.WEB == in_from:
+            self.update_process(task_id=task_id, text=summary_txt)
 
         # 结果过滤
         return self.filter_search_results(result_array=result_array,
@@ -168,7 +161,9 @@ class BuiltinIndexer(_IIndexClient):
                                           indexer=indexer,
                                           filter_args=filter_args,
                                           search_media=match_media,
-                                          start_time=start_time)
+                                          start_time=start_time,
+                                          in_from=in_from,
+                                          task_id=task_id)
 
 
     def search_torrents(self, indexer: IndexerInfo, search_word: str='', mtype: Optional[MediaType]=None) -> Tuple[bool, list]:
@@ -192,5 +187,5 @@ class BuiltinIndexer(_IIndexClient):
             return TorrentSpider(indexer).search(keyword=search_word, mtype=mtype)
         
         except Exception as err:
-            log.exception(f'【索引器】[{indexer.name}]执行搜索异常: ', err)
+            log.exception('【索引器】[%s]执行搜索异常: ', indexer.name)
             return True, []

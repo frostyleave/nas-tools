@@ -1,21 +1,16 @@
-import pytz
-
-from datetime import datetime, timedelta
+from datetime import datetime
 from threading import Event
 
-from apscheduler.schedulers.background import BackgroundScheduler
-from apscheduler.triggers.cron import CronTrigger
 from jinja2 import Template
 
 from app.helper import RssHelper
+from app.helper import ThreadHelper
 from app.media.meta.metainfo import MetaInfo
 from app.media.tmdbv3api.objs.movie import Movie
 from app.mediaserver import MediaServer
 from app.plugins.modules._base import _IPluginModule
 from app.subscribe import Subscribe
 from app.utils.types import MediaType, RssType
-
-from config import Config
 
 class TmdbHotMovieRank(_IPluginModule):
     # 插件名称
@@ -68,17 +63,12 @@ class TmdbHotMovieRank(_IPluginModule):
 
         # 启动服务
         if self.get_state() or self._onlyonce:
-            timezone = Config().get_timezone()
-            self._scheduler = BackgroundScheduler(timezone=timezone)
-
             if self._cron:
-                self.info(f"TMDB热门电影订阅服务启动，周期: {self._cron}")
-                self._scheduler.add_job(self.__refresh_rank, CronTrigger.from_crontab(self._cron))
+                self._cron_job = self.add_cron_job(self.__refresh_rank, self._cron, 'TMDB热门电影订阅')
 
             if self._onlyonce:
                 self.info("TMDB热门电影订阅服务启动，立即运行一次")
-                self._scheduler.add_job(self.__refresh_rank, 'date',
-                                        run_date=datetime.now(tz=pytz.timezone(timezone)) + timedelta(seconds=3))
+                ThreadHelper().start_thread(self.__refresh_rank, ())
                 # 关闭一次性开关
                 self._onlyonce = False
                 self.update_config({
@@ -87,10 +77,6 @@ class TmdbHotMovieRank(_IPluginModule):
                     "cron": self._cron,
                     "vote": self._vote
                 })
-            if self._scheduler.get_jobs():
-                # 启动服务
-                self._scheduler.print_jobs()
-                self._scheduler.start()
 
     def get_state(self):
         return self._enable and self._cron
@@ -285,13 +271,7 @@ class TmdbHotMovieRank(_IPluginModule):
         停止服务
         """
         try:
-            if self._scheduler:
-                self._scheduler.remove_all_jobs()
-                if self._scheduler.running:
-                    self._event.set()
-                    self._scheduler.shutdown()
-                    self._event.clear()
-                self._scheduler = None
+            self.remove_job(self._cron_job)
         except Exception as e:
             print(str(e))
 

@@ -79,7 +79,8 @@ class MetaAnime(MetaBase):
                     if self.cn_name:
                         self.cn_name = re.sub(r'%s' % self._name_nostring_re, '', self.cn_name,
                                               flags=re.IGNORECASE).strip()
-                        self.cn_name = zhconv.convert(self.cn_name, "zh-hans")
+                        if StringUtils.contain_traditional_chinese(self.cn_name):
+                            self.cn_name = zhconv.convert(self.cn_name, "zh-hans")
                 if self.en_name:
                     self.en_name = re.sub(r'%s' % self._name_nostring_re, '', self.en_name,
                                           flags=re.IGNORECASE).strip().title()
@@ -137,7 +138,7 @@ class MetaAnime(MetaBase):
                     except Exception as err:
                         self.begin_episode = None
                         self.end_episode = None
-                        log.exception('【Meta】动漫剧集范围解析出错: ', e)
+                        log.exception('【Meta】动漫剧集范围解析出错: ')
 
                     self.type = MediaType.TV
                 # 类型
@@ -179,7 +180,7 @@ class MetaAnime(MetaBase):
             if not self.type:
                 self.type = MediaType.TV
         except Exception as e:
-            log.exception(f'【Meta】解析动漫名称[{title}]出错: ', e)
+            log.exception(f'【Meta】解析动漫名称[{title}]出错: ')
 
     def __prepare_title(self, title):
         """
