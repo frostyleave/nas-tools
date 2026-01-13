@@ -13,3 +13,7 @@
 /config/*.db
 /config/tmdb.dat
 /config/temp
+/config/*.db-wal
+/config/*.db-shm
+/config/export_indexer_sites.py
+/config/*.sql
