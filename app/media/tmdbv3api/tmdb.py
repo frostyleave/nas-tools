@@ -2,6 +2,7 @@
 import ast
 import logging
 import requests
+import ssl
 import time
 
 from cachetools import TTLCache, cached
@@ -16,6 +17,15 @@ from .exceptions import TMDbException
 
 logger = logging.getLogger(__name__)
 
+# 创建一个自定义的 SSL 上下文，忽略 EOF 错误
+class SSLAdapter(HTTPAdapter):
+    def init_poolmanager(self, *args, **kwargs):
+        context = ssl.create_default_context()
+        # 核心设置：允许非预期的 EOF
+        context.check_hostname = False
+        context.verify_mode = ssl.CERT_NONE
+        kwargs['ssl_context'] = context
+        return super().init_poolmanager(*args, **kwargs)
 
 class TMDb(object):
     
@@ -81,11 +91,13 @@ class TMDb(object):
                 total=3,
                 backoff_factor=1,
                 status_forcelist=[429, 500, 502, 503, 504],
+                raise_on_status=False
             )
-            adapter = HTTPAdapter(pool_connections=20, pool_maxsize=100, max_retries=retry_strategy)
+            adapter = SSLAdapter(pool_connections=20, pool_maxsize=100, max_retries=retry_strategy)
             
             cls._shared_session.mount("https://", adapter)
             cls._shared_session.mount("http://", adapter)
+            cls._session.trust_env = False  # 强制不使用系统代理
             
         return cls._shared_session
 
