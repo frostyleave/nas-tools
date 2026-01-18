@@ -157,6 +157,16 @@ LOGGING_CONFIG = {
             "handlers": ["null_handler"],
             "propagate": False,
         },
+        # 屏蔽 httpx 日志
+        "httpx": {
+            "handlers": ["null_handler"],
+            "propagate": False,
+        },
+        # 屏蔽 httpcore 日志(httpx 的底层，有时也会打印)
+        "httpcore": {
+            "handlers": ["null_handler"],
+            "propagate": False,
+        },
         # Uvicorn 访问日志
         "uvicorn.access": {
             "level": "INFO",

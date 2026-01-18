@@ -73,6 +73,7 @@ class _IIndexClient(metaclass=ABCMeta):
         self.step_fator = fator
 
     def filter_search_results(self, 
+                              search_key_word: str,
                               result_array: list,
                               order_seq,
                               indexer,
@@ -95,20 +96,12 @@ class _IIndexClient(metaclass=ABCMeta):
         media = Media()
         filter = Filter()
 
-        target_year = []
-        item_tmdb_info = search_media.tmdb_info if search_media else None
         # 目标资源类型
         mtype = search_media.type if search_media else None
-        if item_tmdb_info:
-            if mtype == MediaType.MOVIE:
-                if hasattr(search_media.tmdb_info, 'release_date') and search_media.tmdb_info.release_date:
-                    target_year.append(search_media.tmdb_info.release_date[0:4])
-            else:
-                if hasattr(search_media.tmdb_info, 'seasons') and search_media.tmdb_info.seasons:
-                    for season_info in search_media.tmdb_info.seasons:
-                        if not season_info.air_date:
-                            continue
-                        target_year.append(season_info.air_date[0:4])
+        # 目标tmdb信息
+        target_tmdb_info = search_media.tmdb_info if search_media else None
+        # 关键过滤参数解析
+        target_year, target_names = self.build_filter_factor(target_tmdb_info, mtype, search_key_word)
 
         for item in result_array:
             # 名称
@@ -200,7 +193,7 @@ class _IIndexClient(metaclass=ABCMeta):
                             continue                   
 
                         # 名称、年份 都匹配时，不再额外请求tmdb进行比对
-                        if self.is_result_item_name_match(item_tmdb_info, item_meta):
+                        if self.is_result_item_name_match(target_names, item_meta):
                             media_info = media.merge_media_info(item_meta, search_media)
                         else:
                             # 识别搜索结果的tmdb信息
@@ -307,23 +300,46 @@ class _IIndexClient(metaclass=ABCMeta):
             self.update_process(task_id, text=text_info)
 
         return ret_array
+    
 
-    def is_result_item_name_match(self, item_tmdb_info, item_meta : MetaInfo):
+    def build_filter_factor(self, target_tmdb_info, mtype, search_key_word):
+        """
+        构造过滤参数
+        """
+        target_year = []
+        target_names = []
+
+        target_names.append(search_key_word)
+
+        if target_tmdb_info:
+            # 年份
+            if mtype == MediaType.MOVIE:
+                if hasattr(target_tmdb_info, 'release_date') and target_tmdb_info.release_date:
+                    target_year.append(target_tmdb_info.release_date[0:4])
+            else:
+                if hasattr(target_tmdb_info, 'seasons') and target_tmdb_info.seasons:
+                    for season_info in target_tmdb_info.seasons:
+                        if not season_info.air_date:
+                            continue
+                        target_year.append(season_info.air_date[0:4])
+            
+            # 名称
+            if hasattr(target_tmdb_info, 'title') and target_tmdb_info.title:
+                target_names.append(target_tmdb_info.title)
+            if hasattr(target_tmdb_info, 'original_title') and target_tmdb_info.original_title:
+                target_names.append(target_tmdb_info.original_title)
+            if hasattr(target_tmdb_info, 'name') and target_tmdb_info.name:
+                target_names.append(target_tmdb_info.name)
+            if hasattr(target_tmdb_info, 'original_name') and target_tmdb_info.original_name:
+                target_names.append(target_tmdb_info.original_name)
+        
+        return target_year, target_names
+
+
+    def is_result_item_name_match(self, target_names, item_meta : MetaInfo):
         """
         检查名称是否完全匹配
         """
-        if not item_tmdb_info:
-            return False
-        
-        target_names = []
-        if hasattr(item_tmdb_info, 'title') and item_tmdb_info.title:
-            target_names.append(item_tmdb_info.title)
-        if hasattr(item_tmdb_info, 'original_title') and item_tmdb_info.original_title:
-            target_names.append(item_tmdb_info.original_title)
-        if hasattr(item_tmdb_info, 'name') and item_tmdb_info.name:
-            target_names.append(item_tmdb_info.name)
-        if hasattr(item_tmdb_info, 'original_name') and item_tmdb_info.original_name:
-            target_names.append(item_tmdb_info.original_name)
         
         if not target_names:
             return False

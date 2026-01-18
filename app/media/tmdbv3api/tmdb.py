@@ -97,7 +97,6 @@ class TMDb(object):
             
             cls._shared_session.mount("https://", adapter)
             cls._shared_session.mount("http://", adapter)
-            cls._session.trust_env = False  # 强制不使用系统代理
             
         return cls._shared_session
 
