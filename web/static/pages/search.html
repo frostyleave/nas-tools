@@ -326,6 +326,11 @@
         html += `<div>
         <span class="badge badge-outline text-azure badge-fixed">${torrent.site}</span>
         `;
+        if (torrent.size) {
+          html += `
+          <span class="badge text-white bg-yellow">${torrent.size}</span>
+          `;
+        }
         if (torrent.reseffect) {
           html += `
           <span class="badge text-white bg-purple">${torrent.reseffect}</span>
@@ -334,11 +339,6 @@
         if (torrent.video_encode) {
           html += `
           <span class="badge text-white bg-orange">${torrent.video_encode}</span>
-          `;
-        }
-        if (torrent.size) {
-          html += `
-          <span class="badge text-white bg-yellow">${torrent.size}</span>
           `;
         }
         if (torrent.releasegroup) {

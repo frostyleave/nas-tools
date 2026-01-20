@@ -98,6 +98,7 @@ class MTorrentSpider:
         if res and res.status_code == 200:
             results = res.json().get('data', {}).get("data") or []
             for result in results:
+
                 category_value = result.get('category')
                 if category_value in self._tv_category \
                         and category_value not in self._movie_category:
@@ -106,22 +107,28 @@ class MTorrentSpider:
                     category = MediaType.MOVIE.value
                 else:
                     category = MediaType.UNKNOWN.value
-                labels_value = self._labels.get(result.get('labels') or "0") or ""
-                if labels_value:
-                    labels = labels_value.split()
-                else:
-                    labels = []
+
+                labels = result.get('labelsNew')
+                if not labels:
+                    labels_value = self._labels.get(result.get('labels') or "0") or ""
+                    if labels_value:
+                        labels = labels_value.split()
+                    else:
+                        labels = []
+
+                status_info = result.get('status', {})
+                
                 torrent = {
                     'title': result.get('name'),
                     'description': result.get('smallDescr'),
                     'enclosure': self.__get_download_url(result.get('id')),
                     'pubdate': StringUtils.timestamp_to_date(result.get('createdDate')),
                     'size': int(result.get('size') or '0'),
-                    'seeders': int(result.get('status', {}).get("seeders") or '0'),
-                    'peers': int(result.get('status', {}).get("leechers") or '0'),
-                    'grabs': int(result.get('status', {}).get("timesCompleted") or '0'),
-                    'downloadvolumefactor': self.__get_downloadvolumefactor(result.get('status', {}).get("discount")),
-                    'uploadvolumefactor': self.__get_uploadvolumefactor(result.get('status', {}).get("discount")),
+                    'seeders': int(status_info.get("seeders") or '0'),
+                    'peers': int(status_info.get("leechers") or '0'),
+                    'grabs': int(status_info.get("timesCompleted") or '0'),
+                    'downloadvolumefactor': self.__get_downloadvolumefactor(status_info.get("discount")),
+                    'uploadvolumefactor': self.__get_uploadvolumefactor(status_info.get("discount")),
                     'page_url': self._pageurl % (self._url, result.get('id')),
                     'imdbid': self.__find_imdbid(result.get('imdb')),
                     'labels': "|".join(labels),

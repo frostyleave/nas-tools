@@ -30,7 +30,7 @@ class SSLAdapter(HTTPAdapter):
 class TMDb(object):
     
     # --- 类变量：全局共享 Session ---
-    _shared_session = None
+    _shared_session : Optional[requests.Session] = None
     
     _proxies = 'None'
     _language = 'zh'
@@ -137,7 +137,7 @@ class TMDb(object):
         # 获取全局 Session
         session = TMDb._get_shared_session()
         
-        return session.request(method, url, data=data, proxies=proxies_dict, verify=False, timeout=10)
+        return session.request(method, url, data=data, proxies=proxies_dict, verify=False, timeout=(5, 20))
 
     def cache_clear(self):
         return self.cached_request.cache_clear()
