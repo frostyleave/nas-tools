@@ -487,7 +487,8 @@ class FileTransfer:
                        episode: Tuple[EpisodeFormat, bool] = None,
                        min_filesize=None,
                        udf_flag=False,
-                       root_path=False):
+                       root_path=False,
+                       is_dir_specified=False):
         """
         识别并转移一个文件、多个文件或者目录
         :param in_from: 来源，即调用该功能的渠道
@@ -688,14 +689,17 @@ class FileTransfer:
                     else:
                         log.error("【Rmt】%s 无法识别媒体信息！" % file_name)
                     continue
+
                 # 当前文件大小
                 media.size = os.path.getsize(file_item)
+                
                 # 目的目录，有输入target_dir时，往这个目录放
                 if target_dir:
                     dist_path = target_dir
                 else:
                     dist_path = self.get_best_target_path(mtype=media.type, in_path=in_path, size=media.size)
                     log.info("【Rmt】查询最佳路径结果：{}".format(dist_path))
+
                 if not dist_path:
                     log.error("【Rmt】文件转移失败，目的路径不存在！")
                     success_flag = False
@@ -705,6 +709,7 @@ class FileTransfer:
                     if error_message not in alert_messages:
                         alert_messages.append(error_message)
                     continue
+
                 if dist_path and not os.path.exists(dist_path) and rmt_mode not in ModuleConf.REMOTE_RMT_MODES:
                     return __finish_transfer(False, "目录不存在：%s" % dist_path)
 
@@ -712,7 +717,7 @@ class FileTransfer:
                     target_in_media_lib = True
 
                 # 判断文件是否已存在，返回：目录存在标志、目录名、文件存在标志、文件名
-                dir_exist_flag, ret_dir_path, file_exist_flag, ret_file_path = self.__is_media_exists(dist_path, media)
+                dir_exist_flag, ret_dir_path, file_exist_flag, ret_file_path = self.__is_media_exists(dist_path, media, is_dir_specified)
                 # 新文件后缀
                 file_ext = os.path.splitext(file_item)[-1]
                 new_file = ret_file_path
@@ -981,7 +986,8 @@ class FileTransfer:
 
     def __is_media_exists(self,
                           media_dest,
-                          media):
+                          media,
+                          is_dir_specified: bool = False):
         """
         判断媒体文件是否忆存在
         :param media_dest: 媒体文件所在目录
@@ -1000,7 +1006,7 @@ class FileTransfer:
             # 默认目录路径
             file_path = os.path.join(media_dest, dir_name)
             # 开启分类时目录路径
-            if self._movie_category_flag:
+            if self._movie_category_flag and not is_dir_specified:
                 file_path = os.path.join(media_dest, media.category, dir_name)
                 for m_type in [RMT_FAVTYPE, media.category]:
                     type_path = os.path.join(media_dest, m_type, dir_name)
@@ -1029,8 +1035,8 @@ class FileTransfer:
             # 目录名称
             dir_name, season_name, file_name = self.get_tv_dest_path(media)
             # 剧集目录
-            if (media.type == MediaType.TV and self._tv_category_flag) or (
-                    media.type == MediaType.ANIME and self._anime_category_flag):
+            if not is_dir_specified and ((media.type == MediaType.TV and self._tv_category_flag) or (
+                    media.type == MediaType.ANIME and self._anime_category_flag)):
                 media_path = os.path.join(media_dest, media.category, dir_name)
             else:
                 media_path = os.path.join(media_dest, dir_name)
