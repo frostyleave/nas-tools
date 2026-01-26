@@ -825,6 +825,7 @@ class Subscribe:
                 media_info.keyword = keyword
                 # 表中记录的剩余订阅集数
                 episodes = self.get_subscribe_tv_episodes(rss_info.get("id"))
+                
                 if episodes is None:
                     episodes = []
                     if current_ep:
@@ -852,29 +853,23 @@ class Subscribe:
                     # 当前剧集已存在，跳过
                     if exist_flag:
                         # 已全部存在
-                        if not library_no_exists \
-                                or not library_no_exists.get(media_info.tmdb_id):
-                            log.info("【Subscribe】电视剧 %s 订阅剧集已全部存在" % (
-                                media_info.get_title_string()))
+                        if not library_no_exists or not library_no_exists.get(media_info.tmdb_id):
+                            log.info("【Subscribe】电视剧 %s 订阅剧集已全部存在" % (media_info.get_title_string()))
                             # 完成订阅
-                            self.finish_rss_subscribe(rssid=rss_info.get("id"),
-                                                      media=media_info)
+                            self.finish_rss_subscribe(rssid=rss_info.get("id"), media=media_info)
                         continue
                     # 取交集做为缺失集
                     rss_no_exists = TorrentUtils.get_intersection_episodes(target=rss_no_exists,
-                                                                      source=library_no_exists,
-                                                                      title=media_info.tmdb_id)
+                                                                           source=library_no_exists,
+                                                                           title=media_info.tmdb_id)
                     if rss_no_exists.get(media_info.tmdb_id):
-                        log.info("【Subscribe】%s 订阅缺失季集：%s" % (
-                            media_info.get_title_string(),
-                            rss_no_exists.get(media_info.tmdb_id)
-                        ))
+                        log.info("【Subscribe】%s 订阅缺失季集：%s" % (media_info.get_title_string(), rss_no_exists.get(media_info.tmdb_id)))
                 else:
                     # 把洗版标志加入检索
                     media_info.over_edition = over_edition
                     # 将当前的优先级传入检索
-                    media_info.res_order = self.dbhelper.get_rss_overedition_order(rtype=MediaType.TV,
-                                                                                   rssid=rssid)
+                    media_info.res_order = self.dbhelper.get_rss_overedition_order(rtype=MediaType.TV, rssid=rssid)
+                    
                 # 开始检索
                 filter_dict = {
                     "restype": rss_info.get('filter_restype'),
@@ -885,12 +880,11 @@ class Subscribe:
                     "exclude": rss_info.get('filter_exclude'),
                     "site": rss_info.get("search_sites")
                 }
-                search_result, no_exists, _, _ = self.searcher.search_one_media(
-                    media_info=media_info,
-                    in_from=SearchType.RSS,
-                    no_exists=rss_no_exists,
-                    sites=rss_info.get("search_sites"),
-                    filters=filter_dict)
+                search_result, no_exists, _, _ = self.searcher.search_one_media(media_info=media_info,
+                                                                                in_from=SearchType.RSS,
+                                                                                no_exists=rss_no_exists,
+                                                                                sites=rss_info.get("search_sites"),
+                                                                                filters=filter_dict)
                 if search_result \
                         or not no_exists \
                         or not no_exists.get(media_info.tmdb_id):

@@ -1,21 +1,18 @@
 import json
 import re
-import tracemalloc
 import xml.dom.minidom
 
 from fastapi import APIRouter, Request, Response
 from typing import Optional
 
 from app.conf.moduleconf import ModuleConf
-from app.helper.security_helper import SecurityHelper
-from app.helper import ThreadHelper
-from app.job_center import JobCenter
+from app.helper import ThreadHelper, SecurityHelper
 from app.media.meta.metainfo import MetaInfo
 from app.mediaserver.media_server import MediaServer
 from app.message import Message
 from app.plugins.event_manager import EventManager
 from app.subscribe import Subscribe
-from app.utils.dom_utils import DomUtils
+from app.utils import DomUtils
 from app.utils.types import EventType, MediaServerType, MediaType, RssType, SearchType
 
 import log
@@ -441,46 +438,3 @@ async def subscribe(request: Request):
     else:
         return Response(content=msg, status_code=500)
     
-
-@open_router.get("/memory")
-async def memory_snapshot():
-    
-    global snapshot1
-    snapshot1 = tracemalloc.take_snapshot()
-    
-    print("--- 内存快照1 已拍摄 ---")
-    return {"message": "Memory snapshot 1 taken."}
-
-@open_router.get("/mem_compare")
-async def memory_snapshot():
-    """
-    拍下“快照2”, 并与“快照1”对比, 将结果打印到 Docker 日志。
-    """
-    global snapshot1
-    if not snapshot1:
-        return {"error": "Snapshot 1 not taken. Call /debug/mem_snapshot first."}
-
-    print("--- 正在拍摄快照2并对比 ---")
-    snapshot2 = tracemalloc.take_snapshot()
-    
-    # 核心：对比两个快照，按代码行分组
-    stats = snapshot2.compare_to(snapshot1, 'traceback')
-
-    print("--- 内存泄漏 TOP 10 (按代码行) ---")
-    # 3. (关键) 将结果打印到日志！
-    for i, stat in enumerate(stats[:10], 1):
-        print(f"#{i}: {stat.size_diff / 1024:.1f} KiB new memory ({stat.count_diff} new objects)")
-        # 打印完整的调用链
-        for line in stat.traceback.format():
-            print(f"  {line}")
-        print("-" * 20) # 添加分隔符
-        
-
-    return {"message": "Memory comparison complete. Check Docker logs."}
-
-@open_router.get("/jobs")
-def get_jobs():
-    """
-    获取所有已注册的定时任务
-    """
-    return JobCenter().get_jobs()

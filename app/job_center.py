@@ -107,7 +107,7 @@ class JobCenter:
             # 3. 安全地处理 next_run_time (它可能为 None)
             if job.next_run_time:
                 # 转换为 ISO 8601 字符串格式，这是 JSON 标准
-                job_data["next_run_time"] = job.next_run_time.isoformat() 
+                job_data["next_run_time"] = job.next_run_time.strftime("%Y-%m-%d %H:%M:%S")
             else:
                 job_data["next_run_time"] = None
                 

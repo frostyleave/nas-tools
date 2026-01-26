@@ -134,14 +134,14 @@ class Rss:
                     log.error(f"【Rss】站点 {site_name} RSS链接已过期，请重新获取！")
                     # 发送消息
                     self.message.send_site_message(title="【RSS链接过期提醒】",
-                                                   text=f"站点：{site_name}\n"
-                                                        f"链接：{rss_url}")
+                                                   text=f"站点：{site_name}\n链接：{rss_url}")
                     continue
+
                 if not rss_acticles:
                     log.warn(f"【Rss】{site_name} 未下载到数据")
                     continue
-                else:
-                    log.info(f"【Rss】{site_name} 获取数据：{len(rss_acticles)}")
+                
+                log.info(f"【Rss】{site_name} 获取数据：{len(rss_acticles)}")
                 # 处理RSS结果
                 res_num = 0
                 for article in rss_acticles:
@@ -160,9 +160,11 @@ class Rss:
                         if self.rsshelper.is_rssd_by_enclosure(enclosure):
                             log.info(f"【Rss】{title} 已成功订阅过")
                             continue
+
                         # 识别种子名称，开始搜索TMDB
                         media_info = MetaInfo(title=title)
                         cache_info = self.media.get_cache_info(media_info)
+
                         if cache_info.get("id"):
                             # 使用缓存信息
                             media_info.tmdb_id = cache_info.get("id")
@@ -177,6 +179,7 @@ class Rss:
                                 continue
                             elif not media_info.tmdb_info:
                                 log.debug(f"【Rss】{title} 识别为 {media_info.get_name()} 未匹配到TMDB媒体信息")
+                                
                         # 大小及种子页面
                         media_info.set_torrent_info(size=size,
                                                     page_url=page_url,
@@ -253,21 +256,17 @@ class Rss:
                                     )
                                     # 取交集做为缺失集
                                     rss_no_exists = TorrentUtils.get_intersection_episodes(target=rss_no_exists,
-                                                                                      source=library_no_exists,
-                                                                                      title=media_info.tmdb_id)
+                                                                                           source=library_no_exists,
+                                                                                           title=media_info.tmdb_id)
                                     if rss_no_exists.get(media_info.tmdb_id):
-                                        log.info("【Rss】%s 订阅缺失季集：%s",
-                                            media_info.get_title_string(),
-                                            rss_no_exists.get(media_info.tmdb_id)
-                                        )
+                                        log.info("【Rss】%s 订阅缺失季集：%s", media_info.get_title_string(), rss_no_exists.get(media_info.tmdb_id))
                                 # 本地已存在
                                 if exist_flag:
                                     continue
                             # 洗版模式
                             else:
                                 # 洗版时季集不完整的资源不要
-                                if media_info.type != MediaType.MOVIE \
-                                        and media_info.get_episode_list():
+                                if media_info.type != MediaType.MOVIE and media_info.get_episode_list():
                                     log.info(
                                         f"【Rss】{media_info.get_title_string()}{media_info.get_season_string()} "
                                         f"正在洗版，过滤掉季集不完整的资源：{title}"
@@ -308,6 +307,7 @@ class Rss:
                             rss_download_torrents.append(media_info)
                             log.info("【Rss】%s 加入下载列表" , media_info.org_string)
                             res_num = res_num + 1
+                            
                     except Exception as e:
                         log.exception('【Rss】处理RSS发生错误: ')
                         continue

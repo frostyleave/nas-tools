@@ -119,6 +119,7 @@ def search(background_tasks: BackgroundTasks, data: dict = Body(...)):
         log.debug("[%s] %s, 耗时: %s ms", str(threading.get_ident()), json.dumps(data), format(process_time, ".2f"))
 
 class WebAction:
+    
     _actions = {}
     _commands = {}
     _current_user : Optional[User] = None
@@ -310,7 +311,8 @@ class WebAction:
             "save_external_source_settings": self.save_external_source_settings,
             "refresh_pt_statistics": self.refresh_pt_statistics,
             "install_external_plugin": self.install_external_plugin,
-            "uninstall_external_plugin": self.uninstall_external_plugin
+            "uninstall_external_plugin": self.uninstall_external_plugin,
+            "get_jobs": self.get_jobs
         }
         # 远程命令响应
         self._commands = {
@@ -5701,3 +5703,10 @@ class WebAction:
             "id": item.get("cmd"),
             "name": item.get("desc")
         } for item in PluginManager().get_plugin_commands()]
+
+    def get_jobs(self):
+        """
+        获取所有已注册的定时任务
+        """
+        result = JobCenter().get_jobs()
+        return {"code": 0, "result": result }

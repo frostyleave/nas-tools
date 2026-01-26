@@ -1,5 +1,4 @@
 import datetime
-import pytz
 
 from typing import Optional
 from apscheduler.schedulers.background import BackgroundScheduler
