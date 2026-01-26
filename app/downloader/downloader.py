@@ -829,8 +829,8 @@ class Downloader:
                 bdecode(req.content)  # 验证种子
                 return self.resolve_torrent_from_http(url, req)
             except Exception as err:
-                print(str(err))
-                return None, None, "种子数据有误, 请确认链接是否正确"
+                log.exception("【Downloader】保存种子文件失败: ")
+                return None, None, "保存种子文件失败"
             
         # 尝试作为文本处理
         text_content = req.text 
@@ -853,9 +853,11 @@ class Downloader:
         file_path = os.path.join(self._torrent_temp_path, file_name)
         # 种子内容
         file_content = req.content
-        # 写入磁盘
-        with open(file_path, 'wb') as f:
-            f.write(file_content)
+
+        # 确认文件不存在, 写入磁盘
+        if not os.path.exists(file_path):
+            with open(file_path, 'wb') as f:
+                f.write(file_content)
 
         return file_path, file_content, ""
 
