@@ -55,32 +55,32 @@ def MetaInfo(title, subtitle=None, mtype=None, no_extra=False):
 
     # 判断是否处理文件、格式化剧集文件名
     if org_title and os.path.splitext(org_title)[-1] in RMT_MEDIAEXT:
-        fileflag = True
+        file_flag = True
         rev_title, subtitle = MediaUtils.clean_episode_range_from_file_name(rev_title, subtitle)
     else:
-        fileflag = False
+        file_flag = False
 
     anime_flag = is_anime(rev_title)
 
     if mtype == MediaType.ANIME or anime_flag:
-        meta_info = MetaAnime(rev_title, subtitle, fileflag)
+        meta_info = MetaAnime(rev_title, subtitle, file_flag)
+        # 没有识别出年份时补全
+        identify_anime_year(meta_info, anime_flag, file_flag)
+        # 动漫文件集数信息补全
+        complete_anime_file_ep(meta_info, file_flag)
     else:
-        resource_team, rev_title = preprocess_title(rev_title)
-        meta_info = MetaVideo(rev_title, subtitle, fileflag)
-        # 识别出为剧集、且有年份，但是没有集数，去掉标题中年份，重新识别
+        # 提取制作组/字幕组
+        resource_team, rev_title = parse_resource_team_from_title(rev_title)
+        # 解析
+        meta_info = MetaVideo(rev_title, subtitle, file_flag)
+        # 识别出为剧集、且有年份，但是没有集数时，去掉标题中年份，重新识别
         if MediaType.MOVIE != meta_info.type and not meta_info.begin_episode and meta_info.year:
             year = meta_info.year
-            meta_info = MetaVideo(rev_title.replace(meta_info.year, ''), subtitle, fileflag)
+            meta_info = MetaVideo(rev_title.replace(meta_info.year, ''), subtitle, file_flag)
             meta_info.year = year
         if resource_team:
             meta_info.resource_team = resource_team
-        # 动漫文件集数信息补全
-        if anime_flag and fileflag and not meta_info.begin_episode:
-            anitopy_info = anitopy.parse(meta_info.org_string)
-            if anitopy_info and anitopy_info.get("episode_number"):
-                episode_number = anitopy_info.get("episode_number")
-                meta_info.begin_episode = episode_number if isinstance(episode_number, int) else int(episode_number)
-
+    
     # 剧集
     if meta_info.begin_episode:
         if meta_info.end_season and meta_info.begin_season != meta_info.end_season:
@@ -105,7 +105,7 @@ def MetaInfo(title, subtitle=None, mtype=None, no_extra=False):
 
 
 # 标题信息预处理
-def preprocess_title(rev_title):
+def parse_resource_team_from_title(rev_title):
     # 提取制作组/字幕组
     resource_team = ReleaseGroupsMatcher().match_list(title=rev_title)
     # 把标题中的制作组/字幕组去掉
@@ -144,3 +144,50 @@ def is_anime(name):
     if re.search(r'\[[+0-9XVPI-]+]\s*\[', check_name, re.IGNORECASE):
         return True
     return False
+
+
+def identify_anime_year(meta_info: MetaAnime, anime_flag: bool, file_flag: bool):
+    """
+    识别动漫资源的年份信息
+    :param meta_info: 资源解析结果
+    :param anime_flag: 是否被标记为动漫
+    :param file_flag: 是否为文件
+    """
+
+    if not meta_info or anime_flag:
+        return
+    if meta_info.year:
+        return
+    
+    cn_name = meta_info.cn_name
+    if cn_name and StringUtils.is_string_ending_with_number(cn_name):
+        year_reg = MetaVideo(cn_name, '', file_flag)
+        if year_reg.year:
+            meta_info.cn_name = year_reg.cn_name
+            meta_info.year = year_reg.year
+            return
+        
+    en_name = meta_info.en_name
+    if en_name and StringUtils.is_string_ending_with_number(en_name):
+        year_reg = MetaVideo(en_name, '', file_flag)
+        if year_reg.year:
+            meta_info.en_name = year_reg.en_name
+            meta_info.year = year_reg.year
+            return
+
+
+def complete_anime_file_ep(meta_info: MetaAnime, file_flag: bool):
+    """
+    补全动漫文件的季数星星
+    :param meta_info: 资源解析结果
+    :param anime_flag: 是否被标记为动漫
+    :param file_flag: 是否为文件
+    """
+    if meta_info.begin_episode or not file_flag:
+        return
+    
+    anitopy_info = anitopy.parse(meta_info.org_string)
+    if anitopy_info and anitopy_info.get("episode_number"):
+        episode_number = anitopy_info.get("episode_number")
+        meta_info.begin_episode = episode_number if isinstance(episode_number, int) else int(episode_number)
+
