@@ -257,9 +257,9 @@ class IYUUAutoSeedEnhance(_IPluginModule):
             # 定时任务
             if self._cron:
                 # 注册定时任务(不立即启动)
-                self._cron_job = self.add_cron_job(self.auto_seed, self._cron, '辅种服务', False)
+                self._cron_job = self.add_cron_job(self.auto_seed, self._cron, 'IYUU自动辅种', False)
                 if self._cron_job:
-                    self._check_job = self.get_scheduler().add_job(self.check_recheck, 'interval', minutes=3)
+                    self._check_job = self.get_scheduler().add_job(self.check_recheck, 'interval', minutes=3, name='IYUU自动辅种校验')
 
     def get_state(self):
         return True if self._enable and self._cron and self._token and self._downloaders else False

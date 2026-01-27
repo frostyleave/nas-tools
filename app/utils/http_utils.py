@@ -3,10 +3,10 @@ import urllib3
 
 from typing import Any, Optional, Union
 from requests import Session, Response
-from requests.adapters import HTTPAdapter
 from urllib3.exceptions import InsecureRequestWarning
 from urllib3.util.retry import Retry
 
+from app.model import SSLAdapter
 from config import Config
 import log
 
@@ -66,20 +66,26 @@ class RequestUtils:
         获取或创建全局共享的 Session
         """
         if cls._shared_session is None:
-            cls._shared_session = requests.Session()
-            
-            # 配置连接池和重试策略
-            # pool_connections: 缓存的连接数
-            # pool_maxsize: 最大连接数（并发高时需要调大）
+            s = requests.Session()
+            s.trust_env = False
+            s.headers.update({'Connection': 'close'})
+
             retry_strategy = Retry(
                 total=3,
-                backoff_factor=1,
+                connect=3,
+                read=3,
+                status=3,
+                backoff_factor=0.5,
                 status_forcelist=[429, 500, 502, 503, 504],
+                allowed_methods=frozenset(['GET', 'POST', 'PUT', 'DELETE', 'HEAD', 'OPTIONS']),
+                raise_on_status=False,
             )
-            adapter = HTTPAdapter(pool_connections=20, pool_maxsize=100, max_retries=retry_strategy)
+            adapter = SSLAdapter(pool_connections=1, pool_maxsize=1, max_retries=retry_strategy)
             
-            cls._shared_session.mount("https://", adapter)
-            cls._shared_session.mount("http://", adapter)
+            s.mount("https://", adapter)
+            s.mount("http://", adapter)
+
+            cls._shared_session = s
             
         return cls._shared_session
     

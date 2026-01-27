@@ -2,14 +2,13 @@
 import ast
 import logging
 import requests
-import ssl
 import time
 
 from cachetools import TTLCache, cached
 from urllib3.util.retry import Retry
-from requests.adapters import HTTPAdapter
 from typing import Dict, Optional
 
+from app.model import SSLAdapter
 from config import Config
 
 from .as_obj import AsObj
@@ -17,15 +16,6 @@ from .exceptions import TMDbException
 
 logger = logging.getLogger(__name__)
 
-# 创建一个自定义的 SSL 上下文，忽略 EOF 错误
-class SSLAdapter(HTTPAdapter):
-    def init_poolmanager(self, *args, **kwargs):
-        context = ssl.create_default_context()
-        # 核心设置：允许非预期的 EOF
-        context.check_hostname = False
-        context.verify_mode = ssl.CERT_NONE
-        kwargs['ssl_context'] = context
-        return super().init_poolmanager(*args, **kwargs)
 
 class TMDb(object):
     
@@ -82,21 +72,31 @@ class TMDb(object):
         获取或创建全局共享的 Session
         """
         if cls._shared_session is None:
-            cls._shared_session = requests.Session()
-            
-            # 配置连接池和重试策略
-            # pool_connections: 缓存的连接数
-            # pool_maxsize: 最大连接数（并发高时需要调大）
+            s = requests.Session()
+
+            # 1) 避免受系统环境代理影响
+            s.trust_env = False
+            # 2) 默认关闭 keep-alive（避免复用同一连接）
+            s.headers.update({'Connection': 'close'})
+
+            # 3) 配置连接池和重试策略
             retry_strategy = Retry(
                 total=3,
-                backoff_factor=1,
+                connect=3,
+                read=3,
+                status=3,
+                backoff_factor=0.5,
                 status_forcelist=[429, 500, 502, 503, 504],
-                raise_on_status=False
+                allowed_methods=frozenset(['GET', 'POST', 'PUT', 'DELETE', 'HEAD', 'OPTIONS']),
+                raise_on_status=False,
             )
-            adapter = SSLAdapter(pool_connections=20, pool_maxsize=100, max_retries=retry_strategy)
+            # 4) 限制 pool 大小为 1（避免复用被代理弄坏的连接）
+            adapter = SSLAdapter(pool_connections=1, pool_maxsize=1, max_retries=retry_strategy)
             
-            cls._shared_session.mount("https://", adapter)
-            cls._shared_session.mount("http://", adapter)
+            s.mount("https://", adapter)
+            s.mount("http://", adapter)
+
+            cls._shared_session = s
             
         return cls._shared_session
 
@@ -129,7 +129,6 @@ class TMDb(object):
         proxies_dict = {}
         if proxies and proxies != 'None':
             try:
-                # 使用 ast.literal_eval 替代 eval，更安全
                 proxies_dict = ast.literal_eval(proxies)
             except Exception:
                 logger.warning(f"Failed to parse proxies: {proxies}")
@@ -137,7 +136,14 @@ class TMDb(object):
         # 获取全局 Session
         session = TMDb._get_shared_session()
         
-        return session.request(method, url, data=data, proxies=proxies_dict, verify=False, timeout=(5, 20))
+        return session.request(method,
+                               url,
+                               data=data,
+                               proxies=proxies_dict,
+                               timeout=(5, 20),
+                               verify=False,
+                               headers={"Connection": "close"}  # 双保险
+                            )
 
     def cache_clear(self):
         return self.cached_request.cache_clear()
@@ -173,7 +179,12 @@ class TMDb(object):
                  except:
                     pass
             
-            req = self._session.request(method, url, data=data, proxies=proxies_dict, timeout=10, verify=False)
+            req = self._session.request(method, 
+                                        url, 
+                                        data=data, 
+                                        proxies=proxies_dict, 
+                                        timeout=(5, 20), 
+                                        verify=False)
 
         headers = req.headers
 

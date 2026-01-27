@@ -182,6 +182,12 @@ class _ISiteUserInfo(metaclass=ABCMeta):
 
         if self._torrent_seeding_page:
             page_url = urljoin(self._base_url, self._torrent_seeding_page)
+            refer_url = urljoin(self._base_url, self._user_detail_page)
+            if self._torrent_seeding_headers:
+                self._torrent_seeding_headers.update({'Referer' : refer_url})
+            else:
+                self._torrent_seeding_headers = {'Referer' : refer_url}
+
             page_conent = self._get_page_content(page_url, self._torrent_seeding_params, self._torrent_seeding_headers)
             # 第一页
             next_page = self._parse_user_torrent_seeding_info(page_conent)
@@ -270,10 +276,10 @@ class _ISiteUserInfo(metaclass=ABCMeta):
             session = self._session
 
         reqHandler = RequestUtils(cookies=cookie,
-                               session=session,
-                               timeout=60,
-                               proxies=proxies,
-                               headers=req_headers)
+                                  session=session,
+                                  timeout=60,
+                                  proxies=proxies,
+                                  headers=req_headers)
 
         if params:
             if req_headers.get("Content-Type") == "application/json":
@@ -298,7 +304,7 @@ class _ISiteUserInfo(metaclass=ABCMeta):
                 return PlaywrightHelper().get_page_source(url=url, ua=self._ua, cookies=self._site_cookie, proxy=True if self._proxy else False)
             if "charset=utf-8" in res.text or "charset=UTF-8" in res.text or 'charset="utf-8"' in res.text :
                 res.encoding = "UTF-8"
-            else:
+            elif not res.encoding:
                 res.encoding = res.apparent_encoding
             return res.text
 
