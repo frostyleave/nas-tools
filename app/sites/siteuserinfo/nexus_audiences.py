@@ -1,6 +1,9 @@
 # -*- coding: utf-8 -*-
 import re
 
+from lxml import etree
+
+from app.sites.siteuserinfo._base import SITE_BASE_ORDER
 from app.sites.siteuserinfo.nexus_php import NexusPhpSiteUserInfo
 from app.utils.string_utils import StringUtils
 from app.utils.types import SiteSchema
@@ -9,16 +12,25 @@ from app.utils.types import SiteSchema
 class NexusAudiencesSiteUserInfo(NexusPhpSiteUserInfo):
 
     schema = SiteSchema.NexusPhpAudiences
+    order = SITE_BASE_ORDER + 25
 
     @classmethod
     def match(cls, html_text):
 
-        pattern = re.compile(
-            r'\(c\)\s*Audiences\s*2021-\d{4}\s*Powered by\s*NexusPHP',
-            re.IGNORECASE
+        html = etree.HTML(html_text)
+
+        exists = bool(
+            html.xpath(
+                "//*[contains(normalize-space(string(.)), '(c)') and "
+                "contains(normalize-space(string(.)), 'Audiences') and "
+                "contains(normalize-space(string(.)), 'Powered by') and "
+                "contains(normalize-space(string(.)), 'NexusPHP') and "
+                "re:match(normalize-space(string(.)), '2021-[0-9]{4}')]",
+                namespaces={"re": "http://exslt.org/regular-expressions"}
+            )
         )
 
-        return bool(pattern.search(html_text))
+        return exists
     
 
     def _parse_user_torrent_seeding_info(self, html_text, multi_page=False):
