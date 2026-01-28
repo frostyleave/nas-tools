@@ -4,9 +4,7 @@ import urllib3
 from typing import Any, Optional, Union
 from requests import Session, Response
 from urllib3.exceptions import InsecureRequestWarning
-from urllib3.util.retry import Retry
 
-from app.model import SSLAdapter
 from config import Config
 import log
 
@@ -14,9 +12,7 @@ urllib3.disable_warnings(InsecureRequestWarning)
 
 
 class RequestUtils:
-
-    _shared_session = None
-
+    
     _headers = None
     _proxies = None
     _timeout = 20
@@ -33,10 +29,8 @@ class RequestUtils:
                  referer: str = None,
                  content_type: str = None,
                  accept_type: str = None):
-        
         if not content_type:
             content_type = "application/x-www-form-urlencoded; charset=UTF-8"
-
         if headers:
             self._headers = headers
         else:
@@ -54,50 +48,10 @@ class RequestUtils:
                 self._cookies = cookies
         if proxies:
             self._proxies = proxies
+        if session:
+            self._session = session
         if timeout:
             self._timeout = timeout
-        
-        self._external_session = session
-
-
-    @classmethod
-    def _get_shared_session(cls):
-        """
-        获取或创建全局共享的 Session
-        """
-        if cls._shared_session is None:
-            s = requests.Session()
-            s.trust_env = False
-            s.headers.update({'Connection': 'close'})
-
-            retry_strategy = Retry(
-                total=3,
-                connect=3,
-                read=3,
-                status=3,
-                backoff_factor=0.5,
-                status_forcelist=[429, 500, 502, 503, 504],
-                allowed_methods=frozenset(['GET', 'POST', 'PUT', 'DELETE', 'HEAD', 'OPTIONS']),
-                raise_on_status=False,
-            )
-            adapter = SSLAdapter(pool_connections=1, pool_maxsize=1, max_retries=retry_strategy)
-            
-            s.mount("https://", adapter)
-            s.mount("http://", adapter)
-
-            cls._shared_session = s
-            
-        return cls._shared_session
-    
-    @property
-    def _session(self):
-        """
-        属性包装器：优先返回外部传入的 session，否则返回全局共享 session
-        """
-        if self._external_session:
-            return self._external_session
-        return self._get_shared_session()
-
 
     def request(self, method: str, url: str, raise_exception: bool = False, **kwargs) -> Optional[requests.Response]:
         """

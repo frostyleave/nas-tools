@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import ast
 import logging
+import threading
 import requests
 import time
 
@@ -18,11 +19,14 @@ logger = logging.getLogger(__name__)
 
 
 class TMDb(object):
-    
-    # --- 类变量：全局共享 Session ---
-    _shared_session : Optional[requests.Session] = None
-    
+
+    _session_ins = None
+    _session_ts = 0
+    _session_lock = threading.Lock()
+    _SESSION_TTL = 300  # 5 分钟
+
     _proxies = 'None'
+    _proxies_dict = {}
     _language = 'zh'
     _domain = 'https://api.themoviedb.org/3'
     _api_key = ''
@@ -31,13 +35,8 @@ class TMDb(object):
     _debug = False
     _wait_on_rate_limit = False
 
-    def __init__(self, obj_cached=True, session=None):
-        """
-        :param session: 允许外部传入 session，如果未传入则使用内部全局 session
-        """
-        # 如果外部传入了 session，则使用外部的（优先）；否则设为 None，后续调用时会去取 _shared_session
-        self._external_session = session
-        
+    def __init__(self, obj_cached=True):
+
         self._remaining = 40
         self._reset = None
         self.obj_cached = obj_cached
@@ -45,69 +44,84 @@ class TMDb(object):
         # 域名
         self._domain = Config().get_tmdbapi_url() or "https://api.themoviedb.org/3"
         # api key
-        app_conf = Config().get_config('app')
-        if app_conf:
-            self._api_key = app_conf.get('rmt_tmdbkey')
+        self._api_key = Config().get_config('app').get('rmt_tmdbkey')            
         # 语言
-        media_conf = Config().get_config('media')
-        if media_conf:
-            self._language = media_conf.get("tmdb_language", "zh") or "zh"
-            
-        # 代理处理
+        self._language = Config().get_config('media').get("tmdb_language", "zh") or "zh"            
+        # 代理
+        self._build_proxies()
+
+    
+    def _build_proxies(self):
+        """
+        从 Config 中构建 requests 可用的 proxies dict
+        """
         proxy_conf = Config().get_proxies()
-        if proxy_conf:
-            proxies_strs = []
-            for key, value in proxy_conf.items():
-                if not value:
-                    continue
-                proxies_strs.append("'%s': '%s'" % (key, value))
-            if proxies_strs:
-                self._proxies = "{%s}" % ",".join(proxies_strs)
-            else:
-                self._proxies = 'None'
+        if not proxy_conf:
+            return
+        
+        proxies_strs = []
+        for key, value in proxy_conf.items():
+            if not value:
+                continue
+            proxies_strs.append("'%s': '%s'" % (key, value))
+            self._proxies_dict[key] = value
+
+        if proxies_strs:
+            self._proxies = "{%s}" % ",".join(proxies_strs)
 
     @classmethod
     def _get_shared_session(cls):
-        """
-        获取或创建全局共享的 Session
-        """
-        if cls._shared_session is None:
-            s = requests.Session()
 
-            # 1) 避免受系统环境代理影响
-            s.trust_env = False
-            # 2) 默认关闭 keep-alive（避免复用同一连接）
-            s.headers.update({'Connection': 'close'})
+        now = time.time()
 
-            # 3) 配置连接池和重试策略
-            retry_strategy = Retry(
-                total=3,
-                connect=3,
-                read=3,
-                status=3,
-                backoff_factor=0.5,
-                status_forcelist=[429, 500, 502, 503, 504],
-                allowed_methods=frozenset(['GET', 'POST', 'PUT', 'DELETE', 'HEAD', 'OPTIONS']),
-                raise_on_status=False,
-            )
-            # 4) 限制 pool 大小为 1（避免复用被代理弄坏的连接）
-            adapter = SSLAdapter(pool_connections=1, pool_maxsize=1, max_retries=retry_strategy)
-            
-            s.mount("https://", adapter)
-            s.mount("http://", adapter)
+        with cls._session_lock:
+            if (
+                cls._session_ins is None
+                or now - cls._session_ts > cls._SESSION_TTL
+            ):
+                if cls._session_ins:
+                    try:
+                        cls._session_ins.close()
+                    except Exception:
+                        pass
 
-            cls._shared_session = s
-            
-        return cls._shared_session
+                cls._session_ins = cls._create_session()
+                cls._session_ts = now
 
-    @property
-    def _session(self):
-        """
-        属性包装器：优先返回外部传入的 session，否则返回全局共享 session
-        """
-        if self._external_session:
-            return self._external_session
-        return self._get_shared_session()
+        return cls._session_ins
+
+    @classmethod
+    def _parse_proxy(cls, proxy_str):
+        if proxy_str and proxy_str != 'None': 
+            try: 
+                proxies_dict = ast.literal_eval(proxy_str)
+                return proxies_dict
+            except Exception:
+                logger.warning(f"Failed to parse proxies: {proxy_str}")
+        return {}
+
+    @staticmethod
+    def _create_session():
+
+        s = requests.Session()
+        s.trust_env = False
+        s.headers.update({"Connection": "close"})  # 代理场景建议
+
+        retry_strategy = Retry(
+            total=3,
+            connect=3,
+            read=3,
+            status=3,
+            backoff_factor=0.5,
+            status_forcelist=[429, 500, 502, 503, 504],
+            raise_on_status=False,
+        )
+
+        adapter = SSLAdapter(pool_connections=1, pool_maxsize=1, max_retries=retry_strategy)
+
+        s.mount("https://", adapter)
+        s.mount("http://", adapter)
+        return s
 
     @staticmethod
     def _get_obj(result, key="results", all_details=False):
@@ -125,22 +139,17 @@ class TMDb(object):
         静态方法：执行缓存请求
         不再创建新连接，而是复用 TMDb 类的全局 Session
         """
+
         # 安全地将字符串转为字典
-        proxies_dict = {}
-        if proxies and proxies != 'None':
-            try:
-                proxies_dict = ast.literal_eval(proxies)
-            except Exception:
-                logger.warning(f"Failed to parse proxies: {proxies}")
-        
-        # 获取全局 Session
+        proxies_dict = TMDb._parse_proxy(proxies)        
+        # 获取 Session
         session = TMDb._get_shared_session()
         
         return session.request(method,
                                url,
                                data=data,
                                proxies=proxies_dict,
-                               timeout=(5, 20),
+                               timeout=(10, 20),
                                verify=False,
                                headers={"Connection": "close"}  # 双保险
                             )
@@ -166,25 +175,19 @@ class TMDb(object):
         )
 
         # 逻辑：
-        # 1. 如果走缓存，调用静态 cached_request (内部现已复用 session)
-        # 2. 如果不走缓存，直接使用 self._session (也指向全局 session 或外部 session)
+        # 1. 如果走缓存，调用静态 cached_request
+        # 2. 如果不走缓存，直接使用 全局 Session
         
         if self._cache and self.obj_cached and call_cached and method != "POST":
             req = self.cached_request(method, url, data, self._proxies)
-        else:
-            proxies_dict = {}
-            if self._proxies and self._proxies != 'None':
-                 try:
-                    proxies_dict = ast.literal_eval(self._proxies)
-                 except:
-                    pass
-            
-            req = self._session.request(method, 
-                                        url, 
-                                        data=data, 
-                                        proxies=proxies_dict, 
-                                        timeout=(5, 20), 
-                                        verify=False)
+        else:           
+            session = TMDb._get_shared_session()
+            req = session.request(method,
+                                  url,
+                                  data=data,
+                                  proxies=self.proxies_dict,
+                                  timeout=(10, 20),
+                                  verify=False)
 
         headers = req.headers
 

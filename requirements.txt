@@ -5,7 +5,7 @@ cacheout==0.16.0
 cf_clearance==0.31.0
 chardet==5.2.0
 cn2an==0.5.23
-python-multipart==0.0.20
+python-multipart==0.0.22
 func_timeout==4.3.5
 iso-639==0.4.5
 jsonpath==0.82.2
