@@ -344,7 +344,6 @@ class _IIndexClient(metaclass=ABCMeta):
             # 年份不匹配
             if item_meta.year not in target_years:
                 log.warn("【%s】[%s] %s 资源年份不匹配", self.client_name, indexer.name,item_meta.get_name())
-                index_error += 1
                 return None
             
             # 名称、年份 都匹配时，不再额外请求tmdb进行比对

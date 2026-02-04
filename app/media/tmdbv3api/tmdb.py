@@ -1,13 +1,12 @@
 # -*- coding: utf-8 -*-
-import ast
 import logging
 import threading
-import requests
 import time
 
-from cachetools import TTLCache, cached
-from urllib3.util.retry import Retry
+from cachetools import TTLCache
+from requests import Session, Response
 from typing import Dict, Optional
+from urllib3.util.retry import Retry
 
 from app.model import SSLAdapter
 from config import Config
@@ -20,26 +19,29 @@ logger = logging.getLogger(__name__)
 
 class TMDb(object):
 
-    _session_ins = None
-    _session_ts = 0
-    _session_lock = threading.Lock()
-    _SESSION_TTL = 300  # 5 分钟
+    _session : Optional[Session] = None
 
-    _proxies = 'None'
-    _proxies_dict = {}
+    _proxies = {}
     _language = 'zh'
     _domain = 'https://api.themoviedb.org/3'
     _api_key = ''
 
-    _cache = True
+    _cache : Optional[TTLCache] = None
     _debug = False
     _wait_on_rate_limit = False
 
-    def __init__(self, obj_cached=True):
+    def __init__(self, 
+                 session: Optional[Session] = None,
+                 cache_ttl: int = 3600,
+                 cache_size: int = 512,
+        ):
 
+        self._session = self._create_session() if session is None else session
+
+        self._cache = TTLCache(maxsize=cache_size, ttl=cache_ttl)
+        self._lock = threading.Lock()
         self._remaining = 40
         self._reset = None
-        self.obj_cached = obj_cached
         
         # 域名
         self._domain = Config().get_tmdbapi_url() or "https://api.themoviedb.org/3"
@@ -59,53 +61,16 @@ class TMDb(object):
         if not proxy_conf:
             return
         
-        proxies_strs = []
         for key, value in proxy_conf.items():
             if not value:
                 continue
-            proxies_strs.append("'%s': '%s'" % (key, value))
-            self._proxies_dict[key] = value
+            self._proxies[key] = value
 
-        if proxies_strs:
-            self._proxies = "{%s}" % ",".join(proxies_strs)
 
-    @classmethod
-    def _get_shared_session(cls):
+    def _create_session(self) -> Session:
 
-        now = time.time()
-
-        with cls._session_lock:
-            if (
-                cls._session_ins is None
-                or now - cls._session_ts > cls._SESSION_TTL
-            ):
-                if cls._session_ins:
-                    try:
-                        cls._session_ins.close()
-                    except Exception:
-                        pass
-
-                cls._session_ins = cls._create_session()
-                cls._session_ts = now
-
-        return cls._session_ins
-
-    @classmethod
-    def _parse_proxy(cls, proxy_str):
-        if proxy_str and proxy_str != 'None': 
-            try: 
-                proxies_dict = ast.literal_eval(proxy_str)
-                return proxies_dict
-            except Exception:
-                logger.warning(f"Failed to parse proxies: {proxy_str}")
-        return {}
-
-    @staticmethod
-    def _create_session():
-
-        s = requests.Session()
+        s = Session()
         s.trust_env = False
-        s.headers.update({"Connection": "close"})  # 代理场景建议
 
         retry_strategy = Retry(
             total=3,
@@ -121,7 +86,9 @@ class TMDb(object):
 
         s.mount("https://", adapter)
         s.mount("http://", adapter)
+
         return s
+
 
     @staticmethod
     def _get_obj(result, key="results", all_details=False):
@@ -132,33 +99,25 @@ class TMDb(object):
         else:
             return [AsObj(**res) for res in result[key]]
 
+
     @staticmethod
-    @cached(cache=TTLCache(maxsize=512, ttl=3600))
-    def cached_request(method, url, data, proxies):
+    def _build_cache_key(method: str, url: str, data: Optional[Dict]=None):
         """
-        静态方法：执行缓存请求
-        不再创建新连接，而是复用 TMDb 类的全局 Session
+        # Cache key 构建
         """
+        return (
+            method.upper(),
+            url,
+            frozenset(data.items()) if data else None,
+        )
 
-        # 安全地将字符串转为字典
-        proxies_dict = TMDb._parse_proxy(proxies)        
-        # 获取 Session
-        session = TMDb._get_shared_session()
-        
-        return session.request(method,
-                               url,
-                               data=data,
-                               proxies=proxies_dict,
-                               timeout=(10, 20),
-                               verify=False,
-                               headers={"Connection": "close"}  # 双保险
-                            )
 
-    def cache_clear(self):
-        return self.cached_request.cache_clear()
-
-    def _call(
-            self, action: str, append_to_response: str, call_cached: bool=True, method: str="GET", data: Optional[Dict]=None
+    def _call(self,
+              action: str,
+              append_to_response: str,
+              call_cached: bool=True,
+              method: str="GET", 
+              data: Optional[Dict]=None
     ):
         if self._api_key is None or self._api_key == "":
             raise TMDbException("No API key found.")
@@ -174,23 +133,9 @@ class TMDb(object):
             str(include_adult)
         )
 
-        # 逻辑：
-        # 1. 如果走缓存，调用静态 cached_request
-        # 2. 如果不走缓存，直接使用 全局 Session
-        
-        if self._cache and self.obj_cached and call_cached and method != "POST":
-            req = self.cached_request(method, url, data, self._proxies)
-        else:           
-            session = TMDb._get_shared_session()
-            req = session.request(method,
-                                  url,
-                                  data=data,
-                                  proxies=self.proxies_dict,
-                                  timeout=(10, 20),
-                                  verify=False)
+        req = self._cache_request(method, url, data, call_cached)
 
         headers = req.headers
-
         if "X-RateLimit-Remaining" in headers:
             self._remaining = int(headers["X-RateLimit-Remaining"])
 
@@ -220,3 +165,35 @@ class TMDb(object):
             raise TMDbException(json["errors"])
 
         return json
+    
+
+    def _cache_request(self, method, url, data, call_cached: bool=True) -> Response:
+
+        # 计算缓存键
+        cache_key = self._build_cache_key(method, url, data)
+
+        if self._cache and call_cached and method != "POST":
+            with self._lock:
+               if cache_key in self._cache:
+                   return self._cache[cache_key]
+        
+        headers = {}
+        if method.upper() == "GET":
+            headers["Connection"] = "close"
+
+        resp = self._session.request(method,
+                                     url,
+                                     headers=headers,
+                                     data=data,
+                                     proxies=self._proxies,
+                                     timeout=(10, 20),
+                                     verify=False)
+        
+        resp.raise_for_status()
+
+        # 结果缓存
+        if call_cached and method.upper() != "POST":
+            with self._lock:
+                self._cache[cache_key] = resp
+        
+        return resp
