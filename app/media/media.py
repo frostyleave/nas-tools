@@ -125,7 +125,8 @@ class Media:
                     ret_names.append(name)
         return tmdb_info, ret_names
 
-    def __search_tmdb(self, file_media_name,
+    def __search_tmdb(self, 
+                      file_media_name,
                       search_type,
                       first_media_year=None,
                       media_year=None,

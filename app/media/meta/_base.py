@@ -2,7 +2,6 @@ import regex as re
 import cn2an
 import zhconv
 
-from app.media.fanart import Fanart
 from app.media.category import Category
 from app.utils import StringUtils
 from app.utils.types import MediaType
@@ -426,14 +425,7 @@ class MetaBase(object):
 
     # 返回背景图片地址
     def get_backdrop_image(self, default=True, original=False):
-        if self.fanart_backdrop:
-            return self.fanart_backdrop
-        else:
-            self.fanart_backdrop = Fanart().get_backdrop(media_type=self.type,
-                                                            queryid=self.tmdb_id if self.type == MediaType.MOVIE else self.tvdb_id)
-        if self.fanart_backdrop:
-            return self.fanart_backdrop
-        elif self.backdrop_path:
+        if self.backdrop_path:
             if original:
                 return self.backdrop_path.replace("/w500", "/original")
             else:
@@ -443,14 +435,7 @@ class MetaBase(object):
 
     # 返回消息图片地址
     def get_message_image(self):
-        if self.fanart_backdrop:
-            return self.fanart_backdrop
-        else:
-            self.fanart_backdrop = Fanart().get_backdrop(media_type=self.type,
-                                                            queryid=self.tmdb_id if self.type == MediaType.MOVIE else self.tvdb_id)
-        if self.fanart_backdrop:
-            return self.fanart_backdrop
-        elif self.backdrop_path:
+        if self.backdrop_path:
             return self.backdrop_path
         elif self.poster_path:
             return self.poster_path
@@ -464,10 +449,7 @@ class MetaBase(object):
                 return self.poster_path.replace("/w500", "/original")
             else:
                 return self.poster_path
-        if not self.fanart_poster:
-            self.fanart_poster = Fanart().get_poster(media_type=self.type,
-                                                        queryid=self.tmdb_id if self.type == MediaType.MOVIE else self.tvdb_id)
-        return self.fanart_poster or ""
+        return ""
 
     # 查询TMDB详情页URL
     def get_detail_url(self):
