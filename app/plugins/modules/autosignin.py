@@ -55,7 +55,7 @@ class SignInResults:
 
     def add_fail(self, site_name: str, sign_msg: str):
         """记录一个失败的签到"""
-        self.failed_info.append(f'{site_name}:{sign_msg}')
+        self.failed_info.append(f'❌{sign_msg}')
     
     def add_retry(self, site_name: str, site_id: str):
         """记录一个需要重试的签到"""
@@ -64,7 +64,7 @@ class SignInResults:
         
     def add_script_error(self, site_name: str):
         """记录一个签到脚本执行时的意外错误"""
-        self.failed_info.append(f'{site_name}:签到时发生脚本错误')
+        self.failed_info.append(f'🛑{site_name}:签到时发生脚本错误')
 
 
 class AutoSignIn(_IPluginModule):
@@ -415,10 +415,7 @@ class AutoSignIn(_IPluginModule):
 
     def _execute_sign_in_loop(self, sites_to_sign_info: List[PtSiteConf], initial_already_signed_ids: List[str]) -> SignInResults:
         """
-        遍历站点执行签到，并收集结果。
-        
-        **关键改进**: 在循环内部添加 try...except，
-        防止单个站点的失败导致整个签到任务中断。
+        遍历站点执行签到，并收集结果
         """
         # 传入已签到列表，并创建一个副本，用于安全地追加
         results = SignInResults(all_signed_site_ids=list(initial_already_signed_ids))
@@ -464,34 +461,45 @@ class AutoSignIn(_IPluginModule):
 
     def _send_notification(self, today_str: str, results: SignInResults):
         """
-        发送签到结果通知。
-        **关键改进**: 将通知逻辑包裹在 try...except 中，
-        防止通知失败（如网络问题）导致任务状态显示为失败。
+        发送签到结果通知
         """
         try:
+                       
+            # 准备通知文本
+            text_parts = []
+
+            if results.success_names:
+                text_parts.append(f"🟢签到成功站点:")
+                text_parts.append(f"\t{','.join(results.success_names)}")
+            else:
+                text_parts.append("🟢签到成功站点: 无")
+
+            if results.failed_info:
+                text_parts.append(f"🟢签到失败站点:")
+                text_parts.append(f"{'\t\n'.join(results.failed_info)}")
+            else:
+                text_parts.append("🟢签到失败站点: 无")
+
+            if results.retry_names:
+                text_parts.append(f"🟢命中重试站点:")
+                text_parts.append(f"\t{ ','.join(results.retry_names)}")
+            else:
+                text_parts.append("🟢命中重试站点: 无")
+            
             # 获取下次执行时间
-            next_run_time = '获取失败'
             if self._cron_job:
                 next_run_time = self._cron_job.next_run_time.strftime('%Y-%m-%d %H:%M:%S')
+                text_parts.append(f"🟢下次签到时间: {next_run_time}")
             
             # 获取Bing壁纸
-            img_url, img_title, img_link = get_bing_wallpaper(today_str)
-            
-            # 准备通知文本
-            text_parts = [
-                f"签到成功站点: {','.join(results.success_names) or '无'}",
-                f"签到失败站点: {','.join(results.failed_info) or '无'}",
-                f"命中重试站点: {','.join(results.retry_names) or '无'}",
-                f"强制签到数量: {len(self._special_sites)}",
-                f"下次签到时间: {next_run_time}"
-            ]
-            
+            img_url, _, __ = get_bing_wallpaper(today_str)
+            # 发送消息
             self.send_message(
                 title="自动签到任务完成",
                 text=" \n".join(text_parts),
                 image=img_url
             )
-            self.info("签到通知已发送")
+            self.debug("签到通知已发送")
         except Exception as e:
             log.exception(f"发送签到通知失败: ")
 
