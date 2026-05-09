@@ -7,6 +7,8 @@ from requests import Response
 from typing import Optional
 
 from apscheduler.job import Job
+from apscheduler.schedulers.background import BackgroundScheduler
+
 from bencode import bdecode
 from threading import Lock
 from enum import Enum
@@ -21,7 +23,7 @@ from app.helper import DbHelper, ThreadHelper, SubmoduleHelper
 from app.indexer.client import InterfaceSpider, MTorrentSpider
 from app.indexer.client.browser import PlaywrightHelper
 from app.indexer.manager import IndexerInfo, IndexerManager
-from app.job_center import JobCenter
+from app.jobcenter import JobCenter
 from app.media import Media
 from app.media.meta import MetaInfo
 from app.mediaserver import MediaServer
@@ -245,11 +247,15 @@ class Downloader:
         # 启动转移任务
         if not self._monitor_downloader_ids:
             return
-        self.transfer_job = JobCenter().get_scheduler().add_job(func=self.transfer,
-                                                                trigger='interval',
-                                                                seconds=PT_TRANSFER_INTERVAL,
-                                                                name='下载文件转移')
+        self.transfer_job = self.get_scheduler().add_job(func=self.transfer,
+                                                         trigger='interval',
+                                                         seconds=PT_TRANSFER_INTERVAL,
+                                                         name='下载文件转移')
 
+    def get_scheduler(self) -> BackgroundScheduler:
+        """获取任务管理器"""
+        return JobCenter().get_sys_scheduler()
+    
     def __get_client(self, did=None):
         if not did:
             return None
@@ -1793,7 +1799,7 @@ class Downloader:
         """
         if self.transfer_job:
             try:
-                JobCenter().remove_job(self.transfer_job.id)
+                self.get_scheduler().remove_job(self.transfer_job.id)
             except Exception as err:
                 log.exception('【Downloader】定时转移任务移除失败: ')
 

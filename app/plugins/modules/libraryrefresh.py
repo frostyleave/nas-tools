@@ -145,10 +145,10 @@ class LibraryRefresh(_IPluginModule):
 
             # 使用 date 触发器添加任务到调度器
             formatted_run_date = run_date.strftime("%Y-%m-%d %H:%M:%S")
-            self._cron_job = self.get_scheduler().add_job(func=self.__refresh_library, 
-                                                                 args=[event.event_data], 
-                                                                    trigger='date',
-                                                                    run_date=run_date)
+            self._cron_job = self.get_scheduler().add_job(func=self.__refresh_library,
+                                                          args=[event.event_data], 
+                                                          trigger='date',
+                                                          run_date=run_date)
             self.info(f"新增延迟刷新任务，将在 {formatted_run_date} 刷新媒体库")
 
             

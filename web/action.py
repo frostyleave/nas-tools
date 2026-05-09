@@ -30,7 +30,7 @@ from app.filter import Filter
 from app.helper import DbHelper, ProgressHelper, ThreadHelper, MetaHelper, DisplayHelper, WordsHelper, RssHelper
 from app.indexer import Indexer
 from app.indexer.manager import IndexerManager
-from app.job_center import JobCenter
+from app.jobcenter import JobCenter
 from app.media import Category, Media, Bangumi, DouBan, Scraper
 from app.media.meta import MetaInfo, MetaBase
 from app.mediaserver import MediaServer
@@ -417,7 +417,7 @@ class WebAction:
         # 加载插件
         PluginManager()
         # 打印定时任务列表
-        JobCenter().get_scheduler().print_jobs()
+        JobCenter().print_jobs()
 
     def restart_service(self):
         """

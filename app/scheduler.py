@@ -1,6 +1,5 @@
 import datetime
 
-from typing import Optional
 from apscheduler.schedulers.background import BackgroundScheduler
 
 import log
@@ -8,7 +7,7 @@ import log
 from app.helper import MetaHelper
 from app.mediaserver import MediaServer
 from app.rss import Rss
-from app.job_center import JobCenter
+from app.jobcenter import JobCenter
 from app.sites import SitesDataStatisticsCenter
 from app.subscribe import Subscribe
 from app.sync import Sync
@@ -31,7 +30,6 @@ from web.backend.wallpaper import get_login_wallpaper
 @singleton
 class Scheduler:
 
-    _scheduler : Optional[BackgroundScheduler] = None
     _pt_config = None
     _media_config = None
 
@@ -48,16 +46,13 @@ class Scheduler:
         """
         读取配置，启动定时服务
         """
-        self._scheduler = JobCenter().get_scheduler()
-        if not self._scheduler:
-            return
         
         if self._pt_config:
             # 数据统计
             ptrefresh_date_cron = self._pt_config.get("ptrefresh_date_cron")
             if ptrefresh_date_cron:
                 SchedulerUtils.add_job(
-                    scheduler=self._scheduler,
+                    scheduler=self.get_scheduler(),
                     func=SitesDataStatisticsCenter().refresh_site_data_now,
                     func_desc="数据统计",
                     cron=str(ptrefresh_date_cron)
@@ -77,7 +72,7 @@ class Scheduler:
                 if pt_check_interval:
                     if pt_check_interval < 300:
                         pt_check_interval = 300
-                    self._scheduler.add_job(
+                    self.get_scheduler().add_job(
                         Rss().rssdownload, "interval", seconds=pt_check_interval, name='RSS订阅'
                     )
 
@@ -98,7 +93,7 @@ class Scheduler:
                 if search_rss_interval:
                     if search_rss_interval < 3:
                         search_rss_interval = 3
-                    self._scheduler.add_job(
+                    self.get_scheduler().add_job(
                         Subscribe().subscribe_search_all,
                         "interval",
                         hours=search_rss_interval, 
@@ -119,7 +114,7 @@ class Scheduler:
                             log.info("媒体库数据同步服务启动失败：%s" % str(e))
                             mediasync_interval = 0
                 if mediasync_interval:
-                    self._scheduler.add_job(
+                    self.get_scheduler().add_job(
                         MediaServer().sync_mediaserver,
                         "interval",
                         hours=mediasync_interval,
@@ -127,7 +122,7 @@ class Scheduler:
                     )
 
         # 元数据定时保存
-        self._scheduler.add_job(
+        self.get_scheduler().add_job(
             MetaHelper().save_meta_data, 
             "interval", 
             seconds=METAINFO_SAVE_INTERVAL, 
@@ -135,7 +130,7 @@ class Scheduler:
         )
 
         # 定时把队列中的监控文件转移走
-        self._scheduler.add_job(
+        self.get_scheduler().add_job(
             Sync().transfer_mon_files, 
             "interval", 
             seconds=SYNC_TRANSFER_INTERVAL, 
@@ -143,7 +138,7 @@ class Scheduler:
         )
 
         # RSS队列中搜索
-        self._scheduler.add_job(
+        self.get_scheduler().add_job(
             Subscribe().subscribe_search, 
             "interval", 
             seconds=RSS_CHECK_INTERVAL, 
@@ -151,7 +146,7 @@ class Scheduler:
         )
 
         # 豆瓣RSS转TMDB，定时更新TMDB数据
-        self._scheduler.add_job(
+        self.get_scheduler().add_job(
             Subscribe().refresh_rss_metainfo,
             "interval",
             hours=RSS_REFRESH_TMDB_INTERVAL,
@@ -159,7 +154,7 @@ class Scheduler:
         )
 
         # 定时清除未识别的缓存
-        self._scheduler.add_job(
+        self.get_scheduler().add_job(
             MetaHelper().delete_unknown_meta,
             "interval",
             hours=META_DELETE_UNKNOWN_INTERVAL,
@@ -167,7 +162,7 @@ class Scheduler:
         )
 
         # 定时刷新壁纸
-        self._scheduler.add_job(
+        self.get_scheduler().add_job(
             get_login_wallpaper,
             "interval",
             hours=REFRESH_WALLPAPER_INTERVAL,
@@ -175,12 +170,12 @@ class Scheduler:
             name='定时刷新壁纸'
         )
 
+    def get_scheduler(self) -> BackgroundScheduler:
+        """获取任务管理器"""
+        return JobCenter().get_sys_scheduler()
+    
     def stop_service(self):
         """
         停止定时服务
         """
-        try:
-            if self._scheduler:
-                self._scheduler.remove_all_jobs()
-        except Exception as e:
-            log.exception('[System]停止定时服务出错: ')
+        pass

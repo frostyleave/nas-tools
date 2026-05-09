@@ -11,7 +11,7 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from app.conf import SystemConfig
 from app.helper import DbHelper
 from app.message import Message
-from app.job_center import JobCenter
+from app.jobcenter import JobCenter
 
 from config import Config
 
@@ -253,7 +253,7 @@ class _IPluginModule(metaclass=ABCMeta):
     
     def get_scheduler(self) -> BackgroundScheduler:
         """获取任务管理器"""
-        return JobCenter().get_scheduler()
+        return JobCenter().get_plugin_scheduler()
     
     def add_cron_job(self, func, cron:str, func_name:str) -> Optional[Job]:
         """
@@ -280,7 +280,7 @@ class _IPluginModule(metaclass=ABCMeta):
         """
         if job_info:
             try:
-                JobCenter().remove_job(job_info.id)
+                self.get_scheduler().remove_job(job_info.id)
             except Exception as err:
                 log.exception(f'【Plugin】定时任务{job_info.id}移除失败: ')
         return None
