@@ -155,7 +155,7 @@ class Rss:
                         # 种子大小
                         size = article.get('size')
                         # 开始处理
-                        log.info(f"【Rss】开始处理：{title}")
+                        log.debug(f"【Rss】开始处理：{title}")
                         # 检查这个种子是不是下过了
                         if self.rsshelper.is_rssd_by_enclosure(enclosure):
                             log.info(f"【Rss】{title} 已成功订阅过")

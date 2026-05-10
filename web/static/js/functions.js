@@ -41,13 +41,21 @@ function media_search(tmdbid, title, type) {
 
     // 请求失败
     if (ret.code != 0) {
-
       $("#modal-process").modal("hide");
       show_fail_modal(ret.msg);
       return;
     }
     // 刷新进度
-    show_progress_info(ret.task_id, function() { navmenu('search?s=' + title) });
+    show_progress_info(ret.task_id, function(resultData) {
+
+        // 没有搜索到内容, 不跳转
+        if (resultData && resultData.result == 0) {
+          show_fail_modal('未搜索到任何资源');
+          return;
+        }
+        navmenu('search?s=' + title);
+
+      });
 
   }, show_progress=false);
 
@@ -380,10 +388,11 @@ function render_progress(ret, callback) {
     } 
     
     if (ret.value === 100 && ret.status == 'finish' && callback) {
+      stopProgress();
       // 延迟调用
       setTimeout(() => {
-        stopProgress();
-        callback();
+        hide_refresh_process();
+        callback(ret);
       }, 200);
     }
 

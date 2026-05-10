@@ -93,7 +93,6 @@ class _IIndexClient(metaclass=ABCMeta):
         index_match_fail = 0
         index_error = 0
 
-        media = Media()
         filter = Filter()
 
         # 目标资源类型
@@ -144,6 +143,7 @@ class _IIndexClient(metaclass=ABCMeta):
                 log.info("【%s】[%s] %s 无法识别到名称", self.client_name, indexer.name, torrent_name)
                 index_match_fail += 1
                 continue
+
             # 大小及促销等
             item_meta.set_torrent_info(size=size,
                                        imdbid=imdbid,

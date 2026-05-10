@@ -131,7 +131,8 @@ def search_medias_for_web(content, ident_flag=True, filters=None, tmdbid=None, m
     # 清空缓存结果
     _searcher.delete_all_search_torrents()
 
-    if media_list:
+    result_count = len(media_list)
+    if result_count:
         # 排序
         media_list = sorted(media_list, key=lambda x: x.get_sort_str(), reverse=True)
         # 插入数据库
@@ -139,13 +140,13 @@ def search_medias_for_web(content, ident_flag=True, filters=None, tmdbid=None, m
 
     # 结束进度
     if task_id:
-        GlobalTaskManager().update_task(task_id=task_id, progress=100, message="搜索完成", status='finish')
+        GlobalTaskManager().finish_task(task_id=task_id, message="搜索完成", result=result_count)
 
-    if len(media_list) == 0:
+    if result_count == 0:
         log.info("【Web】%s 未搜索到任何资源" % content)
         return 1, "%s 未搜索到任何资源" % content
     else:
-        log.info("【Web】共搜索到 %s 个有效资源" % len(media_list))       
+        log.info("【Web】共搜索到 %s 个有效资源" % result_count)       
         return 0, ""
 
 

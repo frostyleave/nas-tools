@@ -77,7 +77,7 @@ class JobCenter:
                     _scheduler.remove_all_jobs()
                     _scheduler.shutdown()
             except SchedulerNotRunningError as ex:
-                log.info(f'[System]定时服务({_scheduler.name})不在运行中')
+                log.debug(f'[System]定时服务({_scheduler.name})不在运行中')
             except Exception as e:
                 log.exception(f'[System]停止定时服务({_scheduler.name})出错: ')
    
