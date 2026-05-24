@@ -54,10 +54,10 @@ class FWpt(_ISiteSigninHandler):
         # 验证码失效, 重试5次
         for i in range(5):
             result, message = self._request_sign(site_info=site_info)
-            if result or message != '验证码失效,请重试':
+            if result or message.endswith('验证码失效,请重试') == False:
                 return result, message
             
-        return False, '验证码失效,请重试'    
+        return False, "[52pt]签到失败: Cookie已失效"
 
     def _request_sign(self, site_info: PtSiteConf)  -> Tuple[bool, str]:
 
@@ -100,10 +100,23 @@ class FWpt(_ISiteSigninHandler):
         questionid = html.xpath('string(//input[@name="questionid"]/@value)').strip()
         baka_token = html.xpath('string(//input[@name="baka_token"]/@value)').strip()
         option_ids = html.xpath("//input[@name='choice[]']/@value")
-        captcha_code = html.xpath('string(//span[@id="captcha_code_span"])').strip()
+        # captcha_code = html.xpath('string(//span[@id="captcha_code_span"])').strip()
         option_values = html.xpath("//input[@name='choice[]']/following-sibling::text()")
         question_str = html.xpath('string(//div[@class="q-text"])').strip()
         answers = list(zip(option_ids, option_values))
+
+        # 提取验证码
+        captcha_code = ''
+        scripts = html.xpath('//script/text()')
+        for script in scripts:
+            values = re.findall(
+                r"captchaInput\.value\s*=\s*'([^']*)'",
+                script
+            )
+            # 取第一个非空值
+            captcha_code = next((v for v in values if v), None)
+            if captcha_code:
+                break
 
         # 获取答案
         choice = self._try_get_answer(option_ids, question_str, answers)
@@ -211,28 +224,28 @@ class FWpt(_ISiteSigninHandler):
                                 ).post_res(url='https://52pt.site/bakatest.php', data=data)
         if not sign_res or sign_res.status_code != 200:
             self.error(f"签到失败，签到接口请求失败")
-            return False, f'【{site}】签到失败，签到接口请求失败'
+            return False, '[52pt]签到失败，签到接口请求失败'
 
         # 判断是否签到成功
         sign_status = self.sign_in_result(html_res=sign_res.text, regexs=self._success_regex)
         if sign_status:
             self.info(f"{site}签到成功")
-            return True, f'【{site}】签到成功'
+            return True, '[52pt]签到成功'
         
         # 判断已签到
         sign_status = self.sign_in_result(html_res=sign_res.text, regexs=self._sign_regex)
         if sign_status:
             self.info("今日已签到")
-            return True, f'【{site}】今日已签到'
+            return True, '[52pt]今日已签到'
         
         # 验证码失效
         sign_status = self.sign_in_result(html_res=sign_res.text, regexs=self._invalid_captcha_code)
         if sign_status:
             self.info("验证码失效")
-            return False, '验证码失效,请重试'
+            return False, '[52pt]验证码失效,请重试'
 
         self.error(f"签到失败，请到页面查看")
-        return False, f'【{site}】签到失败，请到页面查看'
+        return False, '[52pt]签到失败，请到页面查看'
 
     def __write_local_answer(self, exits_answers, question, answer):
         """
