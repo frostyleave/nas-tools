@@ -6,6 +6,8 @@ import requests
 from app.utils import RequestUtils
 from app.utils.types import MediaType
 
+from config import Config
+
 
 class Bangumi(object):
     """
@@ -17,7 +19,7 @@ class Bangumi(object):
         "detail": "v0/subjects/%s",
     }
     _base_url = "https://api.bgm.tv/"
-    _req = RequestUtils(session=requests.Session())
+    _req = RequestUtils(session=requests.Session(), proxies=Config().get_proxies())
     _page_num = 30
 
     def __init__(self):

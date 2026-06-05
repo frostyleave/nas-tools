@@ -164,7 +164,7 @@ class _IIndexClient(metaclass=ABCMeta):
                                                                            uploadvolumefactor=uploadvolumefactor,
                                                                            downloadvolumefactor=downloadvolumefactor)            
             if not match_flag:
-                log.debug("【%s】[%s] %s", self.client_name, indexer.name, match_msg)
+                log.info("【%s】[%s] %s", self.client_name, indexer.name, match_msg)
                 index_rule_fail += 1
                 continue
 
@@ -208,8 +208,10 @@ class _IIndexClient(metaclass=ABCMeta):
                 total_season = max(media_info.tmdb_info.seasons, key=lambda info: info.season_number).season_number
                 # 匹配元数据错误, 季信息不匹配
                 if media_info.begin_season and int(media_info.begin_season) > total_season:
+                    log.info("【%s】[%s] %s > total_season=%s", self.client_name, indexer.name, media_info.begin_season, total_season)
                     continue
                 if media_info.end_season and int(media_info.end_season) > total_season:
+                    log.info("【%s】[%s] %s > total_season=%s", self.client_name, indexer.name, media_info.end_season, total_season)
                     continue
                 
 
