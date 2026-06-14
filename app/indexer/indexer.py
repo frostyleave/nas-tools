@@ -15,7 +15,7 @@ from app.media.meta.metainfo import MetaInfo
 from app.utils import StringUtils
 from app.utils.commons import singleton
 from app.utils.types import SearchType
-from app.task_manager import GlobalTaskManager
+from app.core.task_manager import GlobalTaskManager
 
 from config import INDEXER_CATEGORY
 

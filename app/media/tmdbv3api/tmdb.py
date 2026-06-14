@@ -8,7 +8,7 @@ from requests import Session, Response
 from typing import Dict, Optional
 from urllib3.util.retry import Retry
 
-from app.model import SSLAdapter
+from app.models.model import SSLAdapter
 from config import Config
 
 from .as_obj import AsObj

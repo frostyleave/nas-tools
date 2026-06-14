@@ -12,7 +12,7 @@ from app.downloader import Downloader
 from app.helper import DbHelper
 from app.message import Message
 from app.utils.commons import singleton
-from app.jobcenter import JobCenter
+from app.core.jobcenter import JobCenter
 
 lock = Lock()
 

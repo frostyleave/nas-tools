@@ -13,11 +13,10 @@ setup_logging()
 
 import log
 
-from app.db import init_db, update_db, init_data
-from initializer import update_config, check_config
+from app.core.initializer import init_data, update_config, check_config
 
 # 导入FastAPI应用
-from web.app import app
+from main import app
 from version import APP_VERSION
 
 warnings.filterwarnings('ignore')
@@ -95,10 +94,6 @@ def get_run_config(app: FastAPI) -> uvicorn.Config:
 def init_system():
     # 配置
     log.debug('NAStool 当前版本号：%s' % APP_VERSION)
-    # 数据库初始化
-    init_db()
-    # 数据库更新
-    update_db()
     # 数据初始化
     init_data()
     # 升级配置文件

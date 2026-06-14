@@ -11,15 +11,15 @@ from app.media.meta.metainfo import MetaInfo
 from app.mediaserver.media_server import MediaServer
 from app.message import Message
 from app.plugins.event_manager import EventManager
-from app.subscribe import Subscribe
+from app.modules.subscribe import Subscribe
 from app.utils import DomUtils
 from app.utils.types import EventType, MediaServerType, MediaType, RssType, SearchType
 
 import log
 
-from web.action import WebAction
-from web.backend.WXBizMsgCrypt3 import WXBizMsgCrypt
-from web.backend.security import auth_required
+from app.api.action import WebAction
+from app.models.WXBizMsgCrypt3 import WXBizMsgCrypt
+from app.middleware.security import auth_required
 
 
 # 开放接口路由

@@ -10,7 +10,7 @@ from passlib.context import CryptContext
 import log
 
 from config import Config
-from web.backend.user import User, UserManager
+from app.models.user import User, UserManager
 
 def get_secret() -> str:
     """

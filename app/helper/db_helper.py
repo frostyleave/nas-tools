@@ -2,12 +2,13 @@ import datetime
 import os.path
 import time
 import json
+
 from enum import Enum
 from typing import List
-from sqlalchemy import cast, func, and_, case
+from sqlalchemy import cast, func, and_
 
-from app.db import MainDb, DbPersist
 from app.db.models import *
+from app.db.main_db import MainDb, DbPersist
 from app.utils import StringUtils
 from app.utils.types import MediaType, RmtMode
 

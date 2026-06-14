@@ -2,21 +2,21 @@ import json
 from threading import Lock
 
 import log
+
 from app.conf import SystemConfig
 from app.downloader import Downloader
-from app.filter import Filter
+from app.modules.filter import Filter
 from app.helper import DbHelper, MetaHelper
 from app.indexer import Indexer
 from app.media import Media
 from app.media.meta import MetaInfo
 from app.message import Message
 from app.plugins import EventManager
-from app.searcher import Searcher
+from app.modules.searcher import Searcher
 from app.sites import SitesManager
 from app.utils import TorrentUtils
 from app.utils.commons import singleton
 from app.utils.types import MediaType, SearchType, EventType, SystemConfigKey, RssType
-from web.backend.web_utils import WebUtils
 
 lock = Lock()
 
@@ -165,7 +165,7 @@ class Subscribe:
                 # 根据TMDBID查询，从推荐加订阅的情况
                 if mediaid:
                     # 根据ID查询
-                    media_info = WebUtils.get_mediainfo_from_id(mediaid=mediaid, mtype=mtype)
+                    media_info = Media().get_mediainfo_from_id(mediaid=mediaid, mtype=mtype)
                     if not season:
                         season = media_info.begin_season
                 else:

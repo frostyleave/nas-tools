@@ -6,11 +6,11 @@ from fastapi import FastAPI
 import log
 from log import set_event_loop_for_logging
 
-from app.task_manager import task_processor_start, task_processor_stop
+from app.core.task_manager import task_processor_start, task_processor_stop
 from app.utils.async_request import AsyncRequestUtils
 
-from initializer import start_config_monitor, stop_config_monitor
-from web.action import WebAction
+from app.core.initializer import start_config_monitor, stop_config_monitor
+from app.api.action import WebAction
 
 
 @contextlib.asynccontextmanager

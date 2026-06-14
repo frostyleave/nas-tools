@@ -6,7 +6,7 @@ from typing import Tuple
 import log
 
 from app.conf import SystemConfig
-from app.db import MediaDb
+from app.db.media_db import MediaDb
 from app.helper import ProgressHelper, SubmoduleHelper
 from app.media import Media
 from app.message import Message

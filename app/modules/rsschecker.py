@@ -13,13 +13,13 @@ from lxml import etree
 import log
 
 from app.downloader import Downloader
-from app.filter import Filter
+from app.modules.filter import Filter
 from app.helper import DbHelper, RssHelper
 from app.media import Media
 from app.media.meta import MetaInfo
 from app.message import Message
-from app.searcher import Searcher
-from app.subscribe import Subscribe
+from app.modules.searcher import Searcher
+from app.modules.subscribe import Subscribe
 from app.utils import RequestUtils, StringUtils
 from app.utils.commons import singleton
 from app.utils.types import MediaType, SearchType, RssType

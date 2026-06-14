@@ -7,7 +7,6 @@ import os.path
 import re
 import shutil
 import signal
-import sqlite3
 import threading
 import time
 
@@ -20,41 +19,40 @@ from urllib.parse import unquote
 import cn2an
 import zhconv
 
+from app.utils.media_utils import MediaUtils
 import log
 
-from app.brushtaskv2 import BrushTaskV2 as BrushTask
+from app.modules.brushtaskv2 import BrushTaskV2 as BrushTask
 from app.conf import SystemConfig, ModuleConf
 from app.downloader import Downloader
-from app.filetransfer import FileTransfer
-from app.filter import Filter
+from app.modules.filetransfer import FileTransfer
+from app.modules.filter import Filter
 from app.helper import DbHelper, ProgressHelper, ThreadHelper, MetaHelper, DisplayHelper, WordsHelper, RssHelper
 from app.indexer import Indexer
 from app.indexer.manager import IndexerManager
-from app.jobcenter import JobCenter
+from app.core.jobcenter import JobCenter
 from app.media import Category, Media, Bangumi, DouBan, Scraper
 from app.media.meta import MetaInfo, MetaBase
 from app.mediaserver import MediaServer
 from app.message import Message, MessageCenter
+from app.models.user import User, UserManager
+from app.middleware.security import get_current_user
 from app.plugins import PluginManager, EventManager
-from app.rss import Rss
-from app.rsschecker import RssChecker
-from app.scheduler import Scheduler
-from app.searcher import Searcher
+from app.modules.rss import Rss
+from app.modules.rsschecker import RssChecker
+from app.core.scheduler import Scheduler
+from app.modules.search import SearchProxy
+from app.modules.searcher import Searcher
 from app.sites import SitesManager, SitesDataStatisticsCenter, CookieManager, SiteConf
-from app.subscribe import Subscribe
-from app.sync import Sync
-from app.torrentremover import TorrentRemover
+from app.modules.subscribe import Subscribe
+from app.modules.sync import Sync
+from app.modules.torrentremover import TorrentRemover
 from app.utils import StringUtils, EpisodeFormat, RequestUtils, PathUtils, SystemUtils
-from app.utils.types import MEDIA_TYPE_MAP, RmtMode, OsType, SearchType, SyncType, MediaType, MovieTypes, TvTypes, \
-    EventType, SystemConfigKey, RssType
+from app.utils.types import *
 from app.utils.password_hash import generate_password_hash
-from app.task_manager import GlobalTaskManager
+from app.core.task_manager import GlobalTaskManager
 
 from config import RMT_MEDIAEXT, RMT_SUBEXT, RMT_AUDIO_TRACK_EXT, Config
-from web.backend.search import search_medias_for_web, search_media_by_message
-from web.backend.user import User, UserManager
-from web.backend.web_utils import WebUtils
-from web.backend.security import get_current_user
 
 # action接口路由
 action_router = APIRouter(dependencies=[Depends(get_current_user)])
@@ -100,7 +98,7 @@ def search(background_tasks: BackgroundTasks, data: dict = Body(...)):
 
         task_id = GlobalTaskManager().create_task()
 
-        background_tasks.add_task(search_medias_for_web,
+        background_tasks.add_task(SearchProxy().search_medias_for_web,
                                   content=search_word,
                                   ident_flag=ident_flag,
                                   filters=filters,
@@ -498,7 +496,7 @@ class WebAction:
                 return
 
         # 站点搜索或者添加订阅
-        ThreadHelper().start_thread(search_media_by_message,
+        ThreadHelper().start_thread(SearchProxy().search_media_by_message,
                                     (msg, in_from, user_id, user_name, client_id))
 
     def set_config_value(self, cfg, cfg_key, cfg_value):
@@ -636,7 +634,7 @@ class WebAction:
                 media_type = MediaType.TV
 
         if search_word:
-            ret, ret_msg = search_medias_for_web(content=search_word,
+            ret, ret_msg = SearchProxy().search_medias_for_web(content=search_word,
                                                  ident_flag=ident_flag,
                                                  filters=filters,
                                                  tmdbid=tmdbid,
@@ -1014,124 +1012,7 @@ class WebAction:
         """
         删除识别记录及文件
         """
-        logids = data.get('logids') or []
-        flag = data.get('flag')
-        file_transfer = FileTransfer()
-        for logid in logids:
-            # 读取历史记录
-            transinfo = file_transfer.get_transfer_info_by_id(logid)
-            if transinfo:
-                # 删除记录
-                file_transfer.delete_transfer_log_by_id(logid)
-                # 根据flag删除文件
-                source_path = transinfo.SOURCE_PATH
-                source_filename = transinfo.SOURCE_FILENAME
-                media_info = {
-                    "type": transinfo.TYPE,
-                    "category": transinfo.CATEGORY,
-                    "title": transinfo.TITLE,
-                    "year": transinfo.YEAR,
-                    "tmdbid": transinfo.TMDBID,
-                    "season_episode": transinfo.SEASON_EPISODE
-                }
-                # 删除该识别记录对应的转移记录
-                file_transfer.delete_transfer_blacklist("%s/%s" % (source_path, source_filename))
-                dest = transinfo.DEST
-                dest_path = transinfo.DEST_PATH
-                dest_filename = transinfo.DEST_FILENAME
-                if flag in ["del_source", "del_all"]:
-                    # 删除源文件
-                    del_flag, del_msg = self.delete_media_file(source_path, source_filename)
-                    if not del_flag:
-                        log.error(del_msg)
-                    else:
-                        log.info(del_msg)
-                        # 触发源文件删除事件
-                        EventManager().send_event(EventType.SourceFileDeleted, {
-                            "media_info": media_info,
-                            "path": source_path,
-                            "filename": source_filename
-                        })
-                if flag in ["del_dest", "del_all"]:
-                    # 删除媒体库文件
-                    if dest_path and dest_filename:
-                        del_flag, del_msg = self.delete_media_file(dest_path, dest_filename)
-                        if not del_flag:
-                            log.error(del_msg)
-                        else:
-                            log.info(del_msg)
-                            # 触发媒体库文件删除事件
-                            EventManager().send_event(EventType.LibraryFileDeleted, {
-                                "media_info": media_info,
-                                "path": dest_path,
-                                "filename": dest_filename
-                            })
-                    else:
-                        meta_info = MetaInfo(title=source_filename)
-                        meta_info.title = transinfo.TITLE
-                        meta_info.category = transinfo.CATEGORY
-                        meta_info.year = transinfo.YEAR
-                        if transinfo.SEASON_EPISODE:
-                            meta_info.begin_season = int(
-                                str(transinfo.SEASON_EPISODE).replace("S", ""))
-                        if transinfo.TYPE == MediaType.MOVIE.value:
-                            meta_info.type = MediaType.MOVIE
-                        else:
-                            meta_info.type = MediaType.TV
-                        # 删除文件
-                        dest_path = file_transfer.get_dest_path_by_info(dest=dest, meta_info=meta_info)
-                        if dest_path and dest_path.find(meta_info.title) != -1:
-                            rm_parent_dir = False
-                            if not meta_info.get_season_list():
-                                # 电影，删除整个目录
-                                try:
-                                    shutil.rmtree(dest_path)
-                                    # 触发媒体库文件删除事件
-                                    EventManager().send_event(EventType.LibraryFileDeleted, {
-                                        "media_info": media_info,
-                                        "path": dest_path
-                                    })
-                                except Exception as e:
-                                    log.exception("[act]删除电影目录 异常:")
-                            elif not meta_info.get_episode_string():
-                                # 电视剧但没有集数，删除季目录
-                                try:
-                                    shutil.rmtree(dest_path)
-                                    # 触发媒体库文件删除事件
-                                    EventManager().send_event(EventType.LibraryFileDeleted, {
-                                        "media_info": media_info,
-                                        "path": dest_path
-                                    })
-                                except Exception as e:
-                                    log.exception("[act]删除电视剧目录 异常:")
-                                rm_parent_dir = True
-                            else:
-                                # 有集数的电视剧，删除对应的集数文件
-                                for dest_file in PathUtils.get_dir_files(dest_path):
-                                    file_meta_info = MetaInfo(
-                                        os.path.basename(dest_file))
-                                    if file_meta_info.get_episode_list() and set(
-                                            file_meta_info.get_episode_list()
-                                    ).issubset(set(meta_info.get_episode_list())):
-                                        try:
-                                            os.remove(dest_file)
-                                            # 触发媒体库文件删除事件
-                                            EventManager().send_event(EventType.LibraryFileDeleted, {
-                                                "media_info": media_info,
-                                                "path": os.path.dirname(dest_file),
-                                                "filename": os.path.basename(dest_file)
-                                            })
-                                        except Exception as e:
-                                            log.exception("[act]删除电视剧集数文件 异常:")
-                                rm_parent_dir = True
-                            if rm_parent_dir \
-                                    and not PathUtils.get_dir_files(os.path.dirname(dest_path), exts=RMT_MEDIAEXT):
-                                # 没有媒体文件时，删除整个目录
-                                try:
-                                    shutil.rmtree(os.path.dirname(dest_path))
-                                except Exception as e:
-                                    log.exception("[act]删除指定目录 异常:")
-        return {"retcode": 0}
+        return FileTransfer().delete_history(data)
 
     def delete_media_file(self, filedir, filename):
         """
@@ -1172,7 +1053,7 @@ class WebAction:
         """
         检查新版本
         """
-        version, url = WebUtils.get_latest_version()
+        version, url = SystemUtils.get_latest_version()
         if version:
             return {"code": 0, "version": version, "url": url}
         return {"code": -1, "version": "", "url": ""}
@@ -1319,8 +1200,9 @@ class WebAction:
                 os.makedirs(tmp_path)
 
             tmp_path_file = os.path.join(tmp_path, "nas-tools.zip")
+
             # 获取版本下载地址
-            version, download_url = WebUtils.get_latest_version()
+            version, download_url = SystemUtils.get_latest_version()
             log.info(f'【UpdateSystem】获取最新系统版本: {version}')
             log.info(f'【UpdateSystem】获取最新系统下载地址: {download_url}')
 
@@ -1762,7 +1644,7 @@ class WebAction:
         # 订阅信息不足
         if not rssid_ok:
             if mediaid:
-                media = WebUtils.get_mediainfo_from_id(mediaid=mediaid, mtype=media_type)
+                media = _media.get_mediainfo_from_id(mediaid=mediaid, mtype=media_type)
             else:
                 media = _media.get_media_info(
                     title=f"{title} {year}", mtype=media_type)
@@ -2420,7 +2302,7 @@ class WebAction:
             Keyword = data.get("keyword")
             Source = data.get("source")
             mtype = MEDIA_TYPE_MAP.get(data.get("subtype"), None)
-            medias = WebUtils.search_media_infos(keyword=Keyword, source=Source, page=CurrentPage, media_type=mtype)
+            medias = SearchProxy().search_media_by_keyword(keyword=Keyword, source=Source, page=CurrentPage, media_type=mtype)
             res_list = [media.to_dict() for media in medias]
             # 相关性排序
             res_list = self.sort_search_results(res_list, Keyword)
@@ -2830,11 +2712,13 @@ class WebAction:
             title_season = MetaInfo(title=title).begin_season
         else:
             title_season = None
+        
+        _media = Media()
         if not str(tmdbid).isdigit():
-            media_info = WebUtils.get_mediainfo_from_id(mediaid=tmdbid, mtype=MediaType.TV)
-            season_infos = Media().get_tmdb_tv_seasons(media_info.tmdb_info)
+            media_info = _media.get_mediainfo_from_id(mediaid=tmdbid, mtype=MediaType.TV)
+            season_infos = _media.get_tmdb_tv_seasons(media_info.tmdb_info)
         else:
-            season_infos = Media().get_tmdb_tv_seasons_byid(tmdbid=tmdbid)
+            season_infos = _media.get_tmdb_tv_seasons_byid(tmdbid=tmdbid)
         if title_season:
             seasons = [
                 {
@@ -3866,8 +3750,7 @@ class WebAction:
         if not SearchWord:
             return []
         SearchSourceType = data.get("searchtype")
-        medias = WebUtils.search_media_infos(keyword=SearchWord,
-                                             source=SearchSourceType)
+        medias = SearchProxy().search_media_by_keyword(keyword=SearchWord, source=SearchSourceType)
 
         return {"code": 0, "result": [media.to_dict() for media in medias]}
 
@@ -4644,7 +4527,7 @@ class WebAction:
             return {"code": 1, "msg": "未指定媒体ID"}
 
         mtype = MediaType.MOVIE if data.get("type") in MovieTypes else MediaType.TV
-        media_info = WebUtils.get_mediainfo_from_id(mediaid=tmdbid, mtype=mtype)
+        media_info = Media().get_mediainfo_from_id(mediaid=tmdbid, mtype=mtype)
         # 检查TMDB信息
         if not media_info or not media_info.tmdb_info:
             return {
@@ -4770,7 +4653,7 @@ class WebAction:
             if not info:
                 return { "code": 1, "msg": "无法查询到TMDB信息" }
             
-            title = WebUtils.get_tmdb_title(info)
+            title = MediaUtils.get_tmdb_title(info)
             media_info = MetaInfo(title)
             media_info.set_tmdb_info(info)
                
@@ -4811,7 +4694,7 @@ class WebAction:
             return {"code": 1, "msg": "未指定媒体ID"}
         
         mtype = MediaType.MOVIE if data.get("type") in MovieTypes else MediaType.TV
-        media_info = WebUtils.get_mediainfo_from_id(mediaid=mediaid, mtype=mtype)
+        media_info = Media().get_mediainfo_from_id(mediaid=mediaid, mtype=mtype)
 
         if not media_info: 
             return {"code": 1, "msg": "媒体信息查询失败"}
@@ -5504,56 +5387,6 @@ class WebAction:
         with open(category_path, "r", encoding="utf-8") as f:
             category_text = f.read()
         return {"code": 0, "text": category_text}
-
-    def backup(self, full_backup=False, bk_path=None):
-        """
-        @param full_backup  是否完整备份
-        @param bk_path     自定义备份路径
-        """
-        try:
-            # 创建备份文件夹
-            config_path = Path(Config().get_config_path())
-            backup_file = f"bk_{time.strftime('%Y%m%d%H%M%S')}"
-            if bk_path:
-                backup_path = Path(bk_path) / backup_file
-            else:
-                backup_path = config_path / "backup_file" / backup_file
-            backup_path.mkdir(parents=True)
-            # 把现有的相关文件进行copy备份
-            shutil.copy(f'{config_path}/config.yaml', backup_path)
-            shutil.copy(f'{config_path}/default-category.yaml', backup_path)
-            shutil.copy(f'{config_path}/user.db', backup_path)
-
-            # 完整备份不删除表
-            if not full_backup:
-                conn = sqlite3.connect(f'{backup_path}/user.db')
-                cursor = conn.cursor()
-                # 执行操作删除不需要备份的表
-                table_list = [
-                    'SEARCH_RESULT_INFO',
-                    'RSS_TORRENTS',
-                    'DOUBAN_MEDIAS',
-                    'TRANSFER_HISTORY',
-                    'TRANSFER_UNKNOWN',
-                    'TRANSFER_BLACKLIST',
-                    'SYNC_HISTORY',
-                    'DOWNLOAD_HISTORY',
-                    'alembic_version'
-                ]
-                for table in table_list:
-                    cursor.execute(f"""DROP TABLE IF EXISTS {table};""")
-                conn.commit()
-                cursor.close()
-                conn.close()
-            zip_file = str(backup_path) + '.zip'
-            if os.path.exists(zip_file):
-                zip_file = str(backup_path) + '.zip'
-            shutil.make_archive(str(backup_path), 'zip', str(backup_path))
-            shutil.rmtree(str(backup_path))
-            return zip_file
-        except Exception as e:
-            log.exception("[act]备份 异常:")
-            return None
 
     def get_system_processes(self):
         """

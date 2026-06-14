@@ -9,14 +9,14 @@ from jinja2 import Template
 from app.downloader import Downloader
 from app.helper import ThreadHelper
 from app.media import DouBan
+from app.media.media import Media
 from app.media.meta import MetaInfo
 from app.plugins import EventHandler
 from app.plugins.modules._base import _IPluginModule
-from app.searcher import Searcher
-from app.subscribe import Subscribe
+from app.modules.searcher import Searcher
+from app.modules.subscribe import Subscribe
 from app.utils.types import SearchType, RssType, EventType, MediaType
 
-from web.backend.web_utils import WebUtils
 
 import log
 
@@ -459,7 +459,7 @@ class DoubanSync(_IPluginModule):
                     if not history or history.get("state") == "NEW":
                         if self._auto_search:
                             # 需要搜索
-                            media_info = WebUtils.get_mediainfo_from_id(mediaid=f"DB:{media.douban_id}",mtype=media.type,wait=True)
+                            media_info = Media().get_mediainfo_from_id(mediaid=f"DB:{media.douban_id}",mtype=media.type,wait=True)
                             # 不需要自动加订阅，则直接搜索
                             if not media_info or not media_info.tmdb_info:
                                 self.warn("%s 未查询到媒体信息" % media.get_name())

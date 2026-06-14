@@ -8,7 +8,7 @@ from watchdog.observers.polling import PollingObserver
 import log
 
 from app.conf import ModuleConf
-from app.filetransfer import FileTransfer
+from app.modules.filetransfer import FileTransfer
 from app.helper import DbHelper
 from app.utils import PathUtils
 from app.utils.commons import singleton

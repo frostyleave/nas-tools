@@ -8,17 +8,14 @@ from fastapi import APIRouter, HTTPException, Query, Request, Depends, Response
 from fastapi.responses import FileResponse, StreamingResponse
 import httpx
 
-import log
-
-from app.utils.system_utils import SystemUtils
+from app.middleware.security import get_current_user
+from app.modules.system.backup import Backup
+from app.utils import RequestUtils, SystemUtils
 from app.utils.types import *
 from app.utils.async_request import AsyncRequestUtils
 
+import log
 from config import Config
-
-from web.action import WebAction
-from web.backend.security import get_current_user
-from web.backend.web_utils import WebUtils
 
 
 # 工具/文件路由
@@ -82,7 +79,7 @@ async def backup():
     备份用户设置文件
     :return: 备份文件.zip_file
     """
-    zip_file = WebAction().backup()
+    zip_file = Backup().backup()
     if not zip_file:
         return Response(content="创建备份失败", status_code=400)
     return FileResponse(zip_file)
@@ -132,7 +129,7 @@ async def img(request: Request, url: str):
 
     # 获取图片数据
     response = Response(
-        content=WebUtils.request_cache(url),
+        content=RequestUtils.request_cache(url),
         media_type='image/jpeg'
     )
     response.headers['Cache-Control'] = 'max-age=604800'

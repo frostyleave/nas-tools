@@ -4,12 +4,12 @@ from threading import Lock
 import log
 
 from app.downloader import Downloader
-from app.filter import Filter
+from app.modules.filter import Filter
 from app.helper import DbHelper, RssHelper
 from app.media import Media
 from app.media.meta import MetaInfo
 from app.sites import SitesManager, SiteConf
-from app.subscribe import Subscribe
+from app.modules.subscribe import Subscribe
 from app.utils import TorrentUtils
 from app.utils.commons import singleton
 from app.utils.types import MediaType, SearchType

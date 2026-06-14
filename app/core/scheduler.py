@@ -6,11 +6,12 @@ import log
 
 from app.helper import MetaHelper
 from app.mediaserver import MediaServer
-from app.rss import Rss
-from app.jobcenter import JobCenter
+from app.modules.rss import Rss
+from app.core.jobcenter import JobCenter
+from app.modules.wallpaper import get_login_wallpaper
 from app.sites import SitesDataStatisticsCenter
-from app.subscribe import Subscribe
-from app.sync import Sync
+from app.modules.subscribe import Subscribe
+from app.modules.sync import Sync
 from app.utils import SchedulerUtils
 from app.utils.commons import singleton
 
@@ -23,8 +24,6 @@ from config import (
     REFRESH_WALLPAPER_INTERVAL,
     Config,
 )
-
-from web.backend.wallpaper import get_login_wallpaper
 
 
 @singleton

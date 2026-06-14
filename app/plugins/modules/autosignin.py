@@ -15,6 +15,7 @@ from app.helper.cloudflare_helper import under_challenge
 from app.helper import ThreadHelper
 from app.indexer.client.browser import PlaywrightHelper
 from app.plugins import EventHandler
+from app.modules.wallpaper import get_bing_wallpaper
 from app.plugins.modules._base import _IPluginModule
 from app.sites import PtSiteConf
 from app.sites.siteconf import SiteConf
@@ -23,7 +24,6 @@ from app.utils import RequestUtils, SiteUtils, SchedulerUtils
 from app.utils.types import EventType
 
 from config import Config
-from web.backend.wallpaper import get_bing_wallpaper
 
 import log
 

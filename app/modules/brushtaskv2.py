@@ -13,7 +13,7 @@ from apscheduler.triggers.cron import CronTrigger
 import log
 
 from app.downloader import Downloader
-from app.filter import Filter
+from app.modules.filter import Filter
 from app.helper import DbHelper
 from app.indexer.client.builtin import BuiltinIndexer
 from app.indexer.manager import IndexerManager

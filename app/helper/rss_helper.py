@@ -3,7 +3,7 @@ import xml.dom.minidom
 from urllib.parse import urljoin
 from lxml import etree
 
-from app.db import MainDb, DbPersist
+from app.db.main_db import MainDb, DbPersist
 from app.db.models import RSSTORRENTS
 from app.utils import RssTitleUtils, StringUtils, RequestUtils, DomUtils, SiteUtils
 

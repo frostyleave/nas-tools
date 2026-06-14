@@ -1,6 +1,6 @@
 import os
 
-from app.filetransfer import FileTransfer
+from app.modules.filetransfer import FileTransfer
 from app.media import Category
 from app.mediaserver import MediaServer
 from app.plugins import EventHandler

@@ -3,12 +3,13 @@ import os
 import time
 
 from threading import Event
+
 from app.helper import ThreadHelper
+from app.modules.system.backup import Backup
 from app.plugins.modules._base import _IPluginModule
 from app.utils import SystemUtils
-from config import Config
-from web.action import WebAction
 
+from config import Config
 
 class AutoBackup(_IPluginModule):
     # 插件名称
@@ -180,8 +181,7 @@ class AutoBackup(_IPluginModule):
             bk_path = self._bk_path or os.path.join(Config().get_config_path(), "backup_file")
 
         # 备份
-        zip_file = WebAction().backup(bk_path=bk_path,
-                                      full_backup=self._full)
+        zip_file = Backup().backup(bk_path=bk_path, full_backup=self._full)
 
         if zip_file:
             self.info(f"备份完成 备份文件 {zip_file} ")

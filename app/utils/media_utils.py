@@ -309,3 +309,14 @@ class MediaUtils:
         # 拼接到季信息之后
         splicing = StringUtils.insert_char_at_index(target_str, '.{}.'.format(first_episode), p_index)
         return splicing, p_index + 1
+    
+    @staticmethod
+    def get_tmdb_title(tmdb_info, title=None):
+
+        if not tmdb_info:
+            return title
+        
+        media_title = tmdb_info.get("title") if tmdb_info.get("title") else tmdb_info.get("name")
+        if not media_title:
+            media_title = title
+        return media_title

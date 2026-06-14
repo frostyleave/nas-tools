@@ -6,12 +6,12 @@ from typing import List, Optional
 
 import log
 
-from app.filter import Filter
+from app.modules.filter import Filter
 from app.media import Media
 from app.media.meta import MetaInfo
 from app.utils import StringUtils, MediaUtils
 from app.utils.types import MediaType, SearchType
-from app.task_manager import GlobalTaskManager
+from app.core.task_manager import GlobalTaskManager
 
 
 from config import SPLIT_CHARS

@@ -1,6 +1,7 @@
 import requests
 import urllib3
 
+from functools import lru_cache
 from typing import Any, Optional, Union
 from requests import Session, Response
 from urllib3.exceptions import InsecureRequestWarning
@@ -217,3 +218,14 @@ class RequestUtils:
         :return: 转换后的字符串
         """
         return ";".join(f"{key}={value}" for key, value in data.items())
+    
+    @staticmethod
+    @lru_cache(maxsize=128)
+    def request_cache(url):
+        """
+        带缓存的请求
+        """
+        ret = RequestUtils().get_res(url)
+        if ret:
+            return ret.content
+        return None

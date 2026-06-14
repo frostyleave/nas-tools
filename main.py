@@ -7,16 +7,17 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
 
-from web.action import action_router
-from web.auth import auth_router
-from web.data import data_router
-from web.open import open_router
-from web.staticfile import NoCacheStaticFiles
-from web.streaming import streaming_router
-from web.utility import utility_router
+from app.middleware.staticfile import NoCacheStaticFiles
+from app.modules.wallpaper import get_login_wallpaper
 
-from web.backend.wallpaper import get_login_wallpaper
-from web.lifespan import lifespan
+from app.api.action import action_router
+from app.api.auth import auth_router
+from app.api.data import data_router
+from app.api.open import open_router
+from app.api.streaming import streaming_router
+from app.api.utility import utility_router
+
+from app.core.lifespan import lifespan
 
 from version import APP_VERSION
 
@@ -48,18 +49,18 @@ app.include_router(streaming_router)
 app.include_router(utility_router)
 
 # 静态文件
-app.mount("/static", NoCacheStaticFiles(directory="web/static"), name="static")
+app.mount("/static", NoCacheStaticFiles(directory="./static"), name="static")
 
 
 # 页面不存在
 @app.exception_handler(404)
 async def page_not_found(request: Request, exc):
-    return FileResponse("web/static/404.html", status_code=404)
+    return FileResponse("static/404.html", status_code=404)
 
 # 服务错误
 @app.exception_handler(500)
 async def page_server_error(request: Request, exc):
-    return FileResponse("web/static/500.html", status_code=500)
+    return FileResponse("static/500.html", status_code=500)
 
 # favicon.ico
 @app.get("/favicon.ico")
@@ -67,7 +68,7 @@ async def favicon():
     """
     网站图标
     """
-    favicon_path = os.path.join("web", "static", "favicon.ico")
+    favicon_path = os.path.join("static", "favicon.ico")
     if os.path.exists(favicon_path):
         return FileResponse(favicon_path)
     else:
@@ -87,7 +88,7 @@ async def robots():
 @app.get("/", response_class=HTMLResponse)
 async def home_page():
     return FileResponse(
-            "web/static/index.html",
+            "static/index.html",
             headers={
                 "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
                 "Pragma": "no-cache"

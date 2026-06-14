@@ -8,30 +8,28 @@ from fastapi.responses import JSONResponse
 
 import log
 
-from app.brushtaskv2 import BrushTaskV2 as BrushTask
+from app.modules.brushtaskv2 import BrushTaskV2 as BrushTask
 from app.conf.moduleconf import ModuleConf
 from app.conf.systemconfig import SystemConfig
 from app.downloader.downloader import Downloader
-from app.filter import Filter
+from app.modules.filter import Filter
 from app.helper.meta_helper import MetaHelper
 from app.indexer.indexer import Indexer
 from app.mediaserver.media_server import MediaServer
 from app.message import Message
+from app.middleware.security import get_current_user
+from app.models.user import User
 from app.plugins.plugin_manager import PluginManager
-from app.rsschecker import RssChecker
+from app.modules.rsschecker import RssChecker
 from app.sites.site_manager import SitesManager
-from app.sync import Sync
-from app.torrentremover import TorrentRemover
+from app.modules.sync import Sync
+from app.modules.torrentremover import TorrentRemover
 from app.utils.system_utils import SystemUtils
 from app.utils.types import *
 
 from config import PT_TRANSFER_INTERVAL, TMDB_API_DOMAINS, Config
 
-from web.action import WebAction
-from web.backend.security import get_current_user
-from web.backend.user import User
-from web.backend.web_utils import WebUtils
-
+from app.api.action import WebAction
 
 # 页面数据路由
 data_router = APIRouter(
@@ -120,7 +118,7 @@ async def sysinfo(current_user: User = Depends(get_current_user)):
             "menus": current_user.get_usermenus(),
             "systemFlag": system_flag.value,
             "tmdbFlag": tmdb_flag,
-            "appVersion": WebUtils.get_current_version(),
+            "appVersion": SystemUtils.get_current_version(),
             "syncMod": sync_mod,
             "defaultPath": default_path,
             "commands": commands,

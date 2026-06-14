@@ -4,7 +4,6 @@ import re
 import bencodepy
 import urllib
 
-from app.utils.media_utils import MediaUtils
 from app.utils.types import MediaType
 
 

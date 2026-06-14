@@ -6,12 +6,13 @@ from typing import Any, Dict
 from fastapi import APIRouter, Query, Request, WebSocket, WebSocketDisconnect
 from fastapi.responses import StreamingResponse
 
-from app.task_manager import GlobalTaskManager
+from app.core.task_manager import GlobalTaskManager
+
 import log
 from log import log_buffer, active_sse_queues
 
-from web.action import WebAction
-from web.backend.security import get_current_user
+from app.api.action import WebAction
+from app.middleware.security import get_current_user
 from app.utils.types import *
 
 # 流式/实时路由

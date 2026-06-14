@@ -1,5 +1,5 @@
 from app.plugins.modules._base import _IPluginModule
-from app.sync import Sync
+from app.modules.sync import Sync
 
 class SyncTimer(_IPluginModule):
     # 插件名称

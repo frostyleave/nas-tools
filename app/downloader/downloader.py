@@ -18,12 +18,12 @@ import log
 
 from app.conf import ModuleConf
 from app.conf import SystemConfig
-from app.filetransfer import FileTransfer
+from app.modules.filetransfer import FileTransfer
 from app.helper import DbHelper, ThreadHelper, SubmoduleHelper
 from app.indexer.client import InterfaceSpider, MTorrentSpider
 from app.indexer.client.browser import PlaywrightHelper
 from app.indexer.manager import IndexerInfo, IndexerManager
-from app.jobcenter import JobCenter
+from app.core.jobcenter import JobCenter
 from app.media import Media
 from app.media.meta import MetaInfo
 from app.mediaserver import MediaServer
