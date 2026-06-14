@@ -1071,3 +1071,64 @@ h1.login_title>label {
   overflow: hidden;
   text-overflow: ellipsis;
 }
+
+/* 隐藏 checkbox */
+.advanced-search-switch {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+}
+/* 默认手机端折叠 */
+.more-advanced {
+    display: none;
+    padding-top: 0.5rem;
+}
+.advanced-search-switch:checked~.more-advanced {
+    display: block;
+}
+/* Toggle 区域 */
+.advanced-search-toggle-wrapper {
+    text-align: center;
+    margin-top: 0.25rem;
+}
+/* Toggle 按钮 */
+.advanced-search-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    color: #6c757d;
+    font-size: 0.875rem;
+    cursor: pointer;
+    user-select: none;
+    transition: all 0.2s ease;
+}
+.advanced-search-toggle:hover {
+    color: #0d6efd;
+}
+/* 箭头动画 */
+.toggle-icon {
+    display: inline-flex;
+    transition: transform 0.2s ease;
+}
+.advanced-search-switch:checked~.advanced-search-toggle-wrapper .toggle-icon {
+    transform: rotate(180deg);
+}
+/* 文本切换 */
+.toggle-text-close {
+    display: none;
+}
+.advanced-search-switch:checked~.advanced-search-toggle-wrapper .toggle-text-open {
+    display: none;
+}
+.advanced-search-switch:checked~.advanced-search-toggle-wrapper .toggle-text-close {
+    display: inline;
+}
+/* 桌面端强制展开 */
+@media (min-width: 992px) {
+    .more-advanced {
+        display: block !important;
+    }
+    .advanced-search-toggle-wrapper {
+        display: none !important;
+    }
+}

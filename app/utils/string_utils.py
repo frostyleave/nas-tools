@@ -8,7 +8,7 @@ import string
 
 from datetime import datetime, timedelta
 from dateutil.parser import parse as parse_date, isoparse
-from typing import Optional
+from typing import Optional, Tuple
 
 import zhconv
 from zhon.hanzi import punctuation as zh_punc
@@ -748,11 +748,17 @@ class StringUtils:
         return bool(re.match(r'.*\d$', s))
     
     @staticmethod
-    def remove_numbers_from_end(s):
+    def remove_numbers_from_end(s) -> Tuple[str, Optional[int]]:
         """
-        移除字符串尾部的数字
+        拆分字符串与末尾数字
+        - 返回 (去掉尾数的字符串, 末尾数字 or None)
         """
-        return re.sub(r'\d+$', '', s).strip()
+        m = re.search(r'(.*?)(\d+)\s*$', s)
+        if not m:
+            return s.strip(), None
+
+        text, num = m.groups()
+        return text.strip(), int(num)
     
     @staticmethod
     def is_string_and_not_empty(word):

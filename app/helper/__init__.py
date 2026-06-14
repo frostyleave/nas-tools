@@ -11,4 +11,3 @@ from .words_helper import WordsHelper
 from .submodule_helper import SubmoduleHelper
 from .ffmpeg_helper import FfmpegHelper
 from .rss_helper import RssHelper
-from .plugin_helper import PluginHelper

@@ -511,30 +511,31 @@ async def service(current_user: User = Depends(get_current_user)):
     服务页面
     """
     # 所有规则组
-    RuleGroups = Filter().get_rule_groups()
+    ruleGroups = Filter().get_rule_groups()
     # 所有同步目录
-    SyncPaths = Sync().get_sync_path_conf()
+    syncPaths = Sync().get_sync_path_conf()
 
     # 获取用户服务（get_current_user_required已经保证current_user不为空）
-    Services = current_user.get_services()
-    pt = Config().get_config('pt')
+    serviceList = current_user.get_services()
+    ptConfig = Config().get_config('pt')
+
     # RSS订阅
-    if "rssdownload" in Services:
-        pt_check_interval = pt.get('pt_check_interval')
+    if "rssdownload" in serviceList:
+        pt_check_interval = ptConfig.get('pt_check_interval')
         if str(pt_check_interval).isdigit():
             tim_rssdownload = str(round(int(pt_check_interval) / 60)) + " 分钟"
             rss_state = 'ON'
         else:
             tim_rssdownload = ""
             rss_state = 'OFF'
-        Services['rssdownload'].update({
+        serviceList['rssdownload'].update({
             'time': tim_rssdownload,
             'state': rss_state,
         })
 
     # RSS搜索
-    if "subscribe_search_all" in Services:
-        search_rss_interval = pt.get('search_rss_interval')
+    if "subscribe_search_all" in serviceList:
+        search_rss_interval = ptConfig.get('search_rss_interval')
         if str(search_rss_interval).isdigit():
             if int(search_rss_interval) < 3:
                 search_rss_interval = 3
@@ -543,13 +544,13 @@ async def service(current_user: User = Depends(get_current_user)):
         else:
             tim_rsssearch = ""
             rss_search_state = 'OFF'
-        Services['subscribe_search_all'].update({
+        serviceList['subscribe_search_all'].update({
             'time': tim_rsssearch,
             'state': rss_search_state,
         })
 
     # 下载文件转移
-    if "pttransfer" in Services:
+    if "pttransfer" in serviceList:
         pt_monitor = Downloader().monitor_downloader_ids
         if pt_monitor:
             tim_pttransfer = str(round(PT_TRANSFER_INTERVAL / 60)) + " 分钟"
@@ -557,27 +558,26 @@ async def service(current_user: User = Depends(get_current_user)):
         else:
             tim_pttransfer = ""
             sta_pttransfer = 'OFF'
-        Services['pttransfer'].update({
+        serviceList['pttransfer'].update({
             'time': tim_pttransfer,
             'state': sta_pttransfer,
         })
 
     # 目录同步
-    if "sync" in Services:
+    if "sync" in serviceList:
         if Sync().monitor_sync_path_ids:
-            Services['sync'].update({'state': 'ON'})
+            serviceList['sync'].update({'state': 'ON'})
 
     # 系统进程
-    if "processes" in Services:
+    if "processes" in serviceList:
         if not SystemUtils.is_docker() or not SystemUtils.get_all_processes():
-            Services.pop('processes')
+            serviceList.pop('processes')
 
     return response(data=
         {
-            "Count": len(Services),
-            "RuleGroups": RuleGroups,
-            "SyncPaths": SyncPaths,
-            "SchedulerTasks": Services,
+            "ruleGroups": ruleGroups,
+            "syncPaths": syncPaths,
+            "schedulerTasks": serviceList,
         }
     )
 

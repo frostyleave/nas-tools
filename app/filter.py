@@ -298,17 +298,17 @@ class Filter:
         if filter_args.get("include"):
             include = filter_args.get("include")
             if not re.search(r"%s" % include, text, re.I):
-                return False, 0, f"{meta_info.org_string} 不符合包含 {include} 要求"
+                return False, 0, f"{text} 不符合包含 {include} 要求"
         # 过滤排除
         if filter_args.get("exclude"):
             exclude = filter_args.get("exclude")
             if re.search(r"%s" % exclude, text, re.I):
-                return False, 0, f"{meta_info.org_string} 不符合排除 {exclude} 要求"
+                return False, 0, f"{text} 不符合排除 {exclude} 要求"
         # 过滤关键字
         if filter_args.get("key"):
             key = filter_args.get("key")
             if not re.search(r"%s" % key, text, re.I):
-                return False, 0, f"{meta_info.org_string} 不符合 {key} 要求"
+                return False, 0, f"{text} 不符合 {key} 要求"
         # 过滤过滤规则，-1表示不使用过滤规则，空则使用默认过滤规则
         if filter_args.get("rule"):
             # 已设置默认规则

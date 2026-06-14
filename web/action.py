@@ -27,10 +27,10 @@ from app.conf import SystemConfig, ModuleConf
 from app.downloader import Downloader
 from app.filetransfer import FileTransfer
 from app.filter import Filter
-from app.helper import DbHelper, ProgressHelper, ThreadHelper, MetaHelper, DisplayHelper, WordsHelper, RssHelper, PluginHelper
+from app.helper import DbHelper, ProgressHelper, ThreadHelper, MetaHelper, DisplayHelper, WordsHelper, RssHelper
 from app.indexer import Indexer
 from app.indexer.manager import IndexerManager
-from app.job_center import JobCenter
+from app.jobcenter import JobCenter
 from app.media import Category, Media, Bangumi, DouBan, Scraper
 from app.media.meta import MetaInfo, MetaBase
 from app.mediaserver import MediaServer
@@ -119,6 +119,7 @@ def search(background_tasks: BackgroundTasks, data: dict = Body(...)):
         log.debug("[%s] %s, 耗时: %s ms", str(threading.get_ident()), json.dumps(data), format(process_time, ".2f"))
 
 class WebAction:
+    
     _actions = {}
     _commands = {}
     _current_user : Optional[User] = None
@@ -310,7 +311,8 @@ class WebAction:
             "save_external_source_settings": self.save_external_source_settings,
             "refresh_pt_statistics": self.refresh_pt_statistics,
             "install_external_plugin": self.install_external_plugin,
-            "uninstall_external_plugin": self.uninstall_external_plugin
+            "uninstall_external_plugin": self.uninstall_external_plugin,
+            "get_jobs": self.get_jobs
         }
         # 远程命令响应
         self._commands = {
@@ -415,7 +417,7 @@ class WebAction:
         # 加载插件
         PluginManager()
         # 打印定时任务列表
-        JobCenter().get_scheduler().print_jobs()
+        JobCenter().print_jobs()
 
     def restart_service(self):
         """
@@ -865,10 +867,12 @@ class WebAction:
                     dest_dir = inknowninfo.DEST
                 else:
                     return {"retcode": -1, "retmsg": "未查询到未识别记录"}
+                
         if not dest_dir:
             dest_dir = ""
         if not path:
             return {"retcode": -1, "retmsg": "输入路径有误"}
+        
         tmdbid = data.get("tmdb")
         mtype = data.get("type")
         season = data.get("season")
@@ -916,6 +920,7 @@ class WebAction:
         inpath = data.get("inpath")
         if not os.path.exists(inpath):
             return {"retcode": -1, "retmsg": f"输入路径{inpath}不存在"}
+        
         outpath = data.get("outpath")
         syncmod = ModuleConf.RMT_MODES.get(data.get("syncmod"))
         tmdbid = data.get("tmdb")
@@ -932,6 +937,7 @@ class WebAction:
             media_type = MediaType.TV
         else:
             media_type = MediaType.ANIME
+
         # 开始转移
         succ_flag, ret_msg = self.__manual_transfer(inpath=inpath,
                                                     syncmod=syncmod,
@@ -949,7 +955,8 @@ class WebAction:
         else:
             return {"retcode": 2, "retmsg": ret_msg}
 
-    def __manual_transfer(self, inpath,
+    def __manual_transfer(self, 
+                          inpath,
                           syncmod,
                           outpath=None,
                           media_type=None,
@@ -960,21 +967,24 @@ class WebAction:
                           min_filesize=None,
                           tmdbid=None,
                           season=None,
-                          need_fix_all=False
-                          ):
+                          need_fix_all=False):
         """
         开始手工转移文件
         """
         inpath = os.path.normpath(inpath)
-        if outpath:
-            outpath = os.path.normpath(outpath)
         if not os.path.exists(inpath):
             return False, "输入路径不存在"
+        
+        outpath = os.path.normpath(outpath) if outpath else None
+        is_dir_specified = True if outpath else False
+        episode_conf = (EpisodeFormat(episode_format, episode_details, episode_part, episode_offset), need_fix_all)
+        
         if tmdbid:
             # 有输入TMDBID
             tmdb_info = Media().get_tmdb_info(mtype=media_type, tmdbid=tmdbid)
             if not tmdb_info:
-                return False, "识别失败，无法查询到TMDB信息"
+                return False, "识别失败, 无法查询到TMDB信息"
+            
             # 按识别的信息转移
             succ_flag, ret_msg = FileTransfer().transfer_media(in_from=SyncType.MAN,
                                                                in_path=inpath,
@@ -983,14 +993,10 @@ class WebAction:
                                                                tmdb_info=tmdb_info,
                                                                media_type=media_type,
                                                                season=season,
-                                                               episode=(
-                                                                   EpisodeFormat(episode_format,
-                                                                                 episode_details,
-                                                                                 episode_part,
-                                                                                 episode_offset),
-                                                                   need_fix_all),
+                                                               episode=episode_conf,
                                                                min_filesize=min_filesize,
-                                                               udf_flag=True)
+                                                               udf_flag=True,
+                                                               is_dir_specified=is_dir_specified)
         else:
             # 按识别的信息转移
             succ_flag, ret_msg = FileTransfer().transfer_media(in_from=SyncType.MAN,
@@ -998,14 +1004,10 @@ class WebAction:
                                                                rmt_mode=syncmod,
                                                                target_dir=outpath,
                                                                media_type=media_type,
-                                                               episode=(
-                                                                   EpisodeFormat(episode_format,
-                                                                                 episode_details,
-                                                                                 episode_part,
-                                                                                 episode_offset),
-                                                                   need_fix_all),
+                                                               episode=episode_conf,
                                                                min_filesize=min_filesize,
-                                                               udf_flag=True)
+                                                               udf_flag=True,
+                                                               is_dir_specified=is_dir_specified)
         return succ_flag, ret_msg
 
     def delete_history(self, data):
@@ -1014,13 +1016,13 @@ class WebAction:
         """
         logids = data.get('logids') or []
         flag = data.get('flag')
-        _filetransfer = FileTransfer()
+        file_transfer = FileTransfer()
         for logid in logids:
             # 读取历史记录
-            transinfo = _filetransfer.get_transfer_info_by_id(logid)
+            transinfo = file_transfer.get_transfer_info_by_id(logid)
             if transinfo:
                 # 删除记录
-                _filetransfer.delete_transfer_log_by_id(logid)
+                file_transfer.delete_transfer_log_by_id(logid)
                 # 根据flag删除文件
                 source_path = transinfo.SOURCE_PATH
                 source_filename = transinfo.SOURCE_FILENAME
@@ -1033,7 +1035,7 @@ class WebAction:
                     "season_episode": transinfo.SEASON_EPISODE
                 }
                 # 删除该识别记录对应的转移记录
-                _filetransfer.delete_transfer_blacklist("%s/%s" % (source_path, source_filename))
+                file_transfer.delete_transfer_blacklist("%s/%s" % (source_path, source_filename))
                 dest = transinfo.DEST
                 dest_path = transinfo.DEST_PATH
                 dest_filename = transinfo.DEST_FILENAME
@@ -1077,7 +1079,7 @@ class WebAction:
                         else:
                             meta_info.type = MediaType.TV
                         # 删除文件
-                        dest_path = _filetransfer.get_dest_path_by_info(dest=dest, meta_info=meta_info)
+                        dest_path = file_transfer.get_dest_path_by_info(dest=dest, meta_info=meta_info)
                         if dest_path and dest_path.find(meta_info.title) != -1:
                             rm_parent_dir = False
                             if not meta_info.get_season_list():
@@ -1270,12 +1272,12 @@ class WebAction:
         basic = True if data.get("basic") else False
         if basic:
             sites = SitesManager().get_site_dict(rss=rss,
-                                          brush=brush,
-                                          statistic=statistic)
+                                                 brush=brush,
+                                                 statistic=statistic)
         else:
             sites = SitesManager().get_sites(rss=rss,
-                                      brush=brush,
-                                      statistic=statistic)
+                                             brush=brush,
+                                             statistic=statistic)
         return {"code": 0, "sites": sites}
 
     def __del_site(self, data):
@@ -1286,8 +1288,8 @@ class WebAction:
         if tid:
             ret = SitesManager().delete_site(tid)
             return {"code": ret}
-        else:
-            return {"code": 0}
+        
+        return {"code": 0}
 
     def __restart(self):
         """
@@ -1684,8 +1686,7 @@ class WebAction:
             for wid in ids:
                 transinfo = _filetransfer.get_transfer_info_by_id(wid)
                 if transinfo:
-                    path = os.path.join(
-                        transinfo.SOURCE_PATH, transinfo.SOURCE_FILENAME)
+                    path = os.path.join(transinfo.SOURCE_PATH, transinfo.SOURCE_FILENAME)
                     dest_dir = transinfo.DEST
                     rmt_mode = ModuleConf.get_enum_item(
                         RmtMode, transinfo.MODE) if transinfo.MODE else None
@@ -3683,7 +3684,7 @@ class WebAction:
             media_type = {"MOV": "电影", "TV": "电视剧", "ANI": "动漫"}.get(mtype)
             # 只需要部分种子标签
             labels = [label for label in str(item.NOTE).split("|")
-                      if label in ["官方", "官组", "中字", "国语", "特效", "特效字幕"]]
+                      if label in ["官方", "官组", "中字", "中配", "国语", "特效", "特效字幕"]]
 
             pubdate = item.PUBDATE or ''
             if pubdate.endswith(' 00:00:00'):
@@ -5395,7 +5396,6 @@ class WebAction:
         user_plugins = SystemConfig().get(SystemConfigKey.UserInstalledPlugins) or []
         if module_id not in user_plugins:
             user_plugins.append(module_id)
-            PluginHelper.install(module_id)
         # 保存配置
         SystemConfig().set(SystemConfigKey.UserInstalledPlugins, user_plugins)
         # 重新加载插件
@@ -5437,8 +5437,7 @@ class WebAction:
                 user_level = admin_user.level
 
         plugins = PluginManager().get_plugin_apps(user_level)
-        statistic = PluginHelper.statistic()
-        return {"code": 0, "result": plugins, "statistic": statistic}
+        return {"code": 0, "result": plugins}
 
     def get_plugin_page(self, data):
         """
@@ -5593,8 +5592,7 @@ class WebAction:
 
         # 获取插件列表
         plugins = PluginManager().get_external_plugin_apps(user_level)
-        statistic = PluginHelper.statistic()
-        return {"code": 0, "result": plugins, "statistic": statistic}
+        return {"code": 0, "result": plugins}
 
     def save_external_source_settings(self, data):
 
@@ -5642,7 +5640,6 @@ class WebAction:
 
         if module_id not in user_plugins:
             user_plugins.append(module_id)
-            PluginHelper.install(module_id)
 
         if module_id not in external_plugins:
             external_plugins.append(module_id)
@@ -5706,3 +5703,10 @@ class WebAction:
             "id": item.get("cmd"),
             "name": item.get("desc")
         } for item in PluginManager().get_plugin_commands()]
+
+    def get_jobs(self):
+        """
+        获取所有已注册的定时任务
+        """
+        result = JobCenter().get_jobs()
+        return {"code": 0, "result": result }

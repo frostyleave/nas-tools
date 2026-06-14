@@ -10,7 +10,7 @@ from app.utils.types import SiteSchema
 import log
 
 
-class NexusProjectSiteUserInfo(NexusPhpSiteUserInfo):
+class NexusPTTSiteUserInfo(NexusPhpSiteUserInfo):
     schema = SiteSchema.PTTNP
     order = SITE_BASE_ORDER + 25
 

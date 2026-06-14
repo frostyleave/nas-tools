@@ -88,6 +88,7 @@ class SiteSchema(Enum):
     Gazelle = "Gazelle"
     Ipt = "IPTorrents"
     NexusPhp = "NexusPhp"
+    NexusPhpAudiences = "NexusPhpAudiences"
     NexusProject = "NexusProject"
     NexusRabbit = "NexusRabbit"
     PTTNP = "PTT-NP"

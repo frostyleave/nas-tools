@@ -125,7 +125,8 @@ class Media:
                     ret_names.append(name)
         return tmdb_info, ret_names
 
-    def __search_tmdb(self, file_media_name,
+    def __search_tmdb(self, 
+                      file_media_name,
                       search_type,
                       first_media_year=None,
                       media_year=None,
@@ -255,10 +256,11 @@ class Media:
             else:
                 tvs = serach_api.tv_shows({"query": file_media_name})
             if len(tvs) == 0 and StringUtils.is_string_ending_with_number(file_media_name):
-                search_name = StringUtils.remove_numbers_from_end(file_media_name)
+                search_name, year = StringUtils.remove_numbers_from_end(file_media_name)
                 tvs = serach_api.tv_shows({"query": search_name})
                 if len(tvs) > 0 :
                     file_media_name = search_name
+                    first_media_year = year
         except TMDbException as err:
             log.error(f"【Meta】连接TMDB出错：{str(err)}")
             return None
@@ -273,6 +275,9 @@ class Media:
             info = {}
             if first_media_year:
                 for tv in tvs:
+                    lan_name = tv.get('name')
+                    if lan_name == '重复词条':
+                        continue
                     if tv.get('first_air_date'):
                         if self.__compare_tmdb_names(file_media_name, tv.get('name')) \
                                 and tv.get('first_air_date')[0:4] == str(first_media_year):
@@ -284,6 +289,8 @@ class Media:
                 for tv in tvs:
                     tmdb_names = []
                     lan_name = tv.get('name')
+                    if lan_name == '重复词条':
+                        continue
                     original_name = tv.get('original_name')
                     if lan_name:
                         tmdb_names.append(lan_name)
@@ -295,6 +302,8 @@ class Media:
             if not info:
                 index = 0
                 for tv in tvs:
+                    if tv.get('name') == '重复词条':
+                        continue
                     if first_media_year:
                         if not tv.get('first_air_date'):
                             continue

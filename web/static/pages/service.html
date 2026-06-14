@@ -1,3 +1,16 @@
+<style>
+  /* 固定布局，确保 colgroup 生效 */
+  #modal-job-list table {
+      table-layout: fixed;
+  }
+
+  #modal-job-list table th,
+  #modal-job-list table td {
+      white-space: normal;
+      word-break: break-word;
+  }
+
+</style>
 <div class="container-xl">
   <!-- Page title -->
   <div class="page-header d-print-none mt-2">
@@ -231,6 +244,41 @@
   </div>
 </div>
 
+<div class="modal modal-blur fade" id="modal-job-list" tabindex="-1" role="dialog" aria-hidden="true"
+  data-bs-backdrop="static" data-bs-keyboard="false">
+  <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">定时任务</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="table-responsive table-modal-body">
+        <table class="table table-vcenter card-table">
+          <colgroup>
+            <col style="width: 20%">
+            <col style="width: 50%">
+            <col style="width: 10%">
+            <col style="width: 20%">
+          </colgroup>
+          <thead>
+            <tr>
+              <th>名称</th>
+              <th>触发器</th>
+              <th>是否待处理</th>
+              <th>下次运行时间</th>
+            </tr>
+          </thead>
+          <tbody id="job-table-body">
+          </tbody>
+        </table>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-link me-auto" data-bs-dismiss="modal">关闭</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script type="text/javascript">
 
   // 显示服务提示框
@@ -271,6 +319,10 @@
         break;
       case "sync":
         $('#modal-service-sync').modal('show');
+        break;
+      case "cron_job_list":
+        $('#modal-job-list').modal('show');
+        draw_cron_job_list();
         break;
       default:
         show_ask_modal("是否立即运行 " + name + "？", function () {
@@ -344,7 +396,7 @@
     });
   });
 
-  //名称识别测试
+  // 名称识别测试
   function name_test(btn_obj) {
     const name_obj = $('#test_name');
     const name = name_obj.val();
@@ -360,7 +412,7 @@
     }, $('#test_subtitle_name').val());
   }
 
-  //过滤规则测试
+  // 过滤规则测试
   function rule_test(btn_obj) {
     const title_obj = $("#test_title");
     const title = title_obj.val();
@@ -463,6 +515,33 @@
     });
   }
 
+  // 查询定时任务信息
+  function draw_cron_job_list() {
+
+    const jobTableBody = $('#job-table-body');
+    jobTableBody.empty();
+
+    axios_post_do("get_jobs", {}, function (ret) {
+      if (ret.code == "0") {
+        ret.result.forEach((info, index) => {
+          const row = `
+            <tr>
+              <td>
+                <span>${info.name}</span>
+                <input name="nettest_item" value="${info.id}" type="hidden">
+              </td>
+              <td><span>${info.trigger_details}</span></td>
+              <td><span>${info.pending}</span></td>
+              <td><span>${info.next_run_time}</span></td>
+            </tr>
+          `;
+          jobTableBody.append(row);
+        });
+      }
+
+    });
+  }
+  
   // 初始化DropZone
   backup_dropzone = new Dropzone("#back_file");
   backup_dropzone.options.acceptedFiles = ".zip";
@@ -475,15 +554,16 @@
   $(document).ready(function() {
     axios_post('/data/service', {}, function(response) {
       if (response.code === 0 && response.data) {
+        
         const data = response.data;
 
         // 填充过滤规则选项
-        if (data.RuleGroups) {
+        if (data.ruleGroups) {
           const ruleSelect = $('#test_rulegroup');
           ruleSelect.empty();
-          if (data.RuleGroups.length > 0) {
+          if (data.ruleGroups.length > 0) {
             ruleSelect.append('<option value="0">请选择</option>');
-            data.RuleGroups.forEach(rule => {
+            data.ruleGroups.forEach(rule => {
               ruleSelect.append(`<option value="${rule.id}">${rule.name}</option>`);
             });
           } else {
@@ -491,30 +571,11 @@
           }
         }
 
-        // 填充网络测试表格
-        if (data.SchedulerTasks && data.SchedulerTasks.nettest && data.SchedulerTasks.nettest.targets) {
-          const nettestTableBody = $('#nettest-table-body');
-          nettestTableBody.empty();
-          data.SchedulerTasks.nettest.targets.forEach((target, index) => {
-            const row = `
-              <tr>
-                <td>
-                  <span>${target}</span>
-                  <input name="nettest_item" value="${target}|${index}" type="hidden">
-                </td>
-                <td id="nettest_item_res_${index}"></td>
-                <td id="nettest_item_res_time_${index}"></td>
-              </tr>
-            `;
-            nettestTableBody.append(row);
-          });
-        }
-
         // 填充同步路径选项
-        if (data.SyncPaths) {
+        if (data.syncPaths) {
           const syncPathsGroup = $('#sync-paths-group');
           syncPathsGroup.empty();
-          Object.entries(data.SyncPaths).forEach(([syncId, syncPath]) => {
+          Object.entries(data.syncPaths).forEach(([syncId, syncPath]) => {
             const pathItem = `
               <label class="form-selectgroup-item">
                 <input type="checkbox" name="service_sync_dir" value="${syncId}" class="form-selectgroup-input">
@@ -526,14 +587,15 @@
         }
 
         // 生成服务列表
-        if (data.SchedulerTasks && Object.keys(data.SchedulerTasks).length > 0) {
+        if (data.schedulerTasks && Object.keys(data.schedulerTasks).length > 0) {
+
           const servicesList = $('#services-list');
           const servicesContainer = $('#services-container');
           const noServices = $('#no-services');
 
           servicesList.empty();
 
-          Object.entries(data.SchedulerTasks).forEach(([id, scheduler]) => {
+          Object.entries(data.schedulerTasks).forEach(([id, scheduler]) => {
             const serviceCard = `
               <div class="card card-sm card-link-pop">
                 <div class="card-body">
@@ -565,6 +627,26 @@
 
           servicesContainer.show();
           noServices.hide();
+
+          // 填充网络测试表格
+          if (data.schedulerTasks.nettest && data.schedulerTasks.nettest.targets) {
+            const nettestTableBody = $('#nettest-table-body');
+            nettestTableBody.empty();
+            data.schedulerTasks.nettest.targets.forEach((target, index) => {
+              const row = `
+                <tr>
+                  <td>
+                    <span>${target}</span>
+                    <input name="nettest_item" value="${target}|${index}" type="hidden">
+                  </td>
+                  <td id="nettest_item_res_${index}"></td>
+                  <td id="nettest_item_res_time_${index}"></td>
+                </tr>
+              `;
+              nettestTableBody.append(row);
+            });
+          }
+
         } else {
           $('#services-container').hide();
           $('#no-services').show();

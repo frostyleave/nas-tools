@@ -225,19 +225,25 @@ async def sse_progress(
                     log.info(f"[SSE-进度] 查询任务: {task_id} 进度信息失败")
                     break
 
+                progress_val = task_info.get('progress', 0)
+                status_desc = task_info.get('status')
+
                 detail = {
                     'code': 0,
-                    'task_id' : task_info.get('task_id'),
-                    'value' : task_info.get('progress'),
-                    'status' : task_info.get('status'),
+                    'task_id' : task_id,
+                    'value' : progress_val,
+                    'status' : status_desc,
                     'text' : task_info.get('message')
                 }
+
+                if progress_val >= 100:
+                    detail['result'] = task_info.get('result')
 
                 # 发送进度
                 yield f"data: {json.dumps(detail)}\n\n"
                 
                 # 进度完成，结束
-                if task_info.get('progress', 0) >= 100 and task_info.get('status') == 'finish':
+                if progress_val >= 100 and status_desc == 'finish':
                     break
                 # 等一会
                 await asyncio.sleep(0.5)

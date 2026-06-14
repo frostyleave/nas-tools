@@ -3,6 +3,7 @@ from threading import Lock
 from typing import List
 
 from apscheduler.job import Job
+from apscheduler.schedulers.background import BackgroundScheduler
 
 import log
 
@@ -11,7 +12,7 @@ from app.downloader import Downloader
 from app.helper import DbHelper
 from app.message import Message
 from app.utils.commons import singleton
-from app.job_center import JobCenter
+from app.jobcenter import JobCenter
 
 lock = Lock()
 
@@ -65,7 +66,7 @@ class TorrentRemover(object):
             return
         
         # 启动删种任务
-        scheduler = JobCenter().get_scheduler()
+        scheduler = self.get_scheduler()
         
         for task in self._remove_tasks.values():
             if task.get("enabled") and task.get("interval") and task.get("config"):
@@ -80,6 +81,10 @@ class TorrentRemover(object):
         if self.scheduler_jobs:
             log.info("自动删种服务启动")
 
+    def get_scheduler(self) -> BackgroundScheduler:
+        """获取任务管理器"""
+        return JobCenter().get_sys_scheduler()
+    
     def get_torrent_remove_tasks(self, taskid=None):
         """
         获取删种任务详细信息
@@ -321,7 +326,7 @@ class TorrentRemover(object):
             if not self.scheduler_jobs:
                 return
             for job_item in self.scheduler_jobs:
-                JobCenter().remove_job(job_item.id)
+                self.get_scheduler().remove_job(job_item.id)
             self.scheduler_jobs = []
         except Exception as e:
             print(str(e))

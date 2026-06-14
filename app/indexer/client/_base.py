@@ -73,6 +73,7 @@ class _IIndexClient(metaclass=ABCMeta):
         self.step_fator = fator
 
     def filter_search_results(self, 
+                              search_key_word: str,
                               result_array: list,
                               order_seq,
                               indexer,
@@ -92,23 +93,14 @@ class _IIndexClient(metaclass=ABCMeta):
         index_match_fail = 0
         index_error = 0
 
-        media = Media()
         filter = Filter()
 
-        target_year = []
-        item_tmdb_info = search_media.tmdb_info if search_media else None
         # 目标资源类型
         mtype = search_media.type if search_media else None
-        if item_tmdb_info:
-            if mtype == MediaType.MOVIE:
-                if hasattr(search_media.tmdb_info, 'release_date') and search_media.tmdb_info.release_date:
-                    target_year.append(search_media.tmdb_info.release_date[0:4])
-            else:
-                if hasattr(search_media.tmdb_info, 'seasons') and search_media.tmdb_info.seasons:
-                    for season_info in search_media.tmdb_info.seasons:
-                        if not season_info.air_date:
-                            continue
-                        target_year.append(season_info.air_date[0:4])
+        # 目标tmdb信息
+        target_tmdb_info = search_media.tmdb_info if search_media else None
+        # 关键过滤参数解析
+        target_years, target_names = self.build_filter_factor(target_tmdb_info, mtype, search_key_word)
 
         for item in result_array:
             # 名称
@@ -151,6 +143,7 @@ class _IIndexClient(metaclass=ABCMeta):
                 log.info("【%s】[%s] %s 无法识别到名称", self.client_name, indexer.name, torrent_name)
                 index_match_fail += 1
                 continue
+
             # 大小及促销等
             item_meta.set_torrent_info(size=size,
                                        imdbid=imdbid,
@@ -171,7 +164,7 @@ class _IIndexClient(metaclass=ABCMeta):
                                                                            uploadvolumefactor=uploadvolumefactor,
                                                                            downloadvolumefactor=downloadvolumefactor)            
             if not match_flag:
-                log.debug("【%s】[%s] %s", self.client_name, indexer.name, match_msg)
+                log.info("【%s】[%s] %s", self.client_name, indexer.name, match_msg)
                 index_rule_fail += 1
                 continue
 
@@ -180,58 +173,15 @@ class _IIndexClient(metaclass=ABCMeta):
                 # 不过滤
                 media_info = item_meta
             else:
-                # 0-识别并模糊匹配；1-识别并精确匹配
-                if item_meta.imdb_id \
-                        and search_media.imdb_id \
-                        and str(item_meta.imdb_id) == str(search_media.imdb_id):
-                    # IMDBID匹配，合并媒体数据
-                    media_info = media.merge_media_info(item_meta, search_media)
-                else:
-                    # 查询缓存
-                    cache_info = media.get_cache_info(item_meta)
-                    if str(cache_info.get("id")) == str(search_media.tmdb_id):
-                        # 缓存匹配，合并媒体数据
-                        media_info = media.merge_media_info(item_meta, search_media)
-                    else:
-                        # 年份不匹配, 直接跳过
-                        if target_year and item_meta.year and item_meta.year not in target_year:
-                            log.warn("【%s】[%s] %s 资源年份不匹配", self.client_name, indexer.name,item_meta.get_name())
-                            index_error += 1
-                            continue                   
+                media_info = self.match_tmdb_info_and_simple_filter(item_meta, search_media, target_years, target_names, indexer)
+                if not media_info:
+                    index_error += 1
+                    continue
 
-                        # 名称、年份 都匹配时，不再额外请求tmdb进行比对
-                        if self.is_result_item_name_match(item_tmdb_info, item_meta):
-                            media_info = media.merge_media_info(item_meta, search_media)
-                        else:
-                            # 识别搜索结果的tmdb信息
-                            search_kw = item_meta.get_name()
-                            en_name = item_meta.get_en_name()
-                            # 没有年份、但有英文名时, 结合英文名搜索
-                            if not item_meta.year and en_name and en_name != search_kw:
-                                search_kw = '{} {}'.format(search_kw, en_name)
+                if str(media_info.tmdb_id) != str(search_media.tmdb_id):
+                    index_match_fail += 1
+                    continue
 
-                            # 查询tmdb数据
-                            file_tmdb_info = media.query_tmdb_info(search_kw,
-                                                                   item_meta.type,
-                                                                   item_meta.year,
-                                                                   item_meta.begin_season,
-                                                                   append_to_response=None,
-                                                                   chinese=StringUtils.contain_chinese(search_kw))
-                            # 查询失败
-                            if not file_tmdb_info:
-                                log.warn("【%s】[%s] %s 识别媒体信息出错！", self.client_name, indexer.name, search_kw)
-                                index_error += 1
-                                continue
-
-                            # TMDBID是否匹配
-                            if str(file_tmdb_info.id) != str(search_media.tmdb_id):
-                                log.debug("【%s】[%s] %s 识别为 %s/%s/%s 与 %s/%s/%s 不匹配", 
-                                         self.client_name, indexer.name, search_kw, item_meta.type.value, item_meta.get_title_string(), file_tmdb_info.id,
-                                         search_media.type.value, search_media.get_title_string(), search_media.tmdb_id)
-                                index_match_fail += 1
-                                continue
-                            # 资源匹配，合并媒体数据
-                            media_info = media.merge_media_info(item_meta, search_media)
                 filter_type = filter_args.get("type")
                 # 过滤类型
                 if filter_type:
@@ -258,8 +208,10 @@ class _IIndexClient(metaclass=ABCMeta):
                 total_season = max(media_info.tmdb_info.seasons, key=lambda info: info.season_number).season_number
                 # 匹配元数据错误, 季信息不匹配
                 if media_info.begin_season and int(media_info.begin_season) > total_season:
+                    log.info("【%s】[%s] %s > total_season=%s", self.client_name, indexer.name, media_info.begin_season, total_season)
                     continue
                 if media_info.end_season and int(media_info.end_season) > total_season:
+                    log.info("【%s】[%s] %s > total_season=%s", self.client_name, indexer.name, media_info.end_season, total_season)
                     continue
                 
 
@@ -307,23 +259,46 @@ class _IIndexClient(metaclass=ABCMeta):
             self.update_process(task_id, text=text_info)
 
         return ret_array
+    
 
-    def is_result_item_name_match(self, item_tmdb_info, item_meta : MetaInfo):
+    def build_filter_factor(self, target_tmdb_info, mtype, search_key_word):
+        """
+        构造过滤参数
+        """
+        target_year = []
+        target_names = []
+
+        target_names.append(search_key_word)
+
+        if target_tmdb_info:
+            # 年份
+            if mtype == MediaType.MOVIE:
+                if hasattr(target_tmdb_info, 'release_date') and target_tmdb_info.release_date:
+                    target_year.append(target_tmdb_info.release_date[0:4])
+            else:
+                if hasattr(target_tmdb_info, 'seasons') and target_tmdb_info.seasons:
+                    for season_info in target_tmdb_info.seasons:
+                        if not season_info.air_date:
+                            continue
+                        target_year.append(season_info.air_date[0:4])
+            
+            # 名称
+            if hasattr(target_tmdb_info, 'title') and target_tmdb_info.title:
+                target_names.append(target_tmdb_info.title)
+            if hasattr(target_tmdb_info, 'original_title') and target_tmdb_info.original_title:
+                target_names.append(target_tmdb_info.original_title)
+            if hasattr(target_tmdb_info, 'name') and target_tmdb_info.name:
+                target_names.append(target_tmdb_info.name)
+            if hasattr(target_tmdb_info, 'original_name') and target_tmdb_info.original_name:
+                target_names.append(target_tmdb_info.original_name)
+        
+        return target_year, target_names
+
+
+    def is_result_item_name_match(self, target_names, item_meta : MetaInfo):
         """
         检查名称是否完全匹配
         """
-        if not item_tmdb_info:
-            return False
-        
-        target_names = []
-        if hasattr(item_tmdb_info, 'title') and item_tmdb_info.title:
-            target_names.append(item_tmdb_info.title)
-        if hasattr(item_tmdb_info, 'original_title') and item_tmdb_info.original_title:
-            target_names.append(item_tmdb_info.original_title)
-        if hasattr(item_tmdb_info, 'name') and item_tmdb_info.name:
-            target_names.append(item_tmdb_info.name)
-        if hasattr(item_tmdb_info, 'original_name') and item_tmdb_info.original_name:
-            target_names.append(item_tmdb_info.original_name)
         
         if not target_names:
             return False
@@ -345,19 +320,70 @@ class _IIndexClient(metaclass=ABCMeta):
                     return True
 
         return False
-    
-    def is_result_item_year_match(self, item_tmdb_info, item_meta : MetaInfo):
+
+
+    def match_tmdb_info_and_simple_filter(self, item_meta:MetaInfo, search_media:MetaInfo, target_years: List[str], target_names: List[str], indexer):
         """
-        检查年份是否匹配
+        匹配tmdb信息并进行基础过滤
         """
-        if not item_tmdb_info:
-            return False
+        media = Media()
+
+        # 0-识别并模糊匹配；1-识别并精确匹配
+        if item_meta.imdb_id \
+                and search_media.imdb_id \
+                and str(item_meta.imdb_id) == str(search_media.imdb_id):
+            # IMDBID匹配，合并媒体数据
+            return media.merge_media_info(item_meta, search_media)
+
+        # 查询缓存
+        cache_info = media.get_cache_info(item_meta)
+        if str(cache_info.get("id")) == str(search_media.tmdb_id):
+            # 缓存匹配，合并媒体数据
+            return media.merge_media_info(item_meta, search_media)
         
-        if not item_meta.year or not item_tmdb_info.release_date:
-            return False
+        # 年份不匹配, 直接跳过
+        if target_years and item_meta.year:
+            # 年份不匹配
+            if item_meta.year not in target_years:
+                log.warn("【%s】[%s] %s 资源年份不匹配", self.client_name, indexer.name,item_meta.get_name())
+                return None
+            
+            # 名称、年份 都匹配时，不再额外请求tmdb进行比对
+            if self.is_result_item_name_match(target_names, item_meta):
+                return media.merge_media_info(item_meta, search_media)
+
+        # 识别搜索结果的tmdb信息
+        search_kw = item_meta.get_name()
+        en_name = item_meta.get_en_name().strip()
+        # 没有年份、但有英文名时, 结合英文名搜索
+        if not item_meta.year and en_name and en_name != search_kw:
+            search_kw = '{} {}'.format(search_kw, en_name)
+
+        # 查询tmdb数据
+        file_tmdb_info = media.query_tmdb_info(search_kw,
+                                               item_meta.type,
+                                               item_meta.year,
+                                               item_meta.begin_season,
+                                               append_to_response=None,
+                                               chinese=StringUtils.contain_chinese(search_kw))
+        # 查询失败
+        if not file_tmdb_info:
+            log.warn("【%s】[%s] %s 识别媒体信息出错！", self.client_name, indexer.name, search_kw)
+            return None
         
-        return item_tmdb_info.release_date.startswith(item_meta.year)
-    
+        # 资源匹配，合并媒体数据
+        target_info = media.merge_media_info(item_meta, search_media)
+
+        # TMDBID是否匹配
+        if str(file_tmdb_info.id) != str(search_media.tmdb_id):
+            log.debug("【%s】[%s] %s 识别为 %s/%s/%s 与 %s/%s/%s 不匹配", 
+                     self.client_name, indexer.name, search_kw, item_meta.type.value, item_meta.get_title_string(), file_tmdb_info.id,
+                     search_media.type.value, search_media.get_title_string(), search_media.tmdb_id)
+            target_info.set_tmdb_info(file_tmdb_info)
+            return None
+        
+        return target_info
+
     def update_process(self, task_id:Optional[str], text:Optional[str]):
         """
         进度更新

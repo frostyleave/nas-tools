@@ -56,7 +56,12 @@ class GlobalTaskManager:
             task = TASK_STORE.get(task_id)
             return task.copy() if task else None # 返回拷贝以保证线程安全
 
-    def update_task(self, task_id: str, progress: Optional[int], message: Optional[str], progress_add: int=0, status: str='processing'):
+    def update_task(self, 
+                    task_id: str, 
+                    progress: Optional[int], 
+                    message: Optional[str], 
+                    progress_add: int=0, 
+                    status: str='processing'):
         """
         只是将消息放入队列，*不等待锁*
         """
@@ -71,6 +76,28 @@ class GlobalTaskManager:
             TASK_QUEUE.put(task_info)
         except Exception as e:
             # 极端情况下的错误处理，避免子进程静默失败
+            log.exception("Error update task: ", e)
+            return False
+        return True
+
+    def finish_task(self, 
+                    task_id: str, 
+                    result: None, 
+                    message: Optional[str]):
+        """
+        设置任务完成
+        """
+        try:
+            task_info = {
+                "task_id": task_id,
+                "status": 'finish',
+                "progress": 100,
+                "progress_add": 0,
+                "message": message,
+                "result" : result
+            }
+            TASK_QUEUE.put(task_info)
+        except Exception as e:
             log.exception("Error putting task update to queue: ", e)
             return False
         return True
@@ -86,7 +113,6 @@ def _task_cleanup():
         task_status = task.get('status')
         if task_status and task_status == 'finish':
             tasks_to_delete.append(task_id)
-                
                 
     # 这里的删除也必须在锁内
     if tasks_to_delete:
@@ -116,6 +142,7 @@ def _task_processor_loop():
             progress = message.get("progress")
             progress_add = message.get("progress_add")
             message_text = message.get("message")
+            task_result = message.get("result")
             
             # 使用锁来安全地写入全局字典
             with TASK_STORE_LOCK:
@@ -131,6 +158,8 @@ def _task_processor_loop():
                         current_data['message'] = message_text
                     if status:
                         current_data['status'] = status
+                    if task_result is not None:
+                        current_data['result'] = task_result 
                 else:
                     # 收到更新时任务可能已被清理或尚未创建
                     pass

@@ -2,13 +2,16 @@ import json
 import jsonpath
 import time
 
-from typing import List
+from typing import Optional
 
-from apscheduler.job import Job
+from apscheduler.executors.pool import ThreadPoolExecutor
 from apscheduler.triggers.cron import CronTrigger
+from apscheduler.schedulers.background import BackgroundScheduler
+
 from lxml import etree
 
 import log
+
 from app.downloader import Downloader
 from app.filter import Filter
 from app.helper import DbHelper, RssHelper
@@ -16,7 +19,6 @@ from app.media import Media
 from app.media.meta import MetaInfo
 from app.message import Message
 from app.searcher import Searcher
-from app.job_center import JobCenter
 from app.subscribe import Subscribe
 from app.utils import RequestUtils, StringUtils
 from app.utils.commons import singleton
@@ -37,7 +39,6 @@ class RssChecker(object):
     dbhelper = None
     rsshelper = None
 
-    _scheduler = None
     _rss_tasks = []
     _rss_parsers = []
     _site_users = {
@@ -46,7 +47,7 @@ class RssChecker(object):
         "S": "搜索"
     }
 
-    scheduler_jobs: List[Job] = []
+    _scheduler : Optional[BackgroundScheduler] = None
 
     def __init__(self):
         self.init_config()
@@ -137,8 +138,7 @@ class RssChecker(object):
         if not self._rss_tasks:
             return
         
-        # 启动RSS任务
-        scheduler = JobCenter().get_scheduler()
+        self._scheduler = BackgroundScheduler(timezone=Config().get_timezone(), executors={"default": ThreadPoolExecutor(5)})
 
         for task in self._rss_tasks:
             if not task.get("state") or not task.get("interval"):
@@ -146,26 +146,25 @@ class RssChecker(object):
             cron = str(task.get("interval")).strip()
             if cron.isdigit():
                 # 分钟
-                job_item = scheduler.add_job(func=self.check_task_rss,
-                                             args=[task.get("id")],
-                                             trigger='interval',
-                                             seconds=int(cron) * 60,
-                                             name='[RSS]' + task.get('name'))
-                if job_item:
-                    self.scheduler_jobs.append(job_item)
+                self._scheduler.add_job(func=self.check_task_rss,
+                                        args=[task.get("id")],
+                                        trigger='interval',
+                                        seconds=int(cron) * 60,
+                                        name='[RSS]' + task.get('name'))
             elif cron.count(" ") == 4:
                 # cron表达式
                 try:
-                    job_item = scheduler.add_job(func=self.check_task_rss,
-                                                 args=[task.get("id")],
-                                                 trigger=CronTrigger.from_crontab(cron),
-                                                 name='[RSS]' + task.get('name'))
-                    if job_item:
-                        self.scheduler_jobs.append(job_item)
+                    self._scheduler.add_job(func=self.check_task_rss,
+                                            args=[task.get("id")],
+                                            trigger=CronTrigger.from_crontab(cron),
+                                            name='[RSS]' + task.get('name'))
                 except Exception as e:
                     log.error("%s 自定义订阅cron表达式 配置格式错误：%s %s" % (task.get("name"), cron, str(e)))
-        if self.scheduler_jobs:
-            log.info("自定义订阅服务启动")
+            
+        # 启动
+        self._scheduler.start()
+        # 打印
+        self._scheduler.print_jobs()
 
     def get_rsstask_info(self, taskid=None):
         """
@@ -713,16 +712,14 @@ class RssChecker(object):
 
     def stop_service(self):
         """
-        停止服务
+        停止定时服务
         """
         try:
-            if not self.scheduler_jobs:
-                return
-            for job_item in self.scheduler_jobs:
-                JobCenter().remove_job(job_item.id)
-            self.scheduler_jobs = []
+            if self._scheduler:
+                self._scheduler.remove_all_jobs()
+                self._scheduler.shutdown()
         except Exception as e:
-            print(str(e))
+            log.exception('【RssChecker】停止定时服务出错: ')
 
     def is_article_processed(self, task_type, title, year, enclosure):
         """

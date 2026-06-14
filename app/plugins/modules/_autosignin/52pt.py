@@ -2,6 +2,7 @@ import json
 import os
 import random
 import re
+from typing import Tuple
 
 from lxml import etree
 
@@ -27,6 +28,9 @@ class FWpt(_ISiteSigninHandler):
     # 签到成功，待补充
     _success_regex = ['\\d+点魔力值']
 
+    # 验证码错误
+    _invalid_captcha_code = ['验证码错误，请重新输入']
+
     # 存储正确的答案，后续可直接查
     _answer_path = os.path.join(Config().get_temp_path(), "signin")
     _answer_file = _answer_path + "/52pt.json"
@@ -46,6 +50,17 @@ class FWpt(_ISiteSigninHandler):
         :param site_info: 站点信息，含有站点Url、站点Cookie、UA等信息
         :return: 签到结果信息
         """
+
+        # 验证码失效, 重试5次
+        for i in range(5):
+            result, message = self._request_sign(site_info=site_info)
+            if result or message.endswith('验证码失效,请重试') == False:
+                return result, message
+            
+        return False, "[52pt]签到失败: Cookie已失效"
+
+    def _request_sign(self, site_info: PtSiteConf)  -> Tuple[bool, str]:
+
         site = site_info.name
         site_cookie = site_info.cookie
         ua = site_info.ua
@@ -60,6 +75,7 @@ class FWpt(_ISiteSigninHandler):
                                  ua=ua,
                                  proxies=proxy
                                  ).get_res(url='https://52pt.site/bakatest.php')
+        
         if not index_res or index_res.status_code != 200:
             self.error(f"签到失败，请检查站点连通性")
             return False, f'【{site}】签到失败，请检查站点连通性'
@@ -81,23 +97,44 @@ class FWpt(_ISiteSigninHandler):
             return False, f'【{site}】签到失败'
 
         # 获取页面问题、答案
-        questionid = html.xpath("//input[@name='questionid']/@value")[0]
+        questionid = html.xpath('string(//input[@name="questionid"]/@value)').strip()
+        baka_token = html.xpath('string(//input[@name="baka_token"]/@value)').strip()
         option_ids = html.xpath("//input[@name='choice[]']/@value")
+        # captcha_code = html.xpath('string(//span[@id="captcha_code_span"])').strip()
         option_values = html.xpath("//input[@name='choice[]']/following-sibling::text()")
-        question_str = html.xpath("//td[@class='text' and contains(text(),'请问：')]/text()")[0]
+        question_str = html.xpath('string(//div[@class="q-text"])').strip()
         answers = list(zip(option_ids, option_values))
 
-        # 正则获取问题
-        match = re.search(r'请问：(.+)', question_str)
-        if match:
-            question_str = match.group(1)
-            self.debug(f"获取到签到问题 {question_str}")
-        else:
-            self.error(f"未获取到签到问题")
-            return False, f"【{site}】签到失败，未获取到签到问题"
+        # 提取验证码
+        captcha_code = ''
+        scripts = html.xpath('//script/text()')
+        for script in scripts:
+            values = re.findall(
+                r"captchaInput\.value\s*=\s*'([^']*)'",
+                script
+            )
+            # 取第一个非空值
+            captcha_code = next((v for v in values if v), None)
+            if captcha_code:
+                break
 
-        # 查询已有答案
-        exits_answers = {}
+        # 获取答案
+        choice = self._try_get_answer(option_ids, question_str, answers)
+
+        # 签到
+        return self.__signin(questionid=questionid,
+                             baka_token=baka_token,
+                             captcha_code=captcha_code,
+                             choice=choice,
+                             site_cookie=site_cookie,
+                             ua=ua,
+                             proxy=proxy,
+                             site=site,
+                             question=question_str)
+
+
+    def _try_get_answer(self, option_ids, question_str, answers):
+
         try:
             with open(self._answer_file, 'r') as f:
                 json_str = f.read()
@@ -113,57 +150,55 @@ class FWpt(_ISiteSigninHandler):
                 for num, answer in answers:
                     if str(q) == str(num):
                         choice.append(int(q))
-            if len(choice) > 0:
-                # 签到
-                return self.__signin(questionid=questionid,
-                                     choice=choice,
-                                     site_cookie=site_cookie,
-                                     ua=ua,
-                                     proxy=proxy,
-                                     site=site)
+            # 有结果, 直接返回
+            if choice:
+                return choice
+            
         except (FileNotFoundError, IOError, OSError) as e:
-            self.debug("查询本地已知答案失败，继续请求豆瓣查询")
+            self.debug("查询本地已知答案失败")
 
-        # 正确答案，默认随机，如果gpt返回则用gpt返回的答案提交
+        # 正确答案：默认随机
         choice = [option_ids[random.randint(0, len(option_ids) - 1)]]
 
-        # 组装gpt问题
-        gpt_options = "{\n" + ",\n".join([f"{num}:{value}" for num, value in answers]) + "\n}"
-        gpt_question = f"题目：{question_str}\n" \
-                       f"选项：{gpt_options}"
-        self.debug(f"组装chatgpt问题 {gpt_question}")
+        if OpenAiHelper().get_state():
+            # 组装gpt问题，如果gpt返回则用gpt返回的答案提交
+            gpt_options = "{\n" + ",\n".join([f"{num}:{value}" for num, value in answers]) + "\n}"
+            gpt_question = f"题目：{question_str}\n" \
+                        f"选项：{gpt_options}"
+            self.debug(f"组装chatgpt问题 {gpt_question}")
 
-        # chatgpt获取答案
-        answer = OpenAiHelper().get_question_answer(question=gpt_question)
-        self.debug(f"chatpgt返回结果 {answer}")
+            # chatgpt获取答案
+            answer = OpenAiHelper().get_question_answer(question=gpt_question)
+            self.debug(f"chatpgt返回结果 {answer}")
 
-        # 处理chatgpt返回的答案信息
-        if answer is None:
-            self.warn(f"ChatGPT未启用, 开始随机签到")
-            # return f"【{site}】签到失败，ChatGPT未启用"
-        elif answer:
-            # 正则获取字符串中的数字
-            answer_nums = list(map(int, re.findall("\d+", answer)))
-            if not answer_nums:
-                self.warn(f"无法从chatgpt回复 {answer} 中获取答案, 将采用随机签到")
-            else:
-                choice = []
-                for answer in answer_nums:
-                    # 如果返回的数字在option_ids范围内，则直接作为答案
-                    if str(answer) in option_ids:
-                        choice.append(int(answer))
-                        self.info(f"chatgpt返回答案id {answer} 在签到选项 {option_ids} 中")
-        # 签到
-        return self.__signin(questionid=questionid,
-                             choice=choice,
-                             site_cookie=site_cookie,
-                             ua=ua,
-                             proxy=proxy,
-                             site=site,
-                             exits_answers=exits_answers,
-                             question=question_str)
+            # 处理chatgpt返回的答案信息
+            if answer is None:
+                self.warn(f"ChatGPT未启用, 开始随机签到")
+                # return f"【{site}】签到失败，ChatGPT未启用"
+            elif answer:
+                # 正则获取字符串中的数字
+                answer_nums = list(map(int, re.findall("\d+", answer)))
+                if not answer_nums:
+                    self.warn(f"无法从chatgpt回复 {answer} 中获取答案, 将采用随机签到")
+                else:
+                    choice = []
+                    for answer in answer_nums:
+                        # 如果返回的数字在option_ids范围内，则直接作为答案
+                        if str(answer) in option_ids:
+                            choice.append(int(answer))
+                            self.info(f"chatgpt返回答案id {answer} 在签到选项 {option_ids} 中")
+        return choice
 
-    def __signin(self, questionid, choice, site, site_cookie, ua, proxy, exits_answers=None, question=None):
+    def __signin(self, 
+                 questionid, 
+                 baka_token,
+                 captcha_code,
+                 choice, 
+                 site, 
+                 site_cookie, 
+                 ua, 
+                 proxy, 
+                 question=None):
         """
         签到请求
         questionid: 450
@@ -175,8 +210,10 @@ class FWpt(_ISiteSigninHandler):
         """
         data = {
             'questionid': questionid,
+            'baka_token': baka_token,
             'choice[]': choice[0] if len(choice) == 1 else choice,
-            'usercomment': '太难了！',
+            'usercomment': '此刻心情:无',
+            'captcha': int(captcha_code) if captcha_code else 0,
             'wantskip': '不会'
         }
         self.debug(f"签到请求参数 {data}")
@@ -187,28 +224,28 @@ class FWpt(_ISiteSigninHandler):
                                 ).post_res(url='https://52pt.site/bakatest.php', data=data)
         if not sign_res or sign_res.status_code != 200:
             self.error(f"签到失败，签到接口请求失败")
-            return False, f'【{site}】签到失败，签到接口请求失败'
+            return False, '[52pt]签到失败，签到接口请求失败'
 
         # 判断是否签到成功
-        sign_status = self.sign_in_result(html_res=sign_res.text,
-                                          regexs=self._success_regex)
+        sign_status = self.sign_in_result(html_res=sign_res.text, regexs=self._success_regex)
         if sign_status:
             self.info(f"{site}签到成功")
-            if exits_answers and question:
-                # 签到成功写入本地文件
-                self.__write_local_answer(exits_answers=exits_answers or {},
-                                          question=question,
-                                          answer=choice)
-            return True, f'【{site}】签到成功'
-        else:
-            sign_status = self.sign_in_result(html_res=sign_res.text,
-                                              regexs=self._sign_regex)
-            if sign_status:
-                self.info(f"今日已签到")
-                return True, f'【{site}】今日已签到'
+            return True, '[52pt]签到成功'
+        
+        # 判断已签到
+        sign_status = self.sign_in_result(html_res=sign_res.text, regexs=self._sign_regex)
+        if sign_status:
+            self.info("今日已签到")
+            return True, '[52pt]今日已签到'
+        
+        # 验证码失效
+        sign_status = self.sign_in_result(html_res=sign_res.text, regexs=self._invalid_captcha_code)
+        if sign_status:
+            self.info("验证码失效")
+            return False, '[52pt]验证码失效,请重试'
 
-            self.error(f"签到失败，请到页面查看")
-            return False, f'【{site}】签到失败，请到页面查看'
+        self.error(f"签到失败，请到页面查看")
+        return False, '[52pt]签到失败，请到页面查看'
 
     def __write_local_answer(self, exits_answers, question, answer):
         """

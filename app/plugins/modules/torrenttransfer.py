@@ -340,7 +340,7 @@ class TorrentTransfer(_IPluginModule):
             if self._cron_job:
                 if self._autostart:
                     # 追加种子校验服务
-                    self._recheck_job = self.get_scheduler().add_job(self.check_recheck, 'interval', minutes=3)
+                    self._recheck_job = self.get_scheduler().add_job(self.check_recheck, 'interval', minutes=3, name='自动移转做种校验')
 
 
     def get_state(self):

@@ -1,19 +1,17 @@
 import os
 import threading
 
-from fastapi import FastAPI, Request, Depends, HTTPException
+from fastapi import FastAPI, Request, HTTPException
 from fastapi.encoders import jsonable_encoder
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
-from fastapi.staticfiles import StaticFiles
-
-import log
 
 from web.action import action_router
 from web.auth import auth_router
 from web.data import data_router
 from web.open import open_router
+from web.staticfile import NoCacheStaticFiles
 from web.streaming import streaming_router
 from web.utility import utility_router
 
@@ -50,7 +48,7 @@ app.include_router(streaming_router)
 app.include_router(utility_router)
 
 # 静态文件
-app.mount("/static", StaticFiles(directory="web/static"), name="static")
+app.mount("/static", NoCacheStaticFiles(directory="web/static"), name="static")
 
 
 # 页面不存在
@@ -88,7 +86,13 @@ async def robots():
 # 主页面
 @app.get("/", response_class=HTMLResponse)
 async def home_page():
-    return FileResponse("web/static/index.html")
+    return FileResponse(
+            "web/static/index.html",
+            headers={
+                "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
+                "Pragma": "no-cache"
+            }
+        )
 
 
 # bing

@@ -156,7 +156,8 @@ class BuiltinIndexer(_IIndexClient):
             self.update_process(task_id=task_id, text=summary_txt)
 
         # 结果过滤
-        return self.filter_search_results(result_array=result_array,
+        return self.filter_search_results(search_key_word=key_word, 
+                                          result_array=result_array,
                                           order_seq=order_seq,
                                           indexer=indexer,
                                           filter_args=filter_args,

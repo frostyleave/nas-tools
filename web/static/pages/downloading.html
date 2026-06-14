@@ -171,6 +171,7 @@
 
   // 更新所有种子页面信息
   function get_all_torrents_info() {
+    
     var ids = [];
     $(".download_ids").each(function () {
       ids.push($(this).val());
@@ -181,15 +182,23 @@
     var downloaderId = $('#downloaderId').val();
     axios_post_do("pt_info", { "downloaderId": downloaderId, "ids": ids }, function (ret) {
       if (ret.retcode == "0") {
+
+        if (!ret.torrents || ret.torrents.length == 0) {
+          get_downloader_torrents(downloaderId);
+          return;
+        }
+
         for (var torrent of ret.torrents) {
           // 种子下载完成, 刷新界面
           if (torrent.progress >= 100) {
             get_downloader_torrents(downloaderId);
-            break;
+            return;
           }
           update_torrent_ui(torrent);
         }
+
         setTimeout("get_all_torrents_info()", 2000);
+
       }
     }, false);
   }

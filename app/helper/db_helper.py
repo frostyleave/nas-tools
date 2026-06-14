@@ -1228,6 +1228,8 @@ class DbHelper:
             else:
                 update_dic = {}
 
+                if username:
+                    update_dic['USERNAME'] = username
                 if user_level:
                     update_dic['USER_LEVEL'] = user_level
                 if join_at is not None:
