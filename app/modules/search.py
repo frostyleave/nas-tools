@@ -188,14 +188,14 @@ class SearchProxy:
                                                 client_id=client_id)
                         return
                 # 搜索
-                __search_media(in_from=in_from,
+                self.__search_media(in_from=in_from,
                             media_info=media_info,
                             user_id=user_id,
                             user_name=user_name,
                             client_id=client_id)
             else:
                 # 订阅
-                __rss_media(in_from=in_from,
+                self.__rss_media(in_from=in_from,
                             media_info=media_info,
                             user_id=user_id,
                             user_name=user_name,
@@ -279,7 +279,7 @@ class SearchProxy:
                                             client_id=client_id)
                     return
                 # 搜索名称
-                medias = search_media_by_keyword(keyword=content)
+                medias = self.search_media_by_keyword(keyword=content)
                 if not medias:
                     # 查询不到媒体信息
                     Message().send_channel_msg(channel=in_from,
