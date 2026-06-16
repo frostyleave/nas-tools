@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 import logging
-import threading
 import time
 
-from cachetools import TTLCache
+from cachetools import TTLCache, cachedmethod
+from operator import attrgetter
 from requests import Session, Response
 from typing import Dict, Optional
 from urllib3.util.retry import Retry
@@ -39,7 +39,6 @@ class TMDb(object):
         self._session = self._create_session() if session is None else session
 
         self._cache = TTLCache(maxsize=cache_size, ttl=cache_ttl)
-        self._lock = threading.Lock()
         self._remaining = 40
         self._reset = None
         
@@ -100,17 +99,37 @@ class TMDb(object):
             return [AsObj(**res) for res in result[key]]
 
 
-    @staticmethod
-    def _build_cache_key(method: str, url: str, data: Optional[Dict]=None):
+    def _do_request(self, method: str, url: str, data: Optional[Dict] = None) -> Response:
         """
-        # Cache key 构建
+        实际请求方法
         """
-        return (
-            method.upper(),
+        headers = {}
+        if method.upper() == "GET":
+            headers["Connection"] = "close"
+        resp = self._session.request(
+            method,
             url,
-            frozenset(data.items()) if data else None,
+            headers=headers,
+            data=data,
+            proxies=self._proxies,
+            timeout=(10, 20),
+            verify=False
         )
-
+        resp.raise_for_status()
+        return resp
+    
+    @cachedmethod(cache=attrgetter('_cache'),
+                  key=lambda self, method, url, data: (
+                      method.upper(),
+                      url,
+                      frozenset(data.items()) if data else None
+                    )
+                )
+    def _cache_request(self, method: str, url: str, data: Optional[Dict] = None) -> Response:
+        """
+        缓存请求
+        """
+        return self._do_request(method, url, data)
 
     def _call(self,
               action: str,
@@ -133,7 +152,11 @@ class TMDb(object):
             str(include_adult)
         )
 
-        req = self._cache_request(method, url, data, call_cached)
+        use_cache = call_cached and method.upper() != "POST"
+        if use_cache:
+            req = self._cache_request(method, url, data)
+        else:
+            req = self._do_request(method, url, data)
 
         headers = req.headers
         if "X-RateLimit-Remaining" in headers:
@@ -166,34 +189,3 @@ class TMDb(object):
 
         return json
     
-
-    def _cache_request(self, method, url, data, call_cached: bool=True) -> Response:
-
-        # 计算缓存键
-        cache_key = self._build_cache_key(method, url, data)
-
-        if self._cache and call_cached and method != "POST":
-            with self._lock:
-               if cache_key in self._cache:
-                   return self._cache[cache_key]
-        
-        headers = {}
-        if method.upper() == "GET":
-            headers["Connection"] = "close"
-
-        resp = self._session.request(method,
-                                     url,
-                                     headers=headers,
-                                     data=data,
-                                     proxies=self._proxies,
-                                     timeout=(10, 20),
-                                     verify=False)
-        
-        resp.raise_for_status()
-
-        # 结果缓存
-        if call_cached and method.upper() != "POST":
-            with self._lock:
-                self._cache[cache_key] = resp
-        
-        return resp
