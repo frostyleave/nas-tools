@@ -88,8 +88,23 @@ class Bangumi(object):
         infos = self.calendar()
         if not infos:
             return []
-        start_pos = (int(page) - 1) * self._page_num
+        
         ret_list = []
+
+        # 没有指定周数
+        if not week:
+            for info in infos:
+                weekday = info.get("weekday", {}).get("cn")
+                if not weekday:
+                    continue
+                weekitems = []
+                items = info.get("items")
+                for item in items:
+                    weekitems.append(self.__dict_item(item, weekday))                
+                ret_list.append({ "weekday" : info.get("weekday"), "items" : weekitems })
+            return ret_list
+        
+        start_pos = (int(page) - 1) * self._page_num
         pos = 0
         for info in infos:
             weeknum = info.get("weekday", {}).get("id")
