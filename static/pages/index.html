@@ -522,10 +522,10 @@
       axios_post_do("start_mediasync", {
         "librarys": select_GetSelectedVAL("sync_library")
       }, function (ret) {
-        setTimeout("start_mediasync_progress()", 1000);
+        setTimeout(start_mediasync_progress, 1000);
       }, true, false);
     } else {
-      setTimeout("start_mediasync_progress()", 1000);
+      setTimeout(start_mediasync_progress, 1000);
     }
   }
 

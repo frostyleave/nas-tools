@@ -124,10 +124,8 @@ class Indexer(object):
             log.warn("没有配置符合条件的索引器，无法搜索！")
             return []
         
-        ret_array = []
-
-        # 计算耗时
         start_time = datetime.datetime.now()
+
         if filter_args and filter_args.get("site"):
             log_info = f"【{self._client_type.value}】开始搜索 %s, 站点: %s ..." % (key_word, filter_args.get("site"))
             log.info(log_info)
@@ -137,40 +135,41 @@ class Indexer(object):
             log.info(log_info)
             self.update_process(task_id=task_id, process_val=5, text=log_info)
 
-        cpu_cores = max(1, multiprocessing.cpu_count() - 2)
-        process_count = min(cpu_cores, len(search_indexers))
 
         # 设置进度参数
         self._client.set_step_fator(int(30 / len(search_indexers)))
 
-        # 1. 将索引器列表切分为子列表
-        indexer_chunks = list(self._chunk_list(search_indexers, process_count))
+        ret_array = exec_search_by_threads(self._client, search_indexers, key_word, filter_args, match_media, in_from, task_id)
 
-        ret_array = []
-        # 2. 提交任务给进程池
-        with ProcessPoolExecutor(max_workers=process_count) as executor:
-            all_tasks = []
-            for chunk in indexer_chunks:
-                if not chunk: 
-                    continue                
-                task = executor.submit(exec_search_by_threads, self._client, chunk, key_word, filter_args, match_media, in_from, task_id)
-                all_tasks.append(task)
+        # ret_array = []
+        # cpu_cores = max(1, multiprocessing.cpu_count() - 2)
+        # process_count = min(cpu_cores, len(search_indexers))
+        # # 1. 将索引器列表切分为子列表
+        # indexer_chunks = list(self._chunk_list(search_indexers, process_count))
+        # # 2. 提交任务给进程池
+        # with ProcessPoolExecutor(max_workers=process_count) as executor:
+        #     all_tasks = []
+        #     for chunk in indexer_chunks:
+        #         if not chunk: 
+        #             continue                
+        #         task = executor.submit(exec_search_by_threads, self._client, chunk, key_word, filter_args, match_media, in_from, task_id)
+        #         all_tasks.append(task)
 
-            for future in as_completed(all_tasks):
-                try:
-                    result_list = future.result() 
-                    if result_list:
-                        ret_array.extend(result_list)
-                except Exception as e:
-                    log.exception("【Indexer】搜索进程结果处理失败", e)
+        #     for future in as_completed(all_tasks):
+        #         try:
+        #             result_list = future.result() 
+        #             if result_list:
+        #                 ret_array.extend(result_list)
+        #         except Exception as e:
+        #             log.exception("【Indexer】搜索进程结果处理失败", e)
         
         # 计算耗时
         end_time = datetime.datetime.now()
-        summary_txt = f'所有站点搜索完成，有效资源数：{len(ret_array)} , 总耗时 {(end_time - start_time).seconds} 秒'
+        txt_summary = f'所有站点搜索完成，有效资源数：{len(ret_array)} , 总耗时 {(end_time - start_time).seconds} 秒'            
+        log.info(f"【{self._client_type.value}】{txt_summary}")
+        # 页面搜索, 更新进度
         if SearchType.WEB == in_from:
-            self.update_process(task_id=task_id, process_val=100, text=summary_txt)
-            
-        log.info(f"【{self._client_type.value}】{summary_txt}")
+            self.update_process(task_id=task_id, process_val=100, text=txt_summary)
 
         return ret_array
     

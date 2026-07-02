@@ -804,7 +804,7 @@
     }
     $("#sitecookie_process_bar_div").show();
     // 刷新进度
-    setTimeout(`start_sitecookie_process('${siteid}')`, 2000);
+    setTimeout(start_sitecookie_process, 2000, siteid);
   }
 
   // 开始刷新进度条
@@ -859,7 +859,7 @@
     $("#captcha_code").val("");
     $("#modal-captcha-code").modal("show");
     // 超时关闭
-    setTimeout(`sitecookie_captcha_timeout('${siteid}')`, 30000);
+    setTimeout(sitecookie_captcha_timeout, 30000, siteid);
   }
 
   // 输入验证码

@@ -239,8 +239,9 @@ body.theme-light::after {
     position: relative;
     z-index: 1;
     --tblr-aspect-ratio: 150%;
-    border: none;
-    background-image: linear-gradient(45deg, var(--lit-person-card-bg), var(--lit-person-card-bg) 60%);
+    border: 1px solid var(--lit-person-card-bg);
+    background: transparent;
+    /* background-image: linear-gradient(45deg, var(--lit-person-card-bg), var(--lit-person-card-bg) 60%); */
 }
 
 .lit-person-card:hover {

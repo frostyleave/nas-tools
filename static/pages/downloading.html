@@ -85,8 +85,17 @@
   // 获取下载器正在下载的种子
   function get_downloader_torrents(downloaderId) {
 
+    if ($('#downloaderId').val() != downloaderId) {
+      $('#downloading-list').empty();
+    }
+
     // 设置当前下载器ID
     $('#downloaderId').val(downloaderId);
+
+    const cardMap = {};
+    $('#downloading-list').children('[id]').each(function () {
+      cardMap[this.id] = this;
+    });
 
     axios_post_do("get_downloading", {downloader_id: downloaderId}, function (ret) {
 
@@ -96,15 +105,15 @@
         if (ret.result && ret.result.length > 0) {
 
           const downloadingList = $('#downloading-list');
-          downloadingList.empty();
 
           ret.result.forEach(torrent => {
 
             const startBtnStyle = torrent.state === 'Downloading' ? 'display:none' : '';
             const stopBtnStyle = torrent.state === 'Stoped' ? 'display:none' : '';
+            const cardId = 't_card_info_' + torrent.id;
 
             const torrentCard = `
-              <div class="card p-0">
+              <div id="${cardId}" class="card p-0">
                 <div class="card-body media-box" style="background-image: url(${torrent.backdrop || ''});">
                   <div class="right-top-box">
                     <a href="javascript:remove_pt_download('${torrent.id}', '${torrent.title || torrent.name}')" class="text-danger"><i class="ti ti-x fs-2"></i></a>
@@ -146,64 +155,40 @@
                         </div>
                       </div>
                     </div>
-                    <input type="hidden" class="download_ids" id="id_${torrent.id}" value="${torrent.id}">
                   </div>
                 </div>
               </div>
             `;
-            downloadingList.append(torrentCard);
+
+            if (cardMap[cardId]) {
+                $(cardMap[cardId]).replaceWith(torrentCard);
+                delete cardMap[cardId];
+            } else {
+                downloadingList.append(torrentCard);
+            }
+
           });
 
           $('#downloading-container').show();
           $('#no-downloads').hide();
 
-          // 事件
-          setTimeout("get_all_torrents_info()", 2000);
-
         } else {
           $('#downloading-container').hide();
           $('#no-downloads').show();
         }
-      }      
-    });
-
-  }
-
-  // 更新所有种子页面信息
-  function get_all_torrents_info() {
-    
-    var ids = [];
-    $(".download_ids").each(function () {
-      ids.push($(this).val());
-    });
-    if (ids.length == 0) {
-      return;
-    }
-    var downloaderId = $('#downloaderId').val();
-    axios_post_do("pt_info", { "downloaderId": downloaderId, "ids": ids }, function (ret) {
-      if (ret.retcode == "0") {
-
-        if (!ret.torrents || ret.torrents.length == 0) {
-          get_downloader_torrents(downloaderId);
-          return;
-        }
-
-        for (var torrent of ret.torrents) {
-          // 种子下载完成, 刷新界面
-          if (torrent.progress >= 100) {
-            get_downloader_torrents(downloaderId);
-            return;
-          }
-          update_torrent_ui(torrent);
-        }
-
-        setTimeout("get_all_torrents_info()", 2000);
-
       }
+      
+      // 定时刷新
+      setTimeout(() => {
+        get_downloader_torrents(downloaderId);
+      }, 2000);
+
     }, false);
+
   }
 
-  //更新一个种子页面信息
+
+  // 更新一个种子页面信息
   function get_torrent_info(id) {
     axios_post_do("pt_info", { "ids": id }, function (ret) {
       if (ret.retcode == "0") {
@@ -231,7 +216,7 @@
     }
   }
 
-  //显示新增下载界面
+  // 显示新增下载界面
   function show_torrent_download_modal(type) {
     show_download_modal('', '', '', function () {
       let urls = $("#torrent_urls").val();

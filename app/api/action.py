@@ -4448,7 +4448,7 @@ class WebAction:
         """
         site_id = data.get("site_id")
         if not site_id:
-            return {"code": 0}
+            return {"code": 1, "msg": "site_id为空, 请检查索引器是否匹配站点索引模板"}
         
         try:
             indexer_sites = SystemConfig().get(SystemConfigKey.UserIndexerSites) or []
