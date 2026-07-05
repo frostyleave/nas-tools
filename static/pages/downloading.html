@@ -169,6 +169,8 @@
 
           });
 
+          Object.values(cardMap).forEach(el => el.remove());
+          
           $('#downloading-container').show();
           $('#no-downloads').hide();
 
