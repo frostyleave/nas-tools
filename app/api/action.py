@@ -3568,7 +3568,7 @@ class WebAction:
             media_type = {"MOV": "电影", "TV": "电视剧", "ANI": "动漫"}.get(mtype)
             # 只需要部分种子标签
             labels = [label for label in str(item.NOTE).split("|")
-                      if label in ["官方", "官组", "中字", "中配", "国语", "特效", "特效字幕"]]
+                      if label in ["官方", "官组", "中字", "中配", "国语", "粤语", "特效", "特效字幕", "杜比视界"]]
 
             pubdate = item.PUBDATE or ''
             if pubdate.endswith(' 00:00:00'):

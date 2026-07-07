@@ -14,7 +14,7 @@ class ReleaseGroupsMatcher(object):
     RELEASE_GROUPS = {
         "0ff": ['FF(?:(?:A|WE)B|CD|E(?:DU|B)|TV)'],
         "1pt": [],
-        "52pt": [],
+        "52pt": ['52pt'],
         "audiences": ['Audies', 'AD(?:Audio|E(?:|book)|Music|Web)'],
         "azusa": [],
         "beitai": ['BeiTai'],
@@ -24,6 +24,7 @@ class ReleaseGroupsMatcher(object):
         "chdbits": ['CHD(?:|Bits|PAD|(?:|HK)TV|WEB)', 'StBOX', 'OneHD', 'Lee', 'xiaopie'],
         "discfan": [],
         "dragonhd": [],
+        "dstudio": ['DS','DStudio','DepWeb','DSAudio'],
         "eastgame": ['(?:(?:iNT|(?:HALFC|Mini(?:S|H|FH)D))-|)TLF'],
         "filelist": [],
         "gainbound": ['(?:DG|GBWE)B'],
