@@ -39,7 +39,7 @@
     return Math.abs(hash);
   };
 
-  // 页面加载完成后，使用axios_post请求/data/sitelist接口获取数据并填充页面
+
   $(document).ready(function() {
 
     axios_post('/data/sitelist', {}, function(response) {

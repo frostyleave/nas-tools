@@ -913,11 +913,29 @@
     // 监听站点启用-停用
     $(document).on('change', 'input[name="indexer_sites"]', function () {
 
-      let params = {
-        site_id: $(this).val(),
-        checked: this.checked
+      var $checkbox = $(this);
+      var previousChecked = !this.checked;
+
+      var siteId = $checkbox.val();
+      if (!siteId || siteId == '') {
+          // 还原 checkbox 为点击前的状态
+          $checkbox.prop('checked', previousChecked);
+          // 弹窗提示
+          show_fail_modal('操作失败: 站点id为空, 请检查该站点是否匹配站点索引模板');
+          return;
       }
-      axios_post_do("set_user_indexer_sites", params);
+
+      let params = {"site_id": siteId, "checked": this.checked};
+      axios_post_do("set_user_indexer_sites", params, 
+        function (ret) {
+          if (ret.code != 0) {
+            // 还原 checkbox 为点击前的状态
+            $checkbox.prop('checked', previousChecked);
+            // 弹窗提示
+            show_fail_modal('操作失败, ' + ret.msg);
+          }
+        }, 
+        false);
 
     });
 
@@ -1054,6 +1072,8 @@
           $('#sites-container').hide();
           $('#no-sites').show();
         }
+      } else {
+        show_fail_modal('站点数据加载失败, ' + response.msg);
       }
     });
     

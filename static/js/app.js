@@ -8,10 +8,77 @@ let GlobalModalAbort = true;
 // 当前页面地址
 let CurrentPageUri = "";
 
+// 轮询管理器：收集所有需要停止的函数
+const PollingManager = {
+  // key -> stopFunction
+  _pollings: new Map(),
+
+  // 启动一个轮询，如果 key 已存在，自动停止旧的再建新的
+  start(key, fn, interval) {
+    this.stop(key);  // 替换旧轮询
+
+    let active = true;
+    let timer = null;
+
+    const run = () => {
+      if (!active) return;
+      fn().finally(() => {
+        if (active) timer = setTimeout(run, interval);
+      });
+    };
+
+    const stop = () => {
+      active = false;
+      clearTimeout(timer);
+      timer = null;
+    };
+
+    // 立即启动
+    run();
+
+    // 注册停止函数
+    this._pollings.set(key, stop);
+  },
+
+  // 停止指定 key 的轮询
+  stop(key) {
+    const stopFn = this._pollings.get(key);
+    if (stopFn) {
+      stopFn();
+      this._pollings.delete(key);
+    }
+  },
+
+  // 停止全部轮询（用于路由切换）
+  stopAll() {
+    for (const [key, stop] of this._pollings) {
+      stop();
+    }
+    this._pollings.clear();
+  }
+};
+
+/**
+ * 页面只需调用这个函数，无需关心清理
+ * @param {string}   key      - 轮询标识（同一页面多次调用且 key 相同时会自动替换）
+ * @param {Function} fn       - 要执行的异步函数（需返回 Promise）
+ * @param {number}   interval - 间隔毫秒
+ */
+function startPolling(key, fn, interval) {
+  PollingManager.start(key, fn, interval);
+}
+
 // 初始化路由
 const router = new Navigo("/", { hash: true });
 
 router
+  // 切换页面，停掉所有轮询
+  .hooks({
+    before(done) {
+      PollingManager.stopAll();
+      done();
+    }
+  })
   // 登陆
   .on("/login", function (match) {
     showLogin();

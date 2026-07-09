@@ -106,9 +106,9 @@ async def sysinfo(current_user: User = Depends(get_current_user)):
     commands = web_action.get_commands()
     rmt_mode_dict = web_action.get_rmt_modes()
 
-    downloadSettings = {did: attr["name"] for did, attr in Downloader().get_download_setting().items()}
-    sourceTypes = { "MOVIE":'电影', "TV":'剧集', "ANIME":'动漫' }
-    spiderTypes = { member.value: member.name for member in Spider }
+    download_settings = {did: attr["name"] for did, attr in Downloader().get_download_setting().items()}
+    source_types = { "MOVIE":'电影', "TV":'剧集', "ANIME":'动漫' }
+    spider_types = { member.value: member.name for member in Spider }
 
     return response(data=
         {
@@ -125,9 +125,9 @@ async def sysinfo(current_user: User = Depends(get_current_user)):
             "restypeDict": restype_dict,
             "pixDict": pix_dict,
             "rmtDodeDict": rmt_mode_dict,
-            "downloadSettings": downloadSettings,
-            "sourceTypes": sourceTypes,
-            "spiderTypes": spiderTypes,
+            "downloadSettings": download_settings,
+            "sourceTypes": source_types,
+            "spiderTypes": spider_types,
         }
     )
 
@@ -139,12 +139,12 @@ async def basic():
     if proxy:
         proxy = proxy.replace("http://", "")
         
-    CustomScriptCfg = SystemConfig().get(SystemConfigKey.CustomScript)
+    custom_script_cfg = SystemConfig().get(SystemConfigKey.CustomScript)
     return response(data=
         {
             "Config": Config().get_config(),
             "Proxy": proxy,
-            "CustomScriptCfg": CustomScriptCfg,
+            "CustomScriptCfg": custom_script_cfg,
             "MediaServerConf": ModuleConf.MEDIASERVER_CONF,
             "TmdbDomains": TMDB_API_DOMAINS,
         }
@@ -157,44 +157,45 @@ async def index(current_user: User = Depends(get_current_user)):
 
     web_action = WebAction(current_user)
 
-    # 媒体服务器类型
-    MSType = Config().get_config('media').get('media_server')
     # 获取媒体数量
-    MediaCounts = web_action.get_library_mediacount()
-    if MediaCounts.get("code") == 0:
-        ServerSucess = True
+    media_counts = web_action.get_library_mediacount()
+    if media_counts.get("code") == 0:
+        server_sucess = True
     else:
-        ServerSucess = False
+        server_sucess = False
 
     # 获得活动日志
-    Activity = web_action.get_library_playhistory().get("result")
+    activity_logs = web_action.get_library_playhistory().get("result")
 
     # 磁盘空间
-    LibrarySpaces = web_action.get_library_spacesize()
+    library_spaces = web_action.get_library_spacesize()
 
     # 媒体库
-    Librarys = MediaServer().get_libraries()
-    LibrarySyncConf = SystemConfig().get(SystemConfigKey.SyncLibrary) or []
+    media_librarys = MediaServer().get_libraries()
+    library_sync_conf = SystemConfig().get(SystemConfigKey.SyncLibrary) or []
 
     # 最近添加
-    Latests = MediaServer().get_latest()
+    latest_adds = MediaServer().get_latest()
+
+    # 媒体服务器类型
+    server_type = Config().get_config('media').get('media_server')
 
     return response(data=
         {
-             "serverSucess": ServerSucess,
+             "serverSucess": server_sucess,
              "mediaCount": {
-                 'movieCount': MediaCounts.get("Movie"),
-                 'seriesCount': MediaCounts.get("Series"),
-                 'songCount': MediaCounts.get("Music"),
-                 "episodeCount": MediaCounts.get("Episodes")
+                 'movieCount': media_counts.get("Movie"),
+                 'seriesCount': media_counts.get("Series"),
+                 'songCount': media_counts.get("Music"),
+                 "episodeCount": media_counts.get("Episodes")
                  },
-             "activitys": Activity,
-             "totalSpace": LibrarySpaces.get("TotalSpace"),
-             "usedPercent": LibrarySpaces.get("UsedPercent"),
-             "mediaServerType": MSType,
-             "librarys": Librarys,
-             "librarySyncConf": LibrarySyncConf,
-             "latests": Latests,
+             "activitys": activity_logs,
+             "totalSpace": library_spaces.get("TotalSpace"),
+             "usedPercent": library_spaces.get("UsedPercent"),
+             "mediaServerType": server_type,
+             "librarys": media_librarys,
+             "librarySyncConf": library_sync_conf,
+             "latests": latest_adds,
         }
     )
 
@@ -205,13 +206,13 @@ async def search(current_user: User = Depends(get_current_user)):
 
     # 结果
     res = WebAction(current_user).get_search_result()
-    SearchResults = res.get("result")
-    Count = res.get("total")
+    search_results = res.get("result")
+    count = res.get("total")
 
     return response(data=
         {
-            "Count": Count,
-            "Results": SearchResults,
+            "Count": count,
+            "Results": search_results,
             "SiteDict": Indexer().get_indexer_hash_dict()
         })
 
@@ -222,27 +223,27 @@ async def rss(current_user: User = Depends(get_current_user), t: str = "MOV"):
 
     web_action = WebAction(current_user)
 
-    RuleGroups = {str(group["id"]): group["name"] for group in Filter().get_rule_groups()}
-    DownloadSettings = Downloader().get_download_setting()
+    rule_groups = {str(group["id"]): group["name"] for group in Filter().get_rule_groups()}
+    download_settings = Downloader().get_download_setting()
 
-    RssItems = []
-    Type = 'MOV'
-    TypeName = '电影'
+    rss_items = []
+    rss_type = 'MOV'
+    type_name = '电影'
+
     if t == 'TV':
-        RssItems = web_action.get_tv_rss_list().get("result")
-        Type = 'TV'
-        TypeName = '电视剧'
+        rss_items = web_action.get_tv_rss_list().get("result")
+        rss_type = 'TV'
+        type_name = '电视剧'
     else:
-        RssItems = web_action.get_movie_rss_list().get("result")
+        rss_items = web_action.get_movie_rss_list().get("result")
 
     return response(data=
         {
-            "Count": len(RssItems),
-            "RuleGroups": RuleGroups,
-            "DownloadSettings": dict(DownloadSettings) if DownloadSettings else {},
-            "Items": RssItems,
-            "Type": Type,
-            "TypeName": TypeName,
+            "RuleGroups": rule_groups,
+            "DownloadSettings": dict(download_settings) if download_settings else {},
+            "Items": rss_items,
+            "Type": rss_type,
+            "TypeName": type_name,
         })
 
 
@@ -250,12 +251,11 @@ async def rss(current_user: User = Depends(get_current_user), t: str = "MOV"):
 @data_router.post("/rss_history")
 async def rss_history(current_user: User = Depends(get_current_user), t: str = ""):
 
-    RssHistory = WebAction(current_user).get_rss_history({"type": t}).get("result")
+    rss_history = WebAction(current_user).get_rss_history({"type": t}).get("result")
 
     return response(data=
         {
-            "Count": len(RssHistory),
-            "Items": RssHistory,
+            "Items": rss_history,
             "Type": t,
         })
 
@@ -266,14 +266,14 @@ async def rss_calendar(current_user: User = Depends(get_current_user)):
 
     web_action = WebAction(current_user)
     # 电影订阅
-    RssMovieItems = web_action.get_movie_rss_items().get("result")
+    rss_movie_items = web_action.get_movie_rss_items().get("result")
     # 电视剧订阅
-    RssTvItems = web_action.get_tv_rss_items().get("result")
+    rss_tv_items = web_action.get_tv_rss_items().get("result")
 
     return response(data=
         {
-            "RssMovieItems": RssMovieItems,
-            "RssTvItems": RssTvItems,
+            "RssMovieItems": rss_movie_items,
+            "RssTvItems": rss_tv_items,
         })
 
 
@@ -362,7 +362,6 @@ async def sitelist_page():
     return response(data=
         {
             "Sites": indexer_sites,
-            "Count": len(indexer_sites),
         }
     )
 
@@ -370,38 +369,39 @@ async def sitelist_page():
 # 媒体库页面
 @data_router.post("/library")
 async def library(current_user = Depends(get_current_user)):
-    RmtModeDict = WebAction(current_user).get_rmt_modes()
-    ScraperConf = SystemConfig().get(SystemConfigKey.UserScraperConf) or {}
+    rmt_mode_dict = WebAction(current_user).get_rmt_modes()
+    scraper_conf = SystemConfig().get(SystemConfigKey.UserScraperConf) or {}
     return response(data=
         {
             "Config": Config().get_config(),
-            "RmtModeDict": RmtModeDict,
-            "ScraperNfo": ScraperConf.get("scraper_nfo") or {},
-            "ScraperPic": ScraperConf.get("scraper_pic") or {},
+            "RmtModeDict": rmt_mode_dict,
+            "ScraperNfo": scraper_conf.get("scraper_nfo") or {},
+            "ScraperPic": scraper_conf.get("scraper_pic") or {},
         })
 
 
 # 通知消息页面
 @data_router.post("/notification")
 async def notification():
-    MessageClients = Message().get_message_client_info()
-    Switchs = ModuleConf.MESSAGE_CONF.get("switch")
 
-    Channels = ModuleConf.MESSAGE_CONF.get("client")
-    ChannelsTpyes = []
+    message_clients = Message().get_message_client_info()
+    switchs = ModuleConf.MESSAGE_CONF.get("switch")
+
+    channels = ModuleConf.MESSAGE_CONF.get("client")
+    channels_tpyes = []
+
     # 遍历修改
-    for key, conf in Channels.items():
+    for key, conf in channels.items():
         if "search_type" in conf:
             conf["search_type"] = str(conf["search_type"])
-        ChannelsTpyes.append(key)
+        channels_tpyes.append(key)
 
     return response(data=
         {
-            "Channels": Channels,
-            "Switchs": Switchs,
-            "ChannelsTpyes": ChannelsTpyes,
-            "ClientCount": len(MessageClients) if MessageClients else 0,
-            "MessageClients": dict(MessageClients) if MessageClients else {},
+            "Channels": channels,
+            "Switchs": switchs,
+            "ChannelsTpyes": channels_tpyes,
+            "MessageClients": dict(message_clients) if message_clients else {},
         })
 
 
@@ -409,18 +409,18 @@ async def notification():
 @data_router.post("/users")
 async def users(current_user = Depends(get_current_user)):
 
-    Users = []
-    TopMenus = []
+    users = []
+    top_menus = []
     
     if current_user.admin:
-        webAction = WebAction(current_user)
-        Users = webAction.get_users().get("result")
-        TopMenus = webAction.get_top_menus().get("menus")
+        web_action = WebAction(current_user)
+        users = web_action.get_users().get("result")
+        top_menus = web_action.get_top_menus().get("menus")
 
     return response(data=
         {
-            "Users": Users,
-            "TopMenus": TopMenus,
+            "Users": users,
+            "TopMenus": top_menus,
         })
 
 
@@ -428,25 +428,25 @@ async def users(current_user = Depends(get_current_user)):
 @data_router.post("/filterrule")
 async def filterrule(current_user = Depends(get_current_user)):
 
-    ruleGroups = Filter().get_rule_infos()
-    initRuleGroups = WebAction(current_user).get_init_filterrules()
+    rule_groups = Filter().get_rule_infos()
+    init_rule_groups = WebAction(current_user).get_init_filterrules()
 
     return response(data=
         {
-            "RuleGroups": ruleGroups,
-            "InitRuleGroups": initRuleGroups,
+            "RuleGroups": rule_groups,
+            "InitRuleGroups": init_rule_groups,
         })
 
 
 # 目录同步页面
 @data_router.post("/directorysync")
 async def directorysync(current_user = Depends(get_current_user)):
-    RmtModeDict = WebAction(current_user).get_rmt_modes()
-    SyncPaths = Sync().get_sync_path_conf()
+    rmt_mode_dict = WebAction(current_user).get_rmt_modes()
+    sync_paths = Sync().get_sync_path_conf()
     return response(data=
         {
-            "SyncPaths": SyncPaths,
-            "RmtModeDict": RmtModeDict,
+            "SyncPaths": sync_paths,
+            "RmtModeDict": rmt_mode_dict,
         })
 
 
@@ -466,13 +466,13 @@ async def customwords(current_user = Depends(get_current_user)):
 async def plugin(current_user = Depends(get_current_user)):
 
     # 插件
-    Plugins = PluginManager().get_plugins_conf(current_user.level)
+    plugins = PluginManager().get_plugins_conf(current_user.level)
+    settings = '\n'.join(SystemConfig().get(SystemConfigKey.ExternalPluginsSource) or [])
 
-    Settings = '\n'.join(SystemConfig().get(SystemConfigKey.ExternalPluginsSource) or [])
     return response(data=
         {
-            "Plugins": Plugins,
-            "Settings": Settings
+            "Plugins": plugins,
+            "Settings": settings
         })
 
 
@@ -482,22 +482,22 @@ async def user_rss():
     """
     用户RSS页面
     """
-    Tasks = RssChecker().get_rsstask_info()
-    RssParsers = RssChecker().get_userrss_parser()
-    RuleGroups = {str(group["id"]): group["name"] for group in Filter().get_rule_groups()}
-    DownloadSettings = {did: attr["name"] for did, attr in Downloader().get_download_setting().items()}
-    RestypeDict = ModuleConf.TORRENT_SEARCH_PARAMS.get("restype")
-    PixDict = ModuleConf.TORRENT_SEARCH_PARAMS.get("pix")
+    rss_tasks = RssChecker().get_rsstask_info()
+    rss_parsers = RssChecker().get_userrss_parser()
+    rule_groups = {str(group["id"]): group["name"] for group in Filter().get_rule_groups()}
+    download_settings = {did: attr["name"] for did, attr in Downloader().get_download_setting().items()}
+    restype_dict = ModuleConf.TORRENT_SEARCH_PARAMS.get("restype")
+    pix_dict = ModuleConf.TORRENT_SEARCH_PARAMS.get("pix")
 
     return response(data=
         {
-            "Tasks": Tasks,
-            "Count": len(Tasks),
-            "RssParsers": RssParsers,
-            "RuleGroups": RuleGroups,
-            "RestypeDict": RestypeDict,
-            "PixDict": PixDict,
-            "DownloadSettings": DownloadSettings,
+            "Tasks": rss_tasks,
+            "Count": len(rss_tasks),
+            "RssParsers": rss_parsers,
+            "RuleGroups": rule_groups,
+            "RestypeDict": restype_dict,
+            "PixDict": pix_dict,
+            "DownloadSettings": download_settings,
         }
     )
 
@@ -509,31 +509,31 @@ async def service(current_user: User = Depends(get_current_user)):
     服务页面
     """
     # 所有规则组
-    ruleGroups = Filter().get_rule_groups()
+    rule_groups = Filter().get_rule_groups()
     # 所有同步目录
-    syncPaths = Sync().get_sync_path_conf()
+    sync_paths = Sync().get_sync_path_conf()
 
     # 获取用户服务（get_current_user_required已经保证current_user不为空）
-    serviceList = current_user.get_services()
-    ptConfig = Config().get_config('pt')
+    service_list = current_user.get_services()
+    pt_config = Config().get_config('pt')
 
     # RSS订阅
-    if "rssdownload" in serviceList:
-        pt_check_interval = ptConfig.get('pt_check_interval')
+    if "rssdownload" in service_list:
+        pt_check_interval = pt_config.get('pt_check_interval')
         if str(pt_check_interval).isdigit():
             tim_rssdownload = str(round(int(pt_check_interval) / 60)) + " 分钟"
             rss_state = 'ON'
         else:
             tim_rssdownload = ""
             rss_state = 'OFF'
-        serviceList['rssdownload'].update({
+        service_list['rssdownload'].update({
             'time': tim_rssdownload,
             'state': rss_state,
         })
 
     # RSS搜索
-    if "subscribe_search_all" in serviceList:
-        search_rss_interval = ptConfig.get('search_rss_interval')
+    if "subscribe_search_all" in service_list:
+        search_rss_interval = pt_config.get('search_rss_interval')
         if str(search_rss_interval).isdigit():
             if int(search_rss_interval) < 3:
                 search_rss_interval = 3
@@ -542,13 +542,13 @@ async def service(current_user: User = Depends(get_current_user)):
         else:
             tim_rsssearch = ""
             rss_search_state = 'OFF'
-        serviceList['subscribe_search_all'].update({
+        service_list['subscribe_search_all'].update({
             'time': tim_rsssearch,
             'state': rss_search_state,
         })
 
     # 下载文件转移
-    if "pttransfer" in serviceList:
+    if "pttransfer" in service_list:
         pt_monitor = Downloader().monitor_downloader_ids
         if pt_monitor:
             tim_pttransfer = str(round(PT_TRANSFER_INTERVAL / 60)) + " 分钟"
@@ -556,26 +556,26 @@ async def service(current_user: User = Depends(get_current_user)):
         else:
             tim_pttransfer = ""
             sta_pttransfer = 'OFF'
-        serviceList['pttransfer'].update({
+        service_list['pttransfer'].update({
             'time': tim_pttransfer,
             'state': sta_pttransfer,
         })
 
     # 目录同步
-    if "sync" in serviceList:
+    if "sync" in service_list:
         if Sync().monitor_sync_path_ids:
-            serviceList['sync'].update({'state': 'ON'})
+            service_list['sync'].update({'state': 'ON'})
 
     # 系统进程
-    if "processes" in serviceList:
+    if "processes" in service_list:
         if not SystemUtils.is_docker() or not SystemUtils.get_all_processes():
-            serviceList.pop('processes')
+            service_list.pop('processes')
 
     return response(data=
         {
-            "ruleGroups": ruleGroups,
-            "syncPaths": syncPaths,
-            "schedulerTasks": serviceList,
+            "ruleGroups": rule_groups,
+            "syncPaths": sync_paths,
+            "schedulerTasks": service_list,
         }
     )
 
@@ -586,24 +586,24 @@ async def downloading(current_user: User = Depends(get_current_user)):
     """
     正在下载页面
     """
-    webAction = WebAction(current_user)
-
-    rmtModeDict = webAction.get_rmt_modes()
+    web_action = WebAction(current_user)
+    rmt_mode_dict = web_action.get_rmt_modes()
 
     # 下载器
-    defaultDownloader = Downloader().default_downloader_id
-    downloaders = Downloader().get_downloader_conf()
+    download_manager = Downloader()
+    default_downloader = download_manager.default_downloader_id
+    downloader_confs = download_manager.get_downloader_conf()
     categories = {
-        x: webAction.get_categories({ "type": x }).get("category") for x in ["电影", "电视剧", "动漫"]
+        x: web_action.get_categories({ "type": x }).get("category") for x in ["电影", "电视剧", "动漫"]
     }
 
     return response(data=
         {
-            "downloaders": downloaders,
-            "defaultDownloader": defaultDownloader,
+            "downloaders": downloader_confs,
+            "defaultDownloader": default_downloader,
             "categories": categories,
             "downloaderConf": ModuleConf.DOWNLOADER_CONF,
-            "rmtModeDict": rmtModeDict,
+            "rmtModeDict": rmt_mode_dict,
         }
     )
 
@@ -614,14 +614,14 @@ async def downloading():
     """
     正在下载页面
     """
-    downloader_proxy = Downloader()
-    defaultDownloader = Downloader().default_downloader_id
+    download_manager = Downloader()
+
     active_downloaders = []
-    for key, value in downloader_proxy.get_downloader_conf().items():
+    for key, value in download_manager.get_downloader_conf().items():
         if not value.get('enabled'):
             continue
-        if key == defaultDownloader:
-            active_downloaders.insert(0, value)
+        if key == download_manager.default_downloader_id:
+            active_downloaders.insert(0, value) # 默认下载器放到列表头部
         else:
             active_downloaders.append(value)
 
@@ -640,21 +640,21 @@ async def mediafile():
     """
     media_default_path = Config().get_config('media').get('media_default_path')
     if media_default_path:
-        rootDir = media_default_path
+        root_dir = media_default_path
     else:
         download_dirs = Downloader().get_download_visit_dirs()
         if download_dirs:
             try:
-                rootDir = os.path.commonpath(download_dirs).replace("\\", "/")
+                root_dir = os.path.commonpath(download_dirs).replace("\\", "/")
             except Exception as err:
                 log.exception(f'管理目录转换异常: {download_dirs}')
-                rootDir = "/"
+                root_dir = "/"
         else:
-            rootDir = "/"
+            root_dir = "/"
     
     return response(data=
         {
-            "Dir": rootDir,
+            "Dir": root_dir,
         }
     )
 

@@ -82,9 +82,10 @@
 
   }
 
-  // 获取下载器正在下载的种子
-  function get_downloader_torrents(downloaderId) {
+  // 加载下载器任务列表
+  function load_downloader_tasks(downloaderId) {
 
+    // 切换下载器, 清空任务列表
     if ($('#downloaderId').val() != downloaderId) {
       $('#downloading-list').empty();
     }
@@ -92,101 +93,114 @@
     // 设置当前下载器ID
     $('#downloaderId').val(downloaderId);
 
-    const cardMap = {};
-    $('#downloading-list').children('[id]').each(function () {
-      cardMap[this.id] = this;
-    });
+    // 加载下载器任务(定时刷新)
+    startPolling(
+      'refresh-refresh_downloading_list',   // key，同页面重复调用会自动替换
+      () => refresh_downloading_list(downloaderId),
+      2000
+    );
+  }
 
-    axios_post_do("get_downloading", {downloader_id: downloaderId}, function (ret) {
+  // 刷新下载列表
+  function refresh_downloading_list(downloaderId) {
 
-      if (ret.code === 0) {
+    return new Promise((resolve, reject) => {
 
-        // 生成下载任务列表
-        if (ret.result && ret.result.length > 0) {
+      axios_post_do("get_downloading", { downloader_id: downloaderId }, function (ret) {
 
+        if (ret.code === 0) {
+
+          const cardMap = {};
           const downloadingList = $('#downloading-list');
 
-          ret.result.forEach(torrent => {
+          downloadingList.children('[id]').each(function () {
+            cardMap[this.id] = this;
+          });
 
-            const startBtnStyle = torrent.state === 'Downloading' ? 'display:none' : '';
-            const stopBtnStyle = torrent.state === 'Stoped' ? 'display:none' : '';
-            const cardId = 't_card_info_' + torrent.id;
+          // 生成下载任务列表
+          if (ret.result && ret.result.length > 0) {
 
-            const torrentCard = `
-              <div id="${cardId}" class="card p-0">
-                <div class="card-body media-box" style="background-image: url(${torrent.backdrop || ''});">
-                  <div class="right-top-box">
-                    <a href="javascript:remove_pt_download('${torrent.id}', '${torrent.title || torrent.name}')" class="text-danger"><i class="ti ti-x fs-2"></i></a>
-                  </div>
-                  <div class="row align-items-stretch media-content card-text">
-                    ${torrent.image ? `
-                      <div class="col-auto p-0 card cover-container">
-                        <img src="${torrent.image}" class="rounded" alt="" style="max-width: 80px;">
-                      </div>
-                    ` : ''}
-                    <div class="col">
-                      <h3 class="card-title mb-1">
-                        ${torrent.tmdbid && torrent.type ?
-                          `<a href='javascript:navmenu("media_detail?type=${torrent.type}&id=${torrent.tmdbid}")' class="text-reset card-text">${torrent.title || torrent.name}</a>` :
-                          `<span class="text-reset card-text h3-span-ellipsis">${torrent.title || torrent.name}</span>`
-                        }
-                      </h3>
-                      <div>
-                        ${torrent.vote ? `<span class="badge badge-pill bg-purple text-white">${torrent.vote}</span>` : ''}
-                        ${torrent.se ? `<span class="badge badge-pill bg-gray text-white">${torrent.se}</span>` : ''}
-                      </div>
-                      <div class="download-speed-indicator">
-                        ${torrent.site ? `<span class="badge badge-outline text-teal" title="站点">${torrent.site}</span>` : ''}
-                        <i class="ti ti-arrow-down"></i><span class="txt-download-speed" id="dlspeed_txt_${torrent.id}">${torrent.dlspeed || '0B/s'}</span>
-                        <i class="ti ti-arrow-up"></i><span class="txt-upload-speed" id="upspeed_txt_${torrent.id}">${torrent.upspeed || '0B/s'}</span>
-                      </div>
-                      <div class="space-between-box">
-                        <div class="col-auto" id="progress_text_${torrent.id}">
-                          ${torrent.sizeprogress || '0B / 0B'}
+            ret.result.forEach(torrent => {
+
+              const startBtnStyle = torrent.state === 'Downloading' ? 'display:none' : '';
+              const stopBtnStyle = torrent.state === 'Stoped' ? 'display:none' : '';
+              const cardId = 't_card_info_' + torrent.id;
+
+              const torrentCard = `
+                <div id="${cardId}" class="card p-0">
+                  <div class="card-body media-box" style="background-image: url(${torrent.backdrop || ''});">
+                    <div class="right-top-box">
+                      <a href="javascript:remove_pt_download('${torrent.id}', '${torrent.title || torrent.name}')" class="text-danger"><i class="ti ti-x fs-2"></i></a>
+                    </div>
+                    <div class="row align-items-stretch media-content card-text">
+                      ${torrent.image ? `
+                        <div class="col-auto p-0 card cover-container">
+                          <img src="${torrent.image}" class="rounded" alt="" style="max-width: 80px;">
                         </div>
-                        <div class="col-auto">
-                          <a href="javascript:start_pt_download('${torrent.id}')" id="start_btn_${torrent.id}" style="${startBtnStyle}"><i class="ti ti-player-play fs-2"></i></a>
-                          <a href="javascript:stop_pt_download('${torrent.id}')" id="stop_btn_${torrent.id}" style="${stopBtnStyle}"><i class="ti ti-player-pause fs-2"></i></a>
+                      ` : ''}
+                      <div class="col">
+                        <h3 class="card-title mb-1">
+                          ${torrent.tmdbid && torrent.type ?
+                            `<a href='javascript:navmenu("media_detail?type=${torrent.type}&id=${torrent.tmdbid}")' class="text-reset card-text">${torrent.title || torrent.name}</a>` :
+                            `<span class="text-reset card-text h3-span-ellipsis">${torrent.title || torrent.name}</span>`
+                          }
+                        </h3>
+                        <div>
+                          ${torrent.vote ? `<span class="badge badge-pill bg-purple text-white">${torrent.vote}</span>` : ''}
+                          ${torrent.se ? `<span class="badge badge-pill bg-gray text-white">${torrent.se}</span>` : ''}
                         </div>
-                      </div>
-                      <div class="progress progress-sm progress-bottom">
-                        <div class="progress-bar" id="progress_${torrent.id}" style="width: ${torrent.progress || 0}%" role="progressbar" aria-valuenow="${torrent.progress || 0}" aria-valuemin="0" aria-valuemax="100">
-                          <span class="visually-hidden"></span>
+                        <div class="download-speed-indicator">
+                          ${torrent.site ? `<span class="badge badge-outline text-teal" title="站点">${torrent.site}</span>` : ''}
+                          <i class="ti ti-arrow-down"></i><span class="txt-download-speed" id="dlspeed_txt_${torrent.id}">${torrent.dlspeed || '0B/s'}</span>
+                          <i class="ti ti-arrow-up"></i><span class="txt-upload-speed" id="upspeed_txt_${torrent.id}">${torrent.upspeed || '0B/s'}</span>
+                        </div>
+                        <div class="space-between-box">
+                          <div class="col-auto" id="progress_text_${torrent.id}">
+                            ${torrent.sizeprogress || '0B / 0B'}
+                          </div>
+                          <div class="col-auto">
+                            <a href="javascript:start_pt_download('${torrent.id}')" id="start_btn_${torrent.id}" style="${startBtnStyle}"><i class="ti ti-player-play fs-2"></i></a>
+                            <a href="javascript:stop_pt_download('${torrent.id}')" id="stop_btn_${torrent.id}" style="${stopBtnStyle}"><i class="ti ti-player-pause fs-2"></i></a>
+                          </div>
+                        </div>
+                        <div class="progress progress-sm progress-bottom">
+                          <div class="progress-bar" id="progress_${torrent.id}" style="width: ${torrent.progress || 0}%" role="progressbar" aria-valuenow="${torrent.progress || 0}" aria-valuemin="0" aria-valuemax="100">
+                            <span class="visually-hidden"></span>
+                          </div>
                         </div>
                       </div>
                     </div>
                   </div>
                 </div>
-              </div>
-            `;
+              `;
 
-            if (cardMap[cardId]) {
-                $(cardMap[cardId]).replaceWith(torrentCard);
-                delete cardMap[cardId];
-            } else {
-                downloadingList.append(torrentCard);
-            }
+              if (cardMap[cardId]) {
+                  $(cardMap[cardId]).replaceWith(torrentCard);
+                  delete cardMap[cardId];
+              } else {
+                  downloadingList.append(torrentCard);
+              }
 
-          });
+            });
 
-          Object.values(cardMap).forEach(el => el.remove());
-          
-          $('#downloading-container').show();
-          $('#no-downloads').hide();
+            Object.values(cardMap).forEach(el => el.remove());
+            
+            $('#downloading-container').show();
+            $('#no-downloads').hide();
 
+          } else {
+            $('#downloading-container').hide();
+            $('#no-downloads').show();
+          }
+
+          // 完成
+          resolve();
         } else {
-          $('#downloading-container').hide();
-          $('#no-downloads').show();
+          // 失败, 轮询停止
+          reject(new Error(ret.msg))
         }
-      }
-      
-      // 定时刷新
-      setTimeout(() => {
-        get_downloader_torrents(downloaderId);
-      }, 2000);
-
-    }, false);
-
+      }, false);
+    });
   }
 
 
@@ -270,7 +284,7 @@
           data.downloaders.forEach(downloader => {
             const tabItem = `
               <li class="nav-item">
-                <a class="nav-link " href="javascript:void(0)" data-bs-toggle="tab" data-id="${downloader.id}" onclick="get_downloader_torrents('${downloader.id}')">
+                <a class="nav-link " href="javascript:void(0)" data-bs-toggle="tab" data-id="${downloader.id}" onclick="load_downloader_tasks('${downloader.id}')">
                   ${downloader.name}
                 </a>
               </li>

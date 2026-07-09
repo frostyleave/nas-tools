@@ -83,7 +83,6 @@
 
 <script type="text/javascript">
 
-  // 页面加载完成后，使用axios_post请求/data/rss_history接口获取数据并填充页面
   $(document).ready(function() {
     // 获取URL参数中的类型
     const [path, queryString] = window.location.hash.split("?");
@@ -105,14 +104,17 @@
     $('#back-btn-mobile').attr('href', `javascript:navmenu('${backUrl}')`);
 
     axios_post('/data/rss_history', {type: type}, function(response) {
+
       if (response.code === 0 && response.data) {
+
         const data = response.data;
+        const dataCount = data.Items ? data.Items.length : 0;
 
         // 更新记录数
-        $('#total-count').text(data.Count || 0);
+        $('#total-count').text(dataCount);
 
         // 设置表格样式
-        if (data.Count > 0) {
+        if (dataCount > 0) {
           $('#table-container').addClass('table-page-mini-body');
         }
 

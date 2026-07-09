@@ -452,7 +452,7 @@
   }
 
   $(document).ready(function() {
-    // 使用axios_post请求/data/notification接口获取数据并填充页面
+
     axios_post('/data/notification', {}, function(response) {
       if (response.code === 0 && response.data) {
         const data = response.data;
