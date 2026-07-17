@@ -42,51 +42,10 @@
       <div class="modal-content">
         <div class="modal-header">
           <h5 class="modal-title">插件市场</h5>
-          <!-- <button type="button" class="btn-action" aria-label="Settings" onclick="show_external_settings_page()"><i class="ti ti-settings fs-2"></i></button> -->
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
-        <!-- <div>
-          <ul class="nav nav-fill card-header-tabs nav-tabs rounded-3" data-bs-toggle="tabs" role="tablist">
-            <li class="nav-item" role="presentation">
-              <a href="javascript:void(0)" onclick="load_plugin_apps_modal()" class="nav-link active" style="justify-content: center" data-bs-toggle="tab" aria-selected="true" role="tab">官方插件</a>
-            </li>
-            <li class="nav-item" role="presentation">
-              <a href="javascript:void(0)" onclick="load_external_plugin_apps_modal()" class="nav-link" style="justify-content: center" data-bs-toggle="tab" aria-selected="false" role="tab" tabindex="-1">第三方插件</a>
-            </li>
-          </ul>
-        </div> -->
         <div class="modal-body" style="min-height:800px;">
           <div class="d-grid gap-3 grid-normal-card align-items-start" id="plugin_apps_content" style="display:none;"></div>
-        </div>
-      </div>
-    </div>
-  </div>
-  <!-- 第三方插件设置页 -->
-  <div class="modal modal-blur fade" id="modal-external-source-settings" tabindex="-1" role="dialog" aria-hidden="true">
-    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable" role="document">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title">第三方源管理</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-        </div>
-        <div id="plugin_external_page_content">
-          <div class="modal-body" style="overflow-y: auto">
-            <div class="row mb-2">
-              <div class="col-12 col-lg" style="display:block">
-                <div class="mb-1">
-                  <label class="form-label false">
-                    第三方源
-                    <span class="form-help" data-bs-toggle="tooltip"
-                      data-bs-original-title="配置正确的第三方源以后将会显示再第三方插件仓库中，安装以后会进入插件市场。">?</span></label>
-                  <textarea class="form-control" id="external_source_content" rows="10"
-                    placeholder="每行一个源地址，可以同时添加多个源 ... &#10;https://ip:prot/route/xxx.json &#10;https://ip:prot/route/xxx.json"></textarea>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-primary" id="modal_external_settings_btn">保存</button>
         </div>
       </div>
     </div>
@@ -171,41 +130,19 @@
           <div class="d-flex">
       `;
 
-      if (is_external) {
-        plugin_html += `
-            ${plugin.installed ? `
-              <a href="javascript:uninstall_external_plugin('${pid}', '${plugin.name}')" class="card-btn text-danger">
-                <i class="ti ti-trash fs-2 me-1"></i>
-                卸载
-              </a>
-              ` : `
-              <a href="javascript:install_external_plugin('${pid}', '${plugin.name}', '${plugin.download_url}', '${plugin.file_md5}')" class="card-btn">
-                <i class="ti ti-cloud-download fs-2 me-1"></i>
-                安装
-              </a>
-              `}
-            ${plugin.update ? `
-              <a href="javascript:update_external_plugin('${pid}', '${plugin.name}', '${plugin.download_url}', '${plugin.file_md5}')" class="card-btn">
-                <i class="ti ti-cloud-download fs-2 me-1"></i>
-                更新
-              </a>
-              ` : ``}
-        `;
-      } else {
-        plugin_html += `
-            ${plugin.installed ? `
-              <a href="javascript:uninstall_plugin('${pid}', '${plugin.name}')" class="card-btn text-danger">
-                <i class="ti ti-trash fs-2 me-1"></i>
-                 卸载
-              </a>
-              ` : `
-              <a href="javascript:install_plugin('${pid}', '${plugin.name}')" class="card-btn">
-                <i class="ti ti-cloud-download fs-2 me-1"></i>
-                 安装
-              </a>
-            `}
-        `;
-      }
+      plugin_html += `
+          ${plugin.installed ? `
+            <a href="javascript:uninstall_plugin('${pid}', '${plugin.name}')" class="card-btn text-danger">
+              <i class="ti ti-trash fs-2 me-1"></i>
+               卸载
+            </a>
+            ` : `
+            <a href="javascript:install_plugin('${pid}', '${plugin.name}')" class="card-btn">
+              <i class="ti ti-cloud-download fs-2 me-1"></i>
+               安装
+            </a>
+          `}
+      `;
 
       plugin_html += `
           </div>
@@ -226,35 +163,6 @@
     axios_post_do("get_plugin_apps", {}, function (ret) {
       draw_plugin_table(ret, false)
     });
-  }
-
-  // 加载第三方插件
-  function load_external_plugin_apps_modal() {
-
-    $("#plugin_apps_content").empty();
-
-    // 获取插件列表
-    axios_post_do("get_external_plugin_apps", {}, function (ret) {
-      draw_plugin_table(ret, true)
-    });
-
-  }
-
-  // 显示第三方插件设置页面
-  function show_external_settings_page() {
-    $("#modal-external-source-settings").modal('show');
-    $("#modal_external_settings_btn").click(function () {
-      var value = $("#external_source_content").val();
-      axios_post_do("save_external_source_settings", { value: value }, function (ret) {
-        if (ret.code === 0) {
-          show_success_modal(ret.msg, function () {
-            $("#modal-external-source-settings").modal('hide');
-          });
-        } else {
-          show_fail_modal(ret.msg)
-        }
-      })
-    })
   }
 
   // 显示插件页面
@@ -308,67 +216,6 @@
         });
       }
     });
-  }
-
-  // 安装第三方插件
-  function install_external_plugin(id, name, download_url, file_md5) {
-    var params = {
-      id: id,
-      file_md5: file_md5,
-      download_url: download_url
-    }
-    axios_post_do("install_external_plugin", params, function (ret) {
-      $("#modal-external-plugin-apps").modal('hide');
-      if (ret.code === 0) {
-        show_success_modal(name + " 插件安装成功！", function () {
-          window_history_refresh();
-        });
-      } else {
-        show_fail_modal(ret.msg, function () {
-          $("#modal-external-plugin-apps").modal('show');
-        });
-      }
-    });
-  }
-
-  // 卸载第三方插件
-  function uninstall_external_plugin(id, name) {
-    var params = {
-      id: id,
-    }
-    axios_post_do("uninstall_external_plugin", params, function (ret) {
-      $("#modal-external-plugin-apps").modal('hide');
-      if (ret.code === 0) {
-        show_warning_modal(name + " 插件已卸载！", function () {
-          window_history_refresh();
-        });
-      } else {
-        show_fail_modal(ret.msg, function () {
-          $("#modal-external-plugin-apps").modal('show');
-        });
-      }
-    });
-  }
-
-  // 更新第三方插件
-  function update_external_plugin(id, name, download_url, file_md5) {
-    var params = {
-      id: id,
-      file_md5: file_md5,
-      download_url: download_url
-    }
-    axios_post_do("install_external_plugin", params, function (ret) {
-      $("#modal-external-plugin-apps").modal('hide');
-      if (ret.code === 0) {
-        show_success_modal(name + " 插件更新成功！更新的插件需要重启生效!", function () {
-          window_history_refresh();
-        });
-      } else {
-        show_fail_modal(ret.msg, function () {
-          $("#modal-external-plugin-apps").modal('show');
-        });
-      }
-    })
   }
 
   // 询问取消订阅
@@ -461,21 +308,10 @@
   $(document).ready(function () {
 
     axios_post('/data/plugin', {}, function (response) {
-
       if (response.code === 0 && response.data) {
-
-        var pageData = response.data;
-
         // 绘制插件表格
-        drawPluginList(pageData.Plugins);
-
-        // 设置第三方源内容
-        if (pageData.Settings) {
-          $("#external_source_content").val(pageData.Settings);
-        }
-
+        drawPluginList(response.data);
       }
-
     });
 
   });

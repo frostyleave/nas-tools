@@ -6,10 +6,10 @@ from urllib.parse import unquote
 
 import log
 
-from config import RMT_AUDIO_TRACK_EXT, RMT_MEDIAEXT, RMT_SUBEXT
 from app.utils.path_utils import PathUtils
 from app.utils.string_utils import StringUtils
 from app.utils.system_utils import SystemUtils
+from app.utils.constants import Constants
 from app.utils.types import OsType
 
 
@@ -34,7 +34,7 @@ class FileHelper:
             if re.findall(r"^S\d{2}|^Season", os.path.basename(filedir), re.I):
                 # 当前是季文件夹，判断并删除
                 seaon_dir = filedir
-                if seaon_dir.count('/') > 1 and not PathUtils.get_dir_files(seaon_dir, exts=RMT_MEDIAEXT):
+                if seaon_dir.count('/') > 1 and not PathUtils.get_dir_files(seaon_dir, exts=Constants.RMT_MEDIAEXT):
                     shutil.rmtree(seaon_dir)
                 # 媒体文件夹
                 media_dir = os.path.dirname(seaon_dir)
@@ -44,7 +44,7 @@ class FileHelper:
             if media_dir != '/' \
                     and media_dir.count('/') > 1 \
                     and not re.search(r'[a-zA-Z]:/$', media_dir) \
-                    and not PathUtils.get_dir_files(media_dir, exts=RMT_MEDIAEXT):
+                    and not PathUtils.get_dir_files(media_dir, exts=Constants.RMT_MEDIAEXT):
                 shutil.rmtree(media_dir)
             return True, f"{file} 删除成功"
         except Exception as e:
@@ -94,11 +94,11 @@ class FileHelper:
                     flag = False
                     if 'ONLYFILE' in ft or 'ALL' in ft:
                         flag = True
-                    elif "MEDIAFILE" in ft and f".{str(ext).lower()}" in RMT_MEDIAEXT:
+                    elif "MEDIAFILE" in ft and f".{str(ext).lower()}" in Constants.RMT_MEDIAEXT:
                         flag = True
-                    elif "SUBFILE" in ft and f".{str(ext).lower()}" in RMT_SUBEXT:
+                    elif "SUBFILE" in ft and f".{str(ext).lower()}" in Constants.RMT_SUBEXT:
                         flag = True
-                    elif "AUDIOTRACKFILE" in ft and f".{str(ext).lower()}" in RMT_AUDIO_TRACK_EXT:
+                    elif "AUDIOTRACKFILE" in ft and f".{str(ext).lower()}" in Constants.RMT_AUDIO_TRACK_EXT:
                         flag = True
                     if flag:
                         r.append({

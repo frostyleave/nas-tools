@@ -20,10 +20,17 @@ from app.message import Message
 from app.plugins import EventManager
 from app.utils import EpisodeFormat, PathUtils, StringUtils, SystemUtils, NumberUtils
 from app.utils.commons import singleton
-from app.utils.types import MediaType, SyncType, RmtMode, EventType, ProgressKey, MovieTypes
+from app.utils.constants import Constants
+from app.utils.types import MediaType, SyncType, RmtMode, EventType, ProgressKey
 
-from config import RMT_AUDIO_TRACK_EXT, RMT_SUBEXT, RMT_MEDIAEXT, RMT_FAVTYPE, RMT_MIN_FILESIZE, DEFAULT_MOVIE_FORMAT, \
-    DEFAULT_TV_FORMAT, ZHTW_SUB_RE, Config
+from config import RMT_FAVTYPE, Config
+
+# 默认过滤的文件大小，150M
+RMT_MIN_FILESIZE = 150 * 1024 * 1024
+# 电影默认命名格式
+DEFAULT_MOVIE_FORMAT = '{title} ({year})/{title} ({year})-{part} - {videoFormat}'
+# 电视剧默认命名格式
+DEFAULT_TV_FORMAT = '{title} ({year})/Season {season}/{title} - {season_episode}-{part} - 第 {episode} 集'
 
 lock = Lock()
 
@@ -219,14 +226,14 @@ class FileTransfer:
         # 比对文件名并转移字幕
         dir_name = os.path.dirname(org_name)
         file_name = os.path.basename(org_name)
-        file_list = PathUtils.get_dir_level1_files(dir_name, RMT_SUBEXT)
+        file_list = PathUtils.get_dir_level1_files(dir_name, Constants.RMT_SUBEXT)
         if len(file_list) == 0:
             log.debug("【Rmt】%s 目录下没有找到字幕文件...", dir_name)
         else:
             log.debug("【Rmt】字幕文件清单：" + str(file_list))
             metainfo = MetaInfo(title=file_name)
             for file_item in file_list:
-                sub_file_name = re.sub(ZHTW_SUB_RE,
+                sub_file_name = re.sub(Constants.ZHTW_SUB_RE,
                                        ".",
                                        re.sub(_zhcn_sub_re,
                                               ".",
@@ -248,7 +255,7 @@ class FileTransfer:
                     # 兼容jellyfin字幕识别(多重识别), emby则会识别最后一个后缀
                     if re.search(_zhcn_sub_re, file_item, re.I):
                         new_file_type = ".chi.zh-cn"
-                    elif re.search(ZHTW_SUB_RE, file_item, re.I):
+                    elif re.search(Constants.ZHTW_SUB_RE, file_item, re.I):
                         new_file_type = ".zh-tw"
                     elif re.search(_eng_sub_re, file_item, re.I):
                         new_file_type = ".eng"
@@ -302,7 +309,7 @@ class FileTransfer:
         file_name = os.path.basename(org_name)
         # 去除扩展名后的文件名
         file_pre_name = os.path.splitext(file_name)[0]
-        file_list = PathUtils.get_dir_level1_files(dir_name, RMT_AUDIO_TRACK_EXT)
+        file_list = PathUtils.get_dir_level1_files(dir_name, Constants.RMT_AUDIO_TRACK_EXT)
         pending_file_list = [file for file in file_list if file_pre_name == os.path.splitext(os.path.basename(file))[0]]
         if len(pending_file_list) == 0:
             log.debug("【Rmt】%s 目录下没有找到匹配的音轨文件..." , dir_name)
@@ -548,7 +555,7 @@ class FileTransfer:
                          f"TMDBID：{download_info.TMDBID}，"
                          f"标题：{download_info.TITLE}，"
                          f"类型：{download_info.TYPE}")
-                media_type = MediaType.MOVIE if download_info.TYPE in MovieTypes else MediaType.TV
+                media_type = MediaType.MOVIE if download_info.TYPE in Constants.MOVIE_TYPES else MediaType.TV
                 tmdb_info = self.media.get_tmdb_info(mtype=media_type, tmdbid=download_info.TMDBID)
 
         # 成功标识
@@ -581,7 +588,7 @@ class FileTransfer:
                     # 查找目录下的文件
                     file_list = PathUtils.get_dir_files(in_path=in_path,
                                                         episode_format=episode[0],
-                                                        exts=RMT_MEDIAEXT,
+                                                        exts=Constants.RMT_MEDIAEXT,
                                                         filesize=now_filesize)
                     log.debug("【Rmt】文件清单：" + str(file_list))
                     if len(file_list) == 0:
@@ -592,7 +599,7 @@ class FileTransfer:
                                                  % StringUtils.str_filesize(now_filesize))
             # 传入的是个文件
             else:
-                if os.path.splitext(in_path)[-1].lower() not in RMT_MEDIAEXT:
+                if os.path.splitext(in_path)[-1].lower() not in Constants.RMT_MEDIAEXT:
                     log.warn("【Rmt】不支持的媒体文件格式，不处理：%s" % in_path)
                     return __finish_transfer(False, "不支持的媒体文件格式")
                 # 判断是不是原盘文件夹
@@ -946,7 +953,7 @@ class FileTransfer:
                     and os.path.exists(in_path) \
                     and os.path.isdir(in_path) \
                     and not root_path \
-                    and not PathUtils.get_dir_files(in_path=in_path, exts=RMT_MEDIAEXT) \
+                    and not PathUtils.get_dir_files(in_path=in_path, exts=Constants.RMT_MEDIAEXT) \
                     and not PathUtils.get_dir_files(in_path=in_path, exts=['.!qb', '.part']):
                 log.info("【Rmt】目录下已无媒体文件及正在下载的文件，移动模式下删除目录：%s" % in_path)
                 shutil.rmtree(in_path)
@@ -974,7 +981,7 @@ class FileTransfer:
             return
         print("【Rmt】转移模式为：%s" % rmt_mode.value)
         print("【Rmt】正在转移以下目录中的全量文件：%s" % s_path)
-        for path in PathUtils.get_dir_level1_medias(s_path, RMT_MEDIAEXT):
+        for path in PathUtils.get_dir_level1_medias(s_path, Constants.RMT_MEDIAEXT):
             if PathUtils.is_invalid_path(path):
                 continue
             ret, ret_msg = self.transfer_media(in_from=SyncType.MAN,
@@ -1024,7 +1031,7 @@ class FileTransfer:
             # 返回文件路径
             ret_file_path = file_dest
             # 文件是否存在
-            for ext in RMT_MEDIAEXT:
+            for ext in Constants.RMT_MEDIAEXT:
                 ext_dest = "%s%s" % (file_dest, ext)
                 if os.path.exists(ext_dest):
                     file_exist_flag = True
@@ -1057,7 +1064,7 @@ class FileTransfer:
                     # 返回文件路径
                     ret_file_path = file_path
                     # 文件存在标志
-                    for ext in RMT_MEDIAEXT:
+                    for ext in Constants.RMT_MEDIAEXT:
                         ext_dest = "%s%s" % (file_path, ext)
                         if os.path.exists(ext_dest):
                             file_exist_flag = True
@@ -1100,13 +1107,13 @@ class FileTransfer:
             for dest_path in self._movie_path:
                 # 判断精选
                 fav_path = os.path.join(dest_path, RMT_FAVTYPE, dir_name)
-                fav_files = PathUtils.get_dir_files(fav_path, RMT_MEDIAEXT)
+                fav_files = PathUtils.get_dir_files(fav_path, Constants.RMT_MEDIAEXT)
                 # 其它分类
                 if self._movie_category_flag:
                     dest_path = os.path.join(dest_path, meta_info.category, dir_name)
                 else:
                     dest_path = os.path.join(dest_path, dir_name)
-                files = PathUtils.get_dir_files(dest_path, RMT_MEDIAEXT)
+                files = PathUtils.get_dir_files(dest_path, Constants.RMT_MEDIAEXT)
                 if len(files) > 0 or len(fav_files) > 0:
                     return [{'title': meta_info.title, 'year': meta_info.year}]
             return []
@@ -1133,7 +1140,7 @@ class FileTransfer:
                 # 目录不存在
                 if not os.path.exists(dest_path):
                     continue
-                files = PathUtils.get_dir_files(dest_path, RMT_MEDIAEXT)
+                files = PathUtils.get_dir_files(dest_path, Constants.RMT_MEDIAEXT)
                 for file in files:
                     file_meta_info = MetaInfo(os.path.basename(file))
                     if not file_meta_info.get_season_list() or not file_meta_info.get_episode_list():
@@ -1505,7 +1512,7 @@ class FileTransfer:
                                             log.exception("[act]删除电视剧集数文件 异常:")
                                 rm_parent_dir = True
                             if rm_parent_dir \
-                                    and not PathUtils.get_dir_files(os.path.dirname(dest_path), exts=RMT_MEDIAEXT):
+                                    and not PathUtils.get_dir_files(os.path.dirname(dest_path), exts=Constants.RMT_MEDIAEXT):
                                 # 没有媒体文件时，删除整个目录
                                 try:
                                     shutil.rmtree(os.path.dirname(dest_path))

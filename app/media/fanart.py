@@ -2,12 +2,16 @@ from cachetools import TTLCache, cached
 
 from app.utils import RequestUtils
 from app.utils.types import MediaType
-from config import Config, FANART_MOVIE_API_URL, FANART_TV_API_URL
+
+from config import Config
 
 import log
 
-
 class Fanart:
+
+    _movie_api = 'https://webservice.fanart.tv/v3/movies/%s?api_key=d2d31f9ecabea050fc7d68aa3146015f'
+    _tv_api = 'https://webservice.fanart.tv/v3/tv/%s?api_key=d2d31f9ecabea050fc7d68aa3146015f'
+
     _proxies = Config().get_proxies()
     _movie_image_types = ['movieposter',
                           'hdmovielogo',
@@ -72,9 +76,9 @@ class Fanart:
     @cached(cache=TTLCache(maxsize=512, ttl=3600))
     def __request_fanart(cls, media_type, queryid):
         if media_type == MediaType.MOVIE:
-            image_url = FANART_MOVIE_API_URL % queryid
+            image_url = cls._movie_api % queryid
         else:
-            image_url = FANART_TV_API_URL % queryid
+            image_url = cls._tv_api % queryid
         try:
             return RequestUtils(proxies=cls._proxies, timeout=5).get_res(image_url)
         except Exception as err:

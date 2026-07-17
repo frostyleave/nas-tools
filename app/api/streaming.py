@@ -14,7 +14,7 @@ from log import log_buffer, active_sse_queues
 
 from app.api.action import WebAction
 from app.middleware.security import get_current_user
-from app.utils.types import *
+from app.utils.types import SearchType
 
 # 流式/实时路由
 streaming_router = APIRouter()

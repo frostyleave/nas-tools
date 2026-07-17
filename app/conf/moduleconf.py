@@ -1,5 +1,5 @@
 # coding: utf-8
-from app.utils.types import *
+from app.utils.types import SearchType, DownloaderType, RmtMode
 
 
 class ModuleConf(object):
@@ -32,14 +32,6 @@ class ModuleConf(object):
         "rclonecopy": RmtMode.RCLONECOPY,
         "minio": RmtMode.MINIO,
         "miniocopy": RmtMode.MINIOCOPY
-    }
-
-    # 精简版转移模式
-    RMT_MODES_LITE = {
-        "copy": RmtMode.COPY,
-        "link": RmtMode.LINK,
-        "softlink": RmtMode.SOFTLINK,
-        "move": RmtMode.MOVE
     }
 
     # 远程转移模式

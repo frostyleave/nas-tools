@@ -7,93 +7,15 @@ from threading import Lock
 
 import ruamel.yaml
 
-# 种子名/文件名要素分隔字符
-SPLIT_CHARS = r"\.|\s+|\(|\)|\[|]|-|\+|【|】|/|;|&|\||#|_|「|」"
-# 默认User-Agent
-DEFAULT_UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/98.0.4758.102 Safari/537.36"
+
 # 收藏了的媒体的目录名，名字可以改，在Emby中点击红星则会自动将电影转移到此分类下，需要在Emby Webhook中配置用户行为通知
 RMT_FAVTYPE = '精选'
-# 支持的媒体文件后缀格式
-RMT_MEDIAEXT = ['.mp4', '.mkv', '.ts', '.iso',
-                '.rmvb', '.avi', '.mov', '.mpeg',
-                '.mpg', '.wmv', '.3gp', '.asf',
-                '.m4v', '.flv', '.m2ts', '.strm',
-                '.tp']
-# 支持的字幕文件后缀格式
-RMT_SUBEXT = ['.srt', '.ass', '.ssa']
-# 繁体字幕正则
-ZHTW_SUB_RE = r"([.\[(](((zh[-_])?(hk|tw|cht|tc))" \
-               r"|繁[体中]?)[.\])])" \
-               r"|繁体中[文字]|中[文字]繁体|繁[体體日]" \
-               r"|(?<![a-z0-9])big5(?![a-z0-9])"
-# 支持的音轨文件后缀格式
-RMT_AUDIO_TRACK_EXT = ['.mka']
-# 电视剧动漫的分类genre_ids
-ANIME_GENREIDS = ['16']
-# 索引器默认分类
-INDEXER_CATEGORY = ['MOVIE', 'TV', 'ANIME']
-# 默认过滤的文件大小，150M
-RMT_MIN_FILESIZE = 150 * 1024 * 1024
-# 删种检查时间间隔
-AUTO_REMOVE_TORRENTS_INTERVAL = 1800
-# 下载文件转移检查时间间隔，
-PT_TRANSFER_INTERVAL = 300
-# TMDB信息缓存定时保存时间
-METAINFO_SAVE_INTERVAL = 600
-# SYNC目录同步聚合转移时间
-SYNC_TRANSFER_INTERVAL = 60
-# RSS队列中处理时间间隔
-RSS_CHECK_INTERVAL = 300
-# 刷新订阅TMDB数据的时间间隔（小时）
-RSS_REFRESH_TMDB_INTERVAL = 6
-# 刷流删除的检查时间间隔
-BRUSH_REMOVE_TORRENTS_INTERVAL = 300
-# 定时清除未识别的缓存时间间隔（小时）
-META_DELETE_UNKNOWN_INTERVAL = 12
-# 定时刷新壁纸的间隔（小时）
-REFRESH_WALLPAPER_INTERVAL = 1
-# fanart的api，用于拉取封面图片
-FANART_MOVIE_API_URL = 'https://webservice.fanart.tv/v3/movies/%s?api_key=d2d31f9ecabea050fc7d68aa3146015f'
-FANART_TV_API_URL = 'https://webservice.fanart.tv/v3/tv/%s?api_key=d2d31f9ecabea050fc7d68aa3146015f'
-# 默认背景图地址
-DEFAULT_TMDB_IMAGE = 'https://s3.bmp.ovh/imgs/2022/07/10/77ef9500c851935b.webp'
-# TMDB域名地址
-TMDB_API_DOMAINS = ['api.themoviedb.org', 'api.tmdb.org', "tmdb.org"]
-TMDB_IMAGE_DOMAIN = 'image.tmdb.org'
-# 添加下载时增加的标签，开始只监控NAStool添加的下载时有效
-PT_TAG = "NASTOOL"
-# 电影默认命名格式
-DEFAULT_MOVIE_FORMAT = '{title} ({year})/{title} ({year})-{part} - {videoFormat}'
-# 电视剧默认命名格式
-DEFAULT_TV_FORMAT = '{title} ({year})/Season {season}/{title} - {season_episode}-{part} - 第 {episode} 集'
-# 辅助识别参数
-KEYWORD_SEARCH_WEIGHT_1 = [10, 3, 2, 0.5, 0.5]
-KEYWORD_SEARCH_WEIGHT_2 = [10, 2, 1]
-KEYWORD_SEARCH_WEIGHT_3 = [10, 2]
-KEYWORD_STR_SIMILARITY_THRESHOLD = 0.2
-KEYWORD_DIFF_SCORE_THRESHOLD = 30
-KEYWORD_BLACKLIST = ['中字', '韩语', '双字', '中英', '日语', '双语', '国粤', 'HD', 'BD', '中日', '粤语', '完全版',
-                     '法语', '西班牙语', 'HRHDTVAC3264', '未删减版', '未删减', '国语', '字幕组', '人人影视', 'www66ystv',
-                     '人人影视制作', '英语', 'www6vhaotv', '无删减版', '完成版', '德意']
-
-# WebDriver路径
-WEBDRIVER_PATH = {
-    "Docker": "/usr/lib/chromium/chromedriver",
-    "Synology": "/var/packages/NASTool/target/bin/chromedriver"
-}
-
-# Xvfb虚拟显示路程
-XVFB_PATH = [
-    "/usr/bin/Xvfb",
-    "/usr/local/bin/Xvfb"
-]
 
 # 线程锁
 lock = Lock()
 
 # 全局实例
 _CONFIG = None
-
 
 def singleconfig(cls):
     def _singleconfig(*args, **kwargs):
@@ -108,9 +30,17 @@ def singleconfig(cls):
 
 @singleconfig
 class Config(object):
+    
     _config = {}
     _config_path = None
     _user = None
+
+    # 默认User-Agent
+    default_ua = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36"
+
+    # TMDB域名地址
+    tmdb_api_domain = 'api.themoviedb.org'
+    tmdb_img_domain = 'image.tmdb.org'
 
     def __init__(self):
         self.menu = None
@@ -165,7 +95,7 @@ class Config(object):
         return self.get_config('app').get("proxies", {})
 
     def get_ua(self):
-        return self.get_config('app').get("user_agent") or DEFAULT_UA
+        return self.get_config('app').get("user_agent") or self.default_ua
 
     def get_config(self, node=None):
         if not node:
@@ -216,7 +146,7 @@ class Config(object):
             RMT_FAVTYPE = favtype
 
     def get_tmdbapi_url(self):
-        return f"https://{self.get_config('app').get('tmdb_domain') or TMDB_API_DOMAINS[0]}/3"
+        return f"https://{self.get_config('app').get('tmdb_domain') or self.tmdb_api_domain}/3"
 
     def get_tmdbimage_url(self, path, prefix="w500"):
         if not path:
@@ -224,7 +154,7 @@ class Config(object):
         tmdb_image_url = self.get_config("app").get("tmdb_image_url")
         if tmdb_image_url:
             return tmdb_image_url + f"/t/p/{prefix}{path}"
-        return f"https://{TMDB_IMAGE_DOMAIN}/t/p/{prefix}{path}"
+        return f"https://{self.tmdb_img_domain}/t/p/{prefix}{path}"
 
     @property
     def category_path(self):

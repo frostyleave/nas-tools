@@ -10,11 +10,9 @@ from app.modules.filter import Filter
 from app.media import Media
 from app.media.meta import MetaInfo
 from app.utils import StringUtils, MediaUtils
+from app.utils.constants import Constants
 from app.utils.types import MediaType, SearchType
 from app.core.task_manager import GlobalTaskManager
-
-
-from config import SPLIT_CHARS
 
 
 class _IIndexClient(metaclass=ABCMeta):
@@ -312,7 +310,7 @@ class _IIndexClient(metaclass=ABCMeta):
             return True
         
         if item_meta.subtitle:
-            splited_text = re.split(r'%s' % SPLIT_CHARS, item_meta.subtitle)
+            splited_text = re.split(r'%s' % Constants.SPLIT_CHARS, item_meta.subtitle)
             for splited_item in splited_text:
                 if not splited_item:
                     continue

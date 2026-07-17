@@ -3,16 +3,15 @@ import os
 import re
 import json
 
+from bencode import bdecode
+from enum import Enum
 from requests import Response
+from threading import Lock
 from typing import Optional
+from urllib.parse import unquote
 
 from apscheduler.job import Job
 from apscheduler.schedulers.background import BackgroundScheduler
-
-from bencode import bdecode
-from threading import Lock
-from enum import Enum
-from urllib.parse import unquote
 
 import log
 
@@ -32,9 +31,13 @@ from app.plugins import EventManager
 from app.sites import PtSiteConf, SitesManager, SiteSubtitle
 from app.utils import TorrentUtils, StringUtils, SystemUtils, NumberUtils, RequestUtils, SiteUtils
 from app.utils.commons import singleton
-from app.utils.types import MediaType, DownloaderType, SearchType, RmtMode, EventType, SystemConfigKey
+from app.utils.constants import Constants
+from app.utils.types import MediaType, DownloaderType, SearchType, RmtMode, SystemConfigKey
 
-from config import Config, PT_TAG, RMT_MEDIAEXT, PT_TRANSFER_INTERVAL
+from config import Config
+
+# 标签隔离
+PT_TAG = "NASTOOL"
 
 lock = Lock()
 client_lock = Lock()
@@ -249,7 +252,7 @@ class Downloader:
             return
         self.transfer_job = self.get_scheduler().add_job(func=self.transfer,
                                                          trigger='interval',
-                                                         seconds=PT_TRANSFER_INTERVAL,
+                                                         seconds=Constants.PT_TRANSFER_INTERVAL,
                                                          name='下载文件转移')
 
     def get_scheduler(self) -> BackgroundScheduler:
@@ -1689,7 +1692,7 @@ class Downloader:
             return [], None
         episodes = []
         for file in files:
-            if os.path.splitext(file)[-1] not in RMT_MEDIAEXT:
+            if os.path.splitext(file)[-1] not in Constants.RMT_MEDIAEXT:
                 continue
             meta = MetaInfo(file)
             if not meta.begin_episode:

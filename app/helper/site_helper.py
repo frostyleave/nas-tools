@@ -6,9 +6,7 @@ from datetime import datetime
 from lxml import etree
 
 from app.utils import SystemUtils
-
-from config import RMT_SUBEXT
-
+from app.utils.constants import Constants
 
 class SiteHelper:
 
@@ -51,7 +49,7 @@ class SiteHelper:
             fname = str(fname[0].encode('ISO-8859-1').decode()).split(";")[0].strip()
             if fname.endswith('"'):
                 fname = fname[:-1]
-        elif url and os.path.splitext(url)[-1] in (RMT_SUBEXT + ['.zip']):
+        elif url and os.path.splitext(url)[-1] in (Constants.RMT_SUBEXT + ['.zip']):
             fname = url.split("/")[-1]
         else:
             fname = str(datetime.now())

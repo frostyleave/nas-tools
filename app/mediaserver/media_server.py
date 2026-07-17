@@ -11,7 +11,8 @@ from app.helper import ProgressHelper, SubmoduleHelper
 from app.media import Media
 from app.message import Message
 from app.utils.commons import singleton
-from app.utils.types import MediaServerType, MovieTypes, SystemConfigKey, ProgressKey
+from app.utils.constants import Constants
+from app.utils.types import MediaServerType, SystemConfigKey, ProgressKey
 
 from config import Config
 
@@ -307,7 +308,7 @@ class MediaServer:
             return None
 
         # 剧集没有季时默认为第1季
-        if mtype not in MovieTypes:
+        if mtype not in Constants.MOVIE_TYPES:
             if not season:
                 season = 1
         if season:

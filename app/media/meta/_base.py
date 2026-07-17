@@ -2,14 +2,19 @@ import regex as re
 import cn2an
 import zhconv
 
-from app.media.category import Category
-from app.utils import StringUtils
-from app.utils.types import MediaType
-
-from config import ANIME_GENREIDS, DEFAULT_TMDB_IMAGE, ZHTW_SUB_RE, Config
-
 import log
 
+from app.media.category import Category
+from app.utils import StringUtils
+from app.utils.constants import Constants
+from app.utils.types import MediaType
+
+from config import Config
+
+# 默认背景图地址
+DEFAULT_TMDB_IMAGE = 'https://s3.bmp.ovh/imgs/2022/07/10/77ef9500c851935b.webp'
+# 电视剧动漫的分类genre_ids
+ANIME_GENREIDS = ['16']
 
 class MetaBase(object):
     """
@@ -812,7 +817,7 @@ class MetaBase(object):
 
         if self.title:
             # 标题统一处理为简体中文，简体资源优先
-            if re.match(ZHTW_SUB_RE, self.title) and StringUtils.contain_traditional_chinese(self.title):
+            if re.match(Constants.ZHTW_SUB_RE, self.title) and StringUtils.contain_traditional_chinese(self.title):
                 sort_str = '0' + zhconv.convert(self.title, 'zh-hans')
             else:
                 sort_str = '1' + self.title

@@ -12,10 +12,16 @@ from app.utils.http_utils import RequestUtils
 from app.utils.path_utils import PathUtils
 from app.utils.types import OsType
 
-from config import Config, WEBDRIVER_PATH
+from config import Config
 from version import APP_VERSION
 
 import log
+
+# WebDriver路径
+WEBDRIVER_PATH = {
+    "Docker": "/usr/lib/chromium/chromedriver",
+    "Synology": "/var/packages/NASTool/target/bin/chromedriver"
+}
 
 
 class SystemUtils:

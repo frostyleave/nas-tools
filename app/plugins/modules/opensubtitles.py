@@ -1,18 +1,20 @@
 import os
 import shutil
-from urllib.parse import quote
 
 from cachetools import TTLCache, cached
 from pyquery import PyQuery
 from playwright.sync_api import Page
+from urllib.parse import quote
 
 from app.helper import SiteHelper
 from app.indexer.client.browser import PlaywrightHelper
 from app.plugins import EventHandler
 from app.plugins.modules._base import _IPluginModule
 from app.utils import RequestUtils, PathUtils
+from app.utils.constants import Constants
 from app.utils.types import MediaType, EventType
-from config import Config, RMT_SUBEXT
+
+from config import Config
 
 import log
 
@@ -161,7 +163,7 @@ class OpenSubtitles(_IPluginModule):
                     # 解压文件
                     shutil.unpack_archive(zip_file, zip_path, format='zip')
                     # 遍历转移文件
-                    for sub_file in PathUtils.get_dir_files(in_path=zip_path, exts=RMT_SUBEXT):
+                    for sub_file in PathUtils.get_dir_files(in_path=zip_path, exts=Constants.RMT_SUBEXT):
                         self.sitehelper.transfer_subtitle(sub_file, Media_File)
                     # 删除临时文件
                     try:

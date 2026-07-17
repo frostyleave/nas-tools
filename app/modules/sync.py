@@ -12,9 +12,8 @@ from app.modules.filetransfer import FileTransfer
 from app.helper import DbHelper
 from app.utils import PathUtils
 from app.utils.commons import singleton
+from app.utils.constants import Constants
 from app.utils.types import SyncType
-
-from config import RMT_MEDIAEXT
 
 lock = threading.Lock()
 
@@ -233,7 +232,7 @@ class Sync(object):
                         return
                     if name.lower() != "index.bdmv":
                         ext = os.path.splitext(name)[-1]
-                        if ext.lower() not in RMT_MEDIAEXT:
+                        if ext.lower() not in Constants.RMT_MEDIAEXT:
                             return
                     # 监控根目录下的文件发生变化时直接发走
                     if is_root_path:
@@ -380,7 +379,7 @@ class Sync(object):
                 for link_file in PathUtils.get_dir_files(mon_path):
                     self.__link(link_file, mon_path, target_path, sync_mode)
             else:
-                for path in PathUtils.get_dir_level1_medias(mon_path, RMT_MEDIAEXT):
+                for path in PathUtils.get_dir_level1_medias(mon_path, Constants.RMT_MEDIAEXT):
                     if PathUtils.is_invalid_path(path):
                         continue
                     ret, ret_msg = self.filetransfer.transfer_media(in_from=SyncType.MON,

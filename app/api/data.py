@@ -25,12 +25,14 @@ from app.modules.torrentremover import TorrentRemover
 from app.models.user import User
 from app.plugins.plugin_manager import PluginManager
 from app.sites.site_manager import SitesManager
+from app.utils.constants import Constants
 from app.utils.system_utils import SystemUtils
 from app.utils.types import Spider, SystemConfigKey
 
-from config import PT_TRANSFER_INTERVAL, TMDB_API_DOMAINS, Config
+from config import Config
 
 from app.api.action import WebAction
+
 
 # 页面数据路由
 data_router = APIRouter(
@@ -157,7 +159,7 @@ async def basic():
             "Proxy": proxy,
             "CustomScriptCfg": custom_script_cfg,
             "MediaServerConf": ModuleConf.MEDIASERVER_CONF,
-            "TmdbDomains": TMDB_API_DOMAINS,
+            "TmdbDomains": Constants.TMDB_API_DOMAINS,
         }
     )
 
@@ -479,12 +481,10 @@ async def plugin(current_user = Depends(get_current_user)):
 
     # 插件
     plugins = PluginManager().get_plugins_conf(current_user.level)
-    settings = '\n'.join(SystemConfig().get(SystemConfigKey.ExternalPluginsSource) or [])
 
     return response(data=
         {
-            "Plugins": plugins,
-            "Settings": settings
+            "Plugins": plugins
         })
 
 
@@ -563,7 +563,7 @@ async def service(current_user: User = Depends(get_current_user)):
     if "pttransfer" in service_list:
         pt_monitor = Downloader().monitor_downloader_ids
         if pt_monitor:
-            tim_pttransfer = str(round(PT_TRANSFER_INTERVAL / 60)) + " 分钟"
+            tim_pttransfer = str(round(Constants.PT_TRANSFER_INTERVAL / 60)) + " 分钟"
             sta_pttransfer = 'ON'
         else:
             tim_pttransfer = ""

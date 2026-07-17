@@ -1,20 +1,21 @@
 import os
 import hashlib
+import httpx
+
+from fastapi import APIRouter, HTTPException, Query, Request, Depends, Response
+from fastapi.responses import FileResponse, StreamingResponse
 
 from urllib.parse import unquote, urlparse, urlunparse
 from pathlib import Path
 
-from fastapi import APIRouter, HTTPException, Query, Request, Depends, Response
-from fastapi.responses import FileResponse, StreamingResponse
-import httpx
+import log
 
 from app.middleware.security import get_current_user
 from app.modules.system.backup import Backup
 from app.utils import RequestUtils, SystemUtils
-from app.utils.types import *
+from app.utils.types import OsType
 from app.utils.async_request import AsyncRequestUtils
 
-import log
 from config import Config
 
 

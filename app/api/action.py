@@ -9,15 +9,13 @@ import shutil
 import threading
 import time
 
-from fastapi import APIRouter, BackgroundTasks, Body, Depends
-
 from math import floor
-from pathlib import Path
 from typing import Optional
+
+from fastapi import APIRouter, BackgroundTasks, Body, Depends
 
 import cn2an
 
-from app.core.cmd_handler import CommandHandler
 import log
 
 from app.conf import SystemConfig, ModuleConf
@@ -25,7 +23,7 @@ from app.conf import SystemConfig, ModuleConf
 from app.helper import DbHelper, ProgressHelper, ThreadHelper, MetaHelper, WordsHelper, RssHelper, FileHelper
 from app.utils import StringUtils, EpisodeFormat, RequestUtils, PathUtils, SystemUtils, MediaUtils
 
-from app.core.cmd_registry import CommandRegistry
+from app.core.cmd_handler import CommandHandler
 from app.core.jobcenter import JobCenter
 from app.core.services import ServiceManager
 from app.core.task_manager import GlobalTaskManager
@@ -50,10 +48,11 @@ from app.modules.sync import Sync
 from app.modules.torrentremover import TorrentRemover
 from app.plugins import PluginManager, EventManager
 from app.sites import SitesManager, SitesDataStatisticsCenter, CookieManager, SiteConf
-from app.utils.types import MediaType,SyncType,SearchType,EventType,SystemConfigKey,RssType,MovieTypes,TvTypes,MEDIA_TYPE_MAP
+from app.utils.constants import Constants
+from app.utils.types import MediaType, SyncType, SearchType, EventType, SystemConfigKey, RssType
 from app.utils.password_hash import generate_password_hash
 
-from config import RMT_MEDIAEXT, Config
+from config import Config
 
 # action接口路由
 action_router = APIRouter(dependencies=[Depends(get_current_user)])
@@ -92,7 +91,7 @@ def search(background_tasks: BackgroundTasks, data: dict = Body(...)):
         media_type = data.get("media_type")
 
         if media_type:
-            if media_type in MovieTypes:
+            if media_type in Constants.MOVIE_TYPES:
                 media_type = MediaType.MOVIE
             else:
                 media_type = MediaType.TV
@@ -306,11 +305,7 @@ class WebAction:
             "get_category_config": self.get_category_config,
             "get_system_processes": self.get_system_processes,
             "run_plugin_method": self.run_plugin_method,
-            "get_external_plugin_apps": self.get_external_plugin_apps,
-            "save_external_source_settings": self.save_external_source_settings,
             "refresh_pt_statistics": self.refresh_pt_statistics,
-            "install_external_plugin": self.install_external_plugin,
-            "uninstall_external_plugin": self.uninstall_external_plugin,
             "get_jobs": self.get_jobs
         }
         # 用户绑定
@@ -486,7 +481,7 @@ class WebAction:
         media_type = data.get("media_type")
 
         if media_type:
-            if media_type in MovieTypes:
+            if media_type in Constants.MOVIE_TYPES:
                 media_type = MediaType.MOVIE
             else:
                 media_type = MediaType.TV
@@ -528,7 +523,7 @@ class WebAction:
                 DbHelper().update_search_results_date(res.ID, media_info.tmdb_id)
         else:
             # 搜索结果已被识别
-            mtype = MEDIA_TYPE_MAP.get(res.TYPE, None)
+            mtype = Constants.MEDIA_TYPE_MAP.get(res.TYPE, None)
             info = Media().get_tmdb_info(tmdbid=res.TMDBID, mtype=mtype, append_to_response="all")
             if not info:
                 return {"retcode": -1, "retmsg": '查询TMDB详情失败'}
@@ -738,15 +733,15 @@ class WebAction:
         episode_offset = data.get("episode_offset")
         min_filesize = data.get("min_filesize")
 
-        if mtype in MovieTypes:
+        if mtype in Constants.MOVIE_TYPES:
             media_type = MediaType.MOVIE
-        elif mtype in TvTypes:
+        elif mtype in Constants.TVT_YPES:
             media_type = MediaType.TV
         else:
             media_type = MediaType.ANIME
         # 如果改次手动修复时一个单文件，自动修复改目录下同名文件，需要配合episode_format生效
         need_fix_all = False
-        if os.path.splitext(path)[-1].lower() in RMT_MEDIAEXT and episode_format:
+        if os.path.splitext(path)[-1].lower() in Constants.RMT_MEDIAEXT and episode_format:
             path = os.path.dirname(path)
             need_fix_all = True
         # 开始转移
@@ -788,9 +783,9 @@ class WebAction:
         episode_part = data.get("episode_part")
         episode_offset = data.get("episode_offset")
         min_filesize = data.get("min_filesize")
-        if mtype in MovieTypes:
+        if mtype in Constants.MOVIE_TYPES:
             media_type = MediaType.MOVIE
-        elif mtype in TvTypes:
+        elif mtype in Constants.TVT_YPES:
             media_type = MediaType.TV
         else:
             media_type = MediaType.ANIME
@@ -1255,7 +1250,7 @@ class WebAction:
         if name:
             name = MetaInfo(title=name).get_name()
         if mtype:
-            if mtype in MovieTypes:
+            if mtype in Constants.MOVIE_TYPES:
                 Subscribe().delete_subscribe(mtype=MediaType.MOVIE,
                                              title=name,
                                              year=year,
@@ -1297,7 +1292,7 @@ class WebAction:
         rssid = data.get("rssid")
         page = data.get("page")
         mtype = MediaType.MOVIE if data.get(
-            "type") in MovieTypes else MediaType.TV
+            "type") in Constants.MOVIE_TYPES else MediaType.TV
 
         media_info = None
         if isinstance(season, list):
@@ -1381,7 +1376,7 @@ class WebAction:
         release_date = ""
         overview = ""
         # 类型
-        if mtype in MovieTypes:
+        if mtype in Constants.MOVIE_TYPES:
             media_type = MediaType.MOVIE
         else:
             media_type = MediaType.TV
@@ -1685,7 +1680,7 @@ class WebAction:
     def __rss_detail(self, data):
         rid = data.get("rssid")
         mtype = data.get("rsstype")
-        if mtype in MovieTypes:
+        if mtype in Constants.MOVIE_TYPES:
             rssdetail = Subscribe().get_subscribe_movies(rid=rid)
             if not rssdetail:
                 return {"code": 1}
@@ -2037,7 +2032,7 @@ class WebAction:
             # 搜索词条
             Keyword = data.get("keyword")
             Source = data.get("source")
-            mtype = MEDIA_TYPE_MAP.get(data.get("subtype"), None)
+            mtype = Constants.MEDIA_TYPE_MAP.get(data.get("subtype"), None)
             medias = SearchProxy().search_media_by_keyword(keyword=Keyword, source=Source, page=CurrentPage, media_type=mtype)
             res_list = [media.to_dict() for media in medias]
             # 相关性排序
@@ -2055,14 +2050,14 @@ class WebAction:
                 res_list = Media().get_tmdb_trending_all_week(page=CurrentPage)
         elif Type == "DISCOVER":
             # TMDB发现
-            mtype = MediaType.MOVIE if SubType in MovieTypes else MediaType.TV
+            mtype = MediaType.MOVIE if SubType in Constants.MOVIE_TYPES else MediaType.TV
             # 过滤参数 with_genres with_original_language
             params = data.get("params") or {}
 
             res_list = Media().get_tmdb_discover(mtype=mtype, page=CurrentPage, params=params)
         elif Type == "DOUBANTAG":
             # 豆瓣发现
-            mtype = MediaType.MOVIE if SubType in MovieTypes else MediaType.TV
+            mtype = MediaType.MOVIE if SubType in Constants.MOVIE_TYPES else MediaType.TV
             # 参数
             params = data.get("params") or {}
             # 排序
@@ -4053,7 +4048,7 @@ class WebAction:
         if not tmdbid:
             return {"code": 1, "msg": "未指定媒体ID"}
 
-        mtype = MediaType.MOVIE if data.get("type") in MovieTypes else MediaType.TV
+        mtype = MediaType.MOVIE if data.get("type") in Constants.MOVIE_TYPES else MediaType.TV
         media_info = Media().get_mediainfo_from_id(mediaid=tmdbid, mtype=mtype)
         # 检查TMDB信息
         if not media_info or not media_info.tmdb_info:
@@ -4107,7 +4102,7 @@ class WebAction:
         if not tmdbid:
             return {"code": 1, "msg": "未指定媒体ID"}
         
-        mtype = MediaType.MOVIE if data.get("type") in MovieTypes else MediaType.TV
+        mtype = MediaType.MOVIE if data.get("type") in Constants.MOVIE_TYPES else MediaType.TV
         # 从豆瓣接口查询
         if str(tmdbid).startswith("DB:"):
 
@@ -4220,7 +4215,7 @@ class WebAction:
         if not mediaid:
             return {"code": 1, "msg": "未指定媒体ID"}
         
-        mtype = MediaType.MOVIE if data.get("type") in MovieTypes else MediaType.TV
+        mtype = MediaType.MOVIE if data.get("type") in Constants.MOVIE_TYPES else MediaType.TV
         media_info = Media().get_mediainfo_from_id(mediaid=mediaid, mtype=mtype)
 
         if not media_info: 
@@ -4317,7 +4312,7 @@ class WebAction:
         """
         tmdbid = data.get("tmdbid")
         page = data.get("page") or 1
-        mtype = MediaType.MOVIE if data.get("type") in MovieTypes else MediaType.TV
+        mtype = MediaType.MOVIE if data.get("type") in Constants.MOVIE_TYPES else MediaType.TV
         if not tmdbid:
             return {"code": 1, "msg": "未指定TMDBID"}
         if mtype == MediaType.MOVIE:
@@ -4333,7 +4328,7 @@ class WebAction:
         tmdbid = data.get("tmdbid")
         page = data.get("page") or 1
         mtype = MediaType.MOVIE if data.get(
-            "type") in MovieTypes else MediaType.TV
+            "type") in Constants.MOVIE_TYPES else MediaType.TV
         if not tmdbid:
             return {"code": 1, "msg": "未指定TMDBID"}
         if mtype == MediaType.MOVIE:
@@ -4351,7 +4346,7 @@ class WebAction:
         if not tmdbid and not keyword:
             return {"code": 1, "msg": "未指定TMDBID或关键字"}
         if tmdbid:
-            mtype = MediaType.MOVIE if data.get("type") in MovieTypes else MediaType.TV
+            mtype = MediaType.MOVIE if data.get("type") in Constants.MOVIE_TYPES else MediaType.TV
             result = Media().get_tmdb_cats(tmdbid=tmdbid, mtype=mtype)
         else:
             result = Media().search_tmdb_person(name=keyword)
@@ -4364,7 +4359,7 @@ class WebAction:
         personid = data.get("personid")
         page = data.get("page") or 1
         if data.get("type"):
-            mtype = MediaType.MOVIE if data.get("type") in MovieTypes else MediaType.TV
+            mtype = MediaType.MOVIE if data.get("type") in Constants.MOVIE_TYPES else MediaType.TV
         else:
             mtype = None
         if not personid:
@@ -4420,7 +4415,7 @@ class WebAction:
             tmdbid = None
         
         rssid = None
-        if mtype in MovieTypes:
+        if mtype in Constants.MOVIE_TYPES:
             rssid = Subscribe().get_subscribe_id(mtype=MediaType.MOVIE,
                                                  title=title,
                                                  year=year,
@@ -4927,123 +4922,6 @@ class WebAction:
         data.pop("method")
         result = PluginManager().run_plugin_method(pid=plugin_id, method=method, **data)
         return {"code": 0, "result": result}
-
-    def get_external_plugin_apps(self, data=None):
-        """
-        获取第三方插件列表
-        """
-        # 使用默认admin用户级别
-        user_level = 0
-
-        # 如果传入了用户信息，则使用传入的用户级别
-        if data and isinstance(data, dict) and "user" in data and hasattr(data["user"], "level"):
-            user_level = data["user"].level
-        # 如果获取不到，使用admin用户级别
-        else:
-            admin_user = UserManager().get_user_by_name("admin")
-            if admin_user:
-                user_level = admin_user.level
-
-        # 获取插件列表
-        plugins = PluginManager().get_external_plugin_apps(user_level)
-        return {"code": 0, "result": plugins}
-
-    def save_external_source_settings(self, data):
-
-        content = data.get("value").split("\n")
-        SystemConfig().set(SystemConfigKey.ExternalPluginsSource, content)
-
-        return {"code": 0, "msg": "保存成功"}
-
-    def install_external_plugin(self, data, reload=True):
-        """
-        安装第三方插件（先下载到本地后再进行本地安装）
-        """
-        module_id = data.get("id")
-        file_md5 = data.get("file_md5")
-        download_url = data.get("download_url")
-        is_update = data.get("is_update")
-        if not module_id or not download_url:
-            return {"code": -1, "msg": "参数错误"}
-
-        # 用户已安装插件列表
-        user_plugins = SystemConfig().get(SystemConfigKey.UserInstalledPlugins) or []
-        external_plugins = SystemConfig().get(SystemConfigKey.ExternalInstalledPlugins) or []
-
-        # 获取插件安装路径
-        plugin_path = Path(importlib.import_module("app.plugins.modules").__path__[0])
-        user_plugin_path = Config().get_user_plugin_path()
-        # windows 将插件下载致用户插件目录
-        if not os.path.exists(plugin_path):
-            plugin_path = Config().get_user_plugin_path()
-        plugin_file = os.path.join(plugin_path, f"{module_id.lower()}.py")
-        user_plugin_file = os.path.join(user_plugin_path, f"{module_id.lower()}.py")
-
-        # 获取插件内容
-        result = RequestUtils(timeout=5, proxies=Config().get_proxies()).get_res(download_url)
-
-        # 将插件存入本地插件库
-        if not result or not result.content:
-            return {"code": 1, "msg": "插件下载失败，请检查三方源是否可以正常访问！"}
-
-        open(user_plugin_file, "wb").write(result.content)
-        SystemUtils.copy(user_plugin_file, plugin_file)
-
-        if file_md5:
-            log.info(file_md5)
-
-        if module_id not in user_plugins:
-            user_plugins.append(module_id)
-
-        if module_id not in external_plugins:
-            external_plugins.append(module_id)
-
-        # 保存配置
-        SystemConfig().set(SystemConfigKey.UserInstalledPlugins, user_plugins)
-        SystemConfig().set(SystemConfigKey.ExternalInstalledPlugins, external_plugins)
-        # 重新加载插件
-        if reload:
-            PluginManager().init_config()
-
-        if is_update:
-            ServiceManager.restart_service()
-
-        return {"code": 0, "msg": "插件安装成功"}
-
-    def uninstall_external_plugin(self, data):
-        """
-        卸载第三方插件（从库中卸载完成后还需要删除插件）
-        """
-        module_id = data.get("id")
-        if not module_id:
-            return {"code": -1, "msg": "参数错误"}
-
-        # 获取插件安装路径
-        user_plugin_path = Config().get_user_plugin_path()
-        system_plugin_path = Path(importlib.import_module("app.plugins.modules").__path__[0])
-
-        user_plugin_file = os.path.join(user_plugin_path, f"{module_id.lower()}.py")
-        system_plugin_file = os.path.join(system_plugin_path, f"{module_id.lower()}.py")
-
-        # 用户已安装插件列表
-        user_plugins = SystemConfig().get(SystemConfigKey.UserInstalledPlugins) or []
-        external_plugins = SystemConfig().get(SystemConfigKey.ExternalInstalledPlugins) or []
-        if module_id in user_plugins:
-            user_plugins.remove(module_id)
-
-        if module_id in external_plugins:
-            external_plugins.remove(module_id)
-            # 删除本地的第三方插件文件
-            os.remove(user_plugin_file)
-            os.remove(system_plugin_file)
-
-        # 保存配置
-        SystemConfig().set(SystemConfigKey.UserInstalledPlugins, user_plugins)
-        SystemConfig().set(SystemConfigKey.ExternalInstalledPlugins, external_plugins)
-
-        # 重新加载插件
-        PluginManager().init_config()
-        return {"code": 0, "msg": "插件卸载功"}
 
     def get_jobs(self):
         """

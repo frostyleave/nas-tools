@@ -15,16 +15,22 @@ from app.modules.sync import Sync
 from app.utils import SchedulerUtils
 from app.utils.commons import singleton
 
-from config import (
-    METAINFO_SAVE_INTERVAL,
-    SYNC_TRANSFER_INTERVAL,
-    RSS_CHECK_INTERVAL,
-    RSS_REFRESH_TMDB_INTERVAL,
-    META_DELETE_UNKNOWN_INTERVAL,
-    REFRESH_WALLPAPER_INTERVAL,
-    Config,
-)
+from config import Config
 
+# TMDB信息缓存定时保存时间
+METAINFO_SAVE_INTERVAL = 600
+# SYNC目录同步聚合转移时间
+SYNC_TRANSFER_INTERVAL = 60
+# RSS队列中处理时间间隔
+RSS_CHECK_INTERVAL = 300
+# 刷新订阅TMDB数据的时间间隔（小时）
+RSS_REFRESH_TMDB_INTERVAL = 6
+# 刷流删除的检查时间间隔
+BRUSH_REMOVE_TORRENTS_INTERVAL = 300
+# 定时清除未识别的缓存时间间隔（小时）
+META_DELETE_UNKNOWN_INTERVAL = 12
+# 定时刷新壁纸的间隔（小时）
+REFRESH_WALLPAPER_INTERVAL = 1
 
 @singleton
 class Scheduler:

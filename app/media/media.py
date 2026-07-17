@@ -5,27 +5,36 @@ import re
 import traceback
 import cn2an
 import zhconv
-from app.media.bangumi import Bangumi
-from app.media.douban import DouBan
-from app.utils.media_utils import MediaUtils
-import log
-
 
 from lxml import etree
 from cachetools import TTLCache, cached
 
+import log
+
 from app.helper import MetaHelper
 from app.media.doubanapi.apiv2 import DoubanApi
+from app.media.bangumi import Bangumi
+from app.media.douban import DouBan
 from app.media.meta._base import MetaBase
 from app.media.meta.metainfo import MetaInfo
+from app.utils.media_utils import MediaUtils
 from app.media.tmdbv3api import TMDb, Search, Movie, TV, Person, Find, TMDbException, Discover, Trending, Episode, Genre
 from app.utils import PathUtils, EpisodeFormat, RequestUtils, NumberUtils, StringUtils, cacheman
 from app.utils.types import MediaType, MatchMode
-from config import Config, KEYWORD_BLACKLIST, KEYWORD_SEARCH_WEIGHT_3, KEYWORD_SEARCH_WEIGHT_2, KEYWORD_SEARCH_WEIGHT_1, \
-    KEYWORD_STR_SIMILARITY_THRESHOLD, KEYWORD_DIFF_SCORE_THRESHOLD
 
+from config import Config
 
+# 季信息前缀
 DB_SEASON_SUFFIX = r'[第]+[0-9一二三四五六七八九十\-\s]+[季期卷]'
+# 辅助识别参数
+KEYWORD_SEARCH_WEIGHT_1 = [10, 3, 2, 0.5, 0.5]
+KEYWORD_SEARCH_WEIGHT_2 = [10, 2, 1]
+KEYWORD_SEARCH_WEIGHT_3 = [10, 2]
+KEYWORD_STR_SIMILARITY_THRESHOLD = 0.2
+KEYWORD_DIFF_SCORE_THRESHOLD = 30
+KEYWORD_BLACKLIST = ['中字', '韩语', '双字', '中英', '日语', '双语', '国粤', 'HD', 'BD', '中日', '粤语', '完全版',
+                    '法语', '西班牙语', 'HRHDTVAC3264', '未删减版', '未删减', '国语', '字幕组', '人人影视', 'www66ystv',
+                    '人人影视制作', '英语', 'www6vhaotv', '无删减版', '完成版', '德意']
 
 class Media:
     

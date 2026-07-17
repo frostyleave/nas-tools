@@ -1,8 +1,7 @@
 import copy
 import datetime
-import multiprocessing
 
-from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor, as_completed
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import List, Optional
 
 import log
@@ -17,8 +16,8 @@ from app.utils.commons import singleton
 from app.utils.types import SearchType
 from app.core.task_manager import GlobalTaskManager
 
-from config import INDEXER_CATEGORY
-
+# 索引器默认分类
+INDEXER_CATEGORY = ['MOVIE', 'TV', 'ANIME']
 
 @singleton
 class Indexer(object):

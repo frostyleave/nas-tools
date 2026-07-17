@@ -8,9 +8,9 @@ from app.helper import WordsHelper
 from app.media.meta.metaanime import MetaAnime
 from app.media.meta.metavideo import MetaVideo
 from app.utils import StringUtils, ReleaseGroupsMatcher, MediaUtils
+from app.utils.constants import Constants
 from app.utils.types import MediaType
 
-from config import RMT_MEDIAEXT
 
 NAME_NOSTRING_RE = r"高清影视之家发布|连载|日剧|美剧|电视剧|动画片|动漫|欧美|西德|日韩|超高清|高清|蓝光|翡翠台|梦幻天堂·龙网|★?\d?\+?\d*月?新?番★?|[日美国][漫剧]" \
                    r"|高码版|最终季|全集|合集|[多中国英葡法俄日韩德意西印泰台港粤双文语简繁体特效内封官译外挂]+[字|幕|配|音|轨]+|版本|出品|台版|港版|未删减版"
@@ -54,7 +54,7 @@ def MetaInfo(title, subtitle=None, mtype=None, no_extra=False):
         subtitle = ''
 
     # 判断是否处理文件、格式化剧集文件名
-    if org_title and os.path.splitext(org_title)[-1] in RMT_MEDIAEXT:
+    if org_title and os.path.splitext(org_title)[-1] in Constants.RMT_MEDIAEXT:
         file_flag = True
         rev_title, subtitle = MediaUtils.clean_episode_range_from_file_name(rev_title, subtitle)
     else:
