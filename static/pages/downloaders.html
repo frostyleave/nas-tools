@@ -586,13 +586,11 @@
       var cardHtml =  `
       <a class="card card-link-pop p-0 overflow-hidden rounded-3" href="javascript:void(0)" onclick="show_edit_downloader_modal('${id}')">
           <div class="card-cover card-cover-blurred text-center" ${cardBgcolor}>
-              <span onclick="event.stopPropagation();set_default_downloader('${id}')"
-                    class="btn-action p-1 d-inline-flex"
-                    title="设置默认" style="position:absolute;top:5px;right:5px;z-index:1;"
-                    data-bs-toggle="tooltip"
-              >
-                ${ defaultDownloaderId == id  ? `<i class="ti ti-star-filled fs-2 text-purple"></i>` :  `<i class="ti ti-star fs-2 text-muted"></i>`}
-              </span>
+            <span onclick="event.stopPropagation();set_default_downloader('${id}')" class="btn-action p-1 d-inline-flex right-top-box" title="设置默认" data-bs-toggle="tooltip" >
+              ${ defaultDownloaderId == id  
+               ? `<i class="ti ti-star-filled fs-2 text-purple"></i>` 
+               :  `<i class="ti ti-star fs-2 text-muted"></i>`}
+            </span>
             <span class="avatar avatar-xl avatar-thumb avatar-rounded" style="background-image: url('${downloaderConf.img_url}')"></span>
           </div>
           <div class="card-body text-center">

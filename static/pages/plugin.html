@@ -27,7 +27,7 @@
     </div>
   </div>
 </div>
-<empty-content id="no-plugins" title="没有插件" text='没有安装任何插件，请前往插件市场选择安装。' style="display: none;" ></empty-content>
+<empty-content id="no-plugins" title="没有插件" text='没有安装任何插件，请前往插件市场选择安装。' style="display: none;"></empty-content>
 
 <!-- 弹窗 -->
 
@@ -71,16 +71,18 @@
         </div>
         <div id="plugin_external_page_content">
           <div class="modal-body" style="overflow-y: auto">
-              <div class="row mb-2">
-                  <div class="col-12 col-lg" style="display:block">
-                    <div class="mb-1">
-                      <label class="form-label false">
-                      第三方源
-                      <span class="form-help" data-bs-toggle="tooltip" data-bs-original-title="配置正确的第三方源以后将会显示再第三方插件仓库中，安装以后会进入插件市场。">?</span></label>
-                      <textarea class="form-control" id="external_source_content" rows="10" placeholder="每行一个源地址，可以同时添加多个源 ... &#10;https://ip:prot/route/xxx.json &#10;https://ip:prot/route/xxx.json"></textarea>
-                    </div>
-                  </div>
+            <div class="row mb-2">
+              <div class="col-12 col-lg" style="display:block">
+                <div class="mb-1">
+                  <label class="form-label false">
+                    第三方源
+                    <span class="form-help" data-bs-toggle="tooltip"
+                      data-bs-original-title="配置正确的第三方源以后将会显示再第三方插件仓库中，安装以后会进入插件市场。">?</span></label>
+                  <textarea class="form-control" id="external_source_content" rows="10"
+                    placeholder="每行一个源地址，可以同时添加多个源 ... &#10;https://ip:prot/route/xxx.json &#10;https://ip:prot/route/xxx.json"></textarea>
+                </div>
               </div>
+            </div>
           </div>
         </div>
         <div class="modal-footer">
@@ -114,17 +116,16 @@
   function save_config_plugin(id, prefix, func) {
     let params = input_select_GetVal(`modal-plugin-${id}`, prefix);
     let selectgroup_config = {};
-    $(`#modal-plugin-${id} div[class^='form-selectgroup']`).each(function() {
+    $(`#modal-plugin-${id} div[class^='form-selectgroup']`).each(function () {
       let name = $(this).attr("id");
       if ($(this).data('type') == 'radio') {
         selectgroup_config[name.replace(prefix, "")] = select_GetSelectedRadioVAL(name);
       } else {
         selectgroup_config[name.replace(prefix, "")] = select_GetSelectedVAL(name);
-      }      
+      }
     })
-    params = {...params, ...selectgroup_config}
-    console.log(params)
-    axios_post_do("update_plugin_config", {plugin: id, config: params}, func);
+    params = { ...params, ...selectgroup_config }
+    axios_post_do("update_plugin_config", { plugin: id, config: params }, func);
   }
 
   //保存配置、关闭和刷新页面
@@ -153,20 +154,18 @@
 
       let plugin_html = `
         <div class="card card-link-pop card-borderless p-0 shadow-sm rounded-3 overflow-hidden" href="javascript:void(0)">
-          <div class="card-cover card-cover-blurred text-center ${plugin.color.startsWith('bg-') ? plugin.color:''}"
+          <div class="card-cover card-cover-blurred text-center ${plugin.color.startsWith('bg-') ? plugin.color : ''}"
             ${plugin.color.startsWith('#') ? `style="background-color: ${plugin.color}"` : ''}
           >
-            <span class="avatar avatar-xl avatar-thumb avatar-rounded"
-                style="background-image: url('../static/img/plugins/${plugin.icon.split('/').pop()}')"
-            >
+            <span class="avatar avatar-xl avatar-thumb avatar-rounded" style="background-image: url('../static/img/plugins/${plugin.icon.split('/').pop()}')">
             </span>
           </div>
           <div class="card-body text-start">
             <div class="card-title mb-1">${plugin.name}</div>
             <div class="text-muted">${plugin.desc}</div>
-            <div class="text-muted mt-1"><strong>作者：</strong>
-            ${plugin.author_url ? `<a href="${plugin.author_url}" target="_blank">${plugin.author}</a>`
-              : `<span class="text-muted">${plugin.author}</span>`}
+            <div class="text-muted mt-1">
+              <strong>作者：</strong>
+              ${plugin.author_url ? `<a href="${plugin.author_url}" target="_blank">${plugin.author}</a>` : `<span class="text-muted">${plugin.author}</span>`}
             </div>
           </div>
           <div class="d-flex">
@@ -185,7 +184,7 @@
                 安装
               </a>
               `}
-            ${ plugin.update ? `
+            ${plugin.update ? `
               <a href="javascript:update_external_plugin('${pid}', '${plugin.name}', '${plugin.download_url}', '${plugin.file_md5}')" class="card-btn">
                 <i class="ti ti-cloud-download fs-2 me-1"></i>
                 更新
@@ -212,11 +211,11 @@
           </div>
         </div>
       `;
- 
+
       $("#plugin_apps_content").append(plugin_html);
 
     }
-    
+
     $("#plugin_apps_content").show();
   }
 
@@ -224,7 +223,7 @@
   function load_plugin_apps_modal() {
     $("#plugin_apps_content").empty();
     // 获取插件列表
-    axios_post_do("get_plugin_apps", {}, function(ret) {
+    axios_post_do("get_plugin_apps", {}, function (ret) {
       draw_plugin_table(ret, false)
     });
   }
@@ -235,7 +234,7 @@
     $("#plugin_apps_content").empty();
 
     // 获取插件列表
-    axios_post_do("get_external_plugin_apps", {}, function(ret) {
+    axios_post_do("get_external_plugin_apps", {}, function (ret) {
       draw_plugin_table(ret, true)
     });
 
@@ -243,34 +242,34 @@
 
   // 显示第三方插件设置页面
   function show_external_settings_page() {
-      $("#modal-external-source-settings").modal('show');
-      $("#modal_external_settings_btn").click(function (){
-          var value = $("#external_source_content").val();
-          axios_post_do("save_external_source_settings", {value: value}, function(ret){
-            if (ret.code === 0) {
-                show_success_modal(ret.msg, function (){
-                  $("#modal-external-source-settings").modal('hide');
-                });
-            } else {
-                show_fail_modal(ret.msg)
-            }
-          })
+    $("#modal-external-source-settings").modal('show');
+    $("#modal_external_settings_btn").click(function () {
+      var value = $("#external_source_content").val();
+      axios_post_do("save_external_source_settings", { value: value }, function (ret) {
+        if (ret.code === 0) {
+          show_success_modal(ret.msg, function () {
+            $("#modal-external-source-settings").modal('hide');
+          });
+        } else {
+          show_fail_modal(ret.msg)
+        }
       })
+    })
   }
 
   // 显示插件页面
   function show_plugin_extra_page(id) {
-    axios_post_do("get_plugin_page", {id: id}, function(ret){
+    axios_post_do("get_plugin_page", { id: id }, function (ret) {
       if (ret.code === 0) {
         $("#modal-plugin-" + id).modal('hide');
         $("#plugin_page_title").text(ret.title);
         $("#plugin_page_content").html(ret.content);
         if (ret.func) {
-          $("#modal_plugin_page_btn").unbind('click').click(function(){
+          $("#modal_plugin_page_btn").unbind('click').click(function () {
             eval(ret.func);
           });
         } else {
-          $("#modal_plugin_page_btn").unbind('click').click(function(){
+          $("#modal_plugin_page_btn").unbind('click').click(function () {
             $('#modal-plugin-page').modal('hide');
           });
         }
@@ -281,14 +280,14 @@
 
   // 安装插件
   function install_plugin(id, name) {
-    axios_post_do("install_plugin", {id: id}, function(ret){
+    axios_post_do("install_plugin", { id: id }, function (ret) {
       $("#modal-plugin-apps").modal('hide');
       if (ret.code === 0) {
-        show_success_modal(name + " 插件安装成功！", function (){
+        show_success_modal(name + " 插件安装成功！", function () {
           window_history_refresh();
         });
       } else {
-        show_fail_modal(ret.msg, function (){
+        show_fail_modal(ret.msg, function () {
           $("#modal-plugin-apps").modal('show');
         });
       }
@@ -297,14 +296,14 @@
 
   // 卸载插件
   function uninstall_plugin(id, name) {
-    axios_post_do("uninstall_plugin", {id: id}, function(ret){
+    axios_post_do("uninstall_plugin", { id: id }, function (ret) {
       $("#modal-plugin-apps").modal('hide');
       if (ret.code === 0) {
-        show_warning_modal(name + " 插件已卸载！", function (){
+        show_warning_modal(name + " 插件已卸载！", function () {
           window_history_refresh();
         });
       } else {
-        show_fail_modal(ret.msg, function (){
+        show_fail_modal(ret.msg, function () {
           $("#modal-plugin-apps").modal('show');
         });
       }
@@ -314,18 +313,18 @@
   // 安装第三方插件
   function install_external_plugin(id, name, download_url, file_md5) {
     var params = {
-        id: id,
-        file_md5: file_md5,
-        download_url: download_url
+      id: id,
+      file_md5: file_md5,
+      download_url: download_url
     }
-    axios_post_do("install_external_plugin", params, function(ret) {
+    axios_post_do("install_external_plugin", params, function (ret) {
       $("#modal-external-plugin-apps").modal('hide');
       if (ret.code === 0) {
-        show_success_modal(name + " 插件安装成功！", function (){
+        show_success_modal(name + " 插件安装成功！", function () {
           window_history_refresh();
         });
       } else {
-        show_fail_modal(ret.msg, function (){
+        show_fail_modal(ret.msg, function () {
           $("#modal-external-plugin-apps").modal('show');
         });
       }
@@ -334,17 +333,17 @@
 
   // 卸载第三方插件
   function uninstall_external_plugin(id, name) {
-      var params = {
-          id: id,
-      }
-      axios_post_do("uninstall_external_plugin", params, function(ret){
+    var params = {
+      id: id,
+    }
+    axios_post_do("uninstall_external_plugin", params, function (ret) {
       $("#modal-external-plugin-apps").modal('hide');
       if (ret.code === 0) {
-        show_warning_modal(name + " 插件已卸载！", function (){
+        show_warning_modal(name + " 插件已卸载！", function () {
           window_history_refresh();
         });
       } else {
-        show_fail_modal(ret.msg, function (){
+        show_fail_modal(ret.msg, function () {
           $("#modal-external-plugin-apps").modal('show');
         });
       }
@@ -354,171 +353,30 @@
   // 更新第三方插件
   function update_external_plugin(id, name, download_url, file_md5) {
     var params = {
-        id: id,
-        file_md5: file_md5,
-        download_url: download_url
+      id: id,
+      file_md5: file_md5,
+      download_url: download_url
     }
-    axios_post_do("install_external_plugin", params, function(ret){
-        $("#modal-external-plugin-apps").modal('hide');
-        if (ret.code === 0) {
-          show_success_modal(name + " 插件更新成功！更新的插件需要重启生效!", function (){
-            window_history_refresh();
-          });
-        } else {
-          show_fail_modal(ret.msg, function (){
-            $("#modal-external-plugin-apps").modal('show');
-          });
-        }
+    axios_post_do("install_external_plugin", params, function (ret) {
+      $("#modal-external-plugin-apps").modal('hide');
+      if (ret.code === 0) {
+        show_success_modal(name + " 插件更新成功！更新的插件需要重启生效!", function () {
+          window_history_refresh();
+        });
+      } else {
+        show_fail_modal(ret.msg, function () {
+          $("#modal-external-plugin-apps").modal('show');
+        });
+      }
     })
-}
-
-</script>
-
-<script type="text/javascript">
-
-  // 生成下载器类型选项、下载器配置
-  function generateDownloaderTypes(downloaderConf) {
-    if (!downloaderConf) return;
-
-    var downloader_container = $("#downloader-type-list");
-    downloader_container.empty();
-
-    // 下载器配置
-    var $conf_container = $("#downloader_config_box");
-    $conf_container.empty();
-
-    $.each(downloaderConf, function (id, itemAttr) {
-      var html = `
-        <div class="col-lg">
-          <div class="mb-1">
-            <label class="form-selectgroup-item" for="type_${id}">
-              <input type="radio" name="downloader_type" id="type_${id}" value="${id}" class="form-selectgroup-input">
-              <span class="form-selectgroup-label d-flex align-items-center p-2">
-                <span class="me-2">
-                  <span class="form-selectgroup-check"></span>
-                </span>
-                <span class="form-selectgroup-label-content d-flex align-items-center">
-                  <span class="avatar avatar-sm avatar-thumb avatar-rounded" style="background-image: url(${itemAttr.img_url})"></span>
-                  <span class="form-selectgroup-title strong ms-1">${itemAttr.name}</span>
-                </span>
-              </span>
-            </label>
-          </div>
-        </div>
-      `;
-      downloader_container.append(html);
-
-      $conf_container.append(`
-        <div id="div_downloader_config_${id}">
-          ${gen_form_empty_elements(itemAttr.config)}
-        </div>
-      `);
-
-    });
-
-    // 单选框事件
-    $('input[type=radio][name=downloader_type]').change(function () {
-      show_downloader_type(this.value);
-    });
-
   }
 
-  // 生成转移方式选项
-  function generateRmtModeOptions(rmtModeDict) {
-    if (!rmtModeDict) return;
-
-    const select = $("#downloader_rmt_mode");
-    select.empty();
-
-    rmtModeDict.forEach(mode => {
-      select.append(`<option value="${mode.value}">${mode.name}</option>`);
+  // 询问取消订阅
+  function uninstall_plugin_click(pluginId, pluginName) {
+    show_ask_modal("是否确定将 " + pluginName + " 插件卸载？", function () {
+      hide_ask_modal();
+      uninstall_plugin(pluginId, pluginName);
     });
-
-  }
-
-  // 生成插件模态框
-  function generatePluginModals(plugins) {
-    if (!plugins) return;
-
-    const container = $("#plugin-modals-container");
-    container.empty();
-
-    Object.entries(plugins).forEach(([id, plugin]) => {
-      const modal = `
-        <plugin-modal
-          plugin-id="${id}"
-          plugin-name="${plugin.name}"
-          plugin-config='${JSON.stringify(plugin.config)}'
-          plugin-fields='${JSON.stringify(plugin.fields)}'
-          plugin-prefix="${plugin.prefix}"
-          plugin-page="${plugin.page}">
-        </plugin-modal>
-      `;
-      container.append(modal);
-    });
-  }
-
-  // 绘制下载器列表
-  function drawDownloaders(downloaderList, downloaderConfDict, defaultDownloaderId) {
-
-    if (!downloaderList) {
-      $('#downloaders-container').hide();
-      $('#no-downloaders').show();
-      return;
-    }
-
-    $('#no-downloaders').hide();
-    $('#downloaders-container').show();
-
-    $.each(downloaderList, function (id, dAttr) {
-
-      var downloaderConf = downloaderConfDict[dAttr.type];
-
-      var cardBgcolor = downloaderConf.color ? `style="background-color: ${downloaderConf.color}"` : '';
-      var downloaderAddr = dAttr.config.host ? dAttr.config.host + ':' + dAttr.config.port : '';
-
-      var cardHtml =  `
-      <a class="card card-link-pop p-0 overflow-hidden rounded-3" href="javascript:void(0)" onclick="show_edit_downloader_modal('${id}')">
-          <div class="card-cover card-cover-blurred text-center" ${cardBgcolor}>
-              <span onclick="event.stopPropagation();set_default_downloader('${id}')"
-                    class="btn-action p-1 d-inline-flex"
-                    title="设置默认" style="position:absolute;top:5px;right:5px;z-index:1;"
-                    data-bs-toggle="tooltip"
-              >
-                ${ defaultDownloaderId == id  ? `<i class="ti ti-star-filled fs-2 text-purple"></i>` :  `<i class="ti ti-star fs-2 text-muted"></i>`}
-              </span>
-            <span class="avatar avatar-xl avatar-thumb avatar-rounded" style="background-image: url('${downloaderConf.img_url}')"></span>
-          </div>
-          <div class="card-body text-center">
-            <div class="card-title mb-1">${ dAttr.enabled == 1 ? `<span class="badge bg-green" title="已启用" data-bs-toggle="tooltip"></span>` : ''} ${dAttr.name}</div>
-            <div class="text-muted">
-              ${downloaderAddr}
-            </div>
-            <div class="text-muted mt-2">
-              <small>
-      `;
-
-      if (dAttr.transfer == 1) {
-        cardHtml += `<span class="badge bg-green me-1 mb-1" title="转移方式">${dAttr.rmt_mode_name}</span>`;
-      }
-      if (dAttr.only_nastool == 1) {
-        cardHtml += `<span class="badge badge-outline text-orange me-1 mb-1" title="标签隔离">标签隔离</span>`;
-      }
-      if (dAttr.match_path == 1) {
-        cardHtml += `<span class="badge badge-outline text-yellow me-1 mb-1" title="目录隔离">目录隔离</span>`;
-      }
-
-      cardHtml += `
-              </small>
-            </div>
-          </div>
-        </a>
-      `;
-
-      $('#downloaders-list').append(cardHtml)
-
-    });
-    
   }
 
   // 绘制已安装插件列表
@@ -533,79 +391,93 @@
     $('#no-plugins').hide();
     $('#plugins-container').show();
 
-    $.each(pluginList, function (id, itemAttr) {
+    $("#plugin-modals-container").empty();
 
-      var cardBgcolor = itemAttr.color.startsWith('#') ? `style="background-color: ${itemAttr.color}"` : '';
+    $.each(pluginList, function (pluginId, pluginAttr) {
+
+      var cardBgcolor = pluginAttr.color.startsWith('#') ? `style="background-color: ${pluginAttr.color}"` : '';
+      var colorClass = pluginAttr.color.startsWith('bg-') ? pluginAttr.color : '';
       var icon = ''
-      if (itemAttr.icon) {
-        if (!itemAttr.icon.startsWith('http')) {
-          icon = `style="background-image: url('../static/img/plugins/${itemAttr.icon}')"`;
+      if (pluginAttr.icon) {
+        if (!pluginAttr.icon.startsWith('http')) {
+          icon = `style="background-image: url('../static/img/plugins/${pluginAttr.icon}')"`;
         } else {
-          icon = `style="background-image: url('${itemAttr.icon}')"`;
+          icon = `style="background-image: url('${pluginAttr.icon}')"`;
         }
       }
 
-      var html =  `
-      <a class="card card-link-pop p-0 rounded-3 overflow-hidden" href="#" data-bs-toggle="modal" data-bs-target="#modal-plugin-${id}">
-        <div class="card-cover card-cover-blurred text-center ${ itemAttr.color.startsWith('bg-') ? `${itemAttr.color}` : '' }" ${cardBgcolor} >
+      var stateAttr = pluginAttr.state ? '<span class="me-1" title="已启用">✅</span>' : '';
+      // card
+      var html = `
+      <div class="card card-link-pop p-0 rounded-3 overflow-hidden">
+        <div class="right-top-box">
+          <a href="javascript:uninstall_plugin_click('${pluginId}', '${pluginAttr.name}')" title="卸载" class="text-danger">
+            <i class="ti ti-trash fs-2"></i>
+          </a>
+        </div>
+        <div class="card-cover card-cover-blurred text-center ${colorClass}" ${cardBgcolor} data-bs-toggle="modal" data-bs-target="#modal-plugin-${pluginId}">
           <span class="avatar avatar-xl avatar-thumb avatar-rounded" ${icon}>
-             ${ !itemAttr.icon ? itemAttr.name : ''}
+             ${!pluginAttr.icon ? pluginAttr.name : ''}
           </span>
         </div>
         <div class="card-body text-center">
-          <div class="card-title mb-1">${ itemAttr.state ? '<span class="badge bg-green"></span>' : '' } ${itemAttr.name}</div>
-          <div class="text-muted">${itemAttr.desc}</div>
+          <div class="card-title mb-1">${stateAttr}${pluginAttr.name}</div>
+          <div class="text-muted">${pluginAttr.desc}</div>
         </div>
-      </a>
+      </div>
       `;
+
+      $('#plugins-list').append(html);
       
-      $('#plugins-list').append(html)
+      // 模态框
+      const pluginsModal = `
+        <plugin-modal
+          plugin-id="${pluginId}"
+          plugin-name="${pluginAttr.name}"
+          plugin-config='${JSON.stringify(pluginAttr.config)}'
+          plugin-fields='${JSON.stringify(pluginAttr.fields)}'
+          plugin-prefix="${pluginAttr.prefix}"
+          plugin-page="${pluginAttr.page}">
+        </plugin-modal>
+      `;
+      $("#plugin-modals-container").append(pluginsModal);
+
+      // 插件函数
+      if (pluginAttr.script) {
+        try {
+          var script = document.createElement('script');
+          script.textContent = pluginAttr.script;
+          $("#page-content").append(script)
+        } catch (e) {
+          console.error('插件脚本执行错误:', pid, e);
+        }
+      }
+
     });
 
   }
 
   // 页面加载完成后初始化
-  $(document).ready(function() {
+  $(document).ready(function () {
 
-    axios_post('/data/plugin', {}, function(response) {
+    axios_post('/data/plugin', {}, function (response) {
 
       if (response.code === 0 && response.data) {
 
         var pageData = response.data;
 
-        _categories = pageData.Categories;
-
+        // 绘制插件表格
         drawPluginList(pageData.Plugins);
-
-        // 生成插件模态框
-        generatePluginModals(pageData.Plugins);
 
         // 设置第三方源内容
         if (pageData.Settings) {
           $("#external_source_content").val(pageData.Settings);
         }
 
-        // 插件自带脚本函数
-        if (pageData.Plugins) {
-          Object.entries(pageData.Plugins).forEach(([id, plugin]) => {
-            if (plugin.script) {
-              try {
-
-                var script = document.createElement('script');
-                script.textContent = plugin.script;
-
-                $("#page-content").append(script)
-
-              } catch (e) {
-                console.error('插件脚本执行错误:', id, e);
-              }
-            }
-          });
-        }
       }
 
     });
-    
+
   });
 
 </script>
