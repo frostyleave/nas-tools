@@ -310,7 +310,7 @@
     axios_post('/data/plugin', {}, function (response) {
       if (response.code === 0 && response.data) {
         // 绘制插件表格
-        drawPluginList(response.data);
+        drawPluginList(response.data.Plugins);
       }
     });
 

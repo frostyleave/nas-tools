@@ -24,8 +24,10 @@ from app.utils import StringUtils
 from app.utils.commons import singleton
 from app.utils.types import BrushDeleteType
 
-from config import BRUSH_REMOVE_TORRENTS_INTERVAL, Config
+from config import Config
 
+# 刷流删除的检查时间间隔
+BRUSH_REMOVE_TORRENTS_INTERVAL = 300
 
 @singleton
 class BrushTaskV2(object):
