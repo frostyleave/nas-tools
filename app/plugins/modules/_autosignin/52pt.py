@@ -2,6 +2,7 @@ import json
 import os
 import random
 import re
+
 from typing import Tuple
 
 from lxml import etree
@@ -11,6 +12,7 @@ from app.helper.openai_helper import OpenAiHelper
 from app.plugins.modules._autosignin._base import _ISiteSigninHandler
 from app.sites import PtSiteConf
 from app.utils import SiteUtils, RequestUtils
+
 from config import Config
 
 
