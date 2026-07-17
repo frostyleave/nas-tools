@@ -735,11 +735,6 @@
         }
 
         // 填充实验室配置数据
-        if (data.Config && data.Config.openai) {
-          $('#openai\\.api_key').val(data.Config.openai.api_key || '');
-          $('#openai\\.api_url').val(data.Config.openai.api_url || '');
-        }
-
         if (data.Config && data.Config.laboratory) {
           $('#laboratory\\.chatgpt_enable').prop('checked', data.Config.laboratory.chatgpt_enable || false);
           $('#laboratory\\.search_keyword').prop('checked', data.Config.laboratory.search_keyword || false);

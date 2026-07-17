@@ -259,29 +259,6 @@ class ModuleConf(object):
                     }
                 }
             },
-            "pushdeer": {
-                "name": "PushDeer",
-                "img_url": "../static/img/message/pushdeer.png",
-                "color": "#444E98",
-                "config": {
-                    "server": {
-                        "id": "pushdeer_server",
-                        "required": True,
-                        "title": "PushDeer服务器地址",
-                        "tooltip": "自己搭建pushdeer服务端请实际配置，否则可使用：https://api2.pushdeer.com",
-                        "type": "text",
-                        "placeholder": "https://api2.pushdeer.com",
-                        "default": "https://api2.pushdeer.com"
-                    },
-                    "apikey": {
-                        "id": "pushdeer_apikey",
-                        "required": True,
-                        "title": "API Key",
-                        "tooltip": "pushdeer客户端生成的KEY",
-                        "type": "text"
-                    }
-                }
-            },
             "pushplus": {
                 "name": "PushPlus",
                 "img_url": "../static/img/message/pushplus.jpg",
