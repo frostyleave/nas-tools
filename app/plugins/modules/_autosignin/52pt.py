@@ -8,7 +8,6 @@ from typing import Tuple
 from lxml import etree
 from urllib.parse import urljoin
 
-from app.helper.openai_helper import OpenAiHelper
 from app.plugins.modules._autosignin._base import _ISiteSigninHandler
 from app.sites import PtSiteConf
 from app.utils import SiteUtils, RequestUtils
@@ -172,33 +171,6 @@ class FWpt(_ISiteSigninHandler):
         # 正确答案：默认随机
         choice = [option_ids[random.randint(0, len(option_ids) - 1)]]
 
-        if OpenAiHelper().get_state():
-            # 组装gpt问题，如果gpt返回则用gpt返回的答案提交
-            gpt_options = "{\n" + ",\n".join([f"{num}:{value}" for num, value in answers]) + "\n}"
-            gpt_question = f"题目：{question_str}\n" \
-                        f"选项：{gpt_options}"
-            self.debug(f"组装chatgpt问题 {gpt_question}")
-
-            # chatgpt获取答案
-            answer = OpenAiHelper().get_question_answer(question=gpt_question)
-            self.debug(f"chatpgt返回结果 {answer}")
-
-            # 处理chatgpt返回的答案信息
-            if answer is None:
-                self.warn(f"ChatGPT未启用, 开始随机签到")
-                # return f"【{site}】签到失败，ChatGPT未启用"
-            elif answer:
-                # 正则获取字符串中的数字
-                answer_nums = list(map(int, re.findall("\d+", answer)))
-                if not answer_nums:
-                    self.warn(f"无法从chatgpt回复 {answer} 中获取答案, 将采用随机签到")
-                else:
-                    choice = []
-                    for answer in answer_nums:
-                        # 如果返回的数字在option_ids范围内，则直接作为答案
-                        if str(answer) in option_ids:
-                            choice.append(int(answer))
-                            self.info(f"chatgpt返回答案id {answer} 在签到选项 {option_ids} 中")
         return choice
 
     def __signin(self, 

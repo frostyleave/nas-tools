@@ -6,7 +6,6 @@ import json
 import os.path
 import re
 import shutil
-import signal
 import threading
 import time
 
@@ -15,44 +14,46 @@ from fastapi import APIRouter, BackgroundTasks, Body, Depends
 from math import floor
 from pathlib import Path
 from typing import Optional
-from urllib.parse import unquote
 
 import cn2an
-import zhconv
 
+from app.core.cmd_handler import CommandHandler
 import log
 
-from app.modules.brushtaskv2 import BrushTaskV2 as BrushTask
 from app.conf import SystemConfig, ModuleConf
+
+from app.helper import DbHelper, ProgressHelper, ThreadHelper, MetaHelper, WordsHelper, RssHelper, FileHelper
+from app.utils import StringUtils, EpisodeFormat, RequestUtils, PathUtils, SystemUtils, MediaUtils
+
+from app.core.cmd_registry import CommandRegistry
+from app.core.jobcenter import JobCenter
+from app.core.services import ServiceManager
+from app.core.task_manager import GlobalTaskManager
 from app.downloader import Downloader
-from app.modules.filetransfer import FileTransfer
-from app.modules.filter import Filter
-from app.helper import DbHelper, ProgressHelper, ThreadHelper, MetaHelper, DisplayHelper, WordsHelper, RssHelper, FileHelper
 from app.indexer import Indexer
 from app.indexer.manager import IndexerManager
-from app.core.jobcenter import JobCenter
 from app.media import Category, Media, Bangumi, DouBan, Scraper
 from app.media.meta import MetaInfo, MetaBase
 from app.mediaserver import MediaServer
 from app.message import Message, MessageCenter
 from app.models.user import User, UserManager
 from app.middleware.security import get_current_user
-from app.plugins import PluginManager, EventManager
+from app.modules.filetransfer import FileTransfer
+from app.modules.filter import Filter
+from app.modules.brushtaskv2 import BrushTaskV2 as BrushTask
 from app.modules.rss import Rss
 from app.modules.rsschecker import RssChecker
-from app.core.scheduler import Scheduler
 from app.modules.search import SearchProxy
 from app.modules.searcher import Searcher
-from app.sites import SitesManager, SitesDataStatisticsCenter, CookieManager, SiteConf
 from app.modules.subscribe import Subscribe
 from app.modules.sync import Sync
 from app.modules.torrentremover import TorrentRemover
-from app.utils import StringUtils, EpisodeFormat, RequestUtils, PathUtils, SystemUtils, MediaUtils
-from app.utils.types import *
+from app.plugins import PluginManager, EventManager
+from app.sites import SitesManager, SitesDataStatisticsCenter, CookieManager, SiteConf
+from app.utils.types import MediaType,SyncType,SearchType,EventType,SystemConfigKey,RssType,MovieTypes,TvTypes,MEDIA_TYPE_MAP
 from app.utils.password_hash import generate_password_hash
-from app.core.task_manager import GlobalTaskManager
 
-from config import RMT_MEDIAEXT, RMT_SUBEXT, RMT_AUDIO_TRACK_EXT, Config
+from config import RMT_MEDIAEXT, Config
 
 # action接口路由
 action_router = APIRouter(dependencies=[Depends(get_current_user)])
@@ -155,7 +156,7 @@ class WebAction:
             "check_sync_path": self.__check_sync_path,
             "remove_rss_media": self.__remove_rss_media,
             "add_rss_media": self.__add_rss_media,
-            "re_identification": self.re_identification,
+            "re_identification": self.__re_identification,
             "media_info": self.__media_info,
             "test_connection": self.__test_connection,
             "user_manager": self.__user_manager,
@@ -312,18 +313,6 @@ class WebAction:
             "uninstall_external_plugin": self.uninstall_external_plugin,
             "get_jobs": self.get_jobs
         }
-        # 远程命令响应
-        self._commands = {
-            "/ptr": {"func": TorrentRemover().auto_remove_torrents, "desc": "自动删种"},
-            "/ptt": {"func": Downloader().transfer, "desc": "下载文件转移"},
-            "/rst": {"func": Sync().transfer_sync, "desc": "目录同步"},
-            "/rss": {"func": Rss().rssdownload, "desc": "电影/电视剧订阅"},
-            "/ssa": {"func": Subscribe().subscribe_search_all, "desc": "订阅搜索"},
-            "/tbl": {"func": self.truncate_blacklist, "desc": "清理转移缓存"},
-            "/trh": {"func": self.truncate_rsshistory, "desc": "清理RSS缓存"},
-            "/utf": {"func": self.unidentification, "desc": "重新识别"},
-            "/sta": {"func": self.user_statistics, "desc": "站点数据统计"}
-        }
         # 用户绑定
         self._current_user = current_user
         # 豆瓣实例
@@ -367,137 +356,6 @@ class WebAction:
             "message": message,
             "data": result
         }
-
-    @staticmethod
-    def stop_service():
-        """
-        关闭服务
-        """
-        # 停止定时服务
-        Scheduler().stop_service()
-        # 停止监控
-        Sync().stop_service()
-        # 关闭虚拟显示
-        DisplayHelper().stop_service()
-        # 关闭刷流
-        BrushTask().stop_service()
-        # 关闭自定义订阅
-        RssChecker().stop_service()
-        # 关闭自动删种
-        TorrentRemover().stop_service()
-        # 关闭下载器监控
-        Downloader().stop_service()
-        # 关闭插件
-        PluginManager().stop_service()
-        # 清理定时器
-        JobCenter().stop_service()
-
-    @staticmethod
-    def start_service():
-        JobCenter()
-        ThreadHelper()
-        # 加载索引器配置
-        IndexerManager()
-        # 加载站点配置
-        SiteConf()
-        # 启动虚拟显示
-        DisplayHelper()
-        # 启动定时服务
-        Scheduler()
-        # 启动监控服务
-        Sync()
-        # 启动刷流服务
-        BrushTask()
-        # 启动自定义订阅服务
-        RssChecker()
-        # 启动自动删种服务
-        TorrentRemover()
-        # 加载插件
-        PluginManager()
-        # 打印定时任务列表
-        JobCenter().print_jobs()
-
-    def restart_service(self):
-        """
-        重启服务
-        """
-        self.stop_service()
-        self.start_service()
-
-    def restart_server(self):
-        """
-        停止进程
-        """
-        # 关闭服务
-        self.stop_service()
-        # 重启进程
-        if os.name == "nt":
-            os.kill(os.getpid(), getattr(signal, "SIGKILL", signal.SIGTERM))
-        elif SystemUtils.is_synology():
-            os.system(
-                "ps -ef | grep -v grep | grep 'python run.py'|awk '{print $2}'|xargs kill -9")
-        else:
-            if SystemUtils.check_process('node'):
-                os.system("pm2 restart NAStool")
-            else:
-                log.info("kill $(pgrep -f 'python3 run.py')")
-                os.system("kill $(pgrep -f 'python3 run.py')")
-                # os.system("pkill -f 'python3 run.py'")
-
-    @staticmethod
-    def pre_warming_zhconv():
-        print("Pre-warming zhconv cache...")
-        try:
-            # 1. 预热 convert()，使其加载 "zh-hans" 相关的字典
-            _ = zhconv.convert("预热", 'zh-hans')
-            
-            # 2. (重要) 预热 issimp()，使其加载简体字检查相关的字典
-            _ = zhconv.issimp("预热")
-            
-            print("zhconv cache pre-warmed successfully.")
-        except Exception as e:
-            print(f"Warning: Failed to pre-warm zhconv cache: {e}")
-
-    def handle_message_job(self, msg, in_from=SearchType.OT, user_id=None, user_name=None, client_id=None):
-        """
-        处理消息事件
-        """
-        if not msg:
-            return
-
-        # 触发MessageIncoming事件
-        EventManager().send_event(EventType.MessageIncoming, {
-            "channel": in_from.value,
-            "user_id": user_id,
-            "user_name": user_name,
-            "message": msg
-
-        })
-
-        # 系统内置命令
-        command = self._commands.get(msg)
-        if command:
-            # 启动服务
-            ThreadHelper().start_thread(command.get("func"), ())
-            # 消息回应
-            Message().send_channel_msg(
-                channel=in_from, title="正在运行 %s ..." % command.get("desc"), user_id=user_id, client_id=client_id)
-            return
-
-        # 插件命令
-        plugin_commands = PluginManager().get_plugin_commands()
-        for command in plugin_commands:
-            if command.get("cmd") == msg:
-                # 发送事件
-                EventManager().send_event(command.get("event"), command.get("data") or {})
-                # 消息回应
-                Message().send_channel_msg(
-                    channel=in_from, title="正在运行 %s ..." % command.get("desc"), user_id=user_id, client_id=client_id)
-                return
-
-        # 站点搜索或者添加订阅
-        ThreadHelper().start_thread(SearchProxy().search_media_by_message,
-                                    (msg, in_from, user_id, user_name, client_id))
 
     def set_config_value(self, cfg, cfg_key, cfg_value):
         """
@@ -879,6 +737,7 @@ class WebAction:
         episode_part = data.get("episode_part")
         episode_offset = data.get("episode_offset")
         min_filesize = data.get("min_filesize")
+
         if mtype in MovieTypes:
             media_type = MediaType.MOVIE
         elif mtype in TvTypes:
@@ -1142,7 +1001,7 @@ class WebAction:
         重启
         """
         # 退出主进程
-        self.restart_server()
+        ServiceManager.restart_server()
         return {"code": 0}
 
     def update_system(self):
@@ -1209,14 +1068,14 @@ class WebAction:
             log.info('【UpdateSystem】系统升级完成，正在重启...')
             log.info("【UpdateSystem】请手动刷新页面！")
             time.sleep(3)
-            self.restart_server()
+            ServiceManager.restart_server()
         # 升级
         elif SystemUtils.is_synology():
             if SystemUtils.execute('/bin/ps -w -x | grep -v grep | grep -w "nastool update" | wc -l') == '0':
                 # 调用群晖套件内置命令升级
                 os.system('【UpdateSystem】nastool update')
                 # 重启
-                self.restart_server()
+                ServiceManager.restart_server()
         else:
             # 清除git代理
             os.system("sudo git config --global --unset http.proxy")
@@ -1242,7 +1101,7 @@ class WebAction:
             # 修复权限
             os.system('sudo chown -R nt:nt /nas-tools')
             # 重启
-            self.restart_server()
+            ServiceManager.restart_server()
         return {"code": 0}
 
     def __reset_db_version(self):
@@ -1496,65 +1355,14 @@ class WebAction:
                                                 tmdbid=media_info.tmdb_id)
         return {"code": code, "msg": msg, "page": page, "name": name, "rssid": rssid}
 
-    def re_identification(self, data):
+    def __re_identification(self, data):
         """
         未识别的重新识别
         """
         flag = data.get("flag")
         ids = data.get("ids")
-        ret_flag = True
-        ret_msg = []
-        _filetransfer = FileTransfer()
-        if flag == "unidentification":
-            for wid in ids:
-                unknowninfo = _filetransfer.get_unknown_info_by_id(wid)
-                if unknowninfo:
-                    path = unknowninfo.PATH
-                    dest_dir = unknowninfo.DEST
-                    rmt_mode = ModuleConf.get_enum_item(
-                        RmtMode, unknowninfo.MODE) if unknowninfo.MODE else None
-                else:
-                    return {"retcode": -1, "retmsg": "未查询到未识别记录"}
-                if not dest_dir:
-                    dest_dir = ""
-                if not path:
-                    return {"retcode": -1, "retmsg": "未识别路径有误"}
-                succ_flag, msg = _filetransfer.transfer_media(in_from=SyncType.MAN,
-                                                              rmt_mode=rmt_mode,
-                                                              in_path=path,
-                                                              target_dir=dest_dir)
-                if succ_flag:
-                    _filetransfer.update_transfer_unknown_state(path)
-                else:
-                    ret_flag = False
-                    if msg not in ret_msg:
-                        ret_msg.append(msg)
-        elif flag == "history":
-            for wid in ids:
-                transinfo = _filetransfer.get_transfer_info_by_id(wid)
-                if transinfo:
-                    path = os.path.join(transinfo.SOURCE_PATH, transinfo.SOURCE_FILENAME)
-                    dest_dir = transinfo.DEST
-                    rmt_mode = ModuleConf.get_enum_item(
-                        RmtMode, transinfo.MODE) if transinfo.MODE else None
-                else:
-                    return {"retcode": -1, "retmsg": "未查询到转移日志记录"}
-                if not dest_dir:
-                    dest_dir = ""
-                if not path:
-                    return {"retcode": -1, "retmsg": "未识别路径有误"}
-                succ_flag, msg = _filetransfer.transfer_media(in_from=SyncType.MAN,
-                                                              rmt_mode=rmt_mode,
-                                                              in_path=path,
-                                                              target_dir=dest_dir)
-                if not succ_flag:
-                    ret_flag = False
-                    if msg not in ret_msg:
-                        ret_msg.append(msg)
-        if ret_flag:
-            return {"retcode": 0, "retmsg": "转移成功"}
-        else:
-            return {"retcode": 2, "retmsg": "、".join(ret_msg)}
+
+        return FileTransfer().re_identification(flag, ids)
 
     def __media_info(self, data):
         """
@@ -3727,20 +3535,6 @@ class WebAction:
             "currentPage": currentPage
         }
 
-    def unidentification(self):
-        """
-        重新识别所有未识别记录
-        """
-        ItemIds = []
-        Records = FileTransfer().get_transfer_unknown_paths()
-        for rec in Records:
-            if not rec.PATH:
-                continue
-            ItemIds.append(rec.ID)
-
-        if len(ItemIds) > 0:
-            self.re_identification({"flag": "unidentification", "ids": ItemIds})
-
     def get_customwords(self):
         _wordshelper = WordsHelper()
         words = []
@@ -3846,63 +3640,7 @@ class WebAction:
         """
         查询下级子目录
         """
-        r = []
-        try:
-            ft = data.get("filter") or "ALL"
-            d = data.get("dir")
-            if not d or d == "/":
-                if SystemUtils.get_system() == OsType.WINDOWS:
-                    partitions = SystemUtils.get_windows_drives()
-                    if partitions:
-                        dirs = [os.path.join(partition, "/")
-                                for partition in partitions]
-                    else:
-                        dirs = [os.path.join("C:/", f)
-                                for f in os.listdir("C:/")]
-                else:
-                    dirs = [os.path.join("/", f) for f in os.listdir("/")]
-            else:
-                d = os.path.normpath(unquote(d))
-                if not os.path.isdir(d):
-                    d = os.path.dirname(d)
-                dirs = [os.path.join(d, f) for f in os.listdir(d)]
-            dirs.sort()
-            for ff in dirs:
-                if os.path.isdir(ff):
-                    if 'ONLYDIR' in ft or 'ALL' in ft:
-                        r.append({
-                            "path": ff.replace("\\", "/"),
-                            "name": os.path.basename(ff),
-                            "type": "dir",
-                            "rel": os.path.dirname(ff).replace("\\", "/")
-                        })
-                else:
-                    ext = os.path.splitext(ff)[-1][1:]
-                    flag = False
-                    if 'ONLYFILE' in ft or 'ALL' in ft:
-                        flag = True
-                    elif "MEDIAFILE" in ft and f".{str(ext).lower()}" in RMT_MEDIAEXT:
-                        flag = True
-                    elif "SUBFILE" in ft and f".{str(ext).lower()}" in RMT_SUBEXT:
-                        flag = True
-                    elif "AUDIOTRACKFILE" in ft and f".{str(ext).lower()}" in RMT_AUDIO_TRACK_EXT:
-                        flag = True
-                    if flag:
-                        r.append({
-                            "path": ff.replace("\\", "/"),
-                            "name": os.path.basename(ff),
-                            "type": "file",
-                            "rel": os.path.dirname(ff).replace("\\", "/"),
-                            "ext": ext,
-                            "size": StringUtils.str_filesize(os.path.getsize(ff))
-                        })
-
-        except Exception as e:
-            log.exception("[act]加载路径失败:")
-            return {
-                "code": -1,
-                "message": '加载路径失败: %s' % str(e)
-            }
+        r = FileHelper.get_sub_path(data.get("filter"), data.get("dir"))
         return {
             "code": 0,
             "count": len(r),
@@ -4972,15 +4710,9 @@ class WebAction:
         if data.get('site'):
             SitesDataStatisticsCenter().refresh_site_data_now(specify_sites=data.get('site'))
         else:
-            self.handle_message_job("/sta", in_from=SearchType.WEB, user_id=self._current_user.id, user_name=self._current_user.username)
-        return {"code": 0, "msg": "已提交"}
+            CommandHandler().handle_message_job("/sta", in_from=SearchType.WEB, user_id=self._current_user.id, user_name=self._current_user.username)
 
-    def user_statistics(self):
-        """
-        强制刷新站点数据,并发送站点统计的消息
-        """
-        # 强制刷新站点数据,并发送站点统计的消息
-        SitesDataStatisticsCenter().refresh_site_data_now()
+        return {"code": 0, "msg": "已提交"}
 
     def get_default_rss_setting(self, data):
         """
@@ -5274,8 +5006,7 @@ class WebAction:
             PluginManager().init_config()
 
         if is_update:
-            WebAction.stop_service()
-            WebAction.start_service()
+            ServiceManager.restart_service()
 
         return {"code": 0, "msg": "插件安装成功"}
 
@@ -5313,18 +5044,6 @@ class WebAction:
         # 重新加载插件
         PluginManager().init_config()
         return {"code": 0, "msg": "插件卸载功"}
-
-    def get_commands(self):
-        """
-        获取命令列表
-        """
-        return [{
-            "id": cid,
-            "name": cmd.get("desc")
-        } for cid, cmd in self._commands.items()] + [{
-            "id": item.get("cmd"),
-            "name": item.get("desc")
-        } for item in PluginManager().get_plugin_commands()]
 
     def get_jobs(self):
         """

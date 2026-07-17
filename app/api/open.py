@@ -6,6 +6,7 @@ from fastapi import APIRouter, Request, Response
 from typing import Optional
 
 from app.conf.moduleconf import ModuleConf
+from app.core.cmd_handler import CommandHandler
 from app.helper import ThreadHelper, SecurityHelper
 from app.media.meta.metainfo import MetaInfo
 from app.mediaserver.media_server import MediaServer
@@ -149,7 +150,7 @@ async def wechat_post(request: Request):
 
         if content:
             log.info(f"收到微信消息: userid={user_id}, text={content}")
-            WebAction().handle_message_job(
+            CommandHandler().handle_message_job(
                 msg=content,
                 in_from=SearchType.WX,
                 user_id=user_id,
@@ -301,10 +302,10 @@ async def telegram(request: Request):
                                                user_id=user_id)
                     return Response(content="你不在用户白名单中，无法使用此机器人", status_code=200)
 
-            WebAction().handle_message_job(msg=text,
-                                           in_from=SearchType.TG,
-                                           user_id=user_id,
-                                           user_name=user_name)
+            CommandHandler().handle_message_job(msg=text,
+                                                in_from=SearchType.TG,
+                                                user_id=user_id,
+                                                user_name=user_name)
     return Response(content="Ok", status_code=200)
 
 
@@ -335,10 +336,10 @@ async def synology(request: Request):
 
         if text:
             log.info(f"收到Synology Chat消息: userid={user_id}, username={user_name}, text={text}")
-            WebAction().handle_message_job(msg=text,
-                                           in_from=SearchType.SYNOLOGY,
-                                           user_id=user_id,
-                                           user_name=user_name)
+            CommandHandler().handle_message_job(msg=text,
+                                                in_from=SearchType.SYNOLOGY,
+                                                user_id=user_id,
+                                                user_name=user_name)
     return Response(content="Ok", status_code=200)
 
 
@@ -376,10 +377,10 @@ async def slack(request: Request):
             return Response(content="Error", status_code=400)
 
         log.info(f"收到Slack消息: userid={userid}, username={username}, text={text}")
-        WebAction().handle_message_job(msg=text,
-                                       in_from=SearchType.SLACK,
-                                       user_id=userid,
-                                       user_name=username)
+        CommandHandler().handle_message_job(msg=text,
+                                            in_from=SearchType.SLACK,
+                                            user_id=userid,
+                                            user_name=username)
     return Response(content="Ok", status_code=200)
 
 

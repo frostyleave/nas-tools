@@ -5,7 +5,6 @@ import re
 
 from lxml import etree
 
-from app.helper.openai_helper import OpenAiHelper
 from app.plugins.modules._autosignin._base import _ISiteSigninHandler
 from app.sites import PtSiteConf
 from app.utils import SiteUtils, RequestUtils
@@ -134,8 +133,9 @@ class CHDBits(_ISiteSigninHandler):
         self.debug(f"组装chatgpt问题 {gpt_question}")
 
         # chatgpt获取答案
-        answer = OpenAiHelper().get_question_answer(question=gpt_question)
-        self.debug(f"chatpgt返回结果 {answer}")
+        # answer = OpenAiHelper().get_question_answer(question=gpt_question)
+        # self.debug(f"chatpgt返回结果 {answer}")
+        answer = None
 
         # 处理chatgpt返回的答案信息
         if answer is None:

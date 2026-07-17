@@ -10,7 +10,7 @@ from app.core.task_manager import task_processor_start, task_processor_stop
 from app.utils.async_request import AsyncRequestUtils
 
 from app.core.initializer import start_config_monitor, stop_config_monitor
-from app.api.action import WebAction
+from app.core.services import ServiceManager
 
 
 @contextlib.asynccontextmanager
@@ -19,8 +19,8 @@ async def lifespan(app: FastAPI):
     try:
 
         log.info('服务启动中...')
-        WebAction.start_service()
-        WebAction.pre_warming_zhconv()
+        ServiceManager.start_service()
+        ServiceManager.pre_warming_zhconv()
         
         log.info('开启配置文件监控...')
         start_config_monitor()
@@ -46,7 +46,7 @@ async def lifespan(app: FastAPI):
         log.exception('❌ FastAPI 应用启动时异常')
     finally:
         log.info('FastAPI 应用开始关闭...')
-        WebAction.stop_service()
+        ServiceManager.stop_service()
 
         # 关闭配置文件监控
         log.info('关闭配置文件监控...')

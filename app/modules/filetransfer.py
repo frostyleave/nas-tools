@@ -1513,6 +1513,79 @@ class FileTransfer:
                                     log.exception("[act]删除指定目录 异常:")
         return {"retcode": 0}
 
+    def re_identification(self, flag, ids):
+        """
+        未识别的重新识别
+        """
+
+        ret_flag = True
+        ret_msg = []
+
+        if flag == "unidentification":
+            for wid in ids:
+                unknowninfo = self.get_unknown_info_by_id(wid)
+                if unknowninfo:
+                    path = unknowninfo.PATH
+                    dest_dir = unknowninfo.DEST
+                    rmt_mode = ModuleConf.get_enum_item(
+                        RmtMode, unknowninfo.MODE) if unknowninfo.MODE else None
+                else:
+                    return {"retcode": -1, "retmsg": "未查询到未识别记录"}
+                if not dest_dir:
+                    dest_dir = ""
+                if not path:
+                    return {"retcode": -1, "retmsg": "未识别路径有误"}
+                succ_flag, msg = self.transfer_media(in_from=SyncType.MAN,
+                                                     rmt_mode=rmt_mode,
+                                                     in_path=path,
+                                                     target_dir=dest_dir)
+                if succ_flag:
+                    self.update_transfer_unknown_state(path)
+                else:
+                    ret_flag = False
+                    if msg not in ret_msg:
+                        ret_msg.append(msg)
+        elif flag == "history":
+            for wid in ids:
+                transinfo = self.get_transfer_info_by_id(wid)
+                if transinfo:
+                    path = os.path.join(transinfo.SOURCE_PATH, transinfo.SOURCE_FILENAME)
+                    dest_dir = transinfo.DEST
+                    rmt_mode = ModuleConf.get_enum_item(
+                        RmtMode, transinfo.MODE) if transinfo.MODE else None
+                else:
+                    return {"retcode": -1, "retmsg": "未查询到转移日志记录"}
+                if not dest_dir:
+                    dest_dir = ""
+                if not path:
+                    return {"retcode": -1, "retmsg": "未识别路径有误"}
+                succ_flag, msg = self.transfer_media(in_from=SyncType.MAN,
+                                                              rmt_mode=rmt_mode,
+                                                              in_path=path,
+                                                              target_dir=dest_dir)
+                if not succ_flag:
+                    ret_flag = False
+                    if msg not in ret_msg:
+                        ret_msg.append(msg)
+        if ret_flag:
+            return {"retcode": 0, "retmsg": "转移成功"}
+        else:
+            return {"retcode": 2, "retmsg": "、".join(ret_msg)}
+
+
+    def re_identification_all(self):
+        """
+        重新识别所有未识别记录
+        """
+        ItemIds = []
+        Records = FileTransfer().get_transfer_unknown_paths()
+        for rec in Records:
+            if not rec.PATH:
+                continue
+            ItemIds.append(rec.ID)
+
+        if ItemIds:
+            self.re_identification("unidentification", ItemIds)
 
 if __name__ == "__main__":
     """

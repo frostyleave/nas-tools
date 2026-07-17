@@ -6,6 +6,7 @@ from typing import Any, Dict
 from fastapi import APIRouter, Query, Request, WebSocket, WebSocketDisconnect
 from fastapi.responses import StreamingResponse
 
+from app.core.cmd_handler import CommandHandler
 from app.core.task_manager import GlobalTaskManager
 
 import log
@@ -63,7 +64,7 @@ async def message_handler(websocket: WebSocket):
 
                 if msgbody.get("text"):
                     # 发送的消息
-                    WebAction().handle_message_job(
+                    CommandHandler().handle_message_job(
                         msg=msgbody.get("text"),
                         in_from=SearchType.WEB,
                         user_id=user_id or "anonymous",
