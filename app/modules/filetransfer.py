@@ -12,7 +12,7 @@ from typing import Tuple
 import log
 
 from app.conf import ModuleConf
-from app.helper import DbHelper, ProgressHelper
+from app.helper import DbHelper, ProgressHelper, FileHelper
 from app.media import Media, Category, Scraper
 from app.media.meta import MetaInfo
 from app.mediaserver import MediaServer
@@ -1421,7 +1421,7 @@ class FileTransfer:
                 dest_filename = transinfo.DEST_FILENAME
                 if flag in ["del_source", "del_all"]:
                     # 删除源文件
-                    del_flag, del_msg = self.delete_media_file(source_path, source_filename)
+                    del_flag, del_msg = FileHelper.delete_media_file(source_path, source_filename)
                     if not del_flag:
                         log.error(del_msg)
                     else:
@@ -1435,7 +1435,7 @@ class FileTransfer:
                 if flag in ["del_dest", "del_all"]:
                     # 删除媒体库文件
                     if dest_path and dest_filename:
-                        del_flag, del_msg = self.delete_media_file(dest_path, dest_filename)
+                        del_flag, del_msg = FileHelper.delete_media_file(dest_path, dest_filename)
                         if not del_flag:
                             log.error(del_msg)
                         else:

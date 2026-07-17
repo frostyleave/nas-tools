@@ -11,6 +11,7 @@ import threading
 import time
 
 from fastapi import APIRouter, BackgroundTasks, Body, Depends
+
 from math import floor
 from pathlib import Path
 from typing import Optional
@@ -19,7 +20,6 @@ from urllib.parse import unquote
 import cn2an
 import zhconv
 
-from app.utils.media_utils import MediaUtils
 import log
 
 from app.modules.brushtaskv2 import BrushTaskV2 as BrushTask
@@ -27,7 +27,7 @@ from app.conf import SystemConfig, ModuleConf
 from app.downloader import Downloader
 from app.modules.filetransfer import FileTransfer
 from app.modules.filter import Filter
-from app.helper import DbHelper, ProgressHelper, ThreadHelper, MetaHelper, DisplayHelper, WordsHelper, RssHelper
+from app.helper import DbHelper, ProgressHelper, ThreadHelper, MetaHelper, DisplayHelper, WordsHelper, RssHelper, FileHelper
 from app.indexer import Indexer
 from app.indexer.manager import IndexerManager
 from app.core.jobcenter import JobCenter
@@ -47,7 +47,7 @@ from app.sites import SitesManager, SitesDataStatisticsCenter, CookieManager, Si
 from app.modules.subscribe import Subscribe
 from app.modules.sync import Sync
 from app.modules.torrentremover import TorrentRemover
-from app.utils import StringUtils, EpisodeFormat, RequestUtils, PathUtils, SystemUtils
+from app.utils import StringUtils, EpisodeFormat, RequestUtils, PathUtils, SystemUtils, MediaUtils
 from app.utils.types import *
 from app.utils.password_hash import generate_password_hash
 from app.core.task_manager import GlobalTaskManager
@@ -1013,41 +1013,6 @@ class WebAction:
         删除识别记录及文件
         """
         return FileTransfer().delete_history(data)
-
-    def delete_media_file(self, filedir, filename):
-        """
-        删除媒体文件，空目录也会被删除
-        """
-        filedir = os.path.normpath(filedir).replace("\\", "/")
-        file = os.path.join(filedir, filename)
-        try:
-            if not os.path.exists(file):
-                return False, f"{file} 不存在"
-            os.remove(file)
-            nfoname = f"{os.path.splitext(filename)[0]}.nfo"
-            nfofile = os.path.join(filedir, nfoname)
-            if os.path.exists(nfofile):
-                os.remove(nfofile)
-            # 检查空目录并删除
-            if re.findall(r"^S\d{2}|^Season", os.path.basename(filedir), re.I):
-                # 当前是季文件夹，判断并删除
-                seaon_dir = filedir
-                if seaon_dir.count('/') > 1 and not PathUtils.get_dir_files(seaon_dir, exts=RMT_MEDIAEXT):
-                    shutil.rmtree(seaon_dir)
-                # 媒体文件夹
-                media_dir = os.path.dirname(seaon_dir)
-            else:
-                media_dir = filedir
-            # 检查并删除媒体文件夹，非根目录且目录大于二级，且没有媒体文件时才会删除
-            if media_dir != '/' \
-                    and media_dir.count('/') > 1 \
-                    and not re.search(r'[a-zA-Z]:/$', media_dir) \
-                    and not PathUtils.get_dir_files(media_dir, exts=RMT_MEDIAEXT):
-                shutil.rmtree(media_dir)
-            return True, f"{file} 删除成功"
-        except Exception as e:
-            log.exception(f"[act]{file} 删除失败:")
-            return True, f"{file} 删除失败"
 
     def __version(self):
         """
@@ -2076,45 +2041,7 @@ class WebAction:
         media_info = Media().get_media_info(title=name, subtitle=subtitle)
         if not media_info:
             return {"code": 0, "data": {"name": "无法识别"}}
-        return {"code": 0, "data": self.mediainfo_dict(media_info)}
-
-    def mediainfo_dict(self, media_info):
-        if not media_info:
-            return {}
-        tmdb_id = media_info.tmdb_id
-        tmdb_link = media_info.get_detail_url()
-        tmdb_S_E_link = ""
-        if tmdb_id:
-            if media_info.get_season_string():
-                tmdb_S_E_link = "%s/season/%s" % (tmdb_link,
-                                                  media_info.get_season_seq())
-                if media_info.get_episode_string():
-                    tmdb_S_E_link = "%s/episode/%s" % (
-                        tmdb_S_E_link, media_info.get_episode_seq())
-        return {
-            "type": media_info.type.value if media_info.type else "",
-            "name": media_info.get_name(),
-            "title": media_info.title,
-            "year": media_info.year,
-            "season_episode": media_info.get_season_episode_string(),
-            "part": media_info.part,
-            "tmdbid": tmdb_id,
-            "tmdblink": tmdb_link,
-            "tmdb_S_E_link": tmdb_S_E_link,
-            "category": media_info.category,
-            "restype": media_info.resource_type,
-            "effect": media_info.resource_effect,
-            "pix": media_info.resource_pix,
-            "team": media_info.resource_team,
-            "customization": media_info.customization,
-            "video_codec": media_info.video_encode,
-            "audio_codec": media_info.audio_encode,
-            "org_string": media_info.org_string,
-            "rev_string": media_info.rev_string,
-            "ignored_words": media_info.ignored_words,
-            "replaced_words": media_info.replaced_words,
-            "offset_words": media_info.offset_words
-        }
+        return {"code": 0, "data": MediaUtils.mediainfo_dict(media_info)}
 
     def __rule_test(self, data):
         title = data.get("title")
@@ -2232,8 +2159,9 @@ class WebAction:
         恢复初始规则组
         """
         groupids = data.get("groupids")
-        init_rulegroups = self.get_init_filterrules()
         _filter = Filter()
+
+        init_rulegroups = _filter.get_init_filterrules()
         for groupid in groupids:
             try:
                 _filter.delete_filtergroup(groupid)
@@ -2518,104 +2446,6 @@ class WebAction:
         else:
             return {"code": 0, "Items": []}
 
-    def parse_brush_rule_string(self, rules: dict):
-        if not rules:
-            return ""
-        rule_filter_string = {"gt": ">", "lt": "<", "bw": ""}
-        rule_htmls = []
-        if rules.get("size"):
-            sizes = rules.get("size").split("#")
-            if sizes[0]:
-                if sizes[1]:
-                    sizes[1] = sizes[1].replace(",", "-")
-                rule_htmls.append(
-                    '<span class="badge badge-outline text-blue me-1 mb-1" title="种子大小">种子大小: %s %sGB</span>'
-                    % (rule_filter_string.get(sizes[0]), sizes[1]))
-        if rules.get("pubdate"):
-            pubdates = rules.get("pubdate").split("#")
-            if pubdates[0]:
-                if pubdates[1]:
-                    pubdates[1] = pubdates[1].replace(",", "-")
-                rule_htmls.append(
-                    '<span class="badge badge-outline text-blue me-1 mb-1" title="发布时间">发布时间: %s %s小时</span>'
-                    % (rule_filter_string.get(pubdates[0]), pubdates[1]))
-        if rules.get("upspeed"):
-            rule_htmls.append('<span class="badge badge-outline text-blue me-1 mb-1" title="上传限速">上传限速: %sB/s</span>'
-                              % StringUtils.str_filesize(int(rules.get("upspeed")) * 1024))
-        if rules.get("downspeed"):
-            rule_htmls.append('<span class="badge badge-outline text-blue me-1 mb-1" title="下载限速">下载限速: %sB/s</span>'
-                              % StringUtils.str_filesize(int(rules.get("downspeed")) * 1024))
-        if rules.get("include"):
-            rule_htmls.append(
-                '<span class="badge badge-outline text-green me-1 mb-1 text-wrap text-start" title="包含规则">包含: %s</span>'
-                % rules.get("include"))
-        if rules.get("hr"):
-            rule_htmls.append(
-                '<span class="badge badge-outline text-red me-1 mb-1" title="排除HR">排除: HR</span>')
-        if rules.get("exclude"):
-            rule_htmls.append(
-                '<span class="badge badge-outline text-red me-1 mb-1 text-wrap text-start" title="排除规则">排除: %s</span>'
-                % rules.get("exclude"))
-        if rules.get("dlcount"):
-            rule_htmls.append('<span class="badge badge-outline text-blue me-1 mb-1" title="同时下载数量限制">同时下载: %s</span>'
-                              % rules.get("dlcount"))
-        if rules.get("peercount"):
-            peer_counts = None
-            if rules.get("peercount") == "#":
-                peer_counts = None
-            elif "#" in rules.get("peercount"):
-                peer_counts = rules.get("peercount").split("#")
-                peer_counts[1] = peer_counts[1].replace(",", "-") if (len(peer_counts) >= 2 and peer_counts[1]) else \
-                    peer_counts[1]
-            else:
-                try:
-                    # 兼容性代码
-                    peer_counts = ["lt", int(rules.get("peercount"))]
-                except Exception:
-                    pass
-            if peer_counts:
-                rule_htmls.append(
-                    '<span class="badge badge-outline text-blue me-1 mb-1" title="当前做种人数限制">做种人数: %s %s</span>'
-                    % (rule_filter_string.get(peer_counts[0]), peer_counts[1]))
-        if rules.get("time"):
-            times = rules.get("time").split("#")
-            if times[0]:
-                rule_htmls.append(
-                    '<span class="badge badge-outline text-orange me-1 mb-1" title="做种时间">做种时间: %s %s小时</span>'
-                    % (rule_filter_string.get(times[0]), times[1]))
-        if rules.get("ratio"):
-            ratios = rules.get("ratio").split("#")
-            if ratios[0]:
-                rule_htmls.append(
-                    '<span class="badge badge-outline text-orange me-1 mb-1" title="分享率">分享率: %s %s</span>'
-                    % (rule_filter_string.get(ratios[0]), ratios[1]))
-        if rules.get("uploadsize"):
-            uploadsizes = rules.get("uploadsize").split("#")
-            if uploadsizes[0]:
-                rule_htmls.append(
-                    '<span class="badge badge-outline text-orange me-1 mb-1" title="上传量">上传量: %s %sGB</span>'
-                    % (rule_filter_string.get(uploadsizes[0]), uploadsizes[1]))
-        if rules.get("dltime"):
-            dltimes = rules.get("dltime").split("#")
-            if dltimes[0]:
-                rule_htmls.append(
-                    '<span class="badge badge-outline text-orange me-1 mb-1" title="下载耗时">下载耗时: %s %s小时</span>'
-                    % (rule_filter_string.get(dltimes[0]), dltimes[1]))
-        if rules.get("avg_upspeed"):
-            avg_upspeeds = rules.get("avg_upspeed").split("#")
-            if avg_upspeeds[0]:
-                rule_htmls.append(
-                    '<span class="badge badge-outline text-orange me-1 mb-1" title="平均上传速度">平均上传速度: %s %sKB/S</span>'
-                    % (rule_filter_string.get(avg_upspeeds[0]), avg_upspeeds[1]))
-        if rules.get("iatime"):
-            iatimes = rules.get("iatime").split("#")
-            if iatimes[0]:
-                rule_htmls.append(
-                    '<span class="badge badge-outline text-orange me-1 mb-1" title="未活动时间">未活动时间: %s %s小时</span>'
-                    % (rule_filter_string.get(iatimes[0]), iatimes[1]))
-
-        return "<br>".join(rule_htmls)
-
     def __clear_tmdb_cache(self):
         """
         清空TMDB缓存
@@ -2895,7 +2725,7 @@ class WebAction:
         ).test_rss_articles(taskid=taskid, title=title)
         if not media_info:
             return {"code": 0, "data": {"name": "无法识别"}}
-        media_dict = self.mediainfo_dict(media_info)
+        media_dict = MediaUtils.mediainfo_dict(media_info)
         media_dict.update({"match_flag": match_flag, "exist_flag": exist_flag})
         return {"code": 0, "data": media_dict}
 
@@ -3990,40 +3820,6 @@ class WebAction:
             "code": 0,
             "ruleGroups": RuleGroups
         }
-    
-    def get_init_filterrules(self):
-        """
-        查询初始过滤规则
-        """
-        Init_RuleGroups = []
-
-        sql_file = os.path.join(Config().get_script_path(), "init_filter.sql")
-        with open(sql_file, "r", encoding="utf-8") as f:
-            sql_list = f.read().split(';\n')
-            i = 0
-            while i < len(sql_list):
-                rulegroup = {}
-                rulegroup_info = re.findall(
-                    r"[0-9]+,'[^\"]+NULL", sql_list[i], re.I)[0].split(",")
-                rulegroup['id'] = int(rulegroup_info[0])
-                rulegroup['name'] = rulegroup_info[1][1:-1]
-                rulegroup['rules'] = []
-                rulegroup['sql'] = [sql_list[i]]
-                if i + 1 < len(sql_list):
-                    rules = re.findall(
-                        r"[0-9]+,'[^\"]+NULL", sql_list[i + 1], re.I)[0].split("),\n (")
-                    for rule in rules:
-                        rule_info = {}
-                        rule = rule.split(",")
-                        rule_info['name'] = rule[2][1:-1]
-                        rule_info['include'] = rule[4][1:-1]
-                        rule_info['exclude'] = rule[5][1:-1]
-                        rulegroup['rules'].append(rule_info)
-                    rulegroup["sql"].append(sql_list[i + 1])
-                Init_RuleGroups.append(rulegroup)
-                i = i + 2
-
-        return Init_RuleGroups
 
     def __update_directory(self, data):
         """
@@ -4135,7 +3931,7 @@ class WebAction:
         if files:
             # 删除文件
             for file in files:
-                del_flag, del_msg = self.delete_media_file(filedir=os.path.dirname(file),
+                del_flag, del_msg = FileHelper.delete_media_file(filedir=os.path.dirname(file),
                                                            filename=os.path.basename(file))
                 if not del_flag:
                     log.error(del_msg)
@@ -4509,13 +4305,6 @@ class WebAction:
             return {"code": 1, "msg": "未选择消息服务"}
         Message().send_custom_message(clients=message_clients, title=title, text=text, image=image)
         return {"code": 0}
-
-    def get_rmt_modes(self):
-        RmtModes = ModuleConf.RMT_MODES
-        return [{
-            "value": value,
-            "name": name.value
-        } for value, name in RmtModes.items()]
 
     def media_detail(self, data):
         """

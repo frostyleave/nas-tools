@@ -62,6 +62,7 @@ def router_exception_handler(router: APIRouter):
         route.endpoint = make_wrapped(original_endpoint)
 
 
+
 # 统一的返回函数
 def response(code: int = 0, msg: str = "success", data=None, status_code: int = 200):
     return JSONResponse(
@@ -72,6 +73,14 @@ def response(code: int = 0, msg: str = "success", data=None, status_code: int = 
         }),
         status_code=status_code
     )
+
+# 查询转移模式字典
+def get_rmt_modes_dict():
+    rmt_modes = ModuleConf.RMT_MODES
+    return [{
+        "value": value,
+        "name": name.value
+    } for value, name in rmt_modes.items()]
 
 
 # userinfo
@@ -104,7 +113,7 @@ async def sysinfo(current_user: User = Depends(get_current_user)):
 
     web_action = WebAction(current_user)
     commands = web_action.get_commands()
-    rmt_mode_dict = web_action.get_rmt_modes()
+    rmt_mode_dict = get_rmt_modes_dict()
 
     download_settings = {did: attr["name"] for did, attr in Downloader().get_download_setting().items()}
     source_types = { "MOVIE":'电影', "TV":'剧集', "ANIME":'动漫' }
@@ -369,7 +378,7 @@ async def sitelist_page():
 # 媒体库页面
 @data_router.post("/library")
 async def library(current_user = Depends(get_current_user)):
-    rmt_mode_dict = WebAction(current_user).get_rmt_modes()
+    rmt_mode_dict = get_rmt_modes_dict()
     scraper_conf = SystemConfig().get(SystemConfigKey.UserScraperConf) or {}
     return response(data=
         {
@@ -428,8 +437,9 @@ async def users(current_user = Depends(get_current_user)):
 @data_router.post("/filterrule")
 async def filterrule(current_user = Depends(get_current_user)):
 
-    rule_groups = Filter().get_rule_infos()
-    init_rule_groups = WebAction(current_user).get_init_filterrules()
+    _filter = Filter()
+    rule_groups = _filter.get_rule_infos()
+    init_rule_groups = _filter.get_init_filterrules()
 
     return response(data=
         {
@@ -441,7 +451,7 @@ async def filterrule(current_user = Depends(get_current_user)):
 # 目录同步页面
 @data_router.post("/directorysync")
 async def directorysync(current_user = Depends(get_current_user)):
-    rmt_mode_dict = WebAction(current_user).get_rmt_modes()
+    rmt_mode_dict = get_rmt_modes_dict()
     sync_paths = Sync().get_sync_path_conf()
     return response(data=
         {
@@ -587,7 +597,7 @@ async def downloading(current_user: User = Depends(get_current_user)):
     正在下载页面
     """
     web_action = WebAction(current_user)
-    rmt_mode_dict = web_action.get_rmt_modes()
+    rmt_mode_dict = get_rmt_modes_dict()
 
     # 下载器
     download_manager = Downloader()

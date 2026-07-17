@@ -1,15 +1,20 @@
+import os
 import re
 
 import log
+
 from app.conf import ModuleConf
 from app.helper import DbHelper
 from app.utils import StringUtils, ReleaseGroupsMatcher
 from app.utils.commons import singleton
 from app.utils.types import MediaType
 
+from config import Config
+
 
 @singleton
 class Filter:
+
     rg_matcher = None
     dbhelper = None
     _groups = []
@@ -388,3 +393,37 @@ class Filter:
         根据名称获取过滤规则组ID
         """
         return self.dbhelper.get_filter_groupid_by_name(name)
+
+    def get_init_filterrules(self):
+        """
+        查询初始过滤规则
+        """
+        Init_RuleGroups = []
+
+        sql_file = os.path.join(Config().get_script_path(), "init_filter.sql")
+        with open(sql_file, "r", encoding="utf-8") as f:
+            sql_list = f.read().split(';\n')
+            i = 0
+            while i < len(sql_list):
+                rulegroup = {}
+                rulegroup_info = re.findall(
+                    r"[0-9]+,'[^\"]+NULL", sql_list[i], re.I)[0].split(",")
+                rulegroup['id'] = int(rulegroup_info[0])
+                rulegroup['name'] = rulegroup_info[1][1:-1]
+                rulegroup['rules'] = []
+                rulegroup['sql'] = [sql_list[i]]
+                if i + 1 < len(sql_list):
+                    rules = re.findall(
+                        r"[0-9]+,'[^\"]+NULL", sql_list[i + 1], re.I)[0].split("),\n (")
+                    for rule in rules:
+                        rule_info = {}
+                        rule = rule.split(",")
+                        rule_info['name'] = rule[2][1:-1]
+                        rule_info['include'] = rule[4][1:-1]
+                        rule_info['exclude'] = rule[5][1:-1]
+                        rulegroup['rules'].append(rule_info)
+                    rulegroup["sql"].append(sql_list[i + 1])
+                Init_RuleGroups.append(rulegroup)
+                i = i + 2
+
+        return Init_RuleGroups
