@@ -3,7 +3,6 @@ import os
 import random
 import re
 import traceback
-import cn2an
 import zhconv
 
 from lxml import etree
@@ -849,7 +848,7 @@ class Media:
             return
 
         try:
-            x = cn2an.cn2an(cn_name, "smart")
+            x = StringUtils.cn_to_number(cn_name)
             if x <= 1 or x > tmdb_info.number_of_seasons:
                 return
             x = int(x)

@@ -1,5 +1,4 @@
 import re
-import time
 
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
@@ -7,13 +6,11 @@ from lxml import etree
 from threading import Event
 from typing import List, Tuple
 
-from playwright.sync_api import Page
 from urllib.parse import urljoin
 
 from app.helper import SubmoduleHelper, SiteHelper
 from app.helper.cloudflare_helper import under_challenge
 from app.helper import ThreadHelper
-from app.indexer.client.browser import PlaywrightHelper
 from app.plugins import EventHandler
 from app.modules.wallpaper import get_bing_wallpaper
 from app.plugins.modules._base import _IPluginModule
@@ -110,6 +107,10 @@ class AutoSignIn(_IPluginModule):
     _clean = False
     # 退出事件
     _event = Event()
+
+    # 签到成功
+    _sign_regex = ['签到已得', '簽到已得', '今日签到排名', '今日簽到排名', '签到成功', '簽到成功']
+    _success_regex = ['今日签到排名', '今日簽到排名', '本次签到获得 \\d+ 个魔力值', '本次簽到獲得 \\d+ 個魔力值','\\d+点魔力']
 
     @staticmethod
     def get_fields():
@@ -546,90 +547,88 @@ class AutoSignIn(_IPluginModule):
 
             home_url = SiteUtils.get_base_url(site_url)
             checkin_url = site_url if "pttime" in home_url else urljoin(home_url, "attendance.php")
-            
             ua = site_info.ua
 
+            self.info(f"[{site_name}]开始签到: {checkin_url}")
+
+            # 代理
+            proxies = Config().get_proxies() if site_info.proxy else None
+            # 访问链接
+            res = RequestUtils(cookies=site_cookie, ua=ua, proxies=proxies).get_res(url=checkin_url)
+            if res is None:
+                return False, f"[{site_name}]签到失败: 无法打开网站"
+            
+            if res.status_code != 200:
+                return False, f"[{site_name}]签到失败: 状态码：{res.status_code}"
+            
+            if "login.php" in res.text:
+                self.error(f"签到失败，cookie失效")
+                return False, f'[{site_name}]签到失败: cookie失效'
+            
+            if under_challenge(res.text):
+                return False, f"[{site_name}]签到失败: 站点被Cloudflare防护"
+            
+            # 签到成功, 或重启请求签到页
+            sign_status = SiteHelper.sign_in_result(html_res=res.text,
+                                                    regexs=self._sign_regex)
+            if sign_status:
+                self.info(f"今日已签到")
+                return True, f'[{site_name}]今日已签到'
+
+            html_tree = etree.HTML(res.text)
+            if not self._is_logged_in(html_tree):
+                return False, f"[{site_name}]签到失败: Cookie已失效"
+
             site_id = str(site_info.id)
-            if site_info.chrome or (self._render_sites and site_id in self._render_sites):
+            # 需要渲染, 尝试进行post再次请求
+            if self._render_sites and site_id in self._render_sites:
 
-                self.info(f"[{site_name}]开始仿真签到..")
-               
-                def _click_sign(page: Page):
-                    """
-                    仿真签到
-                    :param page: 网页对象
-                    :return: 签到结果信息
-                    """
-                    html_text = page.content()
-                    if not html_text:
-                        return False, f"[{site_name}]仿真签到失败: 获取站点源码失败"
-                    
-                    # 查找签到按钮
-                    html = etree.HTML(html_text)
+                sign_res = RequestUtils(cookies=site_cookie, ua=ua, proxies=proxies).post_res(url=checkin_url)
+                
+                if not sign_res or sign_res.status_code != 200:
+                    self.error(f"签到失败，签到接口请求失败")
+                    return False, f'[{site_name}]签到失败，签到接口请求失败'
 
-                    if re.search(r'已签|签到已得|本次签到', html_text, re.IGNORECASE):
-                        self.info("%s 今日已签到" % site_name)
-                        return True, f"[{site_name}]今日已签到"
-                    
-                    xpath_str = None
-                    for xpath in self.siteconf.get_checkin_conf():
-                        if html.xpath(xpath):
-                            xpath_str = xpath
-                            self.info(f"站点[{site_name}]签到按钮: {xpath_str}")
-                            break
-                    
-                    if not xpath_str:
-                        if SiteHelper.is_logged_in(html_text):
-                            return False, f"[{site_name}]仿真签到失败: 模拟登录成功, 未找到签到按钮"
-                        else:
-                            return False, f"[{site_name}]仿真签到失败: 模拟登录失败, 未找到签到按钮"
-                    
-                    page.click(xpath_str) 
-                    # 等待3秒
-                    time.sleep(3)
-                    # 获取页面内容
-                    content = page.content()
+                if SiteHelper.sign_in_result(html_res=sign_res.text, regexs=self._success_regex):
+                    self.info(f"签到成功")
+                    return True, f'[{site_name}]签到成功'
 
-                    # 判断是否已签到   [签到已得125, 补签卡: 0]
-                    if re.search(r'已签|签到已得|本次签到', content, re.IGNORECASE):
-                        return True, f"[{site_name}]签到成功"
-                    
-                    return False, f"[{site_name}]仿真签到异常: 无法获取签到结果"
+            self.error(f"签到失败，未知原因")
+            return False, f'[{site_name}]签到失败，未知原因'
                 
-                result = PlaywrightHelper().action(url=checkin_url, 
-                                                 ua=ua, 
-                                                 cookies=site_cookie, 
-                                                 proxy=True if site_info.proxy else False,
-                                                 callback=_click_sign)
-                if result is None:
-                    return False, f"[{site_name}]仿真签到失败: 请求网页异常"
-                
-                return result
-            else:
-                
-                self.info(f"[{site_name}]开始签到: {checkin_url}")
-
-                # 代理
-                proxies = Config().get_proxies() if site_info.proxy else None
-                # 访问链接
-                res = RequestUtils(cookies=site_cookie, ua=ua, proxies=proxies).get_res(url=checkin_url)
-                if res is None:
-                    return False, f"[{site_name}]签到失败: 无法打开网站"
-                
-                if res.status_code in [200, 500, 403]:
-                    if SiteHelper.is_logged_in(res.text):
-                        return True, f"[{site_name}]签到成功"
-                    if under_challenge(res.text):
-                        return False, f"[{site_name}]签到失败: 站点被Cloudflare防护,请开启浏览器仿真"
-                    elif res.status_code == 200:
-                        return False, f"[{site_name}]签到失败: Cookie已失效"
-                    else:
-                        return False, f"[{site_name}]签到失败: 状态码：{res.status_code}"
-                else:
-                    return False, f"[{site_name}]签到失败: 状态码：{res.status_code}"
+            
         except Exception as e:
             log.exception(f"【自动签到】[{site_name}]签到出错: ")
             return False, f"[{site_name}]签到出错: {str(e)}"
+        
+    def _is_logged_in(self, html_tree):
+        """
+        判断站点是否已经登陆
+        :param html_text:
+        :return:
+        """
+        if not html_tree:
+            return False
+        
+        # 存在明显的密码输入框，说明未登录
+        if html_tree.xpath("//input[@type='password']"):
+            return False
+        
+        # 是否存在登出和用户面板等链接
+        xpaths = ['//a[contains(@href, "logout")'
+                  ' or contains(@data-url, "logout")'
+                  ' or contains(@href, "mybonus") '
+                  ' or contains(@onclick, "logout")'
+                  ' or contains(@href, "usercp")]',
+                  '//form[contains(@action, "logout")]']
+        for xpath in xpaths:
+            if html_tree.xpath(xpath):
+                return True
+            
+        user_info_div = html_tree.xpath('//div[@class="user-info-side"]')
+        if user_info_div:
+            return True
+        return False
 
     def stop_service(self):
         """

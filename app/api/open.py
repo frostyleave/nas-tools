@@ -18,7 +18,6 @@ from app.utils.types import EventType, MediaServerType, MediaType, RssType, Sear
 
 import log
 
-from app.api.action import WebAction
 from app.models.WXBizMsgCrypt3 import WXBizMsgCrypt
 from app.middleware.security import auth_required
 

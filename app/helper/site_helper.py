@@ -40,6 +40,21 @@ class SiteHelper:
         return False
 
     @staticmethod
+    def sign_in_result(html_res, regexs):
+        """
+        判断是否签到成功
+        """
+        if not regexs:
+            return False
+        
+        html_text = re.sub(r"#\d+", "", re.sub(r"\d+px", "", html_res))
+        for regex in regexs:
+            if re.search(str(regex), html_text):
+                return True
+            
+        return False
+
+    @staticmethod
     def get_url_subtitle_name(disposition, url):
         """
         从站点下载请求中获取字幕文件名

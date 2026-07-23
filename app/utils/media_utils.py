@@ -1,6 +1,6 @@
-import cn2an
-import PTN
 import re
+
+import PTN
 
 from app.utils.string_utils import StringUtils
 
@@ -44,8 +44,8 @@ class MediaUtils:
             return clean_name, int(first_season)
         
         try:
-            x = cn2an.cn2an(first_season, "smart")
-            return clean_name, int(x)
+            x = StringUtils.cn_to_number(first_season)
+            return clean_name, x
         except Exception:
             return clean_name, 1
 
@@ -70,6 +70,7 @@ class MediaUtils:
             return char + text[:-1]
         return text
 
+
     @staticmethod
     def _parse_and_format_numbers(number_section: str, format_str: str, tag: str) -> str:
         """
@@ -82,7 +83,7 @@ class MediaUtils:
         digits = []
         for num_str in number_matches:
             try:
-                digits.append(cn2an.cn2an(num_str, "smart"))
+                digits.append(StringUtils.cn_to_number(num_str))
             except (ValueError, KeyError) as e:
                 log.error(f"无法将 '{num_str}' 转换为数字: {e}")
                 continue
@@ -113,6 +114,7 @@ class MediaUtils:
             return f"{format_str}{min_num:02d}-{format_str}{max_num:02d}"
 
         return ""
+
 
     @staticmethod
     def _format_media_numbers(title: str) -> str:
@@ -169,6 +171,7 @@ class MediaUtils:
             log.exception("格式化标题中的季集编号出错: ")
                 
         return title
+
 
     @staticmethod
     def _adjust_tv_se_position(filename:str, subtitle:str):
@@ -321,6 +324,7 @@ class MediaUtils:
             media_title = title
         return media_title
 
+
     @staticmethod
     def mediainfo_dict(media_info):
 
@@ -361,3 +365,41 @@ class MediaUtils:
             "replaced_words": media_info.replaced_words,
             "offset_words": media_info.offset_words
         }
+
+
+    @staticmethod
+    def get_free_string(upload_volume_factor, download_volume_factor):
+        """
+        上传下载factor转换为[免费]标签
+        """
+        if upload_volume_factor is None or download_volume_factor is None:
+            return "未知"
+        
+        free_strs = {
+            "1.0 1.0": "普通",
+            "1.0 0.0": "免费",
+            "2.0 1.0": "2X",
+            "2.0 0.0": "2X免费",
+            "1.0 0.5": "50%",
+            "2.0 0.5": "2X 50%",
+            "1.0 0.7": "70%",
+            "1.0 0.3": "30%"
+        }
+        return free_strs.get('%.1f %.1f' % (upload_volume_factor, download_volume_factor), "未知")
+    
+    @staticmethod
+    def batch_convert_ch_season_info(season_list):
+        """
+        [批量]季信息转中文
+        """
+        if not season_list:
+            return []
+        
+        seasons = [
+                {
+                    "text": "第%s季" % StringUtils.number_to_cn(season.get("season_number")),
+                    "num": season.get("season_number")
+                }
+                for season in season_list
+            ]
+        return seasons

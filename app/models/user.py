@@ -1,7 +1,9 @@
-from app.helper import DbHelper
+from typing import Optional
 
+from app.helper import DbHelper
 from app.utils.commons import singleton
 from app.utils.password_hash import check_password_hash
+
 from config import Config
 
 class User:
@@ -46,14 +48,6 @@ class User:
     def get_services(self):
         return Config().services
 
-    # 获取所有认证站点
-    def get_authsites(self):
-        return []
-
-    # 检查用户是否验证通过
-    def check_user(self, site, param):
-        return 1, ''
-
     # 为FastAPI添加的方法
     @property
     def is_authenticated(self):
@@ -75,17 +69,17 @@ class UserManager:
 
     def __init__(self):
         self.dbhelper = DbHelper()
+        app_config = Config().get_config('app')
         self.admin_users = [{
             "id": 0,
-            "name": Config().get_config('app').get('login_user'),
-            "password": Config().get_config('app').get('login_password')[6:],
+            "name": app_config.get('login_user'),
+            "password": app_config.get('login_password')[6:],
             "pris": "我的媒体库,资源搜索,探索,站点管理,订阅管理,下载管理,媒体整理,服务,系统设置"
         }]
 
 
     # 查询用户列表
     def get_users(self):
-
         all_user = []
         for user in self.dbhelper.get_users():
             one = User({"id": user.ID, "name": user.NAME, "password": user.PASSWORD, "pris": user.PRIS})
@@ -93,7 +87,7 @@ class UserManager:
         return all_user
 
     # 新增用户
-    def add_user(self, name, password, pris):
+    def add_user(self, name, password, pris) -> int:
         try:
             self.dbhelper.insert_user(name, password, pris)
             return 1
@@ -102,7 +96,7 @@ class UserManager:
             return 0
 
     # 删除用户
-    def delete_user(self, name):
+    def delete_user(self, name) -> int:
         try:
             self.dbhelper.delete_user(name)
             return 1
@@ -111,7 +105,7 @@ class UserManager:
             return 0
         
     # 根据用户ID获取用户实体，为 login_user 方法提供支持
-    def get_user_by_id(self, user_id) -> User:
+    def get_user_by_id(self, user_id) -> Optional[User]:
 
         if user_id is None:
             return None
@@ -126,7 +120,7 @@ class UserManager:
         return None
 
     # 根据用户名获取用户对像
-    def get_user_by_name(self, user_name) -> User:
+    def get_user_by_name(self, user_name) -> Optional[User]:
         if not user_name:
             return None
         for user in self.admin_users:

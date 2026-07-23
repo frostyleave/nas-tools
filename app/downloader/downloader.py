@@ -39,9 +39,11 @@ from config import Config
 # 标签隔离
 PT_TAG = "NASTOOL"
 
+# 下载文件转移检查时间间隔
+PT_TRANSFER_INTERVAL = 300
+
 lock = Lock()
 client_lock = Lock()
-
 
 @singleton
 class Downloader:
@@ -252,7 +254,7 @@ class Downloader:
             return
         self.transfer_job = self.get_scheduler().add_job(func=self.transfer,
                                                          trigger='interval',
-                                                         seconds=Constants.PT_TRANSFER_INTERVAL,
+                                                         seconds=PT_TRANSFER_INTERVAL,
                                                          name='下载文件转移')
 
     def get_scheduler(self) -> BackgroundScheduler:

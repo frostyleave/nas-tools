@@ -1,11 +1,11 @@
 import regex as re
-import cn2an
 import zhconv
 
 import log
 
 from app.media.category import Category
-from app.utils import StringUtils
+from app.utils.string_utils import StringUtils
+from app.utils.media_utils import MediaUtils
 from app.utils.constants import Constants
 from app.utils.types import MediaType
 
@@ -477,23 +477,7 @@ class MetaBase(object):
 
     # 返回促销信息
     def get_volume_factor_string(self):
-        return self.get_free_string(self.upload_volume_factor, self.download_volume_factor)
-
-    @staticmethod
-    def get_free_string(upload_volume_factor, download_volume_factor):
-        if upload_volume_factor is None or download_volume_factor is None:
-            return "未知"
-        free_strs = {
-            "1.0 1.0": "普通",
-            "1.0 0.0": "免费",
-            "2.0 1.0": "2X",
-            "2.0 0.0": "2X免费",
-            "1.0 0.5": "50%",
-            "2.0 0.5": "2X 50%",
-            "1.0 0.7": "70%",
-            "1.0 0.3": "30%"
-        }
-        return free_strs.get('%.1f %.1f' % (upload_volume_factor, download_volume_factor), "未知")
+        return MediaUtils.get_free_string(self.upload_volume_factor, self.download_volume_factor)
 
     # 是否包含季
     def is_in_season(self, season):
@@ -673,8 +657,8 @@ class MetaBase(object):
             if season_range:
                 try:
                     range_item = season_range[0]
-                    self.begin_season = int(cn2an.cn2an(range_item[0], mode='smart'))
-                    self.end_season = int(cn2an.cn2an(range_item[1], mode='smart'))
+                    self.begin_season = StringUtils.cn_to_number(range_item[0])
+                    self.end_season = StringUtils.cn_to_number(range_item[1])
                     self.type = MediaType.TV
                     self._subtitle_flag = True
                 except Exception as err:
@@ -692,11 +676,11 @@ class MetaBase(object):
                     end_season = None
                     if seasons.find('-') != -1:
                         seasons = seasons.split('-')
-                        begin_season = int(cn2an.cn2an(seasons[0].strip(), mode='smart'))
+                        begin_season = StringUtils.cn_to_number(seasons[0].strip())
                         if len(seasons) > 1:
-                            end_season = int(cn2an.cn2an(seasons[1].strip(), mode='smart'))
+                            end_season = StringUtils.cn_to_number(seasons[1].strip())
                     else:
-                        begin_season = int(cn2an.cn2an(seasons, mode='smart'))
+                        begin_season = StringUtils.cn_to_number(seasons)
                 except Exception as err:
                     log.exception("【Meta】副标题-季解析 出错: ")
                     return
@@ -724,9 +708,9 @@ class MetaBase(object):
                     end_episode = None
                     episodes = list(filter(None, episodes.split('-')))
                     if len(episodes) > 0:
-                        begin_episode = int(cn2an.cn2an(episodes[0].strip(), mode='smart'))
+                        begin_episode = StringUtils.cn_to_number(episodes[0].strip())
                         if len(episodes) > 1:
-                            end_episode = int(cn2an.cn2an(episodes[1].strip(), mode='smart'))
+                            end_episode = StringUtils.cn_to_number(episodes[1].strip())
                 except Exception as err:
                     log.exception("【Meta】副标题-集解析 出错: ")
                     return
@@ -748,8 +732,8 @@ class MetaBase(object):
             if episode_range:
                 try:
                     range_item = episode_range[0]
-                    self.begin_episode = int(cn2an.cn2an(range_item[0], mode='smart'))
-                    self.end_episode = int(cn2an.cn2an(range_item[1], mode='smart'))
+                    self.begin_episode = StringUtils.cn_to_number(range_item[0])
+                    self.end_episode = StringUtils.cn_to_number(range_item[1])
                     if self.begin_episode > self.end_episode:
                         tmp_val = self.end_episode
                         self.end_episode = self.begin_episode
@@ -767,7 +751,7 @@ class MetaBase(object):
                     episode_all = episode_all_str.group(2)
                 if episode_all and self.begin_episode is None:
                     try:
-                        self.total_episodes = int(cn2an.cn2an(episode_all.strip(), mode='smart'))
+                        self.total_episodes = StringUtils.cn_to_number(episode_all.strip())
                         self.begin_episode = 1
                         self.end_episode = self.total_episodes
                         self.type = MediaType.TV
@@ -783,7 +767,7 @@ class MetaBase(object):
                     season_all = season_all_str.group(2)
                 if season_all and self.begin_season is None and self.begin_episode is None:
                     try:
-                        self.total_seasons = int(cn2an.cn2an(season_all.strip(), mode='smart'))
+                        self.total_seasons = StringUtils.cn_to_number(season_all.strip())
                     except Exception as err:
                         log.exception("【Meta】副标题-季范围解析 出错: ")
                         return
@@ -796,8 +780,8 @@ class MetaBase(object):
             if episode_range:
                 try:
                     range_item = episode_range[0]
-                    self.begin_episode = int(cn2an.cn2an(range_item[0], mode='smart'))
-                    self.end_episode = int(cn2an.cn2an(range_item[1], mode='smart'))
+                    self.begin_episode = StringUtils.cn_to_number(range_item[0])
+                    self.end_episode = StringUtils.cn_to_number(range_item[1])
                     if self.begin_episode > self.end_episode:
                         tmp_val = self.end_episode
                         self.end_episode = self.begin_episode

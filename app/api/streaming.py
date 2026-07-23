@@ -6,13 +6,13 @@ from typing import Any, Dict
 from fastapi import APIRouter, Query, Request, WebSocket, WebSocketDisconnect
 from fastapi.responses import StreamingResponse
 
-from app.core.cmd_handler import CommandHandler
-from app.core.task_manager import GlobalTaskManager
-
 import log
 from log import log_buffer, active_sse_queues
 
-from app.api.action import WebAction
+from app.core.cmd_handler import CommandHandler
+from app.core.task_manager import GlobalTaskManager
+from app.helper.progress_helper import ProgressHelper
+from app.message.message_center import MessageCenter
 from app.middleware.security import get_current_user
 from app.utils.types import SearchType
 
@@ -77,7 +77,7 @@ async def message_handler(websocket: WebSocket):
                         break
                 else:
                     # 拉取消息
-                    system_msg = WebAction().get_system_message(lst_time=msgbody.get("lst_time"))
+                    system_msg = get_system_message(lst_time=msgbody.get("lst_time"))
                     messages = system_msg.get("message")
                     lst_time = system_msg.get("lst_time")
                     ret_messages = []
@@ -179,14 +179,11 @@ async def stream_progress(request: Request, type: str = ""):
     """
     进度SSE
     """
-
-    web_action = WebAction()
-
     async def event_generator():
         try:
             while True:                
                 # 获取进度
-                detail = web_action.refresh_process({"type": type})
+                detail = refresh_process(type)
                 # 发送进度
                 yield f"data: {json.dumps(detail)}\n\n"
                 # 进度完成，结束
@@ -199,7 +196,7 @@ async def stream_progress(request: Request, type: str = ""):
             yield f"data: {json.dumps({'code': -1, 'value': 0, 'text': f'进度连接异常: {str(e)}'})}\n\n"
 
     # 初始化进度
-    web_action.init_process({"type": type})
+    ProgressHelper().reset(type)
     return StreamingResponse(event_generator(), media_type="text/event-stream", headers={ "Content-Encoding": "identity" })
 
 
@@ -255,3 +252,24 @@ async def sse_progress(
             yield f"data: {json.dumps({'code': -1, 'value': 0, 'text': f'进度连接异常: {str(e)}'})}\n\n"
 
     return StreamingResponse(event_generator(), media_type="text/event-stream", headers={ "Content-Encoding": "identity" })
+
+def refresh_process(progress_type):
+    """
+    刷新进度条
+    """
+    detail = ProgressHelper().get_process(progress_type)
+    if detail:
+        return {"code": 0, "value": detail.get("value"), "text": detail.get("text")}
+    else:
+        return {"code": 1, "value": 0, "text": "正在处理..."}
+
+def get_system_message(lst_time):
+
+    messages = MessageCenter().get_system_messages(lst_time=lst_time)
+    if messages:
+        lst_time = messages[0].get("time")
+    return {
+        "code": 0,
+        "message": messages,
+        "lst_time": lst_time
+    }

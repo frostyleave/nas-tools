@@ -9,17 +9,13 @@ import shutil
 import threading
 import time
 
-from math import floor
 from typing import Optional
 
 from fastapi import APIRouter, BackgroundTasks, Body, Depends
 
-import cn2an
-
 import log
 
 from app.conf import SystemConfig, ModuleConf
-
 from app.helper import DbHelper, ProgressHelper, ThreadHelper, MetaHelper, WordsHelper, RssHelper, FileHelper
 from app.utils import StringUtils, EpisodeFormat, RequestUtils, PathUtils, SystemUtils, MediaUtils
 
@@ -30,10 +26,10 @@ from app.core.task_manager import GlobalTaskManager
 from app.downloader import Downloader
 from app.indexer import Indexer
 from app.indexer.manager import IndexerManager
-from app.media import Category, Media, Bangumi, DouBan, Scraper
-from app.media.meta import MetaInfo, MetaBase
+from app.media import Media, Bangumi, DouBan, Scraper
+from app.media.meta import MetaInfo
 from app.mediaserver import MediaServer
-from app.message import Message, MessageCenter
+from app.message import Message
 from app.models.user import User, UserManager
 from app.middleware.security import get_current_user
 from app.modules.filetransfer import FileTransfer
@@ -218,23 +214,12 @@ class WebAction:
             "export_custom_words": self.__export_custom_words,
             "analyse_import_custom_words_code": self.__analyse_import_custom_words_code,
             "import_custom_words": self.__import_custom_words,
-            "get_categories": self.get_categories,
             "re_rss_history": self.__re_rss_history,
             "delete_rss_history": self.__delete_rss_history,
             "share_filtergroup": self.__share_filtergroup,
             "import_filtergroup": self.__import_filtergroup,
             "get_transfer_statistics": self.get_transfer_statistics,
-            "get_library_spacesize": self.get_library_spacesize,
-            "get_library_mediacount": self.get_library_mediacount,
-            "get_library_playhistory": self.get_library_playhistory,
-            "get_search_result": self.get_search_result,
-            "search_media_infos": self.search_media_infos,
-            "get_movie_rss_list": self.get_movie_rss_list,
-            "get_tv_rss_list": self.get_tv_rss_list,
-            "get_rss_history": self.get_rss_history,
-            "get_unknown_list": self.get_unknown_list,
-            "get_customwords": self.get_customwords,
-            "get_users": self.get_users,
+            "search_media_infos": self._search_media_infos,
             "get_filterrules": self.get_filterrules,
             "get_downloading": self.get_downloading,
             "test_site": self.__test_site,
@@ -266,21 +251,15 @@ class WebAction:
             "set_system_config": self.__set_system_config,
             "set_user_indexer_sites": self.__set_user_indexer_sites,
             "get_site_user_statistics": self.get_site_user_statistics,
-            "send_plugin_message": self.send_plugin_message,
             "send_custom_message": self.send_custom_message,
             "media_detail": self.media_detail,
             "media_brief_info": self.media_brief_info,
             "media_extra_info": self.media_extra_info,
-            "media_similar": self.__media_similar,
-            "media_recommendations": self.__media_recommendations,
             "media_person": self.__media_person,
             "person_medias": self.__person_medias,
-            "save_user_script": self.__save_user_script,
             "run_directory_sync": self.__run_directory_sync,
             "update_plugin_config": self.__update_plugin_config,
             "get_season_episodes": self.__get_season_episodes,
-            "get_user_menus": self.get_user_menus,
-            "get_top_menus": self.get_top_menus,
             "update_downloader": self.__update_downloader,
             "del_downloader": self.__del_downloader,
             "check_downloader": self.__check_downloader,
@@ -292,15 +271,10 @@ class WebAction:
             "delete_indexer": self.__delete_indexer,
             "media_path_scrap": self.__media_path_scrap,
             "get_default_rss_setting": self.get_default_rss_setting,
-            "get_movie_rss_items": self.get_movie_rss_items,
-            "get_tv_rss_items": self.get_tv_rss_items,
-            "get_ical_events": self.get_ical_events,
             "install_plugin": self.install_plugin,
             "uninstall_plugin": self.uninstall_plugin,
             "get_plugin_apps": self.get_plugin_apps,
             "get_plugin_page": self.get_plugin_page,
-            "get_plugin_state": self.get_plugin_state,
-            "get_plugins_conf": self.get_plugins_conf,
             "update_category_config": self.update_category_config,
             "get_category_config": self.get_category_config,
             "get_system_processes": self.get_system_processes,
@@ -1433,10 +1407,7 @@ class WebAction:
             year = media.year
             if media_type != MediaType.MOVIE:
                 release_date = media.tmdb_info.get('first_air_date')
-                seasons = [{
-                    "text": "第%s季" % cn2an.an2cn(season.get("season_number"), mode='low'),
-                    "num": season.get("season_number")} for season in
-                    _media.get_tmdb_tv_seasons(tv_info=media.tmdb_info)]
+                seasons = MediaUtils.batch_convert_ch_season_info(_media.get_tmdb_tv_seasons(tv_info=media.tmdb_info))
             else:
                 release_date = media.tmdb_info.get('release_date')
 
@@ -1531,16 +1502,6 @@ class WebAction:
         else:
             ThreadHelper().start_thread(Subscribe().subscribe_search_tv, (rssid,))
         return {"code": 0, "page": page}
-
-    def get_system_message(self, lst_time):
-        messages = MessageCenter().get_system_messages(lst_time=lst_time)
-        if messages:
-            lst_time = messages[0].get("time")
-        return {
-            "code": 0,
-            "message": messages,
-            "lst_time": lst_time
-        }
 
     def __delete_tmdb_cache(self, data):
         """
@@ -2274,14 +2235,7 @@ class WebAction:
         if site_attr.get("HR"):
             site_hr = True
         return {"code": 0, "site_free": site_free, "site_2xfree": site_2xfree, "site_hr": site_hr}
-
-    def init_process(self, data):
-        """
-        初始化进度条
-        """
-        ProgressHelper().reset(data.get("type"))
-        return {"code": 0}
-        
+       
     def refresh_process(self, data):
         """
         刷新进度条
@@ -2352,6 +2306,7 @@ class WebAction:
             season_infos = _media.get_tmdb_tv_seasons(media_info.tmdb_info)
         else:
             season_infos = _media.get_tmdb_tv_seasons_byid(tmdbid=tmdbid)
+
         if title_season:
             seasons = [
                 {
@@ -2360,13 +2315,7 @@ class WebAction:
                 }
             ]
         else:
-            seasons = [
-                {
-                    "text": "第%s季" % cn2an.an2cn(season.get("season_number"), mode='low'),
-                    "num": season.get("season_number")
-                }
-                for season in season_infos
-            ]
+            seasons = MediaUtils.batch_convert_ch_season_info(season_infos)
         return {"code": 0, "seasons": seasons}
 
     def __get_userrss_task(self, data):
@@ -2944,15 +2893,6 @@ class WebAction:
             log.exception("[act]自定义识别词导入 出错:")
             return {"code": 1, "msg": str(e)}
 
-    def get_categories(self, data):
-        if data.get("type") == "电影":
-            categories = Category().movie_categorys
-        elif data.get("type") == "电视剧":
-            categories = Category().tv_categorys
-        else:
-            categories = Category().anime_categorys
-        return {"code": 0, "category": list(categories), "id": data.get("id"), "value": data.get("value")}
-
     def __delete_rss_history(self, data):
         rssid = data.get("rssid")
         Rss().delete_rss_history(rssid=rssid)
@@ -3042,54 +2982,6 @@ class WebAction:
             log.exception("[act]导入过滤规则失败:")
             return {"code": 1, "msg": "数据格式不正确，%s" % str(err)}
 
-    def get_library_spacesize(self):
-        """
-        查询媒体库存储空间
-        """
-        # 磁盘空间
-        UsedSapce = 0
-        UsedPercent = 0
-        media = Config().get_config('media')
-        # 电影目录
-        movie_paths = media.get('movie_path')
-        if not isinstance(movie_paths, list):
-            movie_paths = [movie_paths]
-        # 电视目录
-        tv_paths = media.get('tv_path')
-        if not isinstance(tv_paths, list):
-            tv_paths = [tv_paths]
-        # 动漫目录
-        anime_paths = media.get('anime_path')
-        if not isinstance(anime_paths, list):
-            anime_paths = [anime_paths]
-        # 总空间、剩余空间
-        TotalSpace, FreeSpace = SystemUtils.calculate_space_usage(movie_paths + tv_paths + anime_paths)
-        if TotalSpace:
-            # 已使用空间
-            UsedSapce = TotalSpace - FreeSpace
-            # 百分比格式化
-            UsedPercent = "%0.1f" % ((UsedSapce / TotalSpace) * 100)
-            # 总剩余空间 格式化
-            if FreeSpace > 1024:
-                FreeSpace = "{:,} TB".format(round(FreeSpace / 1024, 2))
-            else:
-                FreeSpace = "{:,} GB".format(round(FreeSpace, 2))
-            # 总使用空间 格式化
-            if UsedSapce > 1024:
-                UsedSapce = "{:,} TB".format(round(UsedSapce / 1024, 2))
-            else:
-                UsedSapce = "{:,} GB".format(round(UsedSapce, 2))
-            # 总空间 格式化
-            if TotalSpace > 1024:
-                TotalSpace = "{:,} TB".format(round(TotalSpace / 1024, 2))
-            else:
-                TotalSpace = "{:,} GB".format(round(TotalSpace, 2))
-
-        return {"code": 0,
-                "UsedPercent": UsedPercent,
-                "FreeSpace": FreeSpace,
-                "UsedSapce": UsedSapce,
-                "TotalSpace": TotalSpace}
 
     def get_transfer_statistics(self):
         """
@@ -3124,258 +3016,7 @@ class WebAction:
             "AnimeNums": AnimeNums
         }
 
-    def get_library_mediacount(self):
-        """
-        查询媒体库统计数据
-        """
-        MediaServerClient = MediaServer()
-        media_counts = MediaServerClient.get_medias_count()
-        UserCount = MediaServerClient.get_user_count()
-        if media_counts:
-            return {
-                "code": 0,
-                "Movie": "{:,}".format(media_counts.get('MovieCount')),
-                "Series": "{:,}".format(media_counts.get('SeriesCount')),
-                "Episodes": "{:,}".format(media_counts.get('EpisodeCount')) if media_counts.get(
-                    'EpisodeCount') else "",
-                "Music": "{:,}".format(media_counts.get('SongCount')),
-                "User": UserCount
-            }
-        else:
-            return {"code": -1, "msg": "媒体库服务器连接失败"}
-
-    def get_library_playhistory(self):
-        """
-        查询媒体库播放记录
-        """
-        return {"code": 0, "result": MediaServer().get_activity_log(30)}
-
-    def get_search_result(self):
-        """
-        查询所有搜索结果
-        """
-        SearchResults = {}
-        res = Searcher().get_search_results()
-        total = len(res)
-        for item in res:
-            # 质量(来源、效果)、分辨率
-            if item.RES_TYPE:
-                try:
-                    res_mix = json.loads(item.RES_TYPE)
-                except Exception as err:
-                    log.exception("[act]解析质量配置异常:")
-                    continue
-                respix = res_mix.get("respix") or ""
-                video_encode = res_mix.get("video_encode") or ""
-                restype = res_mix.get("restype") or ""
-                reseffect = res_mix.get("reseffect") or ""
-            else:
-                restype = ""
-                respix = ""
-                reseffect = ""
-                video_encode = ""
-            # 分组标识 (来源，分辨率)
-            group_key = re.sub(r"[-.\s@|]", "", f"{respix}_{restype}").lower()
-            # 分组信息
-            group_info = {
-                "respix": respix,
-                "restype": restype,
-            }
-            # 种子唯一标识 （大小，质量(来源、效果)，制作组组成）
-            unique_key = re.sub(r"[-.\s@|]", "",
-                                f"{respix}_{restype}_{video_encode}_{reseffect}_{item.SIZE}_{item.OTHERINFO}").lower()
-            # 标识信息
-            unique_info = {
-                "video_encode": video_encode,
-                "size": item.SIZE,
-                "reseffect": reseffect,
-                "releasegroup": item.OTHERINFO
-            }
-            # 结果
-            title_string = f"{item.TITLE}"
-            if item.YEAR:
-                title_string = f"{title_string} ({item.YEAR})"
-            # 电视剧季集标识
-            mtype = item.TYPE or ""
-            SE_key = item.ES_STRING if item.ES_STRING and mtype != "MOV" else "MOV"
-            media_type = {"MOV": "电影", "TV": "电视剧", "ANI": "动漫"}.get(mtype)
-            # 只需要部分种子标签
-            labels = [label for label in str(item.NOTE).split("|")
-                      if label in ["官方", "官组", "中字", "中配", "国语", "粤语", "特效", "特效字幕", "杜比视界"]]
-
-            pubdate = item.PUBDATE or ''
-            if pubdate.endswith(' 00:00:00'):
-                pubdate = pubdate[:-9]
-
-            # 种子信息
-            torrent_item = {
-                "id": item.ID,
-                "seeders": item.SEEDERS,
-                "enclosure": item.ENCLOSURE,
-                "site": item.SITE,
-                "torrent_name": item.TORRENT_NAME,
-                "description": item.DESCRIPTION,
-                "pageurl": item.PAGEURL,
-                "uploadvalue": item.UPLOAD_VOLUME_FACTOR,
-                "downloadvalue": item.DOWNLOAD_VOLUME_FACTOR,
-                "pubdate": pubdate,
-                "size": item.SIZE,
-                "respix": respix,
-                "restype": restype,
-                "reseffect": reseffect,
-                "releasegroup": item.OTHERINFO,
-                "video_encode": video_encode,
-                "labels": labels
-            }
-            # 促销
-            free_item = {
-                "value": f"{item.UPLOAD_VOLUME_FACTOR} {item.DOWNLOAD_VOLUME_FACTOR}",
-                "name": MetaBase.get_free_string(item.UPLOAD_VOLUME_FACTOR, item.DOWNLOAD_VOLUME_FACTOR)
-            }
-            # 制作组、字幕组
-            if item.OTHERINFO is None:
-                releasegroup = "未知"
-            else:
-                releasegroup = item.OTHERINFO
-            # 季
-            filter_season = SE_key.split()[0] if SE_key and SE_key not in [
-                "MOV", "TV"] else None
-            # 合并搜索结果
-            if SearchResults.get(title_string):
-                # 种子列表
-                result_item = SearchResults[title_string]
-                torrent_dict = SearchResults[title_string].get("torrent_dict")
-                SE_dict = torrent_dict.get(SE_key)
-                if SE_dict:
-                    group = SE_dict.get(group_key)
-                    if group:
-                        unique = group.get("group_torrents").get(unique_key)
-                        if unique:
-                            unique["torrent_list"].append(torrent_item)
-                            group["group_total"] += 1
-                        else:
-                            group["group_total"] += 1
-                            group.get("group_torrents")[unique_key] = {
-                                "unique_info": unique_info,
-                                "torrent_list": [torrent_item]
-                            }
-                    else:
-                        SE_dict[group_key] = {
-                            "group_info": group_info,
-                            "group_total": 1,
-                            "group_torrents": {
-                                unique_key: {
-                                    "unique_info": unique_info,
-                                    "torrent_list": [torrent_item]
-                                }
-                            }
-                        }
-                else:
-                    torrent_dict[SE_key] = {
-                        group_key: {
-                            "group_info": group_info,
-                            "group_total": 1,
-                            "group_torrents": {
-                                unique_key: {
-                                    "unique_info": unique_info,
-                                    "torrent_list": [torrent_item]
-                                }
-                            }
-                        }
-                    }
-                # 过滤条件
-                torrent_filter = dict(result_item.get("filter"))
-                if free_item not in torrent_filter.get("free"):
-                    torrent_filter["free"].append(free_item)
-                if releasegroup not in torrent_filter.get("releasegroup"):
-                    torrent_filter["releasegroup"].append(releasegroup)
-                if item.SITE not in torrent_filter.get("site"):
-                    torrent_filter["site"].append(item.SITE)
-                if video_encode \
-                        and video_encode not in torrent_filter.get("video"):
-                    torrent_filter["video"].append(video_encode)
-                if filter_season \
-                        and filter_season not in torrent_filter.get("season"):
-                    torrent_filter["season"].append(filter_season)
-            else:
-                fav, rssid = 0, None
-                # 存在标志
-                if item.TMDBID:
-                    fav, rssid, item_url = self.get_media_exists_info(
-                        mtype=mtype,
-                        title=item.TITLE,
-                        year=item.YEAR,
-                        mediaid=item.TMDBID)
-
-                SearchResults[title_string] = {
-                    "key": item.ID,
-                    "title": item.TITLE,
-                    "year": item.YEAR,
-                    "type_key": mtype,
-                    "image": item.IMAGE,
-                    "type": media_type,
-                    "vote": item.VOTE,
-                    "tmdbid": item.TMDBID,
-                    "backdrop": item.IMAGE,
-                    "poster": item.POSTER,
-                    "overview": item.OVERVIEW,
-                    "fav": fav,
-                    "rssid": rssid,
-                    "torrent_dict": {
-                        SE_key: {
-                            group_key: {
-                                "group_info": group_info,
-                                "group_total": 1,
-                                "group_torrents": {
-                                    unique_key: {
-                                        "unique_info": unique_info,
-                                        "torrent_list": [torrent_item]
-                                    }
-                                }
-                            }
-                        }
-                    },
-                    "filter": {
-                        "site": [item.SITE],
-                        "free": [free_item],
-                        "releasegroup": [releasegroup],
-                        "video": [video_encode] if video_encode else [],
-                        "season": [filter_season] if filter_season else []
-                    }
-                }
-
-        # 提升整季的顺序到顶层
-        def se_sort(k):
-            k = re.sub(r" +|(?<=s\d)\D*?(?=e)|(?<=s\d\d)\D*?(?=e)",
-                       " ", k[0], flags=re.I).split()
-            # 如果只有一个元素，检查是否包含 '-'
-            if len(k) == 1:
-                if re.match(r"^(S\d+)-S\d+$", k[0], flags=re.I) or re.match(r"^(E\d+)-E\d+$", k[0], flags=re.I):
-                    parts = k[0].split('-')  # 按 '-' 拆分
-                    if len(parts) == 2:
-                        return (parts[1], parts[0])  # 翻转顺序
-                return (k[0], "FF")
-
-            if re.match(r"^(E\d+)-E\d+$", k[1], flags=re.I):
-                parts = k[1].split('-')  # 按 '-' 拆分
-                if len(parts) == 2:
-                    return (k[0], '{}-{}'.format(parts[1], parts[0]))
-
-            return (k[0], k[1])
-
-        # 开始排序季集顺序
-        for title, item in SearchResults.items():
-            # 排序筛选器 季
-            item["filter"]["season"].sort(reverse=True)
-            # 排序筛选器 制作组、字幕组.  将未知放到最后
-            item["filter"]["releasegroup"] = sorted(item["filter"]["releasegroup"], key=lambda x: (x == "未知", x))
-            # 排序种子列 集
-            item["torrent_dict"] = sorted(item["torrent_dict"].items(),
-                                          key=se_sort,
-                                          reverse=True)
-        return {"code": 0, "total": total, "result": SearchResults}
-
-    def search_media_infos(self, data):
+    def _search_media_infos(self, data):
         """
         根据关键字搜索相似词条
         """
@@ -3386,25 +3027,6 @@ class WebAction:
         medias = SearchProxy().search_media_by_keyword(keyword=SearchWord, source=SearchSourceType)
 
         return {"code": 0, "result": [media.to_dict() for media in medias]}
-
-    def get_movie_rss_list(self):
-        """
-        查询所有电影订阅
-        """
-        return {"code": 0, "result": Subscribe().get_subscribe_movies()}
-
-    def get_tv_rss_list(self):
-        """
-        查询所有电视剧订阅
-        """
-        return {"code": 0, "result": Subscribe().get_subscribe_tvs()}
-
-    def get_rss_history(self, data):
-        """
-        查询所有订阅历史
-        """
-        mtype = data.get("type")
-        return {"code": 0, "result": [rec.as_dict() for rec in Rss().get_rss_history(rtype=mtype)]}
 
     def get_downloading(self, data):
         """
@@ -3443,161 +3065,6 @@ class WebAction:
                 })
 
         return {"code": 0, "result": torrents}
-
-    def get_transfer_history(self, sarchKw, currentPage=1, pageNum=20):
-        """
-        查询媒体整理历史记录
-        """
-        totalCount, historys = FileTransfer().get_transfer_history(sarchKw, currentPage, pageNum)
-        historys_list = []
-        for history in historys:
-            history = history.as_dict()
-            sync_mode = history.get("MODE")
-            rmt_mode = ModuleConf.get_dictenum_key(
-                ModuleConf.RMT_MODES, sync_mode) if sync_mode else ""
-            history.update({
-                "SYNC_MODE": sync_mode,
-                "RMT_MODE": rmt_mode
-            })
-            historys_list.append(history)
-        TotalPage = floor(totalCount / pageNum) + 1
-
-        return {
-            "code": 0,
-            "total": totalCount,
-            "result": historys_list,
-            "totalPage": TotalPage,
-            "pageNum": currentPage,
-            "currentPage": currentPage
-        }
-
-    def get_unknown_list(self):
-        """
-        查询所有未识别记录
-        """
-        Items = []
-        Records = FileTransfer().get_transfer_unknown_paths()
-        for rec in Records:
-            if not rec.PATH:
-                continue
-            path = rec.PATH.replace("\\", "/") if rec.PATH else ""
-            path_to = rec.DEST.replace("\\", "/") if rec.DEST else ""
-            sync_mode = rec.MODE or ""
-            rmt_mode = ModuleConf.get_dictenum_key(ModuleConf.RMT_MODES,
-                                                   sync_mode) if sync_mode else ""
-            Items.append({
-                "id": rec.ID,
-                "path": path,
-                "to": path_to,
-                "name": path,
-                "sync_mode": sync_mode,
-                "rmt_mode": rmt_mode,
-            })
-
-        return {"code": 0, "items": Items}
-
-    def get_unknown_list_by_page(self, sarchKw, currentPage=1, pageNum=20):
-        """
-        查询所有未识别记录
-        """
-        totalCount, Records = FileTransfer().get_transfer_unknown_paths_by_page(
-            sarchKw, currentPage, pageNum)
-        Items = []
-        for rec in Records:
-            if not rec.PATH:
-                continue
-            path = rec.PATH.replace("\\", "/") if rec.PATH else ""
-            path_to = rec.DEST.replace("\\", "/") if rec.DEST else ""
-            sync_mode = rec.MODE or ""
-            rmt_mode = ModuleConf.get_dictenum_key(ModuleConf.RMT_MODES,
-                                                   sync_mode) if sync_mode else ""
-            Items.append({
-                "id": rec.ID,
-                "path": path,
-                "to": path_to,
-                "name": path,
-                "sync_mode": sync_mode,
-                "rmt_mode": rmt_mode,
-            })
-        TotalPage = floor(totalCount / pageNum) + 1
-
-        return {
-            "code": 0,
-            "total": totalCount,
-            "items": Items,
-            "totalPage": TotalPage,
-            "pageNum": pageNum,
-            "currentPage": currentPage
-        }
-
-    def get_customwords(self):
-        _wordshelper = WordsHelper()
-        words = []
-        words_info = _wordshelper.get_custom_words(gid=-1)
-        for word_info in words_info:
-            words.append({"id": word_info.ID,
-                          "replaced": word_info.REPLACED,
-                          "replace": word_info.REPLACE,
-                          "front": word_info.FRONT,
-                          "back": word_info.BACK,
-                          "offset": word_info.OFFSET,
-                          "type": word_info.TYPE,
-                          "group_id": word_info.GROUP_ID,
-                          "season": word_info.SEASON,
-                          "enabled": word_info.ENABLED,
-                          "regex": word_info.REGEX,
-                          "help": word_info.HELP, })
-        groups = [{"id": "-1",
-                   "name": "通用",
-                   "link": "",
-                   "type": "1",
-                   "seasons": "0",
-                   "words": words}]
-        groups_info = _wordshelper.get_custom_word_groups()
-        for group_info in groups_info:
-            gid = group_info.ID
-            name = "%s (%s)" % (group_info.TITLE, group_info.YEAR)
-            gtype = group_info.TYPE
-            if gtype == 1:
-                link = "https://www.themoviedb.org/movie/%s" % group_info.TMDBID
-            else:
-                link = "https://www.themoviedb.org/tv/%s" % group_info.TMDBID
-            words = []
-            words_info = _wordshelper.get_custom_words(gid=gid)
-            for word_info in words_info:
-                words.append({"id": word_info.ID,
-                              "replaced": word_info.REPLACED,
-                              "replace": word_info.REPLACE,
-                              "front": word_info.FRONT,
-                              "back": word_info.BACK,
-                              "offset": word_info.OFFSET,
-                              "type": word_info.TYPE,
-                              "group_id": word_info.GROUP_ID,
-                              "season": word_info.SEASON,
-                              "enabled": word_info.ENABLED,
-                              "regex": word_info.REGEX,
-                              "help": word_info.HELP, })
-            groups.append({"id": gid,
-                           "name": name,
-                           "link": link,
-                           "type": group_info.TYPE,
-                           "seasons": group_info.SEASON_COUNT,
-                           "words": words})
-        return {
-            "code": 0,
-            "result": groups
-        }
-
-    def get_users(self):
-        """
-        查询所有用户
-        """
-        user_list = UserManager().get_users()
-        Users = []
-        for user in user_list:
-            pris = str(user.pris).split(",")
-            Users.append({"id": user.id, "name": user.username, "pris": pris})
-        return {"code": 0, "result": Users}
 
     def get_filterrules(self):
         """
@@ -4005,6 +3472,7 @@ class WebAction:
         sort_by = data.get("sort_by")
         sort_on = data.get("sort_on")
         site_hash = data.get("site_hash")
+
         statistics = SitesDataStatisticsCenter().get_site_user_statistics(sites=sites, encoding=encoding)
         if sort_by and sort_on in ["asc", "desc"]:
             if sort_on == "asc":
@@ -4014,6 +3482,7 @@ class WebAction:
         if site_hash == "Y":
             for item in statistics:
                 item["site_hash"] = StringUtils.md5_hash(item.get("site"))
+
         return {"code": 0, "data": statistics}
 
     def send_plugin_message(self, data):
@@ -4368,19 +3837,6 @@ class WebAction:
                                                              mtype=mtype,
                                                              page=page)}
 
-    def __save_user_script(self, data):
-        """
-        保存用户自定义脚本
-        """
-        script = data.get("javascript") or ""
-        css = data.get("css") or ""
-        SystemConfig().set(key=SystemConfigKey.CustomScript,
-                           value={
-                               "css": css,
-                               "javascript": script
-                           })
-        return {"code": 0, "msg": "保存成功"}
-
     def __run_directory_sync(self, data):
         """
         执行单个目录的目录同步
@@ -4724,66 +4180,6 @@ class WebAction:
             return {"code": 0, "data": default_rss_setting}
         return {"code": 1}
 
-    def get_movie_rss_items(self):
-        """
-        获取所有电影订阅项目
-        """
-        RssMovieItems = [
-            {
-                "id": movie.get("tmdbid"),
-                "rssid": movie.get("id")
-            } for movie in Subscribe().get_subscribe_movies().values() if movie.get("tmdbid")
-        ]
-        return {"code": 0, "result": RssMovieItems}
-
-    def get_tv_rss_items(self):
-        """
-        获取所有电视剧订阅项目
-        """
-        # 电视剧订阅
-        RssTvItems = [
-            {
-                "id": tv.get("tmdbid"),
-                "rssid": tv.get("id"),
-                "season": int(str(tv.get('season')).replace("S", "")),
-                "name": tv.get("name"),
-            } for tv in Subscribe().get_subscribe_tvs().values() if tv.get('season') and tv.get("tmdbid")
-        ]
-        # 自定义订阅
-        RssTvItems += RssChecker().get_userrss_mediainfos()
-        # 电视剧订阅去重
-        Uniques = set()
-        UniqueTvItems = []
-        for item in RssTvItems:
-            unique = f"{item.get('id')}_{item.get('season')}"
-            if unique not in Uniques:
-                Uniques.add(unique)
-                UniqueTvItems.append(item)
-        return {"code": 0, "result": UniqueTvItems}
-
-    def get_ical_events(self):
-        """
-        获取ical日历事件
-        """
-        Events = []
-        # 电影订阅
-        RssMovieItems = self.get_movie_rss_items().get("result")
-        for movie in RssMovieItems:
-            info = self.__movie_calendar_data(movie)
-            if info.get("id"):
-                Events.append(info)
-
-        # 电视剧订阅
-        RssTvItems = self.get_tv_rss_items().get("result")
-        for tv in RssTvItems:
-            infos = self.__tv_calendar_data(tv).get("events")
-            if infos and isinstance(infos, list):
-                for info in infos:
-                    if info.get("id"):
-                        Events.append(info)
-
-        return {"code": 0, "result": Events}
-
     def install_plugin(self, data, reload=True):
         """
         安装插件
@@ -4847,16 +4243,6 @@ class WebAction:
             return {"code": 1, "msg": "参数错误"}
         title, content, func = PluginManager().get_plugin_page(pid=plugin_id)
         return {"code": 0, "title": title, "content": content, "func": func}
-
-    def get_plugin_state(self, data):
-        """
-        获取插件状态
-        """
-        plugin_id = data.get("id")
-        if not plugin_id:
-            return {"code": 1, "msg": "参数错误"}
-        state = PluginManager().get_plugin_state(plugin_id)
-        return {"code": 0, "state": state}
 
     def get_plugins_conf(self, data=None):
         # 使用默认admin用户级别

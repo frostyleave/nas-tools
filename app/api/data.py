@@ -1,6 +1,7 @@
 import os
 
 from functools import wraps
+from math import floor
 
 from fastapi import APIRouter, Request, Depends
 from fastapi.encoders import jsonable_encoder
@@ -11,9 +12,11 @@ import log
 from app.core.cmd_registry import CommandRegistry
 from app.conf.moduleconf import ModuleConf
 from app.conf.systemconfig import SystemConfig
-from app.downloader.downloader import Downloader
+from app.downloader.downloader import Downloader, PT_TRANSFER_INTERVAL
 from app.helper.meta_helper import MetaHelper
+from app.helper.words_helper import WordsHelper
 from app.indexer.indexer import Indexer
+from app.media.category import Category
 from app.mediaserver.media_server import MediaServer
 from app.message import Message
 from app.middleware.security import get_current_user
@@ -22,17 +25,19 @@ from app.modules.filter import Filter
 from app.modules.rsschecker import RssChecker
 from app.modules.sync import Sync
 from app.modules.torrentremover import TorrentRemover
-from app.models.user import User
+from app.modules.filetransfer import FileTransfer
+from app.modules.rss import Rss
+from app.modules.search import SearchProxy
+from app.modules.subscribe import Subscribe
+from app.models.user import User, UserManager
 from app.plugins.plugin_manager import PluginManager
 from app.sites.site_manager import SitesManager
+from app.sites.site_statistics import SitesDataStatisticsCenter
 from app.utils.constants import Constants
 from app.utils.system_utils import SystemUtils
 from app.utils.types import Spider, SystemConfigKey
 
 from config import Config
-
-from app.api.action import WebAction
-
 
 # 页面数据路由
 data_router = APIRouter(
@@ -148,6 +153,7 @@ async def sysinfo(current_user: User = Depends(get_current_user)):
 # 基础设置页面
 @data_router.post("/basic")
 async def basic():
+
     proxy = Config().get_config('app').get("proxies", {}).get("http")
     if proxy:
         proxy = proxy.replace("http://", "")
@@ -164,43 +170,100 @@ async def basic():
     )
 
 
+def get_library_spacesize():
+    """
+    查询媒体库存储空间
+    """
+    # 磁盘空间
+    UsedSapce = 0
+    UsedPercent = 0
+
+    media_config = Config().get_config('media')
+    # 电影目录
+    movie_paths = media_config.get('movie_path')
+    if not isinstance(movie_paths, list):
+        movie_paths = [movie_paths]
+    # 电视目录
+    tv_paths = media_config.get('tv_path')
+    if not isinstance(tv_paths, list):
+        tv_paths = [tv_paths]
+    # 动漫目录
+    anime_paths = media_config.get('anime_path')
+    if not isinstance(anime_paths, list):
+        anime_paths = [anime_paths]
+
+    # 总空间、剩余空间
+    TotalSpace, FreeSpace = SystemUtils.calculate_space_usage(movie_paths + tv_paths + anime_paths)
+    if TotalSpace:
+        # 已使用空间
+        UsedSapce = TotalSpace - FreeSpace
+        # 百分比格式化
+        UsedPercent = "%0.1f" % ((UsedSapce / TotalSpace) * 100)
+        # 总剩余空间 格式化
+        if FreeSpace > 1024:
+            FreeSpace = "{:,} TB".format(round(FreeSpace / 1024, 2))
+        else:
+            FreeSpace = "{:,} GB".format(round(FreeSpace, 2))
+        # 总使用空间 格式化
+        if UsedSapce > 1024:
+            UsedSapce = "{:,} TB".format(round(UsedSapce / 1024, 2))
+        else:
+            UsedSapce = "{:,} GB".format(round(UsedSapce, 2))
+        # 总空间 格式化
+        if TotalSpace > 1024:
+            TotalSpace = "{:,} TB".format(round(TotalSpace / 1024, 2))
+        else:
+            TotalSpace = "{:,} GB".format(round(TotalSpace, 2))
+
+    return {
+        "UsedPercent": UsedPercent,
+        "FreeSpace": FreeSpace,
+        "UsedSapce": UsedSapce,
+        "TotalSpace": TotalSpace
+    }
+
+
 # 开始页面
 @data_router.post("/index")
-async def index(current_user: User = Depends(get_current_user)):
-
-    web_action = WebAction(current_user)
-
-    # 获取媒体数量
-    media_counts = web_action.get_library_mediacount()
-    if media_counts.get("code") == 0:
-        server_sucess = True
-    else:
-        server_sucess = False
-
-    # 获得活动日志
-    activity_logs = web_action.get_library_playhistory().get("result")
+async def index():
 
     # 磁盘空间
-    library_spaces = web_action.get_library_spacesize()
-
-    # 媒体库
-    media_librarys = MediaServer().get_libraries()
+    library_spaces = get_library_spacesize()
+    # 媒体库配置
     library_sync_conf = SystemConfig().get(SystemConfigKey.SyncLibrary) or []
-
-    # 最近添加
-    latest_adds = MediaServer().get_latest()
-
     # 媒体服务器类型
     server_type = Config().get_config('media').get('media_server')
+
+    # 媒体库
+    media_server = MediaServer()
+
+    media_librarys = media_server.get_libraries()
+    activity_logs = media_server.get_activity_log(30)
+    latest_adds = media_server.get_latest()
+
+    # 获取媒体数量
+    media_counts = media_server.get_medias_count()
+    if media_counts:
+        server_sucess = True
+        movie_count = "{:,}".format(media_counts.get('MovieCount'))
+        series_count = "{:,}".format(media_counts.get('SeriesCount'))
+        song_count = "{:,}".format(media_counts.get('SongCount'))
+        episode_count = "{:,}".format(media_counts.get('EpisodeCount')) if media_counts.get('EpisodeCount') else ""
+    else:
+        server_sucess = False
+        movie_count = 0
+        series_count = 0
+        song_count = 0
+        episode_count = 0
 
     return response(data=
         {
              "serverSucess": server_sucess,
              "mediaCount": {
-                 'movieCount': media_counts.get("Movie"),
-                 'seriesCount': media_counts.get("Series"),
-                 'songCount': media_counts.get("Music"),
-                 "episodeCount": media_counts.get("Episodes")
+                 'movieCount': movie_count,
+                 'seriesCount': series_count,
+                 'songCount': song_count,
+                 "episodeCount": episode_count
                  },
              "activitys": activity_logs,
              "totalSpace": library_spaces.get("TotalSpace"),
@@ -215,10 +278,9 @@ async def index(current_user: User = Depends(get_current_user)):
 
 # 资源搜索页面
 @data_router.post("/search")
-async def search(current_user: User = Depends(get_current_user)):
+async def search():
 
-    # 结果
-    res = WebAction(current_user).get_search_result()
+    res = SearchProxy().get_search_result()
     search_results = res.get("result")
     count = res.get("total")
 
@@ -232,9 +294,7 @@ async def search(current_user: User = Depends(get_current_user)):
 
 # 订阅页面
 @data_router.post("/rss")
-async def rss(current_user: User = Depends(get_current_user), t: str = "MOV"):
-
-    web_action = WebAction(current_user)
+async def rss(t: str = "MOV"):
 
     rule_groups = {str(group["id"]): group["name"] for group in Filter().get_rule_groups()}
     download_settings = Downloader().get_download_setting()
@@ -244,11 +304,11 @@ async def rss(current_user: User = Depends(get_current_user), t: str = "MOV"):
     type_name = '电影'
 
     if t == 'TV':
-        rss_items = web_action.get_tv_rss_list().get("result")
+        rss_items = Subscribe().get_subscribe_tvs()
         rss_type = 'TV'
         type_name = '电视剧'
     else:
-        rss_items = web_action.get_movie_rss_list().get("result")
+        rss_items = Subscribe().get_subscribe_movies()
 
     return response(data=
         {
@@ -262,9 +322,9 @@ async def rss(current_user: User = Depends(get_current_user), t: str = "MOV"):
 
 # 订阅历史页面
 @data_router.post("/rss_history")
-async def rss_history(current_user: User = Depends(get_current_user), t: str = ""):
+async def rss_history(t: str = ""):
 
-    rss_history = WebAction(current_user).get_rss_history({"type": t}).get("result")
+    rss_history = [rec.as_dict() for rec in Rss().get_rss_history(rtype=t)]
 
     return response(data=
         {
@@ -275,18 +335,45 @@ async def rss_history(current_user: User = Depends(get_current_user), t: str = "
 
 # 订阅日历页面
 @data_router.post("/rss_calendar")
-async def rss_calendar(current_user: User = Depends(get_current_user)):
+async def rss_calendar():
 
-    web_action = WebAction(current_user)
+    subscriber = Subscribe()
+
     # 电影订阅
-    rss_movie_items = web_action.get_movie_rss_items().get("result")
+    rss_movies = [
+            {
+                "id": movie.get("tmdbid"),
+                "rssid": movie.get("id")
+            } for movie in subscriber.get_subscribe_movies().values() if movie.get("tmdbid")
+        ]
+    
+    rss_tvs = []
+
     # 电视剧订阅
-    rss_tv_items = web_action.get_tv_rss_items().get("result")
+    rss_tv_items = [
+        {
+            "id": tv.get("tmdbid"),
+            "rssid": tv.get("id"),
+            "season": int(str(tv.get('season')).replace("S", "")),
+            "name": tv.get("name"),
+        } for tv in subscriber.get_subscribe_tvs().values() if tv.get('season') and tv.get("tmdbid")
+    ]
+
+    # 自定义订阅
+    rss_tv_items += RssChecker().get_userrss_mediainfos()
+
+    # 电视剧订阅去重
+    Uniques = set()
+    for item in rss_tv_items:
+        unique = f"{item.get('id')}_{item.get('season')}"
+        if unique not in Uniques:
+            Uniques.add(unique)
+            rss_tvs.append(item)
 
     return response(data=
         {
-            "RssMovieItems": rss_movie_items,
-            "RssTvItems": rss_tv_items,
+            "RssMovieItems": rss_movies,
+            "RssTvItems": rss_tvs,
         })
 
 
@@ -381,7 +468,7 @@ async def sitelist_page():
 
 # 媒体库页面
 @data_router.post("/library")
-async def library(current_user = Depends(get_current_user)):
+async def library():
     rmt_mode_dict = get_rmt_modes_dict()
     scraper_conf = SystemConfig().get(SystemConfigKey.UserScraperConf) or {}
     return response(data=
@@ -420,15 +507,18 @@ async def notification():
 
 # 用户管理页面
 @data_router.post("/users")
-async def users(current_user = Depends(get_current_user)):
+async def users(current_user: User = Depends(get_current_user)):
 
     users = []
     top_menus = []
     
     if current_user.admin:
-        web_action = WebAction(current_user)
-        users = web_action.get_users().get("result")
-        top_menus = web_action.get_top_menus().get("menus")
+        users = []
+        user_list = UserManager().get_users()
+        for user in user_list:
+            pris = str(user.pris).split(",")
+            users.append({"id": user.id, "name": user.username, "pris": pris})
+        top_menus = current_user.get_topmenus()
 
     return response(data=
         {
@@ -439,7 +529,7 @@ async def users(current_user = Depends(get_current_user)):
 
 # 过滤规则设置页面
 @data_router.post("/filterrule")
-async def filterrule(current_user = Depends(get_current_user)):
+async def filterrule():
 
     _filter = Filter()
     rule_groups = _filter.get_rule_infos()
@@ -454,7 +544,7 @@ async def filterrule(current_user = Depends(get_current_user)):
 
 # 目录同步页面
 @data_router.post("/directorysync")
-async def directorysync(current_user = Depends(get_current_user)):
+async def directorysync():
     rmt_mode_dict = get_rmt_modes_dict()
     sync_paths = Sync().get_sync_path_conf()
     return response(data=
@@ -466,8 +556,8 @@ async def directorysync(current_user = Depends(get_current_user)):
 
 # 自定义识别词设置页面
 @data_router.post("/customwords")
-async def customwords(current_user = Depends(get_current_user)):
-    groups = WebAction(current_user).get_customwords().get("result")
+async def customwords():
+    groups = WordsHelper().get_customwords_groups()
     return response(data=
         {
             "Groups": groups,
@@ -477,7 +567,7 @@ async def customwords(current_user = Depends(get_current_user)):
 
 # 插件页面
 @data_router.post("/plugin")
-async def plugin(current_user = Depends(get_current_user)):
+async def plugin(current_user: User = Depends(get_current_user)):
 
     # 插件
     plugins = PluginManager().get_plugins_conf(current_user.level)
@@ -494,8 +584,10 @@ async def user_rss():
     """
     用户RSS页面
     """
-    rss_tasks = RssChecker().get_rsstask_info()
-    rss_parsers = RssChecker().get_userrss_parser()
+    _rss_checker = RssChecker()
+    rss_tasks = _rss_checker.get_rsstask_info()
+    rss_parsers = _rss_checker.get_userrss_parser()
+
     rule_groups = {str(group["id"]): group["name"] for group in Filter().get_rule_groups()}
     download_settings = {did: attr["name"] for did, attr in Downloader().get_download_setting().items()}
     restype_dict = ModuleConf.TORRENT_SEARCH_PARAMS.get("restype")
@@ -520,12 +612,8 @@ async def service(current_user: User = Depends(get_current_user)):
     """
     服务页面
     """
-    # 所有规则组
-    rule_groups = Filter().get_rule_groups()
-    # 所有同步目录
-    sync_paths = Sync().get_sync_path_conf()
 
-    # 获取用户服务（get_current_user_required已经保证current_user不为空）
+    # 获取用户服务
     service_list = current_user.get_services()
     pt_config = Config().get_config('pt')
 
@@ -563,7 +651,7 @@ async def service(current_user: User = Depends(get_current_user)):
     if "pttransfer" in service_list:
         pt_monitor = Downloader().monitor_downloader_ids
         if pt_monitor:
-            tim_pttransfer = str(round(Constants.PT_TRANSFER_INTERVAL / 60)) + " 分钟"
+            tim_pttransfer = str(round(PT_TRANSFER_INTERVAL / 60)) + " 分钟"
             sta_pttransfer = 'ON'
         else:
             tim_pttransfer = ""
@@ -583,6 +671,11 @@ async def service(current_user: User = Depends(get_current_user)):
         if not SystemUtils.is_docker() or not SystemUtils.get_all_processes():
             service_list.pop('processes')
 
+    # 所有规则组
+    rule_groups = Filter().get_rule_groups()
+    # 所有同步目录
+    sync_paths = Sync().get_sync_path_conf()
+
     return response(data=
         {
             "ruleGroups": rule_groups,
@@ -594,20 +687,25 @@ async def service(current_user: User = Depends(get_current_user)):
 
 # 下载器
 @data_router.post("/downloaders")
-async def downloading(current_user: User = Depends(get_current_user)):
+async def downloading():
     """
     正在下载页面
     """
-    web_action = WebAction(current_user)
-    rmt_mode_dict = get_rmt_modes_dict()
 
     # 下载器
     download_manager = Downloader()
     default_downloader = download_manager.default_downloader_id
     downloader_confs = download_manager.get_downloader_conf()
+
+    # 目录配置
+    category_manager = Category()
     categories = {
-        x: web_action.get_categories({ "type": x }).get("category") for x in ["电影", "电视剧", "动漫"]
+        "电影" : category_manager.movie_categorys,
+        "电视剧": category_manager.tv_categorys,
+        "动漫": category_manager.anime_categorys
     }
+
+    rmt_mode_dict = get_rmt_modes_dict()
 
     return response(data=
         {
@@ -690,10 +788,10 @@ async def statistics(current_user: User = Depends(get_current_user)):
     SiteErrs = {}
 
     # 站点用户数据
-    SiteUserStatistics = WebAction(current_user).get_site_user_statistics({"encoding": "DICT"}).get("data")
+    site_user_statistics = SitesDataStatisticsCenter().get_site_user_statistics(encoding= "DICT")
     
     # 站点上传下载总量
-    for site_item in SiteUserStatistics:
+    for site_item in site_user_statistics:
 
         name = site_item.get('site')
         if not name:
@@ -730,7 +828,7 @@ async def statistics(current_user: User = Depends(get_current_user)):
             "SiteRatios": SiteRatios,
             "SiteNames": SiteNames,
             "SiteErr": SiteErrs,
-            "SiteUserStatistics": SiteUserStatistics,
+            "SiteUserStatistics": site_user_statistics,
         }
     )
 
@@ -742,18 +840,18 @@ async def brushtask():
     刷流任务页面
     """
     # 站点列表
-    CfgSites = SitesManager().get_sites(brush=True)
+    config_sites = SitesManager().get_sites(brush=True)
     # 下载器列表
-    Downloaders = Downloader().get_downloader_conf_simple()
+    downloaders = Downloader().get_downloader_conf_simple()
     # 任务列表
-    Tasks = BrushTask().get_brushtask_info()
+    brush_tasks = BrushTask().get_brushtask_info()
 
     return response(data=
         {
-            "Count": len(Tasks),
-            "Sites": CfgSites,
-            "Tasks": list(Tasks) if Tasks else [],
-            "Downloaders": dict(Downloaders) if Downloaders else {},
+            "Count": len(brush_tasks),
+            "Sites": config_sites,
+            "Tasks": list(brush_tasks) if brush_tasks else [],
+            "Downloaders": dict(downloaders) if downloaders else {},
         }
     )
 
@@ -764,12 +862,12 @@ async def rss_parser():
     """
     RSS解析器页面
     """
-    RssParsers = RssChecker().get_userrss_parser()
+    rss_parsers = RssChecker().get_userrss_parser()
 
     return response(data=
         {
-            "RssParsers": RssParsers,
-            "Count": len(RssParsers),
+            "RssParsers": rss_parsers,
+            "Count": len(rss_parsers),
         }
     )
 
@@ -780,31 +878,15 @@ async def torrent_remove():
     """
     自动删种页面
     """
-    Downloaders = Downloader().get_downloader_conf_simple()
-    TorrentRemoveTasks = TorrentRemover().get_torrent_remove_tasks()
+    downloaders = Downloader().get_downloader_conf_simple()
+    torrent_remove_tasks = TorrentRemover().get_torrent_remove_tasks()
 
     return response(data=
         {
-            "Downloaders": dict(Downloaders) if Downloaders else {},
+            "Downloaders": dict(downloaders) if downloaders else {},
             "DownloaderConfig": ModuleConf.TORRENTREMOVER_DICT,
-            "Count": len(TorrentRemoveTasks) if TorrentRemoveTasks else 0,
-            "TorrentRemoveTasks": dict(TorrentRemoveTasks) if TorrentRemoveTasks else {},
-        }
-    )
-
-
-# 近期下载页面
-@data_router.post("/downloaded")
-async def downloaded(request: Request):
-
-    data = await request.json()
-    CurrentPage = data.get("page") or 1
-
-    return response(data=
-        {
-            "Type": 'DOWNLOADED',
-            "Title": '近期下载',
-            "CurrentPage": CurrentPage,
+            "Count": len(torrent_remove_tasks) if torrent_remove_tasks else 0,
+            "TorrentRemoveTasks": dict(torrent_remove_tasks) if torrent_remove_tasks else {},
         }
     )
 
@@ -815,87 +897,18 @@ async def download_setting():
     """
     下载设置页面
     """
-    DefaultDownloadSetting = Downloader().default_download_setting_id
-    Downloaders = Downloader().get_downloader_conf_simple()
-    DownloadSetting = Downloader().get_download_setting()
+    default_download_setting_id = Downloader().default_download_setting_id
+    downloaders = Downloader().get_downloader_conf_simple()
+    download_setting = Downloader().get_download_setting()
 
     return response(data=
         {
-            "DownloadSetting": dict(DownloadSetting) if DownloadSetting else {},
-            "DefaultDownloadSetting": DefaultDownloadSetting,
-            "Downloaders": dict(Downloaders) if Downloaders else {},
-            "Count": len(DownloadSetting) if DownloadSetting else 0,
+            "DownloadSetting": dict(download_setting) if download_setting else {},
+            "DefaultDownloadSetting": default_download_setting_id,
+            "Downloaders": dict(downloaders) if downloaders else {},
+            "Count": len(download_setting) if download_setting else 0,
         }
     )
-
-
-# 豆瓣电影
-@data_router.post("/douban_movie")
-async def douban_movie():
-    """
-    豆瓣电影页面
-    """
-    return response(data=
-        {
-            "Type": "DOUBANTAG",
-            "SubType": "MOV",
-            "Title": "豆瓣电影",
-            "Filter": "douban_movie",
-            "FilterConf": ModuleConf.DISCOVER_FILTER_CONF.get('douban_movie'),
-        }
-    )
-
-
-# 豆瓣电视剧
-@data_router.post("/douban_tv")
-async def douban_tv():
-    """
-    豆瓣电视剧页面
-    """
-    return response(data=
-        {
-            "Type": "DOUBANTAG",
-            "SubType": "TV",
-            "Title": "豆瓣剧集",
-            "Filter": "douban_tv",
-            "FilterConf": ModuleConf.DISCOVER_FILTER_CONF.get('douban_tv'),
-        }
-    )
-
-
-# TMDB电影
-@data_router.post("/tmdb_movie")
-async def tmdb_movie():
-    """
-    TMDB电影页面
-    """
-    return response(data=
-        {
-            "Type": "DISCOVER",
-            "SubType": "MOV",
-            "Title": "TMDB电影",
-            "Filter": "tmdb_movie",
-            "FilterConf": ModuleConf.DISCOVER_FILTER_CONF.get('tmdb_movie'),
-        }
-    )
-
-
-# TMDB电视剧
-@data_router.post("/tmdb_tv")
-async def tmdb_tv():
-    """
-    TMDB电视剧页面
-    """
-    return response(data=
-        {
-            "Type": "DISCOVER",
-            "SubType": "TV",
-            "Title": "TMDB剧集",
-            "Filter": "tmdb_tv",
-            "FilterConf": ModuleConf.DISCOVER_FILTER_CONF.get('tmdb_tv'),
-        }
-    )
-
 
 # TMDB缓存页面
 @data_router.post("/tmdbcache")
@@ -929,31 +942,17 @@ async def tmdbcache(request: Request):
     )
 
 
-# 字幕页面
-@data_router.post("/subtitle")
-async def subtitle():
-    """
-    字幕页面
-    """
-    SubtitleSites = SystemConfig().get(SystemConfigKey.UserSubtitleSites) or []
-    return response(data=
-        {
-            "SubtitleSites": SubtitleSites,
-        }
-    )
-
-
 # 历史记录页面
 @data_router.post("/history")
-async def history(request: Request, current_user: User = Depends(get_current_user)):
+async def history(request: Request):
     """
     历史记录页面
     """
     data = await request.json()
 
-    page_num = data.get("pagenum")
-    if not page_num:
-        page_num = 20
+    page_size = data.get("pagenum")
+    if not page_size:
+        page_size = 20
 
     search_str = data.get("s")
     if not search_str:
@@ -965,24 +964,39 @@ async def history(request: Request, current_user: User = Depends(get_current_use
     else:
         current_page = int(current_page)
 
-    Result = WebAction(current_user).get_transfer_history(search_str, current_page, page_num)
+    # 查询
+    total_count, historys = FileTransfer().get_transfer_history(search_str, current_page, page_size)
+    # 结果转换
+    historys_list = []
+    for history in historys:
+        history = history.as_dict()
+        sync_mode = history.get("MODE")
+        rmt_mode = ModuleConf.get_dictenum_key(
+            ModuleConf.RMT_MODES, sync_mode) if sync_mode else ""
+        history.update({
+            "SYNC_MODE": sync_mode,
+            "RMT_MODE": rmt_mode
+        })
+        historys_list.append(history)
+
+    total_page = floor(total_count / page_size) + 1
 
     return response(data=
         {
-            "TotalCount": Result.get("total"),
-            "Count": len(Result.get("result")),
-            "Historys": Result.get("result"),
             "Search": search_str,
-            "CurrentPage": Result.get("currentPage"),
-            "TotalPage": Result.get("totalPage"),
-            "PageNum": Result.get("currentPage"),
+            "TotalCount": total_count,
+            "Count": len(historys_list),
+            "Historys": historys_list,
+            "CurrentPage": current_page,
+            "TotalPage": total_page,
+            "PageNum": current_page,
         }
     )
 
 
 # 手工识别页面
 @data_router.post("/unidentification")
-async def unidentification(request: Request, current_user: User = Depends(get_current_user)):
+async def unidentification(request: Request):
     """
     手工识别页面
     """
@@ -1002,17 +1016,38 @@ async def unidentification(request: Request, current_user: User = Depends(get_cu
     else:
         current_page = int(current_page)
 
-    Result = WebAction(current_user).get_unknown_list_by_page(search_str, current_page, page_num)
+    # 查询
+    total_count, db_records = FileTransfer().get_transfer_unknown_paths_by_page(search_str, current_page, page_num)
+    # 结果转换
+    unknown_items = []
+    for rec in db_records:
+        if not rec.PATH:
+            continue
+        path = rec.PATH.replace("\\", "/") if rec.PATH else ""
+        path_to = rec.DEST.replace("\\", "/") if rec.DEST else ""
+        sync_mode = rec.MODE or ""
+        rmt_mode = ModuleConf.get_dictenum_key(ModuleConf.RMT_MODES,
+                                               sync_mode) if sync_mode else ""
+        unknown_items.append({
+            "id": rec.ID,
+            "path": path,
+            "to": path_to,
+            "name": path,
+            "sync_mode": sync_mode,
+            "rmt_mode": rmt_mode,
+        })
+
+    total_page = floor(total_count / page_num) + 1
 
     return response(data=
         {
-            "TotalCount": Result.get("total"),
-            "Count": len(Result.get("items")),
-            "Items": Result.get("items"),
+            "TotalCount": total_count,
+            "Count": len(unknown_items),
+            "Items": unknown_items,
             "Search": search_str,
-            "CurrentPage": Result.get("currentPage"),
-            "TotalPage": Result.get("totalPage"),
-            "PageNum": Result.get("currentPage"),
+            "CurrentPage": current_page,
+            "TotalPage": total_page,
+            "PageNum": current_page,
         }
     )
 

@@ -21,7 +21,16 @@ from app.utils.types import MediaType
 class StringUtils:
 
     chinese_to_digit = {
-        "零": 0, "一": 1, "二": 2, "三": 3, "四": 4, "五": 5, "六": 6, "七": 7, "八": 8, "九": 9
+        "零": 0, 
+        "一": 1, 
+        "二": 2, 
+        "三": 3, 
+        "四": 4, 
+        "五": 5, 
+        "六": 6, 
+        "七": 7, 
+        "八": 8, 
+        "九": 9
     }
 
     @staticmethod
@@ -73,6 +82,21 @@ class StringUtils:
         else:
             b, u = d[index]
         return str(round(time_sec / (b + 1))) + u
+
+    @staticmethod
+    def number_to_cn(an_input):
+        """
+        阿拉伯数字转中文数字
+        """
+        return cn2an.an2cn(an_input, "low")
+    
+    @staticmethod
+    def cn_to_number(cn_input) -> int:
+        """
+        中文数字转阿拉伯数字
+        """
+        an_str = cn2an.cn2an(cn_input, mode='smart')
+        return int(an_str)
 
     @staticmethod
     def contain_chinese(word):
@@ -308,11 +332,11 @@ class StringUtils:
         season_re = re.search(r"第\s*([0-9一二三四五六七八九十]+)\s*季", content, re.IGNORECASE)
         if season_re:
             mtype = MediaType.TV
-            season_num = int(cn2an.cn2an(season_re.group(1), mode='smart'))
+            season_num = StringUtils.cn_to_number(season_re.group(1))
         episode_re = re.search(r"第\s*([0-9一二三四五六七八九十百零]+)\s*集", content, re.IGNORECASE)
         if episode_re:
             mtype = MediaType.TV
-            episode_num = int(cn2an.cn2an(episode_re.group(1), mode='smart'))
+            episode_num = StringUtils.cn_to_number(episode_re.group(1))
             if episode_num and not season_num:
                 season_num = 1
         year_re = re.search(r"[\s(]+(\d{4})[\s)]*", content)
