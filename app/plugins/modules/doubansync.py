@@ -13,7 +13,7 @@ from app.media.media import Media
 from app.media.meta import MetaInfo
 from app.plugins import EventHandler
 from app.plugins.modules._base import _IPluginModule
-from app.modules.searcher import Searcher
+from app.modules.search import SearchProxy
 from app.modules.subscribe import Subscribe
 from app.utils.types import SearchType, RssType, EventType, MediaType
 
@@ -69,7 +69,7 @@ class DoubanSync(_IPluginModule):
     _seconds_job = None
 
     def init_config(self, config: dict = None):
-        self.searcher = Searcher()
+        self.searcher = SearchProxy()
         self.downloader = Downloader()
         self.subscribe = Subscribe()
         if config:
@@ -474,7 +474,7 @@ class DoubanSync(_IPluginModule):
                                 continue
                             if not self._auto_rss:
                                 # 开始搜索
-                                search_result, no_exists, search_count, download_count = self.searcher.search_one_media(
+                                search_result, no_exists, search_count, download_count = self.searcher.search_one_torrent(
                                     media_info=media_info,
                                     in_from=SearchType.DB,
                                     no_exists=no_exists,

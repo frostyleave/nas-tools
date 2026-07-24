@@ -149,12 +149,11 @@ async def wechat_post(request: Request):
 
         if content:
             log.info(f"收到微信消息: userid={user_id}, text={content}")
-            CommandHandler().handle_message_job(
-                msg=content,
-                in_from=SearchType.WX,
-                user_id=user_id,
-                user_name=user_id,
-                client_id = str(agent_client.get("id"))
+            CommandHandler().handle_message_job(msg=content,
+                                                in_from=SearchType.WX,
+                                                user_id=user_id,
+                                                user_name=user_id,
+                                                client_id = str(agent_client.get("id"))
             )
 
         return Response(content=content, status_code=200)

@@ -1,10 +1,6 @@
-from typing import List
+from typing import List, Tuple
 
-import log
-
-from app.db.models import SEARCHRESULTINFO
-from app.downloader import Downloader
-
+from app.core.task_manager import GlobalTaskManager
 from app.helper import DbHelper
 from app.media import Media
 from app.media.meta.metainfo import MetaInfo
@@ -12,6 +8,7 @@ from app.message import Message
 from app.indexer import Indexer
 from app.plugins import EventManager
 from app.utils.commons import singleton
+from app.utils.constants import Constants
 from app.utils.types import SearchType
 
 from config import Config
@@ -19,34 +16,32 @@ from config import Config
 
 @singleton
 class Searcher:
-    downloader = None
+    """
+    资源搜索器
+    """
     media = None
     message = None
     indexer = None
     progress = None
     dbhelper = None
-    eventmanager = None
-
-    _search_auto = True
 
     def __init__(self):
         self.init_config()
 
     def init_config(self):
-        self.downloader = Downloader()
         self.media = Media()
         self.message = Message()
         self.dbhelper = DbHelper()
         self.indexer = Indexer()
-        self.eventmanager = EventManager()
-        self._search_auto = Config().get_config("pt").get('search_auto', True)
 
-    def search_medias(self,
-                      key_word: str,
-                      filter_args: dict,
-                      match_media=None,
-                      in_from: SearchType = None,
-                      task_id=None) -> List[MetaInfo]:
+    def search_torrents(self,
+                        key_word: str,
+                        filter_args: dict,
+                        match_media=None,
+                        in_from: SearchType = None,
+                        search_theme: str = None,
+                        task_id=None,
+                        ident_flag:bool=False) -> List[MetaInfo]:
         """
         根据关键字调用索引器检查媒体
         :param key_word: 搜索的关键字，不能为空
@@ -60,102 +55,76 @@ class Searcher:
         if not self.indexer:
             return []
 
-        return self.indexer.search_by_keyword(key_word, filter_args, match_media, in_from, task_id)
+        if task_id:
+            GlobalTaskManager().update_task(task_id=task_id, progress=1, message="开始搜索 %s ..." % search_theme)
 
-    def search_one_media(self, 
-                         media_info,
-                         in_from: SearchType,
-                         no_exists: dict,
-                         sites: list = None,
-                         filters: dict = None,
-                         user_name=None):
-        """
-        只搜索和下载一个资源，用于精确搜索下载，由微信、Telegram或豆瓣调用
-        :param media_info: 已识别的媒体信息
-        :param in_from: 搜索渠道
-        :param no_exists: 缺失的剧集清单
-        :param sites: 搜索哪些站点
-        :param filters: 过滤条件，为空则不过滤
-        :param user_name: 用户名
-        :return: 请求的资源是否全部下载完整，如完整则返回媒体信息
-                 请求的资源如果是剧集则返回下载后仍然缺失的季集信息
-                 搜索到的结果数量
-                 下载到的结果数量，如为None则表示未开启自动下载
-        """
-        if not media_info:
-            return None, {}, 0, 0
+        torrent_list = self.indexer.search_by_keyword(key_word, filter_args, match_media, in_from, task_id)
 
-        # 查找的季
-        if media_info.begin_season is None:
-            search_season = None
-        else:
-            search_season = media_info.get_season_list()
-        # 查找的集
-        search_episode = media_info.get_episode_list()
-        if search_episode and not search_season:
-            search_season = [1]
-        # 过滤条件
-        filter_args = {"season": search_season,
-                       "episode": search_episode,
-                       "year": media_info.year,
-                       "type": media_info.type,
-                       "site": sites,
-                       "seeders": True}
-        if filters:
-            filter_args.update(filters)
-        if media_info.keyword:
-            # 直接使用搜索词搜索
-            search_name = media_info.keyword
-        else:
-            # 中文名
-            if media_info.cn_name:
-                search_name = media_info.cn_name
-            else:
-                search_name = media_info.title
+        # 清空上次结果
+        self.delete_all_search_torrents()
+        # 排序, 入库
+        if torrent_list and (in_from == SearchType.WEB or in_from in self.message.get_search_types()):
+            # 排序
+            torrent_list = sorted(torrent_list, key=lambda x: x.get_sort_str(), reverse=True)
+            # 插入数据库
+            self.insert_search_results(media_items=torrent_list, ident_flag=ident_flag, title=search_theme)
 
-        # 开始搜索
-        log.info("【Searcher】开始搜索 %s ..." % search_name)
-        media_list = self.search_medias(search_name, filter_args, media_info, in_from)
+        # 结束进度
+        if task_id:
+            GlobalTaskManager().finish_task(task_id=task_id, message="搜索完成", result=len(torrent_list))
 
-        if len(media_list) == 0:
-            log.info("【Searcher】 未搜索到任何资源")
-            return None, no_exists, 0, 0
-        else:
-            if in_from in self.message.get_search_types():
-                # 保存搜索记录
-                self.delete_all_search_torrents()
-                # 搜索结果排序
-                media_list = sorted(media_list, key=lambda x: x.get_sort_str(), reverse=True)
-                # 插入数据库
-                self.insert_search_results(media_list)
-                # 微信未开自动下载时返回
-                if not self._search_auto:
-                    return None, no_exists, len(media_list), None
-            # 择优下载
-            download_items, left_medias = self.downloader.batch_download(in_from=in_from,
-                                                                         media_list=media_list,
-                                                                         need_tvs=no_exists,
-                                                                         user_name=user_name)
-            # 统计下载情况，下全了返回True，没下全返回False
-            if not download_items:
-                log.info("【Searcher】%s 未下载到资源" % media_info.title)
-                return None, left_medias, len(media_list), 0
-            else:
-                log.info("【Searcher】实际下载了 %s 个资源" % len(download_items))
-                # 还有剩下的缺失，说明没下完，返回False
-                if left_medias:
-                    return None, left_medias, len(media_list), len(download_items)
-                # 全部下完了
-                else:
-                    return download_items[0], no_exists, len(media_list), len(download_items)
+        return torrent_list
 
-    def get_search_result_by_id(self, dl_id) -> List[SEARCHRESULTINFO]:
+
+    def get_search_result_info_by_id(self, res_id) -> Tuple[MetaInfo, str]:
         """
         根据下载ID获取搜索结果
-        :param dl_id: 下载ID
+        :param res_id: 下载ID
         :return: 搜索结果
         """
-        return self.dbhelper.get_search_result_by_id(dl_id)
+
+        if not res_id:
+            return None, '搜索结果查询失败, 结果id为空'
+
+        results = self.dbhelper.get_search_result_by_id(res_id)
+        if not results:
+            return None, '搜索结果查询失败, 请刷新页面后重试'
+
+        # 结果只会有1个
+        resource_info = results[0]
+
+        # 搜索结果没有被识别
+        if not resource_info.TMDBID or resource_info.TMDBID == '0':
+            # 根据名称和描述信息识别资源
+            media_info = self.media.get_media_info(title=resource_info.TORRENT_NAME, subtitle=resource_info.DESCRIPTION)
+            if not media_info:
+                return None, '无法识别该资源'
+            
+            # 更新tmdb_id
+            if media_info.tmdb_id:
+                self.dbhelper.update_search_results_date(resource_info.ID, media_info.tmdb_id)
+        else:
+            # 搜索结果已被识别
+            mtype = Constants.MEDIA_TYPE_MAP.get(resource_info.TYPE, None)
+            # 查询TMDB详情
+            info = self.media.get_tmdb_info(tmdbid=resource_info.TMDBID, mtype=mtype, append_to_response="all")
+            if not info:
+                return None, '查询TMDB详情失败'
+            
+            media_info = MetaInfo(f'{resource_info.TITLE} {resource_info.ES_STRING}')
+            media_info.year = resource_info.YEAR
+            media_info.org_string = resource_info.TORRENT_NAME
+            media_info.set_tmdb_info(info)
+
+        # 结果组装
+        media_info.set_torrent_info(enclosure=resource_info.ENCLOSURE,
+                                    size=resource_info.SIZE,
+                                    site=resource_info.SITE,
+                                    page_url=resource_info.PAGEURL,
+                                    upload_volume_factor=float(resource_info.UPLOAD_VOLUME_FACTOR),
+                                    download_volume_factor=float(resource_info.DOWNLOAD_VOLUME_FACTOR))
+
+        return media_info, ''
 
     def get_search_results(self):
         """

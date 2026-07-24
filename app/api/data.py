@@ -49,7 +49,7 @@ data_router = APIRouter(
 # 异常捕获器
 def router_exception_handler(router: APIRouter):
     """
-    给整个 APIRouter 加统一异常捕获
+    统一异常捕获器
     """
     for route in router.routes:
         original_endpoint = route.endpoint
@@ -69,7 +69,6 @@ def router_exception_handler(router: APIRouter):
 
         route.endpoint = make_wrapped(original_endpoint)
 
-
 # 统一的返回函数
 def response(code: int = 0, msg: str = "success", data=None, status_code: int = 200):
     return JSONResponse(
@@ -80,15 +79,6 @@ def response(code: int = 0, msg: str = "success", data=None, status_code: int = 
         }),
         status_code=status_code
     )
-
-# 查询转移模式字典
-def get_rmt_modes_dict():
-    rmt_modes = ModuleConf.RMT_MODES
-    return [{
-        "value": value,
-        "name": name.value
-    } for value, name in rmt_modes.items()]
-
 
 # userinfo
 @data_router.post("/userinfo")
@@ -122,7 +112,7 @@ async def sysinfo(current_user: User = Depends(get_current_user)):
     pulgins = [{"id": item.get("cmd"), "name": item.get("desc")} for item in PluginManager().get_plugin_commands()]
     commands = commands + pulgins
 
-    rmt_mode_dict = get_rmt_modes_dict()
+    rmt_mode_dict = _get_rmt_modes_dict()
 
     download_settings = {did: attr["name"] for did, attr in Downloader().get_download_setting().items()}
     source_types = { "MOVIE":'电影', "TV":'剧集', "ANIME":'动漫' }
@@ -170,65 +160,12 @@ async def basic():
     )
 
 
-def get_library_spacesize():
-    """
-    查询媒体库存储空间
-    """
-    # 磁盘空间
-    UsedSapce = 0
-    UsedPercent = 0
-
-    media_config = Config().get_config('media')
-    # 电影目录
-    movie_paths = media_config.get('movie_path')
-    if not isinstance(movie_paths, list):
-        movie_paths = [movie_paths]
-    # 电视目录
-    tv_paths = media_config.get('tv_path')
-    if not isinstance(tv_paths, list):
-        tv_paths = [tv_paths]
-    # 动漫目录
-    anime_paths = media_config.get('anime_path')
-    if not isinstance(anime_paths, list):
-        anime_paths = [anime_paths]
-
-    # 总空间、剩余空间
-    TotalSpace, FreeSpace = SystemUtils.calculate_space_usage(movie_paths + tv_paths + anime_paths)
-    if TotalSpace:
-        # 已使用空间
-        UsedSapce = TotalSpace - FreeSpace
-        # 百分比格式化
-        UsedPercent = "%0.1f" % ((UsedSapce / TotalSpace) * 100)
-        # 总剩余空间 格式化
-        if FreeSpace > 1024:
-            FreeSpace = "{:,} TB".format(round(FreeSpace / 1024, 2))
-        else:
-            FreeSpace = "{:,} GB".format(round(FreeSpace, 2))
-        # 总使用空间 格式化
-        if UsedSapce > 1024:
-            UsedSapce = "{:,} TB".format(round(UsedSapce / 1024, 2))
-        else:
-            UsedSapce = "{:,} GB".format(round(UsedSapce, 2))
-        # 总空间 格式化
-        if TotalSpace > 1024:
-            TotalSpace = "{:,} TB".format(round(TotalSpace / 1024, 2))
-        else:
-            TotalSpace = "{:,} GB".format(round(TotalSpace, 2))
-
-    return {
-        "UsedPercent": UsedPercent,
-        "FreeSpace": FreeSpace,
-        "UsedSapce": UsedSapce,
-        "TotalSpace": TotalSpace
-    }
-
-
 # 开始页面
 @data_router.post("/index")
 async def index():
 
     # 磁盘空间
-    library_spaces = get_library_spacesize()
+    library_spaces = _get_library_spacesize()
     # 媒体库配置
     library_sync_conf = SystemConfig().get(SystemConfigKey.SyncLibrary) or []
     # 媒体服务器类型
@@ -280,7 +217,7 @@ async def index():
 @data_router.post("/search")
 async def search():
 
-    res = SearchProxy().get_search_result()
+    res = SearchProxy().get_torrent_search_result()
     search_results = res.get("result")
     count = res.get("total")
 
@@ -469,7 +406,7 @@ async def sitelist_page():
 # 媒体库页面
 @data_router.post("/library")
 async def library():
-    rmt_mode_dict = get_rmt_modes_dict()
+    rmt_mode_dict = _get_rmt_modes_dict()
     scraper_conf = SystemConfig().get(SystemConfigKey.UserScraperConf) or {}
     return response(data=
         {
@@ -545,7 +482,7 @@ async def filterrule():
 # 目录同步页面
 @data_router.post("/directorysync")
 async def directorysync():
-    rmt_mode_dict = get_rmt_modes_dict()
+    rmt_mode_dict = _get_rmt_modes_dict()
     sync_paths = Sync().get_sync_path_conf()
     return response(data=
         {
@@ -705,7 +642,7 @@ async def downloading():
         "动漫": category_manager.anime_categorys
     }
 
-    rmt_mode_dict = get_rmt_modes_dict()
+    rmt_mode_dict = _get_rmt_modes_dict()
 
     return response(data=
         {
@@ -1050,6 +987,71 @@ async def unidentification(request: Request):
             "PageNum": current_page,
         }
     )
+
+
+# 查询转移模式字典
+def _get_rmt_modes_dict():
+    rmt_modes = ModuleConf.RMT_MODES
+    return [{
+        "value": value,
+        "name": name.value
+    } for value, name in rmt_modes.items()]
+
+
+def _get_library_spacesize():
+    """
+    查询媒体库存储空间
+    """
+    # 磁盘空间
+    used_sapce = 0
+    used_percent = 0
+
+    media_config = Config().get_config('media')
+    # 电影目录
+    movie_paths = media_config.get('movie_path')
+    if not isinstance(movie_paths, list):
+        movie_paths = [movie_paths]
+
+    # 电视目录
+    tv_paths = media_config.get('tv_path')
+    if not isinstance(tv_paths, list):
+        tv_paths = [tv_paths]
+
+    # 动漫目录
+    anime_paths = media_config.get('anime_path')
+    if not isinstance(anime_paths, list):
+        anime_paths = [anime_paths]
+
+    # 总空间、剩余空间
+    total_space, free_space = SystemUtils.calculate_space_usage(movie_paths + tv_paths + anime_paths)
+    if total_space:
+        # 已使用空间
+        used_sapce = total_space - free_space
+        # 百分比格式化
+        used_percent = "%0.1f" % ((used_sapce / total_space) * 100)
+        # 总剩余空间 格式化
+        if free_space > 1024:
+            free_space = "{:,} TB".format(round(free_space / 1024, 2))
+        else:
+            free_space = "{:,} GB".format(round(free_space, 2))
+        # 总使用空间 格式化
+        if used_sapce > 1024:
+            used_sapce = "{:,} TB".format(round(used_sapce / 1024, 2))
+        else:
+            used_sapce = "{:,} GB".format(round(used_sapce, 2))
+        # 总空间 格式化
+        if total_space > 1024:
+            total_space = "{:,} TB".format(round(total_space / 1024, 2))
+        else:
+            total_space = "{:,} GB".format(round(total_space, 2))
+
+    return {
+        "TotalSpace": total_space,
+        "UsedPercent": used_percent,
+        "FreeSpace": free_space,
+        "UsedSapce": used_sapce
+    }
+
 
 
 # 给这个 router 加异常捕获

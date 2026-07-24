@@ -546,24 +546,6 @@ class StringUtils:
         return '; '.join(['='.join(item) for item in cj.items()])
 
     @staticmethod
-    def get_idlist_from_string(content, dicts):
-        """
-        从字符串中提取id列表
-        :param content: 字符串
-        :param dicts: 字典
-        :return:
-        """
-        if not content:
-            return []
-        id_list = []
-        content_list = content.split()
-        for dic in dicts:
-            if dic.get('name') in content_list and dic.get('id') not in id_list:
-                id_list.append(dic.get('id'))
-                content = content.replace(dic.get('name'), '')
-        return id_list, re.sub(r'\s+', ' ', content).strip()
-
-    @staticmethod
     def str_title(s):
         """
         讲英文的首字母大写

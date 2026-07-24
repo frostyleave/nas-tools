@@ -1,4 +1,5 @@
 import json
+
 from threading import Lock
 
 import log
@@ -12,7 +13,7 @@ from app.media import Media
 from app.media.meta import MetaInfo
 from app.message import Message
 from app.plugins import EventManager
-from app.modules.searcher import Searcher
+from app.modules.search import SearchProxy
 from app.sites import SitesManager
 from app.utils import TorrentUtils
 from app.utils.commons import singleton
@@ -40,7 +41,7 @@ class Subscribe:
     def init_config(self):
         self.dbhelper = DbHelper()
         self.metahelper = MetaHelper()
-        self.searcher = Searcher()
+        self.searcher = SearchProxy()
         self.message = Message()
         self.media = Media()
         self.downloader = Downloader()
@@ -752,7 +753,7 @@ class Subscribe:
                     "exclude": rss_info.get('filter_exclude'),
                     "site": rss_info.get("search_sites")
                 }
-                search_result, _, _, _ = self.searcher.search_one_media(
+                search_result, _, _, _ = self.searcher.search_one_torrent(
                     media_info=media_info,
                     in_from=SearchType.RSS,
                     no_exists=no_exists,
@@ -880,11 +881,11 @@ class Subscribe:
                     "exclude": rss_info.get('filter_exclude'),
                     "site": rss_info.get("search_sites")
                 }
-                search_result, no_exists, _, _ = self.searcher.search_one_media(media_info=media_info,
-                                                                                in_from=SearchType.RSS,
-                                                                                no_exists=rss_no_exists,
-                                                                                sites=rss_info.get("search_sites"),
-                                                                                filters=filter_dict)
+                search_result, no_exists, _, _ = self.searcher.search_one_torrent(media_info=media_info,
+                                                                                  in_from=SearchType.RSS,
+                                                                                  no_exists=rss_no_exists,
+                                                                                  sites=rss_info.get("search_sites"),
+                                                                                  filters=filter_dict)
                 if search_result \
                         or not no_exists \
                         or not no_exists.get(media_info.tmdb_id):

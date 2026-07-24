@@ -398,7 +398,7 @@ class Filter:
         """
         查询初始过滤规则
         """
-        Init_RuleGroups = []
+        init_rule_groups = []
 
         sql_file = os.path.join(Config().get_script_path(), "init_filter.sql")
         with open(sql_file, "r", encoding="utf-8") as f:
@@ -423,7 +423,23 @@ class Filter:
                         rule_info['exclude'] = rule[5][1:-1]
                         rulegroup['rules'].append(rule_info)
                     rulegroup["sql"].append(sql_list[i + 1])
-                Init_RuleGroups.append(rulegroup)
+                init_rule_groups.append(rulegroup)
                 i = i + 2
 
-        return Init_RuleGroups
+        return init_rule_groups
+
+    def restore_filtergroup(self, groupids):
+        """
+        恢复初始规则组
+        """
+        init_rulegroups = self.get_init_filterrules()
+        for groupid in groupids:
+            try:
+                self.delete_filtergroup(groupid)
+            except Exception as err:
+                log.exception(f"[act]删除规则组{groupid}失败:")
+
+            for init_rulegroup in init_rulegroups:
+                if str(init_rulegroup.get("id")) == groupid:
+                    for sql in init_rulegroup.get("sql"):
+                        DbHelper().excute(sql)

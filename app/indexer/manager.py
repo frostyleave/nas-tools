@@ -248,3 +248,69 @@ class IndexerManager:
             result["pri"] = pri if pri else 0
 
         return result
+
+    def add_indexer(self, data: dict):
+        """
+        新增索引站点，操作DB并重载配置
+        """
+        extra_json = self.__build_extra_json(data)
+        DbHelper().add_indexer(
+            data.get('id'),
+            data.get('name'),
+            data.get('domain'),
+            data.get('proxy'),
+            data.get('render'),
+            data.get('source_type'),
+            data.get('search_type'),
+            data.get('search'),
+            data.get('torrents'),
+            data.get('browse'),
+            data.get('parser'),
+            data.get('category'),
+            data.get('public'),
+            extra_json
+        )
+        self.init_config()
+
+    def update_indexer(self, data: dict) -> bool:
+        """
+        更新索引站点，操作DB并重载配置
+        """
+        extra_json = self.__build_extra_json(data)
+        success = DbHelper().update_indexer(
+            data.get('id'),
+            data.get('domain'),
+            data.get('proxy'),
+            data.get('render'),
+            data.get('source_type'),
+            data.get('search_type'),
+            data.get('search'),
+            data.get('torrents'),
+            data.get('browse'),
+            data.get('parser'),
+            data.get('category'),
+            extra_json
+        )
+        if success:
+            self.init_config()
+        return success
+
+    def delete_indexer(self, siteid):
+        """
+        删除索引站点，操作DB并重载配置
+        """
+        DbHelper().delete_indexer(siteid)
+        self.init_config()
+
+    @staticmethod
+    def __build_extra_json(data: dict):
+        """
+        构建extra字段的JSON字符串
+        """
+        if data.get('downloader') is not None or data.get('en_expand') is not None:
+            extra_config = {
+                'downloader': data.get('downloader'),
+                'en_expand': data.get('en_expand')
+            }
+            return json.dumps(extra_config)
+        return None

@@ -16,7 +16,7 @@ from fastapi import APIRouter, BackgroundTasks, Body, Depends
 import log
 
 from app.conf import SystemConfig, ModuleConf
-from app.helper import DbHelper, ProgressHelper, ThreadHelper, MetaHelper, WordsHelper, RssHelper, FileHelper
+from app.helper import ProgressHelper, ThreadHelper, MetaHelper, WordsHelper, RssHelper, FileHelper
 from app.utils import StringUtils, EpisodeFormat, RequestUtils, PathUtils, SystemUtils, MediaUtils
 
 from app.core.cmd_handler import CommandHandler
@@ -95,7 +95,7 @@ def search(background_tasks: BackgroundTasks, data: dict = Body(...)):
 
         task_id = GlobalTaskManager().create_task()
 
-        background_tasks.add_task(SearchProxy().search_medias_for_web,
+        background_tasks.add_task(SearchProxy().search_torrents_from_web,
                                   content=search_word,
                                   ident_flag=ident_flag,
                                   filters=filters,
@@ -142,7 +142,6 @@ class WebAction:
             "del_site": self.__del_site,
             "restart": self.__restart,
             "update_system": self.update_system,
-            "reset_db_version": self.__reset_db_version,
             "logout": self.__logout,
             "update_config": self.__update_config,
             "update_directory": self.__update_directory,
@@ -462,12 +461,12 @@ class WebAction:
                 media_type = MediaType.TV
 
         if search_word:
-            ret, ret_msg = SearchProxy().search_medias_for_web(content=search_word,
-                                                 ident_flag=ident_flag,
-                                                 filters=filters,
-                                                 tmdbid=tmdbid,
-                                                 media_type=media_type,
-                                                 task_id=data.get("task_id"))
+            ret, ret_msg = SearchProxy().search_torrents_from_web(content=search_word,
+                                                                  ident_flag=ident_flag,
+                                                                  filters=filters,
+                                                                  tmdbid=tmdbid,
+                                                                  media_type=media_type,
+                                                                  task_id=data.get("task_id"))
             if ret != 0:
                 return {"code": ret, "msg": ret_msg}
         return {"code": 0}
@@ -476,52 +475,24 @@ class WebAction:
         """
         从WEB添加下载
         """
-        dl_id = data.get("id")
-        results = Searcher().get_search_result_by_id(dl_id)
 
-        if not results:
-            return {"retcode": -1, "retmsg": '搜索结果查询失败, 请刷新页面后重试'}
+        media_info, msg = Searcher().get_search_result_info_by_id(data.get("id"))
+
+        if not media_info:
+            return {"retcode": -1, "retmsg": msg }
 
         dl_dir = data.get("dir")
         dl_setting = data.get("setting")
 
-        # 结果只会有1个
-        res = results[0]
-
-        # 搜索结果没有被识别
-        if not res.TMDBID or res.TMDBID == '0':
-            media_info = Media().get_media_info(title=res.TORRENT_NAME, subtitle=res.DESCRIPTION)
-            if not media_info:
-                return {"retcode": -1, "retmsg": '无法识别该资源'}
-            # 更新tmdb_id
-            if media_info.tmdb_id:
-                DbHelper().update_search_results_date(res.ID, media_info.tmdb_id)
-        else:
-            # 搜索结果已被识别
-            mtype = Constants.MEDIA_TYPE_MAP.get(res.TYPE, None)
-            info = Media().get_tmdb_info(tmdbid=res.TMDBID, mtype=mtype, append_to_response="all")
-            if not info:
-                return {"retcode": -1, "retmsg": '查询TMDB详情失败'}
-            
-            media_info = MetaInfo(f'{res.TITLE} {res.ES_STRING}')
-            media_info.year = res.YEAR
-            media_info.org_string = res.TORRENT_NAME
-            media_info.set_tmdb_info(info)
-
-        media_info.set_torrent_info(enclosure=res.ENCLOSURE,
-                                    size=res.SIZE,
-                                    site=res.SITE,
-                                    page_url=res.PAGEURL,
-                                    upload_volume_factor=float(res.UPLOAD_VOLUME_FACTOR),
-                                    download_volume_factor=float(res.DOWNLOAD_VOLUME_FACTOR))
         # 添加下载
         _, ret, ret_msg = Downloader().download(media_info=media_info,
                                                 download_dir=dl_dir,
                                                 download_setting=dl_setting,
                                                 in_from=SearchType.WEB,
-                                                user_name="admin")
+                                                user_name=self._current_user.username)
         if not ret:
             return {"retcode": -1, "retmsg": ret_msg}
+        
         return {"retcode": 0, "retmsg": ""}
 
     def __download_link(self, data):
@@ -1074,22 +1045,10 @@ class WebAction:
             ServiceManager.restart_server()
         return {"code": 0}
 
-    def __reset_db_version(self):
-        """
-        重置数据库版本
-        """
-        try:
-            DbHelper().drop_table("alembic_version")
-            return {"code": 0}
-        except Exception as e:
-            log.exception("[act]重置数据库版本异常:")
-            return {"code": 1, "msg": str(e)}
-
     def __logout(self):
         """
         注销
         """
-        # 不再使用Flask的logout_user
         return {"code": 0}
 
     def __update_config(self, data):
@@ -1924,18 +1883,8 @@ class WebAction:
         恢复初始规则组
         """
         groupids = data.get("groupids")
-        _filter = Filter()
-
-        init_rulegroups = _filter.get_init_filterrules()
-        for groupid in groupids:
-            try:
-                _filter.delete_filtergroup(groupid)
-            except Exception as err:
-                log.exception(f"[act]删除规则组{groupid}失败:")
-            for init_rulegroup in init_rulegroups:
-                if str(init_rulegroup.get("id")) == groupid:
-                    for sql in init_rulegroup.get("sql"):
-                        DbHelper().excute(sql)
+        if groupids:
+            Filter().restore_filtergroup()
         return {"code": 0}
 
     def __set_default_filtergroup(self, data):
@@ -3885,46 +3834,6 @@ class WebAction:
             "episodes": episodes
         }
 
-    def get_user_menus(self):
-        """
-        查询用户菜单
-        """
-        # # 需要过滤的菜单
-        # ignore = []
-        # # 查询最早加入PT站的时间, 如果不足一个月, 则隐藏刷流任务
-        # first_pt_site = PtUserInfoCenter().get_pt_site_min_join_date()
-        # if not first_pt_site or not StringUtils.is_one_month_ago(first_pt_site):
-        #     ignore.append('brushtask')
-
-        if not self._current_user:
-            return {
-                "code": 0,
-                "menus": [],
-                "level": 0
-            }
-
-        menus = self._current_user.get_usermenus()
-        return {
-            "code": 0,
-            "menus": menus,
-            "level": self._current_user.level
-        }
-
-    def get_top_menus(self):
-        """
-        查询顶底菜单列表
-        """
-        if not self._current_user:
-            return {
-                "code": 0,
-                "menus": []
-            }
-
-        return {
-            "code": 0,
-            "menus": self._current_user.get_topmenus()
-        }
-
     def __update_downloader(self, data):
         """
         更新下载器
@@ -4040,65 +3949,21 @@ class WebAction:
         }
 
     def __add_indexer(self, data):
-
-        extra_json = None
-        if data.get('downloader') is not None or data.get('en_expand') is not None:
-            extra_config = {}
-            extra_config['downloader'] = data.get('downloader')
-            extra_config['en_expand'] = data.get('en_expand')
-            extra_json = json.dumps(extra_config)
-
-        DbHelper().add_indexer(
-            data.get('id'),
-            data.get('name'),
-            data.get('domain'),
-            data.get('proxy'),
-            data.get('render'),
-            data.get('source_type'),
-            data.get('search_type'),
-            data.get('search'),
-            data.get('torrents'),
-            data.get('browse'),
-            data.get('parser'),
-            data.get('category'),
-            data.get('public'),
-            extra_json
-        )
-        IndexerManager().init_config()
+        IndexerManager().add_indexer(data)
         return {"code": 0, "msg": "已插入"}
 
     def __update_indexer(self, data):
-
-        extra_json = None
-        if data.get('downloader') is not None or data.get('en_expand') is not None:
-            extra_config = {}
-            extra_config['downloader'] = data.get('downloader')
-            extra_config['en_expand'] = data.get('en_expand')
-            extra_json = json.dumps(extra_config)
-
-        success = DbHelper().update_indexer(
-            data.get('id'),
-            data.get('domain'),
-            data.get('proxy'),
-            data.get('render'),
-            data.get('source_type'),
-            data.get('search_type'),
-            data.get('search'),
-            data.get('torrents'),
-            data.get('browse'),
-            data.get('parser'),
-            data.get('category'),
-            extra_json
-        )
-        
+        success = IndexerManager().update_indexer(data)
         if success:
-            IndexerManager().init_config()
             return {"code": 0, "msg": "更新成功"}
         return {"code": 1, "msg": "更新失败，请检查"}
 
     def __delete_indexer(self, data):
-        DbHelper().delete_indexer(data.get('id'))
-        IndexerManager().init_config()
+        indexer_id = data.get('id')
+        if indexer_id is None:
+             return {"code": 1, "msg": "索引id为空"}
+        
+        IndexerManager().delete_indexer(indexer_id)
         return {"code": 0, "msg": "更新成功"}
 
     def refresh_pt_statistics(self, data):
@@ -4112,7 +3977,10 @@ class WebAction:
         if data.get('site'):
             SitesDataStatisticsCenter().refresh_site_data_now(specify_sites=data.get('site'))
         else:
-            CommandHandler().handle_message_job("/sta", in_from=SearchType.WEB, user_id=self._current_user.id, user_name=self._current_user.username)
+            CommandHandler().handle_message_job("/sta", 
+                                                in_from=SearchType.WEB, 
+                                                user_id=self._current_user.id, 
+                                                user_name=self._current_user.username)
 
         return {"code": 0, "msg": "已提交"}
 
