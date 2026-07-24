@@ -1,6 +1,6 @@
 import json
 
-from typing import List, Optional
+from typing import Any, List, Optional
 from pydantic import BaseModel
 
 import log
@@ -28,6 +28,10 @@ class IndexerBase(BaseModel):
     parser: Optional[str] = None
     browse: Optional[dict] = None
     category: Optional[dict] = None
+
+    def get(self, key: str, default: Any = None) -> Any:
+        """像字典一样获取字段值，若字段不存在则返回默认值"""
+        return getattr(self, key, default)
 
 
 class IndexerInfo(BaseModel):
@@ -63,7 +67,10 @@ class IndexerInfo(BaseModel):
             merged.update(datas)
         merged.update(kwargs)
         return cls(**merged)
-
+    
+    def get(self, key: str, default: Any = None) -> Any:
+        """像字典一样获取字段值，若字段不存在则返回默认值"""
+        return getattr(self, key, default)
 
 @singleton
 class IndexerManager:

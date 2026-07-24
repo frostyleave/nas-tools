@@ -222,58 +222,49 @@ class CookieCloud(_IPluginModule):
         同步站点Cookie
         """
         # 同步数据
-        self.info(f"同步服务开始 ...")
+        self.info("同步服务开始 ...")
         contents, msg, flag = self.__download_data()
         if not flag:
             self.error(msg)
             self.__send_message(msg)
             return
+        
         if not contents:
-            self.info(f"未从CookieCloud获取到数据")
+            self.info("未从CookieCloud获取到数据")
             self.__send_message(msg)
             return
-        # 整理数据,使用domain域名的最后两级作为分组依据
-        domain_groups = defaultdict(list)
-        for site, cookies in contents.items():
-            for cookie in cookies:
-                domain_parts = cookie["domain"].split(".")[-2:]
-                domain_key = tuple(domain_parts)
-                domain_groups[domain_key].append(cookie)
+
         # 计数
         update_count = 0
         add_count = 0
-        # 索引器
+
+        # 整理数据,使用domain域名的最后两级作为分组依据
+        domain_groups = self.__sort_domain_cookies(contents)
         for domain, content_list in domain_groups.items():
+
             if self._event.is_set():
                 self.info(f"同步服务停止")
                 return
-            if not content_list:
+            # 只有cf的cookie过滤掉
+            if not content_list or all(map(lambda c: c["name"] == "cf_clearance", content_list)):
                 continue
+
+            # 拼接Cookie
+            cookie_str = self.__join_cookie(content_list)
             # 域名
             domain_url = ".".join(domain)
-            # 只有cf的cookie过滤掉
-            cloudflare_cookie = True
-            for content in content_list:
-                if content["name"] != "cf_clearance":
-                    cloudflare_cookie = False
-                    break
-            if cloudflare_cookie:
-                continue
-            # Cookie
-            cookie_str = ";".join(
-                [f"{content.get('name')}={content.get('value')}"
-                 for content in content_list
-                 if content.get("name") and content.get("name") not in self._ignore_cookies]
-            )
             # 查询站点
             site_info = self.sites.get_sites_by_suffix(domain_url)
             if site_info:
                 # 检查站点连通性
-                success, _, _ = self.sites.test_connection(site_id=site_info.get("id"))
+                site_id = site_info.get("id")
+                success, _, _ = self.sites.test_connection(site_id=site_id)
                 if not success:
                     # 已存在且连通失败的站点更新Cookie
-                    self.sites.update_site_cookie(siteid=site_info.get("id"), cookie=cookie_str)
+                    self.sites.update_site_cookie(siteid=site_id, cookie=cookie_str)
                     update_count += 1
+                else:
+                    self.info(f"[{domain_url}]站点cookie未过期, 暂不更新")
             else:
                 # 查询是否在索引器范围
                 indexer_base = self._index_helper.get_indexer_base(domain_url)
@@ -293,15 +284,36 @@ class CookieCloud(_IPluginModule):
             msg = f"更新了 {update_count} 个站点的Cookie数据，新增了 {add_count} 个站点"
         else:
             msg = f"同步完成，但未更新任何站点数据！"
+
         self.info(msg)
         # 发送消息
-        if self._notify:
-            self.__send_message(msg)
+        self.__send_message(msg)
+
+    def __sort_domain_cookies(self, contents):
+        # 整理数据,使用domain域名的最后两级作为分组依据
+        domain_groups = defaultdict(list)
+        for site, cookies in contents.items():
+            self.info(f"加载[{site}]站点cookie")
+            for cookie in cookies:
+                domain_parts = cookie["domain"].split(".")[-2:]
+                domain_key = tuple(domain_parts)
+                domain_groups[domain_key].append(cookie)
+        return domain_groups
+
+    def __join_cookie(self, content_list: dict):
+        cookie_str = ";".join(
+                [f"{content.get('name')}={content.get('value')}"
+                 for content in content_list
+                 if content.get("name") and content.get("name") not in self._ignore_cookies]
+            )
+        return cookie_str
 
     def __send_message(self, msg):
         """
         发送通知
         """
+        if not self._notify:
+            return
         self.send_message(
             title="【CookieCloud同步任务执行完成】",
             text=f"{msg}"

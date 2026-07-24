@@ -1,4 +1,4 @@
-from typing import List, Optional
+from typing import Any, List, Optional
 
 from pydantic import BaseModel
 
@@ -45,4 +45,8 @@ class PtSiteConf(BaseModel):
             merged.update(datas)
         merged.update(kwargs)
         return cls(**merged)
+
+    def get(self, key: str, default: Any = None) -> Any:
+        """像字典一样获取字段值，若字段不存在则返回默认值"""
+        return getattr(self, key, default)
 

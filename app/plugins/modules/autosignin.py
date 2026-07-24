@@ -354,8 +354,7 @@ class AutoSignIn(_IPluginModule):
             )
             
             # 6. 发送通知
-            if self._notify:
-                self._send_notification(today_str, results)
+            self._send_notification(today_str, results)
 
         except Exception as ex:
             log.exception(f'【自动签到】任务执行失败: {ex}')
@@ -461,6 +460,10 @@ class AutoSignIn(_IPluginModule):
         self.info(f"今日 {today_str} 签到历史已更新")
 
     def _send_notification(self, today_str: str, results: SignInResults):
+
+        if not self._notify:
+            return
+
         """
         发送签到结果通知
         """
