@@ -267,7 +267,7 @@
              ${!pluginAttr.icon ? pluginAttr.name : ''}
           </span>
         </div>
-        <div class="card-body text-center">
+        <div class="card-body text-center" data-bs-toggle="modal" data-bs-target="#modal-plugin-${pluginId}">
           <div class="card-title mb-1">${stateAttr}${pluginAttr.name}</div>
           <div class="text-muted">${pluginAttr.desc}</div>
         </div>
