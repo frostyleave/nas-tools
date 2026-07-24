@@ -201,7 +201,7 @@ async def index():
                  'seriesCount': series_count,
                  'songCount': song_count,
                  "episodeCount": episode_count
-                 },
+                },
              "activitys": activity_logs,
              "totalSpace": library_spaces.get("TotalSpace"),
              "usedPercent": library_spaces.get("UsedPercent"),
@@ -218,13 +218,10 @@ async def index():
 async def search():
 
     res = SearchProxy().get_torrent_search_result()
-    search_results = res.get("result")
-    count = res.get("total")
-
     return response(data=
         {
-            "Count": count,
-            "Results": search_results,
+            "Count": res.get("total"),
+            "Results": res.get("result"),
             "SiteDict": Indexer().get_indexer_hash_dict()
         })
 

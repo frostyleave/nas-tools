@@ -8,7 +8,6 @@ from app.media import Media, DouBan
 from app.media.meta import MetaInfo
 from app.message import Message
 from app.modules.searcher import Searcher
-from app.modules.media_status import MediaStatusChecker
 
 from app.utils.string_utils import StringUtils
 from app.utils.media_utils import MediaUtils
@@ -274,7 +273,7 @@ class SearchProxy:
         查询资源搜索结果
         """
         search_results = {}
-        
+
         res = Searcher().get_search_results()
         total = len(res)
         for item in res:
@@ -312,12 +311,15 @@ class SearchProxy:
                 "reseffect": reseffect,
                 "releasegroup": item.OTHERINFO
             }
+            
             # 结果
             title_string = f"{item.TITLE}"
             if item.YEAR:
                 title_string = f"{title_string} ({item.YEAR})"
+
             # 电视剧季集标识
             mtype = item.TYPE or ""
+
             SE_key = item.ES_STRING if item.ES_STRING and mtype != "MOV" else "MOV"
             media_type = {"MOV": "电影", "TV": "电视剧", "ANI": "动漫"}.get(mtype)
             # 只需要部分种子标签
@@ -405,7 +407,7 @@ class SearchProxy:
                         }
                     }
                 # 过滤条件
-                torrent_filter = dict(result_item.get("filter"))
+                torrent_filter = result_item["filter"]
                 if free_item not in torrent_filter.get("free"):
                     torrent_filter["free"].append(free_item)
                 if releasegroup not in torrent_filter.get("releasegroup"):
@@ -419,15 +421,6 @@ class SearchProxy:
                         and filter_season not in torrent_filter.get("season"):
                     torrent_filter["season"].append(filter_season)
             else:
-                fav, rssid = 0, None
-                # 存在标志
-                if item.TMDBID:
-                    fav, rssid, item_url = MediaStatusChecker().get_media_exists_info(
-                        mtype=mtype,
-                        title=item.TITLE,
-                        year=item.YEAR,
-                        mediaid=item.TMDBID)
-
                 search_results[title_string] = {
                     "key": item.ID,
                     "title": item.TITLE,
@@ -440,8 +433,8 @@ class SearchProxy:
                     "backdrop": item.IMAGE,
                     "poster": item.POSTER,
                     "overview": item.OVERVIEW,
-                    "fav": fav,
-                    "rssid": rssid,
+                    "fav": 0,
+                    "rssid": None,
                     "torrent_dict": {
                         SE_key: {
                             group_key: {
@@ -465,34 +458,57 @@ class SearchProxy:
                     }
                 }
 
-        # 提升整季的顺序到顶层
+            
+        # 后处理：排序、媒体状态补充
+        self._post_process_results(search_results)
+
+        return {"code": 0, "total": total, "result": search_results}
+
+
+    def _post_process_results(self, search_results):
+        """
+        后处理搜索结果：排序筛选器、种子列表、补充媒体存在标记
+        """
+        if not search_results:
+            return
+
+        # lazy import
+        from app.modules.media_status import MediaStatusChecker
+
         def se_sort(k):
             k = re.sub(r" +|(?<=s\d)\D*?(?=e)|(?<=s\d\d)\D*?(?=e)",
                        " ", k[0], flags=re.I).split()
-            # 如果只有一个元素，检查是否包含 '-'
             if len(k) == 1:
-                if re.match(r"^(S\d+)-S\d+$", k[0], flags=re.I) or re.match(r"^(E\d+)-E\d+$", k[0], flags=re.I):
-                    parts = k[0].split('-')  # 按 '-' 拆分
+                if re.match(r"^(S\d+)-S\d+$", k[0], flags=re.I) \
+                        or re.match(r"^(E\d+)-E\d+$", k[0], flags=re.I):
+                    parts = k[0].split('-')
                     if len(parts) == 2:
-                        return (parts[1], parts[0])  # 翻转顺序
+                        return (parts[1], parts[0])
                 return (k[0], "FF")
-
             if re.match(r"^(E\d+)-E\d+$", k[1], flags=re.I):
-                parts = k[1].split('-')  # 按 '-' 拆分
+                parts = k[1].split('-')
                 if len(parts) == 2:
                     return (k[0], '{}-{}'.format(parts[1], parts[0]))
-
             return (k[0], k[1])
 
-        # 开始排序季集顺序
-        for title, item in search_results.items():
-            # 排序筛选器 季
+        for _, item in search_results.items():
+            # 排序筛选器: 季倒序
             item["filter"]["season"].sort(reverse=True)
-            # 排序筛选器 制作组、字幕组.  将未知放到最后
-            item["filter"]["releasegroup"] = sorted(item["filter"]["releasegroup"], key=lambda x: (x == "未知", x))
-            # 排序种子列 集
-            item["torrent_dict"] = sorted(item["torrent_dict"].items(),
-                                          key=se_sort,
-                                          reverse=True)
+            # 排序筛选器: 制作组/字幕组，未知放最后
+            item["filter"]["releasegroup"] = sorted(
+                item["filter"]["releasegroup"], key=lambda x: (x == "未知", x))
+            # 排序种子列
+            item["torrent_dict"] = sorted(
+                item["torrent_dict"].items(), key=se_sort, reverse=True)
             
-        return {"code": 0, "total": total, "result": search_results}
+            # 补充媒体存在标志
+            tmdbid = item.get("tmdbid")
+            if not tmdbid:
+                continue
+            fav, rssid, _ = MediaStatusChecker().get_media_exists_info(
+                mtype=item.get("type_key", ""),
+                title=item.get("title", ""),
+                year=item.get("year", ""),
+                mediaid=tmdbid)
+            item["fav"] = fav
+            item["rssid"] = rssid

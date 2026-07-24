@@ -26,12 +26,14 @@ def init_data():
     log.console('开始初始化数据库...')
     MediaDb().init_db()
     MainDb().init_db()
-    log.console('数据库初始化完成\n开始初始化数据...')
+    log.console('数据库初始化完成, 开始初始化数据...')
     MainDb().init_data()
-    log.console('数据初始化完成\n开始更新数据库...')
+    log.console('数据初始化完成')
+    
     db_location = os.path.normpath(os.path.join(Config().get_config_path(), 'user.db'))
     script_location = os.path.normpath(os.path.join(Config().get_root_path(), 'scripts'))
     try:
+        log.console('开始更新数据库...')
         alembic_cfg = AlembicConfig()
         alembic_cfg.set_main_option('script_location', script_location)
         alembic_cfg.set_main_option('sqlalchemy.url', f"sqlite:///{db_location}")
