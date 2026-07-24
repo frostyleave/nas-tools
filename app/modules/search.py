@@ -12,6 +12,7 @@ from app.message import Message
 from app.modules.searcher import Searcher
 from app.sites import SitesManager
 from app.modules.subscribe import Subscribe
+from app.modules.media_status import MediaStatusChecker
 
 from app.utils.string_utils import StringUtils
 from app.utils.media_utils import MediaUtils
@@ -630,7 +631,7 @@ class SearchProxy:
                 fav, rssid = 0, None
                 # 存在标志
                 if item.TMDBID:
-                    fav, rssid, item_url = self.get_media_exists_info(
+                    fav, rssid, item_url = MediaStatusChecker().get_media_exists_info(
                         mtype=mtype,
                         title=item.TITLE,
                         year=item.YEAR,

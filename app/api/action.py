@@ -40,6 +40,7 @@ from app.modules.rsschecker import RssChecker
 from app.modules.search import SearchProxy
 from app.modules.searcher import Searcher
 from app.modules.subscribe import Subscribe
+from app.modules.media_status import MediaStatusChecker
 from app.modules.sync import Sync
 from app.modules.torrentremover import TorrentRemover
 from app.plugins import PluginManager, EventManager
@@ -2038,7 +2039,7 @@ class WebAction:
 
         # 补充存在与订阅状态
         for res in res_list:
-            fav, rssid, item_url = self.get_media_exists_info(mtype=res.get("type"),
+            fav, rssid, item_url = MediaStatusChecker().get_media_exists_info(mtype=res.get("type"),
                                                               title=res.get("title"),
                                                               year=res.get("year"),
                                                               mediaid=res.get("id"))
@@ -2058,7 +2059,7 @@ class WebAction:
             return {"code": 0, "Items": []} 
 
         for item in media_list:
-            fav, rssid, item_url = self.get_media_exists_info(mtype=item.get("type"),
+            fav, rssid, item_url = MediaStatusChecker().get_media_exists_info(mtype=item.get("type"),
                                                               title=item.get("title"),
                                                               year=item.get("year"),
                                                               mediaid=item.get("tmdbid"))
@@ -3527,7 +3528,7 @@ class WebAction:
             }
         
         # 查询存在及订阅状态
-        fav, rssid, item_url = self.get_media_exists_info(mtype=mtype,
+        fav, rssid, item_url = MediaStatusChecker().get_media_exists_info(mtype=mtype,
                                                           title=media_info.title,
                                                           year=media_info.year,
                                                           mediaid=media_info.tmdb_id)
@@ -3603,7 +3604,7 @@ class WebAction:
                     duration_str = duration[0] if duration else ''
 
                 # 查询存在及订阅状态
-                fav, rssid, item_url = self.get_media_exists_info(mtype,title,year,tmdbid)
+                fav, rssid, item_url = MediaStatusChecker().get_media_exists_info(mtype,title,year,tmdbid)
 
                 return {
                     "code": 0,
@@ -3649,7 +3650,7 @@ class WebAction:
             media_info.set_tmdb_info(info)
                
         # 查询存在及订阅状态
-        fav, rssid, item_url = self.get_media_exists_info(mtype=mtype,
+        fav, rssid, item_url = MediaStatusChecker().get_media_exists_info(mtype=mtype,
                                                           title=media_info.title,
                                                           year=media_info.year,
                                                           mediaid=media_info.tmdb_id)
@@ -3855,56 +3856,6 @@ class WebAction:
         PluginManager().save_plugin_config(pid=plugin_id, conf=config)
         PluginManager().reload_plugin(plugin_id)
         return {"code": 0, "msg": "保存成功"}
-
-    def get_media_exists_info(self, mtype, title, year, mediaid):
-        """
-        获取媒体存在标记：是否存在、是否订阅
-        :param: mtype 媒体类型
-        :param: title 媒体标题
-        :param: year 媒体年份
-        :param: mediaid TMDBID/DB:豆瓣ID/BG:Bangumi的ID
-        :return: 1-已订阅/2-已下载/0-不存在未订阅, RSSID, 如果已下载,还会有对应的媒体库的播放地址链接
-        """
-        if str(mediaid).isdigit():
-            tmdbid = mediaid
-        else:
-            tmdbid = None
-        
-        rssid = None
-        if mtype in Constants.MOVIE_TYPES:
-            rssid = Subscribe().get_subscribe_id(mtype=MediaType.MOVIE,
-                                                 title=title,
-                                                 year=year,
-                                                 tmdbid=tmdbid)
-        else:
-            if not tmdbid:
-                meta_info = MetaInfo(title=title, no_extra=True)
-                title = meta_info.get_name()
-                season = meta_info.get_season_string()
-                if season:
-                    year = None
-            else:
-                season = None
-            rssid = Subscribe().get_subscribe_id(mtype=MediaType.TV,
-                                                 title=title,
-                                                 year=year,
-                                                 season=season,
-                                                 tmdbid=tmdbid)
-        item_url = None
-        if rssid:
-            # 已订阅
-            fav = "1"
-        else:
-            # 检查媒体服务器是否存在
-            item_id = MediaServer().check_item_exists(mtype=mtype, title=title, year=year, tmdbid=tmdbid)
-            if item_id:
-                # 已下载
-                fav = "2"
-                item_url = MediaServer().get_play_url(item_id=item_id)
-            else:
-                # 未订阅、未下载
-                fav = "0"
-        return fav, rssid, item_url
 
     def __get_season_episodes(self, data=None):
         """
