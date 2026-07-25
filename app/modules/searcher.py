@@ -6,12 +6,9 @@ from app.media import Media
 from app.media.meta.metainfo import MetaInfo
 from app.message import Message
 from app.indexer import Indexer
-from app.plugins import EventManager
 from app.utils.commons import singleton
 from app.utils.constants import Constants
 from app.utils.types import SearchType
-
-from config import Config
 
 
 @singleton

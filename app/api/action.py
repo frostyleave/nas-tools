@@ -135,18 +135,18 @@ class WebAction:
             "del_unknown_path": self.__del_unknown_path,
             "rename": self.__rename,
             "rename_udf": self.__rename_udf,
-            "delete_history": self.delete_history,
+            "delete_history": self.__delete_history,
             "version": self.__version,
             "update_site": self.__update_site,
             "get_site": self.__get_site,
             "del_site": self.__del_site,
             "restart": self.__restart,
-            "update_system": self.update_system,
+            "update_system": self.__update_system,
             "logout": self.__logout,
             "update_config": self.__update_config,
             "update_directory": self.__update_directory,
             "add_or_edit_sync_path": self.__add_or_edit_sync_path,
-            "get_sync_path": self.get_sync_path,
+            "get_sync_path": self.__get_sync_path,
             "delete_sync_path": self.__delete_sync_path,
             "check_sync_path": self.__check_sync_path,
             "remove_rss_media": self.__remove_rss_media,
@@ -161,8 +161,8 @@ class WebAction:
             "tv_calendar_data": self.__tv_calendar_data,
             "modify_tmdb_cache": self.__modify_tmdb_cache,
             "rss_detail": self.__rss_detail,
-            "truncate_blacklist": self.truncate_blacklist,
-            "truncate_rsshistory": self.truncate_rsshistory,
+            "truncate_blacklist": self.__truncate_blacklist,
+            "truncate_rsshistory": self.__truncate_rsshistory,
             "add_brushtask": self.__add_brushtask,
             "del_brushtask": self.__del_brushtask,
             "brushtask_detail": self.__brushtask_detail,
@@ -179,13 +179,13 @@ class WebAction:
             "filterrule_detail": self.__filterrule_detail,
             "get_site_activity": self.__get_site_activity,
             "get_site_history": self.__get_site_history,
-            "get_recommend": self.get_recommend,
-            "batch_get_media_exists_info": self.batch_get_media_exists_info,
-            "get_downloaded": self.get_downloaded,
+            "get_recommend": self.__get_recommend,
+            "batch_get_media_exists_info": self.__batch_get_media_exists_info,
+            "get_downloaded": self.__get_downloaded,
             "get_site_seeding_info": self.__get_site_seeding_info,
             "clear_tmdb_cache": self.__clear_tmdb_cache,
             "check_site_attr": self.__check_site_attr,
-            "refresh_process": self.refresh_process,
+            "refresh_process": self.__refresh_process,
             "restory_backup": self.__restory_backup,
             "start_mediasync": self.__start_mediasync,
             "mediasync_state": self.__mediasync_state,
@@ -199,7 +199,7 @@ class WebAction:
             "update_rssparser": self.__update_rssparser,
             "run_userrss": self.__run_userrss,
             "run_brushtask": self.__run_brushtask,
-            "list_site_resources": self.list_site_resources,
+            "list_site_resources": self.__list_site_resources,
             "list_rss_articles": self.__list_rss_articles,
             "rss_article_test": self.__rss_article_test,
             "list_rss_history": self.__list_rss_history,
@@ -218,10 +218,10 @@ class WebAction:
             "delete_rss_history": self.__delete_rss_history,
             "share_filtergroup": self.__share_filtergroup,
             "import_filtergroup": self.__import_filtergroup,
-            "get_transfer_statistics": self.get_transfer_statistics,
-            "search_media_infos": self._search_media_infos,
-            "get_filterrules": self.get_filterrules,
-            "get_downloading": self.get_downloading,
+            "get_transfer_statistics": self.__get_transfer_statistics,
+            "search_media_infos": self.__search_media_infos,
+            "get_filterrules": self.__get_filterrules,
+            "get_downloading": self.__get_downloading,
             "test_site": self.__test_site,
             "get_sub_path": self.__get_sub_path,
             "rename_file": self.__rename_file,
@@ -250,11 +250,11 @@ class WebAction:
             "list_brushtask_torrents": self.__list_brushtask_torrents,
             "set_system_config": self.__set_system_config,
             "set_user_indexer_sites": self.__set_user_indexer_sites,
-            "get_site_user_statistics": self.get_site_user_statistics,
-            "send_custom_message": self.send_custom_message,
-            "media_detail": self.media_detail,
-            "media_brief_info": self.media_brief_info,
-            "media_extra_info": self.media_extra_info,
+            "get_site_user_statistics": self.__get_site_user_statistics,
+            "send_custom_message": self.__send_custom_message,
+            "media_detail": self.__get_media_detail,
+            "media_brief_info": self.__get_media_brief_info,
+            "media_extra_info": self.__get_media_extra_info,
             "media_person": self.__media_person,
             "person_medias": self.__person_medias,
             "run_directory_sync": self.__run_directory_sync,
@@ -270,17 +270,17 @@ class WebAction:
             "update_indexer": self.__update_indexer,
             "delete_indexer": self.__delete_indexer,
             "media_path_scrap": self.__media_path_scrap,
-            "get_default_rss_setting": self.get_default_rss_setting,
-            "install_plugin": self.install_plugin,
-            "uninstall_plugin": self.uninstall_plugin,
-            "get_plugin_apps": self.get_plugin_apps,
-            "get_plugin_page": self.get_plugin_page,
-            "update_category_config": self.update_category_config,
-            "get_category_config": self.get_category_config,
-            "get_system_processes": self.get_system_processes,
-            "run_plugin_method": self.run_plugin_method,
-            "refresh_pt_statistics": self.refresh_pt_statistics,
-            "get_jobs": self.get_jobs
+            "get_default_rss_setting": self.__get_default_rss_setting,
+            "install_plugin": self.__install_plugin,
+            "uninstall_plugin": self.__uninstall_plugin,
+            "get_plugin_apps": self.__get_plugin_apps,
+            "get_plugin_page": self.__get_plugin_page,
+            "update_category_config": self.__update_category_config,
+            "get_category_config": self.__get_category_config,
+            "get_system_processes": self.__get_system_processes,
+            "run_plugin_method": self.__run_plugin_method,
+            "refresh_pt_statistics": self.__refresh_pt_statistics,
+            "get_jobs": self.__get_jobs
         }
         # 用户绑定
         self._current_user = current_user
@@ -499,9 +499,12 @@ class WebAction:
         """
         从WEB添加下载链接
         """
-        site = data.get("site")
-        enclosure = data.get("enclosure")
+
         title = data.get("title")
+        enclosure = data.get("enclosure")
+        if not title or not enclosure:
+            return {"code": -1, "msg": "种子信息有误"}
+        
         description = data.get("description")
         page_url = data.get("page_url")
         size = data.get("size")
@@ -510,10 +513,9 @@ class WebAction:
         downloadvolumefactor = data.get("downloadvolumefactor")
         dl_dir = data.get("dl_dir")
         dl_setting = data.get("dl_setting")
-        if not title or not enclosure:
-            return {"code": -1, "msg": "种子信息有误"}
+
         media = Media().get_media_info(title=title, subtitle=description)
-        media.site = site
+        media.site = data.get("site")
         media.enclosure = enclosure
         media.page_url = page_url
         media.size = size
@@ -525,7 +527,7 @@ class WebAction:
                                                 download_dir=dl_dir,
                                                 download_setting=dl_setting,
                                                 in_from=SearchType.WEB,
-                                                user_name="admin")
+                                                user_name=self._current_user.username)
         if not ret:
             return {"code": 1, "msg": ret_msg or "如连接正常，请检查下载任务是否存在"}
         return {"code": 0, "msg": "下载成功"}
@@ -556,7 +558,7 @@ class WebAction:
                                   download_setting=dl_setting,
                                   torrent_file=file_path,
                                   in_from=SearchType.WEB,
-                                  user_name="admin")
+                                  user_name=self._current_user.username)
         # 下载链接
         if urls and not isinstance(urls, list):
             urls = [urls]
@@ -587,7 +589,7 @@ class WebAction:
                                   download_setting=dl_setting,
                                   torrent_file=file_path,
                                   in_from=SearchType.WEB,
-                                  user_name="admin")
+                                  user_name=self._current_user.username)
 
         return {"code": 0, "msg": "添加下载完成！"}
 
@@ -810,7 +812,7 @@ class WebAction:
                                                                is_dir_specified=is_dir_specified)
         return succ_flag, ret_msg
 
-    def delete_history(self, data):
+    def __delete_history(self, data):
         """
         删除识别记录及文件
         """
@@ -947,7 +949,7 @@ class WebAction:
         ServiceManager.restart_server()
         return {"code": 0}
 
-    def update_system(self):
+    def __update_system(self):
         """
         更新
         """
@@ -1127,7 +1129,7 @@ class WebAction:
                                enabled=enabled)
         return {"code": 0, "msg": ""}
 
-    def get_sync_path(self, data=None):
+    def __get_sync_path(self, data=None):
         """
         查询同步目录
         """
@@ -1625,14 +1627,14 @@ class WebAction:
             MetaHelper().save_meta_data(force=True)
         return {"code": 0}
 
-    def truncate_blacklist(self):
+    def __truncate_blacklist(self):
         """
         清空文件转移黑名单记录
         """
         FileTransfer().truncate_transfer_blacklist()
         return {"code": 0}
 
-    def truncate_rsshistory(self):
+    def __truncate_rsshistory(self):
         """
         清空RSS历史记录
         """
@@ -1929,7 +1931,8 @@ class WebAction:
             ruleinfo['exclude'] = "\n".join(ruleinfo.get("exclude"))
         return {"code": 0, "info": ruleinfo}
 
-    def get_recommend(self, data):
+    def __get_recommend(self, data):
+
         Type = data.get("type")
         SubType = data.get("subtype")
         CurrentPage = data.get("page")
@@ -1940,7 +1943,7 @@ class WebAction:
 
         res_list = []
         if Type in ['MOV', 'TV', 'ALL']:
-            res_list = self.get_randking_data(data, Type, SubType, CurrentPage)
+            res_list = self.__get_randking_data(data, Type, SubType, CurrentPage)
         elif Type == "SEARCH":
             # 搜索词条
             Keyword = data.get("keyword")
@@ -1949,10 +1952,10 @@ class WebAction:
             medias = SearchProxy().search_media_by_keyword(keyword=Keyword, source=Source, page=CurrentPage, media_type=mtype)
             res_list = [media.to_dict() for media in medias]
             # 相关性排序
-            res_list = self.sort_search_results(res_list, Keyword)
+            res_list = self.__sort_search_results(res_list, Keyword)
         elif Type == "DOWNLOADED":
             # 近期下载
-            res_list = self.get_downloaded({"page": CurrentPage}).get("Items")
+            res_list = self.__get_downloaded({"page": CurrentPage}).get("Items")
         elif Type == "TRENDING":
             # TMDB流行趋势
             if SubType == "trendingmv":
@@ -2001,7 +2004,7 @@ class WebAction:
             })
         return {"code": 0, "Items": res_list}
     
-    def batch_get_media_exists_info(self, data):
+    def __batch_get_media_exists_info(self, data):
         """
         批量获取媒体存在标记：是否存在、是否订阅
         """
@@ -2021,8 +2024,7 @@ class WebAction:
             })
         return {"code": 0, "items": media_list}
 
-
-    def get_randking_data(self, data, Type, SubType, CurrentPage):
+    def __get_randking_data(self, data, Type, SubType, CurrentPage):
         
         if SubType == "hm":
             # TMDB热门电影
@@ -2110,7 +2112,7 @@ class WebAction:
         
         return []
     
-    def sort_search_results(self, results, kw):
+    def __sort_search_results(self, results, kw):
         # 计算相关性级别
         def compute_relevance_level(title):
             title_lower = title.lower()
@@ -2140,7 +2142,7 @@ class WebAction:
         )
         return sorted_results
 
-    def get_downloaded(self, data):
+    def __get_downloaded(self, data):
         page = data.get("page")
         Items = Downloader().get_download_history(page=page)
         if Items:
@@ -2188,7 +2190,7 @@ class WebAction:
             site_hr = True
         return {"code": 0, "site_free": site_free, "site_2xfree": site_2xfree, "site_hr": site_hr}
        
-    def refresh_process(self, data):
+    def __refresh_process(self, data):
         """
         刷新进度条
         """
@@ -2398,7 +2400,7 @@ class WebAction:
         BrushTask().check_task_rss(data.get("id"))
         return {"code": 0}
 
-    def list_site_resources(self, data):
+    def __list_site_resources(self, data):
         resources = Indexer().list_resources(index_id=data.get("id"),
                                              page=data.get("page"),
                                              keyword=data.get("keyword"))
@@ -2934,8 +2936,7 @@ class WebAction:
             log.exception("[act]导入过滤规则失败:")
             return {"code": 1, "msg": "数据格式不正确，%s" % str(err)}
 
-
-    def get_transfer_statistics(self):
+    def __get_transfer_statistics(self):
         """
         查询转移历史统计数据
         """
@@ -2968,7 +2969,7 @@ class WebAction:
             "AnimeNums": AnimeNums
         }
 
-    def _search_media_infos(self, data):
+    def __search_media_infos(self, data):
         """
         根据关键字搜索相似词条
         """
@@ -2980,7 +2981,7 @@ class WebAction:
 
         return {"code": 0, "result": [media.to_dict() for media in medias]}
 
-    def get_downloading(self, data):
+    def __get_downloading(self, data):
         """
         查询正在下载的任务
         """
@@ -3018,7 +3019,7 @@ class WebAction:
 
         return {"code": 0, "result": torrents}
 
-    def get_filterrules(self):
+    def __get_filterrules(self):
         """
         查询所有过滤规则
         """
@@ -3415,7 +3416,7 @@ class WebAction:
             log.exception("[act]设置索引站点 异常:")
             return {"code": 1}
 
-    def get_site_user_statistics(self, data):
+    def __get_site_user_statistics(self, data):
         """
         获取站点用户统计信息
         """
@@ -3437,17 +3438,7 @@ class WebAction:
 
         return {"code": 0, "data": statistics}
 
-    def send_plugin_message(self, data):
-        """
-        发送插件消息
-        """
-        title = data.get("title")
-        text = data.get("text") or ""
-        image = data.get("image") or ""
-        Message().send_plugin_message(title=title, text=text, image=image)
-        return {"code": 0}
-
-    def send_custom_message(self, data):
+    def __send_custom_message(self, data):
         """
         发送自定义消息
         """
@@ -3460,7 +3451,7 @@ class WebAction:
         Message().send_custom_message(clients=message_clients, title=title, text=text, image=image)
         return {"code": 0}
 
-    def media_detail(self, data):
+    def __get_media_detail(self, data):
         """
         获取媒体详情
         """
@@ -3512,8 +3503,7 @@ class WebAction:
             }
         }
 
-
-    def media_brief_info(self, data):
+    def __get_media_brief_info(self, data):
         """
         获取媒体概要信息
         :return: 不查询演职人员、季信息
@@ -3524,6 +3514,7 @@ class WebAction:
             return {"code": 1, "msg": "未指定媒体ID"}
         
         mtype = MediaType.MOVIE if data.get("type") in Constants.MOVIE_TYPES else MediaType.TV
+
         # 从豆瓣接口查询
         if str(tmdbid).startswith("DB:"):
 
@@ -3576,7 +3567,9 @@ class WebAction:
                         "rssid": rssid,
                     }
                 }
-        
+
+        media_handler = Media()
+
         if str(tmdbid).startswith("BG:"):
 
             title = data.get("title")
@@ -3584,15 +3577,15 @@ class WebAction:
                 return { "code": 1, "msg": "无法查询到BANGUMI信息" }
 
             year = data.get("year", '')           
-            media_info = Media().get_media_info(title=f"{title} {year}",
-                                                mtype=MediaType.ANIME,
-                                                append_to_response="all")
+            media_info = media_handler.get_media_info(title=f"{title} {year}",
+                                                      mtype=MediaType.ANIME,
+                                                      append_to_response="all")
             
             if not media_info or not media_info.tmdb_info:
                 return { "code": 1, "msg": "无法查询到Bangumi资源的TMDB信息" }
             
         else:
-            info = Media().get_tmdb_info(tmdbid=tmdbid, mtype=mtype, append_to_response="all")
+            info = media_handler.get_tmdb_info(tmdbid=tmdbid, mtype=mtype, append_to_response="all")
             if not info:
                 return { "code": 1, "msg": "无法查询到TMDB信息" }
             
@@ -3602,10 +3595,9 @@ class WebAction:
                
         # 查询存在及订阅状态
         fav, rssid, item_url = MediaStatusChecker().get_media_exists_info(mtype=mtype,
-                                                          title=media_info.title,
-                                                          year=media_info.year,
-                                                          mediaid=media_info.tmdb_id)
-        MediaHandler = Media()
+                                                                          title=media_info.title,
+                                                                          year=media_info.year,
+                                                                          mediaid=media_info.tmdb_id)
         return {
             "code": 0,
             "data": {
@@ -3614,8 +3606,8 @@ class WebAction:
                 "year": media_info.year,
                 "title": media_info.title,
                 "overview": media_info.overview,
-                "background": MediaHandler.get_tmdb_backdrops(tmdbinfo=media_info.tmdb_info),
-                "genres": MediaHandler.get_tmdb_genres_names(tmdbinfo=media_info.tmdb_info),
+                "background": media_handler.get_tmdb_backdrops(tmdbinfo=media_info.tmdb_info),
+                "genres": media_handler.get_tmdb_genres_names(tmdbinfo=media_info.tmdb_info),
                 "runtime": StringUtils.str_timehours(media_info.runtime),
                 "image": media_info.get_poster_image(),
                 "link": media_info.get_detail_url(),
@@ -3625,8 +3617,7 @@ class WebAction:
             }
         }
 
-
-    def media_extra_info(self, data):
+    def __get_media_extra_info(self, data):
         """
         获取媒体概要信息
         :return: 查询演职人员、季信息
@@ -3658,7 +3649,6 @@ class WebAction:
                 "seasons": seasons
             }
         }
-
 
     def __get_crews_from_media_info(self, media_info:MetaInfo, media_handler:Media, mtype:MediaType):
         """
@@ -3783,11 +3773,12 @@ class WebAction:
             mtype = MediaType.MOVIE if data.get("type") in Constants.MOVIE_TYPES else MediaType.TV
         else:
             mtype = None
+
         if not personid:
             return {"code": 1, "msg": "未指定演员ID"}
-        return {"code": 0, "data": Media().get_person_medias(personid=personid,
-                                                             mtype=mtype,
-                                                             page=page)}
+
+        person_medias = Media().get_person_medias(personid=personid, mtype=mtype, page=page)
+        return {"code": 0, "data": person_medias}
 
     def __run_directory_sync(self, data):
         """
@@ -3818,8 +3809,8 @@ class WebAction:
         season = 1 if data.get("season") is None else data.get("season")
         if not tmdbid:
             return {"code": 1, "msg": "TMDBID为空"}
-        episodes = Media().get_tmdb_season_episodes(tmdbid=tmdbid,
-                                                    season=season)
+        
+        episodes = Media().get_tmdb_season_episodes(tmdbid=tmdbid, season=season)
         MediaServerHandler = MediaServer()
         for episode in episodes:
             episode.update({
@@ -3968,7 +3959,7 @@ class WebAction:
         IndexerManager().delete_indexer(indexer_id)
         return {"code": 0, "msg": "更新成功"}
 
-    def refresh_pt_statistics(self, data):
+    def __refresh_pt_statistics(self, data):
         """
         刷新站点数据
         """
@@ -3986,7 +3977,7 @@ class WebAction:
 
         return {"code": 0, "msg": "已提交"}
 
-    def get_default_rss_setting(self, data):
+    def __get_default_rss_setting(self, data):
         """
         获取默认订阅设置
         """
@@ -4001,7 +3992,7 @@ class WebAction:
             return {"code": 0, "data": default_rss_setting}
         return {"code": 1}
 
-    def install_plugin(self, data, reload=True):
+    def __install_plugin(self, data, reload=True):
         """
         安装插件
         """
@@ -4019,7 +4010,7 @@ class WebAction:
             PluginManager().init_config()
         return {"code": 0, "msg": "插件安装成功"}
 
-    def uninstall_plugin(self, data):
+    def __uninstall_plugin(self, data):
         """
         卸载插件
         """
@@ -4036,7 +4027,7 @@ class WebAction:
         PluginManager().init_config()
         return {"code": 0, "msg": "插件卸载功"}
 
-    def get_plugin_apps(self, data=None):
+    def __get_plugin_apps(self, data=None):
         """
         获取插件列表
         """
@@ -4055,7 +4046,7 @@ class WebAction:
         plugins = PluginManager().get_plugin_apps(user_level)
         return {"code": 0, "result": plugins}
 
-    def get_plugin_page(self, data):
+    def __get_plugin_page(self, data):
         """
         查询插件的额外数据
         """
@@ -4082,7 +4073,7 @@ class WebAction:
         Plugins = PluginManager().get_plugins_conf(user_level)
         return {"code": 0, "result": Plugins}
 
-    def update_category_config(self, data):
+    def __update_category_config(self, data):
         """
         保存二级分类配置
         """
@@ -4094,7 +4085,7 @@ class WebAction:
                 f.write(text)
         return {"code": 0, "msg": "保存成功"}
 
-    def get_category_config(self, data):
+    def __get_category_config(self, data):
         """
         获取二级分类配置
         """
@@ -4111,13 +4102,13 @@ class WebAction:
             category_text = f.read()
         return {"code": 0, "text": category_text}
 
-    def get_system_processes(self):
+    def __get_system_processes(self):
         """
         获取系统进程
         """
         return {"code": 0, "data": SystemUtils.get_all_processes()}
 
-    def run_plugin_method(self, data):
+    def __run_plugin_method(self, data):
         """
         运行插件方法
         """
@@ -4130,7 +4121,7 @@ class WebAction:
         result = PluginManager().run_plugin_method(pid=plugin_id, method=method, **data)
         return {"code": 0, "result": result}
 
-    def get_jobs(self):
+    def __get_jobs(self):
         """
         获取所有已注册的定时任务
         """
