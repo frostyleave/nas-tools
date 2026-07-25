@@ -568,12 +568,14 @@ class WebAction:
             if not site_info:
                 return {"code": -1, "msg": "根据链接地址未匹配到站点"}
             # 下载种子文件，并读取信息
-            file_path, _, _, _, retmsg = Downloader().get_torrent_info(
+            result = Downloader().get_torrent_info(
                 url=url,
                 cookie=site_info.cookie,
                 ua=site_info.ua,
                 proxy=site_info.proxy
             )
+            file_path = result.file_path
+            retmsg = result.ret_msg
             if not file_path:
                 return {"code": -1, "msg": f"下载种子文件失败： {retmsg}"}
             media_info = Media().get_media_info(title=os.path.basename(file_path))

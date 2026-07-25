@@ -99,10 +99,13 @@ class MessageSearchHandler:
                 # 检查是不是有这个站点
                 site_info = SitesManager().get_site(siteurl=input_str)
                 # 尝试下载种子文件
-                filepath, content, retmsg = Downloader().save_torrent_file(url=input_str,
-                                                                           cookie=site_info.cookie,
-                                                                           ua=site_info.ua,
-                                                                           proxy=site_info.proxy)
+                result = Downloader().save_torrent_file(url=input_str,
+                                                       cookie=site_info.cookie,
+                                                       ua=site_info.ua,
+                                                       proxy=site_info.proxy)
+                filepath = result.file_path
+                content = result.content
+                retmsg = result.ret_msg
 
                 # 下载种子出错
                 if (not content or not filepath) and retmsg:
