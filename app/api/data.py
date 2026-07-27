@@ -633,9 +633,9 @@ async def downloading():
     # 目录配置
     category_manager = Category()
     categories = {
-        "电影" : category_manager.movie_categorys,
-        "电视剧": category_manager.tv_categorys,
-        "动漫": category_manager.anime_categorys
+        "电影" : list(category_manager.movie_categorys),
+        "电视剧": list(category_manager.tv_categorys),
+        "动漫": list(category_manager.anime_categorys)
     }
 
     rmt_mode_dict = _get_rmt_modes_dict()
