@@ -8,7 +8,7 @@ from .path_utils import PathUtils
 from .string_utils import StringUtils
 from .system_utils import SystemUtils
 from .tokens import Tokens
-from .torrent import TorrentUtils, TorrentDownloadResult
+from .torrent import TorrentUtils
 from .cache_manager import cacheman, ConfigLoadCache, CategoryLoadCache
 from .rsstitle_utils import RssTitleUtils
 from .nfo_reader import NfoReader

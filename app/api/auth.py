@@ -1,4 +1,3 @@
-
 from datetime import timedelta
 
 from fastapi import APIRouter, Request, Depends, HTTPException, status
@@ -6,7 +5,9 @@ from fastapi.responses import JSONResponse
 from fastapi.security import OAuth2PasswordRequestForm
 
 import log
-from app.middleware.security import ACCESS_TOKEN_EXPIRE_MINUTES, COOKIE_MAX_AGE, REFRESH_TOKEN_EXPIRE_DAYS, authenticate_user, create_access_token, validate_refresh_token
+
+from app.middleware.security import ACCESS_TOKEN_EXPIRE_MINUTES, COOKIE_MAX_AGE, REFRESH_TOKEN_EXPIRE_DAYS, \
+    authenticate_user, create_access_token, validate_refresh_token
 
 
 # 鉴权路由

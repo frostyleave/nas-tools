@@ -10,23 +10,21 @@ class User:
     """
     用户
     """
-    dbhelper = None
+
     def __init__(self, user=None):
-        self.dbhelper = DbHelper()
         if user:
             self.id = user.get('id')
             self.username = user.get('name')
             self.password_hash = user.get('password')
             self.pris = user.get('pris')
+            self.admin = user.get('admin', 0)
             self.search = 1
-            self.level = 99
-            self.admin = 1 if '系统设置' in self.pris else 0
+            self.level = 99 if self.admin else (2 if '系统设置' in self.pris else 1)
 
     # 验证密码
     def verify_password(self, password):
         if self.password_hash is None:
             return False
-
         return check_password_hash(self.password_hash, password)
 
     # 获取用户ID
@@ -41,8 +39,8 @@ class User:
     def get_usermenus(self):
         if self.admin:
             return Config().menu
-        menu = self.get_topmenus()
-        return list(filter(lambda x: x.get("name") in menu, Config().menu))
+        menu_lst = self.get_topmenus()
+        return list(filter(lambda x: x.get("name") in menu_lst, Config().menu))
 
     # 查询服务
     def get_services(self):
@@ -65,17 +63,18 @@ class User:
 class UserManager:
 
     dbhelper = None
-    admin_users = []
+    admin_user = {}
 
     def __init__(self):
         self.dbhelper = DbHelper()
         app_config = Config().get_config('app')
-        self.admin_users = [{
+        self.admin_user = {
             "id": 0,
             "name": app_config.get('login_user'),
             "password": app_config.get('login_password')[6:],
-            "pris": "我的媒体库,资源搜索,探索,站点管理,订阅管理,下载管理,媒体整理,服务,系统设置"
-        }]
+            "pris": "我的媒体库,探索,资源搜索,订阅管理,下载管理,服务,媒体整理,站点管理,插件,系统设置",
+            "admin": 1
+        }
 
 
     # 查询用户列表
@@ -103,15 +102,16 @@ class UserManager:
         except Exception as e:
             print("删除用户出现严重错误！请检查：%s" % str(e))
             return 0
-        
+
+    def get_admin_user(self) -> User:
+        return User(self.admin_user)
+    
     # 根据用户ID获取用户实体，为 login_user 方法提供支持
     def get_user_by_id(self, user_id) -> Optional[User]:
-
         if user_id is None:
             return None
-        for user in self.admin_users:
-            if user.get('id') == user_id:
-                return User(user)
+        if self.admin_user == user_id:
+            return User(self.admin_user)
         for user in self.dbhelper.get_users():
             if not user:
                 continue
@@ -123,9 +123,8 @@ class UserManager:
     def get_user_by_name(self, user_name) -> Optional[User]:
         if not user_name:
             return None
-        for user in self.admin_users:
-            if user.get("name") == user_name:
-                return User(user)
+        if self.admin_user.get("name") == user_name:
+            return User(self.admin_user)
         for user in self.dbhelper.get_users():
             if user.NAME == user_name:
                 return User({"id": user.ID, "name": user.NAME, "password": user.PASSWORD, "pris": user.PRIS})

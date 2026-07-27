@@ -4031,18 +4031,7 @@ class WebAction:
         """
         获取插件列表
         """
-        # 使用默认admin用户级别
-        user_level = 0
-
-        # 如果传入了用户信息，则使用传入的用户级别
-        if data and isinstance(data, dict) and "user" in data and hasattr(data["user"], "level"):
-            user_level = data["user"].level
-        # 如果获取不到，使用admin用户级别
-        else:
-            admin_user = UserManager().get_user_by_name("admin")
-            if admin_user:
-                user_level = admin_user.level
-
+        user_level = self._current_user.level
         plugins = PluginManager().get_plugin_apps(user_level)
         return {"code": 0, "result": plugins}
 
@@ -4055,23 +4044,6 @@ class WebAction:
             return {"code": 1, "msg": "参数错误"}
         title, content, func = PluginManager().get_plugin_page(pid=plugin_id)
         return {"code": 0, "title": title, "content": content, "func": func}
-
-    def get_plugins_conf(self, data=None):
-        # 使用默认admin用户级别
-        user_level = 0
-
-        # 如果传入了用户信息，则使用传入的用户级别
-        if data and isinstance(data, dict) and "user" in data and hasattr(data["user"], "level"):
-            user_level = data["user"].level
-        # 如果获取不到，使用admin用户级别
-        else:
-            admin_user = UserManager().get_user_by_name("admin")
-            if admin_user:
-                user_level = admin_user.level
-
-        # 获取插件配置
-        Plugins = PluginManager().get_plugins_conf(user_level)
-        return {"code": 0, "result": Plugins}
 
     def __update_category_config(self, data):
         """

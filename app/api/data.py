@@ -104,14 +104,13 @@ async def sysinfo(current_user: User = Depends(get_current_user)):
         sync_mod = "link"
 
     username = current_user.username
-
-    restype_dict = ModuleConf.TORRENT_SEARCH_PARAMS.get("restype")
-    pix_dict = ModuleConf.TORRENT_SEARCH_PARAMS.get("pix")
-
+    
     commands = CommandRegistry().list_commands()
     pulgins = [{"id": item.get("cmd"), "name": item.get("desc")} for item in PluginManager().get_plugin_commands()]
     commands = commands + pulgins
 
+    restype_dict = ModuleConf.TORRENT_SEARCH_PARAMS.get("restype")
+    pix_dict = ModuleConf.TORRENT_SEARCH_PARAMS.get("pix")
     rmt_mode_dict = _get_rmt_modes_dict()
 
     download_settings = {did: attr["name"] for did, attr in Downloader().get_download_setting().items()}
@@ -121,7 +120,7 @@ async def sysinfo(current_user: User = Depends(get_current_user)):
     return response(data=
         {
             "username" : username,
-            "admin" : 1 if username == 'admin' else 0,
+            "admin" : 1 if current_user.admin else 0,
             "search" : current_user.search,
             "menus": current_user.get_usermenus(),
             "systemFlag": system_flag.value,

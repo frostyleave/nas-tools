@@ -47,6 +47,23 @@ PT_TRANSFER_INTERVAL = 300
 lock = Lock()
 client_lock = Lock()
 
+@dataclass
+class _DownloadContentInfo:
+    """
+    _resolve_download_content 的返回结果（内部使用）
+    """
+    url: str = ""
+    torrent_file: str | None = None
+    content: str | bytes | None = None
+    dl_files_folder: str = ""
+    dl_files: list = field(default_factory=list)
+    retmsg: str = ""
+    site_info: Optional[PtSiteConf] = None
+
+    @property
+    def success(self) -> bool:
+        return bool(self.content or self.torrent_file)
+
 @singleton
 class Downloader:
     # 客户端实例
@@ -1982,21 +1999,3 @@ class Downloader:
         )
         self.init_config()
         return ret
-
-
-@dataclass
-class _DownloadContentInfo:
-    """
-    _resolve_download_content 的返回结果（内部使用）
-    """
-    url: str = ""
-    torrent_file: str | None = None
-    content: str | bytes | None = None
-    dl_files_folder: str = ""
-    dl_files: list = field(default_factory=list)
-    retmsg: str = ""
-    site_info: Optional[PtSiteConf] = None
-
-    @property
-    def success(self) -> bool:
-        return bool(self.content or self.torrent_file)
