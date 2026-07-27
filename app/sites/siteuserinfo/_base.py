@@ -277,10 +277,10 @@ class _ISiteUserInfo(metaclass=ABCMeta):
             
             if req_headers and "application/json" in str(req_headers.get("Accept")):
                 try:
-                    return json.dumps(res.json())
+                    return json.dumps(res.json()), res.status_code
                 except (json.JSONDecodeError, ValueError) as e:
                     log.exception(f"{self.site_name} API响应JSON解析失败: {e}")
-                    return "", res.status_code
+                    return "", res.status_code, res.status_code
             
             if "charset=utf-8" in res.text or "charset=UTF-8" in res.text or 'charset="utf-8"' in res.text :
                 res.encoding = "UTF-8"

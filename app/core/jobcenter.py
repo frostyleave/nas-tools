@@ -59,11 +59,11 @@ class JobCenter:
         for _scheduler in self._scheduler_list:
             try:
                 _scheduler.start()
-                log.info(f'[System]定时服务({_scheduler.name})已启动')
+                log.info(f'【System】定时服务({_scheduler.name})已启动')
             except SchedulerAlreadyRunningError as ex:
-                log.info(f'[System]定时服务({_scheduler.name})已在运行中..')
+                log.info(f'【System】定时服务({_scheduler.name})已在运行中..')
             except Exception as e:
-                log.exception(f'[System]启动定时服务({_scheduler.name})出错: ')    
+                log.exception(f'【System】启动定时服务({_scheduler.name})出错: ')    
 
     def stop_service(self):
         """
@@ -79,9 +79,9 @@ class JobCenter:
                     if _scheduler.state != STATE_STOPPED:
                         _scheduler.shutdown()
             except SchedulerNotRunningError as ex:
-                log.debug(f'[System]定时服务({_scheduler.name})不在运行中')
+                log.debug(f'【System】定时服务({_scheduler.name})不在运行中')
             except Exception as e:
-                log.exception(f'[System]停止定时服务({_scheduler.name})出错: ')
+                log.exception(f'【System】停止定时服务({_scheduler.name})出错: ')
    
     def get_sys_scheduler(self) -> BackgroundScheduler:
         """获取系统任务管理器"""
