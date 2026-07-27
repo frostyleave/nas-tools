@@ -140,6 +140,12 @@ LOGGING_CONFIG = {
             "datefmt": "%Y-%m-%d %H:%M:%S",
             "use_colors": False,
         },
+        "console_default": {
+            "()": "uvicorn.logging.DefaultFormatter",
+            "format": "%(levelprefix)s [%(thread)d] %(asctime)s | %(message)s",
+            "datefmt": "%Y-%m-%d %H:%M:%S",
+            "use_colors": True,
+        },
     },
     "handlers": {
         "console_access": {
@@ -203,7 +209,7 @@ def setup_logging():
     handler_conf = LOGGING_CONFIG.get('handlers')
     handler_conf['console_default'] = {
         "class": "logging.StreamHandler",
-        "formatter": "default",
+        "formatter": "console_default",
         "stream": sys.stdout,
         "level": loglevel,
     }
