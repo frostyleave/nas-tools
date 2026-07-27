@@ -189,19 +189,22 @@ class TorrentSpider(object):
                         cats = (self.category.get("movie") or []) + (
                             self.category.get("tv") or []
                         )
-                    for cat in cats:
-                        if self.category.get("field"):
-                            value = params.get(self.category.get("field"), "")
-                            params.update(
-                                {
-                                    "%s" % self.category.get("field"): value
-                                    + self.category.get("delimiter", " ")
-                                    + cat.get("id")
-                                }
-                            )
+                    cat_ids = [str(c.get("id")) for c in cats if c.get("id") is not None]
+                    if cat_ids:
+                        field = self.category.get("field")
+                        if field:
+                            delimiter = self.category.get("delimiter", " ")
+                            if "=" in delimiter:
+                                # 多参数模式: field=cat[], delimiter=&cat[]=
+                                # 用 list + doseq 让 urlencode 自动展开，避免 & 被转义
+                                params[field] = cat_ids
+                            else:
+                                # 普通拼接模式: delimiter=+、空格、逗号等
+                                params[field] = field+delimiter.join(cat_ids)
                         else:
-                            params.update({"%s" % cat.get("id"): 1})
-                searchurl = self.domain + torrentspath + "?" + urlencode(params)
+                            for cat_id in cat_ids:
+                                params["cat%s" % cat_id] = 1
+                searchurl = self.domain + torrentspath + "?" + urlencode(params, doseq=True)
             else:
                 # 变量字典
                 inputs_dict = {"keyword": quote(search_word), "page": page or 0}
