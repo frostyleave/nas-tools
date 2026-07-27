@@ -8,6 +8,7 @@ from typing import Optional
 
 from apscheduler.executors.pool import ThreadPoolExecutor
 from apscheduler.schedulers.background import BackgroundScheduler
+from apscheduler.schedulers.base import STATE_STOPPED
 from apscheduler.triggers.cron import CronTrigger
 
 import log
@@ -960,7 +961,8 @@ class BrushTaskV2(object):
         try:
             if self._scheduler:
                 self._scheduler.remove_all_jobs()
-                self._scheduler.shutdown()
+                if self._scheduler.state != STATE_STOPPED:
+                    self._scheduler.shutdown()
         except Exception as e:
             log.exception('【Brush】停止定时服务出错: ')
 

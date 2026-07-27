@@ -7,6 +7,7 @@ from typing import Optional
 from apscheduler.executors.pool import ThreadPoolExecutor
 from apscheduler.triggers.cron import CronTrigger
 from apscheduler.schedulers.background import BackgroundScheduler
+from apscheduler.schedulers.base import STATE_STOPPED
 
 from lxml import etree
 
@@ -717,7 +718,8 @@ class RssChecker(object):
         try:
             if self._scheduler:
                 self._scheduler.remove_all_jobs()
-                self._scheduler.shutdown()
+                if self._scheduler.state != STATE_STOPPED:
+                    self._scheduler.shutdown()
         except Exception as e:
             log.exception('【RssChecker】停止定时服务出错: ')
 

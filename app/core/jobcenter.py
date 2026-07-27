@@ -4,6 +4,7 @@ from apscheduler.job import Job
 from apscheduler.executors.pool import ThreadPoolExecutor
 from apscheduler.schedulers import SchedulerNotRunningError, SchedulerAlreadyRunningError
 from apscheduler.schedulers.background import BackgroundScheduler
+from apscheduler.schedulers.base import STATE_STOPPED
 from apscheduler.events import (
     EVENT_JOB_SUBMITTED,
     EVENT_JOB_EXECUTED,
@@ -75,7 +76,8 @@ class JobCenter:
             try:
                 if _scheduler:
                     _scheduler.remove_all_jobs()
-                    _scheduler.shutdown()
+                    if _scheduler.state != STATE_STOPPED:
+                        _scheduler.shutdown()
             except SchedulerNotRunningError as ex:
                 log.debug(f'[System]定时服务({_scheduler.name})不在运行中')
             except Exception as e:
