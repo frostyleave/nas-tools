@@ -13,9 +13,10 @@ from app.db.media_db import MediaDb
 import log
 
 from app.media import Category
-from app.utils import ConfigLoadCache, CategoryLoadCache, StringUtils
+from app.utils.cache_manager import ConfigLoadCache, CategoryLoadCache
 from app.utils.commons import INSTANCES
 from app.utils.password_hash import generate_password_hash
+from app.utils.string_utils import StringUtils
 
 from config import Config
 

@@ -20,7 +20,8 @@ from app.indexer.client.builtin import BuiltinIndexer
 from app.indexer.manager import IndexerManager
 from app.media.meta import MetaInfo
 from app.message import Message
-from app.sites import SitesManager, SiteConf, PtSiteConf
+from app.models.model import UserSiteConf
+from app.sites import SitesManager, SiteConf
 from app.utils import StringUtils
 from app.utils.commons import singleton
 from app.utils.types import BrushDeleteType
@@ -587,7 +588,7 @@ class BrushTaskV2(object):
     def __download_torrent(self,
                            taskinfo,
                            rss_rule,
-                           site_info:PtSiteConf,
+                           site_info:UserSiteConf,
                            title,
                            enclosure,
                            size

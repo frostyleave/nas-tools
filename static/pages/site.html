@@ -73,8 +73,7 @@
         <div class="row">
           <div class="col-lg-4">
             <div class="mb-3">
-              <label class="form-label required">站点用途 <span class="form-help" title="设置站点使用场景，选中的场景才会使用该站点"
-                  data-bs-toggle="tooltip">?</span></label>
+              <label class="form-label required">站点用途 <span class="form-help" title="设置站点使用场景，选中的场景才会使用该站点" data-bs-toggle="tooltip">?</span></label>
               <div class="form-selectgroup">
                 <label class="form-selectgroup-item">
                   <input type="checkbox" name="site_uses" value="D" class="form-selectgroup-input" checked>
@@ -197,6 +196,13 @@
                 <option value="Y">是</option>
                 <option value="N" selected>否</option>
               </select>
+            </div>
+          </div>
+          <div class="col-lg-4">
+            <div class="mb-3">
+              <label class="form-label required">资源类型 <span class="form-help" title="站点可进行哪种类型资源的检索" data-bs-toggle="tooltip">?</span></label>
+              <div class="form-selectgroup" id="source-setting-group">
+              </div>
             </div>
           </div>
         </div>
@@ -505,6 +511,9 @@
           $('#cookie-form-tab a').tab('show');
         }
 
+        // 多选
+        select_SelectPart(ret.site.source_type, "source_setting")
+
       }
 
     });
@@ -596,6 +605,9 @@
     } else {
       $("#sitelimit_seconds").removeClass("is-invalid");
     }
+
+    let source_type = select_GetSelectedVAL("source_setting").join(',');
+
     let data = {
       "site_id": site_id,
       "site_name": site_name,
@@ -617,7 +629,8 @@
         "subtitle": subtitle,
         "limit_interval": limit_interval,
         "limit_count": limit_count,
-        "limit_seconds": limit_seconds
+        "limit_seconds": limit_seconds,
+        "source_type": source_type
       }
     }
 
@@ -664,9 +677,11 @@
 
   //显示BT站点
   function show_bt_sites_modal() {
+
     $("#modal-bt-sites").modal("show");
-    const testTableBody = $('#modal-bt-sites tbody');
-    testTableBody.empty();
+
+    const btSitesTable = $('#modal-bt-sites tbody');
+    btSitesTable.empty();
 
     // 当模态框完全显示后，加载站点
     $('#modal-bt-sites').one('shown.bs.modal', function () {
@@ -682,8 +697,7 @@
           if (site.source_type && Array.isArray(site.source_type)) {
             sourceTypeBadges = site.source_type.map(source => {
               const sourceStr = source.toString();
-              const sourceLabel = sourceTypes && sourceTypes[sourceStr] ?
-                sourceTypes[sourceStr] : source;
+              const sourceLabel = sourceTypes && sourceTypes[sourceStr] ? sourceTypes[sourceStr] : source;
               return `<span class="badge bg-blue me-2">${sourceLabel}</span>`;
             }).join('');
           }
@@ -694,12 +708,27 @@
           if (site.proxy) featureBadges += '<span class="badge bg-lime-lt mb-1 me-1">代理</span>';
           if (site.en_expand) featureBadges += '<span class="badge bg-cyan-lt mb-1 me-1">扩展</span>';
 
-          const testRow = `
+          let searchParamBadges = '';
+          if (site.search_param == 'imdb') {
+            searchParamBadges = `<span class="badge bg-yellow-lt me-2">${site.search_param_name}</span>`
+          } else if (site.search_param == 'douban') {
+            searchParamBadges = `<span class="badge bg-lime-lt me-2">${site.search_param_name}</span>`
+          } else if (site.search_param == 'en') {
+            searchParamBadges = `<span class="badge bg-cyan-lt me-2">${site.search_param_name}</span>`
+          } else {
+            searchParamBadges = `<span class="badge bg-blue-lt me-2">${site.search_param_name}</span>`
+          } 
+
+          const rowHtml = `
             <tr>
-              <td class="w-1"><div class="form-switch"><input name="indexer_sites" type="checkbox" class="form-check-input" value="${site.id}" ${site.checked ? 'checked' : ''}></div></td>
+              <td class="w-1">
+                <div class="form-switch">
+                  <input name="indexer_sites" type="checkbox" class="form-check-input" value="${site.id}" ${site.checked ? 'checked' : ''}>
+                </div>
+              </td>
               <td><span>${site.name}</span></td>
               <td>${sourceTypeBadges}</td>
-              <td><span class="badge me-2">${site.search_type}</span></td>
+              <td>${searchParamBadges}</td>
               <td>${featureBadges}</td>
               <td>
                 <a href="javascript:edit_indexer_conf('${site.domain}')" class="btn-action ms-1" title="编辑站点">
@@ -708,11 +737,15 @@
               </td>
             </tr>
           `;
-          testTableBody.append(testRow);
+          
+          btSitesTable.append(rowHtml);
+
         });
+
       });
 
     });
+
   }
 
   //测试一个站点
@@ -1083,6 +1116,22 @@
           $('#sites-container').hide();
           $('#no-sites').show();
         }
+
+        // 填充资源类型选项
+        if (data.sourceTypes) {
+          const sourceTypesGroup = $('#source-setting-group');
+          sourceTypesGroup.empty();
+          Object.entries(data.sourceTypes).forEach(([key, value]) => {
+            const sourceTypeItem = `
+              <label class="form-selectgroup-item">
+                <input type="checkbox" name="source_setting" value="${key}" class="form-selectgroup-input" checked>
+                <span class="form-selectgroup-label">${value}</span>
+              </label>
+            `;
+            sourceTypesGroup.append(sourceTypeItem);
+          });
+        }
+
       } else {
         show_fail_modal('站点数据加载失败, ' + response.msg);
       }

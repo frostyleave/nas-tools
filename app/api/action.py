@@ -3917,7 +3917,7 @@ class WebAction:
         if not url:
             return {"code": 1, "msg": "站点url为空"}
 
-        site = IndexerManager().build_indexer_conf(url=url)
+        site = IndexerManager().get_indexer_base(url=url, public=True)
         if not site:
             return {"code": 1, "msg": "索引站点查询失败"}
 
@@ -3930,14 +3930,9 @@ class WebAction:
                 "search": json.dumps(site.search),
                 "torrents": json.dumps(site.torrents),
                 "parser": site.parser,
-                "render": site.render,
-                "browse": json.dumps(site.browse) if site.browse else '',
                 "category": json.dumps(site.category) if site.category else '',
-                "source_type": site.source_type,
-                "search_type": site.search_type,
                 "public": site.public,
-                "proxy": site.proxy,
-                "en_expand": site.en_expand
+                "extra": json.dumps(site.extra)
             }
         }
 

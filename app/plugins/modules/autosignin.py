@@ -14,7 +14,7 @@ from app.helper import ThreadHelper
 from app.plugins import EventHandler
 from app.modules.wallpaper import get_bing_wallpaper
 from app.plugins.modules._base import _IPluginModule
-from app.sites import PtSiteConf
+from app.models.model import UserSiteConf
 from app.sites.siteconf import SiteConf
 from app.sites.site_manager import SitesManager
 from app.utils import RequestUtils, SiteUtils, SchedulerUtils
@@ -407,13 +407,13 @@ class AutoSignIn(_IPluginModule):
 
         return wait_sign_sites, already_sign_sites, history_exists
 
-    def _get_sites_info(self, site_ids: List[str]) -> List[PtSiteConf]:
+    def _get_sites_info(self, site_ids: List[str]) -> List[UserSiteConf]:
         """
         查询待签到站点信息。
         """
         return self.sites.get_sites(siteids=site_ids)
 
-    def _execute_sign_in_loop(self, sites_to_sign_info: List[PtSiteConf], initial_already_signed_ids: List[str]) -> SignInResults:
+    def _execute_sign_in_loop(self, sites_to_sign_info: List[UserSiteConf], initial_already_signed_ids: List[str]) -> SignInResults:
         """
         遍历站点执行签到，并收集结果
         """
@@ -516,7 +516,7 @@ class AutoSignIn(_IPluginModule):
                 log.exception(f"【自动签到】[{url}]签到插件加载失败: ")
         return None
 
-    def signin_site(self, site_info:PtSiteConf) -> Tuple[bool, str]:
+    def signin_site(self, site_info:UserSiteConf) -> Tuple[bool, str]:
         """
         签到一个站点
         """
@@ -530,7 +530,7 @@ class AutoSignIn(_IPluginModule):
         else:
             return self.__signin_base(site_info)
 
-    def __signin_base(self, site_info:PtSiteConf) -> Tuple[bool, str]:
+    def __signin_base(self, site_info:UserSiteConf) -> Tuple[bool, str]:
         """
         通用签到处理
         :param site_info: 站点信息

@@ -9,7 +9,7 @@ from lxml import etree
 from urllib.parse import urljoin
 
 from app.plugins.modules._autosignin._base import _ISiteSigninHandler
-from app.sites import PtSiteConf
+from app.models.model import UserSiteConf
 from app.utils import SiteUtils, RequestUtils
 
 from config import Config
@@ -46,7 +46,7 @@ class FWpt(_ISiteSigninHandler):
         """
         return True if SiteUtils.url_equal(url, cls.site_url) else False
 
-    def signin(self, site_info: PtSiteConf):
+    def signin(self, site_info: UserSiteConf):
         """
         执行签到操作
         :param site_info: 站点信息，含有站点Url、站点Cookie、UA等信息
@@ -55,7 +55,7 @@ class FWpt(_ISiteSigninHandler):
 
         return self._sample_sign(site_info)
     
-    def _answer_sign(self, site_info: PtSiteConf)  -> Tuple[bool, str]:
+    def _answer_sign(self, site_info: UserSiteConf)  -> Tuple[bool, str]:
 
         # 验证码失效, 重试5次
         for i in range(5):
@@ -65,7 +65,7 @@ class FWpt(_ISiteSigninHandler):
             
         return False, "[52pt]签到失败: Cookie已失效"
 
-    def _request_sign(self, site_info: PtSiteConf)  -> Tuple[bool, str]:
+    def _request_sign(self, site_info: UserSiteConf)  -> Tuple[bool, str]:
 
         site = site_info.name
         site_cookie = site_info.cookie
@@ -237,7 +237,7 @@ class FWpt(_ISiteSigninHandler):
         except (FileNotFoundError, IOError, OSError) as e:
             self.debug("签到成功写入本地文件失败")
 
-    def _sample_sign(self, site_info: PtSiteConf)  -> Tuple[bool, str]:
+    def _sample_sign(self, site_info: UserSiteConf)  -> Tuple[bool, str]:
 
         site = site_info.name
         site_cookie = site_info.cookie

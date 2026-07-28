@@ -7,7 +7,7 @@ from typing import List, Optional
 import log
 
 from app.indexer.client.builtin import BuiltinIndexer
-from app.indexer.manager import IndexerInfo
+from app.models.model import IndexerInfo
 from app.media import Media
 from app.media.meta._base import MetaBase
 from app.media.meta.metainfo import MetaInfo
@@ -211,23 +211,27 @@ def exec_search_by_threads(client_instance: BuiltinIndexer,
         for indexer in search_indexers:
             order_seq = 100 - int(indexer.pri)
             # 原始标题检索
-            if 'title' == indexer.search_type and search_keywords:
+            if search_keywords and (not indexer.public or 'kw' == indexer.search_param):
                 task = executor.submit(client_instance.search, order_seq, indexer, search_keywords, copy.deepcopy(filter_args), match_media, in_from, task_id)
                 all_tasks.append(task)
-            # 其他搜索类型都需要 match_media 不为空
-            if not match_media:
+
+            # 公共站点的其他参数, 都需要 match_media 不为空
+            if not match_media or not indexer.public:
                 continue
+
             # 豆瓣id检索
-            if 'douban_id' == indexer.search_type and match_media.douban_id:
+            if 'douban' == indexer.search_param and match_media.douban_id:
                 # 剧集信息, 查询特定季的豆瓣id
                 task = executor.submit(client_instance.search, order_seq, indexer, match_media.douban_id, copy.deepcopy(filter_args), match_media, in_from, task_id)
                 all_tasks.append(task)
+
             # imdb id 检索
-            if 'imdb' == indexer.search_type and match_media.imdb_id:
+            if 'imdb' == indexer.search_param and match_media.imdb_id:
                 task = executor.submit(client_instance.search, order_seq, indexer, match_media.imdb_id, copy.deepcopy(filter_args), match_media, in_from, task_id)
                 all_tasks.append(task)
+                
             # 英文名检索
-            if 'en_name' == indexer.search_type or indexer.en_expand:
+            if 'en' == indexer.search_param or indexer.en_expand:
                 en_name = get_media_en_name(match_media)
                 if en_name:
                     task = executor.submit(client_instance.search, order_seq, indexer, en_name, copy.deepcopy(filter_args), match_media, in_from, task_id)

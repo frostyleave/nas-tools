@@ -1,7 +1,7 @@
 import json
 
 from app.plugins.modules._autosignin._base import _ISiteSigninHandler
-from app.sites import PtSiteConf
+from app.models.model import UserSiteConf
 from app.utils import SiteUtils, RequestUtils
 from config import Config
 
@@ -23,7 +23,7 @@ class PTerClub(_ISiteSigninHandler):
         """
         return True if SiteUtils.url_equal(url, cls.site_url) else False
 
-    def signin(self, site_info: PtSiteConf):
+    def signin(self, site_info: UserSiteConf):
         """
         执行签到操作
         :param site_info: 站点信息，含有站点Url、站点Cookie、UA等信息

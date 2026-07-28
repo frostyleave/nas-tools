@@ -1260,13 +1260,13 @@
             <div class="col-lg-4">
               <div class="mb-3">
                 <label class="form-label required">ID</label>
-                <input type="text" value="" id="indexer_id" class="form-control" placeholder="ID">
+                <input type="text" value="" id="indexer-id" class="form-control" placeholder="ID">
               </div>
             </div>
             <div class="col-lg-4">
               <div class="mb-3">
                 <label class="form-label required">名称</label>
-                <input type="text" value="" id="indexer_name" class="form-control" placeholder="名称">
+                <input type="text" value="" id="indexer-name" class="form-control" placeholder="名称">
               </div>
             </div>
             <div class="col-lg-4">
@@ -1274,43 +1274,38 @@
                 <label class="form-label required">站点地址 <span class="form-help" title="站点访问地址，站点签到、数据统计、刷流、内置索引器等将使用"
                     data-bs-toggle="tooltip">?</span>
                 </label>
-                <input type="text" class="form-control" id="indexer_url" value="" placeholder="站点http地址">
+                <input type="text" class="form-control" id="indexer-url" value="" placeholder="站点http地址">
               </div>
             </div>
           </div>
           <div class="row">
             <div class="col-lg-4">
               <div class="mb-3">
-                <label class="form-label required">检索方式 <span class="form-help" title="站点支持根据哪些参数进行资源检索"
-                    data-bs-toggle="tooltip">?</span></label>
-                <select class="form-select" id="search_type">
-                  <option value="title">关键字</option>
-                  <option value="en_name">英文名</option>
-                  <option value="douban_id">豆瓣id</option>
-                  <option value="imdb">imdb id</option>
-                </select>
-              </div>
-            </div>
-            <div class="col-lg-4">
-              <div class="mb-3">
                 <label class="form-label">解析器</label>
-                <select class="form-select" id="parser_setting">
+                <select class="form-select" id="indexer-parser-type">
                 </select>
               </div>
             </div>
             <div class="col-lg-4 pt-hide">
               <div class="mb-3">
-                <label class="form-label">下载器</label>
-                <select class="form-select" id="indexer_download_setting">
+                <label class="form-label required">检索方式 <span class="form-help" title="站点支持根据哪些参数进行资源检索" data-bs-toggle="tooltip">?</span></label>
+                <select class="form-select" id="indexer-search-params">
+                </select>
+              </div>
+            </div>
+            <div class="col-lg-4 pt-hide">
+              <div class="mb-3">
+                <label class="form-label">下载设置</label>
+                <select class="form-select" id="indexer-download-setting">
                   <option value="0">默认</option>
                 </select>
               </div>
             </div>
           </div>
-          <div class="row">
+          <div class="row pt-hide">
             <div class="mb-3">
               <label class="required">资源类型 <span class="form-help" title="站点可进行哪种类型资源的检索"data-bs-toggle="tooltip">?</span></label>
-              <div class="form-selectgroup" id="source-types-group"></div>
+              <div class="form-selectgroup" id="indexer-source-types"></div>
             </div>
           </div>
           <div class="row pt-hide">
@@ -1319,7 +1314,7 @@
                 <span>使用代理服务器 
                   <span class="form-help" title="开启后该站点的访问将使用代理服务器，代理需在基础设置->系统->代理服务器中设置" data-bs-toggle="tooltip">?</span>
                 </span>
-                <div class="form-switch d-inline-block ms-2"><input class="form-check-input" type="checkbox" id="indexer_proxy"></div>
+                <div class="form-switch d-inline-block ms-2"><input class="form-check-input" type="checkbox" id="indexer-proxy"></div>
               </div>
             </div>
             <div class="col-lg-4">
@@ -1328,13 +1323,13 @@
                     <span class="form-help"
                       title="开启后可以兼容更多站点，但获取数据耗时会大幅增加；需要拉取含浏览器内核的镜像才能使用" data-bs-toggle="tooltip">?</span>
                     </span>
-                  <div class="form-switch d-inline-block ms-2"><input class="form-check-input" type="checkbox" id="indexer_render"></div>
+                  <div class="form-switch d-inline-block ms-2"><input class="form-check-input" type="checkbox" id="indexer-render"></div>
               </div>
             </div>
             <div class="col-lg-4">
               <div class="mb-3">
                 <label>使用英文名进行扩展搜索</label>
-                <div class="form-switch d-inline-block ms-2"><input class="form-check-input" type="checkbox" id="en_expand"></div>
+                <div class="form-switch d-inline-block ms-2"><input class="form-check-input" type="checkbox" id="indexer-en-expand"></div>
               </div>
             </div>
           </div>
@@ -1352,14 +1347,6 @@
             </summary>
             <div class="row mt-2">
               <textarea class="form-control mt-2" id="torrent_cfg" rows="1" aria-label=""></textarea>
-            </div>
-          </details>
-          <details>
-            <summary class="summary">
-              资源浏览配置 <span class="form-help" title="资源浏览配置参数" data-bs-toggle="tooltip">?</span>
-            </summary>
-            <div class="row mt-2">
-              <textarea class="form-control mt-2" id="browse_cfg" rows="1" aria-label=""></textarea>
             </div>
           </details>
           <details>
@@ -1881,7 +1868,7 @@
 
       // 填充下载设置选项
       if (data.downloadSettings) {
-        const downloadSelect = $('#indexer_download_setting');
+        const downloadSelect = $('#indexer-download-setting');
         downloadSelect.empty();
         downloadSelect.append('<option value="0">默认</option>');
         Object.entries(data.downloadSettings).forEach(([id, name]) => {
@@ -1891,12 +1878,12 @@
 
       // 填充资源类型选项
       if (data.sourceTypes) {
-        const sourceTypesGroup = $('#source-types-group');
+        const sourceTypesGroup = $('#indexer-source-types');
         sourceTypesGroup.empty();
         Object.entries(data.sourceTypes).forEach(([key, value]) => {
           const sourceTypeItem = `
             <label class="form-selectgroup-item">
-              <input type="checkbox" name="source_type" value="${key}" class="form-selectgroup-input" checked>
+              <input type="checkbox" name="indexer-source-type" value="${key}" class="form-selectgroup-input" checked>
               <span class="form-selectgroup-label">${value}</span>
             </label>
           `;
@@ -1905,11 +1892,21 @@
       }
 
       if (data.spiderTypes) {
-        const parserSettingGroup = $('#parser_setting');
-        parserSettingGroup.empty();
+        const parserTypeGroup = $('#indexer-parser-type');
+        parserTypeGroup.empty();
         $.each(data.spiderTypes, function (sKey, sName){
           var option = `<option value="${sKey}">${sName}</option>`;
-          parserSettingGroup.append(option);
+          parserTypeGroup.append(option);
+        });
+      }
+
+      if (data.searchParams) {
+        const searchParamGroup = $('#indexer-search-params');
+        searchParamGroup.empty();
+        
+        $.each(data.searchParams, function (sKey, sName){
+          var option = `<option value="${sKey}">${sName}</option>`;
+          searchParamGroup.append(option);
         });
       }
 

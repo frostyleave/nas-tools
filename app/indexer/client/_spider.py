@@ -8,11 +8,11 @@ from urllib.parse import quote, urlencode
 from jinja2 import Template
 from pyquery import PyQuery
 
-from app.sites.siteconf import SiteConf
 import log
 
 from app.indexer.client.browser import PlaywrightHelper, WaitElement
-from app.indexer.manager import IndexerInfo
+from app.models.model import IndexerInfo
+from app.sites.siteconf import SiteConf
 from app.utils import StringUtils, RequestUtils
 from app.utils.system_utils import SystemUtils
 from app.utils.types import MediaType
@@ -69,7 +69,6 @@ class TorrentSpider(object):
             self.indexerid = indexer.id
             self.indexername = indexer.name
             self.search_conf = indexer.search
-            self.browse = indexer.browse
             self.category = indexer.category
             self.list_conf = indexer.torrents.get("list", {})
             self.fields_conf = indexer.torrents.get("fields")
@@ -133,7 +132,7 @@ class TorrentSpider(object):
         return self.parse(html_content)
     
 
-    def _build_search_url(self, keyword: str = None, page=None, mtype=None) -> str:
+    def _build_search_url(self, keyword: str, page=None, mtype=None) -> str:
         """
         构建请求地址
         """
@@ -216,12 +215,12 @@ class TorrentSpider(object):
             # 变量字典
             inputs_dict = {"page": page or 0, "keyword": ""}
             # 有单独浏览路径
-            if self.browse:
-                torrentspath = self.browse.get("path")
-                if self.browse.get("start"):
-                    start_page = int(self.browse.get("start")) + int(page or 0)
-                    inputs_dict.update({"page": start_page})
-            elif page:
+            # if self.browse:
+            #     torrentspath = self.browse.get("path")
+            #     if self.browse.get("start"):
+            #         start_page = int(self.browse.get("start")) + int(page or 0)
+            #         inputs_dict.update({"page": start_page})
+            if page:
                 torrentspath = torrentspath + f"?page={page}"
             # 搜索Url
             searchurl = self.domain + str(torrentspath).format(**inputs_dict)

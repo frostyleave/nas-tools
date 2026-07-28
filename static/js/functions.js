@@ -2090,25 +2090,19 @@ function edit_indexer_conf(site_url, ispt) {
 
   // 根据ID查询详细信息
   axios_post_do("get_indexer", { "url": site_url }, function (ret) {
+
     if (ret.data) {
 
       // 数据绑定到容器上
       $("#modal-manual-indexer").data("indexer", ret.data);
 
-      $("#indexer_id").val(ret.data.id).attr("readonly", true);
-      $("#indexer_name").val(ret.data.name).attr("readonly", true);
-      $("#indexer_url").val(ret.data.domain);
+      $("#indexer-id").val(ret.data.id).attr("readonly", true);
+      $("#indexer-name").val(ret.data.name).attr("readonly", true);
+      $("#indexer-url").val(ret.data.domain);
 
       // 下拉
-      $("#indexer_download_setting").val(ret.data.downloader ?? 0);
-      $("#parser_setting").val(ret.data.parser ?? '');
-      $('#search_type').val(ret.data.search_type ?? 'title')
-      // 多选
-      select_SelectPart(ret.data.source_type, "source_type")
-
-      $("#indexer_proxy").prop("checked", ret.data.proxy);
-      $("#indexer_render").prop("checked", ret.data.render);
-      $("#en_expand").prop("checked", ret.data.en_expand);
+      $("#indexer-download-setting").val(ret.data.downloader ?? 0);
+      $("#indexer-parser-type").val(ret.data.parser ?? '');
 
       if (ret.data.search) {
         append_json_to_textarea('search_cfg', ret.data.search)
@@ -2118,12 +2112,23 @@ function edit_indexer_conf(site_url, ispt) {
         append_json_to_textarea('torrent_cfg', ret.data.torrents)
       }
 
-      if (ret.data.browse) {
-        append_json_to_textarea('browse_cfg', ret.data.browse)
-      }
-
       if (ret.data.category) {
         append_json_to_textarea('category_cfg', ret.data.category)
+      }
+
+      if (ret.data.public && ret.data.extra != '') {
+
+        var extra_json = JSON.parse(ret.data.extra);
+        
+        // 多选
+        select_SelectPart(extra_json.source_type, "indexer-source-type")
+
+        $('#indexer-search-params').val(extra_json.search_param ?? 'kw')
+
+        $("#indexer-proxy").prop("checked", extra_json.proxy);
+        $("#indexer-render").prop("checked", extra_json.render);
+        $("#indexer-en-expand").prop("checked", extra_json.en_expand);
+
       }
 
       $("#indexer_modal_title").text("编辑索引站点");
@@ -2150,13 +2155,13 @@ function do_update_indexer() {
     return
   }
 
-  var indexer_id = $("#indexer_id").val();
+  var indexer_id = $("#indexer-id").val();
   if (current_indexer.id != indexer_id) {
     show_fail_modal('站点ID不一致, 请重新编辑');
     return
   }
 
-  var indexer_url = $("#indexer_url").val();
+  var indexer_url = $("#indexer-url").val();
   if (!indexer_url || !isUrl(indexer_url)) {
     show_fail_modal('站点地址无效, 请重新编辑');
     return
@@ -2170,29 +2175,11 @@ function do_update_indexer() {
     show_fail_modal('搜索配置不合法，请检查后重试');
     return
   }
-  search_cfg = zip_json(search_cfg)
-  if (search_cfg == zip_json(current_indexer.search)) {
-    search_cfg = NaN
-  }
 
   var torrent_cfg = $('#torrent_cfg').val();
   if (!object_json_valid(torrent_cfg, false)) {
     show_fail_modal('种子过滤配置不合法，请检查后重试');
     return
-  }
-  torrent_cfg = zip_json(torrent_cfg)
-  if (torrent_cfg == zip_json(current_indexer.torrents)) {
-    torrent_cfg = NaN
-  }
-
-  var browse_cfg = $('#browse_cfg').val();
-  if (!object_json_valid(browse_cfg, true)) {
-    show_fail_modal('资源浏览配置不合法，请检查后重试');
-    return
-  }
-  browse_cfg = zip_json(browse_cfg)
-  if (browse_cfg == zip_json(current_indexer.browse)) {
-    browse_cfg = NaN
   }
 
   var category_cfg = $('#category_cfg').val();
@@ -2200,76 +2187,30 @@ function do_update_indexer() {
     show_fail_modal('目录配置不合法，请检查后重试');
     return
   }
-  if (zip_json(category_cfg) == zip_json(current_indexer.category)) {
-    category_cfg = NaN
-  }
 
-  var proxy = $('#indexer_proxy').prop('checked');
-  if (proxy == current_indexer.proxy) {
-    proxy = NaN
-  }
+  var parser_type = $('#indexer-parser-type').val();
 
-  var render = $('#indexer_render').prop('checked');
-  if (render == current_indexer.render) {
-    render = NaN
-  }
-  var en_expand = $('#en_expand').prop('checked');
-  if (en_expand == current_indexer.en_expand) {
-    en_expand = NaN
-  }
-
-  var downloader = $("#indexer_download_setting").val();
-  if (downloader == current_indexer.downloader) {
-    downloader = NaN
-  }
-  var parser_setting = $('#parser_setting').val();
-  if (parser_setting == current_indexer.parser) {
-    parser_setting = NaN
-  }
-
-  var source_type = select_GetSelectedVAL("source_type").join(',');
-  if (source_type == current_indexer.source_type) {
-    source_type = NaN
-  }
-  var search_type = $('#search_type').val();
-  if (search_type == current_indexer.search_type) {
-    search_type = NaN
-  }
-
-  if (indexer_url == NaN 
-    && proxy == NaN 
-    && render == NaN 
-    && downloader == NaN && en_expand == NaN
-    && source_type == NaN 
-    && search_type == NaN 
-    && search_cfg == NaN 
-    && torrent_cfg == NaN
-    && browse_cfg == NaN 
-    && parser_setting == NaN 
-    && category_cfg == NaN) {
-    $("#modal-manual-indexer").modal("hide");
-    return;
-  }
-
-  if (downloader != NaN || en_expand != NaN) {
-    en_expand = $('#en_expand').prop('checked');
-    downloader = $("#indexer_download_setting").val();
-  }
+  var search_param = $('#indexer-search-params').val();
+  var source_type = select_GetSelectedVAL('indexer-source-type').join(',');
+  var proxy = $('#indexer-proxy').prop('checked');
+  var render = $('#indexer-render').prop('checked');
+  var downloader = $("#indexer-download-setting").val();
+  var en_expand = $('#indexer-en-expand').prop('checked');
 
   const data = {
     "id": indexer_id,
     "domain": indexer_url,
-    "proxy": proxy,
-    "render": render,
-    "en_expand": en_expand,
-    "downloader": downloader,
-    "parser": parser_setting,
-    "source_type": source_type,
-    "search_type": search_type,
+    "parser": parser_type,
     "search": zip_json(search_cfg),
     "torrents": zip_json(torrent_cfg),
-    "browse": zip_json(browse_cfg),
-    "category": zip_json(category_cfg)
+    "category": zip_json(category_cfg),
+
+    "proxy": proxy,
+    "render": render,
+    "search_param": search_param,
+    "source_type": source_type,
+    "en_expand": en_expand,
+    "downloader": downloader,
   };
 
   axios_post_do("update_indexer", data, function (ret) {

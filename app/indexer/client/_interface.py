@@ -8,7 +8,7 @@ from urllib.parse import quote
 
 import log
 
-from app.indexer.manager import IndexerInfo
+from app.models.model import IndexerInfo
 from app.utils.string_utils import StringUtils
 from config import Config
 

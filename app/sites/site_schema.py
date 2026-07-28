@@ -6,7 +6,7 @@ import log
 
 from app.helper import SubmoduleHelper
 from app.indexer.client.browser import PlaywrightHelper
-from app.sites._base import PtSiteConf
+from app.models.model import UserSiteConf
 from app.sites.siteuserinfo._base import _ISiteUserInfo
 from app.sites.siteuserinfo.mTorrent import MTorrentUserInfo
 from app.utils.types import Spider
@@ -33,7 +33,7 @@ class SitesschemaCenter(object):
         log.debug(f"【Sites】加载站点解析: {self._site_schema}")
 
 
-    def build(self, site_info: PtSiteConf) -> _ISiteUserInfo:
+    def build(self, site_info: UserSiteConf) -> _ISiteUserInfo:
 
         site_url = site_info.strict_url
         site_name = site_info.name

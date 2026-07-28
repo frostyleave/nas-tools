@@ -8,7 +8,8 @@ import log
 
 from app.helper import DbHelper
 from app.message import Message
-from app.sites import PtSiteConf, SitesManager
+from app.models.model import UserSiteConf
+from app.sites import SitesManager
 from app.sites.site_schema import SitesschemaCenter
 from app.utils import StringUtils
 from app.utils.commons import singleton
@@ -42,7 +43,7 @@ class SitesDataStatisticsCenter(object):
         # 站点数据
         self._sites_data = {}
 
-    def __refresh_site_data(self, site_info: PtSiteConf):
+    def __refresh_site_data(self, site_info: UserSiteConf):
         """
         更新单个site 数据信息
         :param site_info:

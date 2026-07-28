@@ -45,6 +45,19 @@ data_router = APIRouter(
     dependencies=[Depends(get_current_user)]
 )
 
+SOURCE_TYPES = { 
+    "MOVIE":'电影', 
+    "TV":'剧集', 
+    "ANIME":'动漫' 
+}
+
+SEARCH_PARAMS = { 
+    "kw": '关键字', 
+    "en": '英文名', 
+    "douban": '豆瓣id', 
+    "imdb": 'imdb id'
+}
+
 
 # 异常捕获器
 def router_exception_handler(router: APIRouter):
@@ -114,7 +127,6 @@ async def sysinfo(current_user: User = Depends(get_current_user)):
     rmt_mode_dict = _get_rmt_modes_dict()
 
     download_settings = {did: attr["name"] for did, attr in Downloader().get_download_setting().items()}
-    source_types = { "MOVIE":'电影', "TV":'剧集', "ANIME":'动漫' }
     spider_types = { member.value: member.name for member in Spider }
 
     return response(data=
@@ -133,8 +145,9 @@ async def sysinfo(current_user: User = Depends(get_current_user)):
             "pixDict": pix_dict,
             "rmtDodeDict": rmt_mode_dict,
             "downloadSettings": download_settings,
-            "sourceTypes": source_types,
             "spiderTypes": spider_types,
+            "sourceTypes": SOURCE_TYPES,
+            "searchParams": SEARCH_PARAMS,
         }
     )
 
@@ -314,48 +327,43 @@ async def rss_calendar():
 @data_router.post("/indexer")
 async def indexer(p: int = 1):
 
-    indexers = Indexer().get_indexers(check=False)
+    # 启用的索引站点
     indexer_sites = SystemConfig().get(SystemConfigKey.UserIndexerSites)
     if not indexer_sites:
         indexer_sites = []
 
-    searchTypes = { "title":'关键字', "en_name":'英文名', "douban_id":'豆瓣id', "imdb":'imdb id' }
-    sourceTypes = { "MOVIE":'电影', "TV":'剧集', "ANIME":'动漫' }
-
-    front_indexers = []
-    check_sites = []
-
     is_public = p == 1
+    front_indexers = []
 
+    indexers = Indexer().get_indexers(check=False)
     for idx_site in indexers:
-        checked = idx_site.id in indexer_sites
-        if checked:
-            check_sites.append(idx_site.id)
 
         if idx_site.public != is_public:
             continue
+
+        checked = idx_site.id in indexer_sites
         site_info = {
             "id": idx_site.id,
             "name": idx_site.name,
             "domain": idx_site.domain,
             "render": idx_site.render,
             "source_type": idx_site.source_type,
-            "search_type": searchTypes.get(idx_site.search_type, '关键字'),
+            "search_param": idx_site.search_param,
+            "search_param_name": SEARCH_PARAMS.get(idx_site.search_param, '关键字'),
             "public": idx_site.public,
             "proxy": idx_site.proxy,
             "en_expand": idx_site.en_expand,
             "checked": checked
         }
         front_indexers.append(site_info)
-    
+
+    # 根据选中情况排序
     sorted_list = sorted(front_indexers, key=lambda x: x.get("id", "") not in indexer_sites)
 
     return response(data=
         {
-            "isPublic": p,
             "indexers": sorted_list,
-            "checkSites": check_sites,
-            "sourceTypes": sourceTypes
+            "sourceTypes": SOURCE_TYPES
         })
 
 
@@ -383,7 +391,8 @@ async def sites_page():
             "ChromeOk": True,
             "CookieCloudCfg": cookie_cloud_cfg,
             "CookieUserInfoCfg": cookie_user_info_cfg,
-            "indexerSites": indexer_sites
+            "indexerSites": indexer_sites,
+            "sourceTypes": SOURCE_TYPES,
         }
     )
 

@@ -9,9 +9,10 @@ import log
 
 from app.helper import SiteHelper, DbHelper
 from app.indexer.client.browser import PlaywrightHelper
-from app.indexer.manager import IndexerBase, IndexerManager
+from app.indexer.manager import IndexerManager
 from app.message import Message
-from app.sites import PtSiteConf, SiteRateLimiter
+from app.models.model import UserSiteConf, SiteBaseModel
+from app.sites import SiteRateLimiter
 from app.sites.siteuserinfo.mTorrent import MTorrentUserInfo
 from app.utils import RequestUtils, SiteUtils
 from app.utils.commons import singleton
@@ -27,8 +28,8 @@ class SitesManager:
     message = None
     dbhelper = None
 
-    _siteByIds : dict[int, PtSiteConf] = {}
-    _siteByUrls : dict[str, PtSiteConf] = {}
+    _siteByIds : dict[int, UserSiteConf] = {}
+    _siteByUrls : dict[str, UserSiteConf] = {}
     _limiters : dict[int, SiteRateLimiter] = {}
 
     _MAX_CONCURRENCY = 10
@@ -40,9 +41,9 @@ class SitesManager:
         self.dbhelper = DbHelper()
         self.message = Message()
         # ID存储站点
-        self._siteByIds : dict[int, PtSiteConf] = {}
+        self._siteByIds : dict[int, UserSiteConf] = {}
         # URL存储站点
-        self._siteByUrls : dict[str, PtSiteConf] = {}
+        self._siteByUrls : dict[str, UserSiteConf] = {}
         # 站点限速器
         self._limiters : dict[int, SiteRateLimiter] = {}
         # 站点数据
@@ -93,14 +94,16 @@ class SitesManager:
                 passkey = match.group(1)
             
             site_data_dic = {
+                
                 "id": site.ID,
                 "name": site.NAME,
-                "indexer_id": indexer_id,
                 "pri": site.PRI or 0,
-                "rssurl": site_rssurl,
                 "signurl": site_signurl,
                 "strict_url": strict_url,
+                "rssurl": site_rssurl,
+                "indexer_id": indexer_id,
                 "parser" : site_parser,
+
                 "cookie": site_cookie,
                 "token": site_token,
                 "apikey": site_apikey,
@@ -114,8 +117,9 @@ class SitesManager:
                 "ua": site_note.get("ua"),
                 "rule": site_note.get("rule"),
                 "download_setting": site_note.get("download_setting"),
+                "source_type": site_note.get("source_type").split(',') if site_note.get("source_type") else [],
 
-                "parse": True if site_note.get("parse") == "Y" else False,
+                "parse_detail": True if site_note.get("parse") == "Y" else False,
                 "unread_msg_notify": True if site_note.get("message") == "Y" else False,
                 "chrome": True if site_note.get("chrome") == "Y" else False,
                 "proxy": True if site_note.get("proxy") == "Y" else False,
@@ -136,7 +140,7 @@ class SitesManager:
                 site_data_dic["limit_seconds"] = int(limit_seconds)           
 
             # 实例化
-            site_info = PtSiteConf.from_datas(site_data_dic)
+            site_info = UserSiteConf.from_datas(site_data_dic)
 
             # 以ID存储
             self._siteByIds[site.ID] = site_info
@@ -150,9 +154,7 @@ class SitesManager:
                 limit_seconds = site_info.limit_seconds
             )
 
-    def get_site(self,
-                  siteid=None,
-                  siteurl=None) -> Optional[PtSiteConf]:
+    def get_site(self, siteid=None, siteurl=None) -> Optional[UserSiteConf]:
         """
         获取单个站点配置
         """
@@ -167,7 +169,7 @@ class SitesManager:
                   siteids=None,
                   rss=False,
                   brush=False,
-                  statistic=False) -> List[PtSiteConf]:
+                  statistic=False) -> List[UserSiteConf]:
         """
         获取站点配置
         """
@@ -201,7 +203,7 @@ class SitesManager:
             log.warn(f"【Sites】站点 {self._siteByIds[site_id].name} {msg}")
         return state
 
-    def get_sites_by_suffix(self, suffix) -> PtSiteConf:
+    def get_sites_by_suffix(self, suffix) -> UserSiteConf:
         """
         根据url的后缀获取站点配置
         """
@@ -214,7 +216,7 @@ class SitesManager:
                 return self._siteByUrls[key]
         return None
 
-    def get_sites_by_name(self, name) -> List[PtSiteConf]:
+    def get_sites_by_name(self, name) -> List[UserSiteConf]:
         """
         根据站点名称获取站点配置
         """
@@ -269,10 +271,16 @@ class SitesManager:
         """
         获取站点下载设置
         """
-        if site_name:
-            for site in self._siteByIds.values():
-                if site.name == site_name:
-                    return site.download_setting
+        if not site_name:
+            return None
+        # PT站点
+        for site in self._siteByIds.values():
+            if site.name == site_name:
+                return site.download_setting
+        # 公共站点
+        indexer_base = IndexerManager().get_public_indexer_base_by_name(site_name)
+        if indexer_base and indexer_base.extra:
+            return indexer_base.extra.get('downloader', None)
         return None
 
     def test_connection(self, site_id) -> Tuple[bool, str, int]:
@@ -295,7 +303,7 @@ class SitesManager:
             log.exception('【Sites】测试站点连通性异常: ')
             return False, "测试站点连通性异常", 0
 
-    def _test_mteam_connection(self, site_info: PtSiteConf):
+    def _test_mteam_connection(self, site_info: UserSiteConf):
 
         url = site_info.strict_url
         site_name = site_info.name
@@ -323,7 +331,7 @@ class SitesManager:
 
         return False, "无法打开网站", seconds
 
-    def __test_connection_basic(self, site_info: PtSiteConf):
+    def __test_connection_basic(self, site_info: UserSiteConf):
             
         site_cookie = site_info.cookie
         if not site_cookie:
@@ -411,7 +419,7 @@ class SitesManager:
             log.exception('【Sites】解析网站下载链接出错: ')
         return None
 
-    def match_indexer_sites(self, url, site_name=None) -> Optional[IndexerBase]:
+    def match_indexer_sites(self, url, site_name=None) -> Optional[SiteBaseModel]:
         """
         根据url匹配索引站点信息
         """

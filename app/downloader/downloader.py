@@ -19,17 +19,18 @@ import log
 from app.conf import ModuleConf
 from app.conf import SystemConfig
 from app.modules.filetransfer import FileTransfer
+from app.models.model import UserSiteConf, IndexerInfo
 from app.helper import DbHelper, ThreadHelper, SubmoduleHelper
 from app.indexer.client import InterfaceSpider, MTorrentSpider
 from app.indexer.client.browser import PlaywrightHelper
-from app.indexer.manager import IndexerInfo, IndexerManager
+from app.indexer.manager import IndexerManager
 from app.core.jobcenter import JobCenter
 from app.media import Media
 from app.media.meta import MetaInfo
 from app.mediaserver import MediaServer
 from app.message import Message
 from app.plugins import EventManager
-from app.sites import PtSiteConf, SitesManager, SiteSubtitle
+from app.sites import SitesManager, SiteSubtitle
 from app.utils import TorrentUtils, StringUtils, SystemUtils, NumberUtils, RequestUtils, SiteUtils
 from app.utils.torrent import TorrentDownloadResult
 from app.utils.commons import singleton
@@ -58,7 +59,7 @@ class _DownloadContentInfo:
     dl_files_folder: str = ""
     dl_files: list = field(default_factory=list)
     retmsg: str = ""
-    site_info: Optional[PtSiteConf] = None
+    site_info: Optional[UserSiteConf] = None
 
     @property
     def success(self) -> bool:
@@ -574,7 +575,7 @@ class Downloader:
                     category, 
                     tag, 
                     download_attr, 
-                    site_info: Optional[PtSiteConf]):
+                    site_info: Optional[UserSiteConf]):
         
         # 站点 cookie
         site_cookie = site_info.cookie if site_info else None
@@ -688,7 +689,7 @@ class Downloader:
                                          
         return task_id
 
-    def _download_torrent_from_site(self, url:str, page_url:str, site_info:Optional[PtSiteConf]):
+    def _download_torrent_from_site(self, url:str, page_url:str, site_info:Optional[UserSiteConf]):
         """
         从网站下载并解析种子信息
         :param url: 种子链接
@@ -697,19 +698,7 @@ class Downloader:
         """
         if site_info:
             log.info("【Downloader】从PT站点HTTP链接下载种子: %s ", url)
-            render = site_info.chrome
-            indexer_conf = IndexerManager().build_indexer_conf(url=site_info.strict_url,
-                                                               siteid=site_info.id,
-                                                               cookie=site_info.cookie,
-                                                               token=site_info.token,
-                                                               apikey=site_info.apikey,
-                                                               ua=site_info.ua,
-                                                               name=site_info.name,
-                                                               rule=site_info.rule,
-                                                               pri=site_info.pri,
-                                                               public=False,
-                                                               proxy=site_info.proxy,
-                                                               render=render)
+            indexer_conf = IndexerManager().build_indexer_conf(url=site_info.strict_url, site_conf=site_info)
         else:
             log.debug("【Downloader】从HTTP链接下载种子: %s ", url)
             indexer_conf = IndexerManager().build_indexer_conf(url=url)

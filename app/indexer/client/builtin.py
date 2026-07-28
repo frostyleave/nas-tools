@@ -5,12 +5,13 @@ from typing import List, Optional, Tuple
 import log
 
 from app.conf import SystemConfig
+from app.models.model import IndexerInfo
 from app.indexer.client._base import _IIndexClient
 from app.indexer.client import TorrentSpider, TNodeSpider, TorrentLeech, InterfaceSpider, MTorrentSpider
-from app.indexer.manager import IndexerManager, IndexerInfo
+from app.indexer.manager import IndexerManager
 from app.media.meta.metainfo import MetaInfo
 from app.sites import SitesManager
-from app.utils import StringUtils
+from app.utils.string_utils import StringUtils
 from app.utils.types import MediaType, SearchType, IndexerType, SystemConfigKey
 
 
@@ -62,19 +63,7 @@ class BuiltinIndexer(_IIndexClient):
                 log.debug("【索引器】%s 触发站点流控，跳过 ...", pt_site.name)
                 continue
 
-            render = pt_site.chrome
-            indexer_conf = IndexerManager().build_indexer_conf(url=url,
-                                                               siteid=pt_site.id,
-                                                               cookie=pt_site.cookie,
-                                                               token=pt_site.token,
-                                                               apikey=pt_site.apikey,
-                                                               ua=pt_site.ua,
-                                                               name=pt_site.name,
-                                                               rule=pt_site.rule,
-                                                               pri=pt_site.pri,
-                                                               public=False,
-                                                               proxy=pt_site.proxy,
-                                                               render=render)
+            indexer_conf = IndexerManager().build_indexer_conf(url=url, site_conf=pt_site)
             if indexer_conf:
                 if check and (not indexer_sites or indexer_conf.id not in indexer_sites):
                     continue
@@ -95,7 +84,7 @@ class BuiltinIndexer(_IIndexClient):
 
             if base_item.domain not in _indexer_domains:
                 _indexer_domains.append(base_item.domain)
-                conf_data = IndexerManager().prepare_datas(conf_data=base_item)
+                conf_data = IndexerManager().prepare_datas(site_base=base_item)
                 ret_indexers.append(IndexerInfo.from_datas(conf_data))
         
         return ret_indexers
