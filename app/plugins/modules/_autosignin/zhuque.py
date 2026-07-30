@@ -42,16 +42,16 @@ class ZhuQue(_ISiteSigninHandler):
                                 ).get_res(url="https://zhuque.in")
         if not html_res or html_res.status_code != 200:
             self.error(f"模拟登录失败，请检查站点连通性")
-            return False, f'【{site}】模拟登录失败，请检查站点连通性'
+            return False, f'[site]模拟登录失败，请检查站点连通性'
 
         if "login.php" in html_res.text:
             self.error(f"模拟登录失败，cookie失效")
-            return False, f'【{site}】模拟登录失败，cookie失效'
+            return False, f'[site]模拟登录失败，cookie失效'
 
         html = etree.HTML(html_res.text)
 
         if not html:
-            return False, f'【{site}】模拟登录失败'
+            return False, f'[site]模拟登录失败'
 
         # 释放技能
         msg = '失败'
@@ -79,5 +79,5 @@ class ZhuQue(_ISiteSigninHandler):
                 bonus = int(skill_dict['data']['bonus'])
                 msg = f'成功，获得{bonus}魔力'
 
-        self.info(f'【{site}】模拟登录成功，技能释放{msg}')
-        return True, f'【{site}】模拟登录成功，技能释放{msg}'
+        self.info(f'[site]模拟登录成功，技能释放{msg}')
+        return True, f'[site]模拟登录成功，技能释放{msg}'

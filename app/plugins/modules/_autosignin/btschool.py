@@ -54,7 +54,7 @@ class BTSchool(_ISiteSigninHandler):
             # 已签到
             if self._sign_text not in html_text:
                 self.info("今日已签到")
-                return True, f'【{site}】今日已签到'
+                return True, f'[site]今日已签到'
 
             # 仿真签到
             html_text = chrome.get_page_source(url=self.sign_url,
@@ -67,27 +67,27 @@ class BTSchool(_ISiteSigninHandler):
             # 签到成功
             if self._sign_text not in html_text:
                 self.info("签到成功")
-                return True, f'【{site}】签到成功'
+                return True, f'[site]签到成功'
         else:
             self.info(f"{site} 开始签到")
             proxies = Config().get_proxies() if proxy else None
             html_res = RequestUtils(cookies=site_cookie, ua=ua, proxies=proxies).get_res(url=self.index_url)
             if not html_res:
                 self.error("签到失败, 无法打开网站")
-                return False, f'【{site}】签到失败, 无法打开网站'
+                return False, f'[site]签到失败, 无法打开网站'
             
             if html_res.status_code != 200:
                 self.error(f"签到失败, 请检查站点连通性: {html_res.status_code}")
-                return False, f'【{site}】签到失败, 请检查站点连通性'
+                return False, f'[site]签到失败, 请检查站点连通性'
 
             if "login.php" in html_res.text:
                 self.error("签到失败, cookie失效")
-                return False, f'【{site}】签到失败, cookie失效'
+                return False, f'[site]签到失败, cookie失效'
 
             # 已签到
             if self._sign_text not in html_res.text:
                 self.info("今日已签到")
-                return True, f'【{site}】今日已签到'
+                return True, f'[site]今日已签到'
 
             sign_res = RequestUtils(cookies=site_cookie,
                                     ua=ua,
@@ -95,11 +95,11 @@ class BTSchool(_ISiteSigninHandler):
                                     ).get_res(url=self.sign_url)
             if not sign_res or sign_res.status_code != 200:
                 self.error("签到失败, 签到接口请求失败")
-                return False, f'【{site}】签到失败, 签到接口请求失败'
+                return False, f'[site]签到失败, 签到接口请求失败'
 
             # 签到成功
             if self._sign_text not in sign_res.text:
                 self.info("签到成功")
-                return True, f'【{site}】签到成功'
+                return True, f'[site]签到成功'
             
-            return False, f'【{site}】签到执行失败'
+            return False, f'[site]签到执行失败'

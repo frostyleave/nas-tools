@@ -638,7 +638,7 @@ class AutoSignIn(_IPluginModule):
                     self.info(f"[POST]{site_name}签到成功")
                     return True, f'[POST][{site_name}]签到成功'
 
-            self.error(f"签到失败，未知原因")
+            self.warn(f'[{site_name}]签到失败，未知原因')
             return False, f'[{site_name}]签到失败，未知原因'
                 
             

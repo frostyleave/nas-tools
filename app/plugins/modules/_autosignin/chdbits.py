@@ -61,23 +61,23 @@ class CHDBits(_ISiteSigninHandler):
                                  ).get_res(url='https://chdbits.co/bakatest.php')
         if not index_res or index_res.status_code != 200:
             self.error(f"签到失败，请检查站点连通性")
-            return False, f'【{site}】签到失败，请检查站点连通性'
+            return False, f'[site]签到失败，请检查站点连通性'
 
         if "login.php" in index_res.text:
             self.error(f"签到失败，cookie失效")
-            return False, f'【{site}】签到失败，cookie失效'
+            return False, f'[site]签到失败，cookie失效'
 
         sign_status = self.sign_in_result(html_res=index_res.text,
                                           regexs=self._sign_regex)
         if sign_status:
             self.info(f"今日已签到")
-            return True, f'【{site}】今日已签到'
+            return True, f'[site]今日已签到'
 
         # 没有签到则解析html
         html = etree.HTML(index_res.text)
 
         if not html:
-            return False, f'【{site}】签到失败'
+            return False, f'[site]签到失败'
 
         # 获取页面问题、答案
         questionid = html.xpath("//input[@name='questionid']/@value")[0]
@@ -187,7 +187,7 @@ class CHDBits(_ISiteSigninHandler):
                                 ).post_res(url='https://chdbits.co/bakatest.php', data=data)
         if not sign_res or sign_res.status_code != 200:
             self.error(f"签到失败，签到接口请求失败")
-            return False, f'【{site}】签到失败，签到接口请求失败'
+            return False, f'[site]签到失败，签到接口请求失败'
 
         # 判断是否签到成功
         sign_status = self.sign_in_result(html_res=sign_res.text,
@@ -199,16 +199,16 @@ class CHDBits(_ISiteSigninHandler):
                 self.__write_local_answer(exits_answers=exits_answers or {},
                                           question=question,
                                           answer=choice)
-            return True, f'【{site}】签到成功'
+            return True, f'[site]签到成功'
         else:
             sign_status = self.sign_in_result(html_res=sign_res.text,
                                               regexs=self._sign_regex)
             if sign_status:
                 self.info(f"今日已签到")
-                return True, f'【{site}】今日已签到'
+                return True, f'[site]今日已签到'
 
             self.error(f"签到失败，请到页面查看")
-            return False, f'【{site}】签到失败，请到页面查看'
+            return False, f'[site]签到失败，请到页面查看'
 
     def __write_local_answer(self, exits_answers, question, answer):
         """

@@ -84,23 +84,23 @@ class FWpt(_ISiteSigninHandler):
         
         if not index_res or index_res.status_code != 200:
             self.error(f"签到失败，请检查站点连通性")
-            return False, f'【{site}】签到失败，请检查站点连通性'
+            return False, f'[site]签到失败，请检查站点连通性'
 
         if "login.php" in index_res.text:
             self.error(f"签到失败，cookie失效")
-            return False, f'【{site}】签到失败，cookie失效'
+            return False, f'[site]签到失败，cookie失效'
 
         sign_status = self.sign_in_result(html_res=index_res.text,
                                           regexs=self._sign_regex)
         if sign_status:
             self.info(f"今日已签到")
-            return True, f'【{site}】今日已签到'
+            return True, f'[site]今日已签到'
 
         # 没有签到则解析html
         html = etree.HTML(index_res.text)
 
         if not html:
-            return False, f'【{site}】签到失败'
+            return False, f'[site]签到失败'
 
         # 获取页面问题、答案
         questionid = html.xpath('string(//input[@name="questionid"]/@value)').strip()
@@ -252,25 +252,25 @@ class FWpt(_ISiteSigninHandler):
         
         if not index_res or index_res.status_code != 200:
             self.error(f"签到失败，请检查站点连通性")
-            return False, f'【{site}】签到失败，请检查站点连通性'
+            return False, f'[site]签到失败，请检查站点连通性'
 
         if "login.php" in index_res.text:
             self.error(f"签到失败，cookie失效")
-            return False, f'【{site}】签到失败，cookie失效'
+            return False, f'[site]签到失败，cookie失效'
 
         sign_status = self.sign_in_result(index_res.text, self._sign_regex)
         if sign_status:
             self.info(f"今日已签到")
-            return True, f'【{site}】今日已签到'
+            return True, f'[site]今日已签到'
 
         # 解析html
         html = etree.HTML(index_res.text)
         if not html:
-            return False, f'【{site}】签到失败(主页面解析失败)'
+            return False, f'[site]签到失败(主页面解析失败)'
         
         sign_href = html.xpath('string(//a[@id="game"]/@href)').strip()
         if not sign_href:
-            return False, f'【{site}】签到失败(查找签到页面地址失败)'
+            return False, f'[site]签到失败(查找签到页面地址失败)'
         
         sign_url = urljoin(self.site_url, sign_href)
 
@@ -283,12 +283,12 @@ class FWpt(_ISiteSigninHandler):
         sign_status = self.sign_in_result(sign_res.text, self._sign_regex)
         if sign_status:
             self.info(f"今日已签到")
-            return True, f'【{site}】今日已签到'
+            return True, f'[site]今日已签到'
         
         # 解析html
         html = etree.HTML(sign_res.text)
         if not html:
-            return False, f'【{site}】签到失败(签到页面解析失败)'
+            return False, f'[site]签到失败(签到页面解析失败)'
         
         # 获取页面问题
         m = re.search(
@@ -299,7 +299,7 @@ class FWpt(_ISiteSigninHandler):
         sign_captcha = m.group(1) if m else None
         # sign_captcha = html.xpath('string(//input[@name="sign_captcha"]/@value)').strip()
         if not sign_captcha:
-            return False, f'【{site}】签到失败(sign_captcha查询失败)'
+            return False, f'[site]签到失败(sign_captcha查询失败)'
 
         sign_token = html.xpath('string(//input[@name="sign_token"]/@value)').strip()
         sign_submit = html.xpath('string(//input[@name="sign_submit"]/@value)').strip()

@@ -437,7 +437,7 @@ class Filter:
             try:
                 self.delete_filtergroup(groupid)
             except Exception as err:
-                log.exception(f"[act]删除规则组{groupid}失败:")
+                log.exception(f"【Filter】删除规则组{groupid}失败:")
 
             for init_rulegroup in init_rulegroups:
                 if str(init_rulegroup.get("id")) == groupid:

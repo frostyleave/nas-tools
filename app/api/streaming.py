@@ -37,7 +37,7 @@ async def message_handler(websocket: WebSocket):
             user_id = user_info.id
             log.debug(f"[WebSocket-消息]会话用户ID: {user_id}")
     except Exception as e:
-        log.exception("[WebSocket-消息]会话获取失败: ")
+        log.error("[WebSocket-消息]会话获取失败: ")
 
     try:
         while True:
@@ -108,7 +108,7 @@ async def message_handler(websocket: WebSocket):
                         # 连接已关闭
                         break
             except Exception as e:
-                log.exception("[WebSocket-消息]处理消息失败: ")
+                log.error("[WebSocket-消息]处理消息失败: ")
                 # 检查连接状态，避免在连接已关闭时发送消息
                 try:
                     await websocket.send_text(json.dumps({"error": str(e)}))
@@ -154,14 +154,14 @@ async def stream_logging(request: Request, source: str = ""):
                     yield f"data: {json.dumps(log_data)}\n\n"
 
                 except Exception as e:
-                    log.exception("[SSE-日志]处理失败: ")
+                    log.error("[SSE-日志]处理失败: ")
                 finally:
                     await asyncio.sleep(0.2)
 
         except asyncio.CancelledError:
             log.debug("SSE client disconnected.")
         except Exception as e:
-            log.exception("[SSE-日志]连接异常: ")
+            log.error("[SSE-日志]连接异常: ")
             yield f"data: {json.dumps({'code': -1, 'value': 0, 'text': f'实时日志连接异常: {str(e)}'})}\n\n"
         finally:
             log.debug("Removing client queue from active SSE listeners.")
@@ -192,7 +192,7 @@ async def stream_progress(request: Request, type: str = ""):
                 # 等待一段时间
                 await asyncio.sleep(0.5)
         except Exception as e:
-            log.exception("[SSE-进度]连接异常: ")
+            log.error("[SSE-进度]连接异常: ")
             yield f"data: {json.dumps({'code': -1, 'value': 0, 'text': f'进度连接异常: {str(e)}'})}\n\n"
 
     # 初始化进度
@@ -248,7 +248,7 @@ async def sse_progress(
                 await asyncio.sleep(0.5)
 
         except Exception as e:
-            log.exception("[SSE-进度]连接异常: ")
+            log.warn("[SSE-进度]连接异常: ")
             yield f"data: {json.dumps({'code': -1, 'value': 0, 'text': f'进度连接异常: {str(e)}'})}\n\n"
 
     return StreamingResponse(event_generator(), media_type="text/event-stream", headers={ "Content-Encoding": "identity" })

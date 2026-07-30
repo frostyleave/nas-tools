@@ -279,7 +279,7 @@ class _ISiteUserInfo(metaclass=ABCMeta):
                 try:
                     return json.dumps(res.json()), res.status_code
                 except (json.JSONDecodeError, ValueError) as e:
-                    log.exception(f"{self.site_name} API响应JSON解析失败: {e}")
+                    log.exception(f"【Sites】{self.site_name} API响应JSON解析失败: {e}")
                     return "", res.status_code, res.status_code
             
             if "charset=utf-8" in res.text or "charset=UTF-8" in res.text or 'charset="utf-8"' in res.text :

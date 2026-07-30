@@ -1479,7 +1479,7 @@ class FileTransfer:
                                         "path": dest_path
                                     })
                                 except Exception as e:
-                                    log.exception("[act]删除电影目录 异常:")
+                                    log.exception("【Rmt】删除电影目录 异常:")
                             elif not meta_info.get_episode_string():
                                 # 电视剧但没有集数，删除季目录
                                 try:
@@ -1490,7 +1490,7 @@ class FileTransfer:
                                         "path": dest_path
                                     })
                                 except Exception as e:
-                                    log.exception("[act]删除电视剧目录 异常:")
+                                    log.exception("【Rmt】删除电视剧目录 异常:")
                                 rm_parent_dir = True
                             else:
                                 # 有集数的电视剧，删除对应的集数文件
@@ -1509,7 +1509,7 @@ class FileTransfer:
                                                 "filename": os.path.basename(dest_file)
                                             })
                                         except Exception as e:
-                                            log.exception("[act]删除电视剧集数文件 异常:")
+                                            log.exception("【Rmt】删除电视剧集数文件 异常:")
                                 rm_parent_dir = True
                             if rm_parent_dir \
                                     and not PathUtils.get_dir_files(os.path.dirname(dest_path), exts=Constants.RMT_MEDIAEXT):
@@ -1517,7 +1517,7 @@ class FileTransfer:
                                 try:
                                     shutil.rmtree(os.path.dirname(dest_path))
                                 except Exception as e:
-                                    log.exception("[act]删除指定目录 异常:")
+                                    log.exception("【Rmt】删除指定目录 异常:")
         return {"retcode": 0}
 
     def re_identification(self, flag, ids):

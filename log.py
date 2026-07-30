@@ -273,7 +273,6 @@ _logger = logging.getLogger("app")
 console = _logger.info
 debug = _logger.debug
 info = _logger.info
-warning = _logger.warning
 warn = _logger.warning
 error = _logger.error
 critical = _logger.critical

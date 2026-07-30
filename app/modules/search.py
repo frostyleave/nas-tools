@@ -282,7 +282,7 @@ class SearchProxy:
                 try:
                     res_mix = json.loads(item.RES_TYPE)
                 except Exception as err:
-                    log.exception("[act]解析质量配置异常:")
+                    log.exception("【Searcher】解析质量配置异常:")
                     continue
                 respix = res_mix.get("respix") or ""
                 video_encode = res_mix.get("video_encode") or ""

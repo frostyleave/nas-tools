@@ -198,7 +198,7 @@ def task_processor_stop():
             # 如果队列满，说明积压严重，直接放弃发送停止信号（线程会在下次循环或强制退出时结束）
             TASK_QUEUE.put_nowait(_STOP_EVENT)
         except queue.Full:
-            log.warning('[Task Manager] 任务队列已满，无法发送停止信号 (非致命错误)')
+            log.warn('[Task Manager] 任务队列已满，无法发送停止信号 (非致命错误)')
             
         except Exception as e:
             log.error(f'[Task Manager] 发送停止信号时出错: {e}')
