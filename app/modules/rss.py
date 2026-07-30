@@ -117,7 +117,7 @@ class Rss:
                 site_ua = site_info.ua
 
                 # 是否解析种子详情
-                site_parse = site_info.parse
+                site_parse = site_info.parse_detail
                 # 是否使用代理
                 site_proxy = site_info.proxy
                 # 使用的规则
