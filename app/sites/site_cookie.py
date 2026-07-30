@@ -25,7 +25,6 @@ class CookieManager(object):
     progress = None
     sites = None
     siteconf = None
-    ocrhelper = None
     captcha_code = {}
 
     def __init__(self):
@@ -35,7 +34,6 @@ class CookieManager(object):
         self.progress = ProgressHelper()
         self.sites = SitesManager()
         self.siteconf = SiteConf()
-        self.ocrhelper = OcrHelper()
         self.captcha_code = {}
 
     def set_code(self, code, value):
@@ -160,7 +158,7 @@ class CookieManager(object):
                         ua = page.evaluate("() => window.navigator.userAgent")
                         if ocrflag:
                             # 自动OCR识别验证码
-                            captcha = self.get_captcha_text(cookie, ua, code_url)
+                            captcha = OcrHelper.get_captcha_text(image_url=code_url, cookie=cookie, ua=ua)
                             if not captcha:
                                 return None, None, "验证码识别失败"
                             log.info("验证码地址为：%s，识别结果：%s" % (code_url, captcha))                                
@@ -240,15 +238,6 @@ class CookieManager(object):
                                          callback=__page_handler,
                                          headless=noGraphical,
                                          proxies=proxy)
-
-    def get_captcha_text(self, cookie: str, ua: str, code_url: str):
-        """
-        识别验证码图片的内容
-        """
-        code_b64 = self.get_captcha_base64(cookie,ua,code_url)
-        if not code_b64:
-            return ""
-        return self.ocrhelper.get_captcha_text(image_b64=code_b64)
 
     @staticmethod
     def __get_captcha_url(siteurl, imageurl):

@@ -86,9 +86,9 @@ class HDSky(_ISiteSigninHandler):
             # 识别几次
             while times <= 3:
                 # ocr二维码识别
-                ocr_result = OcrHelper().get_captcha_text(image_url=img_get_url,
-                                                          cookie=site_cookie,
-                                                          ua=ua)
+                ocr_result = OcrHelper.get_captcha_text(image_url=img_get_url,
+                                                        cookie=site_cookie,
+                                                        ua=ua)
                 self.debug(f"ocr识别{site}验证码 {ocr_result}")
                 if ocr_result:
                     if len(ocr_result) == 6:

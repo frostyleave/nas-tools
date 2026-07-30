@@ -1,16 +1,18 @@
+import base64
 import re
+import requests
 
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from lxml import etree
 from threading import Event
 from typing import List, Tuple
-
 from urllib.parse import urljoin
 
 from app.helper import SubmoduleHelper, SiteHelper
 from app.helper.cloudflare_helper import under_challenge
 from app.helper import ThreadHelper
+from app.helper.ocr_helper import OcrHelper
 from app.plugins import EventHandler
 from app.modules.wallpaper import get_bing_wallpaper
 from app.plugins.modules._base import _IPluginModule
@@ -556,8 +558,12 @@ class AutoSignIn(_IPluginModule):
 
             # 代理
             proxies = Config().get_proxies() if site_info.proxy else None
+
+            session = requests.Session()
+            request_handler = RequestUtils(session=session, cookies=site_cookie, ua=ua, proxies=proxies, referer=checkin_url)
+
             # 访问链接
-            res = RequestUtils(cookies=site_cookie, ua=ua, proxies=proxies).get_res(url=checkin_url)
+            res = request_handler.get_res(url=checkin_url)
             if res is None:
                 return False, f"[{site_name}]签到失败: 无法打开网站"
             
@@ -568,10 +574,10 @@ class AutoSignIn(_IPluginModule):
                 self.error(f"签到失败，cookie失效")
                 return False, f'[{site_name}]签到失败: cookie失效'
             
-            if under_challenge(res.text):
+            if "challenges.cloudflare.com" in res.text:
                 return False, f"[{site_name}]签到失败: 站点被Cloudflare防护"
             
-            # 签到成功, 或重启请求签到页
+            # 本次签到成功, 或是重新请求签到页
             sign_status = SiteHelper.sign_in_result(html_res=res.text,
                                                     regexs=self._sign_regex)
             if sign_status:
@@ -582,19 +588,55 @@ class AutoSignIn(_IPluginModule):
             if not self._is_logged_in(html_tree):
                 return False, f"[{site_name}]签到失败: Cookie已失效"
 
+            attendance_form = html_tree.xpath('//form[@method="post" and @action="attendance.php"]')
+            # 存在签到表单
+            if attendance_form:
+                self.info(f"[{site_name}]签到页存在表单")
+
+                img_src = attendance_form[0].xpath('string(//img[@alt="CAPTCHA"]/@src)').strip()
+                if not img_src:
+                    return False, f'[{site_name}]签到失败，找不到验证码图片链接'
+
+                img_url = urljoin(home_url, img_src)
+                captcha = request_handler.get_res(img_url)
+                if not captcha or not captcha.content:
+                    return False, f'[{site_name}]签到失败，获取验证码图片失败'
+
+                image_b64 = base64.b64encode(captcha.content).decode()
+                captcha_code = OcrHelper.get_captcha_text(image_b64=image_b64)
+                if not captcha_code:
+                    return False, f'[{site_name}]签到失败，验证码识别失败'
+
+                form_data = {}
+                inputs = attendance_form[0].xpath('.//input[@name]')
+                for input_el in inputs:
+                    name = input_el.get('name')
+                    value = input_el.get('value', '')
+                    form_data[name] = value if value else captcha_code
+
+                sign_res = request_handler.post(url=checkin_url, data=form_data)
+
+                if not sign_res or sign_res.status_code != 200:
+                    self.error(f"[FORM]{site_name}签到失败, form提交失败")
+                    return False, f'[FORM][{site_name}]签到失败, form提交失败'
+
+                if SiteHelper.sign_in_result(html_res=sign_res.text, regexs=self._success_regex):
+                    self.info(f"[FORM]{site_name}签到成功")
+                    return True, f'[FORM][{site_name}]签到成功'
+
             site_id = str(site_info.id)
             # 需要渲染, 尝试进行post再次请求
             if self._render_sites and site_id in self._render_sites:
 
-                sign_res = RequestUtils(cookies=site_cookie, ua=ua, proxies=proxies).post_res(url=checkin_url)
+                sign_res = request_handler.post_res(url=checkin_url)
                 
                 if not sign_res or sign_res.status_code != 200:
-                    self.error(f"签到失败，签到接口请求失败")
-                    return False, f'[{site_name}]签到失败，签到接口请求失败'
+                    self.error(f"[POST]{site_name}签到失败，签到接口请求失败")
+                    return False, f'[POST][{site_name}]签到失败，签到接口请求失败'
 
                 if SiteHelper.sign_in_result(html_res=sign_res.text, regexs=self._success_regex):
-                    self.info(f"签到成功")
-                    return True, f'[{site_name}]签到成功'
+                    self.info(f"[POST]{site_name}签到成功")
+                    return True, f'[POST][{site_name}]签到成功'
 
             self.error(f"签到失败，未知原因")
             return False, f'[{site_name}]签到失败，未知原因'
