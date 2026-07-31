@@ -443,7 +443,7 @@ class DbHelper:
 
     @DbPersist(_db)
     def insert_config_site(self, name, site_pri,
-                           rssurl=None, signurl=None, cookie=None, token=None, apikey=None, note=None, rss_uses=None):
+                           rssurl='', signurl='', cookie='', token='', apikey='', note='', rss_uses=''):
         """
         插入站点信息
         """

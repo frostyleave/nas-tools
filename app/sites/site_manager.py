@@ -459,7 +459,7 @@ class SitesManager:
         return infos
 
     def add_site(self, name, site_pri,
-                 rssurl=None, signurl=None, cookie=None, token=None, apikey=None, note=None, rss_uses=None):
+                 rssurl='', signurl='', cookie='', token='', apikey='', note='', rss_uses=''):
         """
         添加站点
         """
