@@ -85,3 +85,36 @@ class DictHelper:
         if not dtype:
             return []
         return self._db.query(SYSTEMDICT).filter(SYSTEMDICT.TYPE == dtype).all()
+
+    @DbPersist(_db)
+    def update_note(self, dtype, key, note):
+        """
+        更新note字段内容
+        :param dtype: 字典类型
+        :param key: 字典Key
+        :return: True False
+        """
+        if not dtype or not key:
+            return False
+        return self._db.query(SYSTEMDICT).filter(SYSTEMDICT.TYPE == dtype,
+                                                 SYSTEMDICT.KEY == key).update(
+                        {
+                            "NOTE": note
+                        }
+                    )
+    
+    def get_note(self, dtype, key):
+        """
+        查询字典NOTE值
+        :param dtype: 字典类型
+        :param key: 字典Key
+        :return: 返回字典NOTE值
+        """
+        if not dtype or not key:
+            return ""
+        ret = self._db.query(SYSTEMDICT.NOTE).filter(SYSTEMDICT.TYPE == dtype,
+                                                     SYSTEMDICT.KEY == key).first()
+        if ret:
+            return ret[0]
+        else:
+            return ""
