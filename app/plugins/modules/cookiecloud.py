@@ -32,8 +32,8 @@ class CookieCloud(_IPluginModule):
     auth_level = 2
 
     # 私有属性
-    sites = None
-    _index_helper = None
+    sites_manager = None
+    index_helper = None
     # 设置开关
     _req = None
     _server = None
@@ -42,9 +42,17 @@ class CookieCloud(_IPluginModule):
     _enabled = False
     # 任务执行间隔
     _cron = None
+
+    # 选项:
+    # 运行一次
     _onlyonce = False
-    # 通知
+    # 发送执行通知
     _notify = False
+    # 自动导入
+    _autoimport = False
+    # 强制覆盖
+    _forceimport = False
+
     # 退出事件
     _event = Event()
     # 需要忽略的Cookie
@@ -123,7 +131,22 @@ class CookieCloud(_IPluginModule):
             {
                 'type': 'div',
                 'content': [
-                    # 同一行
+                    [
+                        {
+                            'title': '自动导入新站点数据',
+                            'required': "",
+                            'tooltip': '读取到可对接的站点cookie时自动导入系统',
+                            'type': 'switch',
+                            'id': 'autoimport',
+                        },
+                        {
+                            'title': '强制使用CookieCloud数据覆盖',
+                            'required': "",
+                            'tooltip': '不判断系统内的站点cookie是否有效, 直接使用CookieCloud数据覆盖',
+                            'type': 'switch',
+                            'id': 'forceimport',
+                        }
+                    ],
                     [
                         {
                             'title': '运行时通知',
@@ -145,8 +168,9 @@ class CookieCloud(_IPluginModule):
         ]
 
     def init_config(self, config=None):
-        self.sites = SitesManager()
-        self._index_helper = IndexerManager()
+        
+        self.sites_manager = SitesManager()
+        self.index_helper = IndexerManager()
 
         # 读取配置
         if config:
@@ -154,6 +178,8 @@ class CookieCloud(_IPluginModule):
             self._cron = self.quartz_cron_compatible(config.get("cron"))
             self._key = config.get("key")
             self._password = config.get("password")
+            self._autoimport = config.get("autoimport")
+            self._forceimport = config.get("forceimport")
             self._notify = config.get("notify")
             self._onlyonce = config.get("onlyonce")
             self._req = RequestUtils(content_type="application/json")
@@ -187,6 +213,8 @@ class CookieCloud(_IPluginModule):
                     "cron": self._cron,
                     "key": self._key,
                     "password": self._password,
+                    "autoimport": self._autoimport,
+                    "forceimport": self._forceimport,
                     "notify": self._notify,
                     "onlyonce": self._onlyonce,
                 })
@@ -235,8 +263,8 @@ class CookieCloud(_IPluginModule):
             return
 
         # 计数
-        update_count = 0
-        add_count = 0
+        update_sites = []
+        add_sites = []
 
         # 整理数据,使用domain域名的最后两级作为分组依据
         domain_groups = self.__sort_domain_cookies(contents)
@@ -245,6 +273,7 @@ class CookieCloud(_IPluginModule):
             if self._event.is_set():
                 self.info(f"同步服务停止")
                 return
+            
             # 只有cf的cookie过滤掉
             if not content_list or all(map(lambda c: c["name"] == "cf_clearance", content_list)):
                 continue
@@ -254,36 +283,42 @@ class CookieCloud(_IPluginModule):
             # 域名
             domain_url = ".".join(domain)
             # 查询站点
-            site_info = self.sites.get_sites_by_suffix(domain_url)
+            site_info = self.sites_manager.get_sites_by_suffix(domain_url)
             if site_info:
-                # 检查站点连通性
                 site_id = site_info.get("id")
-                success, _, _ = self.sites.test_connection(site_id=site_id)
-                if not success:
-                    # 已存在且连通失败的站点更新Cookie
-                    self.sites.update_site_cookie(siteid=site_id, cookie=cookie_str)
-                    update_count += 1
+                if self._forceimport:
+                    self.sites_manager.update_site_cookie(siteid=site_id, cookie=cookie_str)
+                    update_sites.append(site_info.name)
                 else:
-                    self.info(f"[{domain_url}]站点cookie未过期, 暂不更新")
-            else:
+                    # 检查站点连通性
+                    success, _, _ = self.sites_manager.test_connection(site_id=site_id)
+                    if not success:
+                        # 已存在且连通失败的站点更新Cookie
+                        self.sites_manager.update_site_cookie(siteid=site_id, cookie=cookie_str)
+                        update_sites.append(site_info.name)
+                    else:
+                        self.info(f"[{domain_url}]站点cookie未过期, 暂不更新")
+            elif self._autoimport:
                 # 查询是否在索引器范围
-                indexer_base = self._index_helper.get_indexer_base(domain_url)
+                indexer_base = self.index_helper.get_indexer_base(domain_url)
                 if indexer_base:
                     # 支持则新增站点
-                    site_pri = self.sites.get_max_site_pri() + 1
-                    self.sites.add_site(
+                    site_pri = self.sites_manager.get_max_site_pri() + 1
+                    self.sites_manager.add_site(
                         name=indexer_base.name,
                         signurl=indexer_base.domain,
                         site_pri=site_pri,
                         cookie=cookie_str,
                         rss_uses='T'
                     )
-                    add_count += 1
+                    add_sites.append(indexer_base.name)
         # 发送消息
-        if update_count or add_count:
-            msg = f"更新了 {update_count} 个站点的Cookie数据，新增了 {add_count} 个站点"
-        else:
-            msg = f"同步完成，但未更新任何站点数据！"
+        lines = []
+        if update_sites:
+            lines.append(f"更新: {','.join(update_sites)}")
+        if add_sites:
+            lines.append(f"新增: {','.join(add_sites)}")
+        msg = '\n'.join(lines) if lines else "同步完成，但未更新任何站点数据！"
 
         self.info(msg)
         # 发送消息
