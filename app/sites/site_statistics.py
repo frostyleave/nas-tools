@@ -1,24 +1,18 @@
 import json
-import requests
 
 from datetime import datetime
 from multiprocessing.dummy import Pool as ThreadPool
 from threading import Lock
-from typing import List, Optional
 
 import log
 
-from app.helper import SubmoduleHelper, DbHelper
-from app.indexer.client.browser import PlaywrightHelper
+from app.helper import DbHelper
 from app.message import Message
-from app.sites.siteuserinfo._base import _ISiteUserInfo
-from app.sites import PtSiteConf, SitesManager
-from app.sites.siteuserinfo.mTorrent import MTorrentUserInfo
-from app.utils.types import Spider
-from app.utils import RequestUtils, StringUtils
+from app.models.model import UserSiteConf
+from app.sites import SitesManager
+from app.sites.site_schema import SitesschemaCenter
+from app.utils import StringUtils
 from app.utils.commons import singleton
-
-from config import Config
 
 lock = Lock()
 
@@ -34,17 +28,10 @@ class SitesDataStatisticsCenter(object):
 
     _last_update_time = None
     _sites_data = {}
-    _site_schema : List[_ISiteUserInfo] = []
 
     _MAX_CONCURRENCY = 10
 
     def __init__(self):
-
-        # 加载模块
-        self._site_schema = SubmoduleHelper.import_submodules('app.sites.siteuserinfo',
-                                                              filter_func=lambda _, obj: hasattr(obj, 'schema'))
-        self._site_schema.sort(key=lambda x: x.order)
-        log.debug(f"【Sites】加载站点解析: {self._site_schema}")
         self.init_config()
 
     def init_config(self):
@@ -56,130 +43,7 @@ class SitesDataStatisticsCenter(object):
         # 站点数据
         self._sites_data = {}
 
-    def __build_class(self, html_text):
-        for site_schema in self._site_schema:
-            try:
-                if site_schema.match(html_text):
-                    return site_schema
-            except Exception as e:
-                log.exception('【Sites】实例化站点解析器出错: ')
-        return None
-
-    def build(self, 
-              url, 
-              site_id, 
-              site_name, 
-              site_cookie=None, 
-              site_appkey=None,
-              ua=None, 
-              emulate=None, 
-              proxy=False, 
-              parser='') -> _ISiteUserInfo:
-
-        # 特定解析器
-        if parser and parser == Spider.MTorrentSpider.value:
-            return MTorrentUserInfo(site_name, url, site_cookie, '', apikey=site_appkey, proxy=proxy)
-
-        if not site_cookie:
-            return None
-        log.debug(f"【Sites】站点 {site_name} url={url} site_cookie={site_cookie} ua={ua}")
-
-        # 站点流控
-        if self.sites.check_ratelimit(site_id):
-            return
-
-        # 请求网页
-        session = requests.Session()
-        html_text = self.__request_site_page(url=url, session=session, site_cookie=site_cookie, ua=ua, emulate=emulate, proxy=proxy)
-        if not html_text:
-            return
-
-        # 解析站点类型
-        site_schema = self.__build_class(html_text)
-        if not site_schema:
-            log.error("【Sites】站点 %s 无法识别站点类型" % site_name)
-            return None
-        return site_schema(site_name, url, site_cookie, html_text, session=session, ua=ua, emulate=emulate, proxy=proxy)
-
-    def __request_site_page(self, url, session, site_cookie=None, ua=None, emulate=None, proxy=False) -> Optional[str]:
-                            
-        # 检测环境，有浏览器内核的优先使用仿真签到
-        if emulate:
-            # 判断是否已签到
-            html_text = PlaywrightHelper().get_page_source(url=url, ua=ua, cookies=site_cookie, proxy=proxy)
-            return html_text
-        
-        # 直接请求
-        proxies = Config().get_proxies() if proxy else None
-        res = RequestUtils(cookies=site_cookie,
-                           session=session,
-                           ua=ua,
-                           proxies=proxies
-                           ).get_res(url=url)
-        
-        if res is None:
-            log.error(f"【Sites】{url} 无法访问")
-            return None
-        
-        # 状态码异常
-        if res.status_code != 200:
-            log.error(f"【Sites】{url} 访问失败，状态码: {res.status_code}")
-            return None
-        
-        # 正常请求, 开始解析
-
-        if "charset=utf-8" in res.text or "charset=UTF-8" in res.text or 'charset="utf-8"' in res.text :
-            res.encoding = "UTF-8"
-        else:
-            res.encoding = res.apparent_encoding
-
-        html_text = res.text
-        # 第一次登录反爬
-        if html_text.find("title") == -1:
-            i = html_text.find("window.location")
-            if i == -1:
-                return None
-            tmp_url = url + html_text[i:html_text.find(";")] \
-                .replace("\"", "").replace("+", "").replace(" ", "").replace("window.location=", "")
-            
-            res = RequestUtils(cookies=site_cookie,
-                               session=session,
-                               ua=ua,
-                               proxies=proxies
-                               ).get_res(url=tmp_url)
-            
-            if res and res.status_code == 200:
-                if "charset=utf-8" in res.text or "charset=UTF-8" in res.text:
-                    res.encoding = "UTF-8"
-                else:
-                    res.encoding = res.apparent_encoding
-                html_text = res.text
-                if not html_text:
-                    return None
-            else:
-                log.error(f"【Sites】{url} 被反爬限制: 状态码: {res.status_code}")
-                return None
-
-        # 兼容假首页情况，假首页通常没有 <link rel="search" 属性
-        if '"search"' not in html_text and '"csrf-token"' not in html_text:
-            res = RequestUtils(cookies=site_cookie,
-                               session=session,
-                               ua=ua,
-                               proxies=proxies
-                               ).get_res(url=url + "/index.php")
-            
-            if res and res.status_code == 200:
-                if "charset=utf-8" in res.text or "charset=UTF-8" in res.text:
-                    res.encoding = "UTF-8"
-                else:
-                    res.encoding = res.apparent_encoding
-                html_text = res.text
-                if not html_text:
-                    return None
-        
-        return html_text
-
-    def __refresh_site_data(self, site_info: PtSiteConf):
+    def __refresh_site_data(self, site_info: UserSiteConf):
         """
         更新单个site 数据信息
         :param site_info:
@@ -189,26 +53,10 @@ class SitesDataStatisticsCenter(object):
         if not site_url:
             return None
         
-        site_id = site_info.id
         site_name = site_info.name
-        site_cookie = site_info.cookie
-        site_appkey = site_info.apikey
-        ua = site_info.ua
-        unread_msg_notify = site_info.unread_msg_notify
-        chrome = site_info.chrome
-        proxy = site_info.proxy
-        parser = site_info.parser
 
         try:
-            site_user_info = self.build(url=site_url,
-                                        site_id=site_id,
-                                        site_name=site_name,
-                                        site_cookie=site_cookie,
-                                        site_appkey=site_appkey,
-                                        ua=ua,
-                                        emulate=chrome,
-                                        proxy=proxy,
-                                        parser=parser)
+            site_user_info = SitesschemaCenter().build(site_info)
             if site_user_info:
                 log.debug(f"【Sites】站点 {site_name} 开始以 {site_user_info.site_schema()} 模型解析")
                 # 开始解析
@@ -221,6 +69,7 @@ class SitesDataStatisticsCenter(object):
                     return None
 
                 # 发送通知，存在未读消息
+                unread_msg_notify = site_info.unread_msg_notify
                 self.__notify_unread_msg(site_name, site_user_info, unread_msg_notify)
                 
                 # 做种信息数组转换

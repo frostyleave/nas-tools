@@ -8,8 +8,9 @@ import log
 from app.sites import SiteConf, SitesManager
 from app.helper import SiteHelper
 from app.utils import RequestUtils, SiteUtils, PathUtils, SiteUtils
+from app.utils.constants import Constants
 
-from config import Config, RMT_SUBEXT
+from config import Config
 
 
 class SiteSubtitle:
@@ -88,7 +89,7 @@ class SiteSubtitle:
                         # 解压文件
                         shutil.unpack_archive(zip_file, zip_path, format='zip')
                         # 遍历转移文件
-                        for sub_file in PathUtils.get_dir_files(in_path=zip_path, exts=RMT_SUBEXT):
+                        for sub_file in PathUtils.get_dir_files(in_path=zip_path, exts=Constants.RMT_SUBEXT):
                             target_sub_file = os.path.join(download_dir,
                                                            os.path.splitext(os.path.basename(sub_file))[0])
                             log.info(f"【Sites】转移字幕 {sub_file} 到 {target_sub_file}")

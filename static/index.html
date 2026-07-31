@@ -1,0 +1,1919 @@
+<!doctype html>
+<html lang="en" data-bs-theme="light">
+
+<head>
+  <meta charset="utf-8" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover, user-scalable=0">
+  <meta name="Robots" content="noindex,nofollow,noarchive">
+
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="NAStool">
+  <meta name="description" content="NAS媒体库管理工具">
+  <meta name="format-detection" content="telephone=no">
+  <meta name="referrer" content="never">
+  <meta name="msapplication-TileColor" content="#1e293b" />
+  <meta name="theme-color" content="#f1f6fa" media="(prefers-color-scheme: dark)">
+  <meta name="theme-color" content="#1e293b" media="(prefers-color-scheme: light)">
+  <meta name="HandheldFriendly" content="True" />
+  <meta name="MobileOptimized" content="320" />
+
+  <link rel="icon" type="image/png" href="../static/img/logo/logo.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="../static/img/logo/logo-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="../static/img/logo/logo-16x16.png">
+
+  <link rel="apple-touch-icon" href="../static/img/logo/logo-black.png">
+  <link rel="apple-touch-icon" sizes="128x128" href="../static/img/icons/128.png">
+  <link rel="apple-touch-icon" sizes="144x144" href="../static/img/icons/144.png">
+  <link rel="apple-touch-icon" sizes="152x152" href="../static/img/icons/152.png">
+  <link rel="apple-touch-icon" sizes="167x167" href="../static/img/icons/167.png">
+  <link rel="apple-touch-icon" sizes="172x172" href="../static/img/icons/172.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="../static/img/icons/180.png">
+  <link rel="apple-touch-icon" sizes="196x196" href="../static/img/icons/196.png">
+  <link rel="apple-touch-icon" sizes="216x216" href="../static/img/icons/216.png">
+  <link rel="apple-touch-icon" sizes="256x256" href="../static/img/icons/256.png">
+  <link rel="apple-touch-icon" sizes="512x512" href="../static/img/icons/512.png">
+  <link rel="apple-touch-icon" sizes="1024x1024" href="../static/img/icons/1024.png">
+  <link rel="apple-touch-startup-image" href="../static/img/startup.jpg">
+  <link rel="apple-touch-startup-image" href="../static/img/splash/apple-splash-2048-2732.png"
+    media="(device-width: 1024px) and (device-height: 1366px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)">
+  <link rel="apple-touch-startup-image" href="../static/img/splash/apple-splash-2732-2048.png"
+    media="(device-width: 1024px) and (device-height: 1366px) and (-webkit-device-pixel-ratio: 2) and (orientation: landscape)">
+  <link rel="apple-touch-startup-image" href="../static/img/splash/apple-splash-1668-2388.png"
+    media="(device-width: 834px) and (device-height: 1194px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)">
+  <link rel="apple-touch-startup-image" href="../static/img/splash/apple-splash-2388-1668.png"
+    media="(device-width: 834px) and (device-height: 1194px) and (-webkit-device-pixel-ratio: 2) and (orientation: landscape)">
+  <link rel="apple-touch-startup-image" href="../static/img/splash/apple-splash-1536-2048.png"
+    media="(device-width: 768px) and (device-height: 1024px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)">
+  <link rel="apple-touch-startup-image" href="../static/img/splash/apple-splash-2048-1536.png"
+    media="(device-width: 768px) and (device-height: 1024px) and (-webkit-device-pixel-ratio: 2) and (orientation: landscape)">
+  <link rel="apple-touch-startup-image" href="../static/img/splash/apple-splash-1668-2224.png"
+    media="(device-width: 834px) and (device-height: 1112px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)">
+  <link rel="apple-touch-startup-image" href="../static/img/splash/apple-splash-2224-1668.png"
+    media="(device-width: 834px) and (device-height: 1112px) and (-webkit-device-pixel-ratio: 2) and (orientation: landscape)">
+  <link rel="apple-touch-startup-image" href="../static/img/splash/apple-splash-1620-2160.png"
+    media="(device-width: 810px) and (device-height: 1080px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)">
+  <link rel="apple-touch-startup-image" href="../static/img/splash/apple-splash-2160-1620.png"
+    media="(device-width: 810px) and (device-height: 1080px) and (-webkit-device-pixel-ratio: 2) and (orientation: landscape)">
+  <link rel="apple-touch-startup-image" href="../static/img/splash/apple-splash-1284-2778.png"
+    media="(device-width: 428px) and (device-height: 926px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)">
+  <link rel="apple-touch-startup-image" href="../static/img/splash/apple-splash-2778-1284.png"
+    media="(device-width: 428px) and (device-height: 926px) and (-webkit-device-pixel-ratio: 3) and (orientation: landscape)">
+  <link rel="apple-touch-startup-image" href="../static/img/splash/apple-splash-1170-2532.png"
+    media="(device-width: 390px) and (device-height: 844px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)">
+  <link rel="apple-touch-startup-image" href="../static/img/splash/apple-splash-2532-1170.png"
+    media="(device-width: 390px) and (device-height: 844px) and (-webkit-device-pixel-ratio: 3) and (orientation: landscape)">
+  <link rel="apple-touch-startup-image" href="../static/img/splash/apple-splash-1125-2436.png"
+    media="(device-width: 375px) and (device-height: 812px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)">
+  <link rel="apple-touch-startup-image" href="../static/img/splash/apple-splash-2436-1125.png"
+    media="(device-width: 375px) and (device-height: 812px) and (-webkit-device-pixel-ratio: 3) and (orientation: landscape)">
+  <link rel="apple-touch-startup-image" href="../static/img/splash/apple-splash-1242-2688.png"
+    media="(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)">
+  <link rel="apple-touch-startup-image" href="../static/img/splash/apple-splash-2688-1242.png"
+    media="(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 3) and (orientation: landscape)">
+  <link rel="apple-touch-startup-image" href="../static/img/splash/apple-splash-828-1792.png"
+    media="(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)">
+  <link rel="apple-touch-startup-image" href="../static/img/splash/apple-splash-1792-828.png"
+    media="(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 2) and (orientation: landscape)">
+  <link rel="apple-touch-startup-image" href="../static/img/splash/apple-splash-1242-2208.png"
+    media="(device-width: 414px) and (device-height: 736px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)">
+  <link rel="apple-touch-startup-image" href="../static/img/splash/apple-splash-2208-1242.png"
+    media="(device-width: 414px) and (device-height: 736px) and (-webkit-device-pixel-ratio: 3) and (orientation: landscape)">
+  <link rel="apple-touch-startup-image" href="../static/img/splash/apple-splash-750-1334.png"
+    media="(device-width: 375px) and (device-height: 667px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)">
+  <link rel="apple-touch-startup-image" href="../static/img/splash/apple-splash-1334-750.png"
+    media="(device-width: 375px) and (device-height: 667px) and (-webkit-device-pixel-ratio: 2) and (orientation: landscape)">
+  <link rel="apple-touch-startup-image" href="../static/img/splash/apple-splash-640-1136.png"
+    media="(device-width: 320px) and (device-height: 568px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)">
+  <link rel="apple-touch-startup-image" href="../static/img/splash/apple-splash-1136-640.png"
+    media="(device-width: 320px) and (device-height: 568px) and (-webkit-device-pixel-ratio: 2) and (orientation: landscape)">
+
+  <link rel="shortcut icon" href="../static/favicon.ico" type="image/x-icon">
+  <link rel="manifest" href="../static/site.webmanifest" crossorigin="use-credentials">
+
+  <title>NAStool</title>
+
+  <!-- CSS files -->
+  <link rel="stylesheet" href="../static/libs/tabler/css/tabler.min.css" />
+  <link rel="stylesheet" href="../static/libs/filetree/css/jquery.filetree.css" />
+  <link rel="stylesheet" href="../static/libs/dropzone/dropzone.css" />
+
+  <!-- 附加样式 -->
+  <link rel="stylesheet" href="../static/css/icon-lit.css" />
+  <link rel="stylesheet" href="../static/css/style.css" />
+
+</head>
+
+<body class="layout-fluid">
+  <div id="login-container" class="d-none d-flex flex-column justify-content-center align-items-center vh-100">
+    <div class="image-desc card card-md border-0 rounded-3" id="image-desc-container" style="display: none;">
+      <a class="image-link" href="#" target="_blank" id="image-link">
+        <i class="ti ti-link"></i>
+        <span id="image-title"></span>
+      </a>
+    </div>
+    <div class="page-center" style="max-width: 30rem; width: 100%;">
+      <div class="container-tight py-4">
+        <form id="loginForm" class="card card-md border-0" autocomplete="off">
+          <div class="card-body">
+            <div class="text-center mb-3">
+              <h1 class="login_title">
+                <img src="../static/favicon.ico">
+                <label>nastool</label>
+              </h1>
+            </div>
+            <label class="form-label">用户名</label>
+            <div class="input-icon mb-3">
+              <span class="input-icon-addon d-flex align-items-center">
+                <i class="ti ti-user"></i>
+              </span>
+              <input type="text" name="username" class="form-control" placeholder="admin" value="" autocomplete="off">
+            </div>
+            <label class="form-label">密码</label>
+            <div class="input-icon">
+              <span class="input-icon-addon d-flex align-items-center">
+                <i class="ti ti-keyboard"></i>
+              </span>
+              <input type="password" class="form-control" name="password" placeholder="password" autocomplete="off">
+            </div>
+            <div class="form-footer">
+              <button type="submit" class="btn btn-primary w-100">登录</button>
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+  <div id="app-layout" class="page d-none">
+    <input type="hidden" id="default_transfer_mode" />
+    <input type="hidden" id="default_path" />
+    <!-- 搜索栏 -->
+    <div id="navbar-search" class="navbar fixed-top lit-searchbar d-none">
+      <div class="nav-search-bar d-flex flex-row flex-grow-1 align-items-center">
+        <!-- <div class="d-flex flex-row flex-grow-1 align-items-center py-1 ms-2">
+        </div> -->
+        <!-- 导航展开按钮 -->
+        <button class="navbar-toggler d-lg-none py-2 me-1" type="button" data-bs-toggle="offcanvas" data-bs-target="#litLayoutNavbar">
+          <i class="ti ti-menu-2 fs-2"></i>
+        </button>
+        <!-- 搜索栏 -->
+        <div class="input-group input-group-flat">
+          <!-- 搜索图标 -->
+          <span class="input-group-text">
+            <a href="javascript:show_quick_search_modal()" class="link-secondary d-flex align-items-center">
+              <i class="ti ti-search fs-2 text-blue"></i>
+            </a>
+          </span>
+          <!-- 输入框 -->
+          <a href="javascript:show_quick_search_modal()" class="form-control cursor-pointer text-decoration-none">
+            <span class="text-muted">
+              搜索电影、电视剧
+            </span>
+          </a>
+          <!-- 高级搜索图标 -->
+          <span class="input-group-text">
+            <a class="link-secondary d-flex align-items-center" href="javascript:show_search_advanced_modal()">
+              <i class="ti ti-quick-search fs-2 text-tabler"></i>
+            </a>
+          </span>
+          <!-- 头像 dropdown -->
+          <span class="input-group-text border-start-0">
+            <div class="nav-item dropdown">
+              <a href="#" class="d-flex align-items-center" data-bs-toggle="dropdown" aria-expanded="false">
+                <i class="ti ti-user-square-rounded fs-2 text-vimeo"></i>
+              </a>
+              <div id="head-dropdown-menu" class="dropdown-menu dropdown-menu-end dropdown-menu-arrow">
+              </div>
+            </div>
+          </span>
+        </div>
+      </div>
+    </div>
+    <!-- 主界面 -->
+    <div class="page-wrapper">
+      <nav class="navbar navbar-expand navbar-secondary" id="top-sub-navbar">
+        <div class="container-fluid d-flex justify-content-md-start justify-content-center">
+          <ul class="navbar-nav gap-3"></ul>
+        </div>
+      </nav>
+      <div id="loading-tips" style="display: none;">
+        <loading-indicator></loading-indicator>
+      </div>
+      <div id="page-content" hidden="">
+      </div>
+    </div>
+  </div>
+  <!-- 加载动画遮罩 -->
+  <div class="loading-wrap" id="loadingOverlay" style="display: none;">
+    <div class="cube-grid">
+      <div></div>
+      <div></div>
+      <div></div>
+      <div></div>
+      <div></div>
+      <div></div>
+      <div></div>
+      <div></div>
+      <div></div>
+    </div>
+  </div>
+  <button id="scrollToTop" class="scroll-to-top" aria-label="Back to top">
+    <i class="ti ti-arrow-big-up-lines"></i>
+  </button>
+  <div class="modal fade" id="messageCenterModal" tabindex="-1" aria-labelledby="消息中心" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg" role="document">
+      <div class="modal-content">
+        <!-- header -->
+        <div class="modal-header">
+          <h5 class="modal-title" id="messageCenterModalLabel">消息中心</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <!-- body -->
+        <div class="modal-body p-1" style="position:relative;">
+          <div class="list-group list-group-flush" id="system-messages"></div>
+        </div>
+        <!-- footer -->
+        <div class="modal-footer justify-content-center w-100">
+          <div class="input-group">
+            <button type="button" class="btn" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">/</button>
+            <div class="dropdown-menu" id="commands-dropdown">
+              <!-- 命令菜单项将通过JavaScript动态生成 -->
+            </div>
+            <input type="text" id="message_center_input" class="form-control" autocomplete="off"
+                  placeholder="输入消息或命令..."
+                  onkeydown="if(event.keyCode==13) send_web_message($('#message_center_input'))">
+            <button class="btn btn-primary" type="button"
+                    onclick="send_web_message($('#message_center_input'))">发送</button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+  <!-- 搜索弹窗 -->
+  <div class="modal modal-blur fade" id="quick-search-modal" tabindex="-1" aria-labelledby="quickSearchLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-top-offset">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="quickSearchLabel">搜索</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <div class="mb-2">
+            <div class="input-group input-group-flat">
+              <span class="input-group-text">
+                <a href="javascript:void(0)" id="icon-source-trigger" data-id="tmdb" class="link-secondary d-flex align-items-center">
+                  <i class="ti ti-circle-letter-t fs-2 text-blue"></i>
+                </a>
+              </span>
+              <input type="text" class="form-control" id="quick-search-keywords" placeholder="搜索电影、电视剧">
+            </div>
+          </div>
+          <div class="row mb-2 align-items-center ps-2" id="search-type-choose">
+            <label class="col-md-auto col-form-label w-auto">类型</label>
+            <div class="col-md-9 w-auto">
+              <div>
+                <label class="form-check form-check-inline mb-0">
+                  <input class="form-check-input" type="checkbox" name="search-type" value="MOV" checked>
+                  <span class="form-check-label">电影</span>
+                </label>
+                <label class="form-check form-check-inline mb-0">
+                  <input class="form-check-input" type="checkbox" name="search-type" value="TV" checked>
+                  <span class="form-check-label">电视剧</span>
+                </label>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button onclick="quickSearchMedia()" id="quick_advanced_btn" class="btn btn-primary">开始搜索</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- 等待框 -->
+  <div class="modal" id="modal-wait" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog modal-full-width modal-dialog-centered" role="document">
+      <div class="spinner-border text-primary m-auto" style="width:40px;height:40px;"></div>
+    </div>
+  </div>
+  <!-- 进度框 -->
+  <div class="modal modal-blur" id="modal-process" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog modal-md modal-dialog-centered" role="document">
+      <div class="modal-content">
+        <div class="card border-0">
+          <div class="progress rounded-0">
+            <div class="progress-bar progress-bar-striped progress-bar-animated" id="modal_process_bar" style="width: 0"
+              role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+          </div>
+          <div class="card-body text-center">
+            <h3 class="card-title strong" id="modal_process_title">
+            </h3>
+            <small class="text-muted" id="modal_process_text">请稍候...</small>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- 危险确认提示框 -->
+  <div class="modal modal-blur fade" id="system-confirm-modal" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog modal-sm modal-dialog-centered" role="document">
+      <div class="modal-content">
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        <div class="modal-status bg-danger"></div>
+        <div class="modal-body text-center py-4">
+          <span class="mb-2 text-danger"><i class="ti ti-alert-triangle fs-2"></i></span>
+          <h3>确认</h3>
+          <div class="text-muted text-wrap" id="system_confirm_message">是否确定？</div>
+        </div>
+        <div class="modal-footer">
+          <div class="w-100">
+            <div class="row">
+              <div class="col">
+                <a href="#" class="btn w-100" data-bs-dismiss="modal">
+                  取消
+                </a>
+              </div>
+              <div class="col">
+                <button class="btn btn-danger w-100" id="system_confirm_btn">
+                  确定
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- 成功带后续操作提示框 -->
+  <div class="modal modal-blur fade" id="system-success-action-modal" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog modal-sm modal-dialog-centered" role="document">
+      <div class="modal-content">
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        <div class="modal-status bg-success"></div>
+        <div class="modal-body text-center py-4">
+          <span class="mb-2 text-green"><i class="ti ti-circle-check fs-2"></i></span>
+          <h3>成功</h3>
+          <div class="text-muted text-wrap" id="system_success_action_message">操作成功！</div>
+        </div>
+        <div class="modal-footer">
+          <div class="w-100">
+            <div class="row">
+              <div class="col" id="system_success_action_div">
+                <button class="btn w-100" id="system_success_action_btn">
+                  操作
+                </button>
+              </div>
+              <div class="col">
+                <button class="btn btn-success w-100" data-bs-dismiss="modal">
+                  确定
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- 询问框 -->
+  <div class="modal modal-blur fade" id="system-ask-modal" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog modal-sm modal-dialog-centered" role="document">
+      <div class="modal-content">
+        <div class="modal-body">
+          <div id="system_ask_title" class="modal-title">询问</div>
+          <div id="system_ask_message" class="text-wrap">是否执行？</div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-link link-secondary me-auto" data-bs-dismiss="modal">取消</button>
+          <button type="button" class="btn btn-danger" id="system_ask_btn">确定</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- 成功提示 -->
+  <div class="modal modal-blur fade" id="system-success-modal" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog modal-sm modal-dialog-centered" role="document">
+      <div class="modal-content">
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        <div class="modal-status bg-success"></div>
+        <div class="modal-body text-center py-4">
+          <span class="mb-2 text-green"><i class="ti ti-circle-check fs-2"></i></span>
+          <h3>成功</h3>
+          <div class="text-muted text-wrap" id="system_success_message">成功！</div>
+        </div>
+        <div class="modal-footer">
+          <div class="w-100">
+            <div class="row">
+              <div class="col">
+                <a href="javascript:void(0)" id="system_success_modal_btn" class="btn btn-success w-100"
+                  data-bs-dismiss="modal">
+                  确定
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- 失败提示 -->
+  <div class="modal modal-blur fade" id="system-fail-modal" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog modal-sm modal-dialog-centered" role="document">
+      <div class="modal-content">
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        <div class="modal-status bg-danger"></div>
+        <div class="modal-body text-center py-4">
+          <span class="mb-2 text-danger"><i class="ti ti-alert-triangle fs-2"></i></span>
+          <h3>失败</h3>
+          <div class="text-muted text-wrap" id="system_fail_message">错误信息</div>
+        </div>
+        <div class="modal-footer">
+          <div class="w-100">
+            <div class="row">
+              <div class="col">
+                <a href="#" id="system_fail_modal_btn" class="btn btn-danger w-100" data-bs-dismiss="modal">
+                  确定
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- 警告提示 -->
+  <div class="modal modal-blur fade" id="system-warning-modal" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog modal-sm modal-dialog-centered" role="document">
+      <div class="modal-content">
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        <div class="modal-status bg-warning"></div>
+        <div class="modal-body text-center py-4">
+          <span class="mb-2 text-warning"><i class="ti ti-alert-triangle fs-2"></i></span>
+          <h3>注意</h3>
+          <div class="text-muted text-wrap" id="system_warning_message">警告信息</div>
+        </div>
+        <div class="modal-footer">
+          <div class="w-100">
+            <div class="row">
+              <div class="col">
+                <a href="#" id="system_warning_modal_btn" class="btn btn-warning w-100" data-bs-dismiss="modal">
+                  确定
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- 媒体详情 -->
+  <div class="modal modal-blur fade" id="system-media-modal" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
+      <div class="modal-content">
+        <div class="card">
+          <div class="ribbon ribbon-top ribbon-bookmark bg-purple" id="system_media_vote"></div>
+          <div class="row row-0">
+            <div class="col-3 d-none d-lg-block">
+              <custom-img id="system_media_poster" img-class="w-100 h-100 object-cover rounded-2"
+                img-ratio="150%"></custom-img>
+            </div>
+            <div class="col">
+              <div class="card-body">
+                <h4 class="card-title mb-3">
+                  <a id="system_media_name_link" href="#" target="_blank"><strong
+                      id="system_media_name"></strong></a><br />
+                  <span class="text-muted" id="system_release_date"></span>
+                </h4>
+                <div class="text-muted mb-3" id="system_media_overview">
+                </div>
+                <div id="system_sites_info"></div>
+              </div>
+            </div>
+          </div>
+          <div class="d-flex">
+            <a href="#" class="card-btn" id="system_media_url_btn">
+              详情
+            </a>
+            <a href="javascript:void(0)" data-bs-toggle="dropdown" class="dropdown-toggle card-btn"
+              id="system_media_rss_btn">
+              订阅
+            </a>
+            <div class="dropdown-menu" id="system_media_rss_dropdown"></div>
+            <a href="javascript:void(0)" class="card-btn" id="system_media_search_btn"
+              style="border-left:1px solid var(--tblr-border-color)">
+              搜索
+            </a>
+            <a href="javascript:void(0)" class="card-btn" id="system_media_refresh_btn"
+              style="border-left:1px solid var(--tblr-border-color)">
+              刷新
+            </a>
+            <a href="javascript:void(0)" class="card-btn d-none d-md-block" data-bs-dismiss="modal">
+              关闭
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- 实时日志 -->
+  <div class="modal modal-blur fade" id="modal-logging" tabindex="-1" role="dialog" aria-hidden="true"
+    data-bs-backdrop="static" data-bs-keyboard="false">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable" role="document">
+      <div class="modal-content">
+        <div class="modal-header">
+          <div class="select_logger">
+            <h5 class="modal-title">实时日志</h5>
+            <div class="dropdown">
+              <button class="btn-action" data-bs-toggle="dropdown" aria-expanded="false">
+                <i class="ti ti-filter-2-cog fs-2"></i>
+              </button>
+              <div class="dropdown-menu dropdown-menu-end" id="dropdown-menu-logger">
+                <div id="logger-dropdown-items">
+                  <!-- 日志选择器选项将通过JavaScript动态生成 -->
+                </div>
+              </div>
+            </div>
+          </div>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div id="logging_table" class="table-responsive table-modal-body">
+          <table class="table table-vcenter card-table table-hover table-striped">
+            <thead>
+              <tr>
+                <th class="w-3">时间</th>
+                <th class="w-3">来源</th>
+                <th>内容</th>
+              </tr>
+            </thead>
+            <tbody id="logging_content" class="table-tbody">
+              <tr>
+                <td colspan="3" class="text-center">刷新中...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="modal-footer">
+          <a href="javascript:pause_logging()" class="btn btn-link me-auto" id="logging_stop_btn">暂停</a>
+          <button type="button" class="btn btn-primary" data-bs-dismiss="modal">关闭</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- 订阅季 -->
+  <div class="modal modal-blur fade" id="system-rss-seasons" tabindex="-1" role="dialog" aria-hidden="true"
+    data-bs-backdrop="static" data-bs-keyboard="false">
+    <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">选择订阅季</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <div class="row">
+            <div class="col">
+              <div class="mb-3">
+                <div class="form-selectgroup" id="system_rss_seasons_group">
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <a href="javascript:void(0)" id="system_rss_seasons_btn" class="btn btn-primary">确定</a>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="modal modal-blur fade" id="modal-default-rss-setting" tabindex="-1" role="dialog" aria-hidden="true"
+    data-bs-backdrop="static" data-bs-keyboard="false">
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable" role="document">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">订阅默认设置 <span class="form-help"
+              title="订阅默认设置，只适用于探索页面、交互消息、豆瓣、Jellyseerr/Overseerr等自动订阅场景" data-bs-toggle="tooltip">?</span></h5>
+          <input type="hidden" id="default_rss_setting_mtype">
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"
+            id="default_sites_close_btn"></button>
+        </div>
+        <div class="modal-body">
+          <div class="row">
+            <div class="col-lg">
+              <div class="mb-3">
+                <label class="form-label">质量</label>
+                <select class="form-select" id="default_rss_setting_restype">
+                  <!-- 质量选项将通过JavaScript动态生成 -->
+                </select>
+              </div>
+            </div>
+            <div class="col-lg">
+              <div class="mb-3">
+                <label class="form-label">分辨率</label>
+                <select class="form-select" id="default_rss_setting_pix">
+                  <!-- 分辨率选项将通过JavaScript动态生成 -->
+                </select>
+              </div>
+            </div>
+            <div class="col-lg">
+              <div class="mb-3">
+                <label class="form-label">制作组/字幕组</label>
+                <input type="text" id="default_rss_setting_team" class="form-control" placeholder="支持正则表达式">
+              </div>
+            </div>
+          </div>
+          <div class="row">
+            <div class="col-lg">
+              <div class="mb-3">
+                <label class="form-label">包含 <span class="form-help" title="只有种子标题或副标题中包含对应关键字或匹配对应正则表达式的才会被选中"
+                    data-bs-toggle="tooltip">?</span></label>
+                <input type="text" value="" id="default_rss_setting_include" class="form-control"
+                  placeholder="关键字或正则表达式">
+              </div>
+            </div>
+            <div class="col-lg">
+              <div class="mb-3">
+                <label class="form-label">排除 <span class="form-help" title="种子标题或副标题中包含对应关键字或匹配对应正则表达式的将会被过滤掉"
+                    data-bs-toggle="tooltip">?</span></label>
+                <input type="text" value="" id="default_rss_setting_exclude" class="form-control"
+                  placeholder="关键字或正则表达式">
+              </div>
+            </div>
+          </div>
+          <div class="row">
+            <div class="col-lg">
+              <div class="mb-3">
+                <label class="form-label">过滤规则 </label>
+                <select class="form-select" id="default_rss_setting_rule"></select>
+              </div>
+            </div>
+            <div class="col-lg">
+              <div class="mb-3">
+                <label class="form-label">下载设置</label>
+                <select class="form-select" id="default_rss_setting_download_setting"></select>
+              </div>
+            </div>
+            <div class="col-lg">
+              <div class="mb-3">
+                <label class="form-label">洗版 </label>
+                <select class="form-select" id="default_rss_setting_over_edition">
+                  <option value="0" selected>否</option>
+                  <option value="1">是</option>
+                </select>
+              </div>
+            </div>
+          </div>
+          <div class="row rss_sites_container" id="default_rss_setting_rss_sites_div">
+            <div class="mb-3">
+              <div class="btn-list">
+                <label class="form-label">订阅站点</label>
+                <a href="javascript:void(0)" class="ms-auto"
+                  onclick="select_btn_SelectALL(this, 'default_rss_sites')">全选</a>
+              </div>
+              <div class="form-selectgroup" id="default_rss_setting_rss_sites_group"></div>
+            </div>
+          </div>
+          <div class="row rss_sites_container" id="default_rss_setting_search_sites_div">
+            <div class="mb-3">
+              <div class="btn-list">
+                <label class="form-label">搜索站点</label>
+                <a href="javascript:void(0)" class="ms-auto"
+                  onclick="select_btn_SelectALL(this, 'default_search_sites')">全选</a>
+              </div>
+              <div class="form-selectgroup" id="default_rss_setting_search_sites_group"></div>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button onclick="save_default_rss_setting()" class="btn btn-primary">保存</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- 手动订阅 -->
+  <div class="modal modal-blur fade" id="modal-manual-rss" tabindex="-1" role="dialog" aria-hidden="true"
+    data-bs-backdrop="static" data-bs-keyboard="false">
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable" role="document">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="rss_modal_title">新增订阅</h5>
+          <input type="hidden" id="rss_id">
+          <input type="hidden" id="rss_type">
+          <input type="hidden" id="rss_tmdbid">
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <div class="row">
+            <div class="col-lg-6">
+              <div class="mb-3">
+                <label class="form-label required">标题</label>
+                <input type="text" value="" id="rss_name" class="form-control" placeholder="标题">
+              </div>
+            </div>
+            <div class="col-lg-2">
+              <div class="mb-3">
+                <label class="form-label required">年份</label>
+                <input type="text" value="" id="rss_year" class="form-control" placeholder="年份">
+              </div>
+            </div>
+            <div class="col-lg-4">
+              <div class="mb-3">
+                <label class="form-label">自定义搜索词</label>
+                <input type="text" value="" id="rss_keyword" class="form-control" placeholder="留空使用TMDB数据">
+              </div>
+            </div>
+          </div>
+          <div class="row" id="rss_tv_season_div">
+            <div class="col-lg-4">
+              <div class="mb-3">
+                <label class="form-label required">季</label>
+                <select class="form-select" id="rss_season">
+                  <!-- 季数选项将通过JavaScript动态生成 -->
+                </select>
+              </div>
+            </div>
+            <div class="col-lg-4">
+              <div class="mb-3">
+                <label class="form-label">总集数 <span class="form-help" title="可留空应用TMDB剧集信息"
+                    data-bs-toggle="tooltip">?</span></label>
+                <input type="text" value="" id="rss_total_ep" class="form-control" placeholder="总集数">
+              </div>
+            </div>
+            <div class="col-lg-4">
+              <div class="mb-3">
+                <label class="form-label">开始订阅集数</label>
+                <input type="text" value="" id="rss_current_ep" class="form-control" placeholder="开始订阅集数">
+              </div>
+            </div>
+          </div>
+          <div class="row">
+            <div class="col-xl-4">
+              <div class="mb-3">
+                <label class="form-check form-switch">
+                  <input class="form-check-input" type="checkbox" id="fuzzy_match" onclick="change_match_check(this)">
+                  <span class="form-check-label">模糊匹配 <span class="form-help"
+                      title="开启后不检查TMDB是否有媒体信息，只要种子名称、标题、年份任一匹配关键字即会下载，此时标题可以配置正则表达式实现模糊匹配"
+                      data-bs-toggle="tooltip">?</span></span>
+                </label>
+              </div>
+            </div>
+            <div class="col-xl-4">
+              <div class="mb-3">
+                <label class="form-check form-switch">
+                  <input class="form-check-input" type="checkbox" id="over_edition"
+                    onclick="change_over_edition_check(this)">
+                  <span class="form-check-label">洗版 <span class="form-help"
+                      title="开启洗版后不会检查本地是否已存在，满足订阅条件即会下载；除非匹配了对应的过滤规则中最高优先级的那条规则否则不会删除订阅（未明确过滤规则时使用默认规则），同一优先级的资源只下载一次；多个资源下载后如命名一致，则只会保留文件体积较大的，如需都保留则需要在文件重命名规则中增加相关要素以做区分"
+                      data-bs-toggle="tooltip">?</span></span>
+                </label>
+              </div>
+            </div>
+          </div>
+          <div class="row">
+            <div class="col-lg-3">
+              <div class="mb-3">
+                <label class="form-label">质量</label>
+                <select class="form-select" id="rss_restype">
+                  <!-- 质量选项将通过JavaScript动态生成 -->
+                </select>
+              </div>
+            </div>
+            <div class="col-lg-3">
+              <div class="mb-3">
+                <label class="form-label">分辨率</label>
+                <select class="form-select" id="rss_pix">
+                  <!-- 分辨率选项将通过JavaScript动态生成 -->
+                </select>
+              </div>
+            </div>
+            <div class="col-lg-3">
+              <div class="mb-3">
+                <label class="form-label">制作组/字幕组</label>
+                <input type="text" value="" id="rss_team" class="form-control" placeholder="支持正则表达式">
+              </div>
+            </div>
+            <div class="col-lg-3">
+              <div class="mb-3">
+                <label class="form-label">过滤规则 <span class="form-help"
+                    title="质量、分辨率与过滤规则为'与'的关系，过滤规则不选择时将使用站点的过滤规则，站点也未设置过滤规则时将使用默认过滤规则"
+                    data-bs-toggle="tooltip">?</span></label>
+                <select class="form-select" id="rss_rule">
+                </select>
+              </div>
+            </div>
+          </div>
+          <div class="row">
+            <div class="col-lg">
+              <div class="mb-3">
+                <label class="form-label">包含 <span class="form-help" title="只有种子标题或副标题中包含对应关键字或匹配对应正则表达式的才会被选中"
+                    data-bs-toggle="tooltip">?</span></label>
+                <input type="text" value="" id="rss_include" class="form-control" placeholder="关键字或正则表达式">
+              </div>
+            </div>
+            <div class="col-lg">
+              <div class="mb-3">
+                <label class="form-label">排除 <span class="form-help" title="种子标题或副标题中包含对应关键字或匹配对应正则表达式的将会被过滤掉"
+                    data-bs-toggle="tooltip">?</span></label>
+                <input type="text" value="" id="rss_exclude" class="form-control" placeholder="关键字或正则表达式">
+              </div>
+            </div>
+          </div>
+          <div class="row">
+            <div class="col-lg-4">
+              <div class="mb-3">
+                <label class="form-label">下载设置</label>
+                <select class="form-select" id="rss_download_setting"
+                  onchange="refresh_savepath_select('rss_save_path', true, $(this).val())">
+                </select>
+              </div>
+            </div>
+            <div class="col-lg-8">
+              <div class="mb-3">
+                <label class="form-label">保存路径</label>
+                <select class="form-select" id="rss_save_path" aria-label="保存目录"
+                  onchange="check_manual_input_path('rss_save_path','rss_save_path_manual')">
+                </select>
+                <input type="text" value="" id="rss_save_path_manual" class="form-control" style="display: none"
+                  placeholder="留空自动选择保存路径">
+              </div>
+            </div>
+          </div>
+          <div class="row rss_sites_container" id="rss_sites_div">
+            <div class="mb-3">
+              <div class="btn-list">
+                <label class="form-label">订阅站点</label>
+                <a href="javascript:void(0)" class="ms-auto" onclick="select_btn_SelectALL(this, 'rss_sites')">全选</a>
+              </div>
+              <div class="form-selectgroup" id="rss_sites_group"></div>
+            </div>
+          </div>
+          <div class="row rss_sites_container" id="rss_search_sites_div">
+            <div class="mb-3">
+              <div class="btn-list">
+                <label class="form-label">搜索站点</label>
+                <a href="javascript:void(0)" class="ms-auto" onclick="select_btn_SelectALL(this, 'search_sites')">全选</a>
+              </div>
+              <div class="form-selectgroup" id="rss_search_sites_group"></div>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <a href="#" class="btn btn-link text-red me-auto" id="rss_delete_btn">
+            取消订阅
+          </a>
+          <div class="btn-list">
+            <a href="javascript:add_rss_manual(true)" name="rss_add_btn" class="btn btn-secondary">添加并继续</a>
+            <a href="javascript:add_rss_manual(false)" name="rss_add_btn" class="btn btn-primary">添加</a>
+            <a href="javascript:add_rss_manual(false)" name="rss_edit_btn" class="btn btn-primary">确定</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- 手动识别 -->
+  <div class="modal modal-blur fade" id="modal-media-identification" tabindex="-1" role="dialog" aria-hidden="true"
+    data-bs-backdrop="static" data-bs-keyboard="false">
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable" role="document">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="rename_header">手动识别</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <div class="row" id="rename_path_div">
+            <div class="col-lg-9">
+              <div class="mb-3">
+                <label class="form-label required">路径</label>
+                <input type="text" id="rename_path" class="form-control" readonly>
+                <input type="hidden" id="rename_source">
+                <input type="hidden" id="rename_manual_type">
+                <input type="hidden" id="unknown_id">
+                <input type="hidden" id="transferlog_id" class="form-control">
+              </div>
+            </div>
+            <div class="col-lg-3">
+              <div class="mb-3">
+                <label class="form-label required">转移方式</label>
+                <select id="rename_syncmod_manual" class="form-select">
+                  <!-- 转移方式选项将通过JavaScript动态生成 -->
+                </select>
+              </div>
+            </div>
+          </div>
+          <div class="mb-3" id="rename_inpath_div">
+            <label class="form-label required">输入路径</label>
+            <input type="text" id="rename_inpath" class="form-control filetree-folders-only" placeholder="需要转移的目录或文件"
+              autocomplete="off">
+          </div>
+          <div class="row" id="rename_outpath_div">
+            <div class="col-lg-9">
+              <div class="mb-3">
+                <label class="form-label">输出路径</label>
+                <input type="text" id="rename_outpath" class="form-control filetree-folders-only"
+                  placeholder="转移后文件存储路径，留空则转移至媒体库" autocomplete="off">
+              </div>
+            </div>
+            <div class="col-lg-3">
+              <div class="mb-3">
+                <label class="form-label required">转移方式</label>
+                <select id="rename_syncmod_customize" class="form-select">
+                  <!-- 转移方式选项将通过JavaScript动态生成 -->
+                </select>
+              </div>
+            </div>
+          </div>
+          <label class="form-label">类型</label>
+          <div class="form-selectgroup-boxes row mb-3">
+            <div class="col-lg-4">
+              <div class="mb-1">
+                <label class="form-selectgroup-item">
+                  <input type="radio" id="rename_type_mov" name="rename_type" value="MOV" class="form-selectgroup-input"
+                    onchange="switch_rename_type(this)" checked>
+                  <span class="form-selectgroup-label d-flex align-items-center p-3">
+                    <span class="me-3">
+                      <span class="form-selectgroup-check"></span>
+                    </span>
+                    <span class="form-selectgroup-label-content">
+                      <span class="form-selectgroup-title strong mb-1">电影</span>
+                    </span>
+                  </span>
+                </label>
+              </div>
+            </div>
+            <div class="col-lg-4">
+              <div class="mb-1">
+                <label class="form-selectgroup-item">
+                  <input type="radio" id="rename_type_tv" name="rename_type" value="TV"
+                    onchange="switch_rename_type(this)" class="form-selectgroup-input">
+                  <span class="form-selectgroup-label d-flex align-items-center p-3">
+                    <span class="me-3">
+                      <span class="form-selectgroup-check"></span>
+                    </span>
+                    <span class="form-selectgroup-label-content">
+                      <span class="form-selectgroup-title strong mb-1">电视剧</span>
+                    </span>
+                  </span>
+                </label>
+              </div>
+            </div>
+            <div class="col-lg-4">
+              <div class="mb-1">
+                <label class="form-selectgroup-item">
+                  <input type="radio" id="rename_type_anime" name="rename_type" value="ANIME"
+                    onchange="switch_rename_type(this)" class="form-selectgroup-input">
+                  <span class="form-selectgroup-label d-flex align-items-center p-3">
+                    <span class="me-3">
+                      <span class="form-selectgroup-check"></span>
+                    </span>
+                    <span class="form-selectgroup-label-content">
+                      <span class="form-selectgroup-title strong mb-1">动漫</span>
+                    </span>
+                  </span>
+                </label>
+              </div>
+            </div>
+          </div>
+          <div class="row">
+            <div class="col-lg-4">
+              <div class="mb-3">
+                <label class="form-label">TMDB ID</label>
+                <div class="input-group">
+                  <input type="text" id="rename_tmdb" class="form-control" placeholder="留空自动识别">
+                  <button class="btn" type="button"
+                    onclick="show_search_tmdbid_modal('rename_tmdb', 'modal-media-identification')">查询</button>
+                </div>
+              </div>
+            </div>
+            <div class="col-lg-4" id="rename_season_div">
+              <div class="mb-3">
+                <label class="form-label">季</label>
+                <select class="form-select" id="rename_season">
+                  <!-- 季数选项将通过JavaScript动态生成 -->
+                </select>
+              </div>
+            </div>
+            <div class="col-lg-4" id="rename_min_filesize_div">
+              <div class="mb-3">
+                <label class="form-label">最小文件大小 <span class="form-help" title="留空将使用基础设置中的转移最小文件大小设置，如不限制大小需输入0"
+                    data-bs-toggle="tooltip">?</span></label>
+                <input type="text" id="rename_min_filesize" class="form-control" placeholder="最小文件大小(MB)">
+              </div>
+            </div>
+            <div class="col-lg-12" id="rename_specify_episode_div">
+              <div class="mb-3">
+                <label class="form-label">集数指定 <span class="form-help"
+                    title="2个都不填，用默认识别 <br>1、指定具体集数 <br>&nbsp;&nbsp;&nbsp;&nbsp;例如 '1' 表示第一集, '1-2'表示第1-2集(1,2合起来当作一集)，此选项优先级最高。<br>2、part: 需符合以下正则写法(PART[0-9ABCI]{0,2}|^CD[0-9]{0,2}|^DVD[0-9]{0,2}|^DISK[0-9]{0,2}|^DISC[0-9]{0,2})：例如Part1, PartC, PartIII, Cd1, Dvd2, Disk10, Disc12"
+                    data-bs-toggle="tooltip" data-bs-html="true">?</span></label>
+                <div class="row">
+                  <div class="col-4">
+                    <input type="text" id="rename_specify_episode" class="form-control" placeholder="指定集数">
+                  </div>
+                  <div class="col-4">
+                    <input type="text" id="rename_specify_part" class="form-control" placeholder="指定Part">
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="col-lg-12" id="rename_episode_div">
+              <div class="mb-3">
+                <label class="form-label">高级集数定位 <span class="form-help"
+                    title="3个都不填，用默认识别<br>1、{ep}: 标定集数位置，例如：<br>&nbsp;&nbsp;&nbsp;&nbsp;'(BD)十二国記 第45話「東の海神 西の滄海 五章」(1440x1080 x264-10bpp flac).mkv'<br>&nbsp;&nbsp;&nbsp;&nbsp;'(BD)十二国記 第32話「風の万里 黎明の空　九章」(1440x1080 x264-10bpp flac).mkv'<br>&nbsp;&nbsp;&nbsp;&nbsp;此处可以填'(BD)十二国記 第{ep}話{a}(1440x1080 x264-10bpp flac).mkv' ep表示集，a表示理解成一个变量，随意用一个变量表示，如果没有变化的部分，只标定ep就行。<br>2、起始集,终止集：裁定处理集数过滤范围，<br>&nbsp;&nbsp;&nbsp;&nbsp;例如'2,4' 只取第2集到第4集。<br>3、集数偏移：例如ep定位出集数是11, 实际是第1集, 此处填-10, 以应付多季合集的场景。"
+                    data-bs-toggle="tooltip" data-bs-html="true">?</span></label>
+                <div class="row">
+                  <div class="col-4">
+                    <input type="text" id="rename_episode" class="form-control" placeholder="{ep}定位集数">
+                  </div>
+                  <div class="col-4">
+                    <input type="text" id="rename_episode_details" class="form-control" placeholder="起始集,终止集，如1,2">
+                  </div>
+                  <div class="col-4">
+                    <input type="text" id="rename_episode_offset" class="form-control" placeholder="集数偏移，如-10">
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-link me-auto" data-bs-dismiss="modal">取消</button>
+          <button type="button" id="identification_action_btn" class="btn btn-primary"
+            onclick="manual_media_transfer()">转移
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- 手动下载 -->
+  <div class="modal modal-blur fade" id="modal-search-download" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog modal-md modal-dialog-centered" role="document">
+      <input type="hidden" id="search_download_id">
+      <input type="hidden" id="search_download_name">
+      <div class="modal-content">
+        <div class="modal-body">
+          <div class="modal-title">添加下载</div>
+          <div class="row mt-3">
+            <div class="col-md">
+              <div class="form-floating mb-1">
+                <select class="form-select" id="search_download_setting" aria-label="下载设置"
+                  onchange="refresh_savepath_select('search_download_dir', true, $(this).val())">
+                </select>
+                <label for="search_download_setting">下载设置</label>
+              </div>
+            </div>
+            <div class="col-md">
+              <div class="form-floating mb-1">
+                <select class="form-select" id="search_download_dir" aria-label="保存目录"
+                  onchange="check_manual_input_path('search_download_dir', 'search_download_dir_manual')"></select>
+                <input type="text" value="" id="search_download_dir_manual" class="form-control" style="display: none"
+                  placeholder="留空自动选择保存路径">
+                <label for="search_download_dir">保存目录</label>
+              </div>
+            </div>
+          </div>
+          <form class="dropzone mt-2" id="torrent_files" action="/upload">
+            <div class="fallback">
+              <input name="file" type="file" accept="*.zip" />
+            </div>
+            <div class="dz-message">
+              <h3 class="dropzone-msg-title">上传种子文件</h3>
+              <span class="dropzone-msg-desc">点击或者拖动种子文件到此处</span>
+            </div>
+          </form>
+          <textarea class="form-control mt-2" id="torrent_urls" rows="8" placeholder="https://xxxx，换行添加多个链接"
+            aria-label=""></textarea>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-link link-secondary me-auto" data-bs-dismiss="modal">取消</button>
+          <button type="button" class="btn btn-primary" id="search_download_btn" title="立即开始下载">
+            下载
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- 根据名称查找TMDBID的对话框 -->
+  <div class="modal modal-blur fade" id="search-tmdbid-modal" tabindex="-1" role="dialog" aria-hidden="true"
+    data-bs-backdrop="static" data-bs-keyboard="false">
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable" role="document">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">查询TMDBID</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <div class="row">
+            <div class="col">
+              <input id="search_tmdbid_name" type="text" class="form-control" placeholder="输入名称查询"
+                onkeydown="if(event.keyCode==13) search_tmdbid_by_name('search_tmdbid_name', 'search_tmdbid_list')">
+            </div>
+            <div class="col-auto">
+              <button onclick="search_tmdbid_by_name('search_tmdbid_name', 'search_tmdbid_list')"
+                class="btn btn-primary btn-icon" aria-label="Button">
+                <i class="ti ti-search"></i>
+              </button>
+            </div>
+          </div>
+          <div class="row mt-3">
+            <div class="list-group list-group-flush" id="search_tmdbid_list">
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button id="search_tmdbid_btn" class="btn btn-primary">确定</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- 快速搜索 -->
+  <div class="modal modal-blur fade" id="modal-search-advanced" tabindex="-1" role="dialog" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable" role="document">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">快速搜索</h5>
+          <span class="text-muted">仅搜索, 不匹配TMDB</span>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <div class="row">
+            <div class="col-12 col-lg-8">
+              <div class="mb-3">
+                <label class="form-label required">关键字</label>
+                <input type="text" id="advanced_search_name" class="form-control" placeholder="电影/电视剧名称">
+              </div>
+            </div>
+            <div class="col-12 col-lg-4">
+              <div class="mb-3">
+                <label class="form-label">站点</label>
+                <select class="form-select" id="advanced_search_site">
+                  <option value="" selected>全部</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <!-- 开关 -->
+          <input type="checkbox" id="advancedSearchMoreSwitch" class="advanced-search-switch">
+
+          <div class="more-advanced">
+            <div class="row">
+              <div class="col-12 col-lg-4">
+                <div class="mb-3">
+                  <label class="form-label">类型</label>
+                  <select class="form-select" id="advanced_search_type">
+                    <option value="" selected>全部</option>
+                    <option value="电影">电影</option>
+                    <option value="电视剧">电视剧</option>
+                  </select>
+                </div>
+              </div>
+              <div class="col-12 col-lg-4">
+                <div class="mb-3">
+                  <label class="form-label">年份</label>
+                  <input type="text" id="advanced_search_year" class="form-control" placeholder="20xx">
+                </div>
+              </div>
+              <div class="col-12 col-lg-4">
+                <div class="mb-3">
+                  <label class="form-label">季</label>
+                  <select class="form-select" id="advanced_search_season"></select>
+                </div>
+              </div>
+            </div>
+
+            <div class="row">
+              <div class="col-12 col-lg-4">
+                <div class="mb-3">
+                  <label class="form-label">分辨率</label>
+                  <select class="form-select" id="advanced_search_pix"></select>
+                </div>
+              </div>
+              <div class="col-12 col-lg-4">
+                <div class="mb-3">
+                  <label class="form-label">质量</label>
+                  <select class="form-select" id="advanced_search_restype"></select>
+                </div>
+              </div>
+              <div class="col-12 col-lg-4">
+                <div class="mb-3">
+                  <label class="form-label">促销</label>
+                  <select class="form-select" id="advanced_sp_state">
+                    <option value="* *" selected>全部</option>
+                    <option value="1.0 1.0">普通</option>
+                    <option value="1.0 0.0">免费</option>
+                    <option value="2.0 1.0">2X</option>
+                    <option value="2.0 0.0">2X免费</option>
+                    <option value="1.0 0.5">50%</option>
+                    <option value="2.0 0.5">2X 50%</option>
+                    <option value="1.0 0.7">70%</option>
+                    <option value="1.0 0.3">30%</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <div class="row">
+              <div class="col-12 col-lg-4">
+                <div class="mb-3">
+                  <label class="form-label">过滤规则</label>
+                  <select id="advanced_search_rule" class="form-control"></select>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 切换按钮 -->
+          <div class="advanced-search-toggle-wrapper d-lg-none">
+            <label for="advancedSearchMoreSwitch" class="advanced-search-toggle">
+              <span class="toggle-text-open">展开更多筛选</span>
+              <span class="toggle-text-close">收起更多筛选</span>
+
+              <span class="toggle-icon">
+                <svg xmlns="http://www.w3.org/2000/svg"
+                    width="16"
+                    height="16"
+                    fill="currentColor"
+                    viewBox="0 0 16 16">
+                  <path fill-rule="evenodd"
+                        d="M1.646 5.646a.5.5 0 0 1 .708 0L8 11.293l5.646-5.647a.5.5 0 0 1 .708.708l-6 6a.5.5 0 0 1-.708 0l-6-6a.5.5 0 0 1 0-.708"/>
+                </svg>
+              </span>
+            </label>
+          </div>
+
+        </div>
+        <div class="modal-footer">
+          <button onclick="search_media_advanced()" class="btn btn-primary">开始搜索</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- 索引配置编辑框 -->
+  <div class="modal modal-blur fade" id="modal-manual-indexer" tabindex="-1" role="dialog" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable" role="document">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="indexer_modal_title">新增索引站点</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <div class="row">
+            <div class="col-lg-4">
+              <div class="mb-3">
+                <label class="form-label required">ID</label>
+                <input type="text" value="" id="indexer-id" class="form-control" placeholder="ID">
+              </div>
+            </div>
+            <div class="col-lg-4">
+              <div class="mb-3">
+                <label class="form-label required">名称</label>
+                <input type="text" value="" id="indexer-name" class="form-control" placeholder="名称">
+              </div>
+            </div>
+            <div class="col-lg-4">
+              <div class="mb-3">
+                <label class="form-label required">站点地址 <span class="form-help" title="站点访问地址，站点签到、数据统计、刷流、内置索引器等将使用"
+                    data-bs-toggle="tooltip">?</span>
+                </label>
+                <input type="text" class="form-control" id="indexer-url" value="" placeholder="站点http地址">
+              </div>
+            </div>
+          </div>
+          <div class="row">
+            <div class="col-lg-4">
+              <div class="mb-3">
+                <label class="form-label">解析器</label>
+                <select class="form-select" id="indexer-parser-type">
+                </select>
+              </div>
+            </div>
+            <div class="col-lg-4 pt-hide">
+              <div class="mb-3">
+                <label class="form-label required">检索方式 <span class="form-help" title="站点支持根据哪些参数进行资源检索" data-bs-toggle="tooltip">?</span></label>
+                <select class="form-select" id="indexer-search-params">
+                </select>
+              </div>
+            </div>
+            <div class="col-lg-4 pt-hide">
+              <div class="mb-3">
+                <label class="form-label">下载设置</label>
+                <select class="form-select" id="indexer-download-setting">
+                  <option value="0">默认</option>
+                </select>
+              </div>
+            </div>
+          </div>
+          <div class="row pt-hide">
+            <div class="mb-3">
+              <label class="required">资源类型 <span class="form-help" title="站点可进行哪种类型资源的检索"data-bs-toggle="tooltip">?</span></label>
+              <div class="form-selectgroup" id="indexer-source-types"></div>
+            </div>
+          </div>
+          <div class="row pt-hide">
+            <div class="col-lg-4">
+              <div class="mb-3">
+                <span>使用代理服务器 
+                  <span class="form-help" title="开启后该站点的访问将使用代理服务器，代理需在基础设置->系统->代理服务器中设置" data-bs-toggle="tooltip">?</span>
+                </span>
+                <div class="form-switch d-inline-block ms-2"><input class="form-check-input" type="checkbox" id="indexer-proxy"></div>
+              </div>
+            </div>
+            <div class="col-lg-4">
+              <div class="mb-3">
+                  <span>开启浏览器仿真 
+                    <span class="form-help"
+                      title="开启后可以兼容更多站点，但获取数据耗时会大幅增加；需要拉取含浏览器内核的镜像才能使用" data-bs-toggle="tooltip">?</span>
+                    </span>
+                  <div class="form-switch d-inline-block ms-2"><input class="form-check-input" type="checkbox" id="indexer-render"></div>
+              </div>
+            </div>
+            <div class="col-lg-4">
+              <div class="mb-3">
+                <label>使用英文名进行扩展搜索</label>
+                <div class="form-switch d-inline-block ms-2"><input class="form-check-input" type="checkbox" id="indexer-en-expand"></div>
+              </div>
+            </div>
+          </div>
+          <details>
+            <summary class="summary">
+              搜索配置 <span class="form-help" title="资源搜索配置参数" data-bs-toggle="tooltip">?</span>
+            </summary>
+            <div class="row mt-2">
+              <textarea class="form-control mt-2" id="search_cfg" rows="1" aria-label=""></textarea>
+            </div>
+          </details>
+          <details>
+            <summary class="summary">
+              种子过滤配置 <span class="form-help" title="种子过滤配置" data-bs-toggle="tooltip">?</span>
+            </summary>
+            <div class="row mt-2">
+              <textarea class="form-control mt-2" id="torrent_cfg" rows="1" aria-label=""></textarea>
+            </div>
+          </details>
+          <details>
+            <summary class="summary">
+              目录配置 <span class="form-help" title="目录配置参数" data-bs-toggle="tooltip">?</span>
+            </summary>
+            <div class="row mt-2">
+              <textarea class="form-control mt-2" id="category_cfg" rows="1" aria-label=""></textarea>
+            </div>
+          </details>
+        </div>
+        <div class="modal-footer">
+          <div class="btn-list">
+            <a href="javascript:do_add_indexer()" name="indexer_add_btn" class="btn btn-primary">添加</a>
+            <a href="javascript:do_update_indexer()" name="indexer_edit_btn" class="btn btn-primary">确定</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <cmd-dialog theme="light"></cmd-dialog>
+
+  <!-- 基础库 -->
+  <script src="../static/libs/jquery-3.3.1.min.js"></script>
+  <script src="../static/libs/navigo.min.js"></script>
+  <script src="../static/libs/tabler/js/tabler.min.js"></script>
+  <script src="../static/libs/dropzone/dropzone-min.js"></script>
+  <!-- axios -->
+  <script src="../static/libs/axios.min.js"></script>
+
+  <!-- 认证管理和axios封装 -->
+  <script src="../static/js/auth-manager.js"></script>
+  <script src="../static/js/axios-wrapper.js"></script>
+  <!-- 载入业务脚本 -->
+  <script src="../static/js/app.js"></script>
+  <script src="../static/js/util.js"></script>
+  <script src="../static/js/functions.js"></script>
+  <!-- 引入组件定义 -->
+  <script src="../static/js/oops.js"></script>
+  <script src="../static/components/index.js"></script>
+
+  <!-- 第三方组件 -->
+  <script src="../static/libs/ace/ace.js"></script>
+  <script src="../static/libs/filetree/jquery.filetree.js"></script>
+  <script src="../static/libs/modules/echarts.min.js"></script>
+  <script src="../static/libs/modules/reconnecting-websocket.js"></script>
+  <!-- lit -->
+  <script type="module" src="../static/components/lit-index.js"></script>
+
+  <script type="text/javascript">
+    
+    // 搜索源图标
+    const search_sources_icon = [
+        { id: 'tmdb',   icon: '<i class="ti ti-circle-letter-t fs-2 text-blue"></i>' },
+        { id: 'douban', icon: '<i class="ti ti-circle-letter-d fs-2 text-green"></i>' },
+        { id: 'person', icon: '<i class="ti ti-circle-letter-p fs-2 text-purple"></i>' }
+    ];
+
+    // 搜索源索引
+    let currentSourceIndex = 0;
+
+    // 请求登陆
+    function performLogin() {
+
+      const username = $('input[name="username"]').val();
+      const password = $('input[name="password"]').val();
+      const remember = $('input[name="remember"]').is(':checked');
+
+      if (!username || !password) {
+        showLoginError('请输入用户名和密码');
+        return;
+      }
+
+      // 显示加载状态
+      const submitBtn = $('button[type="button"]');
+      const originalText = submitBtn.text();
+      submitBtn.prop('disabled', true).text('登录中...');
+
+      // 调用登录API
+      window.axios_client.post("/auth/token", new URLSearchParams({username, password}), { headers: { "Content-Type": "application/x-www-form-urlencoded" } })
+        .then(function (response) {
+          // 恢复按钮状态
+          submitBtn.prop('disabled', false).text(originalText);
+
+          if (response.status === 200) {
+            // reload
+            window.location.reload(true);
+
+          } else {
+            showLoginError(data.message || '登录失败');
+          }
+        })
+        .catch(function (error) {
+          console.error('Login error:', error);
+          if (error.response && error.response.data) {
+            showLoginError(error.response.data.message || '登录失败');
+          } else {
+            showLoginError('网络错误，请重试');
+          }
+          // 恢复按钮状态
+          submitBtn.prop('disabled', false).text(originalText);
+        });
+    }
+
+    // 登陆异常
+    function showLoginError(message) {
+      const errorDiv = $('#login_retmsg');
+      errorDiv.text(message).show();
+      $('input').addClass('is-invalid');
+    }
+
+    $(document).ready(function () {
+
+      // 处理回车键登录
+      $('input[name="password"]').on('keypress', function (e) {
+        if (e.which === 13) { // Enter键
+          performLogin();
+        }
+      });
+
+      // 绑定表单提交事件
+      $('#loginForm').on('submit', function (e) {
+        e.preventDefault(); // 阻止默认表单提交
+        performLogin();
+      });
+
+      // 主题设置
+      var savedTheme = localStorage.getItem("theme") || "light";
+      applyTheme(savedTheme);
+
+      // 获取壁纸数据
+      axios_post('/data/bing', {}, function (response) {
+        if (response.code === 0 && response.data) {
+          var data = response.data;
+          // 设置背景图片
+          if (data.imageCode) {
+            $("body").css("background", `url(data:image/jpg;base64,${data.imageCode}) center / cover no-repeat fixed`);
+          }
+          // 显示图片信息
+          $('#image-title').text(data.imgTitle);
+          if (data.imgLink) {
+            $('#image-link').attr('href', data.imgLink);
+          }
+          $('#image-desc-container').show();
+          // 添加登录窗口样式
+          $('#loginForm').addClass('login_window');
+        }
+      }, false);
+
+      // 获取当前用户信息
+      axios_post("/data/userinfo", {}, function (response) {
+        // 已登陆, 开始初始化页面
+        if (response.code === 0 && response.data) {
+          // 页面初始事件
+          initIndex();
+          // 初始化系统信息和组件
+          initSysInfo();
+        }
+      }, false);
+
+    });
+
+
+    // 页面初始事件
+    function initIndex() {
+
+      let topBtnShowTime = null;
+
+      // 检查滚动条位置
+      function calcToTopBtnVisitable() {
+        var canScroll = document.documentElement.scrollHeight > document.documentElement.clientHeight;
+        var toTopBtn = document.getElementById('scrollToTop');
+        if (canScroll) {
+          toTopBtn.classList.add('show');
+        } else {
+          toTopBtn.classList.remove('show');
+          // 清除定时器避免内存泄漏
+          clearTimeout(topBtnShowTime);
+          topBtnShowTime = null;
+        }
+      }
+
+      function resetToTopBtnHideTime() {
+        var toTopBtn = document.getElementById('scrollToTop');
+        // 只有当按钮可见时才重置定时器
+        if (toTopBtn.classList.contains('show')) {
+          clearTimeout(topBtnShowTime);
+          topBtnShowTime = setTimeout(() => {
+            toTopBtn.classList.remove('show');
+          }, 3000);
+        }
+      }
+
+      let searchbar_blur = false;
+      function searchBarBlurCheck() {
+        const scroll_length = document.body.scrollTop || window.pageYOffset;
+        // 滚动发生时改变模糊状态
+        if (!searchbar_blur && scroll_length >= 5) {
+          // 模糊状态
+          searchbar_blur = true;
+          $('#navbar-search').addClass("lit-searchbar-blur");
+        } else if (searchbar_blur && scroll_length < 5) {
+          // 非模糊状态
+          searchbar_blur = false
+          $('#navbar-search').removeClass("lit-searchbar-blur");
+        }
+      }
+
+      // 监听滚动事件
+      window.addEventListener('scroll', () => {
+        calcToTopBtnVisitable();
+        resetToTopBtnHideTime();
+        searchBarBlurCheck();
+      });
+
+      // 监听窗口大小变化
+      window.addEventListener('resize', () => {
+        calcToTopBtnVisitable();
+        resetToTopBtnHideTime();
+        updateTabDisplay();
+      });
+
+      // 初始化和窗口大小变化时更新
+      document.addEventListener("DOMContentLoaded", updateTabDisplay);
+
+      // 浏览器关闭事件
+      window.addEventListener("beforeunload", function () {
+        // 关闭连接
+        stopMessage();
+        stopLogging();
+        stopProgress();
+      });
+
+      // tooltip点击事件处理，阻止冒泡到上级元素
+      $('body').on('click', 'span[data-bs-toggle="tooltip"]', function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+      });
+
+      // 图标触发器
+      $('#icon-source-trigger').on('click', function (e) {
+
+        currentSourceIndex = (currentSourceIndex + 1) % search_sources_icon.length;
+        
+        // 获取新的状态
+        let newSource = search_sources_icon[currentSourceIndex];
+        
+        // 更新图标的 HTML
+        $(this).html(newSource.icon);        
+        $(this).data('id', newSource.id);
+
+        if (newSource.id === "person") {
+          $('#search-type-choose').hide();
+          $('#quick-search-keywords').prop('placeholder', "搜索人物");
+        } else {
+          $('#search-type-choose').show();
+          $('#quick-search-keywords').prop('placeholder', "搜索电影、电视剧");
+        }
+
+      });
+
+      // 回车键搜索
+      $('#quick-search-keywords').on('keypress', function (e) {
+        if (e.which === 13) {
+          quickSearchMedia();
+        }
+      });
+      
+      // 自动聚焦到输入框
+      $("#quick-search-modal").on('shown.bs.modal', function () {
+        $('#quick-search-keywords').focus();
+      });
+
+      // 滚动到顶部功能绑定
+      $('#scrollToTop').on('click', function (e) {
+        window.scrollTo({
+          top: 0,
+          behavior: 'smooth'
+        });
+      });
+
+      // 日志框关闭时清理资源
+      $('#modal-logging').on('hidden.bs.modal', function() {
+        stopLogging();
+      });
+
+      // 回到顶部按钮状态
+      calcToTopBtnVisitable();
+
+      // Dropzone配置
+      initDropzone();
+
+    }
+
+    // 初始化系统信息函数
+    function initSysInfo() {
+
+      axios_post("/data/sysinfo", {}, function (response) {
+
+        if (response.code === 0 && response.data) {
+
+          const sysInfo = response.data;
+
+          // 全局变量默认值
+          $('#default_path').val(sysInfo.defaultPath);
+          $('#default_transfer_mode').val(sysInfo.syncMod);
+
+          // 生成菜单
+          if (document.getElementById("navbar-menu")) {
+            $("#navbar-menu").remove();
+          }
+          let $navbar = $(`<layout-navbar hidden id="navbar-menu" layout-appversion="${sysInfo.appVersion}"></layout-navbar>`);
+          $navbar[0].navbar_list = sysInfo.menus;
+          $("#default_path").after($navbar);
+
+          // 填充搜索栏下拉选项
+          $('#head-dropdown-menu').empty();
+          $('#head-dropdown-menu').append(`
+            <a class="dropdown-item hide-theme-dark" data-id="dark" href="javascript:void(0)" onclick="theme_toggle(this)" role="button">暗黑风格</a>
+            <a class="dropdown-item hide-theme-light" data-id="light" href="javascript:void(0)" onclick="theme_toggle(this)" role="button">明亮风格</a>
+            <div class="dropdown-divider"></div>
+          `);
+          if (sysInfo.admin) {
+            $('#head-dropdown-menu').append(`
+              <a class="dropdown-item" href="javascript:navmenu('users')" role="button">用户管理</a>
+              <div class="dropdown-divider"></div>
+              <a class="dropdown-item" href="javascript:show_message_modal()" role="button">消息中心</a>
+              <a class="dropdown-item" href="javascript:show_logging_modal()" role="button">实时日志</a>
+              <div class="dropdown-divider"></div>
+            `);
+            if (sysInfo.systemFlag == 'Docker' || sysInfo.systemFlag == 'Synology') {
+              $('#head-dropdown-menu').append(`<a class="dropdown-item" href="javascript:restart()">重启</a>`);
+            }
+          }
+          $('#head-dropdown-menu').append(`
+            <a class="dropdown-item" href="javascript:logout()"> 注销 <span class="text-muted mx-3">${sysInfo.username}</span></a>
+            <div class="dropdown-divider"></div>
+          `);
+          // 显示搜索栏
+          $("#navbar-search").removeClass('d-none');
+          
+          // 生成命令菜单
+          generateCommandsMenu(sysInfo.commands);
+
+          // 生成日志选择器菜单
+          generateLoggerMenu();
+
+          // 生成高级搜索选项
+          generateAdvancedSearchOptions(sysInfo);
+
+          // 检查tmdb配置
+          if (!sysInfo.tmdbFlag) {
+            showInitAlertModal();
+          }
+
+          // WebSocket刷新消息中心
+          connectMessage();
+
+          // 注册路由
+          registerRouter(sysInfo.menus);
+
+          var current = router.current && router.current[0] && router.current[0].url;
+          if (!current || current == 'login') {
+            navmenu('index');
+          }
+
+        } else {
+          console.error('获取系统信息失败:', response);
+        }
+      });
+    }
+
+    // 生成命令菜单
+    function generateCommandsMenu(commands) {
+      if (!commands || !Array.isArray(commands)) return;
+
+      const dropdown = $("#commands-dropdown");
+      dropdown.empty();
+
+      commands.forEach(command => {
+        const menuItem = `
+          <a class="dropdown-item" href="javascript:send_web_message('${command.id}')">
+            ${command.name}
+          </a>
+        `;
+        dropdown.append(menuItem);
+      });
+    }
+
+    // 生成日志选择器菜单
+    function generateLoggerMenu() {
+      const loggers = ['All', 'System', 'Rss', 'RssChecker', 'Rmt', 'Meta', 'Sync', 'Sites', 'Brush',
+        'Douban', 'Spider', 'Message', 'Indexer', 'Searcher', 'Subscribe', 'Downloader', 'TorrentRemover',
+        'Plugin', 'Http'];
+
+      const container = $("#logger-dropdown-items");
+      container.empty();
+
+      loggers.forEach(logger => {
+        const menuItem = `
+          <a class="dropdown-item" href="javascript:void(0)" onclick="logger_select('${logger}')">${logger}</a>
+        `;
+        container.append(menuItem);
+      });
+    }
+
+    // 生成所有动态选项
+    function generateAdvancedSearchOptions(sysInfo) {
+
+      // 生成季数选项
+      generateSeasonOptions();
+
+      // 生成质量选项
+      if (sysInfo.restypeDict) {
+        generateRestypeOptions(sysInfo.restypeDict);
+      }
+
+      // 生成分辨率选项
+      if (sysInfo.pixDict) {
+        generatePixOptions(sysInfo.pixDict);
+      }
+
+      // 生成转移方式选项
+      if (sysInfo.rmtDodeDict) {
+        generateRmtModeOptions(sysInfo.rmtDodeDict);
+      }
+
+      // 生成索引器弹窗选项
+      generateIndexerModalOptions(sysInfo);
+
+    }
+
+    // 生成季数选项
+    function generateSeasonOptions() {
+      const renameSelect = $("#rename_season");
+      renameSelect.empty();
+      renameSelect.append('<option value="" selected>请选择</option>');
+
+      const rssSelect = $("#rss_season");
+      rssSelect.empty();
+      rssSelect.append('<option value="" selected>请选择</option>');
+
+      const advancedSelect = $("#advanced_search_season");
+      advancedSelect.empty();
+      advancedSelect.append('<option value="" selected>全部</option>');
+
+      for (let i = 1; i <= 50; i++) {
+        var option = `<option value="${i}">第${i}季</option>`;
+        advancedSelect.append(option);
+        rssSelect.append(option);
+        renameSelect.append(option);
+      }
+    }
+
+    // 生成质量选项
+    function generateRestypeOptions(restypeDict) {
+
+      const advancedSelect = $("#advanced_search_restype");
+      advancedSelect.empty();
+      advancedSelect.append('<option value="" selected>全部</option>');
+
+      const rssSelect = $("#rss_restype");
+      rssSelect.empty();
+      rssSelect.append('<option value="" selected>全部</option>');
+
+      const defaultRssSelect = $("#default_rss_setting_restype");
+      defaultRssSelect.empty();
+      defaultRssSelect.append('<option value="" selected>全部</option>');
+
+      Object.keys(restypeDict).forEach(function(restype) {
+        var option = `<option value="${restype}">${restype}</option>`;
+        advancedSelect.append(option);
+        defaultRssSelect.append(option);
+        rssSelect.append(option);
+      });
+    }
+
+    // 生成分辨率选项
+    function generatePixOptions(pixDict) {
+      const advancedSelect = $("#advanced_search_pix");
+      advancedSelect.empty();
+      advancedSelect.append('<option value="" selected>全部</option>');
+
+      const defaultRssSelect = $("#default_rss_setting_pix");
+      defaultRssSelect.empty();
+      defaultRssSelect.append('<option value="" selected>全部</option>');
+
+      const rssSelect = $("#rss_pix");
+      rssSelect.empty();
+      rssSelect.append('<option value="" selected>全部</option>');
+
+      Object.keys(pixDict).forEach(function(pix) {
+        var option = `<option value="${pix}">${pix}</option>`;
+        advancedSelect.append(option);
+        defaultRssSelect.append(option);
+        rssSelect.append(option);
+      });
+    }
+
+    // 生成转移方式选项
+    function generateRmtModeOptions(rmtModeDict) {
+
+      const manualSelect = $("#rename_syncmod_manual");
+      manualSelect.empty();
+
+      const customizeSelect = $("#rename_syncmod_customize");
+      customizeSelect.empty();
+
+      $.each(rmtModeDict, function (idx, mode){
+        var option = `<option value="${mode.value}">${mode.name}</option>`;
+        manualSelect.append(option);
+        customizeSelect.append(option);
+      });
+
+    }
+
+    function generateIndexerModalOptions(data) {
+
+      // 填充下载设置选项
+      if (data.downloadSettings) {
+        const downloadSelect = $('#indexer-download-setting');
+        downloadSelect.empty();
+        downloadSelect.append('<option value="0">默认</option>');
+        Object.entries(data.downloadSettings).forEach(([id, name]) => {
+          downloadSelect.append(`<option value="${id}">${name}</option>`);
+        });
+      }
+
+      // 填充资源类型选项
+      if (data.sourceTypes) {
+        const sourceTypesGroup = $('#indexer-source-types');
+        sourceTypesGroup.empty();
+        Object.entries(data.sourceTypes).forEach(([key, value]) => {
+          const sourceTypeItem = `
+            <label class="form-selectgroup-item">
+              <input type="checkbox" name="indexer-source-type" value="${key}" class="form-selectgroup-input" checked>
+              <span class="form-selectgroup-label">${value}</span>
+            </label>
+          `;
+          sourceTypesGroup.append(sourceTypeItem);
+        });
+      }
+
+      if (data.spiderTypes) {
+        const parserTypeGroup = $('#indexer-parser-type');
+        parserTypeGroup.empty();
+        $.each(data.spiderTypes, function (sKey, sName){
+          var option = `<option value="${sKey}">${sName}</option>`;
+          parserTypeGroup.append(option);
+        });
+      }
+
+      if (data.searchParams) {
+        const searchParamGroup = $('#indexer-search-params');
+        searchParamGroup.empty();
+        
+        $.each(data.searchParams, function (sKey, sName){
+          var option = `<option value="${sKey}">${sName}</option>`;
+          searchParamGroup.append(option);
+        });
+      }
+
+    }
+
+  </script>
+
+</body>
+
+</html>

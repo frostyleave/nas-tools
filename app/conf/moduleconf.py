@@ -1,5 +1,5 @@
 # coding: utf-8
-from app.utils.types import *
+from app.utils.types import SearchType, DownloaderType, RmtMode
 
 
 class ModuleConf(object):
@@ -32,14 +32,6 @@ class ModuleConf(object):
         "rclonecopy": RmtMode.RCLONECOPY,
         "minio": RmtMode.MINIO,
         "miniocopy": RmtMode.MINIOCOPY
-    }
-
-    # 精简版转移模式
-    RMT_MODES_LITE = {
-        "copy": RmtMode.COPY,
-        "link": RmtMode.LINK,
-        "softlink": RmtMode.SOFTLINK,
-        "move": RmtMode.MOVE
     }
 
     # 远程转移模式
@@ -256,29 +248,6 @@ class ModuleConf(object):
                         "tooltip": "添加到Bark通知中的附加参数，可用于自定义通知特性",
                         "type": "text",
                         "placeholder": "group=xxx&sound=xxx&url=xxx"
-                    }
-                }
-            },
-            "pushdeer": {
-                "name": "PushDeer",
-                "img_url": "../static/img/message/pushdeer.png",
-                "color": "#444E98",
-                "config": {
-                    "server": {
-                        "id": "pushdeer_server",
-                        "required": True,
-                        "title": "PushDeer服务器地址",
-                        "tooltip": "自己搭建pushdeer服务端请实际配置，否则可使用：https://api2.pushdeer.com",
-                        "type": "text",
-                        "placeholder": "https://api2.pushdeer.com",
-                        "default": "https://api2.pushdeer.com"
-                    },
-                    "apikey": {
-                        "id": "pushdeer_apikey",
-                        "required": True,
-                        "title": "API Key",
-                        "tooltip": "pushdeer客户端生成的KEY",
-                        "type": "text"
                     }
                 }
             },

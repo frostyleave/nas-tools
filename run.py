@@ -13,11 +13,9 @@ setup_logging()
 
 import log
 
-from app.db import init_db, update_db, init_data
-from initializer import update_config, check_config
 
 # 导入FastAPI应用
-from web.app import app
+from main import app
 from version import APP_VERSION
 
 warnings.filterwarnings('ignore')
@@ -92,19 +90,53 @@ def get_run_config(app: FastAPI) -> uvicorn.Config:
     return uvicorn_config
 
 
+def set_git_proxy():
+
+    proxy_config = Config().get_proxies()
+    if not proxy_config:
+        return
+    http_proxy = proxy_config.get('http')
+    if not http_proxy:
+        return
+    
+    try:
+        import subprocess
+
+        # 设置 http.proxy
+        result = subprocess.run(
+            ['git', 'config', '--global', 'http.proxy', http_proxy],
+            capture_output=True, text=True
+        )
+        if result.returncode != 0:
+            log.error(f'❌ 设置Git HTTP代理失败: {result.stderr.strip()}')
+            return
+
+        # 设置 https.proxy
+        https_proxy = proxy_config.get('https', http_proxy)
+        result = subprocess.run(
+            ['git', 'config', '--global', 'https.proxy', https_proxy],
+            capture_output=True, text=True
+        )
+        if result.returncode != 0:
+            log.error(f'❌ 设置Git HTTPS代理失败: {result.stderr.strip()}')
+
+        log.info('✅ Git 代理已设置')
+    except Exception as e:
+        log.error(f'❌ 执行git config异常: {str(e)}')
+
+
 def init_system():
+    from app.core.initializer import init_data, update_config, check_config
     # 配置
     log.debug('NAStool 当前版本号：%s' % APP_VERSION)
-    # 数据库初始化
-    init_db()
-    # 数据库更新
-    update_db()
     # 数据初始化
     init_data()
     # 升级配置文件
     update_config()
     # 检查配置文件
     check_config()
+    # 设置git代理
+    set_git_proxy()
 
 
 # uvicorn服务

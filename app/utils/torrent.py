@@ -4,8 +4,23 @@ import re
 import bencodepy
 import urllib
 
-from app.utils.media_utils import MediaUtils
+from dataclasses import dataclass, field
+
 from app.utils.types import MediaType
+
+
+@dataclass
+class TorrentDownloadResult:
+    """种子下载/解析结果"""
+    file_path: str | None = None
+    content: str | bytes | None = None
+    files_folder: str = ""
+    files: list = field(default_factory=list)
+    ret_msg: str = ""
+
+    @property
+    def success(self) -> bool:
+        return bool(self.file_path or self.content)
 
 
 class TorrentUtils:
@@ -28,14 +43,14 @@ class TorrentUtils:
 
 
     @staticmethod
-    def resolve_torrent_files(content: str):
+    def resolve_torrent_files(content: str) -> TorrentDownloadResult:
         """
         解析Torrent文件, 获取文件清单
-        :return: 种子文件列表主目录、种子文件列表、错误信息
+        :return: TorrentDownloadResult
         """
         if not content:
-            return "", [], "种子内容为空"
-        
+            return TorrentDownloadResult(ret_msg="种子内容为空")
+
         file_names = []
         file_folder = ""
         try:
@@ -50,31 +65,34 @@ class TorrentUtils:
                 else:
                     file_names.append(torrent.get(b"info", {}).get(b"name").decode('utf-8'))
         except Exception as err:
-            return file_folder, file_names, "解析种子文件异常：%s" % str(err)
-        return file_folder, file_names, ""
+            return TorrentDownloadResult(files_folder=file_folder, files=file_names, ret_msg="解析种子文件异常：%s" % str(err))
+        return TorrentDownloadResult(files_folder=file_folder, files=file_names)
     
 
     @staticmethod
     def read_torrent_content(path):
         """
         读取本地种子文件的内容
-        :return: 种子内容、种子文件列表主目录、种子文件列表、错误信息
+        :return: TorrentDownloadResult
         """
         if not path or not os.path.exists(path):
-            return None, "", [], "种子文件不存在：%s" % path
-        
+            return TorrentDownloadResult(ret_msg="种子文件不存在：%s" % path)
+
         content, retmsg, file_folder, files = None, "", "", []
-        
+
         try:
             # 读取种子文件内容
             with open(path, 'rb') as f:
                 content = f.read()
 
-            file_folder, files, retmsg = TorrentUtils.resolve_torrent_files(content)
+            resolve_result = TorrentUtils.resolve_torrent_files(content)
+            file_folder = resolve_result.files_folder
+            files = resolve_result.files
+            retmsg = resolve_result.ret_msg
         except Exception as e:
             retmsg = "读取种子文件出错：%s" % str(e)
 
-        return content, file_folder, files, retmsg
+        return TorrentDownloadResult(file_path=path, content=content, files_folder=file_folder, files=files, ret_msg=retmsg)
 
     @staticmethod
     def torrent_to_magnet(torrent_file):

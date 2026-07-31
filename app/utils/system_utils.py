@@ -1,16 +1,27 @@
 import datetime
 import os
 import platform
+import psutil
 import shutil
 import subprocess
 
-import psutil
 
+from urllib.parse import quote
+
+from app.utils.http_utils import RequestUtils
 from app.utils.path_utils import PathUtils
 from app.utils.types import OsType
-from config import WEBDRIVER_PATH
+
+from config import Config
+from version import APP_VERSION
 
 import log
+
+# WebDriver路径
+WEBDRIVER_PATH = {
+    "Docker": "/usr/lib/chromium/chromedriver",
+    "Synology": "/var/packages/NASTool/target/bin/chromedriver"
+}
 
 
 class SystemUtils:
@@ -371,3 +382,33 @@ class SystemUtils:
             except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
                 pass
         return processes
+    
+    @staticmethod
+    def get_current_version():
+        """
+        获取当前版本号
+        """
+        commit_id = SystemUtils.execute('git rev-parse HEAD')
+        if commit_id and len(commit_id) > 7:
+            commit_id = commit_id[:7]
+        return "%s %s" % (APP_VERSION, commit_id)
+
+    @staticmethod
+    def get_latest_version():
+        """
+        获取最新版本号
+        """
+        try:
+            releases_update_only = Config().get_config("app").get("releases_update_only")
+            version_res = RequestUtils(proxies=Config().get_proxies()).get_res(
+                f"https://nastool.cn/{quote(SystemUtils.get_current_version())}/update")
+            if version_res:
+                ver_json = version_res.json()
+                version = ver_json.get("latest")
+                link = ver_json.get("link")
+                if version and releases_update_only:
+                    version = version.split()[0]
+                return version, link
+        except Exception as e:
+            log.exception('[Web]获取最新版本号: ')
+        return None, None

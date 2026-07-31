@@ -17,3 +17,4 @@
 /config/*.db-shm
 /config/export_indexer_sites.py
 /config/*.sql
+/dbscript_gen.py

@@ -1,13 +1,12 @@
 # -*- coding: utf-8 -*-
-from datetime import datetime
 import os
 import re
 
+from datetime import datetime
 from lxml import etree
 
 from app.utils import SystemUtils
-from config import RMT_SUBEXT
-
+from app.utils.constants import Constants
 
 class SiteHelper:
 
@@ -41,6 +40,21 @@ class SiteHelper:
         return False
 
     @staticmethod
+    def sign_in_result(html_res, regexs):
+        """
+        判断是否签到成功
+        """
+        if not regexs:
+            return False
+        
+        html_text = re.sub(r"#\d+", "", re.sub(r"\d+px", "", html_res))
+        for regex in regexs:
+            if re.search(str(regex), html_text):
+                return True
+            
+        return False
+
+    @staticmethod
     def get_url_subtitle_name(disposition, url):
         """
         从站点下载请求中获取字幕文件名
@@ -50,7 +64,7 @@ class SiteHelper:
             fname = str(fname[0].encode('ISO-8859-1').decode()).split(";")[0].strip()
             if fname.endswith('"'):
                 fname = fname[:-1]
-        elif url and os.path.splitext(url)[-1] in (RMT_SUBEXT + ['.zip']):
+        elif url and os.path.splitext(url)[-1] in (Constants.RMT_SUBEXT + ['.zip']):
             fname = url.split("/")[-1]
         else:
             fname = str(datetime.now())

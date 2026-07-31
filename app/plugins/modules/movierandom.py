@@ -13,7 +13,7 @@ from app.helper import ThreadHelper
 from app.media import Media
 from app.mediaserver import MediaServer
 from app.plugins.modules._base import _IPluginModule
-from app.subscribe import Subscribe
+from app.modules.subscribe import Subscribe
 from app.utils.types import SearchType, RssType, MediaType
 
 

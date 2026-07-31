@@ -14,7 +14,8 @@ from app.helper import ThreadHelper
 from app.media.meta import MetaInfo
 from app.plugins.modules._base import _IPluginModule
 from app.plugins.modules.iyuu.iyuu_helper import IyuuHelper
-from app.sites import PtSiteConf, Sites
+from app.models.model import UserSiteConf
+from app.sites import Sites
 from app.utils import RequestUtils
 from app.utils.types import DownloaderType
 
@@ -912,7 +913,7 @@ class IYUUAutoSeedEnhance(_IPluginModule):
             print(str(e))
             return ""
 
-    def __get_download_url(self, seed, site: PtSiteConf, base_url):
+    def __get_download_url(self, seed, site: UserSiteConf, base_url):
         """
         拼装种子下载链接
         """
@@ -968,7 +969,7 @@ class IYUUAutoSeedEnhance(_IPluginModule):
             self.warn(f"站点 {site.name} Url转换失败：{str(e)}，尝试通过详情页面获取种子下载链接 ...")
             return self.__get_torrent_url_from_page(seed=seed, site=site)
 
-    def __get_torrent_url_from_page(self, seed, site: PtSiteConf):
+    def __get_torrent_url_from_page(self, seed, site: UserSiteConf):
         """
         从详情页面获取下载链接
         """

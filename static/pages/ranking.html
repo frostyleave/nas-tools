@@ -1,0 +1,339 @@
+<div id="discovery-container" class="container-xl"></div>
+
+<script type="text/javascript">
+    // 榜单配置
+    _media_type_list = {
+        "RANKING": [
+            {
+                type: "MOV",
+                title: "正在热映",
+                subtype: "dbom",
+            },
+            {
+                type: "MOV",
+                title: "即将上映",
+                subtype: "dbnm",
+            },
+            {
+                type: "MOV",
+                title: "豆瓣热门电影",
+                subtype: "dbhm",
+            },
+            {
+                type: "TRENDING",
+                title: "TMDB流行趋势",
+                subtype: "trendingmv",
+            },
+            {
+                type: "MOV",
+                title: "豆瓣电影TOP250",
+                subtype: "dbtop",
+            },
+
+        ],
+        "TV": [
+            {
+                type: "TV",
+                title: "豆瓣热门剧集",
+                subtype: "dbht",
+            },
+            {
+                type: "TV",
+                title: "豆瓣热门动漫",
+                subtype: "dbdh",
+            },
+            {
+                type: "TV",
+                title: "豆瓣热门综艺",
+                subtype: "dbzy",
+            },
+            {
+                type: "TRENDING",
+                title: "TMDB流行趋势",
+                subtype: "trendingtv"
+            },
+            {
+                type: "TV",
+                title: "华语口碑剧集榜",
+                subtype: "dbct",
+            },
+            {
+                type: "TV",
+                title: "全球口碑剧集榜",
+                subtype: "dbgt",
+            }
+            // {
+            //   type: "MOV",
+            //   title:"最新电影",
+            //   subtype :"nm",
+            // },
+            // {
+            //   type: "MOV",
+            //   title:"热门电影",
+            //   subtype :"hm",
+            // },
+        ],
+        "BANGUMI": [
+            {
+                type: "TV",
+                title: "星期一",
+                subtype: "bangumi",
+                week: "1",
+                noMore: true
+            },
+            {
+                type: "TV",
+                title: "星期二",
+                subtype: "bangumi",
+                week: "2",
+                noMore: true
+            },
+            {
+                type: "TV",
+                title: "星期三",
+                subtype: "bangumi",
+                week: "3",
+                noMore: true
+            },
+            {
+                type: "TV",
+                title: "星期四",
+                subtype: "bangumi",
+                week: "4",
+                noMore: true
+            },
+            {
+                type: "TV",
+                title: "星期五",
+                subtype: "bangumi",
+                week: "5",
+                noMore: true
+            },
+            {
+                type: "TV",
+                title: "星期六",
+                subtype: "bangumi",
+                week: "6",
+                noMore: true
+            },
+            {
+                type: "TV",
+                title: "星期日",
+                subtype: "bangumi",
+                week: "7",
+                noMore: true
+            },
+        ]
+    }
+</script>
+
+<script type="text/javascript">
+
+    function drawSlideByRequest(pageRankList) {
+
+        // 为每个 item 创建一个 custom-slide 并先填充占位符
+        pageRankList.forEach((rankItem) => {
+
+            const rankSlide = document.createElement('custom-slide');
+            
+            rankSlide.setAttribute('slide-title', rankItem.title);
+            rankSlide.setAttribute('lazy', 'normal-card');
+
+            // 可查看更多
+            if (!rankItem.noMore) {
+                 rankSlide.setAttribute('slide-click',
+                `javascript:navmenu('recommend?type=${rankItem.type}&subtype=${rankItem.subtype}&week=${rankItem.week ?? ""}&title=${encodeURIComponent(rankItem.title)}')`
+                );
+            }
+
+            $('#discovery-container').append(rankSlide);
+            
+            // 请求接口, 查询相应榜单数据
+            var rankParams = { "type": rankItem.type, "subtype": rankItem.subtype, "page": 1, "week": rankItem.week, "fav": 0 };
+            axios_post_do("get_recommend", rankParams, 
+            (ret) => {
+
+                if (!ret.Items || ret.Items.length == 0) {
+                    return;
+                }
+
+                var slide_cards = [];
+                var data_list = []
+                
+                // 生成 normal-card 集合
+                ret.Items.map((card, index) => {
+
+                    const nc = document.createElement('normal-card');
+
+                    nc.setAttribute('lazy', '1');
+                    nc.setAttribute('card-showsub', '2');
+                    nc.setAttribute('card-tmdbid', card.id);
+                    nc.setAttribute('card-mediatype', card.type);
+                    nc.setAttribute('card-image', card.image);
+                    nc.setAttribute('card-fav', card.fav);
+                    nc.setAttribute('card-vote', card.vote);
+                    nc.setAttribute('card-year', card.year);
+                    nc.setAttribute('card-title', card.title);
+                    nc.setAttribute('card-overview', card.overview);
+                    nc.setAttribute('card-restype', card.media_type);
+
+                    slide_cards.push(nc);
+
+                    // 生成唯一id
+                    var card_id = (rankItem.type + rankItem.subtype + card.id).replace(':', '_');
+                    nc.setAttribute('id', card_id);
+
+                    data_list.push({
+                        'id': card_id,
+                        'tmdbid': card.id,
+                        'type': card.type,
+                        'title': card.title,
+                        'year': card.year,
+                    });
+
+                });
+
+                rankSlide.slide_card = slide_cards;
+
+                // 请求并更新在库状态
+                axios_post_do("batch_get_media_exists_info", { "list": data_list }, 
+                (sub_ret) => {
+                    sub_ret.items.map((info_item, index) => {
+                        // 订阅标记
+                        $('#' + info_item.id + ' div.ms-auto.rss-btn').append(`
+                            <a class="text-muted zoom-link" title="加入/取消订阅" href='javascript:void(0)' onclick='rss_love_click(event, "${info_item.title}", "${info_item.year}", "${info_item.type}", "${info_item.tmdbid}", "${info_item.fav}")'>
+                                ${info_item.fav == "1" ? `<i class="ti ti-heart-filled fs-2 text-red"></i>` : `<i class="ti ti-heart fs-2 text-white"></i>`}
+                            </a>
+                        `);
+                        // 在库状态标记
+                        if (info_item.item_url) {
+                            $('#' + info_item.id + ' img.card-img.rounded-3').after(`
+                                <div class="card-right-bottom-ribbon">
+                                    <i class="ti ti-check text-white"></i>
+                                </div> 
+                            `);
+                        }
+                    });
+                }, false);
+                
+            }, false);
+
+        });
+
+    }
+
+    function drawBangumiSlides() {
+       
+        // 请求接口, 查询相应榜单数据
+        axios_post_do("get_recommend", { "type": 'TV', "subtype": 'bangumi', "page": 1, "fav": 0 }, 
+        (ret) => {
+
+            if (!ret.Items || ret.Items.length == 0) {
+                return;
+            }
+
+            var data_list = []
+
+            // 为每个 item 创建一个 custom-slide 并先填充占位符
+            ret.Items.map((weekInfo, index) => {
+
+                if (!weekInfo.items || weekInfo.items.length == 0 || !weekInfo.weekday) {
+                    return;
+                }
+
+                var slide_cards = [];
+                // 生成 normal-card 集合
+                weekInfo.items.map((card, index) => {
+
+                    const nc = document.createElement('normal-card');
+
+                    nc.setAttribute('lazy', '1');
+                    nc.setAttribute('card-showsub', '2');
+                    nc.setAttribute('card-tmdbid', card.id);
+                    nc.setAttribute('card-mediatype', card.type);
+                    nc.setAttribute('card-image', card.image);
+                    nc.setAttribute('card-fav', card.fav);
+                    nc.setAttribute('card-vote', card.vote);
+                    nc.setAttribute('card-year', card.year);
+                    nc.setAttribute('card-title', card.title);
+                    nc.setAttribute('card-overview', card.overview);
+                    nc.setAttribute('card-restype', card.media_type);
+
+                    slide_cards.push(nc);
+
+                    // 生成唯一id
+                    var card_id = ('bangumi_' + weekInfo.weekday.en + card.id).replace(':', '_');
+                    nc.setAttribute('id', card_id);
+
+                    data_list.push({
+                        'id': card_id,
+                        'tmdbid': card.id,
+                        'type': card.type,
+                        'title': card.title,
+                        'year': card.year,
+                    });
+
+                });
+
+                const rankSlide = document.createElement('custom-slide');
+                
+                rankSlide.setAttribute('slide-title', weekInfo.weekday.cn);
+                rankSlide.setAttribute('lazy', 'normal-card');
+                rankSlide.slide_card = slide_cards;
+
+                $('#discovery-container').append(rankSlide);
+
+            });
+
+            if (data_list.length == 0) {
+                return;
+            }
+
+            // 请求并更新在库状态
+            axios_post_do("batch_get_media_exists_info", { "list": data_list }, 
+            (sub_ret) => {
+                sub_ret.items.map((info_item, index) => {
+                    // 订阅标记
+                    $('#' + info_item.id + ' div.ms-auto.rss-btn').append(`
+                        <a class="text-muted zoom-link" title="加入/取消订阅" href='javascript:void(0)' onclick='rss_love_click(event, "${info_item.title}", "${info_item.year}", "${info_item.type}", "${info_item.tmdbid}", "${info_item.fav}")'>
+                            ${info_item.fav == "1" ? `<i class="ti ti-heart-filled fs-2 text-red"></i>` : `<i class="ti ti-heart fs-2 text-white"></i>`}
+                        </a>
+                    `);
+                    // 在库状态标记
+                    if (info_item.item_url) {
+                        $('#' + info_item.id + ' img.card-img.rounded-3').after(`
+                            <div class="card-right-bottom-ribbon">
+                                <i class="ti ti-check text-white"></i>
+                            </div> 
+                        `);
+                    }
+                });
+            }, false);
+            
+        }, false);
+
+    }
+
+    $(document).ready(function () {
+
+        const container = document.getElementById("page-content");
+        const urlParams = $(container).data("params");
+        const discoveryType = urlParams.t || 'RANKING';
+
+        if (discoveryType == 'BANGUMI') {
+            drawBangumiSlides();
+            return;
+        }
+
+        const pageRankList = _media_type_list[discoveryType];
+        if (!pageRankList) {
+            console.warn('page-discovery: unknown discovery-type:', discoveryType);
+            return;
+        }
+
+        drawSlideByRequest(pageRankList);
+
+        
+    });
+
+</script>

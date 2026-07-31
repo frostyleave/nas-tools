@@ -1,9 +1,9 @@
 import os
 import re
 
-from config import RMT_MEDIAEXT
 from app.media.meta._base import MetaBase
 from app.utils import StringUtils
+from app.utils.constants import Constants
 from app.utils.tokens import Tokens
 from app.utils.types import MediaType
 from app.media.meta.customization import CustomizationMatcher
@@ -59,7 +59,7 @@ class MetaVideo(MetaBase):
         self._source = ""
         self._effect = []
         # 判断是否纯数字命名
-        if os.path.splitext(title)[-1] in RMT_MEDIAEXT \
+        if os.path.splitext(title)[-1] in Constants.RMT_MEDIAEXT \
                 and os.path.splitext(title)[0].isdigit() \
                 and len(os.path.splitext(title)[0]) < 5:
             self.begin_episode = int(os.path.splitext(title)[0])
@@ -263,7 +263,7 @@ class MetaVideo(MetaBase):
                 return
             else:
                 # 后缀名不要
-                if ".%s".lower() % token in RMT_MEDIAEXT:
+                if ".%s".lower() % token in Constants.RMT_MEDIAEXT:
                     return
                 # 英文或者英文+数字，拼装起来
                 if self.en_name:

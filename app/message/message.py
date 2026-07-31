@@ -9,12 +9,11 @@ import log
 from app.conf import ModuleConf
 from app.helper import DbHelper, SubmoduleHelper
 from app.message.message_center import MessageCenter
-from app.utils import StringUtils
+from app.utils import StringUtils, IpUtils
 from app.utils.commons import singleton
 from app.utils.types import SearchType, MediaType
 
 from config import Config
-from web.backend.web_utils import WebUtils
 
 
 @singleton
@@ -721,7 +720,7 @@ class Message(object):
         if event_info.get('device_name'):
             message_texts.append(f"设备：{event_info.get('client')} {event_info.get('device_name')}")
         if event_info.get('ip'):
-            message_texts.append(f"位置：{event_info.get('ip')} {WebUtils.get_location(event_info.get('ip'))}")
+            message_texts.append(f"位置：{event_info.get('ip')} {IpUtils.get_location(event_info.get('ip'))}")
         if event_info.get('percentage'):
             percentage = round(float(event_info.get('percentage')), 2)
             message_texts.append(f"进度：{percentage}%")

@@ -1,12 +1,15 @@
 import os
 import threading
+
 from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker, scoped_session
 from sqlalchemy.pool import QueuePool
 
 from app.db.models import Base
 from app.utils import PathUtils
+
 from config import Config
+
 import log
 
 lock = threading.Lock()
@@ -136,7 +139,7 @@ class DbPersist(object):
                 self.db.commit()
                 return True if ret is None else ret
             except Exception as e:
-                log.exception('[DB]数据库持久化出错: ')
+                log.critical('[DB]数据库持久化出错: ')
                 self.db.rollback()
                 return False
 

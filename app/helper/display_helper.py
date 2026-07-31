@@ -3,10 +3,14 @@ import os
 from pyvirtualdisplay import Display
 
 from app.utils.commons import singleton
-from config import XVFB_PATH
 
 import log
 
+# Xvfb虚拟显示路程
+XVFB_PATH = [
+    "/usr/bin/Xvfb",
+    "/usr/local/bin/Xvfb"
+]
 
 @singleton
 class DisplayHelper(object):

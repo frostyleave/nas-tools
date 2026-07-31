@@ -2,12 +2,13 @@ import datetime
 import os.path
 import time
 import json
+
 from enum import Enum
 from typing import List
-from sqlalchemy import cast, func, and_, case
+from sqlalchemy import cast, func, and_
 
-from app.db import MainDb, DbPersist
 from app.db.models import *
+from app.db.main_db import MainDb, DbPersist
 from app.utils import StringUtils
 from app.utils.types import MediaType, RmtMode
 
@@ -2662,7 +2663,7 @@ class DbHelper:
         return self._db.query(INDEXERSITE).all()
     
     @DbPersist(_db)
-    def add_indexer(self, id, name, domain, proxy, render, source_type, search_type, search, torrents, browse=None, parser=None, category=None, is_public=1, extra=''):
+    def add_indexer(self, id, name, domain, search, torrents, parser=None, category=None, is_public=1, extra=''):
         """
         新增索引站点
         """
@@ -2671,20 +2672,15 @@ class DbHelper:
             NAME=name,
             DOMAIN=domain,
             PUBLIC=is_public,
-            PROXY=proxy,
-            RENDER=render,
-            SOURCE_TYPE=source_type,
-            SEARCH_TYPE=search_type,
             SEARCH=search,
             TORRENTS=torrents,
-            BROWSE=browse,
             PARSER=parser,
             CATEGORY=category,
             EXTRA=extra
         ))
     
     @DbPersist(_db)
-    def update_indexer(self, id, domain, proxy, render, source_type, search_type, search, torrents, browse=None, parser=None, category=None, extra=None):
+    def update_indexer(self, id, domain, search, torrents, parser=None, category=None, extra=None):
         """
         更新索引站点
         """
@@ -2694,20 +2690,10 @@ class DbHelper:
         update_dic = {}
         if domain is not None and domain:
             update_dic['DOMAIN'] = domain
-        if proxy is not None:
-            update_dic['PROXY'] = proxy
-        if render is not None:
-            update_dic['RENDER'] = render
-        if source_type is not None:
-            update_dic['SOURCE_TYPE'] = source_type
-        if search_type is not None:
-            update_dic['SEARCH_TYPE'] = search_type
         if search is not None:
             update_dic['SEARCH'] = search
         if torrents is not None:
             update_dic['TORRENTS'] = torrents
-        if browse is not None:
-            update_dic['BROWSE'] = browse
         if parser is not None:
             update_dic['PARSER'] = parser
         if category is not None:
@@ -2735,51 +2721,6 @@ class DbHelper:
         查询下载器
         """
         return self._db.query(DOWNLOADER).all()
-
-    @DbPersist(_db)
-    def insert_indexer_custom_site(self,
-                                  site,
-                                  indexer):
-        """
-        新增自定义索引站点
-        """
-        if self.get_indexer_custom_site(site):
-            self.update_indexer_custom_site(site, indexer)
-        else:
-            self._db.insert(INDEXERCUSTOMSITE(
-                SITE=site,
-                INDEXER=indexer,
-                DATE=time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time()))
-            ))
-
-    @DbPersist(_db)
-    def update_indexer_custom_site(self,
-                                   site,
-                                   indexer):
-        """
-        更新自定义索引站
-        """
-        self._db.query(INDEXERCUSTOMSITE).filter(INDEXERCUSTOMSITE.SITE == site).update(
-            {
-                "INDEXER": indexer,
-                "DATE" : time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time()))
-            }
-        )
-
-    def get_indexer_custom_site(self, site=None):
-        """
-        查询自定义索引站
-        """
-        if site:
-            return self._db.query(INDEXERCUSTOMSITE).filter(
-                INDEXERCUSTOMSITE.SITE == site
-            ).first()
-        else:
-            return self._db.query(INDEXERCUSTOMSITE).all()
-
-    @DbPersist(_db)
-    def delete_indexer_custom_site(self, id=None):
-        self._db.query(INDEXERCUSTOMSITE).filter(INDEXERCUSTOMSITE.ID == id).delete()
 
     @DbPersist(_db)
     def insert_plugin_history(self, plugin_id, key, value):

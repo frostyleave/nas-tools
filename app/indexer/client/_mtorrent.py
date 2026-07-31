@@ -4,7 +4,7 @@ from typing import Tuple
 
 import log as logger
 
-from app.indexer.manager import IndexerInfo
+from app.models.model import IndexerInfo
 from app.utils.types import MediaType
 from app.utils import RequestUtils, StringUtils, SiteUtils
 from config import Config

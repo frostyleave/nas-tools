@@ -9,7 +9,7 @@ from app.media.meta.metainfo import MetaInfo
 from app.media.tmdbv3api.objs.movie import Movie
 from app.mediaserver import MediaServer
 from app.plugins.modules._base import _IPluginModule
-from app.subscribe import Subscribe
+from app.modules.subscribe import Subscribe
 from app.utils.types import MediaType, RssType
 
 class TmdbHotMovieRank(_IPluginModule):

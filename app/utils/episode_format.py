@@ -1,6 +1,7 @@
 import re
 import parse
-from config import SPLIT_CHARS
+
+from app.utils.constants import Constants
 
 
 class EpisodeFormat(object):
@@ -83,7 +84,7 @@ class EpisodeFormat(object):
         if not re.compile(r"^(EP)?(\d{1,4})(-(EP)?(\d{1,4}))?$", re.IGNORECASE).match(episodes):
             return None, None
         episode_splits = list(filter(lambda x: re.compile(r'[a-zA-Z]*\d{1,4}', re.IGNORECASE).match(x),
-                                     re.split(r'%s' % SPLIT_CHARS, episodes)))
+                                     re.split(r'%s' % Constants.SPLIT_CHARS, episodes)))
         if len(episode_splits) == 1:
             return int(re.compile(r'[a-zA-Z]*', re.IGNORECASE).sub("", episode_splits[0])), None
         else:

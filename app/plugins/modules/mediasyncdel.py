@@ -1,13 +1,11 @@
 import os
 import time
 
-from app.filetransfer import FileTransfer
+from app.modules.filetransfer import FileTransfer
 from app.media import Media
 from app.plugins import EventHandler
 from app.plugins.modules._base import _IPluginModule
 from app.utils.types import EventType, MediaType
-from web.action import WebAction
-
 
 class MediaSyncDel(_IPluginModule):
     # 插件名称
@@ -206,7 +204,7 @@ class MediaSyncDel(_IPluginModule):
             return
 
         self.info(f"获取到删除媒体数量 {len(logids)}")
-        WebAction().delete_history({
+        FileTransfer().delete_history({
             "logids": logids,
             "flag": "del_source" if self._del_source else ""
         })

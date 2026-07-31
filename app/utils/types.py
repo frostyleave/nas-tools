@@ -17,6 +17,7 @@ class DownloaderType(Enum):
     PIKPAK = 'PikPak'
     Gopeed = 'Gopeed'
 
+
 class SyncType(Enum):
     MAN = "手动整理"
     MON = "目录同步"
@@ -99,6 +100,7 @@ class SiteSchema(Enum):
     TNode = "TNode"
     MTorrent = "MTorrent"
 
+
 # 解析器类型
 class Spider(Enum):
     TorrentSpider = ""
@@ -167,8 +169,6 @@ class SystemConfigKey(Enum):
     CookieCloud = "CookieCloud"
     # 自定义JS/CSS
     CustomScript = "CustomScript"
-    # 用户认证参数
-    UserSiteAuthParams = "UserSiteAuthParams"
     # 默认下载器
     DefaultDownloader = "DefaultDownloader"
     # 默认下载设置
@@ -179,16 +179,11 @@ class SystemConfigKey(Enum):
     DefaultRssSettingTV = "DefaultRssSettingTV"
     # 用户已安装的插件
     UserInstalledPlugins = "UserInstalledPlugins"
-    # 已安装插件汇报状态
-    UserInstalledPluginsReport = "UserInstalledPluginsReport"
     # 括削配置
     UserScraperConf = "UserScraperConf"
     # 索引站点
     UserIndexerSites = "UserIndexerSites"
-    # 第三方插件源配置
-    ExternalPluginsSource = "ExternalPluginsSource"
-    # 已安装的第三方插件
-    ExternalInstalledPlugins = "ExternalInstalledPlugins"
+
 
 # 处理进度Key字典
 class ProgressKey(Enum):
@@ -207,27 +202,3 @@ class RssType(Enum):
     Manual = "manual"
     # 自动
     Auto = "auto"
-
-class IndexerSearchType(Enum):
-    # 原始标题
-    Title = "title"
-    # 豆瓣id
-    DoubanId = "douban_id"
-    # IMDB id
-    Imdb = "imdb"
-    # 英文名
-    EnName = "en_name"
-
-# 电影类型关键字
-MovieTypes = ['MOV', '电影', MediaType.MOVIE]
-# 电视剧类型关键字
-TvTypes = ['TV', '电视剧', MediaType.TV]
-
-# 类型常量枚举映射
-MEDIA_TYPE_MAP = {
-    'TV': MediaType.TV,
-    'MOV': MediaType.MOVIE,
-    'MOVIE': MediaType.MOVIE,
-    'ANI': MediaType.ANIME,
-    'ANIME': MediaType.ANIME,
-}

@@ -1,0 +1,319 @@
+<div class="container-xl">
+  <!-- Page title -->
+  <div class="page-header d-print-none mt-2">
+    <div class="row align-items-center">
+      <div class="col">
+        <h2 class="page-title">插件</h2>
+      </div>
+      <div class="col-auto ms-auto d-print-none">
+        <div class="btn-list">
+          <a href="javascript:show_plugin_apps_modal()" class="btn btn-primary d-none d-sm-inline-flex">
+            <i class="ti ti-apps fs-3"></i>
+            插件市场
+          </a>
+          <a href="javascript:show_plugin_apps_modal()" class="btn btn-primary d-sm-none mbtn-action">
+            <i class="ti ti-apps fs-3"></i>
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="page-body" id="plugins-container" style="display: none;">
+  <!-- 组件展示 -->
+  <div class="container-xl">
+    <div class="d-grid gap-3 grid-normal-card" id="plugins-list">
+    </div>
+  </div>
+</div>
+<empty-content id="no-plugins" title="没有插件" text='没有安装任何插件，请前往插件市场选择安装。' style="display: none;"></empty-content>
+
+<!-- 弹窗 -->
+
+<div class="page-body">
+  <!-- 插件部分 -->
+  <div id="plugin-modals-container">
+    <!-- 插件模态框将通过JavaScript动态生成 -->
+  </div>
+  <!-- 插件市场容器 -->
+  <div class="modal modal-blur fade" id="modal-plugin-apps" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable" id="modal-plugin-apps-content" role="document">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">插件市场</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body" style="min-height:800px;">
+          <div class="d-grid gap-3 grid-normal-card align-items-start" id="plugin_apps_content" style="display:none;"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- 插件详情页 -->
+  <div class="modal modal-blur fade" id="modal-plugin-page" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable" role="document">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="plugin_page_title"></h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div id="plugin_page_content">
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-primary" id="modal_plugin_page_btn">确定</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- 插件业务函数 -->
+<script type="text/javascript">
+  // 保存配置
+  function save_config_plugin(id, prefix, func) {
+    let params = input_select_GetVal(`modal-plugin-${id}`, prefix);
+    let selectgroup_config = {};
+    $(`#modal-plugin-${id} div[class^='form-selectgroup']`).each(function () {
+      let name = $(this).attr("id");
+      if ($(this).data('type') == 'radio') {
+        selectgroup_config[name.replace(prefix, "")] = select_GetSelectedRadioVAL(name);
+      } else {
+        selectgroup_config[name.replace(prefix, "")] = select_GetSelectedVAL(name);
+      }
+    })
+    params = { ...params, ...selectgroup_config }
+    axios_post_do("update_plugin_config", { plugin: id, config: params }, func);
+  }
+
+  //保存配置、关闭和刷新页面
+  function save_plugin_config(plugin, prefix) {
+    $("#modal-plugin-" + plugin).modal('hide');
+    save_config_plugin(plugin, prefix, function (ret) {
+      window_history_refresh();
+    });
+  }
+
+  // 显示插件市场页面
+  function show_plugin_apps_modal() {
+    $("#modal-plugin-apps").modal('show');
+    load_plugin_apps_modal();
+  }
+
+  // 绘制插件表格
+  function draw_plugin_table(plugin_query_result, is_external) {
+
+    if (!plugin_query_result.result) {
+      return;
+    }
+
+    for (let pid in plugin_query_result.result) {
+      let plugin = plugin_query_result.result[pid];
+
+      let plugin_html = `
+        <div class="card card-link-pop card-borderless p-0 shadow-sm rounded-3 overflow-hidden" href="javascript:void(0)">
+          <div class="card-cover card-cover-blurred text-center ${plugin.color.startsWith('bg-') ? plugin.color : ''}"
+            ${plugin.color.startsWith('#') ? `style="background-color: ${plugin.color}"` : ''}
+          >
+            <span class="avatar avatar-xl avatar-thumb avatar-rounded" style="background-image: url('../static/img/plugins/${plugin.icon.split('/').pop()}')">
+            </span>
+          </div>
+          <div class="card-body text-start">
+            <div class="card-title mb-1">${plugin.name}</div>
+            <div class="text-muted">${plugin.desc}</div>
+            <div class="text-muted mt-1">
+              <strong>作者：</strong>
+              ${plugin.author_url ? `<a href="${plugin.author_url}" target="_blank">${plugin.author}</a>` : `<span class="text-muted">${plugin.author}</span>`}
+            </div>
+          </div>
+          <div class="d-flex">
+      `;
+
+      plugin_html += `
+          ${plugin.installed ? `
+            <a href="javascript:uninstall_plugin('${pid}', '${plugin.name}')" class="card-btn text-danger">
+              <i class="ti ti-trash fs-2 me-1"></i>
+               卸载
+            </a>
+            ` : `
+            <a href="javascript:install_plugin('${pid}', '${plugin.name}')" class="card-btn">
+              <i class="ti ti-cloud-download fs-2 me-1"></i>
+               安装
+            </a>
+          `}
+      `;
+
+      plugin_html += `
+          </div>
+        </div>
+      `;
+
+      $("#plugin_apps_content").append(plugin_html);
+
+    }
+
+    $("#plugin_apps_content").show();
+  }
+
+  // 加载官方插件
+  function load_plugin_apps_modal() {
+    $("#plugin_apps_content").empty();
+    // 获取插件列表
+    axios_post_do("get_plugin_apps", {}, function (ret) {
+      draw_plugin_table(ret, false)
+    });
+  }
+
+  // 显示插件页面
+  function show_plugin_extra_page(id) {
+    axios_post_do("get_plugin_page", { id: id }, function (ret) {
+      if (ret.code === 0) {
+        $("#modal-plugin-" + id).modal('hide');
+        $("#plugin_page_title").text(ret.title);
+        $("#plugin_page_content").html(ret.content);
+        if (ret.func) {
+          $("#modal_plugin_page_btn").unbind('click').click(function () {
+            eval(ret.func);
+          });
+        } else {
+          $("#modal_plugin_page_btn").unbind('click').click(function () {
+            $('#modal-plugin-page').modal('hide');
+          });
+        }
+        $("#modal-plugin-page").modal('show');
+      }
+    });
+  }
+
+  // 安装插件
+  function install_plugin(id, name) {
+    axios_post_do("install_plugin", { id: id }, function (ret) {
+      $("#modal-plugin-apps").modal('hide');
+      if (ret.code === 0) {
+        show_success_modal(name + " 插件安装成功！", function () {
+          window_history_refresh();
+        });
+      } else {
+        show_fail_modal(ret.msg, function () {
+          $("#modal-plugin-apps").modal('show');
+        });
+      }
+    });
+  }
+
+  // 卸载插件
+  function uninstall_plugin(id, name) {
+    axios_post_do("uninstall_plugin", { id: id }, function (ret) {
+      $("#modal-plugin-apps").modal('hide');
+      if (ret.code === 0) {
+        show_warning_modal(name + " 插件已卸载！", function () {
+          window_history_refresh();
+        });
+      } else {
+        show_fail_modal(ret.msg, function () {
+          $("#modal-plugin-apps").modal('show');
+        });
+      }
+    });
+  }
+
+  // 询问取消订阅
+  function uninstall_plugin_click(pluginId, pluginName) {
+    show_ask_modal("是否确定将 " + pluginName + " 插件卸载？", function () {
+      hide_ask_modal();
+      uninstall_plugin(pluginId, pluginName);
+    });
+  }
+
+  // 绘制已安装插件列表
+  function drawPluginList(pluginList) {
+
+    if (!pluginList) {
+      $('#plugins-container').hide();
+      $('#no-plugins').show();
+      return;
+    }
+
+    $('#no-plugins').hide();
+    $('#plugins-container').show();
+
+    $("#plugin-modals-container").empty();
+
+    $.each(pluginList, function (pluginId, pluginAttr) {
+
+      var cardBgcolor = pluginAttr.color.startsWith('#') ? `style="background-color: ${pluginAttr.color}"` : '';
+      var colorClass = pluginAttr.color.startsWith('bg-') ? pluginAttr.color : '';
+      var icon = ''
+      if (pluginAttr.icon) {
+        if (!pluginAttr.icon.startsWith('http')) {
+          icon = `style="background-image: url('../static/img/plugins/${pluginAttr.icon}')"`;
+        } else {
+          icon = `style="background-image: url('${pluginAttr.icon}')"`;
+        }
+      }
+
+      var stateAttr = pluginAttr.state ? '<span class="me-1" title="已启用">✅</span>' : '';
+      // card
+      var html = `
+      <div class="card card-link-pop p-0 rounded-3 overflow-hidden">
+        <div class="right-top-box">
+          <a href="javascript:uninstall_plugin_click('${pluginId}', '${pluginAttr.name}')" title="卸载" class="text-danger">
+            <i class="ti ti-trash fs-2"></i>
+          </a>
+        </div>
+        <div class="card-cover card-cover-blurred text-center ${colorClass}" ${cardBgcolor} data-bs-toggle="modal" data-bs-target="#modal-plugin-${pluginId}">
+          <span class="avatar avatar-xl avatar-thumb avatar-rounded" ${icon}>
+             ${!pluginAttr.icon ? pluginAttr.name : ''}
+          </span>
+        </div>
+        <div class="card-body text-center" data-bs-toggle="modal" data-bs-target="#modal-plugin-${pluginId}">
+          <div class="card-title mb-1">${stateAttr}${pluginAttr.name}</div>
+          <div class="text-muted">${pluginAttr.desc}</div>
+        </div>
+      </div>
+      `;
+
+      $('#plugins-list').append(html);
+      
+      // 模态框
+      const pluginsModal = `
+        <plugin-modal
+          plugin-id="${pluginId}"
+          plugin-name="${pluginAttr.name}"
+          plugin-config='${JSON.stringify(pluginAttr.config)}'
+          plugin-fields='${JSON.stringify(pluginAttr.fields)}'
+          plugin-prefix="${pluginAttr.prefix}"
+          plugin-page="${pluginAttr.page}">
+        </plugin-modal>
+      `;
+      $("#plugin-modals-container").append(pluginsModal);
+
+      // 插件函数
+      if (pluginAttr.script) {
+        try {
+          var script = document.createElement('script');
+          script.textContent = pluginAttr.script;
+          $("#page-content").append(script)
+        } catch (e) {
+          console.error('插件脚本执行错误:', pid, e);
+        }
+      }
+
+    });
+
+  }
+
+  // 页面加载完成后初始化
+  $(document).ready(function () {
+
+    axios_post('/data/plugin', {}, function (response) {
+      if (response.code === 0 && response.data) {
+        // 绘制插件表格
+        drawPluginList(response.data.Plugins);
+      }
+    });
+
+  });
+
+</script>

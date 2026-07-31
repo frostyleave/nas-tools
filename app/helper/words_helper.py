@@ -1,10 +1,10 @@
 from typing import Tuple
 
 import regex as re
-import cn2an
 
 from app.helper.db_helper import DbHelper
 from app.utils.commons import singleton
+from app.utils.string_utils import StringUtils
 
 import log
 
@@ -126,7 +126,7 @@ class WordsHelper:
             episode_nums_offset_str = []
             offset_order_flag = False
             for episode_num_str in episode_nums_str:
-                episode_num_int = int(cn2an.cn2an(episode_num_str, "smart"))
+                episode_num_int = StringUtils.cn_to_number(episode_num_str)
                 offset_caculate = offset.replace("EP", str(episode_num_int))
                 episode_num_offset_int = int(eval(offset_caculate))
                 # 向前偏移
@@ -137,7 +137,7 @@ class WordsHelper:
                     offset_order_flag = False
                 # 原值是中文数字，转换回中文数字，阿拉伯数字则还原0的填充
                 if not episode_num_str.isdigit():
-                    episode_num_offset_str = cn2an.an2cn(episode_num_offset_int, "low")
+                    episode_num_offset_str = StringUtils.number_to_cn(episode_num_offset_int)
                 else:
                     count_0 = re.findall(r"^0+", episode_num_str)
                     if count_0:
@@ -243,3 +243,67 @@ class WordsHelper:
         ret = self.dbhelper.check_custom_word(wid=wid, enabled=enabled)
         self.init_config()
         return ret
+    
+    def get_customwords_groups(self):
+
+        customwords_group = []
+
+        words = []
+        words_info = self.get_custom_words(gid=-1)
+        for word_info in words_info:
+            words.append({"id": word_info.ID,
+                          "replaced": word_info.REPLACED,
+                          "replace": word_info.REPLACE,
+                          "front": word_info.FRONT,
+                          "back": word_info.BACK,
+                          "offset": word_info.OFFSET,
+                          "type": word_info.TYPE,
+                          "group_id": word_info.GROUP_ID,
+                          "season": word_info.SEASON,
+                          "enabled": word_info.ENABLED,
+                          "regex": word_info.REGEX,
+                          "help": word_info.HELP, })
+        customwords_group.append(
+            {
+                "id": "-1",
+                "name": "通用",
+                "link": "",
+                "type": "1",
+                "seasons": "0",
+                "words": words
+             })
+        
+        groups_info = self.get_custom_word_groups()
+        for group_info in groups_info:
+            words = []
+            words_info = self.get_custom_words(gid=group_info.ID)
+            for word_info in words_info:
+                words.append({"id": word_info.ID,
+                              "replaced": word_info.REPLACED,
+                              "replace": word_info.REPLACE,
+                              "front": word_info.FRONT,
+                              "back": word_info.BACK,
+                              "offset": word_info.OFFSET,
+                              "type": word_info.TYPE,
+                              "group_id": word_info.GROUP_ID,
+                              "season": word_info.SEASON,
+                              "enabled": word_info.ENABLED,
+                              "regex": word_info.REGEX,
+                              "help": word_info.HELP, })
+                
+            name = "%s (%s)" % (group_info.TITLE, group_info.YEAR)
+            if group_info.TYPE == 1:
+                link = "https://www.themoviedb.org/movie/%s" % group_info.TMDBID
+            else:
+                link = "https://www.themoviedb.org/tv/%s" % group_info.TMDBID
+
+            customwords_group.append(
+                {
+                    "id": group_info.ID,
+                    "name": name,
+                    "link": link,
+                    "type": group_info.TYPE,
+                    "seasons": group_info.SEASON_COUNT,
+                    "words": words
+                })
+        return customwords_group

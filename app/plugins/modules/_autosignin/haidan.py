@@ -1,6 +1,7 @@
 from app.plugins.modules._autosignin._base import _ISiteSigninHandler
-from app.sites import PtSiteConf
+from app.models.model import UserSiteConf
 from app.utils import SiteUtils, RequestUtils
+
 from config import Config
 
 
@@ -23,7 +24,7 @@ class HaiDan(_ISiteSigninHandler):
         """
         return True if SiteUtils.url_equal(url, cls.site_url) else False
 
-    def signin(self, site_info: PtSiteConf):
+    def signin(self, site_info: UserSiteConf):
         """
         执行签到操作
         :param site_info: 站点信息，含有站点Url、站点Cookie、UA等信息
@@ -41,17 +42,17 @@ class HaiDan(_ISiteSigninHandler):
                                 ).get_res(url="https://www.haidan.cc/signin.php")
         if not sign_res or sign_res.status_code != 200:
             self.error(f"签到失败，请检查站点连通性")
-            return False, f'【{site}】签到失败，请检查站点连通性'
+            return False, f'[site]签到失败，请检查站点连通性'
 
         if "login.php" in sign_res.text:
             self.error(f"签到失败，cookie失效")
-            return False, f'【{site}】签到失败，cookie失效'
+            return False, f'[site]签到失败，cookie失效'
 
         sign_status = self.sign_in_result(html_res=sign_res.text,
                                           regexs=self._succeed_regex)
         if sign_status:
             self.info(f"签到成功")
-            return True, f'【{site}】签到成功'
+            return True, f'[site]签到成功'
 
         self.error(f"签到失败，签到接口返回 {sign_res.text}")
-        return False, f'【{site}】签到失败'
+        return False, f'[site]签到失败'

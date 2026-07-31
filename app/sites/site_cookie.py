@@ -9,7 +9,8 @@ from playwright.sync_api import Page
 import log
 from app.helper import ProgressHelper, OcrHelper, SiteHelper
 from app.indexer.client.browser import PlaywrightHelper
-from app.sites import PtSiteConf, SitesManager, SiteConf
+from app.models.model import UserSiteConf
+from app.sites import SitesManager, SiteConf
 from app.utils import StringUtils, RequestUtils, SiteUtils
 from app.utils.commons import singleton
 from app.utils.types import ProgressKey
@@ -24,7 +25,6 @@ class CookieManager(object):
     progress = None
     sites = None
     siteconf = None
-    ocrhelper = None
     captcha_code = {}
 
     def __init__(self):
@@ -34,7 +34,6 @@ class CookieManager(object):
         self.progress = ProgressHelper()
         self.sites = SitesManager()
         self.siteconf = SiteConf()
-        self.ocrhelper = OcrHelper()
         self.captcha_code = {}
 
     def set_code(self, code, value):
@@ -159,7 +158,7 @@ class CookieManager(object):
                         ua = page.evaluate("() => window.navigator.userAgent")
                         if ocrflag:
                             # 自动OCR识别验证码
-                            captcha = self.get_captcha_text(cookie, ua, code_url)
+                            captcha = OcrHelper.get_captcha_text(image_url=code_url, cookie=cookie, ua=ua)
                             if not captcha:
                                 return None, None, "验证码识别失败"
                             log.info("验证码地址为：%s，识别结果：%s" % (code_url, captcha))                                
@@ -240,15 +239,6 @@ class CookieManager(object):
                                          headless=noGraphical,
                                          proxies=proxy)
 
-    def get_captcha_text(self, cookie: str, ua: str, code_url: str):
-        """
-        识别验证码图片的内容
-        """
-        code_b64 = self.get_captcha_base64(cookie,ua,code_url)
-        if not code_b64:
-            return ""
-        return self.ocrhelper.get_captcha_text(image_b64=code_b64)
-
     @staticmethod
     def __get_captcha_url(siteurl, imageurl):
         """
@@ -270,7 +260,7 @@ class CookieManager(object):
         更新所有站点Cookie和ua
         """
         # 获取站点列表
-        sites : List[PtSiteConf] = []
+        sites : List[UserSiteConf] = []
         if siteid:
             site_info = self.sites.get_site(siteid=siteid)
             sites = [site_info]

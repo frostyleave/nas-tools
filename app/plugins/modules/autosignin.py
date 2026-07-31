@@ -1,29 +1,26 @@
+import base64
 import re
-import time
+import requests
 
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from lxml import etree
 from threading import Event
 from typing import List, Tuple
-
-from playwright.sync_api import Page
 from urllib.parse import urljoin
 
-from app.helper import SubmoduleHelper, SiteHelper
+from app.helper import ThreadHelper, SubmoduleHelper, SiteHelper, OcrHelper
 from app.helper.cloudflare_helper import under_challenge
-from app.helper import ThreadHelper
-from app.indexer.client.browser import PlaywrightHelper
 from app.plugins import EventHandler
+from app.modules.wallpaper import get_bing_wallpaper
 from app.plugins.modules._base import _IPluginModule
-from app.sites import PtSiteConf
+from app.models.model import UserSiteConf
 from app.sites.siteconf import SiteConf
 from app.sites.site_manager import SitesManager
 from app.utils import RequestUtils, SiteUtils, SchedulerUtils
 from app.utils.types import EventType
 
 from config import Config
-from web.backend.wallpaper import get_bing_wallpaper
 
 import log
 
@@ -110,6 +107,10 @@ class AutoSignIn(_IPluginModule):
     _clean = False
     # 退出事件
     _event = Event()
+
+    # 签到成功
+    _sign_regex = ['签到已得', '簽到已得', '今日签到排名', '今日簽到排名', '签到成功', '簽到成功']
+    _success_regex = ['今日签到排名', '今日簽到排名', '本次签到获得 \\d+ 个魔力值', '本次簽到獲得 \\d+ 個魔力值','\\d+点魔力']
 
     @staticmethod
     def get_fields():
@@ -301,7 +302,6 @@ class AutoSignIn(_IPluginModule):
                                                         func_desc="自动签到",
                                                         cron=str(self._cron))
                     
-
     @staticmethod
     def get_command():
         """
@@ -353,8 +353,7 @@ class AutoSignIn(_IPluginModule):
             )
             
             # 6. 发送通知
-            if self._notify:
-                self._send_notification(today_str, results)
+            self._send_notification(today_str, results)
 
         except Exception as ex:
             log.exception(f'【自动签到】任务执行失败: {ex}')
@@ -407,13 +406,13 @@ class AutoSignIn(_IPluginModule):
 
         return wait_sign_sites, already_sign_sites, history_exists
 
-    def _get_sites_info(self, site_ids: List[str]) -> List[PtSiteConf]:
+    def _get_sites_info(self, site_ids: List[str]) -> List[UserSiteConf]:
         """
         查询待签到站点信息。
         """
         return self.sites.get_sites(siteids=site_ids)
 
-    def _execute_sign_in_loop(self, sites_to_sign_info: List[PtSiteConf], initial_already_signed_ids: List[str]) -> SignInResults:
+    def _execute_sign_in_loop(self, sites_to_sign_info: List[UserSiteConf], initial_already_signed_ids: List[str]) -> SignInResults:
         """
         遍历站点执行签到，并收集结果
         """
@@ -429,16 +428,18 @@ class AutoSignIn(_IPluginModule):
                 
                 if success:
                     results.add_success(site_name, site_id)
+                    self.info(sign_msg)
                     continue
 
                 # 失败重试检查
                 if self._retry_keyword and re.search(self._retry_keyword, sign_msg):
-                    self.info(f"站点 {site_name} 命中重试关键词 {self._retry_keyword}")
+                    self.info(f"{sign_msg}, 命中重试关键词 {self._retry_keyword}")
                     results.add_retry(site_name, site_id)
                     continue
                     
                 # 记录失败
                 results.add_fail(site_name, sign_msg)
+                self.warn(sign_msg)
 
             except Exception as e:
                 # 捕获单个站点的执行错误，记录并继续
@@ -460,6 +461,10 @@ class AutoSignIn(_IPluginModule):
         self.info(f"今日 {today_str} 签到历史已更新")
 
     def _send_notification(self, today_str: str, results: SignInResults):
+
+        if not self._notify:
+            return
+
         """
         发送签到结果通知
         """
@@ -512,7 +517,7 @@ class AutoSignIn(_IPluginModule):
                 log.exception(f"【自动签到】[{url}]签到插件加载失败: ")
         return None
 
-    def signin_site(self, site_info:PtSiteConf) -> Tuple[bool, str]:
+    def signin_site(self, site_info:UserSiteConf) -> Tuple[bool, str]:
         """
         签到一个站点
         """
@@ -526,7 +531,7 @@ class AutoSignIn(_IPluginModule):
         else:
             return self.__signin_base(site_info)
 
-    def __signin_base(self, site_info:PtSiteConf) -> Tuple[bool, str]:
+    def __signin_base(self, site_info:UserSiteConf) -> Tuple[bool, str]:
         """
         通用签到处理
         :param site_info: 站点信息
@@ -546,90 +551,126 @@ class AutoSignIn(_IPluginModule):
 
             home_url = SiteUtils.get_base_url(site_url)
             checkin_url = site_url if "pttime" in home_url else urljoin(home_url, "attendance.php")
-            
             ua = site_info.ua
 
-            site_id = str(site_info.id)
-            if site_info.chrome or (self._render_sites and site_id in self._render_sites):
+            self.info(f"[{site_name}]开始签到: {checkin_url}")
 
-                self.info(f"[{site_name}]开始仿真签到..")
-               
-                def _click_sign(page: Page):
-                    """
-                    仿真签到
-                    :param page: 网页对象
-                    :return: 签到结果信息
-                    """
-                    html_text = page.content()
-                    if not html_text:
-                        return False, f"[{site_name}]仿真签到失败: 获取站点源码失败"
-                    
-                    # 查找签到按钮
-                    html = etree.HTML(html_text)
+            # 代理
+            proxies = Config().get_proxies() if site_info.proxy else None
 
-                    if re.search(r'已签|签到已得|本次签到', html_text, re.IGNORECASE):
-                        self.info("%s 今日已签到" % site_name)
-                        return True, f"[{site_name}]今日已签到"
-                    
-                    xpath_str = None
-                    for xpath in self.siteconf.get_checkin_conf():
-                        if html.xpath(xpath):
-                            xpath_str = xpath
-                            self.info(f"站点[{site_name}]签到按钮: {xpath_str}")
-                            break
-                    
-                    if not xpath_str:
-                        if SiteHelper.is_logged_in(html_text):
-                            return False, f"[{site_name}]仿真签到失败: 模拟登录成功, 未找到签到按钮"
-                        else:
-                            return False, f"[{site_name}]仿真签到失败: 模拟登录失败, 未找到签到按钮"
-                    
-                    page.click(xpath_str) 
-                    # 等待3秒
-                    time.sleep(3)
-                    # 获取页面内容
-                    content = page.content()
+            session = requests.Session()
+            request_handler = RequestUtils(session=session, cookies=site_cookie, ua=ua, proxies=proxies, referer=checkin_url)
 
-                    # 判断是否已签到   [签到已得125, 补签卡: 0]
-                    if re.search(r'已签|签到已得|本次签到', content, re.IGNORECASE):
-                        return True, f"[{site_name}]签到成功"
-                    
-                    return False, f"[{site_name}]仿真签到异常: 无法获取签到结果"
-                
-                result = PlaywrightHelper().action(url=checkin_url, 
-                                                 ua=ua, 
-                                                 cookies=site_cookie, 
-                                                 proxy=True if site_info.proxy else False,
-                                                 callback=_click_sign)
-                if result is None:
-                    return False, f"[{site_name}]仿真签到失败: 请求网页异常"
-                
-                return result
-            else:
-                
-                self.info(f"[{site_name}]开始签到: {checkin_url}")
+            # 访问链接
+            res = request_handler.get_res(url=checkin_url)
+            if res is None:
+                return False, f"[{site_name}]签到失败: 无法打开网站"
+            
+            if res.status_code != 200:
+                return False, f"[{site_name}]签到失败: 状态码：{res.status_code}"
+            
+            if "login.php" in res.text:
+                return False, f'[{site_name}]签到失败: cookie失效'
+            
+            if under_challenge(res.text):
+                return False, f"[{site_name}]签到失败: 站点被Cloudflare防护"
+            
+            # 本次签到成功, 或是重新请求签到页
+            sign_status = SiteHelper.sign_in_result(html_res=res.text,
+                                                    regexs=self._sign_regex)
+            if sign_status:
+                self.info(f"今日已签到")
+                return True, f'[{site_name}]今日已签到'
 
-                # 代理
-                proxies = Config().get_proxies() if site_info.proxy else None
-                # 访问链接
-                res = RequestUtils(cookies=site_cookie, ua=ua, proxies=proxies).get_res(url=checkin_url)
-                if res is None:
-                    return False, f"[{site_name}]签到失败: 无法打开网站"
-                
-                if res.status_code in [200, 500, 403]:
-                    if SiteHelper.is_logged_in(res.text):
-                        return True, f"[{site_name}]签到成功"
-                    if under_challenge(res.text):
-                        return False, f"[{site_name}]签到失败: 站点被Cloudflare防护,请开启浏览器仿真"
-                    elif res.status_code == 200:
-                        return False, f"[{site_name}]签到失败: Cookie已失效"
-                    else:
-                        return False, f"[{site_name}]签到失败: 状态码：{res.status_code}"
-                else:
-                    return False, f"[{site_name}]签到失败: 状态码：{res.status_code}"
+            html_tree = etree.HTML(res.text)
+            if not self._is_logged_in(html_tree):
+                return False, f"[{site_name}]签到失败: Cookie已失效"
+
+            attendance_form = html_tree.xpath('//form[@method="post" and @action="attendance.php"]')
+            # 存在签到表单
+            if attendance_form:
+
+                self.info(f"[{site_name}]签到页存在表单")
+                form_data = {}
+                empty_keys = []
+                inputs = attendance_form[0].xpath('.//input[@name]')
+                for input_el in inputs:
+                    name = input_el.get('name')
+                    value = input_el.get('value', '')
+                    form_data[name] = value
+                    if not value:
+                        empty_keys.append(empty_keys)
+
+                # 存在需要填充的表单内容
+                if empty_keys:
+
+                    self.info(f'[{site_name}]签到页表单待填充: {",".join(empty_keys)}')
+
+                    img_src = attendance_form[0].xpath('string(//img[@alt="CAPTCHA"]/@src)').strip()
+                    if not img_src:
+                        return False, f'[{site_name}]签到失败，找不到验证码图片链接'
+
+                    img_url = urljoin(home_url, img_src)
+                    captcha = request_handler.get_res(img_url)
+                    if not captcha or not captcha.content:
+                        return False, f'[{site_name}]签到失败，获取验证码图片失败'
+
+                    image_b64 = base64.b64encode(captcha.content).decode()
+                    captcha_code = OcrHelper.get_captcha_text(image_b64=image_b64)
+                    if not captcha_code:
+                        return False, f'[{site_name}]签到失败，验证码识别失败'
+                    
+                    # 验证码值赋值到第1个表单项
+                    form_data[empty_keys[0]] = captcha_code
+                    # 移除
+                    empty_keys.pop(0)
+
+                    if empty_keys:
+                        return False, f'[{site_name}]签到失败，除验证码外还有其他表单待填充: {",".join(empty_keys)}'
+
+                # 表单提交
+                sign_res = request_handler.post(url=checkin_url, data=form_data)
+
+                if not sign_res or sign_res.status_code != 200:
+                    return False, f'[FORM][{site_name}]签到失败, form提交失败'
+
+                if SiteHelper.sign_in_result(html_res=sign_res.text, regexs=self._success_regex):
+                    return True, f'[FORM][{site_name}]签到成功'
+
+            return False, f'[{site_name}]签到失败，未知原因'
+            
         except Exception as e:
             log.exception(f"【自动签到】[{site_name}]签到出错: ")
             return False, f"[{site_name}]签到出错: {str(e)}"
+     
+    def _is_logged_in(self, html_tree):
+        """
+        判断站点是否已经登陆
+        :param html_text:
+        :return:
+        """
+        if not html_tree:
+            return False
+        
+        # 存在明显的密码输入框，说明未登录
+        if html_tree.xpath("//input[@type='password']"):
+            return False
+        
+        # 是否存在登出和用户面板等链接
+        xpaths = ['//a[contains(@href, "logout")'
+                  ' or contains(@data-url, "logout")'
+                  ' or contains(@href, "mybonus") '
+                  ' or contains(@onclick, "logout")'
+                  ' or contains(@href, "usercp")]',
+                  '//form[contains(@action, "logout")]']
+        for xpath in xpaths:
+            if html_tree.xpath(xpath):
+                return True
+            
+        user_info_div = html_tree.xpath('//div[@class="user-info-side"]')
+        if user_info_div:
+            return True
+        return False
 
     def stop_service(self):
         """

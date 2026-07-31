@@ -3,24 +3,37 @@ import os
 import random
 import re
 import traceback
-import cn2an
 import zhconv
-import log
-
 
 from lxml import etree
 from cachetools import TTLCache, cached
 
+import log
+
 from app.helper import MetaHelper
 from app.media.doubanapi.apiv2 import DoubanApi
+from app.media.bangumi import Bangumi
+from app.media.douban import DouBan
 from app.media.meta._base import MetaBase
 from app.media.meta.metainfo import MetaInfo
+from app.utils.media_utils import MediaUtils
 from app.media.tmdbv3api import TMDb, Search, Movie, TV, Person, Find, TMDbException, Discover, Trending, Episode, Genre
 from app.utils import PathUtils, EpisodeFormat, RequestUtils, NumberUtils, StringUtils, cacheman
 from app.utils.types import MediaType, MatchMode
-from config import Config, KEYWORD_BLACKLIST, KEYWORD_SEARCH_WEIGHT_3, KEYWORD_SEARCH_WEIGHT_2, KEYWORD_SEARCH_WEIGHT_1, \
-    KEYWORD_STR_SIMILARITY_THRESHOLD, KEYWORD_DIFF_SCORE_THRESHOLD
 
+from config import Config
+
+# 季信息前缀
+DB_SEASON_SUFFIX = r'[第]+[0-9一二三四五六七八九十\-\s]+[季期卷]'
+# 辅助识别参数
+KEYWORD_SEARCH_WEIGHT_1 = [10, 3, 2, 0.5, 0.5]
+KEYWORD_SEARCH_WEIGHT_2 = [10, 2, 1]
+KEYWORD_SEARCH_WEIGHT_3 = [10, 2]
+KEYWORD_STR_SIMILARITY_THRESHOLD = 0.2
+KEYWORD_DIFF_SCORE_THRESHOLD = 30
+KEYWORD_BLACKLIST = ['中字', '韩语', '双字', '中英', '日语', '双语', '国粤', 'HD', 'BD', '中日', '粤语', '完全版',
+                    '法语', '西班牙语', 'HRHDTVAC3264', '未删减版', '未删减', '国语', '字幕组', '人人影视', 'www66ystv',
+                    '人人影视制作', '英语', 'www6vhaotv', '无删减版', '完成版', '德意']
 
 class Media:
     
@@ -835,7 +848,7 @@ class Media:
             return
 
         try:
-            x = cn2an.cn2an(cn_name, "smart")
+            x = StringUtils.cn_to_number(cn_name)
             if x <= 1 or x > tmdb_info.number_of_seasons:
                 return
             x = int(x)
@@ -2605,3 +2618,112 @@ class Media:
             result.append({"制作公司": production_company})
 
         return result
+
+    def get_mediainfo_from_id(self, mediaid, mtype=None, wait=False):
+        """
+        根据TMDB/豆瓣/BANGUMI获取媒体信息
+        """
+        if not mediaid:
+            return None
+        media_info = None
+        if str(mediaid).startswith("DB:"):
+            # 豆瓣
+            doubanid = mediaid[3:].split(',')[0]
+            douban_info = DouBan().get_douban_detail(doubanid=doubanid, mtype=mtype, wait=wait)
+            if not douban_info:
+                return None
+            
+            title = douban_info.get("title")
+            original_title = douban_info.get("original_title")
+            year = douban_info.get("year")
+
+            if not mtype and douban_info.get("subtype"):
+                subtype = douban_info.get("subtype")
+                mtype = MediaType.TV if subtype == 'tv' else MediaType.MOVIE
+
+            begin_season = None
+            # 剧集类型，去掉标题中的季信息
+            if mtype == MediaType.TV and re.search(r'%s' % DB_SEASON_SUFFIX, title, flags=re.IGNORECASE):
+                title, begin_season = MediaUtils.resolve_douban_season_tag(title)
+
+            tmdb_info = Media().query_tmdb_info(title, mtype, year, begin_season, append_to_response="all")
+            if not tmdb_info:
+                log.warn("【Douban】根据名称[%s]查询tmdb数据失败" % title)
+                if original_title:
+                    log.info("【Douban】尝试根据别名[%s]查询tmdb数据" % original_title)
+                    tmdb_info = Media().query_tmdb_info(original_title, mtype, year, begin_season, append_to_response="all")
+                    if not tmdb_info:
+                        log.info("【Douban】尝试根据别名[%s]查询tmdb数据失败" % original_title)
+                    else:
+                        log.info("【Douban】根据别名[%s]查询tmdb数据成功！" % original_title)
+
+            if not tmdb_info:
+                return None
+            
+            media_title = MediaUtils.get_tmdb_title(tmdb_info, title)
+            media_info = MetaInfo(title=media_title)
+            media_info.set_tmdb_info(tmdb_info)
+            media_info.begin_season = begin_season
+            media_info.douban_id = doubanid
+
+            return media_info
+        
+        if str(mediaid).startswith("BG:"):
+            # BANGUMI
+            bangumiid = str(mediaid)[3:]
+            info = Bangumi().detail(bid=bangumiid)
+            if not info:
+                return None
+            title = info.get("name")
+            title_cn = info.get("name_cn")
+            year = info.get("date")[:4] if info.get("date") else ""
+            media_info = Media().get_media_info(title=f"{title} {year}",
+                                                mtype=MediaType.ANIME,
+                                                append_to_response="all")
+            if not media_info or not media_info.tmdb_info:
+                media_info = Media().get_media_info(title=f"{title_cn} {year}",
+                                                    mtype=MediaType.ANIME,
+                                                    append_to_response="all")
+        else:
+            # TMDB
+            info = Media().get_tmdb_info(tmdbid=mediaid, mtype=mtype, append_to_response="all")
+            if not info:
+                return None
+            title = MediaUtils.get_tmdb_title(info)
+            media_info = MetaInfo(title)
+            media_info.set_tmdb_info(info)
+        
+        # 豆瓣信息补全
+        if media_info:
+            self.fill_douban_info(mtype, media_info)
+
+        return media_info
+    
+
+    def fill_douban_info(self, mtype:MediaType, media_info:MetaBase):
+        """
+        补全豆瓣信息: 豆瓣id, 剧集名称
+        """
+
+        imdb_id = media_info.imdb_id
+        if not imdb_id:
+            return
+        try:
+            doubanapi = DouBan()
+            douban_info = doubanapi.search_douban_info_by_imdbid(imdb_id)
+            if not douban_info:
+                return
+            doubanid = douban_info.get("id")
+            if not doubanid:
+                return
+
+            if not str(doubanid).isdigit():
+                doubanid = re.search(r"\d+", doubanid).group(0)
+            media_info.douban_id = doubanid
+
+            # 电影类型，不再进行后续操作
+            if mtype == MediaType.MOVIE:
+                return
+
+        except Exception as err:
+            log.exception('[Web]补全豆瓣信息失败: ')

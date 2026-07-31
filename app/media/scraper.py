@@ -11,12 +11,12 @@ from app.helper import FfmpegHelper
 from app.media import Media
 from app.media.douban import DouBan
 from app.media.meta import MetaInfo
-from app.media.tmdbv3api.objs.person import Person
 from app.utils.commons import retry
 from app.utils import DomUtils, RequestUtils, NfoReader, SystemUtils
+from app.utils.constants import Constants
 from app.utils.types import MediaType, SystemConfigKey, RmtMode
 
-from config import Config, RMT_MEDIAEXT
+from config import Config
 
 class Scraper:
     media = None
@@ -114,7 +114,7 @@ class Scraper:
             for file in files:
                 cur_path = os.path.join(root, file)
                 # 检查后缀
-                if os.path.splitext(file)[-1].lower() in RMT_MEDIAEXT:
+                if os.path.splitext(file)[-1].lower() in Constants.RMT_MEDIAEXT:
                     yield cur_path
 
     @staticmethod

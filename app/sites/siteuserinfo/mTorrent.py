@@ -1,5 +1,6 @@
 # author: https://github.com/jxxghp/MoviePilot/blob/v2/app/modules/indexer/parser/mtorrent.py
 import json
+
 from typing import Optional, Tuple
 from urllib.parse import urljoin
 
@@ -34,29 +35,15 @@ class MTorrentUserInfo(_ISiteUserInfo):
         "18": "Bet memberStaff",
     }
 
-    @classmethod
-    def match(cls, html_text):
-        return False
-
-    def _parse_logged_in(self, html_text):
-        if not self._apikey:
-            logger.warn(f"{self.site_name} 未设置apikey，跳过后续操作")
-            return False
-        return True
-    
-    def _parse_site_page(self, html_text):
-        """
-        获取站点页面地址
-        """
-        # 更换api地址
+    def __init__(self, site_name, url, site_cookie, index_html, apikey=None, session=None, ua=None, emulate=False, proxy=None):
+        # 基类初始化
+        super().__init__(site_name, url, site_cookie, index_html, apikey, session, ua, emulate, proxy)
+        # api地址
         self._base_url = f"https://api.{SiteUtils.get_url_domain(self.site_url)}"
-        self._user_traffic_page = None
-        self._user_detail_page = None
         self._user_basic_page = "api/member/profile"
         self._user_basic_params = {
             "uid": self.userid
         }
-        self._sys_mail_unread_page = None
         self._user_mail_unread_page = "api/msg/search"
         self._mail_unread_params = {
             "keyword": "",
@@ -73,19 +60,32 @@ class MTorrentUserInfo(_ISiteUserInfo):
             "x-api-key": self._apikey,
         }
 
+    @classmethod
+    def match(cls, html_text):
+        return False
 
-    def _parse_user_base_info(self, html_text: str):
+    def _parse_logged_in(self, html_text):
+        if not self._apikey:
+            logger.warn(f"{self.site_name} 未设置apikey，跳过后续操作")
+            return False
+        return True
+    
+    def _parse_site_page(self, html_text):
+        """
+        获取站点页面地址
+        """
+        self._user_traffic_page = None
+        self._user_detail_page = None
+        self._sys_mail_unread_page = None
+
+
+    def _parse_user_base_info(self, response_text: str):
         """
         解析用户基本信息
         """
-        url = urljoin(self._base_url, self._user_basic_page)
-        html_text = self._get_page_content(
-                        url=url,
-                        params=self._user_basic_params,
-                        headers=self._user_basic_headers
-                    )
+        response_text, _ = self.visit_base_info()
         
-        detail = json.loads(html_text)
+        detail = json.loads(response_text)
         if not detail or detail.get("code") != "0":
             return
         
@@ -107,6 +107,18 @@ class MTorrentUserInfo(_ISiteUserInfo):
             "type": "SEEDING",
             "userid": self.userid
         }
+
+    def visit_base_info(self):
+        """
+        访问基础信息页
+        """
+        url = urljoin(self._base_url, self._user_basic_page)
+        return self._get_page_content(
+                        url=url,
+                        params=self._user_basic_params,
+                        headers=self._user_basic_headers
+                    )
+
 
     def _parse_user_traffic_info(self, html_text: str):
         """
@@ -146,7 +158,7 @@ class MTorrentUserInfo(_ISiteUserInfo):
         # 查询总做种数
         seeder_count = 0
         try:
-            result = self._get_page_content(
+            result, _ = self._get_page_content(
                 url=urljoin(self._base_url, "api/tracker/myPeerStatus"),
                 params={"uid": self.userid},
             )

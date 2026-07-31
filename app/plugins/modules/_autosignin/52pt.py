@@ -2,14 +2,16 @@ import json
 import os
 import random
 import re
+
 from typing import Tuple
 
 from lxml import etree
+from urllib.parse import urljoin
 
-from app.helper.openai_helper import OpenAiHelper
 from app.plugins.modules._autosignin._base import _ISiteSigninHandler
-from app.sites import PtSiteConf
+from app.models.model import UserSiteConf
 from app.utils import SiteUtils, RequestUtils
+
 from config import Config
 
 
@@ -20,13 +22,13 @@ class FWpt(_ISiteSigninHandler):
     否则随机
     """
     # 匹配的站点Url，每一个实现类都需要设置为自己的站点Url
-    site_url = "52pt.site"
+    site_url = "https://52pt.site"
 
     # 已签到
     _sign_regex = ['今天已经签过到了']
 
     # 签到成功，待补充
-    _success_regex = ['\\d+点魔力值']
+    _success_regex = ['获得 \\d+ 魔力值']
 
     # 验证码错误
     _invalid_captcha_code = ['验证码错误，请重新输入']
@@ -44,12 +46,16 @@ class FWpt(_ISiteSigninHandler):
         """
         return True if SiteUtils.url_equal(url, cls.site_url) else False
 
-    def signin(self, site_info: PtSiteConf):
+    def signin(self, site_info: UserSiteConf):
         """
         执行签到操作
         :param site_info: 站点信息，含有站点Url、站点Cookie、UA等信息
         :return: 签到结果信息
         """
+
+        return self._sample_sign(site_info)
+    
+    def _answer_sign(self, site_info: UserSiteConf)  -> Tuple[bool, str]:
 
         # 验证码失效, 重试5次
         for i in range(5):
@@ -59,7 +65,7 @@ class FWpt(_ISiteSigninHandler):
             
         return False, "[52pt]签到失败: Cookie已失效"
 
-    def _request_sign(self, site_info: PtSiteConf)  -> Tuple[bool, str]:
+    def _request_sign(self, site_info: UserSiteConf)  -> Tuple[bool, str]:
 
         site = site_info.name
         site_cookie = site_info.cookie
@@ -78,23 +84,23 @@ class FWpt(_ISiteSigninHandler):
         
         if not index_res or index_res.status_code != 200:
             self.error(f"签到失败，请检查站点连通性")
-            return False, f'【{site}】签到失败，请检查站点连通性'
+            return False, f'[site]签到失败，请检查站点连通性'
 
         if "login.php" in index_res.text:
             self.error(f"签到失败，cookie失效")
-            return False, f'【{site}】签到失败，cookie失效'
+            return False, f'[site]签到失败，cookie失效'
 
         sign_status = self.sign_in_result(html_res=index_res.text,
                                           regexs=self._sign_regex)
         if sign_status:
             self.info(f"今日已签到")
-            return True, f'【{site}】今日已签到'
+            return True, f'[site]今日已签到'
 
         # 没有签到则解析html
         html = etree.HTML(index_res.text)
 
         if not html:
-            return False, f'【{site}】签到失败'
+            return False, f'[site]签到失败'
 
         # 获取页面问题、答案
         questionid = html.xpath('string(//input[@name="questionid"]/@value)').strip()
@@ -120,16 +126,21 @@ class FWpt(_ISiteSigninHandler):
 
         # 获取答案
         choice = self._try_get_answer(option_ids, question_str, answers)
-
+        sign_data = {
+            'questionid': questionid,
+            'baka_token': baka_token,
+            'choice[]': choice[0] if len(choice) == 1 else choice,
+            'usercomment': '此刻心情:无',
+            'captcha': int(captcha_code) if captcha_code else 0,
+            'wantskip': '不会'
+        }
         # 签到
-        return self.__signin(questionid=questionid,
-                             baka_token=baka_token,
-                             captcha_code=captcha_code,
-                             choice=choice,
+        return self.__signin(sign_url='https://52pt.site/bakatest.php',
+                             sign_data=sign_data,
+                             site=site,
                              site_cookie=site_cookie,
                              ua=ua,
                              proxy=proxy,
-                             site=site,
                              question=question_str)
 
 
@@ -160,40 +171,11 @@ class FWpt(_ISiteSigninHandler):
         # 正确答案：默认随机
         choice = [option_ids[random.randint(0, len(option_ids) - 1)]]
 
-        if OpenAiHelper().get_state():
-            # 组装gpt问题，如果gpt返回则用gpt返回的答案提交
-            gpt_options = "{\n" + ",\n".join([f"{num}:{value}" for num, value in answers]) + "\n}"
-            gpt_question = f"题目：{question_str}\n" \
-                        f"选项：{gpt_options}"
-            self.debug(f"组装chatgpt问题 {gpt_question}")
-
-            # chatgpt获取答案
-            answer = OpenAiHelper().get_question_answer(question=gpt_question)
-            self.debug(f"chatpgt返回结果 {answer}")
-
-            # 处理chatgpt返回的答案信息
-            if answer is None:
-                self.warn(f"ChatGPT未启用, 开始随机签到")
-                # return f"【{site}】签到失败，ChatGPT未启用"
-            elif answer:
-                # 正则获取字符串中的数字
-                answer_nums = list(map(int, re.findall("\d+", answer)))
-                if not answer_nums:
-                    self.warn(f"无法从chatgpt回复 {answer} 中获取答案, 将采用随机签到")
-                else:
-                    choice = []
-                    for answer in answer_nums:
-                        # 如果返回的数字在option_ids范围内，则直接作为答案
-                        if str(answer) in option_ids:
-                            choice.append(int(answer))
-                            self.info(f"chatgpt返回答案id {answer} 在签到选项 {option_ids} 中")
         return choice
 
     def __signin(self, 
-                 questionid, 
-                 baka_token,
-                 captcha_code,
-                 choice, 
+                 sign_url, 
+                 sign_data, 
                  site, 
                  site_cookie, 
                  ua, 
@@ -208,20 +190,15 @@ class FWpt(_ISiteSigninHandler):
         submit: 提交
         多选会有多个choice[]....
         """
-        data = {
-            'questionid': questionid,
-            'baka_token': baka_token,
-            'choice[]': choice[0] if len(choice) == 1 else choice,
-            'usercomment': '此刻心情:无',
-            'captcha': int(captcha_code) if captcha_code else 0,
-            'wantskip': '不会'
-        }
-        self.debug(f"签到请求参数 {data}")
+
+        self.debug(f"签到请求参数 {sign_data}")
 
         sign_res = RequestUtils(cookies=site_cookie,
                                 ua=ua,
-                                proxies=proxy
-                                ).post_res(url='https://52pt.site/bakatest.php', data=data)
+                                proxies=proxy,
+                                referer=sign_url
+                                ).post_res(url=sign_url, data=sign_data)
+        
         if not sign_res or sign_res.status_code != 200:
             self.error(f"签到失败，签到接口请求失败")
             return False, '[52pt]签到失败，签到接口请求失败'
@@ -259,3 +236,83 @@ class FWpt(_ISiteSigninHandler):
                 f.write(formatted_data)
         except (FileNotFoundError, IOError, OSError) as e:
             self.debug("签到成功写入本地文件失败")
+
+    def _sample_sign(self, site_info: UserSiteConf)  -> Tuple[bool, str]:
+
+        site = site_info.name
+        site_cookie = site_info.cookie
+        ua = site_info.ua
+        proxy = Config().get_proxies() if site_info.proxy else None
+
+        # 判断今日是否已签到
+        index_res = RequestUtils(cookies=site_cookie,
+                                 ua=ua,
+                                 proxies=proxy
+                                 ).get_res(url='https://52pt.site/torrents.php')
+        
+        if not index_res or index_res.status_code != 200:
+            self.error(f"签到失败，请检查站点连通性")
+            return False, f'[site]签到失败，请检查站点连通性'
+
+        if "login.php" in index_res.text:
+            self.error(f"签到失败，cookie失效")
+            return False, f'[site]签到失败，cookie失效'
+
+        sign_status = self.sign_in_result(index_res.text, self._sign_regex)
+        if sign_status:
+            self.info(f"今日已签到")
+            return True, f'[site]今日已签到'
+
+        # 解析html
+        html = etree.HTML(index_res.text)
+        if not html:
+            return False, f'[site]签到失败(主页面解析失败)'
+        
+        sign_href = html.xpath('string(//a[@id="game"]/@href)').strip()
+        if not sign_href:
+            return False, f'[site]签到失败(查找签到页面地址失败)'
+        
+        sign_url = urljoin(self.site_url, sign_href)
+
+        sign_res = RequestUtils(cookies=site_cookie,
+                                ua=ua,
+                                proxies=proxy,
+                                referer='https://52pt.site/torrents.php'
+                                ).get_res(url=sign_url)
+
+        sign_status = self.sign_in_result(sign_res.text, self._sign_regex)
+        if sign_status:
+            self.info(f"今日已签到")
+            return True, f'[site]今日已签到'
+        
+        # 解析html
+        html = etree.HTML(sign_res.text)
+        if not html:
+            return False, f'[site]签到失败(签到页面解析失败)'
+        
+        # 获取页面问题
+        m = re.search(
+            r"document\.getElementById\('sign_captcha'\).*?captchaInput\.value\s*=\s*['\"]([^'\"]+)['\"]",
+            sign_res.text,
+            re.S
+        )
+        sign_captcha = m.group(1) if m else None
+        # sign_captcha = html.xpath('string(//input[@name="sign_captcha"]/@value)').strip()
+        if not sign_captcha:
+            return False, f'[site]签到失败(sign_captcha查询失败)'
+
+        sign_token = html.xpath('string(//input[@name="sign_token"]/@value)').strip()
+        sign_submit = html.xpath('string(//input[@name="sign_submit"]/@value)').strip()
+
+        sign_data = {
+            'sign_captcha': sign_captcha,
+            'sign_token': sign_token,
+            'sign_submit': sign_submit
+        }
+        # 签到
+        return self.__signin(sign_url=sign_url,
+                             sign_data=sign_data,
+                             site=site,
+                             site_cookie=site_cookie,
+                             ua=ua,
+                             proxy=proxy)

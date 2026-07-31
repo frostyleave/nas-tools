@@ -6,11 +6,11 @@ import anitopy
 import zhconv
 
 from app.media.meta._base import MetaBase
+from app.utils.constants import Constants
 from app.utils.release_groups import ReleaseGroupsMatcher
 from app.media.meta.customization import CustomizationMatcher
 from app.utils import StringUtils
 from app.utils.types import MediaType
-from config import SPLIT_CHARS
 
 import log
 
@@ -240,7 +240,7 @@ class MetaAnime(MetaBase):
                         name_cn = next(filter(lambda x: StringUtils.contain_chinese(x), name_list), None)
                         name_other = next(filter(lambda x: not StringUtils.contain_chinese(x), name_list), None)
                         if name_cn and name_other:
-                            splited_text = list(filter(None, re.split(r'%s' % SPLIT_CHARS, name_other)))
+                            splited_text = list(filter(None, re.split(r'%s' % Constants.SPLIT_CHARS, name_other)))
                             if len(splited_text) > 2:
                                 numbers = list(filter(lambda x: x.isdigit(), splited_text))
                                 if len(numbers) > 1:

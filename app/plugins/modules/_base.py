@@ -11,7 +11,7 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from app.conf import SystemConfig
 from app.helper import DbHelper
 from app.message import Message
-from app.jobcenter import JobCenter
+from app.core.jobcenter import JobCenter
 
 from config import Config
 

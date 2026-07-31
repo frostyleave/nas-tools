@@ -10,11 +10,10 @@ from urllib.parse import urljoin, urlsplit
 
 import log
 
-from app.indexer.client.browser import PlaywrightHelper
 from app.helper import SiteHelper
-from app.helper.cloudflare_helper import under_challenge
-from app.utils import RequestUtils
+from app.utils.http_utils import RequestUtils
 from app.utils.types import SiteSchema
+
 from config import Config
 
 SITE_BASE_ORDER = 1000
@@ -136,10 +135,12 @@ class _ISiteUserInfo(metaclass=ABCMeta):
             self._pase_unread_msgs()
 
             if self._user_detail_page:
-                self._parse_user_detail_info(self._get_page_content(urljoin(self._base_url, self._user_detail_page)))
+                detail_page, _ = self._get_page_content(urljoin(self._base_url, self._user_detail_page))
+                self._parse_user_detail_info(detail_page)
 
             if self._user_traffic_page:
-                self._parse_user_traffic_info(self._get_page_content(urljoin(self._base_url, self._user_traffic_page)))
+                traffic_page, _ = self._get_page_content(urljoin(self._base_url, self._user_traffic_page))
+                self._parse_user_traffic_info(traffic_page)
 
             self._parse_seeding_pages()
 
@@ -164,17 +165,18 @@ class _ISiteUserInfo(metaclass=ABCMeta):
                     continue
 
                 msg_links = []
-                next_page = self._parse_message_unread_links(
-                    self._get_page_content(urljoin(self._base_url, link)), msg_links)
+                page_content, _ = self._get_page_content(urljoin(self._base_url, link))
+                next_page = self._parse_message_unread_links(page_content, msg_links)
                 while next_page:
-                    next_page = self._parse_message_unread_links(
-                        self._get_page_content(urljoin(self._base_url, next_page)), msg_links)
+                    page_content, _ = self._get_page_content(urljoin(self._base_url, next_page))
+                    next_page = self._parse_message_unread_links(page_content, msg_links)
 
                 unread_msg_links.extend(msg_links)
 
         for msg_link in unread_msg_links:
             log.debug(f"【Sites】{self.site_name} 信息链接 {msg_link}")
-            head, date, content = self._parse_message_content(self._get_page_content(urljoin(self._base_url, msg_link)))
+            page_content, _ = self._get_page_content(urljoin(self._base_url, msg_link))
+            head, date, content = self._parse_message_content(page_content)
             log.debug(f"【Sites】{self.site_name} 标题 {head} 时间 {date} 内容 {content}")
             self.message_unread_contents.append((head, date, content))
 
@@ -188,13 +190,13 @@ class _ISiteUserInfo(metaclass=ABCMeta):
             else:
                 self._torrent_seeding_headers = {'Referer' : refer_url}
 
-            page_conent = self._get_page_content(page_url, self._torrent_seeding_params, self._torrent_seeding_headers)
+            page_conent, _ = self._get_page_content(page_url, self._torrent_seeding_params, self._torrent_seeding_headers)
             # 第一页
             next_page = self._parse_user_torrent_seeding_info(page_conent)
 
             # 其他页处理
             while next_page:
-                page_conent = self._get_page_content(urljoin(page_url, next_page),
+                page_conent, _ = self._get_page_content(urljoin(page_url, next_page),
                                            self._torrent_seeding_params,
                                            self._torrent_seeding_headers)
                 next_page = self._parse_user_torrent_seeding_info(page_conent, multi_page=True)
@@ -245,10 +247,59 @@ class _ISiteUserInfo(metaclass=ABCMeta):
         :param headers: 额外的请求头
         :return:
         """
-        req_headers = None
-        proxies = Config().get_proxies() if self._proxy else None
-        if self._ua or headers or self._addition_headers:
 
+        if self.request_mode == "apikey":
+            # 使用apikey请求，通过请求头传递
+            cookie = None
+            session = None
+        else:
+            # 使用cookie请求
+            cookie = self._site_cookie
+            session = self._session
+
+        proxy_config = Config().get_proxies() if self._proxy else None
+        req_headers = self._assemble_request_headers(headers)
+        req_handler = RequestUtils(cookies=cookie,
+                                   session=session,
+                                   timeout=60,
+                                   proxies=proxy_config,
+                                   headers=req_headers)
+
+        if params:
+            if req_headers and req_headers.get("Content-Type") == "application/json":
+                res = req_handler.post_res(url=url, json=params)
+            else:
+                res = req_handler.post_res(url=url, data=params)
+        else:
+            res = req_handler.get_res(url=url)
+
+        if res and res.status_code in (200, 500, 403):
+            
+            if req_headers and "application/json" in str(req_headers.get("Accept")):
+                try:
+                    return json.dumps(res.json()), res.status_code
+                except (json.JSONDecodeError, ValueError) as e:
+                    log.exception(f"【Sites】{self.site_name} API响应JSON解析失败: {e}")
+                    return "", res.status_code, res.status_code
+            
+            if "charset=utf-8" in res.text or "charset=UTF-8" in res.text or 'charset="utf-8"' in res.text :
+                res.encoding = "UTF-8"
+            elif not res.encoding:
+                res.encoding = res.apparent_encoding
+                
+            return res.text, res.status_code
+
+        return "", -1
+
+    def _assemble_request_headers(self, headers):
+        """
+        组装请求头信息
+        :param headers: 额外的请求头
+        :return: 请求头信息
+        """
+        req_headers = None
+        
+        if self._ua or headers or self._addition_headers:
             if self.request_mode == "apikey":
                 req_headers = {}
             else:
@@ -266,49 +317,7 @@ class _ISiteUserInfo(metaclass=ABCMeta):
             if self._addition_headers:
                 req_headers.update(self._addition_headers)
 
-        if self.request_mode == "apikey":
-            # 使用apikey请求，通过请求头传递
-            cookie = None
-            session = None
-        else:
-            # 使用cookie请求
-            cookie = self._site_cookie
-            session = self._session
-
-        reqHandler = RequestUtils(cookies=cookie,
-                                  session=session,
-                                  timeout=60,
-                                  proxies=proxies,
-                                  headers=req_headers)
-
-        if params:
-            if req_headers.get("Content-Type") == "application/json":
-                res = reqHandler.post_res(url=url, json=params)
-            else:
-                res = reqHandler.post_res(url=url, data=params)
-        else:
-            res = reqHandler.get_res(url=url)
-
-        if res is not None and res.status_code in (200, 500, 403):
-            
-            if req_headers and "application/json" in str(req_headers.get("Accept")):
-                try:
-                    return json.dumps(res.json())
-                except (json.JSONDecodeError, ValueError) as e:
-                    log.exception(f"{self.site_name} API响应JSON解析失败: {e}")
-                    return ""
-                
-            # 如果cloudflare 有防护，尝试使用浏览器仿真
-            if under_challenge(res.text):
-                log.debug(f"【Sites】{self.site_name} 检测到Cloudflare, 需要浏览器仿真")
-                return PlaywrightHelper().get_page_source(url=url, ua=self._ua, cookies=self._site_cookie, proxy=True if self._proxy else False)
-            if "charset=utf-8" in res.text or "charset=UTF-8" in res.text or 'charset="utf-8"' in res.text :
-                res.encoding = "UTF-8"
-            elif not res.encoding:
-                res.encoding = res.apparent_encoding
-            return res.text
-
-        return ""
+        return req_headers
 
     @abstractmethod
     def _parse_site_page(self, html_text):

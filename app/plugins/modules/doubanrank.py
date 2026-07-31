@@ -11,11 +11,10 @@ from app.helper import ThreadHelper
 from app.media import Media
 from app.mediaserver import MediaServer
 from app.plugins.modules._base import _IPluginModule
-from app.subscribe import Subscribe
+from app.modules.subscribe import Subscribe
 from app.utils import RequestUtils, DomUtils
 from app.utils.types import MediaType, SearchType, RssType
 from config import Config
-from web.backend.web_utils import WebUtils
 
 
 class DoubanRank(_IPluginModule):
@@ -423,7 +422,7 @@ class DoubanRank(_IPluginModule):
                     self.info(f"已处理过: {title} (豆瓣id: {douban_id})")
                     continue
                 # 查询媒体信息
-                media_info = WebUtils.get_mediainfo_from_id(mediaid=f"DB:{douban_id}", wait=True)
+                media_info = Media().get_mediainfo_from_id(mediaid=f"DB:{douban_id}", wait=True)
                 if not media_info:
                     self.warn(f"未查询到媒体信息: {title} (豆瓣id: {douban_id})")
                     continue

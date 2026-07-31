@@ -50,8 +50,6 @@ class CONFIGSITE(Base):
     SIGNURL = Column(Text)
     COOKIE = Column(Text)
     INCLUDE = Column(Text)
-    EXCLUDE = Column(Text)
-    SIZE = Column(Text)
     NOTE = Column(Text)
     TOKEN = Column(Text)
     API_KEY = Column(Text)
@@ -538,24 +536,10 @@ class INDEXERSITE(Base):
     DOMAIN = Column(String(length=50))
     SEARCH = Column(Text)
     PARSER = Column(Text)
-    RENDER = Column(Boolean)
     PUBLIC = Column(Boolean)
-    PROXY = Column(Boolean)
-    SOURCE_TYPE = Column(String(length=50))
-    SEARCH_TYPE = Column(String(length=50))
-    BROWSE = Column(Text)
     TORRENTS = Column(Text)
     CATEGORY = Column(Text)
     EXTRA = Column(Text)
-
-class INDEXERCUSTOMSITE(Base):
-    __tablename__ = 'INDEXER_CUSTOM_SITE'
-
-    ID = Column(Integer, Sequence('ID'), primary_key=True)
-    SITE = Column(Text, index=True)
-    INDEXER = Column(Text)
-    DATE = Column(Text)
-
 
 class TRANSFERUNKNOWN(Base):
     __tablename__ = 'TRANSFER_UNKNOWN'

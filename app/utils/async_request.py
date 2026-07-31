@@ -128,7 +128,7 @@ class AsyncRequestUtils:
                     return await client.request(method, url, **kwargs)
 
         except httpx.RequestError as e:
-            log.exception(f"【AsyncRequestUtils】请求{url},method={method}  异常:")
+            log.exception(f"【Http】请求{url},method={method}  异常:")
             if raise_exception:
                 raise
             return None
@@ -195,7 +195,7 @@ class AsyncRequestUtils:
                 data = response.json()
                 return data
             except Exception as e:
-                log.warn(f"解析JSON失败: {e}")
+                log.warn(f"【Http】解析JSON失败: {e}")
                 return None
         return None
 
@@ -209,7 +209,7 @@ class AsyncRequestUtils:
                 data = response.json()
                 return data
             except Exception as e:
-                log.warn(f"解析JSON失败: {e}")
+                log.warn(f"【Http】解析JSON失败: {e}")
                 return None
         return None
 
@@ -226,7 +226,7 @@ class AsyncRequestUtils:
                 if len(cstr) > 1:
                     cookie_dict[cstr[0].strip()] = cstr[1].strip()
         except Exception as e:
-            log.exception(f'[System]cookie解析异常: ')
+            log.exception(f'【Http】cookie解析异常: ')
         if array:
             return [{"name": k, "value": v} for k, v in cookie_dict.items()]
         return cookie_dict
