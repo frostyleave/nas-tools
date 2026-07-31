@@ -9,10 +9,8 @@ from threading import Event
 from typing import List, Tuple
 from urllib.parse import urljoin
 
-from app.helper import SubmoduleHelper, SiteHelper
+from app.helper import ThreadHelper, SubmoduleHelper, SiteHelper, OcrHelper
 from app.helper.cloudflare_helper import under_challenge
-from app.helper import ThreadHelper
-from app.helper.ocr_helper import OcrHelper
 from app.plugins import EventHandler
 from app.modules.wallpaper import get_bing_wallpaper
 from app.plugins.modules._base import _IPluginModule
@@ -304,7 +302,6 @@ class AutoSignIn(_IPluginModule):
                                                         func_desc="自动签到",
                                                         cron=str(self._cron))
                     
-
     @staticmethod
     def get_command():
         """
@@ -431,16 +428,18 @@ class AutoSignIn(_IPluginModule):
                 
                 if success:
                     results.add_success(site_name, site_id)
+                    self.info(sign_msg)
                     continue
 
                 # 失败重试检查
                 if self._retry_keyword and re.search(self._retry_keyword, sign_msg):
-                    self.info(f"站点 {site_name} 命中重试关键词 {self._retry_keyword}")
+                    self.info(f"{sign_msg}, 命中重试关键词 {self._retry_keyword}")
                     results.add_retry(site_name, site_id)
                     continue
                     
                 # 记录失败
                 results.add_fail(site_name, sign_msg)
+                self.warn(sign_msg)
 
             except Exception as e:
                 # 捕获单个站点的执行错误，记录并继续
@@ -571,10 +570,9 @@ class AutoSignIn(_IPluginModule):
                 return False, f"[{site_name}]签到失败: 状态码：{res.status_code}"
             
             if "login.php" in res.text:
-                self.error(f"签到失败，cookie失效")
                 return False, f'[{site_name}]签到失败: cookie失效'
             
-            if "challenges.cloudflare.com" in res.text:
+            if under_challenge(res.text):
                 return False, f"[{site_name}]签到失败: 站点被Cloudflare防护"
             
             # 本次签到成功, 或是重新请求签到页
@@ -591,61 +589,58 @@ class AutoSignIn(_IPluginModule):
             attendance_form = html_tree.xpath('//form[@method="post" and @action="attendance.php"]')
             # 存在签到表单
             if attendance_form:
+
                 self.info(f"[{site_name}]签到页存在表单")
-
-                img_src = attendance_form[0].xpath('string(//img[@alt="CAPTCHA"]/@src)').strip()
-                if not img_src:
-                    return False, f'[{site_name}]签到失败，找不到验证码图片链接'
-
-                img_url = urljoin(home_url, img_src)
-                captcha = request_handler.get_res(img_url)
-                if not captcha or not captcha.content:
-                    return False, f'[{site_name}]签到失败，获取验证码图片失败'
-
-                image_b64 = base64.b64encode(captcha.content).decode()
-                captcha_code = OcrHelper.get_captcha_text(image_b64=image_b64)
-                if not captcha_code:
-                    return False, f'[{site_name}]签到失败，验证码识别失败'
-
                 form_data = {}
+                empty_keys = []
                 inputs = attendance_form[0].xpath('.//input[@name]')
                 for input_el in inputs:
                     name = input_el.get('name')
                     value = input_el.get('value', '')
-                    form_data[name] = value if value else captcha_code
+                    form_data[name] = value
+                    if not value:
+                        empty_keys.append(empty_keys)
 
+                # 存在需要填充的表单内容
+                if not empty_keys:
+
+                    img_src = attendance_form[0].xpath('string(//img[@alt="CAPTCHA"]/@src)').strip()
+                    if not img_src:
+                        return False, f'[{site_name}]签到失败，找不到验证码图片链接'
+
+                    img_url = urljoin(home_url, img_src)
+                    captcha = request_handler.get_res(img_url)
+                    if not captcha or not captcha.content:
+                        return False, f'[{site_name}]签到失败，获取验证码图片失败'
+
+                    image_b64 = base64.b64encode(captcha.content).decode()
+                    captcha_code = OcrHelper.get_captcha_text(image_b64=image_b64)
+                    if not captcha_code:
+                        return False, f'[{site_name}]签到失败，验证码识别失败'
+                    
+                    # 验证码值赋值到第1个表单项
+                    form_data[empty_keys[0]] = captcha_code
+                    # 移除
+                    empty_keys.pop(0)
+
+                    if empty_keys:
+                        return False, f'[{site_name}]签到失败，除验证码外还有其他表单待填充: {",".join(empty_keys)}'
+
+                # 表单提交
                 sign_res = request_handler.post(url=checkin_url, data=form_data)
 
                 if not sign_res or sign_res.status_code != 200:
-                    self.error(f"[FORM]{site_name}签到失败, form提交失败")
                     return False, f'[FORM][{site_name}]签到失败, form提交失败'
 
                 if SiteHelper.sign_in_result(html_res=sign_res.text, regexs=self._success_regex):
-                    self.info(f"[FORM]{site_name}签到成功")
                     return True, f'[FORM][{site_name}]签到成功'
 
-            site_id = str(site_info.id)
-            # 需要渲染, 尝试进行post再次请求
-            if self._render_sites and site_id in self._render_sites:
-
-                sign_res = request_handler.post_res(url=checkin_url)
-                
-                if not sign_res or sign_res.status_code != 200:
-                    self.error(f"[POST]{site_name}签到失败，签到接口请求失败")
-                    return False, f'[POST][{site_name}]签到失败，签到接口请求失败'
-
-                if SiteHelper.sign_in_result(html_res=sign_res.text, regexs=self._success_regex):
-                    self.info(f"[POST]{site_name}签到成功")
-                    return True, f'[POST][{site_name}]签到成功'
-
-            self.warn(f'[{site_name}]签到失败，未知原因')
             return False, f'[{site_name}]签到失败，未知原因'
-                
             
         except Exception as e:
             log.exception(f"【自动签到】[{site_name}]签到出错: ")
             return False, f"[{site_name}]签到出错: {str(e)}"
-        
+     
     def _is_logged_in(self, html_tree):
         """
         判断站点是否已经登陆

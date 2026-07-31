@@ -2,7 +2,6 @@ anitopy==2.1.1
 bencodepy==0.9.5
 better-exceptions==0.3.3
 cacheout==0.16.0
-cf_clearance==0.31.0
 cn2an==0.5.23
 python-multipart==0.0.32
 iso-639==0.4.5
