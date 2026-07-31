@@ -521,7 +521,7 @@ class DbHelper:
             return self._db.query(CONFIGFILTERGROUP).filter(CONFIGFILTERGROUP.ID == int(gid)).all()
         return self._db.query(CONFIGFILTERGROUP).all()
 
-    def get_config_filter_rule(self, groupid=None):
+    def get_config_filter_rule(self, groupid=None) -> List[CONFIGFILTERRULES]:
         """
         查询过滤规则
         """
@@ -535,7 +535,7 @@ class DbHelper:
                                                                      cast(CONFIGFILTERRULES.PRIORITY,
                                                                           Integer)).all()
 
-    def get_rss_movies(self, state=None, rssid=None):
+    def get_rss_movies(self, state=None, rssid=None) -> List[RSSMOVIES]:
         """
         查询订阅电影信息
         """
@@ -737,7 +737,7 @@ class DbHelper:
                     "STATE": state
                 })
 
-    def get_rss_tvs(self, state=None, rssid=None):
+    def get_rss_tvs(self, state=None, rssid=None) -> List[RSSTVS]:
         """
         查询订阅电视剧信息
         """
@@ -1977,7 +1977,7 @@ class DbHelper:
                 NOTE=item.get("free")
             ))
 
-    def get_userrss_tasks(self, tid=None):
+    def get_userrss_tasks(self, tid=None) -> List[CONFIGUSERRSS]:
         if tid:
             return self._db.query(CONFIGUSERRSS).filter(CONFIGUSERRSS.ID == int(tid)).all()
         else:

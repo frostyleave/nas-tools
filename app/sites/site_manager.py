@@ -7,6 +7,7 @@ from typing import List, Optional, Tuple
 
 import log
 
+from app.db.models import CONFIGSITE
 from app.helper import SiteHelper, DbHelper
 from app.indexer.client.browser import PlaywrightHelper
 from app.indexer.manager import IndexerManager
@@ -55,15 +56,35 @@ class SitesManager:
             if not site_strict_url:
                 continue
 
-            # 站点属性
-            site_note = self.__get_site_note_items(site.NOTE)
+            site_data_dic = self.prepra_site_attr(site)           
 
-            # 站点用途：Q签到、D订阅、S刷流
-            site_rssurl = site.RSSURL
+            # 实例化
+            site_info = UserSiteConf.from_datas(site_data_dic)
+
+            # 以ID存储
+            self._siteByIds[site.ID] = site_info
+            # 以域名存储
+            self._siteByUrls[site_strict_url] = site_info
+
+            # 初始化站点限速器
+            self._limiters[site.ID] = SiteRateLimiter(
+                limit_interval= site_info.limit_interval if site_info.limit_interval and site_info.limit_count else None,
+                limit_count = site_info.limit_count if site_info.limit_interval and site_info.limit_count else None,
+                limit_seconds = site_info.limit_seconds
+            )
+
+    def prepra_site_attr(self, site:CONFIGSITE):
+
+        try:
+
+            # 站点属性
+            site_rssurl = site.RSSURL or ''
             site_signurl = site.SIGNURL
             site_cookie = site.COOKIE
             site_token = site.TOKEN
             site_apikey = site.API_KEY
+            # 站点用途：Q签到、D订阅、S刷流
+            site_note = self.__get_site_note_items(site.NOTE)
             site_uses = site.INCLUDE or ''
             uses = []
             if site_uses:
@@ -81,52 +102,48 @@ class SitesManager:
             site_parser = ''
             indexer_id = ''            
             strict_url = SiteUtils.get_base_url(site_signurl or site_rssurl)
-            # 解析器
+                # 解析器
             indexer_base = IndexerManager().get_indexer_base(strict_url)
             if indexer_base:
                 site_parser = indexer_base.parser
                 indexer_id = indexer_base.id
-            
+                
             # 从订阅链接解析passkey
             passkey = ''
-            match = re.search(r'passkey=([a-zA-Z0-9]+)', site_rssurl)
-            if match:
-                passkey = match.group(1)
-            
+            if site_rssurl:
+                match = re.search(r'passkey=([a-zA-Z0-9]+)', site_rssurl)
+                if match:
+                    passkey = match.group(1)
+                
             site_data_dic = {
-                
-                "id": site.ID,
-                "name": site.NAME,
-                "pri": site.PRI or 0,
-                "signurl": site_signurl,
-                "strict_url": strict_url,
-                "rssurl": site_rssurl,
-                "indexer_id": indexer_id,
-                "parser" : site_parser,
+                    "id": site.ID,
+                    "name": site.NAME,
+                    "pri": site.PRI or 0,
+                    "signurl": site_signurl,
+                    "strict_url": strict_url,
+                    "rssurl": site_rssurl,
+                    "indexer_id": indexer_id,
+                    "parser" : site_parser,
+                    "cookie": site_cookie,
+                    "token": site_token,
+                    "apikey": site_apikey,
+                    "passkey": passkey,
+                    "rss_enable": rss_enable,
+                    "brush_enable": brush_enable,
+                    "statistic_enable": statistic_enable,
+                    "uses": uses,
+                    "ua": site_note.get("ua"),
+                    "rule": site_note.get("rule"),
+                    "download_setting": site_note.get("download_setting"),
+                    "source_type": site_note.get("source_type").split(',') if site_note.get("source_type") else [],
+                    "parse_detail": True if site_note.get("parse") == "Y" else False,
+                    "unread_msg_notify": True if site_note.get("message") == "Y" else False,
+                    "chrome": True if site_note.get("chrome") == "Y" else False,
+                    "proxy": True if site_note.get("proxy") == "Y" else False,
+                    "subtitle": True if site_note.get("subtitle") == "Y" else False
+                }
 
-                "cookie": site_cookie,
-                "token": site_token,
-                "apikey": site_apikey,
-                "passkey": passkey,
-                
-                "rss_enable": rss_enable,
-                "brush_enable": brush_enable,
-                "statistic_enable": statistic_enable,
-                "uses": uses,
-
-                "ua": site_note.get("ua"),
-                "rule": site_note.get("rule"),
-                "download_setting": site_note.get("download_setting"),
-                "source_type": site_note.get("source_type").split(',') if site_note.get("source_type") else [],
-
-                "parse_detail": True if site_note.get("parse") == "Y" else False,
-                "unread_msg_notify": True if site_note.get("message") == "Y" else False,
-                "chrome": True if site_note.get("chrome") == "Y" else False,
-                "proxy": True if site_note.get("proxy") == "Y" else False,
-                "subtitle": True if site_note.get("subtitle") == "Y" else False
-            }
-
-            # 限流策略参数
+                # 限流策略参数
             limit_interval = site_note.get("limit_interval")
             if limit_interval and str(limit_interval).isdigit():
                 site_data_dic["limit_interval"] = int(limit_interval)
@@ -137,22 +154,13 @@ class SitesManager:
 
             limit_seconds = site_note.get("limit_seconds")
             if limit_seconds and str(limit_seconds).isdigit():
-                site_data_dic["limit_seconds"] = int(limit_seconds)           
+                site_data_dic["limit_seconds"] = int(limit_seconds)
 
-            # 实例化
-            site_info = UserSiteConf.from_datas(site_data_dic)
-
-            # 以ID存储
-            self._siteByIds[site.ID] = site_info
-            # 以域名存储
-            self._siteByUrls[site_strict_url] = site_info
-
-            # 初始化站点限速器
-            self._limiters[site.ID] = SiteRateLimiter(
-                limit_interval= site_info.limit_interval if site_info.limit_interval and site_info.limit_count else None,
-                limit_count = site_info.limit_count if site_info.limit_interval and site_info.limit_count else None,
-                limit_seconds = site_info.limit_seconds
-            )
+            return site_data_dic
+        
+        except Exception as e:
+            log.exception(f'【Sites】站点[{site.NAME}]配置解析异常: ')
+            return None
 
     def get_site(self, siteid=None, siteurl=None) -> Optional[UserSiteConf]:
         """
