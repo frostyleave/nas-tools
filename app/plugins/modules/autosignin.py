@@ -602,7 +602,9 @@ class AutoSignIn(_IPluginModule):
                         empty_keys.append(empty_keys)
 
                 # 存在需要填充的表单内容
-                if not empty_keys:
+                if empty_keys:
+
+                    self.info(f'[{site_name}]签到页表单待填充: {",".join(empty_keys)}')
 
                     img_src = attendance_form[0].xpath('string(//img[@alt="CAPTCHA"]/@src)').strip()
                     if not img_src:
