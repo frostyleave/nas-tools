@@ -32,6 +32,12 @@
         "page": "bangumi",
         "icon": "<i class=\"ti ti-brand-bilibili fs-2 \"></i>",
         "html": "/static/pages/ranking.html?t=BANGUMI"
+      },
+      {
+        "name": "TOP250",
+        "page": "douban",
+        "icon": "<i class=\"ti ti-brand-douban fs-2 \"></i>",
+        "html": "/static/pages/recommend.html?type=MOV&subtype=dbtop&title=豆瓣电影TOP250"
       }
     ]
   },

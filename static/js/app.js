@@ -162,6 +162,7 @@ function loadPage(htmlPath, queryString) {
     });
   }
   $("#page-content").data("params", params);
+  $("#page-content").data("queryString", paramString);
 
   // 直接加载HTML文件
   $("#page-content").load(htmlPath, function(_, status, xhr) {

@@ -599,7 +599,7 @@ class AutoSignIn(_IPluginModule):
                     value = input_el.get('value', '')
                     form_data[name] = value
                     if not value:
-                        empty_keys.append(empty_keys)
+                        empty_keys.append(name)
 
                 # 存在需要填充的表单内容
                 if empty_keys:
