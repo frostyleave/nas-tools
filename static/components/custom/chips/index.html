@@ -78,7 +78,7 @@
       }
       // 所对应样式
       const color = {
-        rev_string: "badge-outline text-wrap text-orange",
+        rev_string: "badge-outline text-wrap text-orange mt-2",
         ignored_words: "badge-outline text-wrap text-cyan",
         replaced_words: "badge-outline text-wrap text-cyan",
         offset_words: "badge-outline text-wrap text-cyan",
@@ -101,7 +101,7 @@
       if (chips_content && chips_type && title.hasOwnProperty(chips_type)) {
         if (chips_content.length && chips_flag) {
           let label_element = document.createElement("label");
-          label_element.setAttribute("class", "form-label mb-3");
+          label_element.setAttribute("class", "form-label mb-1");
           label_element.innerHTML = `${title[chips_type]}：`;
           if (typeof(chips_content) === "string") {
             let span_element = document.createElement("span");

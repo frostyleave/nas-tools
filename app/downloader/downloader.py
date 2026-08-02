@@ -18,6 +18,7 @@ import log
 
 from app.conf import ModuleConf
 from app.conf import SystemConfig
+from app.downloader.client._base import _IDownloadClient
 from app.modules.filetransfer import FileTransfer
 from app.models.model import UserSiteConf, IndexerInfo
 from app.helper import DbHelper, ThreadHelper, SubmoduleHelper
@@ -137,10 +138,10 @@ class Downloader:
             if transfer:
                 log_content = ""
                 if only_nastool:
-                    log_content += "启用标签隔离, "
+                    log_content += "标签隔离, "
                 if match_path:
-                    log_content += "启用目录隔离, "
-                log.info(f"【Downloader】读取到监控下载器: {name}{log_content}转移方式: {rmt_mode_name}")
+                    log_content += "目录隔离, "
+                log.info(f"【Downloader】读取到监控下载器: {name}, {log_content}转移方式: {rmt_mode_name}")
                 if enabled:
                     self._monitor_downloader_ids.append(did)
                 else:
@@ -282,7 +283,7 @@ class Downloader:
         """获取任务管理器"""
         return JobCenter().get_sys_scheduler()
     
-    def __get_client(self, did=None):
+    def __get_client(self, did=None) -> _IDownloadClient:
         if not did:
             return None
         downloader_conf = self.get_downloader_conf(did)
@@ -1054,9 +1055,22 @@ class Downloader:
                     
                 log.info(f"【Downloader】下载器 {downloader_name} 开始转移下载文件...")
                 for task in trans_tasks:
+                    media_type = None
+                    tmdb_info = None
+                    season = None
+                    download_info = self.get_download_history_by_downloader(downloader=downloader_id, download_id=task.get("id"))
+                    if download_info:
+                        media_type = MediaType.MOVIE if download_info.TYPE in Constants.MOVIE_TYPES else MediaType.TV
+                        tmdb_info = self.media.get_tmdb_info(mtype=media_type, tmdbid=download_info.TMDBID)
+                        if download_info.SE:
+                            m = re.search(r'S(\d+)', download_info.SE)
+                            season = m.group(1) if m else None
                     done_flag, done_msg = self.filetransfer.transfer_media(in_from=self._DownloaderEnum[str(downloader_id)],
                                                                            in_path=task.get("path"),
-                                                                           rmt_mode=rmt_mode)
+                                                                           rmt_mode=rmt_mode,
+                                                                           media_type=media_type,
+                                                                           tmdb_info=tmdb_info,
+                                                                           season=season)
                     if not done_flag:
                         log.warn(f"【Downloader】下载器 {downloader_name} 任务%s 转移失败: %s" % (task.get("path"), done_msg))
                         download_client.set_torrents_status(ids=task.get("id"), tags=task.get("tags"))

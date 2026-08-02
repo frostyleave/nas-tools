@@ -1658,7 +1658,7 @@ class DbHelper:
             DOWNLOADHISTORY.SAVE_PATH == os.path.normpath(path)
         ).order_by(DOWNLOADHISTORY.DATE.desc()).first()
 
-    def get_download_history_by_downloader(self, downloader, download_id):
+    def get_download_history_by_downloader(self, downloader, download_id) -> DOWNLOADHISTORY:
         """
         根据下载器查找下载历史
         """

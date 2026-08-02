@@ -1567,9 +1567,9 @@ class FileTransfer:
                 if not path:
                     return {"retcode": -1, "retmsg": "未识别路径有误"}
                 succ_flag, msg = self.transfer_media(in_from=SyncType.MAN,
-                                                              rmt_mode=rmt_mode,
-                                                              in_path=path,
-                                                              target_dir=dest_dir)
+                                                     rmt_mode=rmt_mode,
+                                                     in_path=path,
+                                                     target_dir=dest_dir)
                 if not succ_flag:
                     ret_flag = False
                     if msg not in ret_msg:
