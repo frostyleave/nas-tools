@@ -2084,8 +2084,10 @@ function edit_indexer_conf(site_url, ispt) {
   $("#modal-manual-indexer").data("indexer", NaN);
   if (ispt) {
     $('.pt-hide').hide();
+    $("[name='indexer-cop-btn']").show();
   } else {
     $('.pt-hide').show();
+    $("[name='indexer-copy-btn']").hide();
   }
 
   // 根据ID查询详细信息
@@ -2096,8 +2098,8 @@ function edit_indexer_conf(site_url, ispt) {
       // 数据绑定到容器上
       $("#modal-manual-indexer").data("indexer", ret.data);
 
-      $("#indexer-id").val(ret.data.id).attr("readonly", true);
-      $("#indexer-name").val(ret.data.name).attr("readonly", true);
+      $("#indexer-id").val(ret.data.id).prop("disabled", true);
+      $("#indexer-name").val(ret.data.name).prop("disabled", true);
       $("#indexer-url").val(ret.data.domain);
 
       // 下拉
@@ -2131,9 +2133,9 @@ function edit_indexer_conf(site_url, ispt) {
 
       }
 
-      $("#indexer_modal_title").text("编辑索引站点");
-      $("[name='indexer_add_btn']").hide();
-      $("[name='indexer_edit_btn']").show();
+      $("#indexer-modal-title").text("编辑索引站点");
+      $("[name='indexer-add-btn']").hide();
+      $("[name='indexer-edit-btn']").show();
 
       $("#modal-manual-indexer").modal("show");
       return;
@@ -2145,6 +2147,88 @@ function edit_indexer_conf(site_url, ispt) {
     }
 
   });
+}
+
+function do_copy_indexer() {
+
+  // 清空绑定数据
+  $("#modal-manual-indexer").data("indexer", NaN);
+
+  $("#indexer-id").val("").prop("disabled", false);
+  $("#indexer-name").val("").prop("disabled", false);
+  $("#indexer-url").val("");
+
+  // 标题调整
+  $("#indexer-modal-title").text("复制索引站点");
+  // 按钮显隐
+  $("[name='indexer-add-btn']").show();
+  $("[name='indexer-edit-btn']").hide();
+  $("[name='indexer-copy-btn']").hide();
+
+}
+
+function do_add_indexer() {
+
+  var indexer_id = $("#indexer-id").val().trim();
+  if (!indexer_id || indexer_id == '' ) {
+    show_fail_modal('站点ID不能为空');
+    return
+  }
+
+  var indexer_name = $("#indexer-name").val().trim();
+  if (!indexer_name || indexer_name == '' ) {
+    show_fail_modal('站点名称不能为空');
+    return
+  }
+
+  var indexer_url = $("#indexer-url").val().trim();
+  if (!indexer_url || !isUrl(indexer_url)) {
+    show_fail_modal('站点地址无效, 请重新编辑');
+    return
+  }
+
+  var search_cfg = $('#search_cfg').val();
+  if (!object_json_valid(search_cfg, false)) {
+    show_fail_modal('搜索配置不合法，请检查后重试');
+    return
+  }
+
+  var torrent_cfg = $('#torrent_cfg').val();
+  if (!object_json_valid(torrent_cfg, false)) {
+    show_fail_modal('种子过滤配置不合法，请检查后重试');
+    return
+  }
+
+  var category_cfg = $('#category_cfg').val();
+  if (!object_json_valid(category_cfg, true)) {
+    show_fail_modal('目录配置不合法，请检查后重试');
+    return
+  }
+
+  var parser_type = $('#indexer-parser-type').val();
+
+  const data = {
+    "id": indexer_id,
+    "name": indexer_name,
+    "domain": indexer_url,
+    "parser": parser_type,
+    "search": zip_json(search_cfg),
+    "torrents": zip_json(torrent_cfg),
+    "category": zip_json(category_cfg)
+  };
+
+  axios_post_do("add_indexer", data, function (ret) {
+    if (ret.code === 0) {
+      $("#modal-manual-indexer").modal("hide");
+      show_success_modal("新增索引站点成功!");
+    } else {
+      $("#modal-manual-indexer").modal("hide");
+      show_fail_modal(`新增索引站点失败：${ret.msg}!`, function () {
+        $("#modal-manual-indexer").modal("show");
+      });
+    }
+  });
+
 }
 
 function do_update_indexer() {
@@ -2218,7 +2302,10 @@ function do_update_indexer() {
       $("#modal-manual-indexer").modal("hide");
       show_success_modal("更新索引站点成功!");
     } else {
-      show_fail_modal(`更新索引站点失败：${ret.msg}!`);
+      $("#modal-manual-indexer").modal("hide");
+      show_fail_modal(`更新索引站点失败：${ret.msg}!`, function () {
+        $("#modal-manual-indexer").modal("show");
+      });
     }
   });
 

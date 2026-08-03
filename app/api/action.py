@@ -3937,8 +3937,10 @@ class WebAction:
         }
 
     def __add_indexer(self, data):
-        IndexerManager().add_indexer(data)
-        return {"code": 0, "msg": "已插入"}
+        ret, msg = IndexerManager().add_indexer(data)
+        if ret:
+            return {"code": 0, "msg": msg}
+        return {"code": 1, "msg": msg}
 
     def __update_indexer(self, data):
         success = IndexerManager().update_indexer(data)
