@@ -21,7 +21,7 @@ class CONFIGFILTERRULES(Base):
     ID = Column(Integer, Sequence('ID'), primary_key=True)
     GROUP_ID = Column(Text, index=True)
     ROLE_NAME = Column(Text)
-    PRIORITY = Column(Text)
+    PRIORITY = Column(Integer)
     INCLUDE = Column(Text)
     EXCLUDE = Column(Text)
     SIZE_LIMIT = Column(Text)
@@ -45,7 +45,7 @@ class CONFIGSITE(Base):
 
     ID = Column(Integer, Sequence('ID'), primary_key=True)
     NAME = Column(Text)
-    PRI = Column(Text)
+    PRI = Column(Integer)
     RSSURL = Column(Text)
     SIGNURL = Column(Text)
     COOKIE = Column(Text)
