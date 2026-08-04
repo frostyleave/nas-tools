@@ -20,7 +20,7 @@ from app.indexer.client.builtin import BuiltinIndexer
 from app.indexer.manager import IndexerManager
 from app.media.meta import MetaInfo
 from app.message import Message
-from app.models.model import UserSiteConf
+from app.models.model import UserSiteConf, BrushedTorrentUpdate
 from app.sites import SitesManager, SiteConf
 from app.utils import StringUtils
 from app.utils.commons import singleton
@@ -422,9 +422,11 @@ class BrushTaskV2(object):
 
                         if torrent_id not in delete_ids:
                             delete_ids.append(torrent_id)
-                            update_torrents.append(("%s,%s" % (uploaded, downloaded),
-                                                    taskid,
-                                                    torrent_id))
+                            update_torrents.append(BrushedTorrentUpdate(
+                                uploaded=uploaded,
+                                downloaded=downloaded,
+                                task_id=taskid,
+                                torrent_id=torrent_id))
                 # 检查下载中状态的
                 torrents = self.downloader.get_downloading_torrents(downloader_id=downloader_id,
                                                                     ids=torrent_ids)
@@ -496,9 +498,11 @@ class BrushTaskV2(object):
 
                         if torrent_id not in delete_ids:
                             delete_ids.append(torrent_id)
-                            update_torrents.append(("%s,%s" % (uploaded, downloaded),
-                                                    taskid,
-                                                    torrent_id))
+                            update_torrents.append(BrushedTorrentUpdate(
+                                uploaded=uploaded,
+                                downloaded=downloaded,
+                                task_id=taskid,
+                                torrent_id=torrent_id))
 
                 # 手工删除的种子, 清除对应记录
                 if remove_torrent_ids:
@@ -529,8 +533,8 @@ class BrushTaskV2(object):
                                 delete_ids.remove(torrent_id)
                     if delete_ids:
                         # 更新种子状态为已删除
-                        update_torrents = [update_torrent for update_torrent in update_torrents
-                                           if update_torrent[2] in delete_ids]
+                        update_torrents = [ut for ut in update_torrents
+                                           if ut.torrent_id in delete_ids]
                         self.dbhelper.update_brushtask_torrent_state(update_torrents)
                         log.info("【Brush】任务 %s 共删除 %s 个刷流下载任务" % (task_name, len(delete_ids)))
                     else:

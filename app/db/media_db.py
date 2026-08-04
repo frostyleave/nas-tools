@@ -19,7 +19,7 @@ _Engine = create_engine(
     echo=False,
     poolclass=QueuePool,
     pool_pre_ping=True,
-    pool_size=100,
+    pool_size=10,
     pool_recycle=60 * 10,
     max_overflow=0
 )
@@ -106,7 +106,7 @@ class MediaDb:
     @cached(cache=TTLCache(maxsize=128, ttl=60))
     def query(self, server_type, title, year, tmdbid):
         if not server_type or not title:
-            return {}
+            return None
 
         if tmdbid:
             item = self.session.query(MEDIASYNCITEMS).filter(MEDIASYNCITEMS.SERVER == server_type,
@@ -123,7 +123,7 @@ class MediaDb:
                                                              MEDIASYNCITEMS.TITLE == title).first()
         if item:
             if tmdbid and (not item.TMDBID or item.TMDBID != str(tmdbid)):
-                return {}
+                return None
         return item
 
     def get_statistics(self, server_type):
