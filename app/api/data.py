@@ -12,7 +12,8 @@ import log
 from app.core.cmd_registry import CommandRegistry
 from app.conf.moduleconf import ModuleConf
 from app.conf.systemconfig import SystemConfig
-from app.downloader.downloader import Downloader, PT_TRANSFER_INTERVAL
+from app.downloader.config import PT_TRANSFER_INTERVAL
+from app.downloader.downloader import Downloader
 from app.helper.meta_helper import MetaHelper
 from app.helper.words_helper import WordsHelper
 from app.indexer.indexer import Indexer

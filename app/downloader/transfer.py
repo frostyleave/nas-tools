@@ -15,7 +15,7 @@ from apscheduler.schedulers.background import BackgroundScheduler
 import log
 
 from app.conf import ModuleConf
-from app.downloader.config import PT_TAG
+from app.downloader.config import PT_TAG, PT_TRANSFER_INTERVAL
 from app.utils.constants import Constants
 from app.utils.types import MediaType, RmtMode
 from app.core.jobcenter import JobCenter
@@ -23,8 +23,6 @@ from app.core.jobcenter import JobCenter
 if TYPE_CHECKING:
     from app.downloader.downloader import Downloader
 
-# 下载文件转移检查时间间隔
-PT_TRANSFER_INTERVAL = 300
 
 transfer_lock = Lock()
 

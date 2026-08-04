@@ -9,7 +9,7 @@ import json
 import os
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Optional
+from typing import Any, Optional
 
 import log
 
@@ -22,6 +22,9 @@ from app.utils.types import DownloaderType, SystemConfigKey
 
 # 标签隔离
 PT_TAG = "NASTOOL"
+
+# 下载文件转移检查时间间隔
+PT_TRANSFER_INTERVAL = 300
 
 
 @dataclass
@@ -38,7 +41,10 @@ class DownloaderConfItem:
     rmt_mode_name: str = ""
     config: dict = field(default_factory=dict)
     download_dir: list = field(default_factory=list)
-
+    
+    def get(self, key: str, default: Any = None) -> Any:
+        """像字典一样获取字段值，若字段不存在则返回默认值"""
+        return getattr(self, key, default)
 
 class DownloadConfig:
     """
