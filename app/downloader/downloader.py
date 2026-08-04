@@ -128,7 +128,7 @@ class Downloader:
                 if downloader_schema.match(ctype):
                     return downloader_schema(conf)
             except Exception as e:
-                log.critical("【Downloader】下载器实例化异常: ")
+                log.critical("【Downloader】下载器实例化异常: ", exc_info=True)
         return None
 
     @property

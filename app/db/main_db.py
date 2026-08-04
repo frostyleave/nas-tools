@@ -18,7 +18,7 @@ _Engine = create_engine(
     echo=False,
     poolclass=QueuePool,
     pool_pre_ping=True,
-    pool_size=10,
+    pool_size=100,
     pool_recycle=60 * 10,
     max_overflow=0
 )
@@ -139,7 +139,7 @@ class DbPersist(object):
                 self.db.commit()
                 return True if ret is None else ret
             except Exception as e:
-                log.critical('[DB]数据库持久化出错: ')
+                log.critical('[DB]数据库持久化出错: ', exc_info=True)
                 self.db.rollback()
                 return False
 

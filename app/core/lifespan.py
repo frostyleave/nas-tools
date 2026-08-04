@@ -43,7 +43,7 @@ async def lifespan(app: FastAPI):
 
         yield
     except Exception as e:
-        log.critical('❌ FastAPI 应用启动时异常')
+        log.critical('❌ FastAPI 应用启动时异常', exc_info=True)
     finally:
         log.info('FastAPI 应用开始关闭...')
         ServiceManager.stop_service()
