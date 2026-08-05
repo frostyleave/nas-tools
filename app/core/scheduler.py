@@ -30,8 +30,6 @@ RSS_REFRESH_TMDB_INTERVAL = 6
 META_DELETE_UNKNOWN_INTERVAL = 12
 # 定时刷新壁纸的间隔（小时）
 REFRESH_WALLPAPER_INTERVAL = 1
-# 历史数据清理周期（小时）
-HISTORY_CLEANUP_INTERVAL = 24
 
 @singleton
 class Scheduler:
@@ -168,11 +166,11 @@ class Scheduler:
         )
 
         # 定时清理历史数据
-        self.get_scheduler().add_job(
-            HistoryCleanup().cleanup_history_tables,
-            "interval",
-            hours=HISTORY_CLEANUP_INTERVAL,
-            name='清理历史记录'
+        SchedulerUtils.add_job(
+            scheduler=self.get_scheduler(),
+            func=HistoryCleanup().cleanup_history_tables,
+            func_desc="清理历史记录",
+            cron=str('30 1,2 * * *')
         )
 
         # 定时刷新壁纸
