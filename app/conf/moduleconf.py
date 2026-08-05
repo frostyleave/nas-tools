@@ -541,7 +541,6 @@ class ModuleConf(object):
     NETTEST_TARGETS = [
         "www.themoviedb.org",
         "image.tmdb.org",
-        "webservice.fanart.tv",
         "api.telegram.org",
         "qyapi.weixin.qq.com",
         "www.opensubtitles.org"
