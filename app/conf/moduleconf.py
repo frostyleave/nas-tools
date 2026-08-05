@@ -537,15 +537,6 @@ class ModuleConf(object):
         }
     }
 
-    # 网络测试对象，TMDB API除外
-    NETTEST_TARGETS = [
-        "www.themoviedb.org",
-        "image.tmdb.org",
-        "api.telegram.org",
-        "qyapi.weixin.qq.com",
-        "www.opensubtitles.org"
-    ]
-
     # 下载器
     DOWNLOADER_CONF = {
         "qbittorrent": {

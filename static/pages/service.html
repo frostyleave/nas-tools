@@ -145,6 +145,10 @@
         <table class="table table-vcenter card-table table-hover table-striped">
           <thead>
             <tr>
+              <th>
+                <input class="form-check-input m-0 align-middle" type="checkbox" aria-label="全选"
+                  onclick="select_SelectALL($(this).prop('checked'), 'nettest-item')">
+              </th>
               <th>测试对象</th>
               <th>连通性</th>
               <th>耗时</th>
@@ -352,12 +356,18 @@
 
   // 网络测试
   $("#nettest_btn").unbind("click").click(async function () {
-    let btn_obj = $(this);
-    let url_indexs = select_GetHiddenVAL("nettest_item");
-    let nettest_count_total = url_indexs.length;
+    let url_checked = select_GetSelectedVAL("nettest-item");
+    if (url_checked.length == 0) {
+      return;
+    }
+
+    let nettest_count_total = url_checked.length;
     let nettest_count_finished = 0;
+
+    let btn_obj = $(this);
     btn_obj.text("测试中...").attr("disabled", true);
-    for (let url_index of url_indexs){
+
+    for (let url_index of url_checked){
       net_test_one(url_index, ret=>{
         if (ret) {
           nettest_count_finished++;
@@ -463,19 +473,18 @@
   }
 
   // 单个网络测试
-  function net_test_one(url_index, callBack) {
-    if (!url_index) {
+  function net_test_one(url_name, callBack) {
+    if (!url_name) {
       return;
     }
-    let url = url_index.split("|")[0];
-    let index = url_index.split("|")[1];
+    let url = $(`#nettest_item_url_${url_name}`).val();
     axios_post_do("net_test", decodeURI(url), function (ret) {
       if (ret.res) {
-        $(`#nettest_item_res_${index}`).html('<span class="badge bg-green me-1 mb-1">是</span>');
-        $(`#nettest_item_res_time_${index}`).html(`<span class="text-green">${ret.time}</span>`);
+        $(`#nettest_item_res_${url_name}`).html('<span class="badge bg-green me-1 mb-1">是</span>');
+        $(`#nettest_item_res_time_${url_name}`).html(`<span class="text-green">${ret.time}</span>`);
       } else {
-        $(`#nettest_item_res_${index}`).html('<span class="badge bg-red me-1 mb-1">否</span>');
-        $(`#nettest_item_res_time_${index}`).html(`<span class="text-red">${ret.time}</span>`);
+        $(`#nettest_item_res_${url_name}`).html('<span class="badge bg-red me-1 mb-1">否</span>');
+        $(`#nettest_item_res_time_${url_name}`).html(`<span class="text-red">${ret.time}</span>`);
       }
       callBack(true)
     });
@@ -528,7 +537,6 @@
             <tr>
               <td>
                 <span>${info.name}</span>
-                <input name="nettest_item" value="${info.id}" type="hidden">
               </td>
               <td><span>${info.trigger_details}</span></td>
               <td><span>${info.pending}</span></td>
@@ -632,19 +640,21 @@
           if (data.schedulerTasks.nettest && data.schedulerTasks.nettest.targets) {
             const nettestTableBody = $('#nettest-table-body');
             nettestTableBody.empty();
-            data.schedulerTasks.nettest.targets.forEach((target, index) => {
+            for (const target of data.schedulerTasks.nettest.targets) {
+              const [[name, url]] = Object.entries(target);
               const row = `
                 <tr>
+                  <td class="w-1"><input class="form-check-input m-0 align-middle" name="nettest-item" value="${name}" type="checkbox"></td>
                   <td>
-                    <span>${target}</span>
-                    <input name="nettest_item" value="${target}|${index}" type="hidden">
+                    <span>${url}</span>
+                    <input id="nettest_item_url_${name}" value="${url}" type="hidden">
                   </td>
-                  <td id="nettest_item_res_${index}"></td>
-                  <td id="nettest_item_res_time_${index}"></td>
+                  <td id="nettest_item_res_${name}"></td>
+                  <td id="nettest_item_res_time_${name}"></td>
                 </tr>
               `;
               nettestTableBody.append(row);
-            });
+            }
           }
 
         } else {
