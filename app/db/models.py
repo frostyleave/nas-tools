@@ -484,7 +484,7 @@ class SYNCHISTORY(Base):
     PATH = Column(Text, index=True)
     SRC = Column(Text)
     DEST = Column(Text)
-
+    DATE = Column(Text, index=True)
 
 class SYSTEMDICT(Base):
     __tablename__ = 'SYSTEM_DICT'

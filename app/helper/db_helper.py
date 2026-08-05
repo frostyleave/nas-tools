@@ -1043,7 +1043,8 @@ class DbHelper:
             self._db.insert(SYNCHISTORY(
                 PATH=os.path.normpath(path),
                 SRC=os.path.normpath(src),
-                DEST=os.path.normpath(dest)
+                DEST=os.path.normpath(dest),
+                DATE=time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time())),
             ))
 
     def get_users(self):
@@ -2729,6 +2730,72 @@ class DbHelper:
                 "VALUE": value
             }
         )
+
+    def get_download_history_ids_before(self, cutoff_str, limit=100):
+        """查询DOWNLOAD_HISTORY中早于cutoff的记录ID"""
+        records = self._db.query(DOWNLOADHISTORY).filter(
+            DOWNLOADHISTORY.DATE < cutoff_str
+        ).with_entities(DOWNLOADHISTORY.ID).limit(limit).all()
+        return [r.ID for r in records]
+
+    def get_plugin_history_ids_before(self, cutoff_str, limit=100):
+        """查询PLUGIN_HISTORY中早于cutoff的记录ID"""
+        records = self._db.query(PLUGINHISTORY).filter(
+            PLUGINHISTORY.DATE < cutoff_str
+        ).with_entities(PLUGINHISTORY.ID).limit(limit).all()
+        return [r.ID for r in records]
+
+    def get_rss_history_ids_before(self, cutoff_str, limit=100):
+        """查询RSS_HISTORY中早于cutoff的记录ID"""
+        records = self._db.query(RSSHISTORY).filter(
+            RSSHISTORY.FINISH_TIME < cutoff_str
+        ).with_entities(RSSHISTORY.ID).limit(limit).all()
+        return [r.ID for r in records]
+
+    def get_site_statistics_history_ids_before(self, cutoff_str, limit=100):
+        """查询SITE_STATISTICS_HISTORY中早于cutoff的记录ID"""
+        records = self._db.query(SITESTATISTICSHISTORY).filter(
+            SITESTATISTICSHISTORY.DATE < cutoff_str
+        ).with_entities(SITESTATISTICSHISTORY.ID).limit(limit).all()
+        return [r.ID for r in records]
+
+    def get_transfer_history_ids_before(self, cutoff_str, limit=100):
+        """查询TRANSFER_HISTORY中早于cutoff的记录ID"""
+        records = self._db.query(TRANSFERHISTORY).filter(
+            TRANSFERHISTORY.DATE < cutoff_str
+        ).with_entities(TRANSFERHISTORY.ID).limit(limit).all()
+        return [r.ID for r in records]
+
+    def get_userrss_task_history_ids_before(self, cutoff_str, limit=100):
+        """查询USERRSS_TASK_HISTORY中早于cutoff的记录ID"""
+        records = self._db.query(USERRSSTASKHISTORY).filter(
+            USERRSSTASKHISTORY.DATE < cutoff_str
+        ).with_entities(USERRSSTASKHISTORY.ID).limit(limit).all()
+        return [r.ID for r in records]
+
+    def get_sync_history_ids_before(self, cutoff_str, limit=100):
+        """查询SYNC_HISTORY中早于cutoff的记录ID"""
+        records = self._db.query(SYNCHISTORY).filter(
+            SYNCHISTORY.DATE < cutoff_str
+        ).with_entities(SYNCHISTORY.ID).limit(limit).all()
+        return [r.ID for r in records]
+
+    @DbPersist(_db)
+    def delete_history_by_ids(self, table_name, ids):
+        """按表名和ID列表批量删除记录"""
+        model_map = {
+            'DOWNLOAD_HISTORY': DOWNLOADHISTORY,
+            'PLUGIN_HISTORY': PLUGINHISTORY,
+            'RSS_HISTORY': RSSHISTORY,
+            'SITE_STATISTICS_HISTORY': SITESTATISTICSHISTORY,
+            'TRANSFER_HISTORY': TRANSFERHISTORY,
+            'USERRSS_TASK_HISTORY': USERRSSTASKHISTORY,
+            'SYNC_HISTORY': SYNCHISTORY,
+        }
+        model = model_map.get(table_name)
+        if not model:
+            return 0
+        return self._db.query(model).filter(model.ID.in_(ids)).delete(synchronize_session=False)
 
     @DbPersist(_db)
     def delete_plugin_history(self, plugin_id, key):

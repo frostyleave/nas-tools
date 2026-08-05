@@ -5,6 +5,7 @@ from apscheduler.schedulers.background import BackgroundScheduler
 import log
 
 from app.helper import MetaHelper
+from app.modules.historycleanup import HistoryCleanup
 from app.mediaserver import MediaServer
 from app.modules.rss import Rss
 from app.core.jobcenter import JobCenter
@@ -29,6 +30,8 @@ RSS_REFRESH_TMDB_INTERVAL = 6
 META_DELETE_UNKNOWN_INTERVAL = 12
 # 定时刷新壁纸的间隔（小时）
 REFRESH_WALLPAPER_INTERVAL = 1
+# 历史数据清理周期（小时）
+HISTORY_CLEANUP_INTERVAL = 24
 
 @singleton
 class Scheduler:
@@ -162,6 +165,14 @@ class Scheduler:
             "interval",
             hours=META_DELETE_UNKNOWN_INTERVAL,
             name='清理未识别缓存'
+        )
+
+        # 定时清理历史数据
+        self.get_scheduler().add_job(
+            HistoryCleanup().cleanup_history_tables,
+            "interval",
+            hours=HISTORY_CLEANUP_INTERVAL,
+            name='清理历史记录'
         )
 
         # 定时刷新壁纸
