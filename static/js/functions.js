@@ -385,7 +385,8 @@ function render_progress(ret, callback) {
     if (ret.value <= 100) {
       $("#modal_process_bar").attr("style", "width: " + ret.value + "%").attr("aria-valuenow", ret.value);
       $("#modal_process_text").text(ret.text);
-    } 
+      $("#modal-process").modal("show");
+    }
     
     if (ret.value === 100 && ret.status == 'finish' && callback) {
       stopProgress();
