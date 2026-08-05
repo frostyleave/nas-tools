@@ -1,0 +1,240 @@
+<div class="container-xl">
+  <!-- Page title -->
+  <div class="page-header d-print-none mt-2">
+    <div class="row align-items-center">
+      <div class="col">
+        <h2 class="page-title">下载历史</h2>
+      </div>
+      <div class="col-auto ms-auto d-print-none">
+        <div class="btn-list">
+          <a href="javascript:navmenu('downloading')" class="btn d-none d-sm-inline-flex" title="返回">
+            <i class="ti ti-arrow-back-up fs-3"></i>
+            返回
+          </a>
+          <a href="javascript:navmenu('downloading')" class="btn d-sm-none mbtn-action" title="返回">
+            <i class="ti ti-arrow-back-up fs-3"></i>
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<!-- 业务页面代码 -->
+<div class="page-body">
+  <div class="container-xl">
+    <div class="row row-cards pe-3">
+      <div class="card mt-0 ms-2 ps-0">
+        <div class="card-body border-bottom py-3">
+          <div class="d-flex">
+            <div class="text-muted">
+              共 <span id="total-count">0</span> 条记录
+            </div>
+            <div class="ms-auto text-muted">
+              <div class="d-flex align-items-center gap-2">
+                类型:
+                <select id="filter-type" class="form-select form-select-sm" style="width: auto;">
+                  <option value="">全部</option>
+                  <option value="电影">电影</option>
+                  <option value="电视剧">剧集</option>
+                  <option value="动漫">动漫</option>
+                </select>
+                TMDBID:
+                <input id="filter-tmdbid" type="text" class="form-control form-control-sm" placeholder="TMDBID"
+                  style="width: 90px;">
+                站点:
+                <input id="filter-site" type="text" class="form-control form-control-sm" placeholder="站点名称"
+                  style="width: 120px;">
+                <a href="javascript:search_download_history()" class="btn btn-primary btn-sm d-none d-sm-inline-flex">
+                  <i class="ti ti-search fs-3"></i>
+                  查询
+                </a>
+                <a href="javascript:search_download_history()" class="btn btn-primary btn-sm d-sm-none">
+                  <i class="ti ti-search fs-3"></i>
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="table-responsive" id="table-container">
+          <table class="table table-vcenter card-table table-hover table-striped">
+            <thead>
+              <tr>
+                <th>站点</th>
+                <th>TMDBID</th>
+                <th>名称</th>
+                <th>年份</th>
+                <th>类型</th>
+                <th>季集</th>
+                <th>时间</th>
+              </tr>
+            </thead>
+            <tbody id="download-history-table-body">
+            </tbody>
+          </table>
+        </div>
+        <div class="card-footer d-flex align-items-center" id="pagination-container" style="display: none;">
+          <p class="m-0 text-muted">当前页 <span id="current-count">0</span> 条</p>
+          <ul class="pagination m-0 ms-auto" id="pagination-list">
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script type="text/javascript">
+
+  // 动态计算每页条数（根据视口高度）
+  var gPageSize = 15;
+
+  function calcPageSize() {
+    // 典型浏览器 1080p 实际视口 ≈ 940px，需得出 15 条
+    //   可用行空间 = 视口高度 - 固定开销(导航+标题+筛选+表头+分页+边距 ≈ 280px)
+    //   每行高度 ≈ 44px（table-vcenter 含 padding）
+    var overhead = 280;
+    var rowH = 44;
+    var count = Math.floor(($(window).height() - overhead) / rowH);
+    gPageSize = Math.max(10, Math.min(100, count));
+    return gPageSize;
+  }
+
+  // 翻页
+  function go_dh_page(page) {
+    search_download_history(page);
+  }
+
+  // 查询下载历史（page 不传则从第1页开始）
+  function search_download_history(page) {
+    // 新查询默认从第1页开始
+    if (!page) {
+      page = 1;
+    }
+
+    const type = $('#filter-type').val();
+    const tmdbid = $('#filter-tmdbid').val().trim();
+    const site = $('#filter-site').val().trim();
+
+    const requestData = {
+      page: page,
+      pagenum: gPageSize
+    };
+    if (type) requestData.type = type;
+    if (tmdbid) requestData.tmdbid = tmdbid;
+    if (site) requestData.site = site;
+
+    // 显示加载状态
+    const tableBody = $('#download-history-table-body');
+    tableBody.html('<tr><td colspan="7" align="center">加载中...</td></tr>');
+
+    axios_post('/data/download_history', requestData, function (response) {
+
+      if (response.code === 0 && response.data) {
+
+        const data = response.data;
+
+        // 更新记录数
+        $('#total-count').text(data.TotalCount || 0);
+        $('#current-count').text(data.Items ? data.Items.length : 0);
+
+        // 生成表格内容
+        tableBody.empty();
+
+        if (data.Items && data.Items.length > 0) {
+          $('#table-container').addClass('table-page-mini-body');
+
+          data.Items.forEach(item => {
+            const row = `
+              <tr>
+                <td>
+                  <span class="badge badge-outline text-teal">${item.SITE || ''}</span>
+                </td>
+                <td>
+                  <span>${item.TMDBID || ''}</span>
+                </td>
+                <td>
+                  <div>${item.TITLE || ''}</div>
+                </td>
+                <td>
+                  <span>${item.YEAR || ''}</span>
+                </td>
+                <td>
+                  <span>${item.TYPE || ''}</span>
+                </td>
+                <td>
+                  <span>${item.SE || ''}</span>
+                </td>
+                <td>
+                  <small>${item.DATE || ''}</small>
+                </td>
+              </tr>
+            `;
+            tableBody.append(row);
+          });
+
+          // 生成分页
+          const paginationContainer = $('#pagination-container');
+          const paginationList = $('#pagination-list');
+          paginationList.empty();
+
+          const totalPage = data.TotalPage || 1;
+          const currentPage = data.CurrentPage || 1;
+
+          // 上一页
+          const prevDisabled = currentPage <= 1 ? 'disabled' : '';
+          paginationList.append(`
+            <li class="page-item ${prevDisabled}">
+              <a class="page-link" href="javascript:void(0)" onclick="if(${currentPage} > 1) go_dh_page(${currentPage - 1})" tabindex="-1" aria-disabled="true">
+                <i class="ti ti-chevron-left fs-2"></i>
+              </a>
+            </li>
+          `);
+
+          // 页码
+          var pageRange = get_page_range(currentPage, totalPage);
+          pageRange.forEach(p => {
+            const active = p == currentPage ? 'active' : '';
+            paginationList.append(`
+              <li class="page-item ${active}">
+                <a class="page-link" href="javascript:go_dh_page(${p})">${p}</a>
+              </li>
+            `);
+          });
+
+          // 下一页
+          const nextDisabled = currentPage >= totalPage ? 'disabled' : '';
+          paginationList.append(`
+            <li class="page-item ${nextDisabled}">
+              <a class="page-link" href="javascript:void(0)" onclick="if(${currentPage} < ${totalPage}) go_dh_page(${currentPage + 1})">
+                <i class="ti ti-chevron-right fs-2"></i>
+              </a>
+            </li>
+          `);
+
+          paginationContainer.show();
+        } else {
+          $('#table-container').removeClass('table-page-mini-body');
+          tableBody.html('<tr><td colspan="7" align="center">没有数据</td></tr>');
+          $('#pagination-container').hide();
+        }
+      }
+    });
+  }
+
+  // 回车键触发查询
+  $(document).ready(function () {
+    // 计算适应视口的每页条数
+    calcPageSize();
+
+    $('#filter-tmdbid, #filter-site').bind('keypress', function (event) {
+      if (event.keyCode == "13") {
+        search_download_history();
+      }
+    });
+  });
+
+  // 窗口大小变化时重新计算
+  $(window).on('resize', function () {
+    calcPageSize();
+  });
+
+</script>

@@ -1060,5 +1060,60 @@ def _get_library_spacesize():
 
 
 
+# 下载历史页面
+@data_router.post("/download_history")
+async def download_history(request: Request):
+    """
+    下载历史页面
+    """
+    data = await request.json()
+
+    search_type = data.get("type") or ""
+    search_tmdbid = data.get("tmdbid") or ""
+    search_site = data.get("site") or ""
+
+    page_size = data.get("pagenum")
+    if not page_size:
+        page_size = 30
+
+    current_page = data.get("page")
+    if not current_page:
+        current_page = 1
+    else:
+        current_page = int(current_page)
+
+    from app.db.models import DOWNLOADHISTORY
+    from app.helper.db_helper import DbHelper
+
+    db = DbHelper()
+    query = db._db.query(DOWNLOADHISTORY)
+
+    if search_type:
+        query = query.filter(DOWNLOADHISTORY.TYPE == search_type)
+    if search_tmdbid:
+        query = query.filter(DOWNLOADHISTORY.TMDBID == search_tmdbid)
+    if search_site:
+        query = query.filter(DOWNLOADHISTORY.SITE.like(f"%{search_site}%"))
+
+    total_count = query.count()
+    offset = (current_page - 1) * page_size
+    results = query.order_by(DOWNLOADHISTORY.ID.desc()).limit(page_size).offset(offset).all()
+
+    items = [rec.as_dict() for rec in results]
+
+    total_page = floor(total_count / page_size) + 1 if total_count > 0 else 0
+
+    return response(data={
+        "Items": items,
+        "TotalCount": total_count,
+        "TotalPage": total_page,
+        "CurrentPage": current_page,
+        "PageNum": page_size,
+        "Type": search_type,
+        "Tmdbid": search_tmdbid,
+        "Site": search_site,
+    })
+
+
 # 给这个 router 加异常捕获
 router_exception_handler(data_router)
