@@ -76,7 +76,6 @@ def do(content: dict = Body(...), current_user: User = Depends(get_current_user)
 @action_router.post("/search")
 def search(background_tasks: BackgroundTasks, data: dict = Body(...)):
     
-    start_time = time.time()
     try:
         search_word = data.get("search_word")
         if not search_word:
@@ -108,10 +107,6 @@ def search(background_tasks: BackgroundTasks, data: dict = Body(...)):
     except Exception as e:
         log.exception("处理/search请求出错")
         return {"code": -1, "msg": str(e)}
-    finally:
-        cost_time = time.time()
-        process_time = (cost_time - start_time) * 1000  # 转换为毫秒
-        log.debug("[%s] %s, 耗时: %s ms", str(threading.get_ident()), json.dumps(data), format(process_time, ".2f"))
 
 class WebAction:
     
@@ -124,7 +119,6 @@ class WebAction:
         # WEB请求响应
         self._actions = {
             "sch": self.__sch,
-            "search": self.__search,
             "download": self.__download,
             "download_link": self.__download_link,
             "download_torrent": self.__download_torrent,
@@ -299,33 +293,6 @@ class WebAction:
         else:
             return func(**{})
 
-    def api_action(self, cmd, data=None):
-        """
-        执行API请求
-        """
-        result = self.action(cmd, data)
-        if not result:
-            return {
-                "code": -1,
-                "success": False,
-                "message": "服务异常，未获取到返回结果"
-            }
-        code = result.get("code", result.get("retcode", 0))
-        if not code or str(code) == "0":
-            success = True
-        else:
-            success = False
-        message = result.get("msg", result.get("retmsg", ""))
-        for key in ['code', 'retcode', 'msg', 'retmsg']:
-            if key in result:
-                result.pop(key)
-        return {
-            "code": code,
-            "success": success,
-            "message": message,
-            "data": result
-        }
-
     def set_config_value(self, cfg, cfg_key, cfg_value):
         """
         根据Key设置配置值
@@ -443,33 +410,6 @@ class WebAction:
         if sch_item and commands.get(sch_item):
             ThreadHelper().start_thread(commands.get(sch_item), ())
         return {"retmsg": "服务已启动", "item": sch_item}
-
-    def __search(self, data):
-        """
-        WEB搜索资源
-        """
-        search_word = data.get("search_word")
-        ident_flag = False if data.get("unident") else True
-        filters = data.get("filters")
-        tmdbid = data.get("tmdbid")
-        media_type = data.get("media_type")
-
-        if media_type:
-            if media_type in Constants.MOVIE_TYPES:
-                media_type = MediaType.MOVIE
-            else:
-                media_type = MediaType.TV
-
-        if search_word:
-            ret, ret_msg = SearchProxy().search_torrents_from_web(content=search_word,
-                                                                  ident_flag=ident_flag,
-                                                                  filters=filters,
-                                                                  tmdbid=tmdbid,
-                                                                  media_type=media_type,
-                                                                  task_id=data.get("task_id"))
-            if ret != 0:
-                return {"code": ret, "msg": ret_msg}
-        return {"code": 0}
 
     def __download(self, data):
         """

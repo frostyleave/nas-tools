@@ -35,13 +35,13 @@ function media_search(tmdbid, title, type) {
 
   const param = { "tmdbid": tmdbid, "search_word": title, "media_type": type };
   // 显示弹窗
-  show_refresh_progress_modal("正在搜索 " + title + " ...", "search")
+  show_progress_modal("正在搜索 " + title + " ...", "search")
   // 发起请求
   axios_post('/search', param, function(ret) {
 
     // 请求失败
     if (ret.code != 0) {
-      $("#modal-process").modal("hide");
+      hide_progress_modal();
       show_fail_modal(ret.msg);
       return;
     }
@@ -383,16 +383,15 @@ function render_progress(ret, callback) {
   if (ret.code === 0) {
 
     if (ret.value <= 100) {
-      $("#modal_process_bar").attr("style", "width: " + ret.value + "%").attr("aria-valuenow", ret.value);
+      $("#modal_process_bar").css("width", ret.value + "%").attr("aria-valuenow", ret.value);
       $("#modal_process_text").text(ret.text);
-      $("#modal-process").modal("show");
     }
-    
+
     if (ret.value === 100 && ret.status == 'finish' && callback) {
       stopProgress();
       // 延迟调用
       setTimeout(() => {
-        hide_refresh_process();
+        hide_progress_modal();
         callback(ret);
       }, 200);
     }
@@ -405,14 +404,15 @@ function render_progress(ret, callback) {
 }
 
 // 显示全局进度框
-function show_refresh_progress_modal(title) {
+function show_progress_modal(title) {
+  
   hideLoading();
   if (title) {
     $("#modal_process_title").text(title);
   } else {
     $("#modal_process_title").hide();
   }
-  $("#modal_process_bar").attr("style", "width: 0%").attr("aria-valuenow", 0);
+  $("#modal_process_bar").css("width", "0%").attr("aria-valuenow", 0);
   $("#modal_process_text").text("请稍候...");
   $("#modal-process").modal("show");
 
@@ -420,22 +420,27 @@ function show_refresh_progress_modal(title) {
 
 // 显示全局进度框
 function show_refresh_progress(title, type) {
+
   hideLoading();
+
   // 显示对话框
   if (title) {
     $("#modal_process_title").text(title);
   } else {
     $("#modal_process_title").hide();
   }
-  $("#modal_process_bar").attr("style", "width: 0%").attr("aria-valuenow", 0);
+
+  $("#modal_process_bar").css("width", "0%").attr("aria-valuenow", 0);
   $("#modal_process_text").text("请稍候...");
   $("#modal-process").modal("show");
+
   // 立即开始刷新进度条
   start_progress(type);
+
 }
 
 // 关闭全局进度框
-function hide_refresh_process() {
+function hide_progress_modal() {
   $("#modal-process").modal("hide");
   stopProgress();
 }
@@ -1424,16 +1429,34 @@ function search_media_advanced() {
   };
   const param = { "search_word": keyword, "filters": filters, "unident": true };
   $("#modal-search-advanced").modal("hide");
-  show_refresh_progress(`正在搜索 ${keyword} ...`, "search");
-  axios_post_do("search", param, function (ret) {
-    hide_refresh_process();
-    if (ret.code === 0) {
-      navmenu(`search?s=${keyword}`);
-    } else {
-      show_fail_modal(ret.msg, function () {
-        $("#modal-search-advanced").modal("show");
-      });
+
+  // 显示进度条
+  show_progress_modal(`正在搜索 ${keyword} ...`, "search");
+
+  // 发起请求
+  axios_post("/search", param, function (ret) {
+
+    // 请求失败
+    if (ret.code != 0) {
+      hide_progress_modal();
+      show_fail_modal(ret.msg, function () {$("#modal-search-advanced").modal("show");});
+      return;
     }
+
+    // 刷新进度
+    show_progress_info(ret.task_id, function(resultData) {
+    
+      // 没有搜索到内容, 不跳转
+      if (resultData && resultData.result == 0) {
+        show_fail_modal('未搜索到任何资源', function () { $("#modal-search-advanced").modal("show"); });
+        return;
+      }
+
+      // 切换到结果页
+      navmenu('search?s=' + keyword);
+
+    });
+
   }, false);
 }
 
@@ -1747,9 +1770,13 @@ function manual_media_transfer() {
   };
   $('#modal-media-identification').modal('hide');
   show_refresh_progress("手动转移 " + inpath, "filetransfer");
+
   let cmd = (manual_type === '3') ? "rename_udf" : "rename"
+
   axios_post_do(cmd, data, function (ret) {
-    hide_refresh_process();
+
+    hide_progress_modal();
+
     if (ret.retcode === 0) {
       show_success_modal(inpath + "处理成功！", function () {
         // 转移
@@ -1760,11 +1787,10 @@ function manual_media_transfer() {
         navmenu(source);
       });
     } else {
-      //处理失败
-      show_fail_modal(ret.retmsg, function () {
-        $('#modal-media-identification').modal('show');
-      });
+      // 处理失败
+      show_fail_modal(ret.retmsg, function () { $('#modal-media-identification').modal('show'); });
     }
+
   }, false);
 }
 

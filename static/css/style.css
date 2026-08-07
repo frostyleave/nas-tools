@@ -850,6 +850,19 @@ a:hover {
     bottom: 0;
 }
 
+/* 强制进度条动画，无视 prefers-reduced-motion */
+@media (prefers-reduced-motion: reduce) {
+  .progress-bar-animated {
+    animation: progress-bar-stripes 1s linear infinite !important;
+    transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+}
+
+/* 进度条平滑过渡效果 */
+.progress-bar-animated {
+    transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
 #messageCenterModal .modal-body {
   height: 60vh;
   overflow-y: auto;
