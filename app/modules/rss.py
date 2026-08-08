@@ -1,3 +1,4 @@
+from datetime import datetime, timezone
 import re
 
 from threading import Lock
@@ -18,6 +19,8 @@ from app.utils.types import MediaType, SearchType
 
 lock = Lock()
 
+
+TIME_FORMART = '%Y-%m-%d %H:%M:%S'
 
 @singleton
 class Rss:
@@ -113,6 +116,9 @@ class Rss:
                 if not rss_acticles:
                     log.warn(f"【Rss】{site_name} 未下载到数据")
                     continue
+
+                last_max_pubtime = self._get_site_last_max_pubtime(site_info.id)
+                current_max_pubtime = None
                 
                 log.info(f"【Rss】{site_name} 获取数据：{len(rss_acticles)}")
                 # 处理RSS结果
@@ -121,6 +127,15 @@ class Rss:
                     try:
                         # 种子名
                         title = article.get('title')
+
+                        pubtime = article.get('pubdate')
+                        if pubtime:
+                            if not current_max_pubtime or current_max_pubtime < pubtime:
+                                current_max_pubtime = pubtime
+                            if last_max_pubtime and last_max_pubtime > pubtime:
+                                log.debug(f"【Rss】[{site_name}]{title} pubtime={pubtime.strftime(TIME_FORMART)} 小于站点上次订阅推进时间, 跳过")
+                                continue
+
                         # 种子链接
                         enclosure = article.get('enclosure')
                         # 开始处理
@@ -190,11 +205,35 @@ class Rss:
                         continue
                 log.info("【Rss】%s 处理结束，匹配到 %s 个有效资源" , site_name, res_num)
 
+                # 更新站点推进时间
+                if current_max_pubtime and (not last_max_pubtime or current_max_pubtime > last_max_pubtime):
+                    self.dbhelper.add_or_update_site_rss_forward(site_info.id, current_max_pubtime)
+
             log.info("【Rss】所有RSS处理结束，共 %s 个有效资源", len(rss_download_torrents))
             # 开始择优下载
             self._download_rss_torrent(rss_download_torrents=rss_download_torrents,
                                        rss_no_exists=rss_no_exists)
 
+    def _get_site_last_max_pubtime(self, site_id):
+        """
+        查询站点记录的最大pubtime
+        """
+        forward_info = self.dbhelper.get_site_rss_forward(site_id)
+        if not forward_info:
+            return None
+
+        return self._parse_time_str_to_datetime(forward_info.LAST_PUB_TIME)
+        
+    def _parse_time_str_to_datetime(self, iso_str: str) -> datetime:
+        """
+        将 '2026-07-31 07:27:36' 解析为 datetime 对象
+        """
+        if not iso_str:
+            return None
+        
+        dt_naive = datetime.strptime(iso_str, TIME_FORMART)
+        # 加上 UTC 时区，并去掉微秒，只保留到秒
+        return dt_naive.replace(tzinfo=timezone.utc, microsecond=0)
 
     def _try_resolve(self, rss_title) -> MetaInfo:
 

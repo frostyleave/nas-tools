@@ -2689,6 +2689,28 @@ class DbHelper:
         self._db.query(INDEXERSITE).filter(INDEXERSITE.ID == id).delete()
 
 
+    def get_site_rss_forward(self, site_id) -> SITERSSFORWARD:
+        """
+        查询站点订阅推进数据
+        """
+        return self._db.query(SITERSSFORWARD).filter(SITERSSFORWARD.SITE_ID == site_id).first()
+
+    @DbPersist(_db)
+    def add_or_update_site_rss_forward(self, site_id, last_pub_time:datetime.datetime):
+        """
+        新增或更新站点订阅推进数据
+        """
+        time_str = last_pub_time.strftime('%Y-%m-%d %H:%M:%S')
+        # 尝试更新
+        if self._db.query(SITERSSFORWARD).filter(SITERSSFORWARD.SITE_ID == site_id).update({"LAST_PUB_TIME": time_str}) > 0:
+            return
+        # 新增
+        self._db.insert(SITERSSFORWARD(
+            SITE_ID=site_id,
+            LAST_PUB_TIME=time_str,
+        ))
+
+
     def get_downloaders(self):
         """
         查询下载器

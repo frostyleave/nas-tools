@@ -571,6 +571,14 @@ class PLUGINHISTORY(Base):
     DATE = Column(Text)
 
 
+class SITERSSFORWARD(Base):
+    __tablename__ = 'SITE_RSS_FORWARD'
+
+    ID = Column(Integer, Sequence('ID'), primary_key=True)
+    SITE_ID = Column(Integer, index=True)
+    LAST_PUB_TIME = Column(Text)
+
+
 class MEDIASYNCITEMS(BaseMedia):
     __tablename__ = 'MEDIASYNC_ITEMS'
     __table_args__ = (
