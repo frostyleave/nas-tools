@@ -10,7 +10,7 @@ from apscheduler.schedulers.background import BackgroundScheduler
 
 from app.conf import SystemConfig
 from app.helper import DbHelper
-from app.message import Message
+from app.message import MessageService
 from app.core.jobcenter import JobCenter
 
 from config import Config
@@ -205,7 +205,7 @@ class _IPluginModule(metaclass=ABCMeta):
         """
         发送消息
         """
-        return Message().send_plugin_message(title=title,
+        return MessageService().send_plugin_message(title=title,
                                              text=text,
                                              image=image)
 

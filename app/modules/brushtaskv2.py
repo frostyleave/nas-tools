@@ -19,7 +19,7 @@ from app.helper import DbHelper
 from app.indexer.client.builtin import BuiltinIndexer
 from app.indexer.manager import IndexerManager
 from app.media.meta import MetaInfo
-from app.message import Message
+from app.message import MessageService
 from app.models.model import UserSiteConf, BrushedTorrentUpdate
 from app.sites import SitesManager, SiteConf
 from app.utils import StringUtils
@@ -54,7 +54,7 @@ class BrushTaskV2(object):
 
     def init_config(self):
         self.dbhelper = DbHelper()
-        self.message = Message()
+        self.message = MessageService()
         self.sites = SitesManager()
         self.siteconf = SiteConf()
         self.filter = Filter()

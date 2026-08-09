@@ -5,11 +5,12 @@ from threading import Lock
 
 import log
 
-from app.models.model import UserSiteConf
 from app.downloader import Downloader
+from app.message import MessageService
+from app.models.model import UserSiteConf
 from app.modules.filter import Filter
 from app.helper import DbHelper, RssHelper
-from app.media import Media
+from app.media import MediaService
 from app.media.meta import MetaInfo
 from app.sites import SitesManager, SiteConf
 from app.modules.subscribe import Subscribe
@@ -38,7 +39,7 @@ class Rss:
         self.init_config()
 
     def init_config(self):
-        self.media = Media()
+        self.media = MediaService()
         self.downloader = Downloader()
         self.sites = SitesManager()
         self.siteconf = SiteConf()
@@ -46,6 +47,7 @@ class Rss:
         self.dbhelper = DbHelper()
         self.rsshelper = RssHelper()
         self.subscribe = Subscribe()
+        self.message = MessageService()
 
     def rssdownload(self):
         """

@@ -10,7 +10,7 @@ import log
 from app.conf import ModuleConf
 from app.downloader import Downloader
 from app.helper import DbHelper
-from app.message import Message
+from app.message import MessageService
 from app.utils.commons import singleton
 from app.core.jobcenter import JobCenter
 
@@ -30,7 +30,7 @@ class TorrentRemover(object):
         self.init_config()
 
     def init_config(self):
-        self.message = Message()
+        self.message = MessageService()
         self.downloader = Downloader()
         self.dbhelper = DbHelper()
         # 移出现有任务

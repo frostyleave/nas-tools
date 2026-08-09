@@ -4,9 +4,9 @@ import re
 import log
 
 from app.downloader.downloader import Downloader
-from app.media import Media, DouBan
+from app.media import MediaService, DouBan
 from app.media.meta import MetaInfo
-from app.message import Message
+from app.message import MessageService
 from app.modules.searcher import Searcher
 
 from app.utils.string_utils import StringUtils
@@ -42,7 +42,7 @@ class SearchProxy:
         if media_type:
             mtype = media_type
 
-        _media = Media()
+        _media = MediaService()
 
         # 识别媒体
         media_info = None
@@ -194,7 +194,7 @@ class SearchProxy:
             log.info("【Searcher】 未搜索到任何资源")
             return None, no_exists, 0, 0
         
-        if in_from in Message().get_search_types():
+        if in_from in MessageService().get_search_types():
             # 未开自动下载
             _search_auto = Config().get_config("pt").get('search_auto', True)
             if not _search_auto:
@@ -249,7 +249,7 @@ class SearchProxy:
                                                    page=page)
         else:
             meta_info = MetaInfo(title=content)
-            tmdbinfos = Media().get_tmdb_infos(title=meta_info.get_name(),
+            tmdbinfos = MediaService().get_tmdb_infos(title=meta_info.get_name(),
                                                year=meta_info.year,
                                                mtype=mtype,
                                                page=page)

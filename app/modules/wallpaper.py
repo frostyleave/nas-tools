@@ -3,7 +3,7 @@ import datetime
 
 from cachetools import TTLCache, cached
 
-from app.media import Media
+from app.media import MediaService
 from app.utils import RequestUtils
 from config import Config
 
@@ -51,7 +51,7 @@ def __get_themoviedb_wallpaper(cache_tag):
     获取TheMovieDb的随机背景图
     cache_tag 缓存标记, 相同时会命中缓存
     """
-    return Media().get_random_discover_backdrop()
+    return MediaService().get_random_discover_backdrop()
 
 
 @cached(cache=TTLCache(maxsize=512, ttl=3600))

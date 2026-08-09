@@ -8,7 +8,7 @@ from jinja2 import Template
 
 from app.helper import RssHelper
 from app.helper import ThreadHelper
-from app.media import Media
+from app.media import MediaService
 from app.mediaserver import MediaServer
 from app.plugins.modules._base import _IPluginModule
 from app.modules.subscribe import Subscribe
@@ -68,7 +68,7 @@ class DoubanRank(_IPluginModule):
         self.mediaserver = MediaServer()
         self.subscribe = Subscribe()
         self.rsshelper = RssHelper()
-        self.media = Media()
+        self.media = MediaService()
         if config:
             self._enable = config.get("enable")
             self._onlyonce = config.get("onlyonce")
@@ -422,7 +422,7 @@ class DoubanRank(_IPluginModule):
                     self.info(f"已处理过: {title} (豆瓣id: {douban_id})")
                     continue
                 # 查询媒体信息
-                media_info = Media().get_mediainfo_from_id(mediaid=f"DB:{douban_id}", wait=True)
+                media_info = MediaService().get_mediainfo_from_id(mediaid=f"DB:{douban_id}", wait=True)
                 if not media_info:
                     self.warn(f"未查询到媒体信息: {title} (豆瓣id: {douban_id})")
                     continue

@@ -9,9 +9,9 @@ from app.downloader import Downloader
 from app.modules.filter import Filter
 from app.helper import DbHelper, MetaHelper
 from app.indexer import Indexer
-from app.media import Media
+from app.media import MediaService
 from app.media.meta import MetaInfo
-from app.message import Message
+from app.message import MessageService
 from app.plugins import EventManager
 from app.modules.search import SearchProxy
 from app.sites import SitesManager
@@ -42,8 +42,8 @@ class Subscribe:
         self.dbhelper = DbHelper()
         self.metahelper = MetaHelper()
         self.searcher = SearchProxy()
-        self.message = Message()
-        self.media = Media()
+        self.message = MessageService()
+        self.media = MediaService()
         self.downloader = Downloader()
         self.sites = SitesManager()
         self.indexer = Indexer()
@@ -166,7 +166,7 @@ class Subscribe:
                 # 根据TMDBID查询，从推荐加订阅的情况
                 if mediaid:
                     # 根据ID查询
-                    media_info = Media().get_mediainfo_from_id(mediaid=mediaid, mtype=mtype)
+                    media_info = MediaService().get_mediainfo_from_id(mediaid=mediaid, mtype=mtype)
                     if not season:
                         season = media_info.begin_season
                 else:

@@ -8,7 +8,7 @@ import log
 
 from app.indexer.client.builtin import BuiltinIndexer
 from app.models.model import IndexerInfo
-from app.media import Media
+from app.media import MediaService
 from app.media.meta._base import MetaBase
 from app.media.meta.metainfo import MetaInfo
 from app.utils import StringUtils
@@ -203,7 +203,7 @@ def exec_search_by_threads(client_instance: BuiltinIndexer,
     def get_media_en_name(media_info: MetaBase):
         if media_info.original_language == "en":
             return media_info.original_title
-        return Media().get_tmdb_en_title(media_info)
+        return MediaService().get_tmdb_en_title(media_info)
     
     thread_count = min(len(search_indexers), 20)        
     with ThreadPoolExecutor(max_workers=thread_count) as executor:

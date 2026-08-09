@@ -8,8 +8,8 @@ import log
 from app.conf import SystemConfig
 from app.db.media_db import MediaDb
 from app.helper import ProgressHelper, SubmoduleHelper
-from app.media import Media
-from app.message import Message
+from app.media import MediaService
+from app.message import MessageService
 from app.utils.commons import singleton
 from app.utils.constants import Constants
 from app.utils.types import MediaServerType, SystemConfigKey, ProgressKey
@@ -42,9 +42,9 @@ class MediaServer:
 
     def init_config(self):
         self.mediadb = MediaDb()
-        self.message = Message()
+        self.message = MessageService()
         self.progress = ProgressHelper()
-        self.media = Media()
+        self.media = MediaService()
         self.systemconfig = SystemConfig()
         # 当前使用的媒体库服务器
         self._server_type = Config().get_config('media').get('media_server') or 'emby'

@@ -19,7 +19,7 @@ from app.helper.words_helper import WordsHelper
 from app.indexer.indexer import Indexer
 from app.media.category import Category
 from app.mediaserver.media_server import MediaServer
-from app.message import Message
+from app.message import MessageService
 from app.middleware.security import get_current_user
 from app.modules.brushtaskv2 import BrushTaskV2 as BrushTask
 from app.modules.filter import Filter
@@ -427,7 +427,7 @@ async def library():
 @data_router.post("/notification")
 async def notification():
 
-    message_clients = Message().get_message_client_info()
+    message_clients = MessageService().get_message_client_info()
     switchs = ModuleConf.MESSAGE_CONF.get("switch")
 
     channels = ModuleConf.MESSAGE_CONF.get("client")

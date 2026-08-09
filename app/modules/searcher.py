@@ -2,9 +2,9 @@ from typing import List, Tuple
 
 from app.core.task_manager import GlobalTaskManager
 from app.helper import DbHelper
-from app.media import Media
+from app.media import MediaService
 from app.media.meta.metainfo import MetaInfo
-from app.message import Message
+from app.message import MessageService
 from app.indexer import Indexer
 from app.utils.commons import singleton
 from app.utils.constants import Constants
@@ -26,8 +26,8 @@ class Searcher:
         self.init_config()
 
     def init_config(self):
-        self.media = Media()
-        self.message = Message()
+        self.media = MediaService()
+        self.message = MessageService()
         self.dbhelper = DbHelper()
         self.indexer = Indexer()
 

@@ -26,10 +26,10 @@ from app.core.task_manager import GlobalTaskManager
 from app.downloader import Downloader
 from app.indexer import Indexer
 from app.indexer.manager import IndexerManager
-from app.media import Media, Bangumi, DouBan, Scraper
+from app.media import MediaService, Bangumi, DouBan, Scraper
 from app.media.meta import MetaInfo
 from app.mediaserver import MediaServer
-from app.message import Message
+from app.message import MessageService
 from app.models.user import User, UserManager
 from app.middleware.security import get_current_user
 from app.modules.filetransfer import FileTransfer
@@ -454,7 +454,7 @@ class WebAction:
         dl_dir = data.get("dl_dir")
         dl_setting = data.get("dl_setting")
 
-        media = Media().get_media_info(title=title, subtitle=description)
+        media = MediaService().get_media_info(title=title, subtitle=description)
         media.site = data.get("site")
         media.enclosure = enclosure
         media.page_url = page_url
@@ -489,7 +489,7 @@ class WebAction:
                 continue
             file_name = file_item.get("upload", {}).get("filename")
             file_path = os.path.join(Config().get_temp_path(), file_name)
-            media_info = Media().get_media_info(title=file_name)
+            media_info = MediaService().get_media_info(title=file_name)
             if media_info:
                 media_info.site = "WEB"
             # 添加下载
@@ -520,7 +520,7 @@ class WebAction:
             retmsg = result.ret_msg
             if not file_path:
                 return {"code": -1, "msg": f"下载种子文件失败： {retmsg}"}
-            media_info = Media().get_media_info(title=os.path.basename(file_path))
+            media_info = MediaService().get_media_info(title=os.path.basename(file_path))
             if media_info:
                 media_info.site = "WEB"
             # 添加下载
@@ -723,7 +723,7 @@ class WebAction:
         
         if tmdbid:
             # 有输入TMDBID
-            tmdb_info = Media().get_tmdb_info(mtype=media_type, tmdbid=tmdbid)
+            tmdb_info = MediaService().get_tmdb_info(mtype=media_type, tmdbid=tmdbid)
             if not tmdb_info:
                 return False, "识别失败, 无法查询到TMDB信息"
             
@@ -1261,7 +1261,7 @@ class WebAction:
 
         # 先取订阅信息
         _subcribe = Subscribe()
-        _media = Media()
+        _media = MediaService()
         rssid_ok = False
         if rssid:
             rssid = str(rssid)
@@ -1446,7 +1446,7 @@ class WebAction:
                         }
         else:
             if tid:
-                tmdb_info = Media().get_tmdb_info(mtype=MediaType.MOVIE, tmdbid=tid)
+                tmdb_info = MediaService().get_tmdb_info(mtype=MediaType.MOVIE, tmdbid=tid)
             else:
                 return {"code": 1, "retmsg": "没有TMDBID信息"}
             if not tmdb_info:
@@ -1506,7 +1506,7 @@ class WebAction:
                 }
         else:
             if tid:
-                tmdb_info = Media().get_tmdb_tv_season_detail(tmdbid=tid, season=season)
+                tmdb_info = MediaService().get_tmdb_tv_season_detail(tmdbid=tid, season=season)
             else:
                 return {"code": 1, "retmsg": "没有TMDBID信息"}
             if not tmdb_info:
@@ -1514,7 +1514,7 @@ class WebAction:
             episode_events = []
             air_date = tmdb_info.get("air_date")
             if not tmdb_info.get("poster_path"):
-                tv_tmdb_info = Media().get_tmdb_info(mtype=MediaType.TV, tmdbid=tid)
+                tv_tmdb_info = MediaService().get_tmdb_info(mtype=MediaType.TV, tmdbid=tid)
                 if tv_tmdb_info:
                     poster_path = Config().get_tmdbimage_url(tv_tmdb_info.get('poster_path'))
                 else:
@@ -1706,7 +1706,7 @@ class WebAction:
         subtitle = data.get("subtitle")
         if not name:
             return {"code": -1}
-        media_info = Media().get_media_info(title=name, subtitle=subtitle)
+        media_info = MediaService().get_media_info(title=name, subtitle=subtitle)
         if not media_info:
             return {"code": 0, "data": {"name": "无法识别"}}
         return {"code": 0, "data": MediaUtils.mediainfo_dict(media_info)}
@@ -1899,18 +1899,18 @@ class WebAction:
         elif Type == "TRENDING":
             # TMDB流行趋势
             if SubType == "trendingmv":
-                res_list = Media().get_tmdb_trending_movie_week(page=CurrentPage)
+                res_list = MediaService().get_tmdb_trending_movie_week(page=CurrentPage)
             elif SubType == "trendingtv":
-                res_list = Media().get_tmdb_trending_tv_week(page=CurrentPage)
+                res_list = MediaService().get_tmdb_trending_tv_week(page=CurrentPage)
             else:
-                res_list = Media().get_tmdb_trending_all_week(page=CurrentPage)
+                res_list = MediaService().get_tmdb_trending_all_week(page=CurrentPage)
         elif Type == "DISCOVER":
             # TMDB发现
             mtype = MediaType.MOVIE if SubType in Constants.MOVIE_TYPES else MediaType.TV
             # 过滤参数 with_genres with_original_language
             params = data.get("params") or {}
 
-            res_list = Media().get_tmdb_discover(mtype=mtype, page=CurrentPage, params=params)
+            res_list = MediaService().get_tmdb_discover(mtype=mtype, page=CurrentPage, params=params)
         elif Type == "DOUBANTAG":
             # 豆瓣发现
             mtype = MediaType.MOVIE if SubType in Constants.MOVIE_TYPES else MediaType.TV
@@ -1968,19 +1968,19 @@ class WebAction:
         
         if SubType == "hm":
             # TMDB热门电影
-            return Media().get_tmdb_hot_movies(CurrentPage)
+            return MediaService().get_tmdb_hot_movies(CurrentPage)
         
         if SubType == "ht":
             # TMDB热门电视剧
-            return Media().get_tmdb_hot_tvs(CurrentPage)
+            return MediaService().get_tmdb_hot_tvs(CurrentPage)
         
         if SubType == "nm":
             # TMDB最新电影
-            return Media().get_tmdb_new_movies(CurrentPage)
+            return MediaService().get_tmdb_new_movies(CurrentPage)
         
         if SubType == "nt":
             # TMDB最新电视剧
-            return Media().get_tmdb_new_tvs(CurrentPage)
+            return MediaService().get_tmdb_new_tvs(CurrentPage)
         
         if SubType == "dbom":
                 # 豆瓣正在上映
@@ -2194,7 +2194,7 @@ class WebAction:
         else:
             title_season = None
         
-        _media = Media()
+        _media = MediaService()
         if not str(tmdbid).isdigit():
             media_info = _media.get_mediainfo_from_id(mediaid=tmdbid, mtype=MediaType.TV)
             season_infos = _media.get_tmdb_tv_seasons(media_info.tmdb_info)
@@ -2419,7 +2419,7 @@ class WebAction:
             tmdb_id = data.get("tmdb_id")
             tmdb_type = data.get("tmdb_type")
             _wordshelper = WordsHelper()
-            _media = Media()
+            _media = MediaService()
             if tmdb_type == "tv":
                 if not _wordshelper.is_custom_word_group_existed(tmdbid=tmdb_id, gtype=2):
                     tmdb_info = _media.get_tmdb_info(mtype=MediaType.TV, tmdbid=tmdb_id)
@@ -3038,11 +3038,11 @@ class WebAction:
         """
         path = data.get("path")
         name = data.get("name")
-        media = Media().get_media_info(title=name)
+        media = MediaService().get_media_info(title=name)
         if not media or not media.tmdb_info:
             return {"code": -1, "msg": f"{name} 无法从TMDB查询到媒体信息"}
         if not media.imdb_id:
-            media.set_tmdb_info(Media().get_tmdb_info(mtype=media.type,
+            media.set_tmdb_info(MediaService().get_tmdb_info(mtype=media.type,
                                                       tmdbid=media.tmdb_id))
         # 触发字幕下载事件
         EventManager().send_event(EventType.SubtitleDownload, {
@@ -3104,7 +3104,7 @@ class WebAction:
         """
         更新消息设置
         """
-        _message = Message()
+        _message = MessageService()
         name = data.get("name")
         cid = data.get("cid")
         ctype = data.get("type")
@@ -3128,7 +3128,7 @@ class WebAction:
         """
         删除消息设置
         """
-        if Message().delete_message_client(cid=data.get("cid")):
+        if MessageService().delete_message_client(cid=data.get("cid")):
             return {"code": 0}
         else:
             return {"code": 1}
@@ -3141,7 +3141,7 @@ class WebAction:
         cid = data.get("cid")
         ctype = data.get("type")
         checked = data.get("checked")
-        _message = Message()
+        _message = MessageService()
         if flag == "interactive":
             # TG/WX只能开启一个交互
             if checked:
@@ -3161,7 +3161,7 @@ class WebAction:
         获取消息设置
         """
         cid = data.get("cid")
-        return {"code": 0, "detail": Message().get_message_client_info(cid=cid)}
+        return {"code": 0, "detail": MessageService().get_message_client_info(cid=cid)}
 
     def __test_message_client(self, data):
         """
@@ -3169,7 +3169,7 @@ class WebAction:
         """
         ctype = data.get("type")
         config = json.loads(data.get("config"))
-        res = Message().get_status(ctype=ctype, config=config)
+        res = MessageService().get_status(ctype=ctype, config=config)
         if res:
             return {"code": 0}
         else:
@@ -3388,7 +3388,7 @@ class WebAction:
         message_clients = data.get("message_clients")
         if not message_clients:
             return {"code": 1, "msg": "未选择消息服务"}
-        Message().send_custom_message(clients=message_clients, title=title, text=text, image=image)
+        MessageService().send_custom_message(clients=message_clients, title=title, text=text, image=image)
         return {"code": 0}
 
     def __get_media_detail(self, data):
@@ -3401,7 +3401,7 @@ class WebAction:
             return {"code": 1, "msg": "未指定媒体ID"}
 
         mtype = MediaType.MOVIE if data.get("type") in Constants.MOVIE_TYPES else MediaType.TV
-        media_info = Media().get_mediainfo_from_id(mediaid=tmdbid, mtype=mtype)
+        media_info = MediaService().get_mediainfo_from_id(mediaid=tmdbid, mtype=mtype)
         # 检查TMDB信息
         if not media_info or not media_info.tmdb_info:
             return {
@@ -3414,7 +3414,7 @@ class WebAction:
                                                           title=media_info.title,
                                                           year=media_info.year,
                                                           mediaid=media_info.tmdb_id)
-        media_handler = Media()
+        media_handler = MediaService()
         # 演职人员信息整合
         crews = self.__get_crews_from_media_info(media_info, media_handler, mtype)
         # 解析季信息
@@ -3508,7 +3508,7 @@ class WebAction:
                     }
                 }
 
-        media_handler = Media()
+        media_handler = MediaService()
 
         if str(tmdbid).startswith("BG:"):
 
@@ -3568,12 +3568,12 @@ class WebAction:
             return {"code": 1, "msg": "未指定媒体ID"}
         
         mtype = MediaType.MOVIE if data.get("type") in Constants.MOVIE_TYPES else MediaType.TV
-        media_info = Media().get_mediainfo_from_id(mediaid=mediaid, mtype=mtype)
+        media_info = MediaService().get_mediainfo_from_id(mediaid=mediaid, mtype=mtype)
 
         if not media_info: 
             return {"code": 1, "msg": "媒体信息查询失败"}
 
-        media_handler = Media()
+        media_handler = MediaService()
         # 演职人员信息整合
         crews = self.__get_crews_from_media_info(media_info, media_handler, mtype)
         # 解析季信息
@@ -3590,7 +3590,7 @@ class WebAction:
             }
         }
 
-    def __get_crews_from_media_info(self, media_info:MetaInfo, media_handler:Media, mtype:MediaType):
+    def __get_crews_from_media_info(self, media_info:MetaInfo, media_handler:MediaService, mtype:MediaType):
         """
         从媒体信息获取演职人员集合
         :return: 演职人员集合
@@ -3610,7 +3610,7 @@ class WebAction:
         crews.extend(actors)
         return crews
     
-    def __resolve_season_info(self, media_info:MetaInfo, media_handler:Media, mtype:MediaType):
+    def __resolve_season_info(self, media_info:MetaInfo, media_handler:MediaService, mtype:MediaType):
 
         if mtype == MediaType.MOVIE:
             return []
@@ -3667,9 +3667,9 @@ class WebAction:
         if not tmdbid:
             return {"code": 1, "msg": "未指定TMDBID"}
         if mtype == MediaType.MOVIE:
-            result = Media().get_movie_similar(tmdbid=tmdbid, page=page)
+            result = MediaService().get_movie_similar(tmdbid=tmdbid, page=page)
         else:
-            result = Media().get_tv_similar(tmdbid=tmdbid, page=page)
+            result = MediaService().get_tv_similar(tmdbid=tmdbid, page=page)
         return {"code": 0, "data": result}
 
     def __media_recommendations(self, data):
@@ -3683,9 +3683,9 @@ class WebAction:
         if not tmdbid:
             return {"code": 1, "msg": "未指定TMDBID"}
         if mtype == MediaType.MOVIE:
-            result = Media().get_movie_recommendations(tmdbid=tmdbid, page=page)
+            result = MediaService().get_movie_recommendations(tmdbid=tmdbid, page=page)
         else:
-            result = Media().get_tv_recommendations(tmdbid=tmdbid, page=page)
+            result = MediaService().get_tv_recommendations(tmdbid=tmdbid, page=page)
         return {"code": 0, "data": result}
 
     def __media_person(self, data):
@@ -3698,9 +3698,9 @@ class WebAction:
             return {"code": 1, "msg": "未指定TMDBID或关键字"}
         if tmdbid:
             mtype = MediaType.MOVIE if data.get("type") in Constants.MOVIE_TYPES else MediaType.TV
-            result = Media().get_tmdb_cats(tmdbid=tmdbid, mtype=mtype)
+            result = MediaService().get_tmdb_cats(tmdbid=tmdbid, mtype=mtype)
         else:
-            result = Media().search_tmdb_person(name=keyword)
+            result = MediaService().search_tmdb_person(name=keyword)
         return {"code": 0, "data": result}
 
     def __person_medias(self, data):
@@ -3717,7 +3717,7 @@ class WebAction:
         if not personid:
             return {"code": 1, "msg": "未指定演员ID"}
 
-        person_medias = Media().get_person_medias(personid=personid, mtype=mtype, page=page)
+        person_medias = MediaService().get_person_medias(personid=personid, mtype=mtype, page=page)
         return {"code": 0, "data": person_medias}
 
     def __run_directory_sync(self, data):
@@ -3750,7 +3750,7 @@ class WebAction:
         if not tmdbid:
             return {"code": 1, "msg": "TMDBID为空"}
         
-        episodes = Media().get_tmdb_season_episodes(tmdbid=tmdbid, season=season)
+        episodes = MediaService().get_tmdb_season_episodes(tmdbid=tmdbid, season=season)
         MediaServerHandler = MediaServer()
         for episode in episodes:
             episode.update({

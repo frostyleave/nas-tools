@@ -13,10 +13,10 @@ import log
 
 from app.conf import ModuleConf
 from app.helper import DbHelper, ProgressHelper, FileHelper
-from app.media import Media, Category, Scraper
+from app.media import MediaService, Category, Scraper
 from app.media.meta import MetaInfo
 from app.mediaserver import MediaServer
-from app.message import Message
+from app.message import MessageService
 from app.plugins import EventManager
 from app.utils import EpisodeFormat, PathUtils, StringUtils, SystemUtils, NumberUtils
 from app.utils.commons import singleton
@@ -68,8 +68,8 @@ class FileTransfer:
         self.init_config()
 
     def init_config(self):
-        self.media = Media()
-        self.message = Message()
+        self.media = MediaService()
+        self.message = MessageService()
         self.category = Category()
         self.scraper = Scraper()
         self.dbhelper = DbHelper()

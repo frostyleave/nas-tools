@@ -7,7 +7,7 @@ from typing import List, Optional
 import log
 
 from app.modules.filter import Filter
-from app.media import Media
+from app.media import MediaService
 from app.media.meta import MetaInfo
 from app.utils import StringUtils, MediaUtils
 from app.utils.constants import Constants
@@ -324,7 +324,7 @@ class _IIndexClient(metaclass=ABCMeta):
         """
         匹配tmdb信息并进行基础过滤
         """
-        media = Media()
+        media = MediaService()
 
         # 0-识别并模糊匹配；1-识别并精确匹配
         if item_meta.imdb_id \

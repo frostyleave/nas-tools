@@ -20,10 +20,10 @@ from app.modules.filetransfer import FileTransfer
 from app.models.model import UserSiteConf, IndexerInfo
 from app.helper import DbHelper, ThreadHelper, SubmoduleHelper
 from app.core.jobcenter import JobCenter
-from app.media import Media
+from app.media import MediaService
 from app.media.meta import MetaInfo
 from app.mediaserver import MediaServer
-from app.message import Message
+from app.message import MessageService
 from app.plugins import EventManager
 from app.sites import SitesManager, SiteSubtitle
 from app.utils import TorrentUtils, StringUtils
@@ -97,10 +97,10 @@ class Downloader:
 
     def init_config(self):
         self.dbhelper = DbHelper()
-        self.message = Message()
+        self.message = MessageService()
         self.mediaserver = MediaServer()
         self.filetransfer = FileTransfer()
-        self.media = Media()
+        self.media = MediaService()
         self.sites = SitesManager()
         self.systemconfig = SystemConfig()
         self.eventmanager = EventManager()

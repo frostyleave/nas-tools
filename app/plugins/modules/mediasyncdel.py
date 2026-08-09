@@ -2,7 +2,7 @@ import os
 import time
 
 from app.modules.filetransfer import FileTransfer
-from app.media import Media
+from app.media import MediaService
 from app.plugins import EventHandler
 from app.plugins.modules._base import _IPluginModule
 from app.utils.types import EventType, MediaType
@@ -213,13 +213,13 @@ class MediaSyncDel(_IPluginModule):
         if self._send_notify:
             if media_type == "Episode":
                 # 根据tmdbid获取图片
-                image_url = Media().get_episode_images(tv_id=tmdb_id,
+                image_url = MediaService().get_episode_images(tv_id=tmdb_id,
                                                        season_id=season_num,
                                                        episode_id=episode_num,
                                                        orginal=True)
             else:
                 # 根据tmdbid获取图片
-                image_url = Media().get_tmdb_backdrop(mtype=MediaType.MOVIE if media_type == "Movie" else MediaType.TV,
+                image_url = MediaService().get_tmdb_backdrop(mtype=MediaType.MOVIE if media_type == "Movie" else MediaType.TV,
                                                       tmdbid=tmdb_id)
             # 发送通知
             self.send_message(

@@ -10,7 +10,7 @@ from app.core.cmd_handler import CommandHandler
 from app.helper import ThreadHelper, SecurityHelper
 from app.media.meta.metainfo import MetaInfo
 from app.mediaserver.media_server import MediaServer
-from app.message import Message
+from app.message import MessageService
 from app.plugins.event_manager import EventManager
 from app.modules.subscribe import Subscribe
 from app.utils import DomUtils
@@ -33,7 +33,7 @@ def send_text_response(content: str, status_code: int = 200) -> Response:
 async def wechat(request: Request, appid: Optional[str] = None):
 
     # 当前在用的交互渠道
-    interactive_clients = Message().get_interactive_client(SearchType.WX)
+    interactive_clients = MessageService().get_interactive_client(SearchType.WX)
     if not interactive_clients:
         log.info("NAStool没有启用微信交互")
         return send_text_response(content="NAStool没有启用微信交互", status_code=200)
@@ -82,7 +82,7 @@ async def wechat_post(request: Request):
         log.debug(f"收到微信请求: {req_xml}")
 
         # 已启用的交互渠道
-        interactive_clients = Message().get_interactive_client(SearchType.WX)
+        interactive_clients = MessageService().get_interactive_client(SearchType.WX)
         if not interactive_clients:
             log.info("NAStool没有启用微信交互")
             return send_text_response(content="", status_code=200)
@@ -134,7 +134,7 @@ async def wechat_post(request: Request):
             if conf.get("adminUser") and not any(
                 user_id == admin_user for admin_user in str(conf.get("adminUser")).split(";")
             ):
-                Message().send_channel_msg(channel=SearchType.WX, title="用户无权限执行菜单命令", user_id=user_id)
+                MessageService().send_channel_msg(channel=SearchType.WX, title="用户无权限执行菜单命令", user_id=user_id)
                 return Response(content="", status_code=200)
 
             event_key = DomUtils.tag_value(root_node, "EventKey")
@@ -171,7 +171,7 @@ async def sendwechat(request: Request, appid: Optional[str] = None):
         log.warn(f"非法IP地址的媒体服务器消息通知: {request.client.host}")
         return Response(content="不允许的IP地址请求", status_code=403)
 
-    interactive_clients = Message().get_interactive_client(SearchType.WX)
+    interactive_clients = MessageService().get_interactive_client(SearchType.WX)
     if not interactive_clients:
         return Response(content="NAStool没有启用微信交互", status_code=200)
 
@@ -191,7 +191,7 @@ async def sendwechat(request: Request, appid: Optional[str] = None):
     if not message:
         return Response(content="请填写消息内容", status_code=200)
 
-    Message().send_custom_message(
+    MessageService().send_custom_message(
         clients=[str(assign_app.get("id"))],
         title=title,
         text=message,
@@ -268,7 +268,7 @@ async def emby_webhook(request: Request):
 @open_router.post("/telegram")
 @auth_required
 async def telegram(request: Request):
-    interactive_clients = Message().get_interactive_client(SearchType.TG)
+    interactive_clients = MessageService().get_interactive_client(SearchType.TG)
     if not interactive_clients:
         return Response(content="NAStool未启用Telegram交互", status_code=200)
     
@@ -289,13 +289,13 @@ async def telegram(request: Request):
             log.info(f"收到Telegram消息: userid={user_id}, username={user_name}, text={text}")
             if text.startswith("/"):
                 if str(user_id) not in interactive_client.get("client").get_admin():
-                    Message().send_channel_msg(channel=SearchType.TG,
+                    MessageService().send_channel_msg(channel=SearchType.TG,
                                                title="只有管理员才有权限执行此命令",
                                                user_id=user_id)
                     return Response(content="只有管理员才有权限执行此命令", status_code=200)
             else:
                 if str(user_id) not in interactive_client.get("client").get_users():
-                    Message().send_channel_msg(channel=SearchType.TG,
+                    MessageService().send_channel_msg(channel=SearchType.TG,
                                                title="你不在用户白名单中，无法使用此机器人",
                                                user_id=user_id)
                     return Response(content="你不在用户白名单中，无法使用此机器人", status_code=200)
@@ -311,7 +311,7 @@ async def telegram(request: Request):
 @open_router.post("/synology")
 @auth_required
 async def synology(request: Request):
-    interactive_clients = Message().get_interactive_client(SearchType.SYNOLOGY)
+    interactive_clients = MessageService().get_interactive_client(SearchType.SYNOLOGY)
     if not interactive_clients:
         return Response(content="NAStool未启用Synology Chat交互", status_code=200)
     
@@ -349,7 +349,7 @@ async def slack(request: Request):
         log.warn(f"非法IP地址的Slack消息通知: {request.client.host}")
         return Response(content="不允许的IP地址请求", status_code=403)
 
-    interactive_clients = Message().get_interactive_client(SearchType.SLACK)
+    interactive_clients = MessageService().get_interactive_client(SearchType.SLACK)
     if not interactive_clients:
         return Response(content="NAStool未启用Slack交互", status_code=200)
     

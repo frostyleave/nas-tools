@@ -16,9 +16,9 @@ import log
 from app.downloader import Downloader
 from app.modules.filter import Filter
 from app.helper import DbHelper, RssHelper
-from app.media import Media
+from app.media import MediaService
 from app.media.meta import MetaInfo
-from app.message import Message
+from app.message import MessageService
 from app.modules.searcher import Searcher
 from app.modules.subscribe import Subscribe
 from app.utils import RequestUtils, StringUtils
@@ -56,10 +56,10 @@ class RssChecker(object):
     def init_config(self):
         self.dbhelper = DbHelper()
         self.rsshelper = RssHelper()
-        self.message = Message()
+        self.message = MessageService()
         self.searcher = Searcher()
         self.filter = Filter()
-        self.media = Media()
+        self.media = MediaService()
         self.downloader = Downloader()
         self.subscribe = Subscribe()
         # 移除现有任务

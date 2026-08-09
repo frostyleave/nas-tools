@@ -1,2 +1,2 @@
-from .message import Message
-from .message_center import MessageCenter
+from .message import MessageService
+from .message_center import SysMessageCenter

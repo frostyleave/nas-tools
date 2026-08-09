@@ -35,7 +35,7 @@ KEYWORD_BLACKLIST = ['中字', '韩语', '双字', '中英', '日语', '双语',
                     '法语', '西班牙语', 'HRHDTVAC3264', '未删减版', '未删减', '国语', '字幕组', '人人影视', 'www66ystv',
                     '人人影视制作', '英语', 'www6vhaotv', '无删减版', '完成版', '德意']
 
-class Media:
+class MediaService:
     
     _search_keyword = None
     _search_tmdbweb = None
@@ -1972,10 +1972,10 @@ class Media:
             return [], []
         directors = []
         actors = []
-        for cast in Media.__dict_media_casts(_credits.get("cast")):
+        for cast in MediaService.__dict_media_casts(_credits.get("cast")):
             if cast.get("known_for_department") == "Acting":
                 actors.append(cast)
-        for crew in Media.__dict_media_crews(_credits.get("crew")):
+        for crew in MediaService.__dict_media_crews(_credits.get("crew")):
             if crew.get("job") == "Director":
                 directors.append(crew)
         return directors, actors
@@ -2501,12 +2501,12 @@ class Media:
             if mtype == MediaType.TV and re.search(r'%s' % DB_SEASON_SUFFIX, title, flags=re.IGNORECASE):
                 title, begin_season = MediaUtils.resolve_douban_season_tag(title)
 
-            tmdb_info = Media().query_tmdb_info(title, mtype, year, begin_season, append_to_response="all")
+            tmdb_info = MediaService().query_tmdb_info(title, mtype, year, begin_season, append_to_response="all")
             if not tmdb_info:
                 log.warn("【Douban】根据名称[%s]查询tmdb数据失败" % title)
                 if original_title:
                     log.info("【Douban】尝试根据别名[%s]查询tmdb数据" % original_title)
-                    tmdb_info = Media().query_tmdb_info(original_title, mtype, year, begin_season, append_to_response="all")
+                    tmdb_info = MediaService().query_tmdb_info(original_title, mtype, year, begin_season, append_to_response="all")
                     if not tmdb_info:
                         log.info("【Douban】尝试根据别名[%s]查询tmdb数据失败" % original_title)
                     else:
@@ -2532,18 +2532,18 @@ class Media:
             
             title = info.get("name_cn")
             year = info.get("date")[:4] if info.get("date") else ""
-            media_info = Media().get_media_info(title=f"{title} {year}",
+            media_info = MediaService().get_media_info(title=f"{title} {year}",
                                                 mtype=MediaType.ANIME,
                                                 append_to_response="all")
             
             if not media_info or not media_info.tmdb_info:
                 title = info.get("name")
-                media_info = Media().get_media_info(title=f"{title} {year}",
+                media_info = MediaService().get_media_info(title=f"{title} {year}",
                                                     mtype=MediaType.ANIME,
                                                     append_to_response="all")
         else:
             # TMDB
-            info = Media().get_tmdb_info(tmdbid=mediaid, mtype=mtype, append_to_response="all")
+            info = MediaService().get_tmdb_info(tmdbid=mediaid, mtype=mtype, append_to_response="all")
             if not info:
                 return None
             title = MediaUtils.get_tmdb_title(info)

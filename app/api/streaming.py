@@ -12,7 +12,7 @@ from log import log_buffer, active_sse_queues
 from app.core.cmd_handler import CommandHandler
 from app.core.task_manager import GlobalTaskManager
 from app.helper.progress_helper import ProgressHelper
-from app.message.message_center import MessageCenter
+from app.message.message_center import SysMessageCenter
 from app.middleware.security import get_current_user
 from app.utils.types import SearchType
 
@@ -265,7 +265,7 @@ def refresh_process(progress_type):
 
 def get_system_message(lst_time):
 
-    messages = MessageCenter().get_system_messages(lst_time=lst_time)
+    messages = SysMessageCenter().get_system_messages(lst_time=lst_time)
     if messages:
         lst_time = messages[0].get("time")
     return {
