@@ -1,6 +1,6 @@
-from datetime import datetime, timezone
 import re
 
+from datetime import datetime, timezone
 from threading import Lock
 
 import log
@@ -94,11 +94,11 @@ class Rss:
                 # 站点rss链接
                 rss_url = site_info.rssurl
                 if not rss_url:
-                    log.info(f"【Rss】{site_name} 未配置rssurl，跳过...")
+                    log.info("【Rss】%s 未配置rssurl，跳过...", site_name)
                     continue
 
                 # 开始下载RSS
-                log.info(f"【Rss】正在处理：{site_name}")
+                log.info("【Rss】正在处理站点: %s", site_name)
                 if site_info.pri:
                     site_order = 100 - site_info.pri
                 else:
@@ -107,22 +107,23 @@ class Rss:
                 rss_acticles = self.rsshelper.parse_rssxml(url=rss_url)
                 if rss_acticles is None:
                     # RSS链接过期
-                    log.error(f"【Rss】站点 {site_name} RSS链接已过期，请重新获取！")
+                    log.warn("【Rss】站点 %s RSS链接已过期，请重新获取！", site_name)
                     # 发送消息
                     self.message.send_site_message(title="【RSS链接过期提醒】",
-                                                   text=f"站点：{site_name}\n链接：{rss_url}")
+                                                   text="站点：%s\n链接: %s" % (site_name, rss_url))
                     continue
 
                 if not rss_acticles:
-                    log.warn(f"【Rss】{site_name} 未下载到数据")
+                    log.warn("【Rss】%s 未下载到数据", site_name)
                     continue
 
                 last_max_pubtime = self._get_site_last_max_pubtime(site_info.id)
                 current_max_pubtime = None
                 
-                log.info(f"【Rss】{site_name} 获取数据：{len(rss_acticles)}")
+                log.info("【Rss】%s 数据量：%s, 站点增量数据时间: %s", site_name, len(rss_acticles), last_max_pubtime.strftime(TIME_FORMART) if last_max_pubtime else '')
                 # 处理RSS结果
                 res_num = 0
+                skip_num = 0
                 for article in rss_acticles:
                     try:
                         # 种子名
@@ -133,25 +134,26 @@ class Rss:
                             if not current_max_pubtime or current_max_pubtime < pubtime:
                                 current_max_pubtime = pubtime
                             if last_max_pubtime and last_max_pubtime > pubtime:
-                                log.debug(f"【Rss】[{site_name}]{title} pubtime={pubtime.strftime(TIME_FORMART)} 小于站点上次订阅推进时间, 跳过")
+                                log.debug("【Rss】[%s]%s,pubtime=%s小于站点增量数据时间, 跳过", site_name, title, pubtime.strftime(TIME_FORMART))
+                                skip_num += 1
                                 continue
 
                         # 种子链接
                         enclosure = article.get('enclosure')
-                        # 开始处理
-                        log.debug(f"【Rss】开始处理：{title}")
                         # 检查这个种子是不是下过了
                         if self.rsshelper.is_rssd_by_enclosure(enclosure):
-                            log.info(f"【Rss】{title} 已成功订阅过")
+                            log.info("【Rss】%s 已成功订阅过", title)
                             continue
 
+                        # 开始处理
+                        log.debug("【Rss】开始处理: %s", title)
                         # 识别种子名称，开始搜索TMDB
                         media_info = self._try_resolve(title)
                         if not media_info:
-                            log.warn(f"【Rss】[{site_name}]{title} 无法识别出媒体信息！")
+                            log.warn("【Rss】[%s]%s 无法识别出媒体信息！", site_name, title)
                             continue
                         if not media_info.tmdb_info:
-                            log.debug(f"【Rss】[{site_name}]{title} 识别为 {media_info.get_name()} 未匹配到TMDB媒体信息")
+                            log.debug("【Rss】[%s]%s 识别为 %s 未匹配到TMDB媒体信息", site_name, title, media_info.get_name())
                                 
                         # 大小及种子页面
                         media_info.set_torrent_info(size=article.get('size'),
@@ -166,7 +168,7 @@ class Rss:
                             rss_tvs=rss_tvs,
                             site_info=site_info)
                         for msg in match_msg:
-                            log.info(f"【Rss】[{site_name}]{msg}")
+                            log.info("【Rss】[%s]%s", site_name, msg)
 
                         # 未匹配
                         if not match_flag:
@@ -179,7 +181,7 @@ class Rss:
 
                         # 站点流控
                         if self.sites.check_ratelimit(site_info.id):
-                            log.info(f"【Rss】[{site_name}]站点流控, 暂不下载")
+                            log.info("【Rss】[%s]站点流控, 暂不下载", site_name)
                             continue
 
                         # 设置种子信息
@@ -203,7 +205,7 @@ class Rss:
                     except Exception as e:
                         log.exception('【Rss】[%s]处理RSS发生错误: ', site_name)
                         continue
-                log.info("【Rss】%s 处理结束，匹配到 %s 个有效资源" , site_name, res_num)
+                log.info("【Rss】%s 处理结束，匹配到 %s 个有效资源, 增量过滤:%s" , site_name, res_num, skip_num)
 
                 # 更新站点推进时间
                 if current_max_pubtime and (not last_max_pubtime or current_max_pubtime > last_max_pubtime):
@@ -274,19 +276,13 @@ class Rss:
         if match_info.get("over_edition"):
             # 洗版时季集不完整的资源不要
             if media_info.type != MediaType.MOVIE and media_info.get_episode_list():
-                log.info(
-                    f"【Rss】{media_info.get_title_string()}{media_info.get_season_string()} "
-                    f"正在洗版，过滤掉季集不完整的资源：{media_info.org_title}"
-                )
+                log.info("【Rss】%s %s 正在洗版，过滤掉季集不完整的资源：%s", media_info.get_title_string(), media_info.get_season_string(), media_info.org_title)
                 return True, rss_no_exists
             if not self.subscribe.check_subscribe_over_edition(
                     rtype=media_info.type,
                     rssid=match_info.get("id"),
                     res_order=match_info.get("res_order")):
-                log.info(
-                    f"【Rss】{media_info.get_title_string()}{media_info.get_season_string()} "
-                    f"正在洗版，跳过低优先级或同优先级资源：{media_info.org_title}"
-                )
+                log.info("【Rss】%s %s 正在洗版，跳过低优先级或同优先级资源：%s", media_info.get_title_string(), media_info.get_season_string(), media_info.org_title)
                 return True, rss_no_exists
             # 不存在
             return False, rss_no_exists
@@ -432,7 +428,7 @@ class Rss:
                     if year and str(year) != str(media_info.year):
                         continue
                     # 匹配关键字或正则表达式
-                    search_title = f"{media_info.rev_string} {media_info.title} {media_info.year}"
+                    search_title = "%s %s %s" % (media_info.rev_string, media_info.title, media_info.year)
                     if not re.search(name, search_title, re.I) and name not in search_title:
                         continue
                 # 媒体匹配成功
@@ -478,7 +474,7 @@ class Rss:
                     if year and str(year) != str(media_info.year):
                         continue
                     # 匹配关键字或正则表达式
-                    search_title = f"{media_info.rev_string} {media_info.title} {media_info.year}"
+                    search_title = "%s %s %s" % (media_info.rev_string, media_info.title, media_info.year)
                     if not re.search(name, search_title, re.I) and name not in search_title:
                         continue
                 # 媒体匹配成功
@@ -534,7 +530,7 @@ class Rss:
                     media_info.org_string,
                     media_info.get_title_string(),
                     media_info.get_season_episode_string()))
-                match_msg.append(f"种子描述：{media_info.subtitle}")
+                match_msg.append("种子描述：%s" % media_info.subtitle)
                 match_rss_info.update({
                     "res_order": res_order,
                     "filter_rule": filter_rule,

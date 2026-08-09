@@ -825,18 +825,16 @@ class Media:
             # 未识别出季集信息
             if not meta_info.begin_season:           
                 if meta_info.cn_name and tmdb_info.name != meta_info.cn_name:
-                    self.fix_when_name_different(meta_info, tmdb_info)
+                    self._fix_when_name_different(meta_info, tmdb_info)
                 elif '篇' in meta_info.rev_string:
-                    self.fix_when_has_season_name(meta_info, tmdb_info)
+                    self._fix_when_has_season_name(meta_info, tmdb_info)
                     return
-                # else:
-                #     self.fix_when_season_episode_not_match(meta_info, tmdb_info)
         
         # 季集数调整
-        self.try_adjust_season_info(meta_info)
+        self._try_adjust_season_info(meta_info)
     
     # 名称信息不同
-    def fix_when_name_different(self, meta_info, tmdb_info):
+    def _fix_when_name_different(self, meta_info, tmdb_info):
 
         # 移除元文件名中的中文名和英文名
         cn_name = meta_info.cn_name.replace(tmdb_info.name,'')
@@ -875,11 +873,11 @@ class Media:
                 meta_info.begin_season = x
         except:
             if '篇' in meta_info.rev_string:
-                self.fix_when_has_season_name(meta_info, tmdb_info)
+                self._fix_when_has_season_name(meta_info, tmdb_info)
             return
 
     # 名称中包含季名称
-    def fix_when_has_season_name(self, meta_info, tmdb_info):
+    def _fix_when_has_season_name(self, meta_info, tmdb_info):
         rev_string = meta_info.rev_string
         if StringUtils.contain_traditional_chinese(meta_info.rev_string):
             rev_string = zhconv.convert(meta_info.rev_string, "zh-hans")
@@ -893,38 +891,8 @@ class Media:
             elif meta_info.begin_episode and meta_info.begin_episode > match_season.episode_count:
                 pre_total = sum(map(lambda x: x.episode_count, filter(lambda t: t.season_number > 0 and t.season_number < match_season.season_number, tmdb_info.seasons)))
                 meta_info.begin_episode -= pre_total
-
-    # 季集名称不匹配
-    def fix_when_season_episode_not_match(self, meta_info, tmdb_info):
-
-        if not meta_info.begin_episode:
-            return
-
-        season_number = meta_info.begin_season
-        if not season_number:
-            season_number = 1
-        elif isinstance(season_number, str):
-            season_number = int(season_number)
-
-        match_season = next(filter(lambda t: t.season_number == season_number, tmdb_info.seasons), None)
-        if not match_season:
-            return
-        
-        if meta_info.begin_episode <= match_season.episode_count:
-            return
-        
-        # 集数大于当前季的总集数，需要重新推进
-        begin_episode = meta_info.begin_episode - match_season.episode_count
-        lst_season = list(filter(lambda t: t.season_number > season_number, tmdb_info.seasons))
-        for season_info in lst_season:
-            if begin_episode <= season_info.episode_count:
-                meta_info.begin_season = season_info.season_number
-                meta_info.begin_episode = begin_episode
-                return
-            begin_episode -= season_info.episode_count
-        
-
-    def try_adjust_season_info(self, media_info: MetaBase):
+   
+    def _try_adjust_season_info(self, media_info: MetaBase):
         """
         如果集数大于当前季，则把集数减去当前季的总集数，季数+1
         """
@@ -941,7 +909,7 @@ class Media:
         
         if season_count == 1:
             # 当季全集
-            if self.is_all_season(tmdb_info.seasons[0], media_info.begin_episode, media_info.end_episode):
+            if self._is_all_season(tmdb_info.seasons[0], media_info.begin_episode, media_info.end_episode):
                 media_info.begin_episode = None
                 media_info.end_episode = None
             return
@@ -958,7 +926,7 @@ class Media:
                 return
             if media_info.begin_episode <= match_season.episode_count:
                 # 当季全集
-                if self.is_all_season(match_season, media_info.begin_episode, media_info.end_episode):
+                if self._is_all_season(match_season, media_info.begin_episode, media_info.end_episode):
                     media_info.begin_episode = None
                     media_info.end_episode = None
                 elif not media_info.end_season and media_info.end_episode \
@@ -999,7 +967,7 @@ class Media:
             if media_info.end_episode:
                 media_info.end_episode -= match_season.episode_count
 
-    def is_all_season(self, season_info, file_begin_episode: int, file_end_episode: int) -> bool:
+    def _is_all_season(self, season_info, file_begin_episode: int, file_end_episode: int) -> bool:
         """
         是否为该季全集
         """
@@ -1180,7 +1148,7 @@ class Media:
                         if end_ep is not None:
                             meta_info.end_episode = end_ep
                     # 加入缓存
-                    self.save_rename_cache(file_name, tmdb_info)
+                    self._save_rename_cache(file_name, tmdb_info)
                 # 按文件路程存储
                 return_media_infos[file_path] = meta_info
             except Exception as err:
@@ -1198,7 +1166,7 @@ class Media:
         ret_infos = []
         for info in infos:
             if chinese:
-                name = self.get_tmdbperson_chinese_name(person_id=info.get("id")) or info.get("name")
+                name = self._get_tmdbperson_chinese_name(person_id=info.get("id")) or info.get("name")
             else:
                 name = info.get("name")
             tmdbid = info.get("id")
@@ -2066,74 +2034,6 @@ class Media:
         genres_list = [genre.get("name") for genre in genres]
         return genres_list if genres_list else []
 
-    def get_tmdb_genres(self, mtype):
-        """
-        获取TMDB的风格列表
-        :param: mtype: 媒体类型
-        """
-        try:
-            if mtype == MediaType.MOVIE:
-                return Genre().movie_list()
-            else:
-                return Genre().tv_list()
-        except Exception as err:
-            print(str(err))
-        return []
-
-    @staticmethod
-    def get_get_production_country_names(tmdbinfo):
-        """
-        从TMDB数据中获取制片国家名称
-        """
-        """
-        "production_countries": [
-            {
-              "iso_3166_1": "US",
-              "name": "美国"
-            }
-          ]
-        """
-        if not tmdbinfo:
-            return ""
-        countries = tmdbinfo.get("production_countries") or []
-        countries_list = [country.get("name") for country in countries]
-        return ", ".join(countries_list) if countries_list else ""
-
-    @staticmethod
-    def get_tmdb_production_company_names(tmdbinfo):
-        """
-        从TMDB数据中获取制片公司名称
-        """
-        """
-        "production_companies": [
-            {
-              "id": 2,
-              "logo_path": "/wdrCwmRnLFJhEoH8GSfymY85KHT.png",
-              "name": "DreamWorks Animation",
-              "origin_country": "US"
-            }
-          ]
-        """
-        if not tmdbinfo:
-            return ""
-        companies = tmdbinfo.get("production_companies") or []
-        companies_list = [company.get("name") for company in companies]
-        return ", ".join(companies_list) if companies_list else ""
-
-    @staticmethod
-    def get_tmdb_crews(tmdbinfo, nums=None):
-        """
-        从TMDB数据中获取制片人员
-        """
-        if not tmdbinfo:
-            return ""
-        crews = tmdbinfo.get("credits", {}).get("crew") or []
-        result = [{crew.get("name"): crew.get("job")} for crew in crews]
-        if nums:
-            return result[:nums]
-        else:
-            return result
-
     def get_tmdb_en_title(self, media_info):
         """
         获取TMDB的英文名称
@@ -2453,7 +2353,7 @@ class Media:
                     return title
         return tmdbinfo.get("title") if tmdbinfo.get("media_type") == MediaType.MOVIE else tmdbinfo.get("name")
 
-    def get_tmdbperson_chinese_name(self, person_id=None, person_info=None):
+    def _get_tmdbperson_chinese_name(self, person_id=None, person_info=None):
         """
         查询TMDB人物中文名称
         """
@@ -2520,7 +2420,7 @@ class Media:
             print(str(err))
         return '', '', ''
 
-    def save_rename_cache(self, file_name, cache_info):
+    def _save_rename_cache(self, file_name, cache_info):
         """
         将手动识别的信息加入缓存
         """
@@ -2528,6 +2428,7 @@ class Media:
             return
         meta_info = MetaInfo(title=file_name)
         self.__insert_media_cache(self.__make_cache_key(meta_info), cache_info)
+
 
     def merge_media_info(self, target, source):
         """
@@ -2543,19 +2444,6 @@ class Media:
 
         return target
 
-    def get_tmdbid_by_imdbid(self, imdbid):
-        """
-        根据IMDBID查询TMDB信息
-        """
-        try:
-            result = Find().find_by_imdbid(imdbid) or {}
-            tmdbinfo = result.get('movie_results') or result.get("tv_results")
-            if tmdbinfo:
-                tmdbinfo = tmdbinfo[0]
-                return tmdbinfo.get("id")
-        except Exception as err:
-            print(str(err))
-        return None
 
     @staticmethod
     def get_detail_url(mtype, tmdbid):
@@ -2585,39 +2473,6 @@ class Media:
                 return Config().get_tmdbimage_url(res[-1].get("file_path"))
         else:
             return ""
-
-    def get_tmdb_factinfo(self, media_info):
-        """
-        获取TMDB发布信息
-        """
-        result = []
-        if media_info.vote_average:
-            result.append({"评分": media_info.vote_average})
-        if media_info.original_title:
-            result.append({"原始标题": media_info.original_title})
-        status = media_info.tmdb_info.get("status")
-        if status:
-            result.append({"状态": status})
-        if media_info.release_date:
-            result.append({"上映日期": media_info.release_date})
-        revenue = media_info.tmdb_info.get("revenue")
-        if revenue:
-            result.append({"收入": StringUtils.str_amount(revenue)})
-        budget = media_info.tmdb_info.get("budget")
-        if budget:
-            result.append({"成本": StringUtils.str_amount(budget)})
-        if media_info.original_language:
-            result.append({"原始语言": media_info.original_language})
-        production_country = self.get_get_production_country_names(tmdbinfo=media_info.tmdb_info)
-        if media_info.networks:
-            result.append({"电视网": media_info.networks})
-        if production_country:
-            result.append({"出品国家": production_country}),
-        production_company = self.get_tmdb_production_company_names(tmdbinfo=media_info.tmdb_info)
-        if production_company:
-            result.append({"制作公司": production_company})
-
-        return result
 
     def get_mediainfo_from_id(self, mediaid, mtype=None, wait=False):
         """
@@ -2697,12 +2552,12 @@ class Media:
         
         # 豆瓣信息补全
         if media_info:
-            self.fill_douban_info(mtype, media_info)
+            self._fill_douban_info(mtype, media_info)
 
         return media_info
     
 
-    def fill_douban_info(self, mtype:MediaType, media_info:MetaBase):
+    def _fill_douban_info(self, mtype:MediaType, media_info:MetaBase):
         """
         补全豆瓣信息: 豆瓣id, 剧集名称
         """
