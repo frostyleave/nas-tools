@@ -63,7 +63,7 @@ class Bangumi(object):
             score = 0
         images = item.get("images")
         if images:
-            image = images.get("large")
+            image = images.get("common", images.get("large",""))
         else:
             image = ''
         summary = item.get("summary")

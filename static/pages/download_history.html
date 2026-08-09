@@ -27,23 +27,7 @@
         <div class="card-body border-bottom py-3">
           <div class="d-flex">
             <div class="text-muted">
-              共 <span id="total-count">0</span> 条记录
-            </div>
-            <div class="ms-auto text-muted">
               <div class="d-flex align-items-center gap-2">
-                类型:
-                <select id="filter-type" class="form-select form-select-sm" style="width: auto;">
-                  <option value="">全部</option>
-                  <option value="电影">电影</option>
-                  <option value="电视剧">剧集</option>
-                  <option value="动漫">动漫</option>
-                </select>
-                TMDBID:
-                <input id="filter-tmdbid" type="text" class="form-control form-control-sm" placeholder="TMDBID"
-                  style="width: 90px;">
-                站点:
-                <input id="filter-site" type="text" class="form-control form-control-sm" placeholder="站点名称"
-                  style="width: 120px;">
                 <a href="javascript:search_download_history()" class="btn btn-primary btn-sm d-none d-sm-inline-flex">
                   <i class="ti ti-search fs-3"></i>
                   查询
@@ -51,6 +35,17 @@
                 <a href="javascript:search_download_history()" class="btn btn-primary btn-sm d-sm-none">
                   <i class="ti ti-search fs-3"></i>
                 </a>
+                <span class="d-none d-md-inline-block">类型:</span>
+                <select id="filter-type" class="form-select form-select-sm" style="width: auto;">
+                  <option value="">全部</option>
+                  <option value="电影">电影</option>
+                  <option value="电视剧">剧集</option>
+                  <option value="动漫">动漫</option>
+                </select>
+                <span class="d-none d-md-inline-block">TMDBID:</span>
+                <input id="filter-tmdbid" type="text" class="form-control form-control-sm" placeholder="TMDBID" style="width: 90px;">
+                <span class="d-none d-md-inline-block">站点:</span>
+                <input id="filter-site" type="text" class="form-control form-control-sm" placeholder="站点" style="width: 120px;">
               </div>
             </div>
           </div>
@@ -73,7 +68,7 @@
           </table>
         </div>
         <div class="card-footer d-flex align-items-center" id="pagination-container" style="display: none;">
-          <p class="m-0 text-muted">当前页 <span id="current-count">0</span> 条</p>
+          <p class="m-0 text-muted">当前页 <span id="current-count">0</span> 条, 共 <span id="total-count">0</span> 条记录</p>
           <ul class="pagination m-0 ms-auto" id="pagination-list">
           </ul>
         </div>

@@ -49,14 +49,10 @@
         <div class="card">
           <div class="card-body border-bottom py-3">
             <div class="d-flex">
-              <div class="text-muted" id="total-count">
-                共 0 条记录
-              </div>
-              <div class="ms-auto text-muted">
+              <div class="text-muted">
                 搜索:
                 <div class="ms-2 d-inline-block">
-                  <input id="search_word" value="" type="text" class="form-control form-control-sm"
-                         aria-label="搜索">
+                  <input id="search_word" value="" type="text" class="form-control form-control-sm" aria-label="搜索">
                 </div>
               </div>
             </div>
@@ -71,13 +67,11 @@
                 <th></th>
               </tr>
               </thead>
-              <tbody id="history-table-body">
-
-              </tbody>
+              <tbody id="history-table-body"></tbody>
             </table>
           </div>
           <div class="card-footer d-flex align-items-center" id="pagination-container" style="display: none;">
-            <p class="m-0 text-muted">当前页 <span id="current-count">0</span> 条</p>
+            <p class="m-0 text-muted">当前页 <span id="current-count">0</span> 条, <div class="text-muted" id="total-count"> 共 0 条记录 </div></p>
             <ul class="pagination m-0 ms-auto" id="pagination-list">
             </ul>
           </div>

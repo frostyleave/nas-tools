@@ -241,7 +241,15 @@
                     return;
                 }
 
-                var slide_cards = [];
+                const rankSlide = document.createElement('custom-slide');
+                
+                rankSlide.setAttribute('slide-title', weekInfo.weekday.cn);
+                rankSlide.setAttribute('lazy', 'normal-card');
+
+                $('#discovery-container').append(rankSlide);
+
+                rankSlide.slide_card = [];
+                
                 // 生成 normal-card 集合
                 weekInfo.items.map((card, index) => {
 
@@ -259,7 +267,7 @@
                     nc.setAttribute('card-overview', card.overview);
                     nc.setAttribute('card-restype', card.media_type);
 
-                    slide_cards.push(nc);
+                    rankSlide.slide_card.push(nc);
 
                     // 生成唯一id
                     var card_id = ('bangumi_' + weekInfo.weekday.en + card.id).replace(':', '_');
@@ -274,14 +282,6 @@
                     });
 
                 });
-
-                const rankSlide = document.createElement('custom-slide');
-                
-                rankSlide.setAttribute('slide-title', weekInfo.weekday.cn);
-                rankSlide.setAttribute('lazy', 'normal-card');
-                rankSlide.slide_card = slide_cards;
-
-                $('#discovery-container').append(rankSlide);
 
             });
 
