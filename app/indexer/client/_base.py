@@ -279,6 +279,8 @@ class _IIndexClient(metaclass=ABCMeta):
                         if not season_info.air_date:
                             continue
                         target_year.append(season_info.air_date[0:4])
+                if hasattr(target_tmdb_info, 'last_air_date') and target_tmdb_info.last_air_date:
+                    target_year.append(target_tmdb_info.last_air_date[0:4])
             
             # 名称
             if hasattr(target_tmdb_info, 'title') and target_tmdb_info.title:
