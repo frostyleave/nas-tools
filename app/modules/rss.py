@@ -379,11 +379,11 @@ class Rss:
         :return: 匹配到的订阅ID、是否洗版、总集数、匹配规则的资源顺序、上传因子、下载因子，匹配的季（电视剧）
         """
 
-        site_id = site_info.id,
-        site_filter_rule = site_info.rule,
-        site_cookie = site_info.cookie,
-        site_parse = site_info.parse_detail,
-        site_ua = site_info.ua,
+        site_id = site_info.id
+        site_filter_rule = site_info.rule
+        site_cookie = site_info.cookie
+        site_parse = site_info.parse_detail
+        site_ua = site_info.ua
         site_proxy = site_info.proxy
 
         # 默认值

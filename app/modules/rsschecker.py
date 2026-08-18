@@ -647,7 +647,7 @@ class RssChecker(object):
                     enclosure = article.get("enclosure")
                     year = article.get("year")
                     meta_name = f"{title} {year}" if year else title
-                    if not self.is_article_processed(task_type, title, enclosure, year):
+                    if not self.is_article_processed(task_type, title, year, enclosure):
                         if task_type == "D":
                             self.rsshelper.simple_insert_rss_torrents(meta_name, enclosure)
                         elif task_type == "R":

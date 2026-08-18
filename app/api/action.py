@@ -3469,14 +3469,14 @@ class WebAction:
                     overview = douban_info.get('intro')
                     genres = douban_info.get('genres')
                     year = douban_info.get('year')
-                    vote = douban_info.get('rating', {}).get('value'),
+                    vote = douban_info.get('rating', {}).get('value')
                     image = douban_info.get('cover_url')
                     duration = douban_info.get('durations')
                     duration_str = duration[0] if duration else ''
                 else:
                     overview = douban_info.get('summary')
                     image = douban_info.get('image')
-                    vote = douban_info.get('rating', {}).get('average'),
+                    vote = douban_info.get('rating', {}).get('average')
                     # 从attrs获取
                     info_attr = douban_info.get('attrs')
                     genres = info_attr.get('movie_type')

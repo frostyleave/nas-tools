@@ -101,13 +101,20 @@ class BatchDownloader:
                         total_eps = self._get_season_episodes(need_tmdbid, item_season[0], need_tvs)
                         if not torrent_episodes or len(torrent_episodes) >= total_eps:
                             _, download_id = self._do_download(
-                                item, torrent_path, in_from, user_name, return_items)
+                                item, 
+                                torrent_file=torrent_path, 
+                                in_from=in_from, 
+                                user_name=user_name, 
+                                return_items=return_items)
                         else:
                             log.info(f"【Downloader】种子 {item.org_string} 未含集数信息, 解析文件数为 {len(torrent_episodes)}")
                             continue
                     else:
                         _, download_id = self._do_download(
-                            item, None, in_from, user_name, return_items)
+                            item, 
+                            in_from=in_from, 
+                            user_name=user_name, 
+                            return_items=return_items)
 
                     if download_id:
                         need_season = self._update_seasons(need_tmdbid, need_season, item_season, need_tvs)
@@ -137,7 +144,10 @@ class BatchDownloader:
                         if not item_episodes:
                             continue
                         if set(item_episodes).issubset(set(need_episodes)):
-                            _, download_id = self._do_download(item, None, in_from, user_name, return_items)
+                            _, download_id = self._do_download(item, 
+                                                               in_from=in_from, 
+                                                               user_name=user_name, 
+                                                               return_items=return_items)
                             if download_id:
                                 need_episodes = self._update_episodes(
                                     need_tmdbid, idx, need_episodes, item_episodes, need_tvs)
@@ -174,7 +184,12 @@ class BatchDownloader:
                             continue
 
                         downloader_id, download_id = self._do_download(
-                            item, torrent_path, in_from, user_name, return_items, is_paused=True)
+                            item, 
+                            torrent_file=torrent_path, 
+                            in_from=in_from, 
+                            user_name=user_name, 
+                            return_items=return_items, 
+                            is_paused=True)
                         if not download_id:
                             continue
 
@@ -188,8 +203,14 @@ class BatchDownloader:
                         downloader.start_torrents(ids=download_id, downloader_id=downloader_id)
                         return_items.append(item)
 
-    def _do_download(self, item, torrent_file=None, tag=None, is_paused=None,
-                     in_from=None, user_name=None, return_items=None):
+    def _do_download(self, 
+                     item, 
+                     torrent_file=None, 
+                     tag=None, 
+                     is_paused=None,
+                     in_from=None, 
+                     user_name=None, 
+                     return_items=None):
         """执行下载并记录"""
         downloader = self._downloader
         _downloader_id, did, _ = downloader.download(
