@@ -923,7 +923,7 @@ class Downloader:
             url=url,
             cookie=site_info.cookie,
             ua=site_info.ua,
-            # referer=page_url if site_info.referer else None,
+            referer=page_url,
             proxy=site_info.proxy
         )
         file_path = result.file_path

@@ -69,8 +69,13 @@ class TorrentDownloader:
             render=render
         )
 
-    def get_torrent_info(self, url, cookie=None, ua=None, referer=None,
-                         proxy=False, render=False) -> TorrentDownloadResult:
+    def get_torrent_info(self, 
+                         url, 
+                         cookie=None, 
+                         ua=None, 
+                         referer=None,
+                         proxy=False, 
+                         render=False) -> TorrentDownloadResult:
         """
         把种子下载到本地, 返回种子内容
         :param url: 种子链接
@@ -83,6 +88,7 @@ class TorrentDownloader:
         """
         if not url:
             return TorrentDownloadResult(ret_msg="URL为空")
+        
         if url.startswith("magnet:"):
             return TorrentDownloadResult(content=url, ret_msg=("%s 为磁力链接" % url))
 
@@ -102,8 +108,11 @@ class TorrentDownloader:
                     files=read_result.files, ret_msg=read_result.ret_msg
                 )
 
-            save_result = self.save_torrent_file(url=url, cookie=cookie, ua=ua,
-                                                  referer=referer, proxy=proxy)
+            save_result = self.save_torrent_file(url=url, 
+                                                 cookie=cookie, 
+                                                 ua=ua,
+                                                 referer=referer, 
+                                                 proxy=proxy)
             if save_result.ret_msg:
                 log.info("【Downloader】种子文件下载结果: %s ", save_result.ret_msg)
 
@@ -121,7 +130,11 @@ class TorrentDownloader:
         except Exception as err:
             return TorrentDownloadResult(ret_msg=("下载种子文件出现异常: %s" % str(err)))
 
-    def save_torrent_file(self, url, cookie=None, ua=None, referer=None,
+    def save_torrent_file(self, 
+                          url, 
+                          cookie=None, 
+                          ua=None, 
+                          referer=None,
                           proxy=False) -> TorrentDownloadResult:
         """
         把种子下载到本地
@@ -227,9 +240,9 @@ class TorrentDownloader:
         file_path = os.path.join(self._torrent_temp_path, file_name)
         file_content = req.content
 
-        if not os.path.exists(file_path):
-            with open(file_path, 'wb') as f:
-                f.write(file_content)
+        # 文件已存在时强制覆盖
+        with open(file_path, 'wb') as f:
+            f.write(file_content)
 
         return TorrentDownloadResult(file_path=file_path, content=file_content)
 

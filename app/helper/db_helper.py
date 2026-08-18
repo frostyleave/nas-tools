@@ -1550,12 +1550,12 @@ class DbHelper:
         if enclosure:
             return self._db.query(DOWNLOADHISTORY).filter(
                 DOWNLOADHISTORY.ENCLOSURE == enclosure
-            ).all()
+            ).order_by(DOWNLOADHISTORY.ID.desc())
         else:
             return self._db.query(DOWNLOADHISTORY).filter(
                 DOWNLOADHISTORY.DOWNLOADER == downloader,
                 DOWNLOADHISTORY.DOWNLOAD_ID == download_id
-            ).all()
+            ).order_by(DOWNLOADHISTORY.ID.desc())
 
     @DbPersist(_db)
     def insert_download_history(self, media_info, downloader, download_id, save_dir):
@@ -1570,8 +1570,10 @@ class DbHelper:
         exists_data = self.query_exists_download_history(enclosure=media_info.enclosure,
                                            downloader=downloader,
                                            download_id=download_id)
-        if exists_data and exists_data.count() > 0:
-            exists_data.update(
+        exist = exists_data.first()
+        if exist:
+            # 记录已存在时只更新最新一条
+            self._db.query(DOWNLOADHISTORY).filter(DOWNLOADHISTORY.ID == exist.ID).update(
                 {
                     "BACKDROP": media_info.get_backdrop_image(default=False, original=True),
                     "ENCLOSURE": media_info.enclosure,
