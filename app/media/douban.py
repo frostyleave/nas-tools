@@ -4,19 +4,18 @@ import log
 from time import sleep
 from typing import Optional
 
-from app.media.doubanapi import DoubanApi, DoubanWeb
+from app.media.doubanapi import DoubanApi, DoubanWebApi
 from app.media.meta import MetaInfo
 from app.utils import StringUtils
-from app.utils import RequestUtils
 from app.utils.commons import singleton
 from app.utils.types import MediaType
 
 @singleton
 class DouBan:
-    cookie = None
+
     doubanapi = None
-    doubanweb = None
-    message = None
+    webapi = None
+
     _movie_num = 20
     _tv_num = 20
 
@@ -25,13 +24,7 @@ class DouBan:
 
     def init_config(self):
         self.doubanapi = DoubanApi()
-        self.doubanweb = DoubanWeb()
-        try:
-            res = RequestUtils(timeout=5).get_res("https://www.douban.com/")
-            if res:
-                self.cookie = StringUtils.str_from_cookiejar(res.cookies)
-        except Exception as err:
-            log.exception(f"【Douban】获取cookie失败: ")
+        self.webapi = DoubanWebApi()
 
     def search_douban_info_by_imdbid(self, imdbid):
         """
@@ -256,7 +249,6 @@ class DouBan:
             sleep(time)
 
         douban_info = self.doubanapi.movie_detail(doubanid)
-
         if not douban_info:
             log.warn("【Douban】%s 豆瓣详细信息查询失败" % doubanid)
             return None
@@ -330,55 +322,6 @@ class DouBan:
                 douban_info["actors"] = celebrities.get("actors")
             return douban_info
 
-    def get_latest_douban_interests(self, dtype, userid, wait=False):
-        """
-        获取最新动态中的想看/在看/看过数据
-        """
-        if wait:
-            time = round(random.uniform(1, 5), 1)
-            log.info("【Douban】随机休眠: %s 秒" % time)
-            sleep(time)
-        if dtype == "do":
-            web_infos = self.doubanweb.do_in_interests(userid=userid)
-        elif dtype == "collect":
-            web_infos = self.doubanweb.collect_in_interests(userid=userid)
-        elif dtype == "wish":
-            web_infos = self.doubanweb.wish_in_interests(userid=userid)
-        else:
-            web_infos = self.doubanweb.interests(userid=userid)
-        if not web_infos:
-            return []
-        for web_info in web_infos:
-            web_info["id"] = web_info.get("url").split("/")[-2]
-        return web_infos
-
-    def get_douban_wish(self, dtype, userid, start, wait=False):
-        """
-        获取豆瓣想看列表数据
-        """
-        if wait:
-            time = round(random.uniform(1, 5), 1)
-            log.info("【Douban】随机休眠: %s 秒" % time)
-            sleep(time)
-        if dtype == "do":
-            web_infos = self.doubanweb.do(cookie=self.cookie, userid=userid, start=start)
-        elif dtype == "collect":
-            web_infos = self.doubanweb.collect(cookie=self.cookie, userid=userid, start=start)
-        else:
-            web_infos = self.doubanweb.wish(cookie=self.cookie, userid=userid, start=start)
-        if not web_infos:
-            return []
-        for web_info in web_infos:
-            web_info["id"] = web_info.get("url").split("/")[-2]
-        return web_infos
-
-    def get_user_info(self, userid, wait=False):
-        if wait:
-            time = round(random.uniform(1, 5), 1)
-            log.info("【Douban】随机休眠: %s 秒" % time)
-            sleep(time)
-        return self.doubanweb.user(cookie=self.cookie, userid=userid)
-
     def search_douban_medias(self, keyword, mtype: MediaType = None, season=None, episode=None, page=1):
         """
         根据关键字搜索豆瓣，返回可能的标题和年份信息
@@ -428,10 +371,13 @@ class DouBan:
         :param doubanid: 豆瓣ID
         :return: {title, year, intro, cover_url, rating{value}, episodes_count}
         """
-        log.info("【Douban】正在通过网页查询豆瓣详情: %s" % doubanid)
-        web_info = self.doubanweb.detail(cookie=self.cookie, doubanid=doubanid.split(',')[0])
+        log.info("【Douban】正在通过网页API查询豆瓣详情: %s" % doubanid)
+        douban_id = doubanid.split(',')[0]
+        web_info = self.webapi.movie_detail(subject_id=douban_id)
         if not web_info:
-            return {}
+            web_info = self.webapi.tv_detail(subject_id=douban_id)
+            if not web_info:
+                return {}
         ret_media = {}
         try:
             # 标题
@@ -465,28 +411,21 @@ class DouBan:
             else:
                 return None
             # 年份
-            year = web_info.get("year")
-            if year:
-                ret_media['year'] = year[1:-1]
+            ret_media['year'] = web_info.get("year")
             # 简介
-            ret_media['summary'] = "".join(
-                [str(x).strip() for x in web_info.get("intro") or []])
+            ret_media['summary'] = web_info.get("intro") 
             # 封面图
-            cover_url = web_info.get("cover")
+            cover_url = web_info.get("cover_url")
             if cover_url:
                 ret_media['images'] = { 'large' : cover_url.replace("s_ratio_poster", "m_ratio_poster") }
             # 评分
-            rating = web_info.get("rate")
+            rating = web_info.get('rating', {}).get('value')
             if rating:
-                ret_media['rating'] = {"average": float(rating)}
-            # 季数
-            season_num = web_info.get("season_num")
-            if season_num:
-                ret_media['season'] = int(season_num)
+                ret_media['rating'] = {"average": rating}
             # 集数
-            episode_num = web_info.get("episode_num")
+            episode_num = web_info.get("episodes_count")
             if episode_num:
-                ret_media['episodes_count'] = int(episode_num)
+                ret_media['episodes_count'] = episode_num
             # IMDBID
             imdbid = web_info.get('imdb')
             if imdbid:

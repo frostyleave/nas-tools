@@ -9,6 +9,7 @@ from jinja2 import Template
 from app.downloader import Downloader
 from app.helper import ThreadHelper
 from app.media import DouBan
+from app.media.douban_usr import DouBanUser
 from app.media.media import MediaService
 from app.media.meta import MetaInfo
 from app.plugins import EventHandler
@@ -49,7 +50,6 @@ class DoubanSync(_IPluginModule):
     # 退出事件
     _event = Event()
     # 私有属性
-    douban = None
     searcher = None
     downloader = None
     subscribe = None
@@ -563,6 +563,7 @@ class DoubanSync(_IPluginModule):
         self.info(f"同步方式：{'近期动态' if self._sync_type else '全量同步'}")
 
         douban = DouBan()
+        douban_usr = DouBanUser()
 
         # 返回媒体列表
         media_list = []
@@ -574,7 +575,7 @@ class DoubanSync(_IPluginModule):
                 continue
             # 查询用户名称
             user_name = ""
-            userinfo = douban.get_user_info(userid=user)
+            userinfo = douban_usr.get_user_info(userid=user)
             if userinfo:
                 user_name = userinfo.get("name")
 
@@ -601,7 +602,7 @@ class DoubanSync(_IPluginModule):
                         continue_next_page = True
                         self.debug(f"开始解析第 {page_number} 页数据...")
                         try:
-                            items = douban.get_douban_wish(dtype=mtype, userid=user, start=start_number, wait=True)
+                            items = douban_usr.get_douban_wish(dtype=mtype, userid=user, start=start_number, wait=True)
                             if not items:
                                 self.warn(f"第 {page_number} 页未获取到数据")
                                 break
@@ -641,7 +642,7 @@ class DoubanSync(_IPluginModule):
                     self.debug(f"用户 {user_name or user} 的 {mtype} 解析完成，共获取到 {user_type_succnum} 个媒体")
                 self.info(f"用户 {user_name or user} 解析完成，共获取到 {user_succnum} 个媒体")
             else:
-                all_items = douban.get_latest_douban_interests(dtype='all', userid=user, wait=True)
+                all_items = douban_usr.get_latest_douban_interests(dtype='all', userid=user, wait=True)
                 self.debug(f"开始解析 {user_name or user} 的数据...")
                 self.debug(f"共获取到 {len(all_items)} 条数据")
                 # 所有类型成功数量

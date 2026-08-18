@@ -1,2 +1,3 @@
 from .apiv2 import DoubanApi
-from .webapi import DoubanWeb
+from .scaper import DoubanScaper
+from .webapi import DoubanWebApi
