@@ -380,7 +380,6 @@ async def sites_page():
     rule_groups = {str(group["id"]): group["name"] for group in Filter().get_rule_groups()}
     download_settings = {did: attr["name"] for did, attr in Downloader().get_download_setting().items()}
     cookie_cloud_cfg = SystemConfig().get(SystemConfigKey.CookieCloud)
-    cookie_user_info_cfg = SystemConfig().get(SystemConfigKey.CookieUserInfo)
 
     sorted_list = sorted(cfg_sites, key=lambda x: x.indexer_id not in indexer_sites)
 
@@ -391,7 +390,6 @@ async def sites_page():
             "DownloadSettings": download_settings,
             "ChromeOk": True,
             "CookieCloudCfg": cookie_cloud_cfg,
-            "CookieUserInfoCfg": cookie_user_info_cfg,
             "indexerSites": indexer_sites,
             "sourceTypes": SOURCE_TYPES,
         }

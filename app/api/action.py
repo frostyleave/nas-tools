@@ -16,7 +16,7 @@ from fastapi import APIRouter, BackgroundTasks, Body, Depends
 import log
 
 from app.conf import SystemConfig, ModuleConf
-from app.helper import ProgressHelper, ThreadHelper, MetaHelper, WordsHelper, RssHelper, FileHelper
+from app.helper import ThreadHelper, MetaHelper, WordsHelper, RssHelper, FileHelper
 from app.utils import StringUtils, EpisodeFormat, RequestUtils, PathUtils, SystemUtils, MediaUtils
 
 from app.core.cmd_handler import CommandHandler
@@ -44,7 +44,7 @@ from app.modules.media_status import MediaStatusChecker
 from app.modules.sync import Sync
 from app.modules.torrentremover import TorrentRemover
 from app.plugins import PluginManager, EventManager
-from app.sites import SitesManager, SitesDataStatisticsCenter, CookieManager, SiteConf
+from app.sites import SitesManager, SitesDataStatisticsCenter, SiteConf
 from app.utils.constants import Constants
 from app.utils.types import MediaType, SyncType, SearchType, EventType, SystemConfigKey, RssType
 from app.utils.password_hash import generate_password_hash
@@ -56,14 +56,14 @@ action_router = APIRouter(dependencies=[Depends(get_current_user)])
 
 # 事件响应
 @action_router.post("/do")
-def do(content: dict = Body(...), current_user: User = Depends(get_current_user)):
-    
+def do(background_tasks: BackgroundTasks, content: dict = Body(...), current_user: User = Depends(get_current_user)):
+
     start_time = time.time()
     try:
         cmd = content.get("cmd")
         data = content.get("data") or {}
         log.debug("处理/do请求: cmd={%s}, data={%s}", cmd, data)
-        return WebAction(current_user).action(cmd, data)
+        return WebAction(current_user, background_tasks).action(cmd, data)
     except Exception as e:
         log.exception("处理/do请求出错, cmd=" + content.get("cmd"))
         return {"code": -1, "msg": str(e)}
@@ -114,8 +114,9 @@ class WebAction:
     _commands = {}
     _current_user : Optional[User] = None
     _douBan : Optional[DouBan] =  None
+    _background_tasks : Optional[BackgroundTasks] = None
 
-    def __init__(self, current_user:Optional[User]=None):
+    def __init__(self, current_user:Optional[User]=None, background_tasks:Optional[BackgroundTasks]=None):
         # WEB请求响应
         self._actions = {
             "sch": self.__sch,
@@ -179,7 +180,6 @@ class WebAction:
             "get_site_seeding_info": self.__get_site_seeding_info,
             "clear_tmdb_cache": self.__clear_tmdb_cache,
             "check_site_attr": self.__check_site_attr,
-            "refresh_process": self.__refresh_process,
             "restory_backup": self.__restory_backup,
             "start_mediasync": self.__start_mediasync,
             "mediasync_state": self.__mediasync_state,
@@ -233,9 +233,6 @@ class WebAction:
             "get_indexers": self.__get_indexers,
             "get_download_dirs": self.__get_download_dirs,
             "find_hardlinks": self.__find_hardlinks,
-            "update_sites_cookie_ua": self.__update_sites_cookie_ua,
-            "update_site_cookie_ua": self.__update_site_cookie_ua,
-            "set_site_captcha_code": self.__set_site_captcha_code,
             "update_torrent_remove_task": self.__update_torrent_remove_task,
             "get_torrent_remove_task": self.__get_torrent_remove_task,
             "delete_torrent_remove_task": self.__delete_torrent_remove_task,
@@ -278,6 +275,8 @@ class WebAction:
         }
         # 用户绑定
         self._current_user = current_user
+        # 后台任务(用于将耗时操作放入后台执行)
+        self._background_tasks = background_tasks
         # 豆瓣实例
         self._douBan = DouBan()
 
@@ -598,7 +597,7 @@ class WebAction:
                     transinfo.SOURCE_PATH, transinfo.SOURCE_FILENAME)
                 dest_dir = transinfo.DEST
             else:
-                return {"retcode": -1, "retmsg": "未查询到转移日志记录"}
+                return {"code": -1, "msg": "未查询到转移日志记录"}
         else:
             unknown_id = data.get("unknown_id")
             if unknown_id:
@@ -607,13 +606,13 @@ class WebAction:
                     path = inknowninfo.PATH
                     dest_dir = inknowninfo.DEST
                 else:
-                    return {"retcode": -1, "retmsg": "未查询到未识别记录"}
-                
+                    return {"code": -1, "msg": "未查询到未识别记录"}
+
         if not dest_dir:
             dest_dir = ""
         if not path:
-            return {"retcode": -1, "retmsg": "输入路径有误"}
-        
+            return {"code": -1, "msg": "输入路径有误"}
+
         tmdbid = data.get("tmdb")
         mtype = data.get("type")
         season = data.get("season")
@@ -634,26 +633,24 @@ class WebAction:
         if os.path.splitext(path)[-1].lower() in Constants.RMT_MEDIAEXT and episode_format:
             path = os.path.dirname(path)
             need_fix_all = True
-        # 开始转移
-        succ_flag, ret_msg = self.__manual_transfer(inpath=path,
-                                                    syncmod=syncmod,
-                                                    outpath=dest_dir,
-                                                    media_type=media_type,
-                                                    episode_format=episode_format,
-                                                    episode_details=episode_details,
-                                                    episode_part=episode_part,
-                                                    episode_offset=episode_offset,
-                                                    need_fix_all=need_fix_all,
-                                                    min_filesize=min_filesize,
-                                                    tmdbid=tmdbid,
-                                                    season=season)
-        if succ_flag:
-            if not need_fix_all and not logid:
-                # 更新记录状态
-                FileTransfer().update_transfer_unknown_state(path)
-            return {"retcode": 0, "retmsg": "转移成功"}
-        else:
-            return {"retcode": 2, "retmsg": ret_msg}
+        # 创建后台任务，转移时通过SSE刷新进度
+        task_id = GlobalTaskManager().create_task()
+        self._add_background_task(self.__transfer_job,
+                                  task_id=task_id,
+                                  inpath=path,
+                                  syncmod=syncmod,
+                                  outpath=dest_dir,
+                                  media_type=media_type,
+                                  episode_format=episode_format,
+                                  episode_details=episode_details,
+                                  episode_part=episode_part,
+                                  episode_offset=episode_offset,
+                                  need_fix_all=need_fix_all,
+                                  update_unknown_state=True if (not need_fix_all and not logid) else False,
+                                  min_filesize=min_filesize,
+                                  tmdbid=tmdbid,
+                                  season=season)
+        return {"code": 0, "task_id": task_id}
 
     def __rename_udf(self, data):
         """
@@ -661,8 +658,8 @@ class WebAction:
         """
         inpath = data.get("inpath")
         if not os.path.exists(inpath):
-            return {"retcode": -1, "retmsg": f"输入路径{inpath}不存在"}
-        
+            return {"code": -1, "msg": f"输入路径{inpath}不存在"}
+
         outpath = data.get("outpath")
         syncmod = ModuleConf.RMT_MODES.get(data.get("syncmod"))
         tmdbid = data.get("tmdb")
@@ -680,24 +677,24 @@ class WebAction:
         else:
             media_type = MediaType.ANIME
 
-        # 开始转移
-        succ_flag, ret_msg = self.__manual_transfer(inpath=inpath,
-                                                    syncmod=syncmod,
-                                                    outpath=outpath,
-                                                    media_type=media_type,
-                                                    episode_format=episode_format,
-                                                    episode_details=episode_details,
-                                                    episode_part=episode_part,
-                                                    episode_offset=episode_offset,
-                                                    min_filesize=min_filesize,
-                                                    tmdbid=tmdbid,
-                                                    season=season)
-        if succ_flag:
-            return {"retcode": 0, "retmsg": "转移成功"}
-        else:
-            return {"retcode": 2, "retmsg": ret_msg}
+        # 创建后台任务，转移时通过SSE刷新进度
+        task_id = GlobalTaskManager().create_task()
+        self._add_background_task(self.__transfer_job,
+                                  task_id=task_id,
+                                  inpath=inpath,
+                                  syncmod=syncmod,
+                                  outpath=outpath,
+                                  media_type=media_type,
+                                  episode_format=episode_format,
+                                  episode_details=episode_details,
+                                  episode_part=episode_part,
+                                  episode_offset=episode_offset,
+                                  min_filesize=min_filesize,
+                                  tmdbid=tmdbid,
+                                  season=season)
+        return {"code": 0, "task_id": task_id}
 
-    def __manual_transfer(self, 
+    def __manual_transfer(self,
                           inpath,
                           syncmod,
                           outpath=None,
@@ -709,7 +706,8 @@ class WebAction:
                           min_filesize=None,
                           tmdbid=None,
                           season=None,
-                          need_fix_all=False):
+                          need_fix_all=False,
+                          task_id=None):
         """
         开始手工转移文件
         """
@@ -738,7 +736,8 @@ class WebAction:
                                                                episode=episode_conf,
                                                                min_filesize=min_filesize,
                                                                udf_flag=True,
-                                                               is_dir_specified=is_dir_specified)
+                                                               is_dir_specified=is_dir_specified,
+                                                               task_id=task_id)
         else:
             # 按识别的信息转移
             succ_flag, ret_msg = FileTransfer().transfer_media(in_from=SyncType.MAN,
@@ -749,8 +748,71 @@ class WebAction:
                                                                episode=episode_conf,
                                                                min_filesize=min_filesize,
                                                                udf_flag=True,
-                                                               is_dir_specified=is_dir_specified)
+                                                               is_dir_specified=is_dir_specified,
+                                                               task_id=task_id)
         return succ_flag, ret_msg
+
+    def _add_background_task(self, func, **kwargs):
+        """
+        添加后台任务，优先使用FastAPI BackgroundTasks，否则使用线程执行
+        """
+        if self._background_tasks is not None:
+            self._background_tasks.add_task(func, **kwargs)
+        else:
+            ThreadHelper().start_thread(lambda: func(**kwargs), ())
+
+    def __transfer_job(self,
+                       task_id,
+                       inpath,
+                       syncmod,
+                       outpath,
+                       media_type,
+                       episode_format=None,
+                       episode_details=None,
+                       episode_part=None,
+                       episode_offset=None,
+                       min_filesize=None,
+                       tmdbid=None,
+                       season=None,
+                       need_fix_all=False,
+                       update_unknown_state=False):
+        """
+        后台执行手工转移，并通过GlobalTaskManager刷新任务进度(由/sse-progress消费)
+        """
+        try:
+            GlobalTaskManager().update_task(task_id=task_id,
+                                            progress=0,
+                                            message="开始转移...")
+            # 开始转移
+            succ_flag, ret_msg = self.__manual_transfer(inpath=inpath,
+                                                        syncmod=syncmod,
+                                                        outpath=outpath,
+                                                        media_type=media_type,
+                                                        episode_format=episode_format,
+                                                        episode_details=episode_details,
+                                                        episode_part=episode_part,
+                                                        episode_offset=episode_offset,
+                                                        min_filesize=min_filesize,
+                                                        tmdbid=tmdbid,
+                                                        season=season,
+                                                        need_fix_all=need_fix_all,
+                                                        task_id=task_id)
+            if succ_flag:
+                # 更新记录状态
+                if update_unknown_state:
+                    FileTransfer().update_transfer_unknown_state(inpath)
+                GlobalTaskManager().finish_task(task_id=task_id,
+                                                message="转移成功",
+                                                result={"code": 0, "msg": "转移成功"})
+            else:
+                GlobalTaskManager().finish_task(task_id=task_id,
+                                                message=f"转移失败：{ret_msg}",
+                                                result={"code": 2, "msg": ret_msg})
+        except Exception as e:
+            log.exception("手工转移任务执行出错, task_id=%s", task_id)
+            GlobalTaskManager().finish_task(task_id=task_id,
+                                            message=f"转移失败：{str(e)}",
+                                            result={"code": 2, "msg": str(e)})
 
     def __delete_history(self, data):
         """
@@ -2130,16 +2192,6 @@ class WebAction:
             site_hr = True
         return {"code": 0, "site_free": site_free, "site_2xfree": site_2xfree, "site_hr": site_hr}
        
-    def __refresh_process(self, data):
-        """
-        刷新进度条
-        """
-        detail = ProgressHelper().get_process(data.get("type"))
-        if detail:
-            return {"code": 0, "value": detail.get("value"), "text": detail.get("text")}
-        else:
-            return {"code": 1, "value": 0, "text": "正在处理..."}
-
     def __restory_backup(self, data):
         """
         解压恢复备份文件
@@ -2167,8 +2219,25 @@ class WebAction:
         """
         librarys = data.get("librarys") or []
         SystemConfig().set(key=SystemConfigKey.SyncLibrary, value=librarys)
-        ThreadHelper().start_thread(MediaServer().sync_mediaserver, ())
-        return {"code": 0}
+        # 创建后台任务，同步时通过SSE刷新进度
+        task_id = GlobalTaskManager().create_task()
+        self._add_background_task(self.__mediasync_job, task_id=task_id)
+        return {"code": 0, "task_id": task_id}
+
+    def __mediasync_job(self, task_id):
+        """
+        后台执行媒体库同步，并通过GlobalTaskManager刷新任务进度(由/sse-progress消费)
+        """
+        try:
+            MediaServer().sync_mediaserver(task_id=task_id)
+            GlobalTaskManager().finish_task(task_id=task_id,
+                                            message="媒体库同步完成",
+                                            result={"code": 0, "msg": "媒体库同步完成"})
+        except Exception as e:
+            log.exception("媒体库同步任务执行出错, task_id=%s", task_id)
+            GlobalTaskManager().finish_task(task_id=task_id,
+                                            message=f"媒体库同步失败：{str(e)}",
+                                            result={"code": 1, "msg": str(e)})
 
     def __mediasync_state(self):
         """
@@ -3214,48 +3283,6 @@ class WebAction:
                 log.exception("[act]硬链接查找 异常:")
                 return {"code": 1}
         return {"code": 0, "data": hardlinks}
-
-    def __update_sites_cookie_ua(self, data):
-        """
-        更新所有站点的Cookie和UA
-        """
-        siteid = data.get("siteid")
-        username = data.get("username")
-        password = data.get("password")
-        twostepcode = data.get("two_step_code")
-        ocrflag = data.get("ocrflag")
-        # 保存设置
-        SystemConfig().set(key=SystemConfigKey.CookieUserInfo,
-                           value={
-                               "username": username,
-                               "password": password,
-                               "two_step_code": twostepcode
-                           })
-        retcode, messages = CookieManager().update_sites_cookie_ua(siteid=siteid,
-                                                                username=username,
-                                                                password=password,
-                                                                twostepcode=twostepcode,
-                                                                ocrflag=ocrflag)
-        return {"code": retcode, "messages": messages}
-
-    def __update_site_cookie_ua(self, data):
-        """
-        更新单个站点的Cookie和UA
-        """
-        siteid = data.get("site_id")
-        cookie = data.get("site_cookie")
-        ua = data.get("site_ua")
-        SitesManager().update_site_cookie(siteid=siteid, cookie=cookie, ua=ua)
-        return {"code": 0, "messages": "请求发送成功"}
-
-    def __set_site_captcha_code(self, data):
-        """
-        设置站点验证码
-        """
-        code = data.get("code")
-        value = data.get("value")
-        CookieManager().set_code(code=code, value=value)
-        return {"code": 0}
 
     def __update_torrent_remove_task(self, data):
         """

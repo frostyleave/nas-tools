@@ -285,7 +285,7 @@ function get_message(lst_time) {
 
 //检查系统是否在线
 function check_system_online() {
-  axios_post_do("refresh_process", { type: "restart" }, function (ret) {
+  axios_post_do("get_jobs", {}, function (ret) {
     if (!ret) {
       setTimeout("check_system_online()", 2000);
     } else {
@@ -358,15 +358,6 @@ function stopProgress() {
   }
 }
 
-// 刷新进度条
-function start_progress(type) {
-  stopProgress();
-  ProgressES = new EventSource(`stream-progress?type=${type}`);
-  ProgressES.onmessage = function (event) {
-    render_progress(JSON.parse(event.data))
-  };
-}
-
 // 展示进度条
 function show_progress_info(task_id, callback) {
   stopProgress();
@@ -415,27 +406,6 @@ function show_progress_modal(title) {
   $("#modal_process_bar").css("width", "0%").attr("aria-valuenow", 0);
   $("#modal_process_text").text("请稍候...");
   $("#modal-process").modal("show");
-
-}
-
-// 显示全局进度框
-function show_refresh_progress(title, type) {
-
-  hideLoading();
-
-  // 显示对话框
-  if (title) {
-    $("#modal_process_title").text(title);
-  } else {
-    $("#modal_process_title").hide();
-  }
-
-  $("#modal_process_bar").css("width", "0%").attr("aria-valuenow", 0);
-  $("#modal_process_text").text("请稍候...");
-  $("#modal-process").modal("show");
-
-  // 立即开始刷新进度条
-  start_progress(type);
 
 }
 
@@ -1769,27 +1739,39 @@ function manual_media_transfer() {
     "logid": logid
   };
   $('#modal-media-identification').modal('hide');
-  show_refresh_progress("手动转移 " + inpath, "filetransfer");
+  show_progress_modal("手动转移 " + inpath);
 
   let cmd = (manual_type === '3') ? "rename_udf" : "rename"
 
   axios_post_do(cmd, data, function (ret) {
 
-    hide_progress_modal();
-
-    if (ret.retcode === 0) {
-      show_success_modal(inpath + "处理成功！", function () {
-        // 转移
-        if (manual_type === '3' && typeof window.refresh_files === "function") {
-          window.refresh_files();
-          return;
-        }
-        navmenu(source);
-      });
-    } else {
-      // 处理失败
-      show_fail_modal(ret.retmsg, function () { $('#modal-media-identification').modal('show'); });
+    // 请求失败
+    if (ret.code !== 0) {
+      hide_progress_modal();
+      show_fail_modal(ret.msg || '转移失败', function () { $('#modal-media-identification').modal('show'); });
+      return;
     }
+
+    // 后台转移，通过SSE刷新进度
+    show_progress_info(ret.task_id, function (resultData) {
+
+      const result = resultData ? resultData.result : null;
+
+      if (result && result.code === 0) {
+        show_success_modal(inpath + "处理成功！", function () {
+          // 转移
+          if (manual_type === '3' && typeof window.refresh_files === "function") {
+            window.refresh_files();
+            return;
+          }
+          navmenu(source);
+        });
+      } else {
+        // 处理失败
+        show_fail_modal((result && result.msg) || '转移失败', function () { $('#modal-media-identification').modal('show'); });
+      }
+
+    });
 
   }, false);
 }

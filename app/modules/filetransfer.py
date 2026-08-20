@@ -12,7 +12,8 @@ from typing import Tuple
 import log
 
 from app.conf import ModuleConf
-from app.helper import DbHelper, ProgressHelper, FileHelper
+from app.core.task_manager import GlobalTaskManager
+from app.helper import DbHelper, FileHelper
 from app.media import MediaService, Category, Scraper
 from app.media.meta import MetaInfo
 from app.mediaserver import MediaServer
@@ -21,7 +22,7 @@ from app.plugins import EventManager
 from app.utils import EpisodeFormat, PathUtils, StringUtils, SystemUtils, NumberUtils
 from app.utils.commons import singleton
 from app.utils.constants import Constants
-from app.utils.types import MediaType, SyncType, RmtMode, EventType, ProgressKey
+from app.utils.types import MediaType, SyncType, RmtMode, EventType
 
 from config import RMT_FAVTYPE, Config
 
@@ -43,7 +44,6 @@ class FileTransfer:
     mediaserver = None
     scraper = None
     dbhelper = None
-    progress = None
     eventmanager = None
 
     _default_rmt_mode = None
@@ -73,7 +73,6 @@ class FileTransfer:
         self.category = Category()
         self.scraper = Scraper()
         self.dbhelper = DbHelper()
-        self.progress = ProgressHelper()
         self.eventmanager = EventManager()
 
         media = Config().get_config('media')
@@ -495,7 +494,8 @@ class FileTransfer:
                        min_filesize=None,
                        udf_flag=False,
                        root_path=False,
-                       is_dir_specified=False):
+                       is_dir_specified=False,
+                       task_id=None):
         """
         识别并转移一个文件、多个文件或者目录
         :param in_from: 来源，即调用该功能的渠道
@@ -511,19 +511,21 @@ class FileTransfer:
         :param min_filesize: 过滤小文件大小的上限值
         :param udf_flag: 自定义转移标志，为True时代表是自定义转移，此时很多处理不一样
         :param root_path: 是否根目录下的文件
+        :param task_id: 后台任务ID，传入后通过GlobalTaskManager刷新任务进度
         :return: 处理状态，错误信息
         """
 
+        def __update_progress(progress=None, message=None):
+            if task_id:
+                GlobalTaskManager().update_task(task_id=task_id,
+                                                progress=progress,
+                                                message=message)
+
         def __finish_transfer(status, message):
             if status:
-                self.progress.update(ptype=ProgressKey.FileTransfer,
-                                     value=100,
-                                     text=f"{in_path} 转移成功！")
+                __update_progress(progress=100, message=f"{in_path} 转移成功！")
             else:
-                self.progress.update(ptype=ProgressKey.FileTransfer,
-                                     value=100,
-                                     text=f"{in_path} 转移失败：{message}！")
-            self.progress.end(ProgressKey.FileTransfer)
+                __update_progress(progress=100, message=f"{in_path} 转移失败：{message}！")
             return status, message
 
         if not in_path:
@@ -534,8 +536,8 @@ class FileTransfer:
             log.error("【Rmt】文件转移失败，目录或文件不存在：%s" % in_path)
             return __finish_transfer(False, "目录或文件不存在")
 
-        # 开始进度
-        self.progress.start(ProgressKey.FileTransfer)
+        # 更新进度
+        __update_progress(progress=0, message=f"开始处理：{in_path} ...")
         log.info("【Rmt】开始处理：%s，转移方式：%s" % (in_path, rmt_mode.value))
 
         # 集定位参数
@@ -632,7 +634,7 @@ class FileTransfer:
             return __finish_transfer(False, "搜索媒体信息出错")
 
         # 更新进度
-        self.progress.update(ptype=ProgressKey.FileTransfer, text=f"共 {len(Medias)} 个文件需要处理...")
+        __update_progress(message=f"共 {len(Medias)} 个文件需要处理...")
 
         # 统计总的文件数、失败文件数、需要提醒的失败数
         failed_count = 0
@@ -658,9 +660,8 @@ class FileTransfer:
                 # 文件名
                 file_name = os.path.basename(file_item)
                 # 更新进度
-                self.progress.update(ptype=ProgressKey.FileTransfer,
-                                     value=round(total_count / len(Medias) * 100) - (0.5 / len(Medias) * 100),
-                                     text="正在处理：%s ..." % file_name)
+                __update_progress(progress=round(total_count / len(Medias) * 100) - (0.5 / len(Medias) * 100),
+                                  message="正在处理：%s ..." % file_name)
 
                 # 数据库记录的路径
                 if bluray_disk_dir:
@@ -672,7 +673,7 @@ class FileTransfer:
                     log.warn("【Rmt】%s 无法识别媒体信息！" % file_name)
                     success_flag = False
                     error_message = "无法识别媒体信息"
-                    self.progress.update(ptype=ProgressKey.FileTransfer, text=error_message)
+                    __update_progress(message=error_message)
                     if udf_flag:
                         return __finish_transfer(success_flag, error_message)
                     # 记录未识别
@@ -763,7 +764,7 @@ class FileTransfer:
                                 if ret != 0:
                                     success_flag = False
                                     error_message = "文件转移失败，错误码 %s" % ret
-                                    self.progress.update(ptype=ProgressKey.FileTransfer, text=error_message)
+                                    __update_progress(message=error_message)
                                     if udf_flag:
                                         return __finish_transfer(success_flag, error_message)
                                     failed_count += 1
@@ -786,7 +787,7 @@ class FileTransfer:
                         log.error("【Rmt】拼装目录路径错误，无法从文件名中识别出季集信息：%s" % file_item)
                         success_flag = False
                         error_message = "识别失败，无法从文件名中识别出季集信息"
-                        self.progress.update(ptype=ProgressKey.FileTransfer, text=error_message)
+                        __update_progress(message=error_message)
                         if udf_flag:
                             return __finish_transfer(success_flag, error_message)
                         # 记录未识别
@@ -808,7 +809,7 @@ class FileTransfer:
                     if ret != 0:
                         success_flag = False
                         error_message = "蓝光目录转移失败，错误码：%s" % ret
-                        self.progress.update(ptype=ProgressKey.FileTransfer, text=error_message)
+                        __update_progress(message=error_message)
                         if udf_flag:
                             return __finish_transfer(success_flag, error_message)
                         failed_count += 1
@@ -823,7 +824,7 @@ class FileTransfer:
                             log.error("【Rmt】拼装文件路径错误，无法从文件名中识别出集数：%s" % file_item)
                             success_flag = False
                             error_message = "识别失败，无法从文件名中识别出集数"
-                            self.progress.update(ptype=ProgressKey.FileTransfer, text=error_message)
+                            __update_progress(message=error_message)
                             if udf_flag:
                                 return __finish_transfer(success_flag, error_message)
                             # 记录未识别
@@ -843,7 +844,7 @@ class FileTransfer:
                         if ret != 0:
                             success_flag = False
                             error_message = "文件转移失败，错误码 %s" % ret
-                            self.progress.update(ptype=ProgressKey.FileTransfer, text=error_message)
+                            __update_progress(message=error_message)
                             if udf_flag:
                                 return __finish_transfer(success_flag, error_message)
                             failed_count += 1
@@ -900,9 +901,8 @@ class FileTransfer:
                                                    file_ext=file_ext,
                                                    rmt_mode=rmt_mode)
                 # 更新进度
-                self.progress.update(ptype=ProgressKey.FileTransfer,
-                                     value=round(total_count / len(Medias) * 100),
-                                     text="%s 转移完成" % file_name)
+                __update_progress(progress=round(total_count / len(Medias) * 100),
+                                  message="%s 转移完成" % file_name)
 
                 # 移动模式随机休眠（兼容一些网盘挂载目录）
                 if rmt_mode == RmtMode.MOVE:
