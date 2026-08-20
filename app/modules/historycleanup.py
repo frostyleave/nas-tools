@@ -1,12 +1,18 @@
 import datetime
+import os
 
 import log
 
 from app.helper import DbHelper
 from app.utils.commons import singleton
 
+from config import Config
 
+# 单次最大删除数据量
 BATCH_SIZE = 500
+
+# 临时种子文件保留天数
+TORRENT_RETENTION_DAYS = 3
 
 
 @singleton
@@ -68,4 +74,42 @@ class HistoryCleanup:
                 log.error(f"【HistoryCleanup】{name} 清理失败: {str(e)}")
 
         log.info(f"【HistoryCleanup】历史数据清理完成，共删除 {total_deleted} 条记录")
+
+        # 清理临时目录中过期的种子文件
+        self.cleanup_temp_torrent_files()
+
         return total_deleted
+
+    def cleanup_temp_torrent_files(self, retention_days=TORRENT_RETENTION_DAYS):
+        """
+        清理临时目录中指定天数前的种子文件
+        """
+        temp_path = Config().get_temp_path()
+        if not os.path.exists(temp_path):
+            log.info(f"【HistoryCleanup】临时目录不存在，跳过种子文件清理: {temp_path}")
+            return 0
+
+        cutoff_time = datetime.datetime.now() - datetime.timedelta(days=retention_days)
+        deleted_count = 0
+        try:
+            for entry in os.scandir(temp_path):
+                # 仅清理临时目录根目录下的种子文件
+                if not entry.is_file() or not entry.name.endswith('.torrent'):
+                    continue
+                try:
+                    file_mtime = datetime.datetime.fromtimestamp(entry.stat().st_mtime)
+                    if file_mtime < cutoff_time:
+                        os.remove(entry.path)
+                        deleted_count += 1
+                        log.debug("【HistoryCleanup】删除过期种子文件: %s", entry.path)
+                except Exception as e:
+                    log.error("【HistoryCleanup】删除种子文件 %s 失败: %s", entry.name, e)
+
+            if deleted_count:
+                log.info(f"【HistoryCleanup】临时种子文件清理完成，删除 {deleted_count} 个过期种子文件")
+            else:
+                log.info("【HistoryCleanup】临时种子文件无需清理")
+        except Exception:
+            log.exception("【HistoryCleanup】临时种子文件清理失败")
+
+        return deleted_count
