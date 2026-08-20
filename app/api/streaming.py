@@ -10,7 +10,7 @@ import log
 from log import log_buffer, active_sse_queues
 
 from app.core.cmd_handler import CommandHandler
-from app.core.task_manager import GlobalTaskManager
+from app.core.task_manager import TaskStore
 from app.message.message_center import SysMessageCenter
 from app.middleware.security import get_current_user
 from app.utils.types import SearchType
@@ -191,7 +191,7 @@ async def sse_progress(
                     break
 
                 # 获取进度
-                task_info = GlobalTaskManager().get_task_dict(task_id)
+                task_info = TaskStore().get_task_dict(task_id)
                 if not task_info:
                     log.info(f"[SSE-进度] 查询任务: {task_id} 进度信息失败")
                     break

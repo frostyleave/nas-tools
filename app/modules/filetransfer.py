@@ -12,7 +12,7 @@ from typing import Tuple
 import log
 
 from app.conf import ModuleConf
-from app.core.task_manager import GlobalTaskManager
+from app.core.task_manager import TaskStore
 from app.helper import DbHelper, FileHelper
 from app.media import MediaService, Category, Scraper
 from app.media.meta import MetaInfo
@@ -511,13 +511,13 @@ class FileTransfer:
         :param min_filesize: 过滤小文件大小的上限值
         :param udf_flag: 自定义转移标志，为True时代表是自定义转移，此时很多处理不一样
         :param root_path: 是否根目录下的文件
-        :param task_id: 后台任务ID，传入后通过GlobalTaskManager刷新任务进度
+        :param task_id: 后台任务ID，传入后通过TaskStore刷新任务进度
         :return: 处理状态，错误信息
         """
 
         def __update_progress(progress=None, message=None):
             if task_id:
-                GlobalTaskManager().update_task(task_id=task_id,
+                TaskStore().update_task(task_id=task_id,
                                                 progress=progress,
                                                 message=message)
 

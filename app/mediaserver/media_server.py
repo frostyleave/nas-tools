@@ -6,7 +6,7 @@ from typing import Tuple
 import log
 
 from app.conf import SystemConfig
-from app.core.task_manager import GlobalTaskManager
+from app.core.task_manager import TaskStore
 from app.db.media_db import MediaDb
 from app.helper import SubmoduleHelper
 from app.media import MediaService
@@ -220,7 +220,7 @@ class MediaServer:
     def sync_mediaserver(self, task_id=None):
         """
         同步媒体库所有数据到本地数据库
-        :param task_id: 后台任务ID，传入后通过GlobalTaskManager刷新任务进度
+        :param task_id: 后台任务ID，传入后通过TaskStore刷新任务进度
         """
         if not self.server:
             return
@@ -228,7 +228,7 @@ class MediaServer:
 
             def __update_progress(progress=None, message=None):
                 if task_id:
-                    GlobalTaskManager().update_task(task_id=task_id,
+                    TaskStore().update_task(task_id=task_id,
                                                     progress=progress,
                                                     message=message)
 

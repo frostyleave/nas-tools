@@ -12,7 +12,7 @@ from app.media.meta import MetaInfo
 from app.utils import StringUtils, MediaUtils
 from app.utils.constants import Constants
 from app.utils.types import MediaType, SearchType
-from app.core.task_manager import GlobalTaskManager
+from app.core.task_manager import TaskStore
 
 
 class _IIndexClient(metaclass=ABCMeta):
@@ -389,5 +389,5 @@ class _IIndexClient(metaclass=ABCMeta):
         进度更新
         """
         if task_id:
-            GlobalTaskManager().update_task(task_id, progress=0, progress_add=self.step_fator, message=text)
+            TaskStore().update_task(task_id, progress=0, progress_add=self.step_fator, message=text)
             return

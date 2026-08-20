@@ -1,6 +1,6 @@
 from typing import List, Tuple
 
-from app.core.task_manager import GlobalTaskManager
+from app.core.task_manager import TaskStore
 from app.helper import DbHelper
 from app.media import MediaService
 from app.media.meta.metainfo import MetaInfo
@@ -53,7 +53,7 @@ class Searcher:
             return []
 
         if task_id:
-            GlobalTaskManager().update_task(task_id=task_id, progress=1, message="开始搜索 %s ..." % search_theme)
+            TaskStore().update_task(task_id=task_id, progress=1, message="开始搜索 %s ..." % search_theme)
 
         torrent_list = self.indexer.search_by_keyword(key_word, filter_args, match_media, in_from, task_id)
 
@@ -68,7 +68,7 @@ class Searcher:
 
         # 结束进度
         if task_id:
-            GlobalTaskManager().finish_task(task_id=task_id, message="搜索完成", result=len(torrent_list))
+            TaskStore().finish_task(task_id=task_id, message="搜索完成", result=len(torrent_list))
 
         return torrent_list
 

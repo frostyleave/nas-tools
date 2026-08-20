@@ -22,7 +22,7 @@ from app.utils import StringUtils, EpisodeFormat, RequestUtils, PathUtils, Syste
 from app.core.cmd_handler import CommandHandler
 from app.core.jobcenter import JobCenter
 from app.core.services import ServiceManager
-from app.core.task_manager import GlobalTaskManager
+from app.core.task_manager import TaskStore
 from app.downloader import Downloader
 from app.indexer import Indexer
 from app.indexer.manager import IndexerManager
@@ -92,7 +92,7 @@ def search(background_tasks: BackgroundTasks, data: dict = Body(...)):
             else:
                 media_type = MediaType.TV
 
-        task_id = GlobalTaskManager().create_task()
+        task_id = TaskStore().create_task()
 
         background_tasks.add_task(SearchProxy().search_torrents_from_web,
                                   content=search_word,
@@ -634,7 +634,7 @@ class WebAction:
             path = os.path.dirname(path)
             need_fix_all = True
         # 创建后台任务，转移时通过SSE刷新进度
-        task_id = GlobalTaskManager().create_task()
+        task_id = TaskStore().create_task()
         self._add_background_task(self.__transfer_job,
                                   task_id=task_id,
                                   inpath=path,
@@ -678,7 +678,7 @@ class WebAction:
             media_type = MediaType.ANIME
 
         # 创建后台任务，转移时通过SSE刷新进度
-        task_id = GlobalTaskManager().create_task()
+        task_id = TaskStore().create_task()
         self._add_background_task(self.__transfer_job,
                                   task_id=task_id,
                                   inpath=inpath,
@@ -777,10 +777,10 @@ class WebAction:
                        need_fix_all=False,
                        update_unknown_state=False):
         """
-        后台执行手工转移，并通过GlobalTaskManager刷新任务进度(由/sse-progress消费)
+        后台执行手工转移，并通过TaskStore刷新任务进度(由/sse-progress消费)
         """
         try:
-            GlobalTaskManager().update_task(task_id=task_id,
+            TaskStore().update_task(task_id=task_id,
                                             progress=0,
                                             message="开始转移...")
             # 开始转移
@@ -801,16 +801,16 @@ class WebAction:
                 # 更新记录状态
                 if update_unknown_state:
                     FileTransfer().update_transfer_unknown_state(inpath)
-                GlobalTaskManager().finish_task(task_id=task_id,
+                TaskStore().finish_task(task_id=task_id,
                                                 message="转移成功",
                                                 result={"code": 0, "msg": "转移成功"})
             else:
-                GlobalTaskManager().finish_task(task_id=task_id,
+                TaskStore().finish_task(task_id=task_id,
                                                 message=f"转移失败：{ret_msg}",
                                                 result={"code": 2, "msg": ret_msg})
         except Exception as e:
             log.exception("手工转移任务执行出错, task_id=%s", task_id)
-            GlobalTaskManager().finish_task(task_id=task_id,
+            TaskStore().finish_task(task_id=task_id,
                                             message=f"转移失败：{str(e)}",
                                             result={"code": 2, "msg": str(e)})
 
@@ -2220,22 +2220,22 @@ class WebAction:
         librarys = data.get("librarys") or []
         SystemConfig().set(key=SystemConfigKey.SyncLibrary, value=librarys)
         # 创建后台任务，同步时通过SSE刷新进度
-        task_id = GlobalTaskManager().create_task()
+        task_id = TaskStore().create_task()
         self._add_background_task(self.__mediasync_job, task_id=task_id)
         return {"code": 0, "task_id": task_id}
 
     def __mediasync_job(self, task_id):
         """
-        后台执行媒体库同步，并通过GlobalTaskManager刷新任务进度(由/sse-progress消费)
+        后台执行媒体库同步，并通过TaskStore刷新任务进度(由/sse-progress消费)
         """
         try:
             MediaServer().sync_mediaserver(task_id=task_id)
-            GlobalTaskManager().finish_task(task_id=task_id,
+            TaskStore().finish_task(task_id=task_id,
                                             message="媒体库同步完成",
                                             result={"code": 0, "msg": "媒体库同步完成"})
         except Exception as e:
             log.exception("媒体库同步任务执行出错, task_id=%s", task_id)
-            GlobalTaskManager().finish_task(task_id=task_id,
+            TaskStore().finish_task(task_id=task_id,
                                             message=f"媒体库同步失败：{str(e)}",
                                             result={"code": 1, "msg": str(e)})
 

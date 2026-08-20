@@ -14,7 +14,7 @@ from app.media.meta.metainfo import MetaInfo
 from app.utils import StringUtils
 from app.utils.commons import singleton
 from app.utils.types import SearchType
-from app.core.task_manager import GlobalTaskManager
+from app.core.task_manager import TaskStore
 
 # 索引器默认分类
 INDEXER_CATEGORY = ['MOVIE', 'TV', 'ANIME']
@@ -177,7 +177,7 @@ class Indexer(object):
         进度更新
         """
         if task_id:
-            GlobalTaskManager().update_task(task_id, progress=process_val, message=text)
+            TaskStore().update_task(task_id, progress=process_val, message=text)
             return
 
     def _chunk_list(self, data_list, chunks):
