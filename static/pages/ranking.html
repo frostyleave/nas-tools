@@ -224,10 +224,14 @@
 
     function drawBangumiSlides() {
        
+        $("#loading-tips").show();
+
         // 请求接口, 查询相应榜单数据
         axios_post_do("get_recommend", { "type": 'TV', "subtype": 'bangumi', "page": 1, "fav": 0 }, 
         (ret) => {
 
+            $("#loading-tips").hide();
+            
             if (!ret.Items || ret.Items.length == 0) {
                 return;
             }
@@ -310,7 +314,7 @@
                 });
             }, false);
             
-        }, false);
+        });
 
     }
 
@@ -333,7 +337,6 @@
 
         drawSlideByRequest(pageRankList);
 
-        
     });
 
 </script>
