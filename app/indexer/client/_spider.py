@@ -10,11 +10,9 @@ from pyquery import PyQuery
 
 import log
 
-from app.indexer.client.browser import PlaywrightHelper, WaitElement
 from app.models.model import IndexerInfo
 from app.sites.siteconf import SiteConf
 from app.utils import StringUtils, RequestUtils
-from app.utils.system_utils import SystemUtils
 from app.utils.types import MediaType
 
 
@@ -54,8 +52,6 @@ class TorrentSpider(object):
     result_num = 100
     # 种子列表
     torrents_info_array = []
-    # 加载等待元素
-    wait_element = None
     # 超时时间
     timeout = 20
 
@@ -83,13 +79,7 @@ class TorrentSpider(object):
                 self.proxies = Config().get_proxies()
             if indexer.cookie:
                 self.cookie = RequestUtils.cookie_parse(indexer.cookie)
-
-            wait_navigation = self.search_conf.get('navigation')
-            if wait_navigation:
-                wait_pair = StringUtils.split_and_filter(wait_navigation, ":")
-                if len(wait_pair) == 2:
-                    self.wait_element = WaitElement(wait_pair[0], wait_pair[1])
-            
+           
             if 'hr' not in self.fields_conf:
                 grap_conf = SiteConf().get_grap_conf(self.domain)
                 if grap_conf:
@@ -112,21 +102,6 @@ class TorrentSpider(object):
         searchurl = self._build_search_url(keyword, page, mtype)
 
         log.info(f"【Spider】[{self.indexername}]开始请求: {searchurl}")
-
-        # 浏览器仿真
-        if self.render:
-            noGraphical = SystemUtils.is_windows() is False and SystemUtils.is_macos() is False
-            cookie_str = self._indexer.cookie
-            page_source = PlaywrightHelper().get_page_source(
-                url=searchurl,
-                cookies=cookie_str,
-                ua=self.ua,
-                proxy=True if self._indexer.proxy else False,
-                timeout=self.timeout,
-                wait_item=self.wait_element,
-                headless=noGraphical
-            )
-            return self.parse(page_source)
         
         html_content = self._sample_request(searchurl)
         return self.parse(html_content)

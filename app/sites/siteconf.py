@@ -6,7 +6,6 @@ import time
 from cachetools import TTLCache, cached
 from lxml import etree
 
-from app.indexer.client.browser import PlaywrightHelper
 from app.utils import SiteUtils, RequestUtils
 from app.utils.commons import singleton
 from config import Config
@@ -167,16 +166,12 @@ class SiteConf:
     @staticmethod
     @cached(cache=TTLCache(maxsize=512, ttl=300))
     def __get_site_page_html(url, cookie, ua, render=False, proxy=False):
-        # 开渲染
-        if render:            
-            return PlaywrightHelper().get_page_source(url=url, cookies=cookie, ua=ua, proxy=proxy, timeout=10)
-        else:
-            res = RequestUtils(
-                cookies=cookie,
-                ua=ua,
-                proxies=Config().get_proxies() if proxy else None
-            ).get_res(url=url)
-            if res and res.status_code == 200:
-                res.encoding = res.apparent_encoding
-                return res.text
+        res = RequestUtils(
+            cookies=cookie,
+            ua=ua,
+            proxies=Config().get_proxies() if proxy else None
+        ).get_res(url=url)
+        if res and res.status_code == 200:
+            res.encoding = res.apparent_encoding
+            return res.text
         return ""

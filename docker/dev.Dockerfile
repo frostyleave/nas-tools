@@ -5,7 +5,6 @@ FROM python:3.12-slim-bookworm AS builder
 
 # 设置环境变量
 ENV DEBIAN_FRONTEND=noninteractive \
-    PLAYWRIGHT_BROWSERS_PATH=/ms-playwright \
     WORKDIR="/nas-tools" \
     BRANCH=dev_fastapi \
     REPO_URL="https://github.com/frostyleave/nas-tools.git"
@@ -44,11 +43,8 @@ RUN git config --global pull.ff only \
     && git config --global --add safe.directory ${WORKDIR}
 
 # 2. 再安装 Python 依赖 (使用本地文件)
-RUN mkdir -p ${PLAYWRIGHT_BROWSERS_PATH} \
-    && pip install --no-cache-dir --upgrade pip setuptools==70.1.1 wheel \
+RUN pip install --no-cache-dir --upgrade pip setuptools==70.1.1 wheel \
     && pip install --no-cache-dir cython \
-    && pip install --no-cache-dir playwright \
-    && python -m playwright install chromium \
     && pip install --no-cache-dir -r ${WORKDIR}/requirements.txt \
     && rm -rf /root/.cache
 
@@ -73,8 +69,6 @@ ENV DEBIAN_FRONTEND=noninteractive \
     S6_SYNC_DISKS=1 \
     HOME="/nt" \
     TERM="xterm" \
-    PATH=${PATH}:/usr/lib/chromium \
-    PLAYWRIGHT_BROWSERS_PATH=/ms-playwright \
     LANG="C.UTF-8" \
     TZ="Asia/Shanghai" \
     NASTOOL_CONFIG="/config/config.yaml" \
@@ -107,7 +101,6 @@ WORKDIR ${WORKDIR}
 # 从 builder 阶段精确复制产物
 COPY --from=builder /usr/local/lib/ /usr/local/lib/
 COPY --from=builder /usr/local/bin/ /usr/local/bin/
-COPY --from=builder ${PLAYWRIGHT_BROWSERS_PATH} ${PLAYWRIGHT_BROWSERS_PATH}
 COPY --from=builder ${WORKDIR} ${WORKDIR}
 
 COPY --chmod=755 ./rootfs /

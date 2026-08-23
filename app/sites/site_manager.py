@@ -9,7 +9,6 @@ import log
 
 from app.db.models import CONFIGSITE
 from app.helper import SiteHelper, DbHelper
-from app.indexer.client.browser import PlaywrightHelper
 from app.indexer.manager import IndexerManager
 from app.message import MessageService
 from app.models.model import UserSiteConf, SiteBaseModel
@@ -350,20 +349,6 @@ class SitesManager:
 
         # 计时
         start_time = datetime.now()
-
-        # 仿真
-        if site_info.chrome:
-            proxy = True if site_info.proxy else False
-            # 访问主页
-            html_text = PlaywrightHelper().get_page_source(url=site_url, ua=ua, cookies=site_cookie, proxy=proxy, headless=False)
-            if not html_text:
-                return False, "获取站点源码失败", 0
-            
-            seconds = int((datetime.now() - start_time).microseconds / 1000)
-            if SiteHelper.is_logged_in(html_text):
-                return True, "连接成功", seconds
-            else:
-                return False, "Cookie失效", seconds
         
         res = RequestUtils(cookies=site_cookie,
                            ua=ua,

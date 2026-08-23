@@ -17,7 +17,6 @@ import log
 from app.utils import TorrentUtils, RequestUtils, SiteUtils
 from app.utils.torrent import TorrentDownloadResult
 from app.indexer.client import InterfaceSpider, MTorrentSpider
-from app.indexer.client.browser import PlaywrightHelper
 from app.indexer.manager import IndexerManager
 from app.models.model import IndexerInfo, UserSiteConf
 from config import Config
@@ -93,21 +92,6 @@ class TorrentDownloader:
             return TorrentDownloadResult(content=url, ret_msg=("%s 为磁力链接" % url))
 
         try:
-            if render:
-                file_path = PlaywrightHelper().download_file(url=url,
-                                                             cookies=cookie,
-                                                             ua=ua,
-                                                             proxy=proxy,
-                                                             save_path=self._torrent_temp_path)
-                if not file_path:
-                    return TorrentDownloadResult(ret_msg='文件下载失败')
-                read_result = TorrentUtils.read_torrent_content(file_path)
-                return TorrentDownloadResult(
-                    file_path=file_path, content=read_result.content,
-                    files_folder=read_result.files_folder,
-                    files=read_result.files, ret_msg=read_result.ret_msg
-                )
-
             save_result = self.save_torrent_file(url=url, 
                                                  cookie=cookie, 
                                                  ua=ua,
