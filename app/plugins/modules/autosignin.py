@@ -101,10 +101,10 @@ class AutoSignIn(_IPluginModule):
     _queue_cnt = None
     _retry_keyword = None
     _special_sites = None
-    _render_sites = None
     _onlyonce = False
     _notify = False
     _clean = False
+    
     # 退出事件
     _event = Event()
 
@@ -226,20 +226,6 @@ class AutoSignIn(_IPluginModule):
                     ]
                 ]
             },
-            {
-                'type': 'details',
-                'summary': '仿真签到站点',
-                'tooltip': '选中的站点使用仿真签到, 不受站点配置中的仿真选项影响',
-                'content': [
-                    [
-                        {
-                            'id': 'render_sites',
-                            'type': 'form-selectgroup',
-                            'content': sites
-                        },
-                    ]
-                ]
-            },
         ]
 
     def init_config(self, config=None):
@@ -253,7 +239,6 @@ class AutoSignIn(_IPluginModule):
             self._retry_keyword = config.get("retry_keyword")
             self._config_sites = config.get("sign_sites")
             self._special_sites = config.get("special_sites") or []
-            self._render_sites = config.get("render_sites") or []
             self._notify = config.get("notify")
             self._queue_cnt = config.get("queue_cnt")
             self._onlyonce = config.get("onlyonce")
@@ -288,7 +273,6 @@ class AutoSignIn(_IPluginModule):
                     "retry_keyword": self._retry_keyword,
                     "sign_sites": self._config_sites,
                     "special_sites": self._special_sites,
-                    "render_sites": self._render_sites,
                     "notify": self._notify,
                     "onlyonce": self._onlyonce,
                     "queue_cnt": self._queue_cnt,

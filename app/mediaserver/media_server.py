@@ -388,13 +388,13 @@ class MediaServer:
                                                   channel=channel.value,
                                                   image_url=image_url)
 
-    def get_resume(self, num=12):
+    def get_resume(self, user_name, num=12):
         """
         获取继续观看
         """
-        if not self.server:
+        if not self.server or not user_name:
             return []
-        return self.server.get_resume(num=num)
+        return self.server.get_resume(user_name, num=num)
 
     def get_latest(self, num=20):
         """
