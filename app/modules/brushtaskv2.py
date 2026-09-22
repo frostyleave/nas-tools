@@ -218,7 +218,7 @@ class BrushTaskV2(object):
                                            dlcount=rss_rule.get("dlcount")):
             return
 
-        site_indexer = IndexerManager().build_indexer_conf(url=site_info.strict_url)
+        site_indexer = IndexerManager().build_indexer_conf(url=site_info.strict_url, site_conf=site_info)
         if not site_indexer:
             log.error("【Brush】刷流站点 %s 的站索引器获取失败, 无法刷流!" % site_name)
             return
