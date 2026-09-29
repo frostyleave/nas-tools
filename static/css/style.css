@@ -18,6 +18,8 @@
     --lit-person-card-bg: var(--tblr-body-bg);
     --lit-menu-color: var(--tblr-body-color);
 
+    --tblr-card-border-color:initial;
+
 }
 
 .theme-dark {
@@ -27,6 +29,9 @@
     --lit-navbar-active-color: #fff;
     --lit-menu-color: #b2b2c4;
     --tblr-navbar-border-color:#243049;
+
+    --tblr-bg-surface: #1d273b61;
+    --tblr-dark-mode-border-color: rgba(255, 255, 255, 0.15);
 }
 
 .lit-navbar-accordion-item:hover {
@@ -71,20 +76,19 @@ body.no-after::after {
     background-color: transparent !important;
 }
 
-body.theme-light::after {
+body::after {
     z-index: -1;
     content: "";
     position: fixed;
     inset: 0;
     background: linear-gradient(135deg,var(--tblr-body-bg) 0%,rgba(123, 178, 233, 0.4) 100%);
-    backdrop-filter: blur(10px);
+    backdrop-filter: blur(20px) saturate(150%);
     pointer-events: none;
 }
 
-
-.layout-fluid .page {
+/* .layout-fluid .page {
     background-color: var(--tblr-body-bg);
-}
+} */
 
 .tooltip-inner {
     text-align: left;
@@ -925,7 +929,6 @@ a:hover {
 .glass-card {
     backdrop-filter: blur(15px);
     -webkit-backdrop-filter: blur(15px);
-    background: rgba(255, 255, 255, 0.15);
     border: 1px solid rgba(255, 255, 255, 0.2);
     border-radius: 8px;
     box-shadow: 0 4px 16px 0 rgba(var(--tblr-primary-rgb), 0.3);
@@ -934,6 +937,15 @@ a:hover {
 .glass-card:hover {
     transform: scale(1.01);
     box-shadow: 0 12px 40px 0 rgba(var(--tblr-primary-rgb), 0.8);
+}
+
+.theme-light .glass-card {
+    background: rgba(255, 255, 255, 0.15);
+}
+
+.theme-dark .form-check-input:not(:checked) {
+    background-color: initial;
+    border-color: var(--tblr-border-color-translucent);
 }
 
 /* 分区切换样式 */
