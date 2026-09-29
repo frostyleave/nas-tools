@@ -539,7 +539,6 @@
   // 生成单个任务HTML
   function generateTaskHtml(task, count) {
     const stateBadge = getStateBadge(task.state);
-    const displayStyle = count > 2 ? 'block' : 'none';
     const detailDisplayStyle = count > 2 ? 'none' : 'block';
 
     return `
@@ -553,37 +552,18 @@
           </div>
           <a href="javascript:void(0)" onclick="show_brushtask_detail('${task.id}')" style="text-decoration-line: none; color: unset"
              title="展开/折叠" data-bs-toggle="tooltip">
-            <div class="ms-3">
+            <div class="ms-1">
               <h3 class="card-title">${task.name}</h3>
             </div>
           </a>
-          <div class="ms-2 d-none d-sm-block">
-            <a href="javascript:run_brushtask_now('${task.id}')" class="btn-icon" title="立即运行任务" data-bs-toggle="tooltip">
-              <i class="ti ti-bolt fs-2"></i>
-            </a>
-          </div>
-          <div class="text-muted ms-3" id="detail_size_${task.id}" style="display: ${displayStyle};">
+          <div class="text-muted ms-2" id="detail_size_${task.id}">
             ↑${task.upload_size}  ↓${task.download_size}
           </div>
-          <a href="#" class="link-secondary ms-auto d-sm-none" data-bs-toggle="dropdown" aria-expanded="false">
-            <i class="ti ti-dots fs-2"></i>
-          </a>
-          <div class="dropdown-menu dropdown-menu-end">
-            <button class="dropdown-item text-info" onclick="run_brushtask_now('${task.id}')">
-              立即运行
-            </button>
-            <button class="dropdown-item" onclick="show_brushtask_torrents_modal('${task.id}')">
-              查看种子明细
-            </button>
-            <button class="dropdown-item" onclick="edit_brushtask_modal('${task.id}')">
-              编辑任务
-            </button>
-            <button class="dropdown-item text-danger" onclick="del_brushtask_modal('${task.id}', '${task.name}')">
-              删除任务
-            </button>
-          </div>
-          <div class="card-actions btn-actions d-none d-sm-block">
-            <a href="javascript:void(0)" onclick="show_brushtask_detail('${task.id}')" class="btn-action" title="展开/折叠">
+          <div class="card-actions btn-actions">
+            <a href="javascript:run_brushtask_now('${task.id}')" class="btn-action" title="立即运行任务">
+              <i class="ti ti-bolt fs-2"></i>
+            </a>
+            <a href="javascript:show_brushtask_detail('${task.id}')" class="btn-action" title="展开/折叠">
               <i class="ti ti-menu-2 fs-2"></i>
             </a>
             <a href="javascript:show_brushtask_torrents_modal('${task.id}')" class="btn-action" title="查看种子明细">
@@ -606,11 +586,11 @@
   function getStateBadge(state) {
     switch (state) {
       case 'Y':
-        return '<span class="badge bg-green ms-3"></span>';
+        return '<span class="badge bg-green ms-1"></span>';
       case 'S':
-        return '<span class="badge bg-orange ms-3"></span>';
+        return '<span class="badge bg-orange ms-1"></span>';
       default:
-        return '<span class="badge bg-red ms-3"></span>';
+        return '<span class="badge bg-red ms-1"></span>';
     }
   }
 
@@ -760,7 +740,7 @@
   // 折叠任务详情
   function show_brushtask_detail(taskid) {
     $(`#detail_${taskid}`).slideToggle();
-    $(`#detail_size_${taskid}`).slideToggle();
+    // $(`#detail_size_${taskid}`).slideToggle();
   }
 
   // 显示编辑刷流任务
