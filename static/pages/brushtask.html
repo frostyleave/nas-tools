@@ -228,7 +228,7 @@
                   全部
                 </button>
                 <input type="hidden" id="brushtask_torrent_size_do">
-                <div class="dropdown-menu" style="">
+                <div class="dropdown-menu">
                   <a class="dropdown-item" id="brushtask_torrent_size_do_" href="javascript:void(0)"
                      onclick="filter_item_change('', 'brushtask_torrent_size',$(this))">
                     全部
@@ -261,7 +261,7 @@
                   全部
                 </button>
                 <input type="hidden" id="brushtask_peercount_do">
-                <div class="dropdown-menu" style="">
+                <div class="dropdown-menu">
                   <a class="dropdown-item" id="brushtask_peercount_do_" href="javascript:void(0)"
                      onclick="filter_item_change('', 'brushtask_peercount',$(this))">
                     全部
@@ -294,7 +294,7 @@
                   全部
                 </button>
                 <input type="hidden" id="brushtask_pubdate_do">
-                <div class="dropdown-menu" style="">
+                <div class="dropdown-menu">
                   <a class="dropdown-item" id="brushtask_pubdate_do_" href="javascript:void(0)"
                      onclick="filter_item_change('', 'brushtask_pubdate',$(this))">
                     全部
@@ -329,7 +329,7 @@
                   忽略
                 </button>
                 <input type="hidden" id="brushtask_seedtime_do">
-                <div class="dropdown-menu" style="">
+                <div class="dropdown-menu">
                   <a class="dropdown-item" id="brushtask_seedtime_do_" href="javascript:void(0)"
                      onclick="filter_item_change('', 'brushtask_seedtime',$(this))">
                     忽略
@@ -353,7 +353,7 @@
                   忽略
                 </button>
                 <input type="hidden" id="brushtask_seedratio_do">
-                <div class="dropdown-menu" style="">
+                <div class="dropdown-menu">
                   <a class="dropdown-item" id="brushtask_seedratio_do_" href="javascript:void(0)"
                      onclick="filter_item_change('', 'brushtask_seedratio',$(this))">
                     忽略
@@ -377,7 +377,7 @@
                   忽略
                 </button>
                 <input type="hidden" id="brushtask_seedsize_do">
-                <div class="dropdown-menu" style="">
+                <div class="dropdown-menu">
                   <a class="dropdown-item" id="brushtask_seedsize_do_" href="javascript:void(0)"
                      onclick="filter_item_change('', 'brushtask_seedsize',$(this))">
                     忽略
@@ -402,7 +402,7 @@
                   忽略
                 </button>
                 <input type="hidden" id="brushtask_dltime_do">
-                <div class="dropdown-menu" style="">
+                <div class="dropdown-menu">
                   <a class="dropdown-item" id="brushtask_dltime_do_" href="javascript:void(0)"
                      onclick="filter_item_change('', 'brushtask_dltime',$(this))">
                     忽略
@@ -427,7 +427,7 @@
                   忽略
                 </button>
                 <input type="hidden" id="brushtask_avg_upspeed_do">
-                <div class="dropdown-menu" style="">
+                <div class="dropdown-menu">
                   <a class="dropdown-item" id="brushtask_avg_upspeed_do_" href="javascript:void(0)"
                      onclick="filter_item_change('', 'brushtask_avg_upspeed',$(this))">
                     忽略
@@ -451,7 +451,7 @@
                   忽略
                 </button>
                 <input type="hidden" id="brushtask_iatime_do">
-                <div class="dropdown-menu" style="">
+                <div class="dropdown-menu">
                   <a class="dropdown-item" id="brushtask_iatime_do_" href="javascript:void(0)"
                      onclick="filter_item_change('', 'brushtask_iatime',$(this))">
                     忽略
@@ -547,24 +547,24 @@
           <div>
             <input class="form-check-input m-0 align-middle" name="burshtask" value="${task.id}" type="checkbox">
           </div>
-          <div>
-            ${stateBadge}
-          </div>
           <a href="javascript:void(0)" onclick="show_brushtask_detail('${task.id}')" style="text-decoration-line: none; color: unset"
              title="展开/折叠" data-bs-toggle="tooltip">
             <div class="ms-1">
               <h3 class="card-title">${task.name}</h3>
             </div>
           </a>
+          <div>
+            ${stateBadge}
+          </div>
           <div class="text-muted ms-2" id="detail_size_${task.id}">
             ↑${task.upload_size}  ↓${task.download_size}
           </div>
           <div class="card-actions btn-actions">
-            <a href="javascript:run_brushtask_now('${task.id}')" class="btn-action" title="立即运行任务">
-              <i class="ti ti-bolt fs-2"></i>
-            </a>
             <a href="javascript:show_brushtask_detail('${task.id}')" class="btn-action" title="展开/折叠">
               <i class="ti ti-menu-2 fs-2"></i>
+            </a>
+            <a href="javascript:run_brushtask_now('${task.id}', '${task.name}')" class="btn-action" title="立即运行任务">
+              <i class="ti ti-bolt fs-2"></i>
             </a>
             <a href="javascript:show_brushtask_torrents_modal('${task.id}')" class="btn-action" title="查看种子明细">
               <i class="ti ti-eye fs-2"></i>
@@ -597,8 +597,8 @@
   // 生成任务详情HTML
   function generateTaskDetailHtml(task, displayStyle) {
     const freeText = task.free ? `<span class="badge bg-green">${task.free}</span>` : '<span class="badge bg-orange">全部</span>';
-    const rssRuleText = task.rss_rule ? formatBrushRule(task.rss_rule) : '无限制';
-    const removeRuleText = task.remove_rule ? formatBrushRule(task.remove_rule) : '未启用';
+    const rssRuleText = task.rss_rule ? brushRuleString(task.rss_rule) : '无限制';
+    const removeRuleText = task.remove_rule ? brushRuleString(task.remove_rule) : '未启用';
     const seedSizeText = task.seed_size ? `${task.total_size} GB / ${task.seed_size} GB` : '无限制';
     const intervalText = /^\d+$/.test(task.interval) ? `${task.interval} 分钟` : task.interval;
     const sendMessageStatus = task.sendmessage ? '<span class="status status-green">开</span>' : '<span class="status status-red">关</span>';
@@ -696,31 +696,6 @@
       default:
         return '<span class="badge bg-red">已停用</span>';
     }
-  }
-
-  // 格式化刷流规则（简化版本，实际可能需要更复杂的逻辑）
-  function formatBrushRule(rule) {
-    if (!rule || typeof rule !== 'object') return '';
-
-    const parts = [];
-    if (rule.size) parts.push(`大小: ${rule.size}`);
-    if (rule.seeders) parts.push(`做种: ${rule.seeders}`);
-    if (rule.leechers) parts.push(`下载: ${rule.leechers}`);
-    if (rule.dlcount) parts.push(`数量: ${rule.dlcount}`);
-
-    return parts.join(', ') || '无限制';
-  }
-
-  // 简单的字符串哈希函数
-  function hashString(str) {
-    let hash = 0;
-    if (str.length === 0) return hash;
-    for (let i = 0; i < str.length; i++) {
-      const char = str.charCodeAt(i);
-      hash = ((hash << 5) - hash) + char;
-      hash = hash & hash; // Convert to 32bit integer
-    }
-    return Math.abs(hash);
   }
 
   // 显示新增刷流任务
@@ -838,17 +813,23 @@
   }
 
   // 批量暂停启动刷流任务
-  function update_brushtask_state(state){
+  function update_brushtask_state(state) {
+
     let ids = select_GetSelectedVAL("burshtask");
-    axios_post_do("update_brushtask_state", {'state': state, ids:ids }, function (ret){
-      window_history_refresh();
+    let target_state = state == 'Y' ? "启用" : "暂停";
+    let tip = ids && ids.length > 0 ? target_state + "选中的刷流任务?" : target_state + "所有刷流任务?"
+
+    show_confirm_modal(tip, function () {
+      axios_post_do("update_brushtask_state", {'state': state, ids:ids }, function (ret) {
+        window_history_refresh();
+      });
     });
+    
   }
 
   // 显示删除刷流任务
   function del_brushtask_modal(brushid, name) {
     show_confirm_modal("删除刷流任务 " + name + " ？", function () {
-      hide_confirm_modal();
       axios_post_do("del_brushtask", {"id": brushid}, function (ret) {
         window_history_refresh();
       });
@@ -1138,11 +1119,13 @@
     });
   }
 
-  //立即运行任务
-  function run_brushtask_now(id) {
-    axios_post_do("run_brushtask", {"id": id}, function (ret) {
-      show_success_modal("任务运行完成！", function () {
-        window_history_refresh();
+  // 立即运行任务
+  function run_brushtask_now(id, name) {
+    show_confirm_modal("立即执行刷流任务 " + name + " ？", function () {
+      axios_post_do("run_brushtask", {"id": id}, function (ret) {
+        show_success_modal("任务运行完成！", function () {
+          window_history_refresh();
+        });
       });
     });
   }
@@ -1188,16 +1171,216 @@
     });
   }
 
+  /**
+   * 把 brush rule 对象转成 HTML 徽章字符串
+   */
+  function brushRuleString(rules) {
+      if (!rules) return "";
+
+      const ruleFilterString = { gt: ">", lt: "<", bw: "" };
+      const ruleHtmls = [];
+
+      const esc = (s) => String(s == null ? "" : s)
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;");
+
+      // 模拟 Python 端 StringUtils.str_filesize（输入为字节，输出带单位字符串）
+      // 这里按常见实现给出：<=1024 走 KB，否则按 MB/GB/TB 递进，保留两位小数
+      function strFilesize(size) {
+          if (size == null || isNaN(size)) return "";
+          size = Number(size);
+          const units = ["B", "KB", "MB", "GB", "TB", "PB"];
+          let i = 0;
+          while (size >= 1024 && i < units.length - 1) {
+              size /= 1024;
+              i++;
+          }
+          return size.toFixed(2) + units[i];
+      }
+
+      // ===== size =====
+      if (rules.size) {
+          const sizes = String(rules.size).split("#");
+          if (sizes[0]) {
+              if (sizes[1]) sizes[1] = sizes[1].replace(/,/g, "-");
+              ruleHtmls.push(
+                  '<span class="badge badge-outline text-blue me-1 mb-1" title="种子大小">种子大小: ' +
+                  (ruleFilterString[sizes[0]] !== undefined ? ruleFilterString[sizes[0]] : "") +
+                  " " + esc(sizes[1]) + "GB</span>"
+              );
+          }
+      }
+
+      // ===== pubdate =====
+      if (rules.pubdate) {
+          const pubdates = String(rules.pubdate).split("#");
+          if (pubdates[0]) {
+              if (pubdates[1]) pubdates[1] = pubdates[1].replace(/,/g, "-");
+              ruleHtmls.push(
+                  '<span class="badge badge-outline text-blue me-1 mb-1" title="发布时间">发布时间: ' +
+                  (ruleFilterString[pubdates[0]] !== undefined ? ruleFilterString[pubdates[0]] : "") +
+                  " " + esc(pubdates[1]) + "小时</span>"
+              );
+          }
+      }
+
+      // ===== upspeed =====
+      if (rules.upspeed) {
+          ruleHtmls.push(
+              '<span class="badge badge-outline text-blue me-1 mb-1" title="上传限速">上传限速: ' +
+              esc(strFilesize(parseInt(rules.upspeed, 10) * 1024)) + "B/s</span>"
+          );
+      }
+
+      // ===== downspeed =====
+      if (rules.downspeed) {
+          ruleHtmls.push(
+              '<span class="badge badge-outline text-blue me-1 mb-1" title="下载限速">下载限速: ' +
+              esc(strFilesize(parseInt(rules.downspeed, 10) * 1024)) + "B/s</span>"
+          );
+      }
+
+      // ===== include =====
+      if (rules.include) {
+          ruleHtmls.push(
+              '<span class="badge badge-outline text-green me-1 mb-1 text-wrap text-start" title="包含规则">包含: ' +
+              esc(rules.include) + "</span>"
+          );
+      }
+
+      // ===== hr =====
+      if (rules.hr) {
+          ruleHtmls.push(
+              '<span class="badge badge-outline text-red me-1 mb-1" title="排除HR">排除: HR</span>'
+          );
+      }
+
+      // ===== exclude =====
+      if (rules.exclude) {
+          ruleHtmls.push(
+              '<span class="badge badge-outline text-red me-1 mb-1 text-wrap text-start" title="排除规则">排除: ' +
+              esc(rules.exclude) + "</span>"
+          );
+      }
+
+      // ===== dlcount =====
+      if (rules.dlcount) {
+          ruleHtmls.push(
+              '<span class="badge badge-outline text-blue me-1 mb-1" title="同时下载数量限制">同时下载: ' +
+              esc(rules.dlcount) + "</span>"
+          );
+      }
+
+      // ===== peercount =====
+      if (rules.peercount) {
+          let peerCounts = null;
+          const pc = String(rules.peercount);
+          if (pc === "#") {
+              peerCounts = null;
+          } else if (pc.indexOf("#") > -1) {
+              peerCounts = pc.split("#");
+              peerCounts[1] = (peerCounts.length >= 2 && peerCounts[1])
+                  ? peerCounts[1].replace(/,/g, "-")
+                  : peerCounts[1];
+          } else {
+              // 兼容性代码
+              try {
+                  peerCounts = ["lt", parseInt(pc, 10)];
+              } catch (err) {
+                  console.error(err);
+              }
+          }
+          if (peerCounts) {
+              ruleHtmls.push(
+                  '<span class="badge badge-outline text-blue me-1 mb-1" title="当前做种人数限制">做种人数: ' +
+                  (ruleFilterString[peerCounts[0]] !== undefined ? ruleFilterString[peerCounts[0]] : "") +
+                  " " + esc(peerCounts[1]) + "</span>"
+              );
+          }
+      }
+
+      // ===== time =====
+      if (rules.time) {
+          const times = String(rules.time).split("#");
+          if (times[0]) {
+              ruleHtmls.push(
+                  '<span class="badge badge-outline text-orange me-1 mb-1" title="做种时间">做种时间: ' +
+                  (ruleFilterString[times[0]] !== undefined ? ruleFilterString[times[0]] : "") +
+                  " " + esc(times[1]) + "小时</span>"
+              );
+          }
+      }
+
+      // ===== ratio =====
+      if (rules.ratio) {
+          const ratios = String(rules.ratio).split("#");
+          if (ratios[0]) {
+              ruleHtmls.push(
+                  '<span class="badge badge-outline text-orange me-1 mb-1" title="分享率">分享率: ' +
+                  (ruleFilterString[ratios[0]] !== undefined ? ruleFilterString[ratios[0]] : "") +
+                  " " + esc(ratios[1]) + "</span>"
+              );
+          }
+      }
+
+      // ===== uploadsize =====
+      if (rules.uploadsize) {
+          const uploadsizes = String(rules.uploadsize).split("#");
+          if (uploadsizes[0]) {
+              ruleHtmls.push(
+                  '<span class="badge badge-outline text-orange me-1 mb-1" title="上传量">上传量: ' +
+                  (ruleFilterString[uploadsizes[0]] !== undefined ? ruleFilterString[uploadsizes[0]] : "") +
+                  " " + esc(uploadsizes[1]) + "GB</span>"
+              );
+          }
+      }
+
+      // ===== dltime =====
+      if (rules.dltime) {
+          const dltimes = String(rules.dltime).split("#");
+          if (dltimes[0]) {
+              ruleHtmls.push(
+                  '<span class="badge badge-outline text-orange me-1 mb-1" title="下载耗时">下载耗时: ' +
+                  (ruleFilterString[dltimes[0]] !== undefined ? ruleFilterString[dltimes[0]] : "") +
+                  " " + esc(dltimes[1]) + "小时</span>"
+              );
+          }
+      }
+
+      // ===== avg_upspeed =====
+      if (rules.avg_upspeed) {
+          const avgUpspeeds = String(rules.avg_upspeed).split("#");
+          if (avgUpspeeds[0]) {
+              ruleHtmls.push(
+                  '<span class="badge badge-outline text-orange me-1 mb-1" title="平均上传速度">平均上传速度: ' +
+                  (ruleFilterString[avgUpspeeds[0]] !== undefined ? ruleFilterString[avgUpspeeds[0]] : "") +
+                  " " + esc(avgUpspeeds[1]) + "KB/S</span>"
+              );
+          }
+      }
+
+      // ===== iatime =====
+      if (rules.iatime) {
+          const iatimes = String(rules.iatime).split("#");
+          if (iatimes[0]) {
+              ruleHtmls.push(
+                  '<span class="badge badge-outline text-orange me-1 mb-1" title="未活动时间">未活动时间: ' +
+                  (ruleFilterString[iatimes[0]] !== undefined ? ruleFilterString[iatimes[0]] : "") +
+                  " " + esc(iatimes[1]) + "小时</span>"
+              );
+          }
+      }
+
+      return ruleHtmls.join("<br>");
+  }
+
 </script>
 
 <script type="text/javascript">
 
   $(document).ready(function() {
-
-    // 绑定事件
-    // $("#brushtask_site").change(function () {
-    //   brushtask_site_change($(this).val());
-    // });
 
     // 请求数据并生成页面
     axios_post("/data/brushtask", {}, function(ret) {

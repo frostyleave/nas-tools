@@ -79,8 +79,6 @@
   function remove_pt_download(id, download_name) {
 
     show_ask_modal("是否确定删除： " + download_name + " 下载任务?", function () {
-      // 隐藏询问框
-      hide_ask_modal();
       // 执行删除
       axios_post_do("pt_remove", { "id": id }, function (ret) {
         window_history_refresh();

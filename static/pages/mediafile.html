@@ -262,7 +262,6 @@
 
   // 文件删除
   function delete_files(files) {
-    hide_confirm_modal();
     axios_post_do("delete_files", {files: files}, function (ret) {
       refresh_files();
     });
@@ -375,7 +374,6 @@
       return;
     }
     show_ask_modal("刮削将会覆盖已存在的nfo及图片文件，是否确认刮削当前目录下的所有文件？", function () {
-      hide_ask_modal();
       axios_post_do("media_path_scrap", {path: path}, 
       function (ret) {
         if (ret.code === 0) {

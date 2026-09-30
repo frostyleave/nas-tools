@@ -340,8 +340,8 @@
 
   //删除规则组
   function del_filtergroup_modal(id, name) {
-    show_confirm_modal("删除规则组后，该组下所有的规则将会同时被删除，是否确认删除 " + name + " ？", function () {
-      hide_confirm_modal();
+    let confirm_tip = "删除规则组后，该组下所有的规则将会同时被删除，是否确认删除 " + name + " ？";
+    show_confirm_modal(confirm_tip, function () {
       axios_post_do("del_filtergroup", {"id": id}, function (ret) {
         window_history_refresh();
       });

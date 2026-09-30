@@ -168,6 +168,7 @@
               <label class="form-label required">开启浏览器仿真 <span class="form-help"
                   title="开启后站点签到、数据统计可以兼容更多站点，但获取数据耗时会大幅增加；需要拉取含浏览器内核的镜像才能使用" data-bs-toggle="tooltip">?</span></label>
               <select class="form-select" id="site_chrome">
+                <option value="Y">是</option>
                 <option value="N" selected>否</option>
               </select>
             </div>
@@ -578,7 +579,6 @@
   //删除站点
   function remove_site(name, siteid) {
     show_ask_modal("是否确认删除站点 " + name + "？", function () {
-      hide_ask_modal();
       del_site(siteid);
     });
   }
@@ -769,14 +769,6 @@
           });
         }
 
-        // 根据ChromeOk决定是否显示浏览器仿真选项
-        if (data.ChromeOk) {
-          const chromeSelect = $('#site_chrome');
-          chromeSelect.empty();
-          chromeSelect.append('<option value="Y">是</option>');
-          chromeSelect.append('<option value="N" selected>否</option>');
-        }
-
         // 生成站点列表
         if (data.Sites && data.Sites.length > 0) {
 
@@ -796,7 +788,7 @@
                         <div class="form-switch">
                           <input name="indexer_sites" type="checkbox" class="form-check-input" value="${site.indexer_id}" ${data.indexerSites.includes(site.indexer_id) ? 'checked' : ''}>
                         </div>
-                        <span class="text-reset card-text">${site.name}</span>
+                        <span><a class="text-reset card-text" href="${site.strict_url}" target="_blank">${site.name}</a></span>
                       </div>
                       <div class="col-auto">
                         <a href="javascript:remove_site('${site.name}', '${site.id}')" class="text-danger" title="删除站点">
@@ -825,7 +817,8 @@
                     </div>
                     <div class="d-flex justify-content-between mt-2">
                       <div class="d-flex align-items-center ms-1">
-                        <span><a class="text-reset" href="${site.strict_url}" target="_blank">${site.strict_url}</a></span>
+                          <span class="text-green"><i class="ti ti-arrow-narrow-up"></i></span><span>${formatFileSize(site.upload)}</span>
+                          <span class="text-red ms-1"><i class="ti ti-arrow-narrow-down"></i></span><span>${formatFileSize(site.download)}</span>
                       </div>
                       <div class="col-auto">
                         <a href="javascript:edit_indexer_conf('${site.strict_url}', true)" class="me-1" title="编辑索引">

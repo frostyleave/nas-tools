@@ -304,7 +304,6 @@ function logout() {
 //重启
 function restart() {
   show_confirm_modal("立即重启系统？", function () {
-    hide_confirm_modal();
     axios_post_do("restart", {}, function (ret) {
     }, false);
     show_wait_modal(true);
@@ -330,7 +329,6 @@ function show_user_auth_modal() {
 function update_system() {
   show_confirm_modal("更新系统版本，是否确认？", function () {
     show_wait_modal(true);
-    hide_confirm_modal();
     // 显示实时日志
     logger_select("UpdateSystem");
     show_logging_modal();
@@ -416,28 +414,37 @@ function hide_progress_modal() {
 }
 
 // 显示确认提示框
-function show_confirm_modal(title, func) {
-  $("#system_confirm_message").text(title);
-  $("#system_confirm_btn").unbind('click').click(func);
-  $("#system-confirm-modal").modal("show");
-}
+function show_confirm_modal(title, func, auto_close=true) {
 
-// 隐藏确认提示框
-function hide_confirm_modal() {
-  $("#system-confirm-modal").modal("hide");
+  $("#system_confirm_message").text(title);
+
+  var $modal = $("#system-confirm-modal");
+  $("#system_confirm_btn").off('click').one('click', function () {
+    if (auto_close) {
+      $modal.modal('hide'); // 隐藏确认提示框
+    }
+    func && func();
+  });
+
+  $modal.modal('show');
+
 }
 
 // 显示询问提示框
-function show_ask_modal(message, func, title = '询问') {
+function show_ask_modal(message, func, title = '询问', auto_close=true) {
   $("#system_ask_title").text(title);
   $("#system_ask_message").text(message);
-  $("#system_ask_btn").unbind('click').click(func);
-  $("#system-ask-modal").modal("show");
-}
 
-// 隐藏询问提示框
-function hide_ask_modal() {
-  $("#system-ask-modal").modal("hide");
+  var $modal = $("#system-ask-modal");
+  $("#system_ask_btn").off('click').one('click', function () {
+    if (auto_close) {
+      $modal.modal('hide'); // 隐藏询问提示框
+    }
+    func && func();
+  });
+
+  $modal.modal('show');
+
 }
 
 // 显示成功提示
@@ -634,7 +641,6 @@ function remove_rss_media(name, year, type, rssid, page, tmdbid, func) {
 // 询问取消订阅
 function remove_rss_click(title, year, media_type, rssid, page, tmdb_id, remove_func) {
   show_ask_modal("是否确定将 " + title + " 从订阅中移除？", function () {
-    hide_ask_modal();
     remove_rss_media(title, year, media_type, rssid, page, tmdb_id, remove_func);
   });
 }
@@ -833,12 +839,10 @@ function rss_love_click(event, title, year, media_type, tmdb_id, fav, remove_fun
 
   if (fav == "1"){
     show_ask_modal("是否确定将 " + title + " 从订阅中移除？", function () {
-      hide_ask_modal();
       remove_rss_media(title, year, media_type, "", "", tmdb_id, remove_func);
     });
   } else {
     show_ask_modal("是否确定订阅： " + title + "？", function () {
-      hide_ask_modal();
       const mediaid = convert_mediaid(tmdb_id);
       if (media_type == "MOV" || media_type == "电影") {
         add_rss_media(title, year, media_type, mediaid, "", "", add_func);
@@ -2323,4 +2327,13 @@ function do_update_indexer() {
 // 展开/收起div
 function slideToggle(id) {
   $(`#${id}`).slideToggle();
+}
+
+// 格式化文件大小
+function formatFileSize(bytes) {
+  if (bytes === 0) return '0 B';
+  const k = 1024;
+  const sizes = ['B', 'KB', 'MB', 'GB', 'TB', 'PB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
 }

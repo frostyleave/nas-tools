@@ -213,7 +213,6 @@
   // 删除下载设置
   function delete_download_setting(sid, name){
     show_confirm_modal(`删除下载设置 ${name} ？`, function () {
-      hide_confirm_modal();
       axios_post_do("delete_download_setting", { "sid": sid }, function (ret) {
         window_history_refresh();
       });

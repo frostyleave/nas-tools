@@ -644,7 +644,6 @@
   // 删除任务
   function delete_torrent_remove_task(tid, name){
     show_confirm_modal(`删除下载设置 ${name} ？`, function () {
-      hide_confirm_modal();
       axios_post_do("delete_torrent_remove_task", { "tid": tid }, function (ret) {
         window_history_refresh();
       });

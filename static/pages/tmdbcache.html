@@ -150,7 +150,6 @@
   //清空TMDB缓存
   function clear_tmdb_cache() {
     show_confirm_modal("清空TMDB缓存后，将会增加TMDB API的请求次数，增加搜索响应时间，但是可以一次性解决TMDB改名后本地缓存未更新的问题，是否确认？", function () {
-      hide_confirm_modal();
       axios_post_do("clear_tmdb_cache", {}, function (ret) {
         show_success_modal("TMDB缓存清理完成！");
         window_history_refresh();
@@ -161,7 +160,6 @@
   //删除提示
   function manual_delete(key) {
     show_confirm_modal(key + " 对应的缓存TMDB条目将被删除，是否确认？", function () {
-      hide_confirm_modal();
       axios_post_do("delete_tmdb_cache", {"cache_key": key}, function () {
         window_history_refresh();
       });

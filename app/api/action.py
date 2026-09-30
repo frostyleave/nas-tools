@@ -1747,14 +1747,17 @@ class WebAction:
         """
         try:
             state = data.get("state")
-            task_ids = data.get("ids")
+            if state is None:
+                return {"code": 1, "msg": "缺少目标状态值"}
+
             _brushtask = BrushTask()
-            if state is not None:
-                if task_ids:
-                    for tid in task_ids:
-                        _brushtask.update_brushtask_state(state=state, brushtask_id=tid)
-                else:
-                    _brushtask.update_brushtask_state(state=state)
+            task_ids = data.get("ids")
+            if task_ids:
+                for tid in task_ids:
+                    _brushtask.update_brushtask_state(state=state, brushtask_id=tid)
+            else:
+                _brushtask.update_brushtask_state(state=state)
+                
             return {"code": 0, "msg": ""}
         except Exception as e:
             log.exception("[act]刷流任务设置失败:")

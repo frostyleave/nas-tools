@@ -376,19 +376,35 @@ async def sites_page():
     if not indexer_sites:
         indexer_sites = []
 
-    cfg_sites = SitesManager().get_sites()
     rule_groups = {str(group["id"]): group["name"] for group in Filter().get_rule_groups()}
     download_settings = {did: attr["name"] for did, attr in Downloader().get_download_setting().items()}
     cookie_cloud_cfg = SystemConfig().get(SystemConfigKey.CookieCloud)
 
-    sorted_list = sorted(cfg_sites, key=lambda x: x.indexer_id not in indexer_sites)
+    # 站点数据
+    cfg_sites = SitesManager().get_sites()
+
+    # 统计数据
+    site_user_statistics = SitesDataStatisticsCenter().get_site_user_statistics()
+    statistic_dict = {obj.SITE: obj for obj in site_user_statistics} if site_user_statistics else {}
+
+    enriched = []
+    for it in cfg_sites:
+        new_item = it.model_dump()
+        enriched.append(new_item)
+        # 填充统计数据
+        statistic_info = statistic_dict.get(it.name)
+        if statistic_info:
+            new_item['upload'] = statistic_info.UPLOAD
+            new_item['download'] = statistic_info.DOWNLOAD
+        else:
+            new_item['upload'] = 0
+            new_item['download'] = 0
 
     return response(data=
         {
-            "Sites": sorted_list,
+            "Sites": enriched,
             "RuleGroups": rule_groups,
             "DownloadSettings": download_settings,
-            "ChromeOk": True,
             "CookieCloudCfg": cookie_cloud_cfg,
             "indexerSites": indexer_sites,
             "sourceTypes": SOURCE_TYPES,
