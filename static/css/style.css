@@ -928,6 +928,28 @@ a:hover {
     z-index: 9;
 }
 
+.card-left-top-triangle {
+    position: absolute;
+    top: 0;
+    left: 1px;
+    width: 45px;
+    height: 45px;
+    clip-path: polygon(0 0, 100% 0, 0 100%);
+    border-radius: 4px;
+    z-index: 9;
+}
+
+.card-left-top-triangle span {
+  position: absolute;
+  left: 33.33%;
+  top: 33.33%;
+  font-size: 0.8rem;
+  transform: translate(-50%, -50%) rotate(-45deg);
+  transform-origin: center;
+  color: #fff;
+  white-space: nowrap;
+}
+
 .accordion-header .accordion-button-lit {
     padding: 0.5rem 2rem !important
 }

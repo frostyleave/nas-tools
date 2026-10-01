@@ -538,11 +538,12 @@
 
   // 生成单个任务HTML
   function generateTaskHtml(task, count) {
-    const stateBadge = getStateBadge(task.state);
+    const stateBadge = getStateText(task.state);;
     const detailDisplayStyle = count > 2 ? 'none' : 'block';
 
     return `
       <div class="card">
+        ${stateBadge}
         <div class="card-header">
           <div>
             <input class="form-check-input m-0 align-middle" name="burshtask" value="${task.id}" type="checkbox">
@@ -553,9 +554,6 @@
               <h3 class="card-title">${task.name}</h3>
             </div>
           </a>
-          <div>
-            ${stateBadge}
-          </div>
           <div class="text-muted ms-2" id="detail_size_${task.id}">
             ↑${task.upload_size}  ↓${task.download_size}
           </div>
@@ -677,10 +675,6 @@
             <div class="datagrid-title">保存目录</div>
             <div class="datagrid-content">${task.savepath || ''}</div>
           </div>
-          <div class="datagrid-item">
-            <div class="datagrid-title">状态</div>
-            <div class="datagrid-content">${stateText}</div>
-          </div>
         </div>
       </div>
     `;
@@ -690,11 +684,11 @@
   function getStateText(state) {
     switch (state) {
       case 'Y':
-        return '<span class="badge bg-green">正在运行</span>';
+        return '<div class="card-left-top-triangle bg-green"><span>启用</span></div>';
       case 'S':
-        return '<span class="badge bg-orange">停止下载新种</span>';
+        return '<div class="card-left-top-triangle bg-orange"><span>暂停</span></div>';
       default:
-        return '<span class="badge bg-red">已停用</span>';
+        return '<div class="card-left-top-triangle bg-red"><span>停用</span></div>';
     }
   }
 

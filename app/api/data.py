@@ -396,9 +396,11 @@ async def sites_page():
         if statistic_info:
             new_item['upload'] = statistic_info.UPLOAD
             new_item['download'] = statistic_info.DOWNLOAD
+            new_item['seeding'] = statistic_info.SEEDING
         else:
             new_item['upload'] = 0
             new_item['download'] = 0
+            new_item['seeding'] = 0
 
     return response(data=
         {
