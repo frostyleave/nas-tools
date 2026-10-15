@@ -394,13 +394,17 @@ async def sites_page():
         # 填充统计数据
         statistic_info = statistic_dict.get(it.name)
         if statistic_info:
+            new_item['ratio'] = statistic_info.RATIO
             new_item['upload'] = statistic_info.UPLOAD
             new_item['download'] = statistic_info.DOWNLOAD
             new_item['seeding'] = statistic_info.SEEDING
+            new_item['bonus'] = statistic_info.BONUS
         else:
+            new_item['ratio'] = 0
             new_item['upload'] = 0
             new_item['download'] = 0
             new_item['seeding'] = 0
+            new_item['bonus'] = 0
 
     return response(data=
         {

@@ -36,9 +36,9 @@
 </div>
 <div class="page-body" id="sites-container" style="display: none;">
   <div class="container-xl">
-    <div class="d-grid gap-2 grid-info-card" id="active-list">
+    <div class="d-grid gap-3 grid-info-card" id="active-list">
     </div>
-    <div class="d-grid gap-2 grid-info-card mt-2" id="sites-list">
+    <div class="d-grid gap-3 grid-info-card mt-2" id="sites-list">
     </div>
   </div>
 </div>
@@ -268,8 +268,8 @@
         </details>
       </div>
       <div class="modal-footer">
-        <button id="site_close_btn" class="btn btn-link">
-          关闭
+        <button id="site_del_btn" class="btn btn-link text-danger">
+          删除
         </button>
         <button id="add_or_edit_site_btn" class="btn btn-primary ms-auto">
           新增
@@ -377,7 +377,7 @@
     $("#sitelimit_interval").val('');
     $("#sitelimit_count").val('');
     $("#sitelimit_seconds").val('');
-    $("#site_close_btn").text("关闭");
+    $("#site_del_btn").hide();  // 隐藏删除按钮
     $("#modal-site-title").text("新增站点");
     $("#add_or_edit_site_btn").text("新增");
     $("#modal-site").modal("show");
@@ -386,7 +386,7 @@
   //编辑站点
   function edit_site(tid) {
     $("#site_id").val(tid);
-    $("#site_close_btn").text("删除");
+    $("#site_del_btn").show();  // 显示删除按钮
     //根据ID查询详细信息
     axios_post_do("get_site", { "id": tid }, function (ret) {
       if (ret.site) {
@@ -589,16 +589,16 @@
     add_or_edit_site();
   });
 
-  $("#site_close_btn").unbind("click").click(function () {
-    close_or_del();
-  });
+  $("#site_del_btn").unbind("click").click(function () {
 
-  //删除站点
-  function remove_site(name, siteid) {
-    show_ask_modal("是否确认删除站点 " + name + "？", function () {
-      del_site(siteid);
+    var site_name = $("#site_name").val();
+    var site_id = $("#site_id").val();
+
+    show_ask_modal("是否确认删除站点 " + site_name + "？", function () {
+      del_site(site_id);
     });
-  }
+
+  });
 
   //显示测试站点
   function show_sitetest_modal() {
@@ -720,6 +720,43 @@
 
 <script type="text/javascript">
 
+  function table_display(site) {
+    return `
+      <table class="table table-vcenter table-hover table-striped table-borderless table-transparent mb-0 ms-2">
+        <thead>
+          <tr>
+            <th class="p-0">分享率</th>
+            <th class="p-0">上传量</th>
+            <th class="p-0">下载量</th>
+            <th class="p-0">做种数</th>
+            <th class="p-0">魔力值</th>
+          </tr>
+        </thead>
+        <tbody class="fw-bold">
+          <tr>
+            <td class="p-0 text-yellow">${site.ratio}</td>
+            <td class="p-0 text-blue">${formatFileSize(site.upload)}</td>
+            <td class="p-0 text-red">${formatFileSize(site.download)}</td>
+            <td class="p-0 text-green">${site.seeding}</td>
+            <td class="p-0">${site.bonus}</td>
+          </tr>
+        </tbody>
+      </table>
+    `
+  }
+
+  function cell_display(site) {
+    return `
+      <div class="d-flex align-items-center">
+        <span title="上传量"><i class="ti ti-arrow-up text-blue"></i> ${formatFileSize(site.upload)}</span>
+        <span class="ms-1" title="下载量"><i class="ti ti-arrow-down text-red"></i> ${formatFileSize(site.download)}</span>
+        <span class="ms-1" title="做种数"><i class="ti ti-seedling text-green"></i> ${site.seeding}</span>
+        <span class="ms-1" title="分享率"><i class="ti ti-share text-orange"></i> ${site.ratio}</span>
+        <span class="ms-1" title="魔力值"><i class="ti ti-diamond text-yellow"></i> ${site.bonus}</span>
+      </div>
+    `;
+  }
+
   // 页面加载完成后，使用axios_post请求/data/site接口获取数据并填充页面
   $(document).ready(function () {
 
@@ -808,47 +845,36 @@
                         <span><a class="text-reset card-text" href="${site.strict_url}" target="_blank">${site.name}</a></span>
                       </div>
                       <div class="col-auto">
-                        <a href="javascript:remove_site('${site.name}', '${site.id}')" class="text-danger" title="删除站点">
-                          <i class="ti ti-x fs-2"></i>
+                        <a href="javascript:ask_refresh_statistics('${site.name}')" class="btn-icon me-1" title="刷新站点数据" >
+                          <i class="ti ti-refresh fs-2"></i>
+                        </a>
+                        <a href="javascript:edit_indexer_conf('${site.strict_url}', true)" class="me-1" title="编辑索引">
+                          <i class="ti ti-tool fs-2"></i>
+                        </a>
+                        <a href="javascript:edit_site('${site.id}')" title="配置站点">
+                          <i class="ti ti-settings fs-2"></i>
                         </a>
                       </div>
                     </div>
                     <div class="flex-grow-1 px-1 py-2">
                       <div class="d-flex align-items-center">
                         <small>
-                          ${site.rss_enable && site.rssurl ? '<span class="badge badge-outline bg-azure-lt me-2">订阅</span>' : ''}
-                          ${site.brush_enable && site.rssurl ? '<span class="badge badge-outline bg-indigo-lt me-2">刷流</span>' : ''}
-                          ${site.statistic_enable && (site.signurl || site.rssurl) ? '<span class="badge badge-outline bg-purple-lt me-1">数据统计</span>' : ''}
+                          ${site.rss_enable && site.rssurl ? '<span class="badge bg-primary-lt text-vimeo me-1">订阅</span>' : ''}
+                          ${site.brush_enable && site.rssurl ? '<span class="badge bg-primary-lt text-vimeo me-1">刷流</span>' : ''}
+                          ${site.statistic_enable && (site.signurl || site.rssurl) ? '<span class="badge bg-primary-lt text-vimeo me-1">数据统计</span>' : ''}
+                          ${site.rule && data.RuleGroups && data.RuleGroups[site.rule] ? `<span class="badge bg-primary-lt text-rss me-1">${data.RuleGroups[site.rule]}</span>` : ''}
+                          ${site.download_setting && data.DownloadSettings && data.DownloadSettings[site.download_setting] ? `<span class="badge bg-primary-lt text-rss me-1">${data.DownloadSettings[site.download_setting]}</span>` : ''}
                         </small>
-                      </div>
-                      <div class="mt-2 d-flex align-items-center">
                         <small>
-                          ${site.rule && data.RuleGroups && data.RuleGroups[site.rule] ? `<span class="badge badge-outline bg-orange-lt me-1">${data.RuleGroups[site.rule]}</span>` : ''}
-                          ${site.download_setting && data.DownloadSettings && data.DownloadSettings[site.download_setting] ? `<span class="badge badge-outline bg-teal-lt me-1">${data.DownloadSettings[site.download_setting]}</span>` : ''}
-                          ${site.parse ? '<span class="badge badge-outline bg-pink-lt me-1">解析</span>' : ''}
-                          ${site.unread_msg_notify ? '<span class="badge badge-outline bg-orange-lt me-1">消息</span>' : ''}
-                          ${site.chrome ? '<span class="badge bg-yellow-lt me-1">仿真</span>' : ''}
-                          ${site.proxy ? '<span class="badge bg-lime-lt me-1">代理</span>' : ''}
+                          ${site.parse ? '<span class="badge bg-primary-lt text-google me-1">解析</span>' : ''}
+                          ${site.unread_msg_notify ? '<span class="badge bg-primary-lt text-google me-1">消息</span>' : ''}
+                          ${site.chrome ? '<span class="badge bg-primary-lt text-teal me-1">仿真</span>' : ''}
+                          ${site.proxy ? '<span class="badge bg-primary-lt text-teal me-1">代理</span>' : ''}
                         </small>
                       </div>
                     </div>
                     <div class="d-flex justify-content-between mt-2">
-                      <div class="d-flex align-items-center ms-1">
-                        <span title="上传量"><i class="ti ti-arrow-up text-blue"></i>${formatFileSize(site.upload)}</span>
-                        <span class="ms-1" title="下载量"><i class="ti ti-arrow-down text-red "></i>${formatFileSize(site.download)}</span>
-                        <span class="ms-2" title="做种数"><i class="ti ti-seedling text-green me-1"></i>${site.seeding}</span>
-                      </div>
-                      <div class="col-auto">
-                      <a href="javascript:ask_refresh_statistics('${site.name}')" class="btn-icon ms-3" title="刷新站点数据" >
-                        <i class="ti ti-refresh fs-2"></i>
-                      </a>
-                        <a href="javascript:edit_indexer_conf('${site.strict_url}', true)" class="me-1" title="编辑索引">
-                          <i class="ti ti-settings fs-2"></i>
-                        </a>
-                        <a href="javascript:edit_site('${site.id}')" class="me-1" title="编辑站点">
-                          <i class="ti ti-edit fs-2"></i>
-                        </a>
-                      </div>
+                      ${table_display(site)}
                     </div>
                   </div>
                 </div>
