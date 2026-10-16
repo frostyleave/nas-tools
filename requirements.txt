@@ -23,7 +23,6 @@ anyio==4.14.2
 APScheduler==3.11.3
 beautifulsoup4==4.15.0
 cachetools==7.1.4
-certifi==2026.6.17
 chardet==7.4.3
 cssselect==1.4.0
 dateparser==1.4.1

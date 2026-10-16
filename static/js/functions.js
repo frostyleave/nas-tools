@@ -2331,9 +2331,24 @@ function slideToggle(id) {
 
 // 格式化文件大小
 function formatFileSize(bytes) {
+  
   if (bytes === 0) return '0 B';
+
   const k = 1024;
   const sizes = ['B', 'KB', 'MB', 'GB', 'TB', 'PB'];
-  const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+
+  // 先按 1024 进制定位到初始单位
+  let i = Math.floor(Math.log(bytes) / Math.log(k));
+  // 防止超出 sizes 数组范围
+  i = Math.min(i, sizes.length - 1);
+
+  let value = bytes / Math.pow(k, i);
+
+  // 整数部分 >= 1000 时，向上进一个单位
+  while (Math.floor(value) >= 1000 && i < sizes.length - 1) {
+    i++;
+    value = bytes / Math.pow(k, i);
+  }
+
+  return parseFloat(value.toFixed(2)) + ' ' + sizes[i];
 }

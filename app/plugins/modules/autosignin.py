@@ -453,7 +453,8 @@ class AutoSignIn(_IPluginModule):
         发送签到结果通知
         """
         try:
-                       
+
+            notice_title = '自动签到任务完成'
             # 准备通知文本
             text_parts = []
 
@@ -466,14 +467,13 @@ class AutoSignIn(_IPluginModule):
             if results.failed_info:
                 text_parts.append(f"🟢签到失败站点:")
                 text_parts.append(f"{'\t\n'.join(results.failed_info)}")
+                notice_title += f'(失败:{len(results.failed_info)})'
             else:
                 text_parts.append("🟢签到失败站点: 无")
 
             if results.retry_names:
                 text_parts.append(f"🟢命中重试站点:")
                 text_parts.append(f"\t{ ','.join(results.retry_names)}")
-            else:
-                text_parts.append("🟢命中重试站点: 无")
             
             # 获取下次执行时间
             if self._cron_job:
@@ -484,7 +484,7 @@ class AutoSignIn(_IPluginModule):
             img_url, _, __ = get_bing_wallpaper(today_str)
             # 发送消息
             self.send_message(
-                title="自动签到任务完成",
+                title=notice_title,
                 text=" \n".join(text_parts),
                 image=img_url
             )

@@ -42,9 +42,6 @@ RUN apt-get update -y \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
-# 设置环境变量，将浏览器安装到 /ms-playwright
-RUN mkdir -p /ms-playwright
-ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
 
 # 在 final 阶段之前添加 ARG 指令
 ARG BRANCH=master  # 默认值设为 master
@@ -52,8 +49,6 @@ ARG BRANCH=master  # 默认值设为 master
 # 升级 pip、setuptools、 wheel, 
 RUN pip install --no-cache-dir --upgrade pip setuptools==70.1.1 wheel \
     && pip install --no-cache-dir cython \
-    && pip install --no-cache-dir playwright \
-    && python -m playwright install chromium \
     && pip install -r https://raw.githubusercontent.com/frostyleave/nas-tools/${BRANCH}/requirements.txt \
     && apt-get remove -y build-essential \
     && apt-get autoremove -y \
@@ -80,7 +75,6 @@ ENV S6_SERVICES_GRACETIME=30000 \
     HOME="/nt" \
     TERM="xterm" \
     PATH=${PATH}:/usr/lib/chromium \
-    PLAYWRIGHT_BROWSERS_PATH=/ms-playwright \
     LANG="C.UTF-8" \
     TZ="Asia/Shanghai" \
     NASTOOL_CONFIG="/config/config.yaml" \
