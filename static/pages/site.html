@@ -734,10 +734,10 @@
         </thead>
         <tbody class="fw-bold">
           <tr>
-            <td class="p-0 text-orange">${site.ratio}</td>
-            <td class="p-0 text-blue">${formatFileSize(site.upload)}</td>
-            <td class="p-0 text-youtube">${formatFileSize(site.download)}</td>
-            <td class="p-0 text-success">${site.seeding}</td>
+            <td class="p-0 text-azure">${site.ratio}</td>
+            <td class="p-0 text-indigo">${formatFileSize(site.upload)}</td>
+            <td class="p-0 text-purple">${formatFileSize(site.download)}</td>
+            <td class="p-0 text-orange">${site.seeding}</td>
             <td class="p-0">${formatNumber(site.bonus)}</td>
           </tr>
         </tbody>
@@ -748,10 +748,10 @@
   function cell_display(site) {
     return `
       <div class="d-flex align-items-center">
-        <span title="上传量"><i class="ti ti-arrow-up text-blue"></i> ${formatFileSize(site.upload)}</span>
-        <span class="ms-1" title="下载量"><i class="ti ti-arrow-down text-youtube"></i> ${formatFileSize(site.download)}</span>
-        <span class="ms-1" title="做种数"><i class="ti ti-seedling text-success"></i> ${site.seeding}</span>
-        <span class="ms-1" title="分享率"><i class="ti ti-share text-orange"></i> ${site.ratio}</span>
+        <span title="上传量"><i class="ti ti-arrow-up text-indigo"></i> ${formatFileSize(site.upload)}</span>
+        <span class="ms-1" title="下载量"><i class="ti ti-arrow-down text-purple"></i> ${formatFileSize(site.download)}</span>
+        <span class="ms-1" title="做种数"><i class="ti ti-seedling text-orange"></i> ${site.seeding}</span>
+        <span class="ms-1" title="分享率"><i class="ti ti-share text-azure"></i> ${site.ratio}</span>
         <span class="ms-1" title="魔力值"><i class="ti ti-diamond"></i> ${formatNumber(site.bonus)}</span>
       </div>
     `;
@@ -859,9 +859,9 @@
                     <div class="flex-grow-1 px-1 py-2">
                       <div class="d-flex align-items-center">
                         <small>
-                          ${site.rss_enable && site.rssurl ? '<span class="badge bg-primary-lt text-vimeo me-1">订阅</span>' : ''}
-                          ${site.brush_enable && site.rssurl ? '<span class="badge bg-primary-lt text-vimeo me-1">刷流</span>' : ''}
-                          ${site.statistic_enable && (site.signurl || site.rssurl) ? '<span class="badge bg-primary-lt text-vimeo me-1">数据统计</span>' : ''}
+                          ${site.rss_enable && site.rssurl ? '<span class="badge bg-primary-lt text-blue me-1">订阅</span>' : ''}
+                          ${site.brush_enable && site.rssurl ? '<span class="badge bg-primary-lt text-blue me-1">刷流</span>' : ''}
+                          ${site.statistic_enable && (site.signurl || site.rssurl) ? '<span class="badge bg-primary-lt text-blue me-1">数据统计</span>' : ''}
                           ${site.rule && data.RuleGroups && data.RuleGroups[site.rule] ? `<span class="badge bg-primary-lt text-rss me-1">${data.RuleGroups[site.rule]}</span>` : ''}
                           ${site.download_setting && data.DownloadSettings && data.DownloadSettings[site.download_setting] ? `<span class="badge bg-primary-lt text-rss me-1">${data.DownloadSettings[site.download_setting]}</span>` : ''}
                         </small>
