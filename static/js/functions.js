@@ -2331,7 +2331,7 @@ function slideToggle(id) {
 
 // 格式化文件大小
 function formatFileSize(bytes) {
-  
+
   if (bytes === 0) return '0 B';
 
   const k = 1024;
@@ -2351,4 +2351,32 @@ function formatFileSize(bytes) {
   }
 
   return parseFloat(value.toFixed(2)) + ' ' + sizes[i];
+}
+
+/**
+ * 纯数字大小格式化（1000 进制）
+ * 示例：1234 → 1.23K，2000000 → 2M
+ * @param {number} num 需要格式化的数字
+ * @returns {string} 格式化后的字符串，如 "1.23K"、"2M"
+ */
+function formatNumber(num) {
+  if (num === 0) return '0';
+
+  const k = 1000;
+  const sizes = ['', 'K', 'M', 'B', 'T', 'P', 'E']; // 可根据需要增减
+
+  // 初始单位索引
+  let i = Math.floor(Math.log(num) / Math.log(k));
+  i = Math.min(i, sizes.length - 1);
+
+  let value = num / Math.pow(k, i);
+
+  // 四舍五入后若整数部分 >= 1000，则向上进一个单位
+  while (parseFloat(value.toFixed(2)) >= 1000 && i < sizes.length - 1) {
+    i++;
+    value = num / Math.pow(k, i);
+  }
+
+  // 保留两位小数并去掉多余的尾零
+  return parseFloat(value.toFixed(2)) + sizes[i];
 }

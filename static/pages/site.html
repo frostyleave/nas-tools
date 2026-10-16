@@ -722,7 +722,7 @@
 
   function table_display(site) {
     return `
-      <table class="table table-vcenter table-hover table-striped table-borderless table-transparent mb-0 ms-2">
+      <table class="table table-borderless table-transparent mb-0 ms-2 me-4">
         <thead>
           <tr>
             <th class="p-0">分享率</th>
@@ -734,11 +734,11 @@
         </thead>
         <tbody class="fw-bold">
           <tr>
-            <td class="p-0 text-yellow">${site.ratio}</td>
+            <td class="p-0 text-orange">${site.ratio}</td>
             <td class="p-0 text-blue">${formatFileSize(site.upload)}</td>
-            <td class="p-0 text-red">${formatFileSize(site.download)}</td>
-            <td class="p-0 text-green">${site.seeding}</td>
-            <td class="p-0">${site.bonus}</td>
+            <td class="p-0 text-youtube">${formatFileSize(site.download)}</td>
+            <td class="p-0 text-success">${site.seeding}</td>
+            <td class="p-0">${formatNumber(site.bonus)}</td>
           </tr>
         </tbody>
       </table>
@@ -749,10 +749,10 @@
     return `
       <div class="d-flex align-items-center">
         <span title="上传量"><i class="ti ti-arrow-up text-blue"></i> ${formatFileSize(site.upload)}</span>
-        <span class="ms-1" title="下载量"><i class="ti ti-arrow-down text-red"></i> ${formatFileSize(site.download)}</span>
-        <span class="ms-1" title="做种数"><i class="ti ti-seedling text-green"></i> ${site.seeding}</span>
+        <span class="ms-1" title="下载量"><i class="ti ti-arrow-down text-youtube"></i> ${formatFileSize(site.download)}</span>
+        <span class="ms-1" title="做种数"><i class="ti ti-seedling text-success"></i> ${site.seeding}</span>
         <span class="ms-1" title="分享率"><i class="ti ti-share text-orange"></i> ${site.ratio}</span>
-        <span class="ms-1" title="魔力值"><i class="ti ti-diamond text-yellow"></i> ${site.bonus}</span>
+        <span class="ms-1" title="魔力值"><i class="ti ti-diamond"></i> ${formatNumber(site.bonus)}</span>
       </div>
     `;
   }
