@@ -23,7 +23,7 @@ class Emby(_IMediaClient):
     _apikey = None
     _host = None
     _play_host = None
-    _user = None
+    _admin_user = None
     _folders = []
 
     def __init__(self, config=None):
@@ -52,7 +52,7 @@ class Emby(_IMediaClient):
             self._apikey = self._client_config.get('api_key')
             if self._host and self._apikey:
                 self._folders = self.__get_emby_folders()
-                self._user = self.get_user()
+                self._admin_user = self.get_admin_user()
                 self._serverid = self.get_server_id()
 
     @classmethod
@@ -105,7 +105,7 @@ class Emby(_IMediaClient):
             log.exception(f"【{self.client_name}】连接User/Views 出错: ")
             return []
 
-    def get_user(self, user_name=None):
+    def get_admin_user(self):
         """
         获得管理员用户
         """
@@ -585,7 +585,7 @@ class Emby(_IMediaClient):
             return {}
         if not self._host or not self._apikey:
             return {}
-        req_url = "%semby/Users/%s/Items/%s?api_key=%s" % (self._host, self._user, itemid, self._apikey)
+        req_url = "%semby/Users/%s/Items/%s?api_key=%s" % (self._host, self._admin_user, itemid, self._apikey)
         try:
             res = RequestUtils().get_res(req_url)
             if res and res.status_code == 200:
@@ -708,13 +708,13 @@ class Emby(_IMediaClient):
 
         return eventItem
 
-    def get_resume(self, num=12):
+    def get_resume(self, user_name, num=12):
         """
         获得继续观看
         """
-        if not self._host or not self._apikey:
+        if not self._host or not self._apikey or not user_name:
             return None
-        req_url = f"{self._host}Users/{self._user}/Items/Resume?Limit={num}&MediaTypes=Video&api_key={self._apikey}"
+        req_url = f"{self._host}Users/{user_name}/Items/Resume?Limit={num}&MediaTypes=Video&api_key={self._apikey}"
         try:
             res = RequestUtils().get_res(req_url)
             if res:
@@ -768,7 +768,7 @@ class Emby(_IMediaClient):
         """
         if not self._host or not self._apikey:
             return None
-        req_url = f"{self._host}Users/{self._user}/Items/Latest?Limit={num}&MediaTypes=Video&api_key={self._apikey}"
+        req_url = f"{self._host}Users/{self._admin_user}/Items/Latest?Limit={num}&MediaTypes=Video&api_key={self._apikey}"
         try:
             res = RequestUtils().get_res(req_url)
             if res:

@@ -21,7 +21,7 @@ class CONFIGFILTERRULES(Base):
     ID = Column(Integer, Sequence('ID'), primary_key=True)
     GROUP_ID = Column(Text, index=True)
     ROLE_NAME = Column(Text)
-    PRIORITY = Column(Text)
+    PRIORITY = Column(Integer)
     INCLUDE = Column(Text)
     EXCLUDE = Column(Text)
     SIZE_LIMIT = Column(Text)
@@ -45,7 +45,7 @@ class CONFIGSITE(Base):
 
     ID = Column(Integer, Sequence('ID'), primary_key=True)
     NAME = Column(Text)
-    PRI = Column(Text)
+    PRI = Column(Integer)
     RSSURL = Column(Text)
     SIGNURL = Column(Text)
     COOKIE = Column(Text)
@@ -484,7 +484,7 @@ class SYNCHISTORY(Base):
     PATH = Column(Text, index=True)
     SRC = Column(Text)
     DEST = Column(Text)
-
+    DATE = Column(Text, index=True)
 
 class SYSTEMDICT(Base):
     __tablename__ = 'SYSTEM_DICT'
@@ -569,6 +569,14 @@ class PLUGINHISTORY(Base):
     KEY = Column(Text, index=True)
     VALUE = Column(Text)
     DATE = Column(Text)
+
+
+class SITERSSFORWARD(Base):
+    __tablename__ = 'SITE_RSS_FORWARD'
+
+    ID = Column(Integer, Sequence('ID'), primary_key=True)
+    SITE_ID = Column(Integer, index=True)
+    LAST_PUB_TIME = Column(Text)
 
 
 class MEDIASYNCITEMS(BaseMedia):

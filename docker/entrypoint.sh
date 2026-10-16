@@ -80,9 +80,8 @@ groupmod -o -g "$PGID" nt
 usermod -o -u "$PUID" nt
 
 # 创建目录、权限设置
-chown -R nt:nt "${WORKDIR}"  /etc/hosts /tmp /ms-playwright
+chown -R nt:nt "${WORKDIR}"  /etc/hosts /tmp
 # export PATH=${PATH}:/usr/lib/chromium
-# gosu nt:nt playwright install chromium
 # 执行扩展脚本
 exec "$@"
 

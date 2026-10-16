@@ -163,8 +163,6 @@ class EventType(Enum):
 class SystemConfigKey(Enum):
     # 同步媒体库范围
     SyncLibrary = "SyncLibrary"
-    # 站点Cookie获取参数
-    CookieUserInfo = "CookieUserInfo"
     # CookieCloud同步参数
     CookieCloud = "CookieCloud"
     # 自定义JS/CSS
@@ -183,18 +181,6 @@ class SystemConfigKey(Enum):
     UserScraperConf = "UserScraperConf"
     # 索引站点
     UserIndexerSites = "UserIndexerSites"
-
-
-# 处理进度Key字典
-class ProgressKey(Enum):
-    # 搜索
-    Search = "search"
-    # 转移
-    FileTransfer = "filetransfer"
-    # 媒体库同步
-    MediaSync = "mediasync"
-    # 站点Cookie获取
-    SiteCookie = "sitecookie"
 
 
 class RssType(Enum):

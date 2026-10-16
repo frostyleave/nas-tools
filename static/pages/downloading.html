@@ -25,6 +25,13 @@
           <a href="javascript:navmenu('download_setting')" class="btn btn-cyan d-sm-none mbtn-action" title="下载配置">
             <i class="ti ti-settings-down fs-3"></i>
           </a>
+          <a href="javascript:navmenu('download_history')" class="btn btn-green d-none d-sm-inline-flex" title="下载历史">
+            <i class="ti ti-history fs-3"></i>
+            下载历史
+          </a>
+          <a href="javascript:navmenu('download_history')" class="btn btn-green d-sm-none mbtn-action" title="下载历史">
+            <i class="ti ti-history fs-3"></i>
+          </a>
           <button data-bs-toggle="dropdown" type="button" class="btn d-none d-sm-inline-flex dropdown-toggle">
             <i class="ti ti-plus fs-3"></i>
             新增下载
@@ -72,8 +79,6 @@
   function remove_pt_download(id, download_name) {
 
     show_ask_modal("是否确定删除： " + download_name + " 下载任务?", function () {
-      // 隐藏询问框
-      hide_ask_modal();
       // 执行删除
       axios_post_do("pt_remove", { "id": id }, function (ret) {
         window_history_refresh();

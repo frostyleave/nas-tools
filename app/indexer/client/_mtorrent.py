@@ -71,7 +71,7 @@ class MTorrentSpider:
 
         if not mtype:
             categories = []
-        elif mtype == MediaType.TV:
+        elif mtype == MediaType.TV or mtype == MediaType.ANIME:
             categories = self._tv_category
         else:
             categories = self._movie_category

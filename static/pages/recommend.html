@@ -21,6 +21,10 @@
 
   // 获取URL参数
   var [path, queryString] = window.location.hash.split("?");
+  if (!queryString || queryString == '') {
+      const container = document.getElementById("page-content");
+      queryString = $(container).data("queryString");
+  }
   var urlParams = new URLSearchParams(queryString);
 
   // 从URL参数中获取各种参数

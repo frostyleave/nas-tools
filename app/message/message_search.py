@@ -5,8 +5,8 @@ import log
 
 from app.downloader import Downloader
 from app.indexer import Indexer
-from app.media import Media
-from app.message import Message
+from app.media import MediaService
+from app.message import MessageService
 from app.modules.search import SearchProxy
 from app.sites import SitesManager
 from app.modules.subscribe import Subscribe
@@ -71,7 +71,7 @@ class MessageSearchHandler:
                     log.info("【message】豆瓣id: %s" % media_info.douban_id)
                     _title = media_info.get_title_string()
                     # 重新根据豆瓣ID查询媒体数据
-                    media_info = Media().get_mediainfo_from_id('DB:' + media_info.douban_id, media_info.type)
+                    media_info = MediaService().get_mediainfo_from_id('DB:' + media_info.douban_id, media_info.type)
                     if not media_info or not media_info.tmdb_info:
                         self.__send_channel_msg(title="%s 从TMDB查询不到媒体信息!" % _title)
                         return
@@ -115,7 +115,7 @@ class MessageSearchHandler:
                 # 识别文件名
                 filename = os.path.basename(filepath)
                 # 识别
-                meta_info = Media().get_media_info(title=filename)
+                meta_info = MediaService().get_media_info(title=filename)
                 if not meta_info:
                     self.__send_channel_msg(title="无法识别种子文件名！")
                     return
@@ -178,7 +178,7 @@ class MessageSearchHandler:
                             # 如果是豆瓣数据，需要重新查询TMDB的数据
                             log.info("【message】豆瓣id: %s" % media_info.douban_id)
                             _title = media_info.get_title_string()
-                            media_info = Media().get_mediainfo_from_id('DB:' + media_info.douban_id, mtype=media_info.type)
+                            media_info = MediaService().get_mediainfo_from_id('DB:' + media_info.douban_id, mtype=media_info.type)
 
                             if not media_info or not media_info.tmdb_info:
                                 self.__send_channel_msg(title="%s 从TMDB查询不到媒体信息！" % _title)
@@ -196,7 +196,7 @@ class MessageSearchHandler:
                         self.__add_media_rss(media_info=media_info)
                 else:
                     # 发送消息通知选择
-                    Message().send_channel_list_msg(channel=self.in_from,
+                    MessageService().send_channel_list_msg(channel=self.in_from,
                                                     title="共找到%s条相关信息，请回复对应序号" % len(SEARCH_MEDIA_CACHE[self.user_id]),
                                                     medias=SEARCH_MEDIA_CACHE[self.user_id],
                                                     user_id=self.user_id,
@@ -263,13 +263,13 @@ class MessageSearchHandler:
         if code == 0:
             log.info("【Web】%s %s 已添加订阅" % (media_info.type.value, media_info.get_title_string()))
         else:
-            if self.in_from in Message().get_search_types():
+            if self.in_from in MessageService().get_search_types():
                 log.info("【Web】%s 添加订阅失败：%s" % (media_info.title, msg))
                 self.__send_channel_msg(title="%s 添加订阅失败：%s" % (media_info.title, msg))
 
 
     def __send_channel_msg(self, title, text='', image='', url=''):
-        Message().send_channel_msg(title=title,
+        MessageService().send_channel_msg(title=title,
                                    text=text,
                                    image=image,
                                    url=url,

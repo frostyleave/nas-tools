@@ -1,13 +1,13 @@
+import chardet
 import os
+import re
 import shutil
 
 from cachetools import TTLCache, cached
 from pyquery import PyQuery
-from playwright.sync_api import Page
 from urllib.parse import quote
 
 from app.helper import SiteHelper
-from app.indexer.client.browser import PlaywrightHelper
 from app.plugins import EventHandler
 from app.plugins.modules._base import _IPluginModule
 from app.utils import RequestUtils, PathUtils
@@ -205,6 +205,36 @@ class OpenSubtitles(_IPluginModule):
         """
         return self.__parse_opensubtitles_results(url=self._url_keyword % quote(keyword))
 
+    def _sample_request(self, searchurl):
+        # requests请求
+        ret = RequestUtils(
+            cookies=self._cookie,
+            proxies=Config.get_proxies()
+        ).get_res(searchurl, allow_redirects=True)
+
+        if ret is None:
+            self.warn(f"请求失败: {searchurl}")
+            return ''
+        
+        # 使用chardet检测字符编码
+        raw_data = ret.content
+        if raw_data:
+            try:
+                result = chardet.detect(raw_data)
+                encoding = result['encoding']
+                # 解码为字符串
+                return raw_data.decode(encoding)
+            except Exception as e:
+                log.debug(f"chardet解码失败: {str(e)}")
+                # 探测utf-8解码
+                if re.search(r"charset=\"?utf-8\"?", ret.text, re.IGNORECASE):
+                    ret.encoding = "utf-8"
+                else:
+                    ret.encoding = ret.apparent_encoding
+                return ret.text
+        else:
+            return ret.text
+
     @classmethod
     @cached(cache=TTLCache(maxsize=512, ttl=3600))
     def __parse_opensubtitles_results(cls, url):
@@ -212,50 +242,42 @@ class OpenSubtitles(_IPluginModule):
         搜索并解析结果
         """
 
-        def __page_handler(page: Page)-> list: 
-
-           # 访问页面
-            if not page:
-                return []
-            # 源码
-            html_text = page.content()
-            # Cookie
-            cls._cookie = SiteHelper.parse_cookies(page.context.cookies())
-            # 解析列表
-            ret_subtitles = []
-            html_doc = PyQuery(html_text)
-            global_season = ''
-            for tr in html_doc('#search_results > tbody > tr:not([style])'):
-                tr_doc = PyQuery(tr)
-                # 季
-                season = tr_doc('span[id^="season-"] > a > b').text()
-                if season:
-                    global_season = season
-                    continue
-                # 集
-                episode = tr_doc('span[itemprop="episodeNumber"]').text()
-                # 标题
-                title = tr_doc('strong > a.bnone').text()
-                # 描述 下载链接
-                if not global_season:
-                    description = tr_doc('td:nth-child(1)').text()
-                    if description and len(description.split("\n")) > 1:
-                        description = description.split("\n")[1]
-                    link = tr_doc('td:nth-child(5) > a').attr("href")
-                else:
-                    description = tr_doc('span[itemprop="name"]').text()
-                    link = tr_doc('a[href^="/download/"]').attr("href")
-                if link:
-                    link = "https://www.opensubtitles.org%s" % link
-                else:
-                    continue
-                ret_subtitles.append({
-                    "season": global_season,
-                    "episode": episode,
-                    "title": title,
-                    "description": description,
-                    "link": link
-                })
-            return ret_subtitles
+        # 源码
+        html_text = cls._sample_request(url)
+        # 解析列表
+        ret_subtitles = []
+        html_doc = PyQuery(html_text)
+        global_season = ''
+        for tr in html_doc('#search_results > tbody > tr:not([style])'):
+            tr_doc = PyQuery(tr)
+            # 季
+            season = tr_doc('span[id^="season-"] > a > b').text()
+            if season:
+                global_season = season
+                continue
+            # 集
+            episode = tr_doc('span[itemprop="episodeNumber"]').text()
+            # 标题
+            title = tr_doc('strong > a.bnone').text()
+            # 描述 下载链接
+            if not global_season:
+                description = tr_doc('td:nth-child(1)').text()
+                if description and len(description.split("\n")) > 1:
+                    description = description.split("\n")[1]
+                link = tr_doc('td:nth-child(5) > a').attr("href")
+            else:
+                description = tr_doc('span[itemprop="name"]').text()
+                link = tr_doc('a[href^="/download/"]').attr("href")
+            if link:
+                link = "https://www.opensubtitles.org%s" % link
+            else:
+                continue
+            ret_subtitles.append({
+                "season": global_season,
+                "episode": episode,
+                "title": title,
+                "description": description,
+                "link": link
+            })
+        return ret_subtitles
         
-        return PlaywrightHelper().action(url=url, callback=__page_handler)

@@ -10,7 +10,7 @@ import log
 from app.conf import ModuleConf
 from app.helper import RssHelper
 from app.helper import ThreadHelper
-from app.media import Media
+from app.media import MediaService
 from app.mediaserver import MediaServer
 from app.plugins.modules._base import _IPluginModule
 from app.modules.subscribe import Subscribe
@@ -318,7 +318,7 @@ class MovieRandom(_IPluginModule):
                     break
 
         # 查询选择条件下所有页数
-        random_max_page = Media().get_tmdb_discover_movies_pages(params=params)
+        random_max_page = MediaService().get_tmdb_discover_movies_pages(params=params)
         if random_max_page == 0:
             log.error("当前所选条件下未获取到电影数据，停止随机订阅")
             return
@@ -457,7 +457,7 @@ class MovieRandom(_IPluginModule):
 
     @staticmethod
     def __get_discover(page, params):
-        return Media().get_tmdb_discover(mtype=MediaType.MOVIE,
+        return MediaService().get_tmdb_discover(mtype=MediaType.MOVIE,
                                          page=page,
                                          params=params)
 

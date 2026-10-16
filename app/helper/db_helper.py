@@ -291,7 +291,7 @@ class DbHelper:
         查询未识别记录
         """
         if not tid:
-            return []
+            return None
         return self._db.query(TRANSFERUNKNOWN).filter(TRANSFERUNKNOWN.ID == int(tid)).first()
 
     def get_transfer_unknown_by_path(self, path):
@@ -299,7 +299,7 @@ class DbHelper:
         根据路径查询未识别记录
         """
         if not path:
-            return []
+            return None
         return self._db.query(TRANSFERUNKNOWN).filter(TRANSFERUNKNOWN.PATH == path).all()
 
     def is_transfer_unknown_exists(self, path):
@@ -433,7 +433,7 @@ class DbHelper:
         """
         查询所有站点信息
         """
-        return self._db.query(CONFIGSITE).order_by(cast(CONFIGSITE.PRI, Integer).asc())
+        return self._db.query(CONFIGSITE).order_by(CONFIGSITE.PRI.asc()).all()
 
     def get_site_by_id(self, tid):
         """
@@ -443,7 +443,7 @@ class DbHelper:
 
     @DbPersist(_db)
     def insert_config_site(self, name, site_pri,
-                           rssurl=None, signurl=None, cookie=None, token=None, apikey=None, note=None, rss_uses=None):
+                           rssurl='', signurl='', cookie='', token='', apikey='', note='', rss_uses=''):
         """
         插入站点信息
         """
@@ -521,21 +521,19 @@ class DbHelper:
             return self._db.query(CONFIGFILTERGROUP).filter(CONFIGFILTERGROUP.ID == int(gid)).all()
         return self._db.query(CONFIGFILTERGROUP).all()
 
-    def get_config_filter_rule(self, groupid=None):
+    def get_config_filter_rule(self, groupid=None) -> List[CONFIGFILTERRULES]:
         """
         查询过滤规则
         """
         if not groupid:
             return self._db.query(CONFIGFILTERRULES).order_by(CONFIGFILTERRULES.GROUP_ID,
-                                                              cast(CONFIGFILTERRULES.PRIORITY,
-                                                                   Integer)).all()
+                                                              CONFIGFILTERRULES.PRIORITY).all()
         else:
             return self._db.query(CONFIGFILTERRULES).filter(
                 CONFIGFILTERRULES.GROUP_ID == int(groupid)).order_by(CONFIGFILTERRULES.GROUP_ID,
-                                                                     cast(CONFIGFILTERRULES.PRIORITY,
-                                                                          Integer)).all()
+                                                                     CONFIGFILTERRULES.PRIORITY).all()
 
-    def get_rss_movies(self, state=None, rssid=None):
+    def get_rss_movies(self, state=None, rssid=None) -> List[RSSMOVIES]:
         """
         查询订阅电影信息
         """
@@ -737,7 +735,7 @@ class DbHelper:
                     "STATE": state
                 })
 
-    def get_rss_tvs(self, state=None, rssid=None):
+    def get_rss_tvs(self, state=None, rssid=None) -> List[RSSTVS]:
         """
         查询订阅电视剧信息
         """
@@ -784,17 +782,6 @@ class DbHelper:
                 return items[0].ID
         else:
             return ""
-
-    def get_rss_tv_sites(self, rssid):
-        """
-        获取订阅电视剧站点
-        """
-        if not rssid:
-            return ""
-        ret = self._db.query(RSSTVS).filter(RSSTVS.ID == int(rssid)).first()
-        if ret:
-            return ret
-        return ""
 
     @DbPersist(_db)
     def update_rss_tv_tmdb(self, rid, tmdbid, title, year, total, lack, image, desc, note):
@@ -994,7 +981,7 @@ class DbHelper:
         查询电视剧订阅缺失剧集
         """
         if not rid:
-            return []
+            return None
         ret = self._db.query(RSSTVEPISODES.EPISODES).filter(RSSTVEPISODES.RSSID == rid).first()
         if ret:
             return [int(epi) for epi in str(ret[0]).split(',')]
@@ -1056,17 +1043,14 @@ class DbHelper:
             self._db.insert(SYNCHISTORY(
                 PATH=os.path.normpath(path),
                 SRC=os.path.normpath(src),
-                DEST=os.path.normpath(dest)
+                DEST=os.path.normpath(dest),
+                DATE=time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time())),
             ))
 
-    def get_users(self, uid=None, name=None):
+    def get_users(self):
         """
         查询用户列表
         """
-        if uid:
-            return self._db.query(CONFIGUSERS).filter(CONFIGUSERS.ID == uid).first()
-        elif name:
-            return self._db.query(CONFIGUSERS).filter(CONFIGUSERS.NAME == name).first()
         return self._db.query(CONFIGUSERS).all()
 
     def is_user_exists(self, name):
@@ -1373,7 +1357,7 @@ class DbHelper:
             return self._db.query(SITEUSERINFOSTATS) \
                 .join(CONFIGSITE, SITEUSERINFOSTATS.SITE == CONFIGSITE.NAME) \
                 .filter(SITEUSERINFOSTATS.URL.in_(tuple(strict_urls + ["__DUMMY__"]))) \
-                .order_by(cast(CONFIGSITE.PRI, Integer).asc()).limit(num).all()
+                .order_by(CONFIGSITE.PRI.asc()).limit(num).all()
         else:
             return self._db.query(SITEUSERINFOSTATS).limit(num).all()
 
@@ -1460,7 +1444,7 @@ class DbHelper:
         return self._db.query(SITESTATISTICSHISTORY).filter(
             SITESTATISTICSHISTORY.SITE == site).order_by(
             SITESTATISTICSHISTORY.DATE.asc()
-        ).limit(days)
+        ).limit(days).all()
 
     def get_site_seeding_info(self, site):
         """
@@ -1566,12 +1550,12 @@ class DbHelper:
         if enclosure:
             return self._db.query(DOWNLOADHISTORY).filter(
                 DOWNLOADHISTORY.ENCLOSURE == enclosure
-            )
+            ).order_by(DOWNLOADHISTORY.ID.desc())
         else:
             return self._db.query(DOWNLOADHISTORY).filter(
                 DOWNLOADHISTORY.DOWNLOADER == downloader,
                 DOWNLOADHISTORY.DOWNLOAD_ID == download_id
-            )
+            ).order_by(DOWNLOADHISTORY.ID.desc())
 
     @DbPersist(_db)
     def insert_download_history(self, media_info, downloader, download_id, save_dir):
@@ -1586,8 +1570,10 @@ class DbHelper:
         exists_data = self.query_exists_download_history(enclosure=media_info.enclosure,
                                            downloader=downloader,
                                            download_id=download_id)
-        if exists_data and exists_data.count() > 0:
-            exists_data.update(
+        exist = exists_data.first()
+        if exist:
+            # 记录已存在时只更新最新一条
+            self._db.query(DOWNLOADHISTORY).filter(DOWNLOADHISTORY.ID == exist.ID).update(
                 {
                     "BACKDROP": media_info.get_backdrop_image(default=False, original=True),
                     "ENCLOSURE": media_info.enclosure,
@@ -1658,7 +1644,7 @@ class DbHelper:
             DOWNLOADHISTORY.SAVE_PATH == os.path.normpath(path)
         ).order_by(DOWNLOADHISTORY.DATE.desc()).first()
 
-    def get_download_history_by_downloader(self, downloader, download_id):
+    def get_download_history_by_downloader(self, downloader, download_id) -> DOWNLOADHISTORY:
         """
         根据下载器查找下载历史
         """
@@ -1723,17 +1709,13 @@ class DbHelper:
         self._db.query(SITEBRUSHTASK).filter(SITEBRUSHTASK.ID == int(brush_id)).delete()
         self._db.query(SITEBRUSHTORRENTS).filter(SITEBRUSHTORRENTS.TASK_ID == brush_id).delete()
 
-    def get_brushtasks(self, brush_id=None) -> List[SITEBRUSHTASK]:
+    def get_brushtasks(self) -> List[SITEBRUSHTASK]:
         """
-        查询刷流任务
+        查询刷流任务, 根据站点优先级排序
         """
-        if brush_id:
-            return self._db.query(SITEBRUSHTASK).filter(SITEBRUSHTASK.ID == int(brush_id)).first()
-        else:
-            # 根据站点优先级排序
-            return self._db.query(SITEBRUSHTASK) \
-                .join(CONFIGSITE, SITEBRUSHTASK.SITE == CONFIGSITE.ID) \
-                .order_by(cast(CONFIGSITE.PRI, Integer).asc()).all()
+        return self._db.query(SITEBRUSHTASK) \
+            .join(CONFIGSITE, SITEBRUSHTASK.SITE == CONFIGSITE.ID) \
+            .order_by(CONFIGSITE.PRI.asc()).all()
 
     def get_brushtask_totalsize(self, brush_id):
         """
@@ -1840,7 +1822,7 @@ class DbHelper:
         查询刷流任务所有种子
         """
         if not brush_id:
-            return []
+            return None
         if active:
             return self._db.query(SITEBRUSHTORRENTS).filter(
                 SITEBRUSHTORRENTS.TASK_ID == int(brush_id),
@@ -1879,11 +1861,11 @@ class DbHelper:
         """
         if not ids:
             return
-        for _id in ids:
-            self._db.query(SITEBRUSHTORRENTS).filter(SITEBRUSHTORRENTS.TASK_ID == _id[1],
-                                                     SITEBRUSHTORRENTS.DOWNLOAD_ID == _id[2]).update(
+        for ut in ids:
+            self._db.query(SITEBRUSHTORRENTS).filter(SITEBRUSHTORRENTS.TASK_ID == ut.task_id,
+                                                     SITEBRUSHTORRENTS.DOWNLOAD_ID == ut.torrent_id).update(
                 {
-                    "TORRENT_SIZE": _id[0],
+                    "TORRENT_SIZE": f"{ut.uploaded},{ut.downloaded}",
                     "DOWNLOAD_ID": '0'
                 }
             )
@@ -1919,9 +1901,9 @@ class DbHelper:
     def get_filter_groupid_by_name(self, name):
         ret = self._db.query(CONFIGFILTERGROUP.ID).filter(CONFIGFILTERGROUP.GROUP_NAME == name).first()
         if ret:
-            return ret[0]
+            return ret.ID
         else:
-            return ""
+            return None
 
     @DbPersist(_db)
     def set_default_filtergroup(self, groupid):
@@ -1977,7 +1959,7 @@ class DbHelper:
                 NOTE=item.get("free")
             ))
 
-    def get_userrss_tasks(self, tid=None):
+    def get_userrss_tasks(self, tid=None) -> List[CONFIGUSERRSS]:
         if tid:
             return self._db.query(CONFIGUSERRSS).filter(CONFIGUSERRSS.ID == int(tid)).all()
         else:
@@ -2089,10 +2071,7 @@ class DbHelper:
             })
 
     def get_userrss_parser(self, pid=None):
-        if pid:
-            return self._db.query(CONFIGRSSPARSER).filter(CONFIGRSSPARSER.ID == int(pid)).first()
-        else:
-            return self._db.query(CONFIGRSSPARSER).all()
+        return self._db.query(CONFIGRSSPARSER).all()
 
     @DbPersist(_db)
     def delete_userrss_parser(self, pid):
@@ -2104,7 +2083,7 @@ class DbHelper:
     def update_userrss_parser(self, item):
         if not item:
             return
-        if item.get("id") and self.get_userrss_parser(item.get("id")):
+        if item.get("id"):
             self._db.query(CONFIGRSSPARSER).filter(CONFIGRSSPARSER.ID == int(item.get("id"))).update(
                 {
                     "NAME": item.get("name"),
@@ -2126,10 +2105,6 @@ class DbHelper:
         return self._db.excute(sql)
 
     @DbPersist(_db)
-    def drop_table(self, table_name):
-        return self._db.excute(f"""DROP TABLE IF EXISTS {table_name}""")
-
-    @DbPersist(_db)
     def insert_userrss_task_history(self, task_id, title, downloader):
         """
         增加自定义RSS订阅任务的下载记录
@@ -2146,7 +2121,7 @@ class DbHelper:
         查询自定义RSS订阅任务的下载记录
         """
         if not task_id:
-            return []
+            return None
         return self._db.query(USERRSSTASKHISTORY).filter(USERRSSTASKHISTORY.TASK_ID == task_id) \
             .order_by(USERRSSTASKHISTORY.DATE.desc()).all()
 
@@ -2716,6 +2691,28 @@ class DbHelper:
         self._db.query(INDEXERSITE).filter(INDEXERSITE.ID == id).delete()
 
 
+    def get_site_rss_forward(self, site_id) -> SITERSSFORWARD:
+        """
+        查询站点订阅推进数据
+        """
+        return self._db.query(SITERSSFORWARD).filter(SITERSSFORWARD.SITE_ID == site_id).first()
+
+    @DbPersist(_db)
+    def add_or_update_site_rss_forward(self, site_id, last_pub_time:datetime.datetime):
+        """
+        新增或更新站点订阅推进数据
+        """
+        time_str = last_pub_time.strftime('%Y-%m-%d %H:%M:%S')
+        # 尝试更新
+        if self._db.query(SITERSSFORWARD).filter(SITERSSFORWARD.SITE_ID == site_id).update({"LAST_PUB_TIME": time_str}) > 0:
+            return
+        # 新增
+        self._db.insert(SITERSSFORWARD(
+            SITE_ID=site_id,
+            LAST_PUB_TIME=time_str,
+        ))
+
+
     def get_downloaders(self):
         """
         查询下载器
@@ -2757,6 +2754,72 @@ class DbHelper:
                 "VALUE": value
             }
         )
+
+    def get_download_history_ids_before(self, cutoff_str, limit=100):
+        """查询DOWNLOAD_HISTORY中早于cutoff的记录ID"""
+        records = self._db.query(DOWNLOADHISTORY).filter(
+            DOWNLOADHISTORY.DATE < cutoff_str
+        ).with_entities(DOWNLOADHISTORY.ID).limit(limit).all()
+        return [r.ID for r in records]
+
+    def get_plugin_history_ids_before(self, cutoff_str, limit=100):
+        """查询PLUGIN_HISTORY中早于cutoff的记录ID"""
+        records = self._db.query(PLUGINHISTORY).filter(
+            PLUGINHISTORY.DATE < cutoff_str
+        ).with_entities(PLUGINHISTORY.ID).limit(limit).all()
+        return [r.ID for r in records]
+
+    def get_rss_history_ids_before(self, cutoff_str, limit=100):
+        """查询RSS_HISTORY中早于cutoff的记录ID"""
+        records = self._db.query(RSSHISTORY).filter(
+            RSSHISTORY.FINISH_TIME < cutoff_str
+        ).with_entities(RSSHISTORY.ID).limit(limit).all()
+        return [r.ID for r in records]
+
+    def get_site_statistics_history_ids_before(self, cutoff_str, limit=100):
+        """查询SITE_STATISTICS_HISTORY中早于cutoff的记录ID"""
+        records = self._db.query(SITESTATISTICSHISTORY).filter(
+            SITESTATISTICSHISTORY.DATE < cutoff_str
+        ).with_entities(SITESTATISTICSHISTORY.ID).limit(limit).all()
+        return [r.ID for r in records]
+
+    def get_transfer_history_ids_before(self, cutoff_str, limit=100):
+        """查询TRANSFER_HISTORY中早于cutoff的记录ID"""
+        records = self._db.query(TRANSFERHISTORY).filter(
+            TRANSFERHISTORY.DATE < cutoff_str
+        ).with_entities(TRANSFERHISTORY.ID).limit(limit).all()
+        return [r.ID for r in records]
+
+    def get_userrss_task_history_ids_before(self, cutoff_str, limit=100):
+        """查询USERRSS_TASK_HISTORY中早于cutoff的记录ID"""
+        records = self._db.query(USERRSSTASKHISTORY).filter(
+            USERRSSTASKHISTORY.DATE < cutoff_str
+        ).with_entities(USERRSSTASKHISTORY.ID).limit(limit).all()
+        return [r.ID for r in records]
+
+    def get_sync_history_ids_before(self, cutoff_str, limit=100):
+        """查询SYNC_HISTORY中早于cutoff的记录ID"""
+        records = self._db.query(SYNCHISTORY).filter(
+            SYNCHISTORY.DATE < cutoff_str
+        ).with_entities(SYNCHISTORY.ID).limit(limit).all()
+        return [r.ID for r in records]
+
+    @DbPersist(_db)
+    def delete_history_by_ids(self, table_name, ids):
+        """按表名和ID列表批量删除记录"""
+        model_map = {
+            'DOWNLOAD_HISTORY': DOWNLOADHISTORY,
+            'PLUGIN_HISTORY': PLUGINHISTORY,
+            'RSS_HISTORY': RSSHISTORY,
+            'SITE_STATISTICS_HISTORY': SITESTATISTICSHISTORY,
+            'TRANSFER_HISTORY': TRANSFERHISTORY,
+            'USERRSS_TASK_HISTORY': USERRSSTASKHISTORY,
+            'SYNC_HISTORY': SYNCHISTORY,
+        }
+        model = model_map.get(table_name)
+        if not model:
+            return 0
+        return self._db.query(model).filter(model.ID.in_(ids)).delete(synchronize_session=False)
 
     @DbPersist(_db)
     def delete_plugin_history(self, plugin_id, key):

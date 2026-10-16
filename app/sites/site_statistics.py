@@ -7,7 +7,7 @@ from threading import Lock
 import log
 
 from app.helper import DbHelper
-from app.message import Message
+from app.message import MessageService
 from app.models.model import UserSiteConf
 from app.sites import SitesManager
 from app.sites.site_schema import SitesschemaCenter
@@ -37,7 +37,7 @@ class SitesDataStatisticsCenter(object):
     def init_config(self):
         self.sites = SitesManager()
         self.dbhelper = DbHelper()
-        self.message = Message()
+        self.message = MessageService()
         # 站点上一次更新时间
         self._last_update_time = None
         # 站点数据

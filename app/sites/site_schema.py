@@ -5,7 +5,6 @@ from typing import List, Optional
 import log
 
 from app.helper import SubmoduleHelper
-from app.indexer.client.browser import PlaywrightHelper
 from app.models.model import UserSiteConf
 from app.sites.siteuserinfo._base import _ISiteUserInfo
 from app.sites.siteuserinfo.mTorrent import MTorrentUserInfo
@@ -90,11 +89,6 @@ class SitesschemaCenter(object):
                             ua=None, 
                             emulate=None, 
                             proxy=False) -> Optional[str]:
-                            
-        # 站点需要仿真
-        if emulate:
-            html_text = PlaywrightHelper().get_page_source(url=url, ua=ua, cookies=site_cookie, proxy=proxy)
-            return html_text
         
         # 直接请求
         proxies = Config().get_proxies() if proxy else None

@@ -1,6 +1,6 @@
 from app.core.cmd_registry import CommandRegistry
 from app.helper.thread_helper import ThreadHelper
-from app.message import Message
+from app.message import MessageService
 from app.message.message_search import MessageSearchHandler
 from app.plugins.event_manager import EventManager
 from app.plugins.plugin_manager import PluginManager
@@ -35,7 +35,7 @@ class CommandHandler:
             # 启动服务
             ThreadHelper().start_thread(command.get("func"), ())
             # 消息回应
-            Message().send_channel_msg(
+            MessageService().send_channel_msg(
                 channel=in_from, 
                 title="正在运行 %s ..." % command.get("desc"), 
                 user_id=user_id, 
@@ -49,7 +49,7 @@ class CommandHandler:
                 # 发送事件
                 EventManager().send_event(command.get("event"), command.get("data") or {})
                 # 消息回应
-                Message().send_channel_msg(
+                MessageService().send_channel_msg(
                     channel=in_from, 
                     title="正在运行 %s ..." % command.get("desc"), 
                     user_id=user_id, 

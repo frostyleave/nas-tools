@@ -1,5 +1,6 @@
 import ssl
 
+from dataclasses import dataclass
 from requests.adapters import HTTPAdapter
 from typing import Any, List, Optional
 from pydantic import BaseModel
@@ -86,6 +87,15 @@ class UserSiteConf(BaseModel):
     def get(self, key: str, default: Any = None) -> Any:
         """像字典一样获取字段值，若字段不存在则返回默认值"""
         return getattr(self, key, default)
+
+
+@dataclass
+class BrushedTorrentUpdate:
+    """刷流种子删除/状态更新信息"""
+    task_id: int
+    torrent_id: str
+    uploaded: int
+    downloaded: int
 
 
 class IndexerInfo(BaseModel):

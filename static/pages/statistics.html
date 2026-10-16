@@ -972,9 +972,6 @@
     var target = site_name ? '是否立即刷新【'+ site_name +'】站点数据?' : "是否立即刷新所有站点的数据?"
 
     show_ask_modal(target, function () {
-
-      hide_ask_modal();
-
       axios_post_do("refresh_pt_statistics", {'site':site_name}, function (ret) {
         if (ret.code === 0) {
           show_success_modal(ret.msg);
@@ -1167,7 +1164,7 @@
                         ${statusBadge}
                         <div class="flex-fill">
                           <div class="font-weight-medium">
-                            <a href="${item.url}" target="_blank">${item.site}</a>
+                            <a href="javascript:show_site_activity('${item.site}')" title="查看历史数据" aria-label="activity">${item.site}</a>
                             ${messageIcon}
                           </div>
                           <div class="text-muted">${item.username}</div>
@@ -1204,9 +1201,6 @@
                       <span class="d-none d-lg-block">${item.update_at || ''}</span>
                     </td>
                     <td class="activity">
-                      <a href="javascript:show_site_activity('${item.site}')" class="btn-icon" title="查看历史数据" aria-label="activity">
-                        <i class="ti ti-activity fs-2"></i>
-                      </a>
                       <a href="javascript:ask_refresh_statistics('${item.site}')" class="btn-icon ms-3" title="刷新站点数据" >
                         <i class="ti ti-refresh fs-2"></i>
                       </a>
@@ -1229,15 +1223,5 @@
 
     });
   });
-
-  // 格式化文件大小
-  function formatFileSize(bytes) {
-    if (bytes === 0) return '0 B';
-    const k = 1024;
-    const sizes = ['B', 'KB', 'MB', 'GB', 'TB', 'PB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-  }
-
 
 </script>

@@ -114,6 +114,10 @@ router
   .on("/download_setting", function (match) {
     loadPage("/static/pages/download_setting.html", match.queryString);
   })
+  // 下载历史
+  .on("/download_history", function (match) {
+    loadPage("/static/pages/download_history.html", match.queryString);
+  })
 
   // 唤起App中转页面
   .on("/open", function (match) {
@@ -162,6 +166,7 @@ function loadPage(htmlPath, queryString) {
     });
   }
   $("#page-content").data("params", params);
+  $("#page-content").data("queryString", paramString);
 
   // 直接加载HTML文件
   $("#page-content").load(htmlPath, function(_, status, xhr) {

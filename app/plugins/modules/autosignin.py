@@ -101,15 +101,15 @@ class AutoSignIn(_IPluginModule):
     _queue_cnt = None
     _retry_keyword = None
     _special_sites = None
-    _render_sites = None
     _onlyonce = False
     _notify = False
     _clean = False
+    
     # 退出事件
     _event = Event()
 
     # 签到成功
-    _sign_regex = ['签到已得', '簽到已得', '今日签到排名', '今日簽到排名', '签到成功', '簽到成功']
+    _sign_regex = ['签到已得', '簽到已得', '今日签到排名', '今日簽到排名', '签到成功', '簽到成功', '今天已签到', '今天已经签到']
     _success_regex = ['今日签到排名', '今日簽到排名', '本次签到获得 \\d+ 个魔力值', '本次簽到獲得 \\d+ 個魔力值','\\d+点魔力']
 
     @staticmethod
@@ -226,20 +226,6 @@ class AutoSignIn(_IPluginModule):
                     ]
                 ]
             },
-            {
-                'type': 'details',
-                'summary': '仿真签到站点',
-                'tooltip': '选中的站点使用仿真签到, 不受站点配置中的仿真选项影响',
-                'content': [
-                    [
-                        {
-                            'id': 'render_sites',
-                            'type': 'form-selectgroup',
-                            'content': sites
-                        },
-                    ]
-                ]
-            },
         ]
 
     def init_config(self, config=None):
@@ -253,7 +239,6 @@ class AutoSignIn(_IPluginModule):
             self._retry_keyword = config.get("retry_keyword")
             self._config_sites = config.get("sign_sites")
             self._special_sites = config.get("special_sites") or []
-            self._render_sites = config.get("render_sites") or []
             self._notify = config.get("notify")
             self._queue_cnt = config.get("queue_cnt")
             self._onlyonce = config.get("onlyonce")
@@ -288,7 +273,6 @@ class AutoSignIn(_IPluginModule):
                     "retry_keyword": self._retry_keyword,
                     "sign_sites": self._config_sites,
                     "special_sites": self._special_sites,
-                    "render_sites": self._render_sites,
                     "notify": self._notify,
                     "onlyonce": self._onlyonce,
                     "queue_cnt": self._queue_cnt,
@@ -469,7 +453,8 @@ class AutoSignIn(_IPluginModule):
         发送签到结果通知
         """
         try:
-                       
+
+            notice_title = '自动签到任务完成'
             # 准备通知文本
             text_parts = []
 
@@ -482,14 +467,13 @@ class AutoSignIn(_IPluginModule):
             if results.failed_info:
                 text_parts.append(f"🟢签到失败站点:")
                 text_parts.append(f"{'\t\n'.join(results.failed_info)}")
+                notice_title += f'(失败:{len(results.failed_info)})'
             else:
                 text_parts.append("🟢签到失败站点: 无")
 
             if results.retry_names:
                 text_parts.append(f"🟢命中重试站点:")
                 text_parts.append(f"\t{ ','.join(results.retry_names)}")
-            else:
-                text_parts.append("🟢命中重试站点: 无")
             
             # 获取下次执行时间
             if self._cron_job:
@@ -500,7 +484,7 @@ class AutoSignIn(_IPluginModule):
             img_url, _, __ = get_bing_wallpaper(today_str)
             # 发送消息
             self.send_message(
-                title="自动签到任务完成",
+                title=notice_title,
                 text=" \n".join(text_parts),
                 image=img_url
             )

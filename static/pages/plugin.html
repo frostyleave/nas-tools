@@ -221,7 +221,6 @@
   // 询问取消订阅
   function uninstall_plugin_click(pluginId, pluginName) {
     show_ask_modal("是否确定将 " + pluginName + " 插件卸载？", function () {
-      hide_ask_modal();
       uninstall_plugin(pluginId, pluginName);
     });
   }

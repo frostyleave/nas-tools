@@ -10,9 +10,8 @@ import log
 from log import log_buffer, active_sse_queues
 
 from app.core.cmd_handler import CommandHandler
-from app.core.task_manager import GlobalTaskManager
-from app.helper.progress_helper import ProgressHelper
-from app.message.message_center import MessageCenter
+from app.core.task_manager import TaskStore
+from app.message.message_center import SysMessageCenter
 from app.middleware.security import get_current_user
 from app.utils.types import SearchType
 
@@ -174,33 +173,6 @@ async def stream_logging(request: Request, source: str = ""):
 
 
 # 进度SSE
-@streaming_router.get("/stream-progress")
-async def stream_progress(request: Request, type: str = ""):
-    """
-    进度SSE
-    """
-    async def event_generator():
-        try:
-            while True:                
-                # 获取进度
-                detail = refresh_process(type)
-                # 发送进度
-                yield f"data: {json.dumps(detail)}\n\n"
-                # 进度完成，结束
-                if detail['value'] >= 100:
-                    break
-                # 等待一段时间
-                await asyncio.sleep(0.5)
-        except Exception as e:
-            log.error("[SSE-进度]连接异常: ")
-            yield f"data: {json.dumps({'code': -1, 'value': 0, 'text': f'进度连接异常: {str(e)}'})}\n\n"
-
-    # 初始化进度
-    ProgressHelper().reset(type)
-    return StreamingResponse(event_generator(), media_type="text/event-stream", headers={ "Content-Encoding": "identity" })
-
-
-# 进度SSE
 @streaming_router.get("/sse-progress")
 async def sse_progress(
     request: Request, 
@@ -219,7 +191,7 @@ async def sse_progress(
                     break
 
                 # 获取进度
-                task_info = GlobalTaskManager().get_task_dict(task_id)
+                task_info = TaskStore().get_task_dict(task_id)
                 if not task_info:
                     log.info(f"[SSE-进度] 查询任务: {task_id} 进度信息失败")
                     break
@@ -253,19 +225,9 @@ async def sse_progress(
 
     return StreamingResponse(event_generator(), media_type="text/event-stream", headers={ "Content-Encoding": "identity" })
 
-def refresh_process(progress_type):
-    """
-    刷新进度条
-    """
-    detail = ProgressHelper().get_process(progress_type)
-    if detail:
-        return {"code": 0, "value": detail.get("value"), "text": detail.get("text")}
-    else:
-        return {"code": 1, "value": 0, "text": "正在处理..."}
-
 def get_system_message(lst_time):
 
-    messages = MessageCenter().get_system_messages(lst_time=lst_time)
+    messages = SysMessageCenter().get_system_messages(lst_time=lst_time)
     if messages:
         lst_time = messages[0].get("time")
     return {

@@ -16,20 +16,20 @@ from fastapi import APIRouter, BackgroundTasks, Body, Depends
 import log
 
 from app.conf import SystemConfig, ModuleConf
-from app.helper import ProgressHelper, ThreadHelper, MetaHelper, WordsHelper, RssHelper, FileHelper
+from app.helper import ThreadHelper, MetaHelper, WordsHelper, RssHelper, FileHelper
 from app.utils import StringUtils, EpisodeFormat, RequestUtils, PathUtils, SystemUtils, MediaUtils
 
 from app.core.cmd_handler import CommandHandler
 from app.core.jobcenter import JobCenter
 from app.core.services import ServiceManager
-from app.core.task_manager import GlobalTaskManager
+from app.core.task_manager import TaskStore
 from app.downloader import Downloader
 from app.indexer import Indexer
 from app.indexer.manager import IndexerManager
-from app.media import Media, Bangumi, DouBan, Scraper
+from app.media import MediaService, Bangumi, DouBan, Scraper
 from app.media.meta import MetaInfo
 from app.mediaserver import MediaServer
-from app.message import Message
+from app.message import MessageService
 from app.models.user import User, UserManager
 from app.middleware.security import get_current_user
 from app.modules.filetransfer import FileTransfer
@@ -44,7 +44,7 @@ from app.modules.media_status import MediaStatusChecker
 from app.modules.sync import Sync
 from app.modules.torrentremover import TorrentRemover
 from app.plugins import PluginManager, EventManager
-from app.sites import SitesManager, SitesDataStatisticsCenter, CookieManager, SiteConf
+from app.sites import SitesManager, SitesDataStatisticsCenter, SiteConf
 from app.utils.constants import Constants
 from app.utils.types import MediaType, SyncType, SearchType, EventType, SystemConfigKey, RssType
 from app.utils.password_hash import generate_password_hash
@@ -56,14 +56,14 @@ action_router = APIRouter(dependencies=[Depends(get_current_user)])
 
 # 事件响应
 @action_router.post("/do")
-def do(content: dict = Body(...), current_user: User = Depends(get_current_user)):
-    
+def do(background_tasks: BackgroundTasks, content: dict = Body(...), current_user: User = Depends(get_current_user)):
+
     start_time = time.time()
     try:
         cmd = content.get("cmd")
         data = content.get("data") or {}
         log.debug("处理/do请求: cmd={%s}, data={%s}", cmd, data)
-        return WebAction(current_user).action(cmd, data)
+        return WebAction(current_user, background_tasks).action(cmd, data)
     except Exception as e:
         log.exception("处理/do请求出错, cmd=" + content.get("cmd"))
         return {"code": -1, "msg": str(e)}
@@ -76,7 +76,6 @@ def do(content: dict = Body(...), current_user: User = Depends(get_current_user)
 @action_router.post("/search")
 def search(background_tasks: BackgroundTasks, data: dict = Body(...)):
     
-    start_time = time.time()
     try:
         search_word = data.get("search_word")
         if not search_word:
@@ -93,7 +92,7 @@ def search(background_tasks: BackgroundTasks, data: dict = Body(...)):
             else:
                 media_type = MediaType.TV
 
-        task_id = GlobalTaskManager().create_task()
+        task_id = TaskStore().create_task()
 
         background_tasks.add_task(SearchProxy().search_torrents_from_web,
                                   content=search_word,
@@ -108,10 +107,6 @@ def search(background_tasks: BackgroundTasks, data: dict = Body(...)):
     except Exception as e:
         log.exception("处理/search请求出错")
         return {"code": -1, "msg": str(e)}
-    finally:
-        cost_time = time.time()
-        process_time = (cost_time - start_time) * 1000  # 转换为毫秒
-        log.debug("[%s] %s, 耗时: %s ms", str(threading.get_ident()), json.dumps(data), format(process_time, ".2f"))
 
 class WebAction:
     
@@ -119,12 +114,12 @@ class WebAction:
     _commands = {}
     _current_user : Optional[User] = None
     _douBan : Optional[DouBan] =  None
+    _background_tasks : Optional[BackgroundTasks] = None
 
-    def __init__(self, current_user:Optional[User]=None):
+    def __init__(self, current_user:Optional[User]=None, background_tasks:Optional[BackgroundTasks]=None):
         # WEB请求响应
         self._actions = {
             "sch": self.__sch,
-            "search": self.__search,
             "download": self.__download,
             "download_link": self.__download_link,
             "download_torrent": self.__download_torrent,
@@ -185,7 +180,6 @@ class WebAction:
             "get_site_seeding_info": self.__get_site_seeding_info,
             "clear_tmdb_cache": self.__clear_tmdb_cache,
             "check_site_attr": self.__check_site_attr,
-            "refresh_process": self.__refresh_process,
             "restory_backup": self.__restory_backup,
             "start_mediasync": self.__start_mediasync,
             "mediasync_state": self.__mediasync_state,
@@ -239,9 +233,6 @@ class WebAction:
             "get_indexers": self.__get_indexers,
             "get_download_dirs": self.__get_download_dirs,
             "find_hardlinks": self.__find_hardlinks,
-            "update_sites_cookie_ua": self.__update_sites_cookie_ua,
-            "update_site_cookie_ua": self.__update_site_cookie_ua,
-            "set_site_captcha_code": self.__set_site_captcha_code,
             "update_torrent_remove_task": self.__update_torrent_remove_task,
             "get_torrent_remove_task": self.__get_torrent_remove_task,
             "delete_torrent_remove_task": self.__delete_torrent_remove_task,
@@ -284,6 +275,8 @@ class WebAction:
         }
         # 用户绑定
         self._current_user = current_user
+        # 后台任务(用于将耗时操作放入后台执行)
+        self._background_tasks = background_tasks
         # 豆瓣实例
         self._douBan = DouBan()
 
@@ -298,33 +291,6 @@ class WebAction:
             return func(data)
         else:
             return func(**{})
-
-    def api_action(self, cmd, data=None):
-        """
-        执行API请求
-        """
-        result = self.action(cmd, data)
-        if not result:
-            return {
-                "code": -1,
-                "success": False,
-                "message": "服务异常，未获取到返回结果"
-            }
-        code = result.get("code", result.get("retcode", 0))
-        if not code or str(code) == "0":
-            success = True
-        else:
-            success = False
-        message = result.get("msg", result.get("retmsg", ""))
-        for key in ['code', 'retcode', 'msg', 'retmsg']:
-            if key in result:
-                result.pop(key)
-        return {
-            "code": code,
-            "success": success,
-            "message": message,
-            "data": result
-        }
 
     def set_config_value(self, cfg, cfg_key, cfg_value):
         """
@@ -444,33 +410,6 @@ class WebAction:
             ThreadHelper().start_thread(commands.get(sch_item), ())
         return {"retmsg": "服务已启动", "item": sch_item}
 
-    def __search(self, data):
-        """
-        WEB搜索资源
-        """
-        search_word = data.get("search_word")
-        ident_flag = False if data.get("unident") else True
-        filters = data.get("filters")
-        tmdbid = data.get("tmdbid")
-        media_type = data.get("media_type")
-
-        if media_type:
-            if media_type in Constants.MOVIE_TYPES:
-                media_type = MediaType.MOVIE
-            else:
-                media_type = MediaType.TV
-
-        if search_word:
-            ret, ret_msg = SearchProxy().search_torrents_from_web(content=search_word,
-                                                                  ident_flag=ident_flag,
-                                                                  filters=filters,
-                                                                  tmdbid=tmdbid,
-                                                                  media_type=media_type,
-                                                                  task_id=data.get("task_id"))
-            if ret != 0:
-                return {"code": ret, "msg": ret_msg}
-        return {"code": 0}
-
     def __download(self, data):
         """
         从WEB添加下载
@@ -514,7 +453,7 @@ class WebAction:
         dl_dir = data.get("dl_dir")
         dl_setting = data.get("dl_setting")
 
-        media = Media().get_media_info(title=title, subtitle=description)
+        media = MediaService().get_media_info(title=title, subtitle=description)
         media.site = data.get("site")
         media.enclosure = enclosure
         media.page_url = page_url
@@ -549,7 +488,7 @@ class WebAction:
                 continue
             file_name = file_item.get("upload", {}).get("filename")
             file_path = os.path.join(Config().get_temp_path(), file_name)
-            media_info = Media().get_media_info(title=file_name)
+            media_info = MediaService().get_media_info(title=file_name)
             if media_info:
                 media_info.site = "WEB"
             # 添加下载
@@ -580,7 +519,7 @@ class WebAction:
             retmsg = result.ret_msg
             if not file_path:
                 return {"code": -1, "msg": f"下载种子文件失败： {retmsg}"}
-            media_info = Media().get_media_info(title=os.path.basename(file_path))
+            media_info = MediaService().get_media_info(title=os.path.basename(file_path))
             if media_info:
                 media_info.site = "WEB"
             # 添加下载
@@ -658,7 +597,7 @@ class WebAction:
                     transinfo.SOURCE_PATH, transinfo.SOURCE_FILENAME)
                 dest_dir = transinfo.DEST
             else:
-                return {"retcode": -1, "retmsg": "未查询到转移日志记录"}
+                return {"code": -1, "msg": "未查询到转移日志记录"}
         else:
             unknown_id = data.get("unknown_id")
             if unknown_id:
@@ -667,13 +606,13 @@ class WebAction:
                     path = inknowninfo.PATH
                     dest_dir = inknowninfo.DEST
                 else:
-                    return {"retcode": -1, "retmsg": "未查询到未识别记录"}
-                
+                    return {"code": -1, "msg": "未查询到未识别记录"}
+
         if not dest_dir:
             dest_dir = ""
         if not path:
-            return {"retcode": -1, "retmsg": "输入路径有误"}
-        
+            return {"code": -1, "msg": "输入路径有误"}
+
         tmdbid = data.get("tmdb")
         mtype = data.get("type")
         season = data.get("season")
@@ -694,26 +633,24 @@ class WebAction:
         if os.path.splitext(path)[-1].lower() in Constants.RMT_MEDIAEXT and episode_format:
             path = os.path.dirname(path)
             need_fix_all = True
-        # 开始转移
-        succ_flag, ret_msg = self.__manual_transfer(inpath=path,
-                                                    syncmod=syncmod,
-                                                    outpath=dest_dir,
-                                                    media_type=media_type,
-                                                    episode_format=episode_format,
-                                                    episode_details=episode_details,
-                                                    episode_part=episode_part,
-                                                    episode_offset=episode_offset,
-                                                    need_fix_all=need_fix_all,
-                                                    min_filesize=min_filesize,
-                                                    tmdbid=tmdbid,
-                                                    season=season)
-        if succ_flag:
-            if not need_fix_all and not logid:
-                # 更新记录状态
-                FileTransfer().update_transfer_unknown_state(path)
-            return {"retcode": 0, "retmsg": "转移成功"}
-        else:
-            return {"retcode": 2, "retmsg": ret_msg}
+        # 创建后台任务，转移时通过SSE刷新进度
+        task_id = TaskStore().create_task()
+        self._add_background_task(self.__transfer_job,
+                                  task_id=task_id,
+                                  inpath=path,
+                                  syncmod=syncmod,
+                                  outpath=dest_dir,
+                                  media_type=media_type,
+                                  episode_format=episode_format,
+                                  episode_details=episode_details,
+                                  episode_part=episode_part,
+                                  episode_offset=episode_offset,
+                                  need_fix_all=need_fix_all,
+                                  update_unknown_state=True if (not need_fix_all and not logid) else False,
+                                  min_filesize=min_filesize,
+                                  tmdbid=tmdbid,
+                                  season=season)
+        return {"code": 0, "task_id": task_id}
 
     def __rename_udf(self, data):
         """
@@ -721,8 +658,8 @@ class WebAction:
         """
         inpath = data.get("inpath")
         if not os.path.exists(inpath):
-            return {"retcode": -1, "retmsg": f"输入路径{inpath}不存在"}
-        
+            return {"code": -1, "msg": f"输入路径{inpath}不存在"}
+
         outpath = data.get("outpath")
         syncmod = ModuleConf.RMT_MODES.get(data.get("syncmod"))
         tmdbid = data.get("tmdb")
@@ -740,24 +677,24 @@ class WebAction:
         else:
             media_type = MediaType.ANIME
 
-        # 开始转移
-        succ_flag, ret_msg = self.__manual_transfer(inpath=inpath,
-                                                    syncmod=syncmod,
-                                                    outpath=outpath,
-                                                    media_type=media_type,
-                                                    episode_format=episode_format,
-                                                    episode_details=episode_details,
-                                                    episode_part=episode_part,
-                                                    episode_offset=episode_offset,
-                                                    min_filesize=min_filesize,
-                                                    tmdbid=tmdbid,
-                                                    season=season)
-        if succ_flag:
-            return {"retcode": 0, "retmsg": "转移成功"}
-        else:
-            return {"retcode": 2, "retmsg": ret_msg}
+        # 创建后台任务，转移时通过SSE刷新进度
+        task_id = TaskStore().create_task()
+        self._add_background_task(self.__transfer_job,
+                                  task_id=task_id,
+                                  inpath=inpath,
+                                  syncmod=syncmod,
+                                  outpath=outpath,
+                                  media_type=media_type,
+                                  episode_format=episode_format,
+                                  episode_details=episode_details,
+                                  episode_part=episode_part,
+                                  episode_offset=episode_offset,
+                                  min_filesize=min_filesize,
+                                  tmdbid=tmdbid,
+                                  season=season)
+        return {"code": 0, "task_id": task_id}
 
-    def __manual_transfer(self, 
+    def __manual_transfer(self,
                           inpath,
                           syncmod,
                           outpath=None,
@@ -769,7 +706,8 @@ class WebAction:
                           min_filesize=None,
                           tmdbid=None,
                           season=None,
-                          need_fix_all=False):
+                          need_fix_all=False,
+                          task_id=None):
         """
         开始手工转移文件
         """
@@ -783,7 +721,7 @@ class WebAction:
         
         if tmdbid:
             # 有输入TMDBID
-            tmdb_info = Media().get_tmdb_info(mtype=media_type, tmdbid=tmdbid)
+            tmdb_info = MediaService().get_tmdb_info(mtype=media_type, tmdbid=tmdbid)
             if not tmdb_info:
                 return False, "识别失败, 无法查询到TMDB信息"
             
@@ -798,7 +736,8 @@ class WebAction:
                                                                episode=episode_conf,
                                                                min_filesize=min_filesize,
                                                                udf_flag=True,
-                                                               is_dir_specified=is_dir_specified)
+                                                               is_dir_specified=is_dir_specified,
+                                                               task_id=task_id)
         else:
             # 按识别的信息转移
             succ_flag, ret_msg = FileTransfer().transfer_media(in_from=SyncType.MAN,
@@ -809,8 +748,71 @@ class WebAction:
                                                                episode=episode_conf,
                                                                min_filesize=min_filesize,
                                                                udf_flag=True,
-                                                               is_dir_specified=is_dir_specified)
+                                                               is_dir_specified=is_dir_specified,
+                                                               task_id=task_id)
         return succ_flag, ret_msg
+
+    def _add_background_task(self, func, **kwargs):
+        """
+        添加后台任务，优先使用FastAPI BackgroundTasks，否则使用线程执行
+        """
+        if self._background_tasks is not None:
+            self._background_tasks.add_task(func, **kwargs)
+        else:
+            ThreadHelper().start_thread(lambda: func(**kwargs), ())
+
+    def __transfer_job(self,
+                       task_id,
+                       inpath,
+                       syncmod,
+                       outpath,
+                       media_type,
+                       episode_format=None,
+                       episode_details=None,
+                       episode_part=None,
+                       episode_offset=None,
+                       min_filesize=None,
+                       tmdbid=None,
+                       season=None,
+                       need_fix_all=False,
+                       update_unknown_state=False):
+        """
+        后台执行手工转移，并通过TaskStore刷新任务进度(由/sse-progress消费)
+        """
+        try:
+            TaskStore().update_task(task_id=task_id,
+                                            progress=0,
+                                            message="开始转移...")
+            # 开始转移
+            succ_flag, ret_msg = self.__manual_transfer(inpath=inpath,
+                                                        syncmod=syncmod,
+                                                        outpath=outpath,
+                                                        media_type=media_type,
+                                                        episode_format=episode_format,
+                                                        episode_details=episode_details,
+                                                        episode_part=episode_part,
+                                                        episode_offset=episode_offset,
+                                                        min_filesize=min_filesize,
+                                                        tmdbid=tmdbid,
+                                                        season=season,
+                                                        need_fix_all=need_fix_all,
+                                                        task_id=task_id)
+            if succ_flag:
+                # 更新记录状态
+                if update_unknown_state:
+                    FileTransfer().update_transfer_unknown_state(inpath)
+                TaskStore().finish_task(task_id=task_id,
+                                                message="转移成功",
+                                                result={"code": 0, "msg": "转移成功"})
+            else:
+                TaskStore().finish_task(task_id=task_id,
+                                                message=f"转移失败：{ret_msg}",
+                                                result={"code": 2, "msg": ret_msg})
+        except Exception as e:
+            log.exception("手工转移任务执行出错, task_id=%s", task_id)
+            TaskStore().finish_task(task_id=task_id,
+                                            message=f"转移失败：{str(e)}",
+                                            result={"code": 2, "msg": str(e)})
 
     def __delete_history(self, data):
         """
@@ -1321,7 +1323,7 @@ class WebAction:
 
         # 先取订阅信息
         _subcribe = Subscribe()
-        _media = Media()
+        _media = MediaService()
         rssid_ok = False
         if rssid:
             rssid = str(rssid)
@@ -1506,7 +1508,7 @@ class WebAction:
                         }
         else:
             if tid:
-                tmdb_info = Media().get_tmdb_info(mtype=MediaType.MOVIE, tmdbid=tid)
+                tmdb_info = MediaService().get_tmdb_info(mtype=MediaType.MOVIE, tmdbid=tid)
             else:
                 return {"code": 1, "retmsg": "没有TMDBID信息"}
             if not tmdb_info:
@@ -1566,7 +1568,7 @@ class WebAction:
                 }
         else:
             if tid:
-                tmdb_info = Media().get_tmdb_tv_season_detail(tmdbid=tid, season=season)
+                tmdb_info = MediaService().get_tmdb_tv_season_detail(tmdbid=tid, season=season)
             else:
                 return {"code": 1, "retmsg": "没有TMDBID信息"}
             if not tmdb_info:
@@ -1574,7 +1576,7 @@ class WebAction:
             episode_events = []
             air_date = tmdb_info.get("air_date")
             if not tmdb_info.get("poster_path"):
-                tv_tmdb_info = Media().get_tmdb_info(mtype=MediaType.TV, tmdbid=tid)
+                tv_tmdb_info = MediaService().get_tmdb_info(mtype=MediaType.TV, tmdbid=tid)
                 if tv_tmdb_info:
                     poster_path = Config().get_tmdbimage_url(tv_tmdb_info.get('poster_path'))
                 else:
@@ -1745,14 +1747,17 @@ class WebAction:
         """
         try:
             state = data.get("state")
-            task_ids = data.get("ids")
+            if state is None:
+                return {"code": 1, "msg": "缺少目标状态值"}
+
             _brushtask = BrushTask()
-            if state is not None:
-                if task_ids:
-                    for tid in task_ids:
-                        _brushtask.update_brushtask_state(state=state, brushtask_id=tid)
-                else:
-                    _brushtask.update_brushtask_state(state=state)
+            task_ids = data.get("ids")
+            if task_ids:
+                for tid in task_ids:
+                    _brushtask.update_brushtask_state(state=state, brushtask_id=tid)
+            else:
+                _brushtask.update_brushtask_state(state=state)
+                
             return {"code": 0, "msg": ""}
         except Exception as e:
             log.exception("[act]刷流任务设置失败:")
@@ -1766,7 +1771,7 @@ class WebAction:
         subtitle = data.get("subtitle")
         if not name:
             return {"code": -1}
-        media_info = Media().get_media_info(title=name, subtitle=subtitle)
+        media_info = MediaService().get_media_info(title=name, subtitle=subtitle)
         if not media_info:
             return {"code": 0, "data": {"name": "无法识别"}}
         return {"code": 0, "data": MediaUtils.mediainfo_dict(media_info)}
@@ -1959,18 +1964,18 @@ class WebAction:
         elif Type == "TRENDING":
             # TMDB流行趋势
             if SubType == "trendingmv":
-                res_list = Media().get_tmdb_trending_movie_week(page=CurrentPage)
+                res_list = MediaService().get_tmdb_trending_movie_week(page=CurrentPage)
             elif SubType == "trendingtv":
-                res_list = Media().get_tmdb_trending_tv_week(page=CurrentPage)
+                res_list = MediaService().get_tmdb_trending_tv_week(page=CurrentPage)
             else:
-                res_list = Media().get_tmdb_trending_all_week(page=CurrentPage)
+                res_list = MediaService().get_tmdb_trending_all_week(page=CurrentPage)
         elif Type == "DISCOVER":
             # TMDB发现
             mtype = MediaType.MOVIE if SubType in Constants.MOVIE_TYPES else MediaType.TV
             # 过滤参数 with_genres with_original_language
             params = data.get("params") or {}
 
-            res_list = Media().get_tmdb_discover(mtype=mtype, page=CurrentPage, params=params)
+            res_list = MediaService().get_tmdb_discover(mtype=mtype, page=CurrentPage, params=params)
         elif Type == "DOUBANTAG":
             # 豆瓣发现
             mtype = MediaType.MOVIE if SubType in Constants.MOVIE_TYPES else MediaType.TV
@@ -2028,19 +2033,19 @@ class WebAction:
         
         if SubType == "hm":
             # TMDB热门电影
-            return Media().get_tmdb_hot_movies(CurrentPage)
+            return MediaService().get_tmdb_hot_movies(CurrentPage)
         
         if SubType == "ht":
             # TMDB热门电视剧
-            return Media().get_tmdb_hot_tvs(CurrentPage)
+            return MediaService().get_tmdb_hot_tvs(CurrentPage)
         
         if SubType == "nm":
             # TMDB最新电影
-            return Media().get_tmdb_new_movies(CurrentPage)
+            return MediaService().get_tmdb_new_movies(CurrentPage)
         
         if SubType == "nt":
             # TMDB最新电视剧
-            return Media().get_tmdb_new_tvs(CurrentPage)
+            return MediaService().get_tmdb_new_tvs(CurrentPage)
         
         if SubType == "dbom":
                 # 豆瓣正在上映
@@ -2190,16 +2195,6 @@ class WebAction:
             site_hr = True
         return {"code": 0, "site_free": site_free, "site_2xfree": site_2xfree, "site_hr": site_hr}
        
-    def __refresh_process(self, data):
-        """
-        刷新进度条
-        """
-        detail = ProgressHelper().get_process(data.get("type"))
-        if detail:
-            return {"code": 0, "value": detail.get("value"), "text": detail.get("text")}
-        else:
-            return {"code": 1, "value": 0, "text": "正在处理..."}
-
     def __restory_backup(self, data):
         """
         解压恢复备份文件
@@ -2227,8 +2222,25 @@ class WebAction:
         """
         librarys = data.get("librarys") or []
         SystemConfig().set(key=SystemConfigKey.SyncLibrary, value=librarys)
-        ThreadHelper().start_thread(MediaServer().sync_mediaserver, ())
-        return {"code": 0}
+        # 创建后台任务，同步时通过SSE刷新进度
+        task_id = TaskStore().create_task()
+        self._add_background_task(self.__mediasync_job, task_id=task_id)
+        return {"code": 0, "task_id": task_id}
+
+    def __mediasync_job(self, task_id):
+        """
+        后台执行媒体库同步，并通过TaskStore刷新任务进度(由/sse-progress消费)
+        """
+        try:
+            MediaServer().sync_mediaserver(task_id=task_id)
+            TaskStore().finish_task(task_id=task_id,
+                                            message="媒体库同步完成",
+                                            result={"code": 0, "msg": "媒体库同步完成"})
+        except Exception as e:
+            log.exception("媒体库同步任务执行出错, task_id=%s", task_id)
+            TaskStore().finish_task(task_id=task_id,
+                                            message=f"媒体库同步失败：{str(e)}",
+                                            result={"code": 1, "msg": str(e)})
 
     def __mediasync_state(self):
         """
@@ -2254,7 +2266,7 @@ class WebAction:
         else:
             title_season = None
         
-        _media = Media()
+        _media = MediaService()
         if not str(tmdbid).isdigit():
             media_info = _media.get_mediainfo_from_id(mediaid=tmdbid, mtype=MediaType.TV)
             season_infos = _media.get_tmdb_tv_seasons(media_info.tmdb_info)
@@ -2479,7 +2491,7 @@ class WebAction:
             tmdb_id = data.get("tmdb_id")
             tmdb_type = data.get("tmdb_type")
             _wordshelper = WordsHelper()
-            _media = Media()
+            _media = MediaService()
             if tmdb_type == "tv":
                 if not _wordshelper.is_custom_word_group_existed(tmdbid=tmdb_id, gtype=2):
                     tmdb_info = _media.get_tmdb_info(mtype=MediaType.TV, tmdbid=tmdb_id)
@@ -3098,11 +3110,11 @@ class WebAction:
         """
         path = data.get("path")
         name = data.get("name")
-        media = Media().get_media_info(title=name)
+        media = MediaService().get_media_info(title=name)
         if not media or not media.tmdb_info:
             return {"code": -1, "msg": f"{name} 无法从TMDB查询到媒体信息"}
         if not media.imdb_id:
-            media.set_tmdb_info(Media().get_tmdb_info(mtype=media.type,
+            media.set_tmdb_info(MediaService().get_tmdb_info(mtype=media.type,
                                                       tmdbid=media.tmdb_id))
         # 触发字幕下载事件
         EventManager().send_event(EventType.SubtitleDownload, {
@@ -3164,7 +3176,7 @@ class WebAction:
         """
         更新消息设置
         """
-        _message = Message()
+        _message = MessageService()
         name = data.get("name")
         cid = data.get("cid")
         ctype = data.get("type")
@@ -3188,7 +3200,7 @@ class WebAction:
         """
         删除消息设置
         """
-        if Message().delete_message_client(cid=data.get("cid")):
+        if MessageService().delete_message_client(cid=data.get("cid")):
             return {"code": 0}
         else:
             return {"code": 1}
@@ -3201,7 +3213,7 @@ class WebAction:
         cid = data.get("cid")
         ctype = data.get("type")
         checked = data.get("checked")
-        _message = Message()
+        _message = MessageService()
         if flag == "interactive":
             # TG/WX只能开启一个交互
             if checked:
@@ -3221,7 +3233,7 @@ class WebAction:
         获取消息设置
         """
         cid = data.get("cid")
-        return {"code": 0, "detail": Message().get_message_client_info(cid=cid)}
+        return {"code": 0, "detail": MessageService().get_message_client_info(cid=cid)}
 
     def __test_message_client(self, data):
         """
@@ -3229,7 +3241,7 @@ class WebAction:
         """
         ctype = data.get("type")
         config = json.loads(data.get("config"))
-        res = Message().get_status(ctype=ctype, config=config)
+        res = MessageService().get_status(ctype=ctype, config=config)
         if res:
             return {"code": 0}
         else:
@@ -3274,48 +3286,6 @@ class WebAction:
                 log.exception("[act]硬链接查找 异常:")
                 return {"code": 1}
         return {"code": 0, "data": hardlinks}
-
-    def __update_sites_cookie_ua(self, data):
-        """
-        更新所有站点的Cookie和UA
-        """
-        siteid = data.get("siteid")
-        username = data.get("username")
-        password = data.get("password")
-        twostepcode = data.get("two_step_code")
-        ocrflag = data.get("ocrflag")
-        # 保存设置
-        SystemConfig().set(key=SystemConfigKey.CookieUserInfo,
-                           value={
-                               "username": username,
-                               "password": password,
-                               "two_step_code": twostepcode
-                           })
-        retcode, messages = CookieManager().update_sites_cookie_ua(siteid=siteid,
-                                                                username=username,
-                                                                password=password,
-                                                                twostepcode=twostepcode,
-                                                                ocrflag=ocrflag)
-        return {"code": retcode, "messages": messages}
-
-    def __update_site_cookie_ua(self, data):
-        """
-        更新单个站点的Cookie和UA
-        """
-        siteid = data.get("site_id")
-        cookie = data.get("site_cookie")
-        ua = data.get("site_ua")
-        SitesManager().update_site_cookie(siteid=siteid, cookie=cookie, ua=ua)
-        return {"code": 0, "messages": "请求发送成功"}
-
-    def __set_site_captcha_code(self, data):
-        """
-        设置站点验证码
-        """
-        code = data.get("code")
-        value = data.get("value")
-        CookieManager().set_code(code=code, value=value)
-        return {"code": 0}
 
     def __update_torrent_remove_task(self, data):
         """
@@ -3448,7 +3418,7 @@ class WebAction:
         message_clients = data.get("message_clients")
         if not message_clients:
             return {"code": 1, "msg": "未选择消息服务"}
-        Message().send_custom_message(clients=message_clients, title=title, text=text, image=image)
+        MessageService().send_custom_message(clients=message_clients, title=title, text=text, image=image)
         return {"code": 0}
 
     def __get_media_detail(self, data):
@@ -3461,7 +3431,7 @@ class WebAction:
             return {"code": 1, "msg": "未指定媒体ID"}
 
         mtype = MediaType.MOVIE if data.get("type") in Constants.MOVIE_TYPES else MediaType.TV
-        media_info = Media().get_mediainfo_from_id(mediaid=tmdbid, mtype=mtype)
+        media_info = MediaService().get_mediainfo_from_id(mediaid=tmdbid, mtype=mtype)
         # 检查TMDB信息
         if not media_info or not media_info.tmdb_info:
             return {
@@ -3474,7 +3444,7 @@ class WebAction:
                                                           title=media_info.title,
                                                           year=media_info.year,
                                                           mediaid=media_info.tmdb_id)
-        media_handler = Media()
+        media_handler = MediaService()
         # 演职人员信息整合
         crews = self.__get_crews_from_media_info(media_info, media_handler, mtype)
         # 解析季信息
@@ -3529,14 +3499,14 @@ class WebAction:
                     overview = douban_info.get('intro')
                     genres = douban_info.get('genres')
                     year = douban_info.get('year')
-                    vote = douban_info.get('rating', {}).get('value'),
+                    vote = douban_info.get('rating', {}).get('value')
                     image = douban_info.get('cover_url')
                     duration = douban_info.get('durations')
                     duration_str = duration[0] if duration else ''
                 else:
                     overview = douban_info.get('summary')
                     image = douban_info.get('image')
-                    vote = douban_info.get('rating', {}).get('average'),
+                    vote = douban_info.get('rating', {}).get('average')
                     # 从attrs获取
                     info_attr = douban_info.get('attrs')
                     genres = info_attr.get('movie_type')
@@ -3568,7 +3538,7 @@ class WebAction:
                     }
                 }
 
-        media_handler = Media()
+        media_handler = MediaService()
 
         if str(tmdbid).startswith("BG:"):
 
@@ -3628,12 +3598,12 @@ class WebAction:
             return {"code": 1, "msg": "未指定媒体ID"}
         
         mtype = MediaType.MOVIE if data.get("type") in Constants.MOVIE_TYPES else MediaType.TV
-        media_info = Media().get_mediainfo_from_id(mediaid=mediaid, mtype=mtype)
+        media_info = MediaService().get_mediainfo_from_id(mediaid=mediaid, mtype=mtype)
 
         if not media_info: 
             return {"code": 1, "msg": "媒体信息查询失败"}
 
-        media_handler = Media()
+        media_handler = MediaService()
         # 演职人员信息整合
         crews = self.__get_crews_from_media_info(media_info, media_handler, mtype)
         # 解析季信息
@@ -3650,7 +3620,7 @@ class WebAction:
             }
         }
 
-    def __get_crews_from_media_info(self, media_info:MetaInfo, media_handler:Media, mtype:MediaType):
+    def __get_crews_from_media_info(self, media_info:MetaInfo, media_handler:MediaService, mtype:MediaType):
         """
         从媒体信息获取演职人员集合
         :return: 演职人员集合
@@ -3670,7 +3640,7 @@ class WebAction:
         crews.extend(actors)
         return crews
     
-    def __resolve_season_info(self, media_info:MetaInfo, media_handler:Media, mtype:MediaType):
+    def __resolve_season_info(self, media_info:MetaInfo, media_handler:MediaService, mtype:MediaType):
 
         if mtype == MediaType.MOVIE:
             return []
@@ -3727,9 +3697,9 @@ class WebAction:
         if not tmdbid:
             return {"code": 1, "msg": "未指定TMDBID"}
         if mtype == MediaType.MOVIE:
-            result = Media().get_movie_similar(tmdbid=tmdbid, page=page)
+            result = MediaService().get_movie_similar(tmdbid=tmdbid, page=page)
         else:
-            result = Media().get_tv_similar(tmdbid=tmdbid, page=page)
+            result = MediaService().get_tv_similar(tmdbid=tmdbid, page=page)
         return {"code": 0, "data": result}
 
     def __media_recommendations(self, data):
@@ -3743,9 +3713,9 @@ class WebAction:
         if not tmdbid:
             return {"code": 1, "msg": "未指定TMDBID"}
         if mtype == MediaType.MOVIE:
-            result = Media().get_movie_recommendations(tmdbid=tmdbid, page=page)
+            result = MediaService().get_movie_recommendations(tmdbid=tmdbid, page=page)
         else:
-            result = Media().get_tv_recommendations(tmdbid=tmdbid, page=page)
+            result = MediaService().get_tv_recommendations(tmdbid=tmdbid, page=page)
         return {"code": 0, "data": result}
 
     def __media_person(self, data):
@@ -3758,9 +3728,9 @@ class WebAction:
             return {"code": 1, "msg": "未指定TMDBID或关键字"}
         if tmdbid:
             mtype = MediaType.MOVIE if data.get("type") in Constants.MOVIE_TYPES else MediaType.TV
-            result = Media().get_tmdb_cats(tmdbid=tmdbid, mtype=mtype)
+            result = MediaService().get_tmdb_cats(tmdbid=tmdbid, mtype=mtype)
         else:
-            result = Media().search_tmdb_person(name=keyword)
+            result = MediaService().search_tmdb_person(name=keyword)
         return {"code": 0, "data": result}
 
     def __person_medias(self, data):
@@ -3777,7 +3747,7 @@ class WebAction:
         if not personid:
             return {"code": 1, "msg": "未指定演员ID"}
 
-        person_medias = Media().get_person_medias(personid=personid, mtype=mtype, page=page)
+        person_medias = MediaService().get_person_medias(personid=personid, mtype=mtype, page=page)
         return {"code": 0, "data": person_medias}
 
     def __run_directory_sync(self, data):
@@ -3810,7 +3780,7 @@ class WebAction:
         if not tmdbid:
             return {"code": 1, "msg": "TMDBID为空"}
         
-        episodes = Media().get_tmdb_season_episodes(tmdbid=tmdbid, season=season)
+        episodes = MediaService().get_tmdb_season_episodes(tmdbid=tmdbid, season=season)
         MediaServerHandler = MediaServer()
         for episode in episodes:
             episode.update({
@@ -3937,8 +3907,10 @@ class WebAction:
         }
 
     def __add_indexer(self, data):
-        IndexerManager().add_indexer(data)
-        return {"code": 0, "msg": "已插入"}
+        ret, msg = IndexerManager().add_indexer(data)
+        if ret:
+            return {"code": 0, "msg": msg}
+        return {"code": 1, "msg": msg}
 
     def __update_indexer(self, data):
         success = IndexerManager().update_indexer(data)

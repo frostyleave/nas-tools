@@ -8,7 +8,7 @@ import log
 
 from app.conf import SystemConfig, ModuleConf
 from app.helper import FfmpegHelper
-from app.media import Media
+from app.media import MediaService
 from app.media.douban import DouBan
 from app.media.meta import MetaInfo
 from app.utils.commons import retry
@@ -45,7 +45,7 @@ class Scraper:
         :param mode: 刮削模式，可选值：force_nfo, force_all
         :return:
         """
-        media_resolver = Media()
+        media_resolver = MediaService()
         # 模式
         force_nfo = True if mode in ["force_nfo", "force_all"] else False
         force_pic = True if mode in ["force_all"] else False
@@ -178,7 +178,7 @@ class Scraper:
             xoutline.appendChild(doc.createCDATASection(tmdbinfo.get("overview") or ""))
         if scraper_nfo.get("credits"):
             # 导演
-            directors, actors = Media.get_tmdb_directors_actors(tmdbinfo=tmdbinfo)
+            directors, actors = MediaService.get_tmdb_directors_actors(tmdbinfo=tmdbinfo)
             if scraper_nfo.get("credits_chinese"):
                 directors, actors = self.__gen_people_chinese_info(directors, actors, doubaninfo)
             for director in directors:
@@ -469,7 +469,7 @@ class Scraper:
         self._rmt_mode = rmt_mode
 
         douban = DouBan()
-        media_resolver = Media()
+        media_resolver = MediaService()
         try:
             # 电影
             if media.type == MediaType.MOVIE:
@@ -714,7 +714,7 @@ class Scraper:
         """
         名字加又名构成匹配列表
         """
-        people_aka_names = Media().get_tmdbperson_aka_names(people.get("id")) or []
+        people_aka_names = MediaService().get_tmdbperson_aka_names(people.get("id")) or []
         people_aka_names.append(people.get("name"))
         for people_aka_name in people_aka_names:
             for people_douban in peoples_douban:

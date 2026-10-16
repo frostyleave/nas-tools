@@ -36,9 +36,9 @@
 </div>
 <div class="page-body" id="sites-container" style="display: none;">
   <div class="container-xl">
-    <div class="d-grid gap-2 grid-info-card" id="active-list">
+    <div class="d-grid gap-3 grid-info-card" id="active-list">
     </div>
-    <div class="d-grid gap-2 grid-info-card mt-2" id="sites-list">
+    <div class="d-grid gap-3 grid-info-card mt-2" id="sites-list">
     </div>
   </div>
 </div>
@@ -168,6 +168,7 @@
               <label class="form-label required">开启浏览器仿真 <span class="form-help"
                   title="开启后站点签到、数据统计可以兼容更多站点，但获取数据耗时会大幅增加；需要拉取含浏览器内核的镜像才能使用" data-bs-toggle="tooltip">?</span></label>
               <select class="form-select" id="site_chrome">
+                <option value="Y">是</option>
                 <option value="N" selected>否</option>
               </select>
             </div>
@@ -267,8 +268,8 @@
         </details>
       </div>
       <div class="modal-footer">
-        <button id="site_close_btn" class="btn btn-link">
-          关闭
+        <button id="site_del_btn" class="btn btn-link text-danger">
+          删除
         </button>
         <button id="add_or_edit_site_btn" class="btn btn-primary ms-auto">
           新增
@@ -310,93 +311,6 @@
     </div>
   </div>
 </div>
-<div class="modal modal-blur fade" id="modal-update-site-cookie" tabindex="-1" role="dialog" aria-hidden="true"
-  data-bs-backdrop="static" data-bs-keyboard="false">
-  <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title" id="cookieua_modal_title">更新站点</h5>
-        <input type="hidden" id="cookieua_siteid">
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-      </div>
-      <div class="modal-body">
-        <div class="row">
-          <div class="col-lg">
-            <div class="mb-3">
-              <label class="form-label required">用户名</label>
-              <input type="text" value="" id="cookieua_username" class="form-control" placeholder="站点登录用户名">
-            </div>
-          </div>
-          <div class="col-lg">
-            <div class="mb-3">
-              <label class="form-label required">密码</label>
-              <input type="password" value="" id="cookieua_password" autocomplete="off" class="form-control" placeholder="登录密码" data-bwignore="true">
-            </div>
-          </div>
-          <div class="col-lg">
-            <div class="mb-3">
-              <label class="form-label">两步验证</label>
-              <input type="text" value="" id="cookieua_two_step_code" class="form-control" placeholder="如有设置必须填写">
-            </div>
-          </div>
-        </div>
-        <div class="row">
-          <div class="col-xl-4">
-            <div class="mb-3">
-              <label class="form-check form-switch">
-                <input class="form-check-input" type="checkbox" id="cookieua_ocrflag">
-                <span class="form-check-label">自动识别验证码 <span class="form-help" title="开启时将自动识别验证码并填入，关闭时将显示验证码图片并要求手动填入"
-                    data-bs-toggle="tooltip">?</span></span>
-              </label>
-            </div>
-          </div>
-        </div>
-      </div>
-      <div class="progress progress-sm rounded-0" id="sitecookie_process_bar_div">
-        <div class="progress-bar progress-bar-animated progress-bar-indeterminate" id="sitecookie_process_bar"
-          style="width: 0" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">
-        </div>
-      </div>
-      <div class="modal-body" id="cookieua_result_div" style="display: none">
-        <div class="row">
-          <div class="alert" id="cookieua_result" role="alert">
-          </div>
-        </div>
-      </div>
-      <div class="modal-footer">
-        <button class="btn btn-link link-secondary me-auto" data-bs-dismiss="modal">
-          取消
-        </button>
-        <button onclick="update_site_cookie_ua()" id="sitecookie_action_btn" class="btn btn-primary">开始更新</button>
-      </div>
-    </div>
-  </div>
-</div>
-<div class="modal modal-blur fade" id="modal-captcha-code" tabindex="-1" role="dialog" aria-hidden="true"
-  data-bs-backdrop="static" data-bs-keyboard="false">
-  <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
-    <div class="modal-content">
-      <div class="modal-body">
-        <div class="row">
-          <label class="form-label required">请在 30秒 内输入验证码</label>
-          <div class="row mb-3">
-            <div class="col-auto">
-              <input type="hidden" id="captcha_key" value="">
-              <img id="captcha_code_img" src="" alt="">
-            </div>
-            <div class="col">
-              <input class="form-control" id="captcha_code" placeholder="">
-            </div>
-          </div>
-        </div>
-      </div>
-      <div class="modal-footer">
-        <a href="javascript:submit_captcha_code()" class="btn btn-primary">提交</a>
-      </div>
-    </div>
-  </div>
-</div>
-
 <div class="modal modal-blur fade" id="modal-bt-sites" tabindex="-1" role="dialog" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
   <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable" role="document">
     <div class="modal-content">
@@ -426,6 +340,23 @@
 
 <script type="text/javascript">
 
+  function ask_refresh_statistics(site_name) {
+
+    var tips = '是否立即刷新【'+ site_name +'】站点数据?';
+    show_ask_modal(tips, function () {
+      axios_post_do("refresh_pt_statistics", {'site':site_name}, function (ret) {
+        if (ret.code === 0) {
+          show_success_modal(ret.msg);
+        } else {
+          show_fail_modal(`任务提交失败：${ret.msg}!`);
+        }
+      });
+
+    });
+
+  }
+
+
   //打开新增站点框
   function show_site_modal() {
     $("#site_id").val('');
@@ -446,7 +377,7 @@
     $("#sitelimit_interval").val('');
     $("#sitelimit_count").val('');
     $("#sitelimit_seconds").val('');
-    $("#site_close_btn").text("关闭");
+    $("#site_del_btn").hide();  // 隐藏删除按钮
     $("#modal-site-title").text("新增站点");
     $("#add_or_edit_site_btn").text("新增");
     $("#modal-site").modal("show");
@@ -455,7 +386,7 @@
   //编辑站点
   function edit_site(tid) {
     $("#site_id").val(tid);
-    $("#site_close_btn").text("删除");
+    $("#site_del_btn").show();  // 显示删除按钮
     //根据ID查询详细信息
     axios_post_do("get_site", { "id": tid }, function (ret) {
       if (ret.site) {
@@ -658,17 +589,16 @@
     add_or_edit_site();
   });
 
-  $("#site_close_btn").unbind("click").click(function () {
-    close_or_del();
-  });
+  $("#site_del_btn").unbind("click").click(function () {
 
-  //删除站点
-  function remove_site(name, siteid) {
-    show_ask_modal("是否确认删除站点 " + name + "？", function () {
-      hide_ask_modal();
-      del_site(siteid);
+    var site_name = $("#site_name").val();
+    var site_id = $("#site_id").val();
+
+    show_ask_modal("是否确认删除站点 " + site_name + "？", function () {
+      del_site(site_id);
     });
-  }
+
+  });
 
   //显示测试站点
   function show_sitetest_modal() {
@@ -767,153 +697,6 @@
     });
   }
 
-  // 显示更新站点Cookie和UA对话框
-  function show_site_cookie_ua_modal(siteid, sitename) {
-    $("#cookieua_siteid").val(siteid);
-    $("#cookieua_modal_title").text("更新站点Cookie - " + sitename);
-    $("#cookieua_result_div").hide();
-    $("#sitecookie_process_bar").attr("style", "width: 0").attr("aria-valuenow", 0);
-    $("#sitecookie_process_bar_div").hide();
-    $("#modal-update-site-cookie").modal("show");
-  }
-
-  // 当前正在处理的站点
-  var refresh_sitecookie_current = "";
-
-  // 更新站点Cookie和UA
-  function update_site_cookie_ua() {
-    $("#cookieua_result_div").hide();
-    $("#sitecookie_process_bar").attr("style", "width: 0").attr("aria-valuenow", 0);
-    let siteid = $("#cookieua_siteid").val();
-    let username = $("#cookieua_username").val();
-    if (!username) {
-      $("#cookieua_username").addClass("is-invalid");
-      return;
-    } else {
-      $("#cookieua_username").removeClass("is-invalid");
-    }
-    let password = $("#cookieua_password").val();
-    if (!password) {
-      $("#cookieua_password").addClass("is-invalid");
-      return;
-    } else {
-      $("#cookieua_password").removeClass("is-invalid");
-    }
-
-    $("#sitecookie_action_btn").text("正在更新...").attr("disabled", true);
-
-    let req_data = {
-      siteid: siteid,
-      username: username,
-      password: password,
-      ocrflag: $("#cookieua_ocrflag").prop("checked"),
-      two_step_code: $("#cookieua_two_step_code").val()
-    }
-
-    // 发送更新请求
-    axios_post_do("update_sites_cookie_ua", req_data, function (ret) {
-      $("#sitecookie_process_bar").attr("style", "width: 100%").attr("aria-valuenow", 100);
-      $("#sitecookie_action_btn").attr("disabled", false).text("开始更新");
-      if (ret.code === 0) {
-        $("#cookieua_result").removeClass().addClass("alert alert-success").text(ret.messages);
-      } else {
-        $("#cookieua_result").removeClass().addClass("alert alert-warning").text(ret.messages);
-      }
-      $("#cookieua_result_div").show();
-      refresh_sitecookie_current = "";
-    }, false);
-    // 刷新进度
-    refresh_sitecookie_current = siteid;
-    refresh_sitecookie_process(siteid);
-  }
-
-  // 刷新站点更新进度，显示验证码
-  function refresh_sitecookie_process(siteid) {
-    if (siteid !== refresh_sitecookie_current) {
-      return;
-    }
-    $("#sitecookie_process_bar_div").show();
-    // 刷新进度
-    setTimeout(start_sitecookie_process, 2000, siteid);
-  }
-
-  // 开始刷新进度条
-  var SiteCookieProgressEs;
-  function start_sitecookie_process(siteid) {
-    stop_sitecookie_progress();
-    SiteCookieProgressEs = new EventSource(`stream-progress?type=sitecookie`);
-    SiteCookieProgressEs.onmessage = function (event) {
-      let ret = JSON.parse(event.data);
-      if (ret.code === 0 && ret.value <= 100) {
-        // 更新进度条
-        $("#sitecookie_process_bar").attr("style", "width: " + ret.value + "%").attr("aria-valuenow", ret.value);
-        // 判断是否要输入验证码
-        if (ret.text.startsWith("data:image")) {
-          let code_img = ret.text.split("|")[0]
-          let code_key = ret.text.split("|")[1]
-          show_captcha_code_modal(code_img, code_key, siteid);
-        }
-      }
-      if ($("#modal-update-site-cookie").is(":hidden")) {
-        stop_sitecookie_progress();
-      }
-    };
-  }
-
-  // 停止刷新进度条
-  function stop_sitecookie_progress() {
-    if (SiteCookieProgressEs) {
-      SiteCookieProgressEs.close();
-      SiteCookieProgressEs = undefined;
-    }
-  }
-
-  // 超时隐藏验证码对话框并恢复更新进度
-  function sitecookie_captcha_timeout(siteid) {
-    $("#modal-captcha-code").modal("hide");
-    if (siteid !== refresh_sitecookie_current) {
-      return;
-    }
-    // 恢复刷新
-    $("#modal-update-site-cookie").modal("show");
-    refresh_sitecookie_process(siteid);
-  }
-
-  // 显示验证码输入框
-  function show_captcha_code_modal(code_img, code_key, siteid) {
-    // 关闭上一个框
-    $("#modal-update-site-cookie").modal("hide");
-    // 显示新框
-    $("#captcha_key").val(code_key);
-    $("#captcha_code_img").attr("src", code_img);
-    $("#captcha_code").val("");
-    $("#modal-captcha-code").modal("show");
-    // 超时关闭
-    setTimeout(sitecookie_captcha_timeout, 30000, siteid);
-  }
-
-  // 输入验证码
-  function submit_captcha_code() {
-    let code = $("#captcha_key").val();
-    let value = $("#captcha_code").val();
-    if (!value) {
-      $("#captcha_code").addClass("is-invalid");
-      return;
-    } else {
-      $("#captcha_code").removeClass("is-invalid");
-    }
-    axios_post_do("set_site_captcha_code", { code: code, value: value }, function (ret) {
-      if (ret.code === 0) {
-        // 关闭框
-        $("#modal-captcha-code").modal("hide");
-        // 显示原框
-        $("#modal-update-site-cookie").modal("show");
-        // 重新刷新状态
-        refresh_sitecookie_process(refresh_sitecookie_current);
-      }
-    });
-  }
-
   // 站点测试按钮
   $("#sitetest_btn").unbind("click").click(async function () {
     let btn_obj = $(this);
@@ -936,6 +719,43 @@
 </script>
 
 <script type="text/javascript">
+
+  function table_display(site) {
+    return `
+      <table class="table table-borderless table-transparent mb-0 ms-2 me-4">
+        <thead>
+          <tr>
+            <th class="p-0">分享率</th>
+            <th class="p-0">上传量</th>
+            <th class="p-0">下载量</th>
+            <th class="p-0">做种数</th>
+            <th class="p-0">魔力值</th>
+          </tr>
+        </thead>
+        <tbody class="fw-bold">
+          <tr>
+            <td class="p-0 text-azure">${site.ratio}</td>
+            <td class="p-0 text-indigo">${formatFileSize(site.upload)}</td>
+            <td class="p-0 text-purple">${formatFileSize(site.download)}</td>
+            <td class="p-0 text-orange">${site.seeding}</td>
+            <td class="p-0">${formatNumber(site.bonus)}</td>
+          </tr>
+        </tbody>
+      </table>
+    `
+  }
+
+  function cell_display(site) {
+    return `
+      <div class="d-flex align-items-center">
+        <span title="上传量"><i class="ti ti-arrow-up text-indigo"></i> ${formatFileSize(site.upload)}</span>
+        <span class="ms-1" title="下载量"><i class="ti ti-arrow-down text-purple"></i> ${formatFileSize(site.download)}</span>
+        <span class="ms-1" title="做种数"><i class="ti ti-seedling text-orange"></i> ${site.seeding}</span>
+        <span class="ms-1" title="分享率"><i class="ti ti-share text-azure"></i> ${site.ratio}</span>
+        <span class="ms-1" title="魔力值"><i class="ti ti-diamond"></i> ${formatNumber(site.bonus)}</span>
+      </div>
+    `;
+  }
 
   // 页面加载完成后，使用axios_post请求/data/site接口获取数据并填充页面
   $(document).ready(function () {
@@ -1003,21 +823,6 @@
           });
         }
 
-        // 根据ChromeOk决定是否显示浏览器仿真选项
-        if (data.ChromeOk) {
-          const chromeSelect = $('#site_chrome');
-          chromeSelect.empty();
-          chromeSelect.append('<option value="Y">是</option>');
-          chromeSelect.append('<option value="N" selected>否</option>');
-        }
-
-        // 填充Cookie用户信息配置
-        if (data.CookieUserInfoCfg) {
-          $('#cookieua_username').val(data.CookieUserInfoCfg.username || '');
-          $('#cookieua_password').val(data.CookieUserInfoCfg.password || '');
-          $('#cookieua_two_step_code').val(data.CookieUserInfoCfg.two_step_code || '');
-        }
-
         // 生成站点列表
         if (data.Sites && data.Sites.length > 0) {
 
@@ -1037,50 +842,39 @@
                         <div class="form-switch">
                           <input name="indexer_sites" type="checkbox" class="form-check-input" value="${site.indexer_id}" ${data.indexerSites.includes(site.indexer_id) ? 'checked' : ''}>
                         </div>
-                        <span class="text-reset card-text">${site.name}</span>
+                        <span><a class="text-reset card-text" href="${site.strict_url}" target="_blank">${site.name}</a></span>
                       </div>
                       <div class="col-auto">
-                        <a href="javascript:remove_site('${site.name}', '${site.id}')" class="text-danger" title="删除站点">
-                          <i class="ti ti-x fs-2"></i>
+                        <a href="javascript:ask_refresh_statistics('${site.name}')" class="btn-icon me-1" title="刷新站点数据" >
+                          <i class="ti ti-refresh fs-2"></i>
+                        </a>
+                        <a href="javascript:edit_indexer_conf('${site.strict_url}', true)" class="me-1" title="编辑索引">
+                          <i class="ti ti-tool fs-2"></i>
+                        </a>
+                        <a href="javascript:edit_site('${site.id}')" title="配置站点">
+                          <i class="ti ti-settings fs-2"></i>
                         </a>
                       </div>
                     </div>
                     <div class="flex-grow-1 px-1 py-2">
                       <div class="d-flex align-items-center">
                         <small>
-                          ${site.rss_enable && site.rssurl ? '<span class="badge badge-outline bg-azure-lt me-2">订阅</span>' : ''}
-                          ${site.brush_enable && site.rssurl ? '<span class="badge badge-outline bg-indigo-lt me-2">刷流</span>' : ''}
-                          ${site.statistic_enable && (site.signurl || site.rssurl) ? '<span class="badge badge-outline bg-purple-lt me-1">数据统计</span>' : ''}
+                          ${site.rss_enable && site.rssurl ? '<span class="badge bg-primary-lt text-blue me-1">订阅</span>' : ''}
+                          ${site.brush_enable && site.rssurl ? '<span class="badge bg-primary-lt text-blue me-1">刷流</span>' : ''}
+                          ${site.statistic_enable && (site.signurl || site.rssurl) ? '<span class="badge bg-primary-lt text-blue me-1">数据统计</span>' : ''}
+                          ${site.rule && data.RuleGroups && data.RuleGroups[site.rule] ? `<span class="badge bg-primary-lt text-rss me-1">${data.RuleGroups[site.rule]}</span>` : ''}
+                          ${site.download_setting && data.DownloadSettings && data.DownloadSettings[site.download_setting] ? `<span class="badge bg-primary-lt text-rss me-1">${data.DownloadSettings[site.download_setting]}</span>` : ''}
                         </small>
-                      </div>
-                      <div class="mt-2 d-flex align-items-center">
                         <small>
-                          ${site.rule && data.RuleGroups && data.RuleGroups[site.rule] ? `<span class="badge badge-outline bg-orange-lt me-1">${data.RuleGroups[site.rule]}</span>` : ''}
-                          ${site.download_setting && data.DownloadSettings && data.DownloadSettings[site.download_setting] ? `<span class="badge badge-outline bg-teal-lt me-1">${data.DownloadSettings[site.download_setting]}</span>` : ''}
-                          ${site.parse ? '<span class="badge badge-outline bg-pink-lt me-1">解析</span>' : ''}
-                          ${site.unread_msg_notify ? '<span class="badge badge-outline bg-orange-lt me-1">消息</span>' : ''}
-                          ${site.chrome ? '<span class="badge bg-yellow-lt me-1">仿真</span>' : ''}
-                          ${site.proxy ? '<span class="badge bg-lime-lt me-1">代理</span>' : ''}
+                          ${site.parse ? '<span class="badge bg-primary-lt text-google me-1">解析</span>' : ''}
+                          ${site.unread_msg_notify ? '<span class="badge bg-primary-lt text-google me-1">消息</span>' : ''}
+                          ${site.chrome ? '<span class="badge bg-primary-lt text-teal me-1">仿真</span>' : ''}
+                          ${site.proxy ? '<span class="badge bg-primary-lt text-teal me-1">代理</span>' : ''}
                         </small>
                       </div>
                     </div>
                     <div class="d-flex justify-content-between mt-2">
-                      <div class="d-flex align-items-center ms-1">
-                        <span>${site.strict_url}</span>
-                      </div>
-                      <div class="col-auto">
-                        <a href="javascript:edit_indexer_conf('${site.strict_url}', true)" class="me-1" title="编辑索引">
-                          <i class="ti ti-settings fs-2"></i>
-                        </a>
-                        <a href="javascript:edit_site('${site.id}')" class="me-1" title="编辑站点">
-                          <i class="ti ti-edit fs-2"></i>
-                        </a>
-                        ${data.ChromeOk
-                          ? `<a href="javascript:show_site_cookie_ua_modal('${site.id}', '${site.name}')" class="me-1" title="更新站点Cookie和User-Agent">
-                                      <i class="ti ti-refresh-dot fs-2"></i>
-                                    </a>`
-                          : ''}
-                      </div>
+                      ${table_display(site)}
                     </div>
                   </div>
                 </div>

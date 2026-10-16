@@ -7,12 +7,12 @@ from typing import List, Optional
 import log
 
 from app.modules.filter import Filter
-from app.media import Media
+from app.media import MediaService
 from app.media.meta import MetaInfo
 from app.utils import StringUtils, MediaUtils
 from app.utils.constants import Constants
 from app.utils.types import MediaType, SearchType
-from app.core.task_manager import GlobalTaskManager
+from app.core.task_manager import TaskStore
 
 
 class _IIndexClient(metaclass=ABCMeta):
@@ -279,6 +279,8 @@ class _IIndexClient(metaclass=ABCMeta):
                         if not season_info.air_date:
                             continue
                         target_year.append(season_info.air_date[0:4])
+                if hasattr(target_tmdb_info, 'last_air_date') and target_tmdb_info.last_air_date:
+                    target_year.append(target_tmdb_info.last_air_date[0:4])
             
             # 名称
             if hasattr(target_tmdb_info, 'title') and target_tmdb_info.title:
@@ -324,7 +326,7 @@ class _IIndexClient(metaclass=ABCMeta):
         """
         匹配tmdb信息并进行基础过滤
         """
-        media = Media()
+        media = MediaService()
 
         # 0-识别并模糊匹配；1-识别并精确匹配
         if item_meta.imdb_id \
@@ -387,5 +389,5 @@ class _IIndexClient(metaclass=ABCMeta):
         进度更新
         """
         if task_id:
-            GlobalTaskManager().update_task(task_id, progress=0, progress_add=self.step_fator, message=text)
+            TaskStore().update_task(task_id, progress=0, progress_add=self.step_fator, message=text)
             return

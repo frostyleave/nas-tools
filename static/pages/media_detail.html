@@ -353,6 +353,10 @@
             var pageData = $('#main-info-container').data("data");
             var mediaType = $('#main-info-container').data("type");
 
+            if (pageData && pageData.tmdbid && pageData.tmdbid != tmdbid) {
+              tmdbid = pageData.tmdbid;
+            }
+
             media_search(tmdbid, pageData.title, mediaType);
           });
 

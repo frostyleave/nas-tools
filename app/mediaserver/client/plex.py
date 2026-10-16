@@ -552,11 +552,11 @@ class Plex(_IMediaClient):
 
         return eventItem
 
-    def get_resume(self, num=12):
+    def get_resume(self, user_name, num=12):
         """
         获取继续观看的媒体
         """
-        if not self._plex:
+        if not self._plex or not user_name:
             return []
         items = self._plex.fetchItems('/hubs/continueWatching/items', container_start=0, container_size=num)
         ret_resume = []

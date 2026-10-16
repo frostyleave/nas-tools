@@ -292,7 +292,6 @@
     let name = $("#downloader_name").val();
     $("#modal-downloader").modal('hide');
     show_confirm_modal("删除下载器 " + name + " ?", function () {
-      hide_confirm_modal();
       axios_post_do("del_downloader", { "did": did }, function (ret) {
         window_history_refresh();
       });

@@ -649,6 +649,8 @@ class MetaBase(object):
     def init_subtitle(self, title_text):
         if not title_text:
             return
+        
+        self.init_year_from_subtitle(title_text) # 尝试提取年份
 
         title_text = f" {title_text} "
         if re.search(r'[全第季集话話期]', title_text, re.IGNORECASE):
@@ -791,6 +793,21 @@ class MetaBase(object):
                 except Exception as err:
                     log.exception("【Meta】副标题-集数解析 出错: ")
                     return
+
+    def init_year_from_subtitle(self, title_text):
+        """
+        从副标题中提取年份信息
+        :param max_len: 副标题
+        :return:
+        """
+        if not title_text or self.year:
+            return
+
+        pattern = r'(?<=[ .|])(19\d{2}|20\d{2})(?=[ .|])'
+        match = re.search(pattern, title_text)
+        if match:
+            self.year = match.group(0)
+        return
 
     def get_sort_str(self):
         """

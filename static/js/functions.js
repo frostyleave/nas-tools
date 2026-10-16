@@ -35,13 +35,13 @@ function media_search(tmdbid, title, type) {
 
   const param = { "tmdbid": tmdbid, "search_word": title, "media_type": type };
   // 显示弹窗
-  show_refresh_progress_modal("正在搜索 " + title + " ...", "search")
+  show_progress_modal("正在搜索 " + title + " ...", "search")
   // 发起请求
   axios_post('/search', param, function(ret) {
 
     // 请求失败
     if (ret.code != 0) {
-      $("#modal-process").modal("hide");
+      hide_progress_modal();
       show_fail_modal(ret.msg);
       return;
     }
@@ -285,7 +285,7 @@ function get_message(lst_time) {
 
 //检查系统是否在线
 function check_system_online() {
-  axios_post_do("refresh_process", { type: "restart" }, function (ret) {
+  axios_post_do("get_jobs", {}, function (ret) {
     if (!ret) {
       setTimeout("check_system_online()", 2000);
     } else {
@@ -304,7 +304,6 @@ function logout() {
 //重启
 function restart() {
   show_confirm_modal("立即重启系统？", function () {
-    hide_confirm_modal();
     axios_post_do("restart", {}, function (ret) {
     }, false);
     show_wait_modal(true);
@@ -330,7 +329,6 @@ function show_user_auth_modal() {
 function update_system() {
   show_confirm_modal("更新系统版本，是否确认？", function () {
     show_wait_modal(true);
-    hide_confirm_modal();
     // 显示实时日志
     logger_select("UpdateSystem");
     show_logging_modal();
@@ -358,15 +356,6 @@ function stopProgress() {
   }
 }
 
-// 刷新进度条
-function start_progress(type) {
-  stopProgress();
-  ProgressES = new EventSource(`stream-progress?type=${type}`);
-  ProgressES.onmessage = function (event) {
-    render_progress(JSON.parse(event.data))
-  };
-}
-
 // 展示进度条
 function show_progress_info(task_id, callback) {
   stopProgress();
@@ -383,15 +372,15 @@ function render_progress(ret, callback) {
   if (ret.code === 0) {
 
     if (ret.value <= 100) {
-      $("#modal_process_bar").attr("style", "width: " + ret.value + "%").attr("aria-valuenow", ret.value);
+      $("#modal_process_bar").css("width", ret.value + "%").attr("aria-valuenow", ret.value);
       $("#modal_process_text").text(ret.text);
-    } 
-    
+    }
+
     if (ret.value === 100 && ret.status == 'finish' && callback) {
       stopProgress();
       // 延迟调用
       setTimeout(() => {
-        hide_refresh_process();
+        hide_progress_modal();
         callback(ret);
       }, 200);
     }
@@ -404,64 +393,58 @@ function render_progress(ret, callback) {
 }
 
 // 显示全局进度框
-function show_refresh_progress_modal(title) {
+function show_progress_modal(title) {
+  
   hideLoading();
   if (title) {
     $("#modal_process_title").text(title);
   } else {
     $("#modal_process_title").hide();
   }
-  $("#modal_process_bar").attr("style", "width: 0%").attr("aria-valuenow", 0);
+  $("#modal_process_bar").css("width", "0%").attr("aria-valuenow", 0);
   $("#modal_process_text").text("请稍候...");
   $("#modal-process").modal("show");
 
-}
-
-// 显示全局进度框
-function show_refresh_progress(title, type) {
-  hideLoading();
-  // 显示对话框
-  if (title) {
-    $("#modal_process_title").text(title);
-  } else {
-    $("#modal_process_title").hide();
-  }
-  $("#modal_process_bar").attr("style", "width: 0%").attr("aria-valuenow", 0);
-  $("#modal_process_text").text("请稍候...");
-  $("#modal-process").modal("show");
-  // 立即开始刷新进度条
-  start_progress(type);
 }
 
 // 关闭全局进度框
-function hide_refresh_process() {
+function hide_progress_modal() {
   $("#modal-process").modal("hide");
   stopProgress();
 }
 
 // 显示确认提示框
-function show_confirm_modal(title, func) {
-  $("#system_confirm_message").text(title);
-  $("#system_confirm_btn").unbind('click').click(func);
-  $("#system-confirm-modal").modal("show");
-}
+function show_confirm_modal(title, func, auto_close=true) {
 
-// 隐藏确认提示框
-function hide_confirm_modal() {
-  $("#system-confirm-modal").modal("hide");
+  $("#system_confirm_message").text(title);
+
+  var $modal = $("#system-confirm-modal");
+  $("#system_confirm_btn").off('click').one('click', function () {
+    if (auto_close) {
+      $modal.modal('hide'); // 隐藏确认提示框
+    }
+    func && func();
+  });
+
+  $modal.modal('show');
+
 }
 
 // 显示询问提示框
-function show_ask_modal(message, func, title = '询问') {
+function show_ask_modal(message, func, title = '询问', auto_close=true) {
   $("#system_ask_title").text(title);
   $("#system_ask_message").text(message);
-  $("#system_ask_btn").unbind('click').click(func);
-  $("#system-ask-modal").modal("show");
-}
 
-// 隐藏询问提示框
-function hide_ask_modal() {
-  $("#system-ask-modal").modal("hide");
+  var $modal = $("#system-ask-modal");
+  $("#system_ask_btn").off('click').one('click', function () {
+    if (auto_close) {
+      $modal.modal('hide'); // 隐藏询问提示框
+    }
+    func && func();
+  });
+
+  $modal.modal('show');
+
 }
 
 // 显示成功提示
@@ -658,7 +641,6 @@ function remove_rss_media(name, year, type, rssid, page, tmdbid, func) {
 // 询问取消订阅
 function remove_rss_click(title, year, media_type, rssid, page, tmdb_id, remove_func) {
   show_ask_modal("是否确定将 " + title + " 从订阅中移除？", function () {
-    hide_ask_modal();
     remove_rss_media(title, year, media_type, rssid, page, tmdb_id, remove_func);
   });
 }
@@ -857,12 +839,10 @@ function rss_love_click(event, title, year, media_type, tmdb_id, fav, remove_fun
 
   if (fav == "1"){
     show_ask_modal("是否确定将 " + title + " 从订阅中移除？", function () {
-      hide_ask_modal();
       remove_rss_media(title, year, media_type, "", "", tmdb_id, remove_func);
     });
   } else {
     show_ask_modal("是否确定订阅： " + title + "？", function () {
-      hide_ask_modal();
       const mediaid = convert_mediaid(tmdb_id);
       if (media_type == "MOV" || media_type == "电影") {
         add_rss_media(title, year, media_type, mediaid, "", "", add_func);
@@ -1423,16 +1403,34 @@ function search_media_advanced() {
   };
   const param = { "search_word": keyword, "filters": filters, "unident": true };
   $("#modal-search-advanced").modal("hide");
-  show_refresh_progress(`正在搜索 ${keyword} ...`, "search");
-  axios_post_do("search", param, function (ret) {
-    hide_refresh_process();
-    if (ret.code === 0) {
-      navmenu(`search?s=${keyword}`);
-    } else {
-      show_fail_modal(ret.msg, function () {
-        $("#modal-search-advanced").modal("show");
-      });
+
+  // 显示进度条
+  show_progress_modal(`正在搜索 ${keyword} ...`, "search");
+
+  // 发起请求
+  axios_post("/search", param, function (ret) {
+
+    // 请求失败
+    if (ret.code != 0) {
+      hide_progress_modal();
+      show_fail_modal(ret.msg, function () {$("#modal-search-advanced").modal("show");});
+      return;
     }
+
+    // 刷新进度
+    show_progress_info(ret.task_id, function(resultData) {
+    
+      // 没有搜索到内容, 不跳转
+      if (resultData && resultData.result == 0) {
+        show_fail_modal('未搜索到任何资源', function () { $("#modal-search-advanced").modal("show"); });
+        return;
+      }
+
+      // 切换到结果页
+      navmenu('search?s=' + keyword);
+
+    });
+
   }, false);
 }
 
@@ -1745,25 +1743,40 @@ function manual_media_transfer() {
     "logid": logid
   };
   $('#modal-media-identification').modal('hide');
-  show_refresh_progress("手动转移 " + inpath, "filetransfer");
+  show_progress_modal("手动转移 " + inpath);
+
   let cmd = (manual_type === '3') ? "rename_udf" : "rename"
+
   axios_post_do(cmd, data, function (ret) {
-    hide_refresh_process();
-    if (ret.retcode === 0) {
-      show_success_modal(inpath + "处理成功！", function () {
-        // 转移
-        if (manual_type === '3' && typeof window.refresh_files === "function") {
-          window.refresh_files();
-          return;
-        }
-        navmenu(source);
-      });
-    } else {
-      //处理失败
-      show_fail_modal(ret.retmsg, function () {
-        $('#modal-media-identification').modal('show');
-      });
+
+    // 请求失败
+    if (ret.code !== 0) {
+      hide_progress_modal();
+      show_fail_modal(ret.msg || '转移失败', function () { $('#modal-media-identification').modal('show'); });
+      return;
     }
+
+    // 后台转移，通过SSE刷新进度
+    show_progress_info(ret.task_id, function (resultData) {
+
+      const result = resultData ? resultData.result : null;
+
+      if (result && result.code === 0) {
+        show_success_modal(inpath + "处理成功！", function () {
+          // 转移
+          if (manual_type === '3' && typeof window.refresh_files === "function") {
+            window.refresh_files();
+            return;
+          }
+          navmenu(source);
+        });
+      } else {
+        // 处理失败
+        show_fail_modal((result && result.msg) || '转移失败', function () { $('#modal-media-identification').modal('show'); });
+      }
+
+    });
+
   }, false);
 }
 
@@ -2084,8 +2097,10 @@ function edit_indexer_conf(site_url, ispt) {
   $("#modal-manual-indexer").data("indexer", NaN);
   if (ispt) {
     $('.pt-hide').hide();
+    $("[name='indexer-cop-btn']").show();
   } else {
     $('.pt-hide').show();
+    $("[name='indexer-copy-btn']").hide();
   }
 
   // 根据ID查询详细信息
@@ -2096,8 +2111,8 @@ function edit_indexer_conf(site_url, ispt) {
       // 数据绑定到容器上
       $("#modal-manual-indexer").data("indexer", ret.data);
 
-      $("#indexer-id").val(ret.data.id).attr("readonly", true);
-      $("#indexer-name").val(ret.data.name).attr("readonly", true);
+      $("#indexer-id").val(ret.data.id).prop("disabled", true);
+      $("#indexer-name").val(ret.data.name).prop("disabled", true);
       $("#indexer-url").val(ret.data.domain);
 
       // 下拉
@@ -2131,9 +2146,9 @@ function edit_indexer_conf(site_url, ispt) {
 
       }
 
-      $("#indexer_modal_title").text("编辑索引站点");
-      $("[name='indexer_add_btn']").hide();
-      $("[name='indexer_edit_btn']").show();
+      $("#indexer-modal-title").text("编辑索引站点");
+      $("[name='indexer-add-btn']").hide();
+      $("[name='indexer-edit-btn']").show();
 
       $("#modal-manual-indexer").modal("show");
       return;
@@ -2145,6 +2160,88 @@ function edit_indexer_conf(site_url, ispt) {
     }
 
   });
+}
+
+function do_copy_indexer() {
+
+  // 清空绑定数据
+  $("#modal-manual-indexer").data("indexer", NaN);
+
+  $("#indexer-id").val("").prop("disabled", false);
+  $("#indexer-name").val("").prop("disabled", false);
+  $("#indexer-url").val("");
+
+  // 标题调整
+  $("#indexer-modal-title").text("复制索引站点");
+  // 按钮显隐
+  $("[name='indexer-add-btn']").show();
+  $("[name='indexer-edit-btn']").hide();
+  $("[name='indexer-copy-btn']").hide();
+
+}
+
+function do_add_indexer() {
+
+  var indexer_id = $("#indexer-id").val().trim();
+  if (!indexer_id || indexer_id == '' ) {
+    show_fail_modal('站点ID不能为空');
+    return
+  }
+
+  var indexer_name = $("#indexer-name").val().trim();
+  if (!indexer_name || indexer_name == '' ) {
+    show_fail_modal('站点名称不能为空');
+    return
+  }
+
+  var indexer_url = $("#indexer-url").val().trim();
+  if (!indexer_url || !isUrl(indexer_url)) {
+    show_fail_modal('站点地址无效, 请重新编辑');
+    return
+  }
+
+  var search_cfg = $('#search_cfg').val();
+  if (!object_json_valid(search_cfg, false)) {
+    show_fail_modal('搜索配置不合法，请检查后重试');
+    return
+  }
+
+  var torrent_cfg = $('#torrent_cfg').val();
+  if (!object_json_valid(torrent_cfg, false)) {
+    show_fail_modal('种子过滤配置不合法，请检查后重试');
+    return
+  }
+
+  var category_cfg = $('#category_cfg').val();
+  if (!object_json_valid(category_cfg, true)) {
+    show_fail_modal('目录配置不合法，请检查后重试');
+    return
+  }
+
+  var parser_type = $('#indexer-parser-type').val();
+
+  const data = {
+    "id": indexer_id,
+    "name": indexer_name,
+    "domain": indexer_url,
+    "parser": parser_type,
+    "search": zip_json(search_cfg),
+    "torrents": zip_json(torrent_cfg),
+    "category": zip_json(category_cfg)
+  };
+
+  axios_post_do("add_indexer", data, function (ret) {
+    if (ret.code === 0) {
+      $("#modal-manual-indexer").modal("hide");
+      show_success_modal("新增索引站点成功!");
+    } else {
+      $("#modal-manual-indexer").modal("hide");
+      show_fail_modal(`新增索引站点失败：${ret.msg}!`, function () {
+        $("#modal-manual-indexer").modal("show");
+      });
+    }
+  });
+
 }
 
 function do_update_indexer() {
@@ -2218,7 +2315,10 @@ function do_update_indexer() {
       $("#modal-manual-indexer").modal("hide");
       show_success_modal("更新索引站点成功!");
     } else {
-      show_fail_modal(`更新索引站点失败：${ret.msg}!`);
+      $("#modal-manual-indexer").modal("hide");
+      show_fail_modal(`更新索引站点失败：${ret.msg}!`, function () {
+        $("#modal-manual-indexer").modal("show");
+      });
     }
   });
 
@@ -2227,4 +2327,56 @@ function do_update_indexer() {
 // 展开/收起div
 function slideToggle(id) {
   $(`#${id}`).slideToggle();
+}
+
+// 格式化文件大小
+function formatFileSize(bytes) {
+
+  if (bytes === 0) return '0 B';
+
+  const k = 1024;
+  const sizes = ['B', 'KB', 'MB', 'GB', 'TB', 'PB'];
+
+  // 先按 1024 进制定位到初始单位
+  let i = Math.floor(Math.log(bytes) / Math.log(k));
+  // 防止超出 sizes 数组范围
+  i = Math.min(i, sizes.length - 1);
+
+  let value = bytes / Math.pow(k, i);
+
+  // 整数部分 >= 1000 时，向上进一个单位
+  while (Math.floor(value) >= 1000 && i < sizes.length - 1) {
+    i++;
+    value = bytes / Math.pow(k, i);
+  }
+
+  return parseFloat(value.toFixed(2)) + ' ' + sizes[i];
+}
+
+/**
+ * 纯数字大小格式化（1000 进制）
+ * 示例：1234 → 1.23K，2000000 → 2M
+ * @param {number} num 需要格式化的数字
+ * @returns {string} 格式化后的字符串，如 "1.23K"、"2M"
+ */
+function formatNumber(num) {
+  if (num === 0) return '0';
+
+  const k = 1000;
+  const sizes = ['', 'K', 'M', 'B', 'T', 'P', 'E']; // 可根据需要增减
+
+  // 初始单位索引
+  let i = Math.floor(Math.log(num) / Math.log(k));
+  i = Math.min(i, sizes.length - 1);
+
+  let value = num / Math.pow(k, i);
+
+  // 四舍五入后若整数部分 >= 1000，则向上进一个单位
+  while (parseFloat(value.toFixed(2)) >= 1000 && i < sizes.length - 1) {
+    i++;
+    value = num / Math.pow(k, i);
+  }
+
+  // 保留两位小数并去掉多余的尾零
+  return parseFloat(value.toFixed(2)) + sizes[i];
 }

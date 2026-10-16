@@ -78,19 +78,22 @@ class Sync(object):
             monpath = sync_conf.SOURCE
             target_path = sync_conf.DEST
             unknown_path = sync_conf.UNKNOWN
-            # 输出日志
-            log_content1, log_content2 = "", ""
-            if target_path:
-                log_content1 += f"目的目录：{target_path}，"
-            if unknown_path:
-                log_content1 += f"未识别目录：{unknown_path}，"
-            if rename:
-                log_content2 += "，启用识别和重命名"
-            if compatibility:
-                log_content2 += "，启用兼容模式"
-            log.info(f"【Sync】读取到监控目录：{monpath}，{log_content1}转移方式：{syncmode_enum.value}{log_content2}")
-            if not enabled:
-                log.info(f"【Sync】{monpath} 不进行监控和同步：手动关闭")
+
+            if enabled:
+                # 输出日志
+                log_content1, log_content2 = "", ""
+                if target_path:
+                    log_content1 += f"目的目录：{target_path}，"
+                if unknown_path:
+                    log_content1 += f"未识别目录：{unknown_path}，"
+                if rename:
+                    log_content2 += "，启用识别和重命名"
+                if compatibility:
+                    log_content2 += "，启用兼容模式"
+                log.info(f"【Sync】读取到监控目录: {monpath}, {log_content1}转移方式：{syncmode_enum.value}{log_content2} ✔️")
+            else:
+                log.info(f"【Sync】读取到监控目录: {monpath} 不进行监控和同步：手动关闭")
+
             if target_path and not os.path.exists(target_path) and syncmode_enum not in ModuleConf.REMOTE_RMT_MODES:
                 log.info(f"【Sync】目的目录不存在，正在创建：{target_path}")
                 os.makedirs(target_path)

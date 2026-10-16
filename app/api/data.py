@@ -12,13 +12,14 @@ import log
 from app.core.cmd_registry import CommandRegistry
 from app.conf.moduleconf import ModuleConf
 from app.conf.systemconfig import SystemConfig
-from app.downloader.downloader import Downloader, PT_TRANSFER_INTERVAL
+from app.downloader.config import PT_TRANSFER_INTERVAL
+from app.downloader.downloader import Downloader
 from app.helper.meta_helper import MetaHelper
 from app.helper.words_helper import WordsHelper
 from app.indexer.indexer import Indexer
 from app.media.category import Category
 from app.mediaserver.media_server import MediaServer
-from app.message import Message
+from app.message import MessageService
 from app.middleware.security import get_current_user
 from app.modules.brushtaskv2 import BrushTaskV2 as BrushTask
 from app.modules.filter import Filter
@@ -375,22 +376,42 @@ async def sites_page():
     if not indexer_sites:
         indexer_sites = []
 
-    cfg_sites = SitesManager().get_sites()
     rule_groups = {str(group["id"]): group["name"] for group in Filter().get_rule_groups()}
     download_settings = {did: attr["name"] for did, attr in Downloader().get_download_setting().items()}
     cookie_cloud_cfg = SystemConfig().get(SystemConfigKey.CookieCloud)
-    cookie_user_info_cfg = SystemConfig().get(SystemConfigKey.CookieUserInfo)
 
-    sorted_list = sorted(cfg_sites, key=lambda x: x.indexer_id not in indexer_sites)
+    # 站点数据
+    cfg_sites = SitesManager().get_sites()
+
+    # 统计数据
+    site_user_statistics = SitesDataStatisticsCenter().get_site_user_statistics()
+    statistic_dict = {obj.SITE: obj for obj in site_user_statistics} if site_user_statistics else {}
+
+    enriched = []
+    for it in cfg_sites:
+        new_item = it.model_dump()
+        enriched.append(new_item)
+        # 填充统计数据
+        statistic_info = statistic_dict.get(it.name)
+        if statistic_info:
+            new_item['ratio'] = statistic_info.RATIO
+            new_item['upload'] = statistic_info.UPLOAD
+            new_item['download'] = statistic_info.DOWNLOAD
+            new_item['seeding'] = statistic_info.SEEDING
+            new_item['bonus'] = statistic_info.BONUS
+        else:
+            new_item['ratio'] = 0
+            new_item['upload'] = 0
+            new_item['download'] = 0
+            new_item['seeding'] = 0
+            new_item['bonus'] = 0
 
     return response(data=
         {
-            "Sites": sorted_list,
+            "Sites": enriched,
             "RuleGroups": rule_groups,
             "DownloadSettings": download_settings,
-            "ChromeOk": True,
             "CookieCloudCfg": cookie_cloud_cfg,
-            "CookieUserInfoCfg": cookie_user_info_cfg,
             "indexerSites": indexer_sites,
             "sourceTypes": SOURCE_TYPES,
         }
@@ -426,7 +447,7 @@ async def library():
 @data_router.post("/notification")
 async def notification():
 
-    message_clients = Message().get_message_client_info()
+    message_clients = MessageService().get_message_client_info()
     switchs = ModuleConf.MESSAGE_CONF.get("switch")
 
     channels = ModuleConf.MESSAGE_CONF.get("client")
@@ -1057,6 +1078,61 @@ def _get_library_spacesize():
         "UsedSapce": used_sapce
     }
 
+
+
+# 下载历史页面
+@data_router.post("/download_history")
+async def download_history(request: Request):
+    """
+    下载历史页面
+    """
+    data = await request.json()
+
+    search_type = data.get("type") or ""
+    search_tmdbid = data.get("tmdbid") or ""
+    search_site = data.get("site") or ""
+
+    page_size = data.get("pagenum")
+    if not page_size:
+        page_size = 30
+
+    current_page = data.get("page")
+    if not current_page:
+        current_page = 1
+    else:
+        current_page = int(current_page)
+
+    from app.db.models import DOWNLOADHISTORY
+    from app.helper.db_helper import DbHelper
+
+    db = DbHelper()
+    query = db._db.query(DOWNLOADHISTORY)
+
+    if search_type:
+        query = query.filter(DOWNLOADHISTORY.TYPE == search_type)
+    if search_tmdbid:
+        query = query.filter(DOWNLOADHISTORY.TMDBID == search_tmdbid)
+    if search_site:
+        query = query.filter(DOWNLOADHISTORY.SITE.like(f"%{search_site}%"))
+
+    total_count = query.count()
+    offset = (current_page - 1) * page_size
+    results = query.order_by(DOWNLOADHISTORY.ID.desc()).limit(page_size).offset(offset).all()
+
+    items = [rec.as_dict() for rec in results]
+
+    total_page = floor(total_count / page_size) + 1 if total_count > 0 else 0
+
+    return response(data={
+        "Items": items,
+        "TotalCount": total_count,
+        "TotalPage": total_page,
+        "CurrentPage": current_page,
+        "PageNum": page_size,
+        "Type": search_type,
+        "Tmdbid": search_tmdbid,
+        "Site": search_site,
+    })
 
 
 # 给这个 router 加异常捕获

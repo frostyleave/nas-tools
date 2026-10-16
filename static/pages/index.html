@@ -69,13 +69,9 @@
               </div>
             </div>
           </details>
-        <div class="card-progress">
-          <div class="progress-bar bg-green" id="mediasync_process_bar" style="width: 0" role="progressbar"
-               aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
-        </div>
         <div class="d-flex">
           <a href="javascript:save_media_config()" id="save_mediasync_btn" class="card-btn">保存</a>
-          <a href="javascript:start_media_sync(true)" id="mediasync_btn" class="card-btn">开始同步</a>
+          <a href="javascript:start_media_sync()" id="mediasync_btn" class="card-btn">开始同步</a>
         </div>
       </div>
     </div>
@@ -348,23 +344,14 @@
 
   //显示媒体库同步框
   function show_mediasync_modal() {
-    //获取同步状态
-    axios_post_do("refresh_process", {type: "mediasync"}, function (ret) {
-      if (ret.code === 0 && ret.value < 100) {
-        //同步中
-        $("#index-mediasync-modal").modal('show');
-        start_media_sync(false);
-      } else {
-        //没有在同步，获取目前同步的数据情况
-        axios_post_do("mediasync_state", {}, function (ret) {
-          if (ret.code === 0) {
-            $("#mediasync_status").text(ret.text);
-          }
-          $("#mediasync_btn").text("开始同步").attr("href", "javascript:start_media_sync(true)");
-          $("#save_mediasync_btn").show();
-          $("#index-mediasync-modal").modal('show');
-        }, false);
+    //获取目前同步的数据情况
+    axios_post_do("mediasync_state", {}, function (ret) {
+      if (ret.code === 0) {
+        $("#mediasync_status").text(ret.text);
       }
+      $("#mediasync_btn").text("开始同步").attr("href", "javascript:start_media_sync()");
+      $("#save_mediasync_btn").show();
+      $("#index-mediasync-modal").modal('show');
     }, false);
   }
 
@@ -514,19 +501,36 @@
   }
 
   //开始媒体库同步
-  function start_media_sync(flag) {
-    $("#mediasync_btn").text("关闭")
-        .attr("href", "javascript:close_mediasync_modal()");
-    $("#save_mediasync_btn").hide();
-    if (flag) {
-      axios_post_do("start_mediasync", {
-        "librarys": select_GetSelectedVAL("sync_library")
-      }, function (ret) {
-        setTimeout(start_mediasync_progress, 1000);
-      }, true, false);
-    } else {
-      setTimeout(start_mediasync_progress, 1000);
-    }
+  function start_media_sync() {
+    $("#index-mediasync-modal").modal('hide');
+    show_progress_modal("正在同步媒体库...");
+    axios_post_do("start_mediasync", {
+      "librarys": select_GetSelectedVAL("sync_library")
+    }, function (ret) {
+
+      // 请求失败
+      if (ret.code !== 0) {
+        hide_progress_modal();
+        show_fail_modal(ret.msg || '同步失败');
+        return;
+      }
+
+      // 后台同步，通过SSE刷新进度
+      show_progress_info(ret.task_id, function (resultData) {
+
+        const result = resultData ? resultData.result : null;
+
+        if (result && result.code === 0) {
+          // 同步完成，刷新页面状态
+          window_history_refresh();
+        } else {
+          // 同步失败
+          show_fail_modal((result && result.msg) || '媒体库同步失败');
+        }
+
+      });
+
+    }, false);
   }
 
   // 保存媒体库配置
@@ -541,31 +545,6 @@
     });
   }
 
-  // 停止刷新进度
-  function stop_mediasync_progress() {
-    if (MediaSyncProgressEs) {
-      MediaSyncProgressEs.close();
-      MediaSyncProgressEs = undefined;
-    }
-  }
-
-  //刷新进度
-  var MediaSyncProgressEs;
-  function start_mediasync_progress() {
-    stop_mediasync_progress();
-    MediaSyncProgressEs = new EventSource(`stream-progress?type=mediasync`);
-    MediaSyncProgressEs.onmessage = function (event) {
-      let ret = JSON.parse(event.data);
-      if (ret.code === 0) {
-        $("#mediasync_process_bar").attr("style", "width: " + ret.value + "%")
-            .attr("aria-valuenow", ret.value);
-        $("#mediasync_status").text(ret.text);
-      }
-      if ($("#index-mediasync-modal").is(":hidden")) {
-        stop_mediasync_progress();
-      }
-    }
-  }
 
 </script>
 <script type="text/javascript">

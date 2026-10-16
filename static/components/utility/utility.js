@@ -51,12 +51,10 @@ export class Golbal {
   static lit_love_click(title, year, media_type, tmdb_id, fav, remove_func, add_func) {
     if (fav == "1"){
       show_ask_modal("是否确定将 " + title + " 从订阅中移除？", function () {
-        hide_ask_modal();
         remove_rss_media(title, year, media_type, "", "", tmdb_id, remove_func);
       });
     } else {
       show_ask_modal("是否确定订阅： " + title + "？", function () {
-        hide_ask_modal();
         const mediaid = Golbal.convert_mediaid(tmdb_id);
         if (media_type == "MOV" || media_type == "电影") {
           add_rss_media(title, year, media_type, mediaid, "", "", add_func);

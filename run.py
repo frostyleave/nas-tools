@@ -92,6 +92,9 @@ def get_run_config(app: FastAPI) -> uvicorn.Config:
 
 def set_git_proxy():
 
+    if is_windows:
+        return
+
     proxy_config = Config().get_proxies()
     if not proxy_config:
         return

@@ -181,7 +181,22 @@ class IndexerManager:
         """
         新增索引站点，操作DB并重载配置
         """
-        is_public = data.get('public')
+        indexer_id = data.get('id')
+        if not indexer_id:
+            return False, '索引站点id不能为空'
+
+        indexer_info = self.get_indexer_base_by_id(indexer_id)
+        if indexer_info:
+            return False, '索引站点id重复'
+
+        if not data.get('name') or \
+            not data.get('domain') or \
+            not data.get('search') or \
+            not data.get('torrents') or \
+            not data.get('category'):
+            return False, '索引站点配置参数不能有空值'
+        
+        is_public = data.get('public', False)
         extra_json = self.__build_extra_json(data) if is_public else ''
         DbHelper().add_indexer(
             data.get('id'),
@@ -195,6 +210,7 @@ class IndexerManager:
             extra_json
         )
         self.init_config()
+        return True, '索引配置已添加，重启后生效'
 
     def update_indexer(self, data: dict) -> bool:
         """

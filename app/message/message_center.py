@@ -6,7 +6,11 @@ from app.utils.commons import singleton
 
 
 @singleton
-class MessageCenter:
+class SysMessageCenter:
+    """
+    系统消息中心
+    """
+
     _message_queue = deque(maxlen=50)
     _message_index = 0
 

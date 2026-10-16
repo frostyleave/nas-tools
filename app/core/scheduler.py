@@ -5,6 +5,7 @@ from apscheduler.schedulers.background import BackgroundScheduler
 import log
 
 from app.helper import MetaHelper
+from app.modules.historycleanup import HistoryCleanup
 from app.mediaserver import MediaServer
 from app.modules.rss import Rss
 from app.core.jobcenter import JobCenter
@@ -162,6 +163,14 @@ class Scheduler:
             "interval",
             hours=META_DELETE_UNKNOWN_INTERVAL,
             name='清理未识别缓存'
+        )
+
+        # 定时清理历史数据
+        SchedulerUtils.add_job(
+            scheduler=self.get_scheduler(),
+            func=HistoryCleanup().cleanup_history_tables,
+            func_desc="清理历史记录",
+            cron=str('30 1,2 * * *')
         )
 
         # 定时刷新壁纸

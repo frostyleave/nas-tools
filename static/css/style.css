@@ -18,6 +18,8 @@
     --lit-person-card-bg: var(--tblr-body-bg);
     --lit-menu-color: var(--tblr-body-color);
 
+    --tblr-card-border-color:initial;
+
 }
 
 .theme-dark {
@@ -27,6 +29,35 @@
     --lit-navbar-active-color: #fff;
     --lit-menu-color: #b2b2c4;
     --tblr-navbar-border-color:#243049;
+
+    --tblr-dark-mode-border-color: rgba(255, 255, 255, 0.15);
+    --tblr-btn-bg: #243049
+}
+
+.theme-dark .table {
+    --tblr-table-striped-bg: initial;
+}
+
+.theme-dark .alert:not(.alert-important), 
+.theme-dark .card, 
+.theme-dark .card-footer, 
+.theme-dark .card-stacked::after, 
+.theme-dark .footer:not(.footer-transparent), 
+.theme-dark .toast, 
+.theme-dark .toast-header {
+    background-color: #1d273b61;
+}
+
+.theme-dark .dropdown-menu, 
+.theme-dark .modal-content, 
+.theme-dark .modal-header {
+    background-color: rgba(29, 39, 59, 0.8);
+    backdrop-filter: blur(20px) saturate(150%);
+    -webkit-backdrop-filter: blur(20px) saturate(150%);
+}
+
+.theme-dark .offcanvas {
+    background-color: #1d273b;
 }
 
 .lit-navbar-accordion-item:hover {
@@ -59,32 +90,28 @@ body.no-after::after {
   content: none !important;
 }
 
-/* .theme-dark .input-group-flat .input-group-text {
-    background-color: var(--bs-card-bg);
-}
-
-.theme-dark .form-check-input:not(:checked), .theme-dark .form-control, .theme-dark .form-file-text, .theme-dark .form-select, .theme-dark .form-selectgroup-check {
-    background-color: var(--bs-card-bg);
-} */
-
 .theme-light .page {
     background-color: transparent !important;
 }
 
-body.theme-light::after {
+body::after {
     z-index: -1;
     content: "";
     position: fixed;
     inset: 0;
     background: linear-gradient(135deg,var(--tblr-body-bg) 0%,rgba(123, 178, 233, 0.4) 100%);
-    backdrop-filter: blur(10px);
+    backdrop-filter: blur(20px) saturate(150%);
     pointer-events: none;
 }
 
-
-.layout-fluid .page {
-    background-color: var(--tblr-body-bg);
+body.theme-dark::after {
+    background: linear-gradient(135deg, var(--tblr-body-bg) 25%,rgba(0, 0, 0, 0.35) 100%);
+    backdrop-filter: blur(20px);
 }
+
+/* .layout-fluid .page {
+    background-color: var(--tblr-body-bg);
+} */
 
 .tooltip-inner {
     text-align: left;
@@ -150,6 +177,7 @@ body.theme-light::after {
     padding-top: calc(env(safe-area-inset-top) + var(--safe-area-inset-top)) !important;
     padding-left: env(safe-area-inset-left) !important;
 }
+
 
 .modal-dialog {
     padding-top: calc(env(safe-area-inset-top) + var(--safe-area-inset-top)) !important;
@@ -850,6 +878,19 @@ a:hover {
     bottom: 0;
 }
 
+/* 强制进度条动画，无视 prefers-reduced-motion */
+@media (prefers-reduced-motion: reduce) {
+  .progress-bar-animated {
+    animation: progress-bar-stripes 1s linear infinite !important;
+    transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+}
+
+/* 进度条平滑过渡效果 */
+.progress-bar-animated {
+    transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
 #messageCenterModal .modal-body {
   height: 60vh;
   overflow-y: auto;
@@ -887,6 +928,28 @@ a:hover {
     z-index: 9;
 }
 
+.card-left-top-triangle {
+    position: absolute;
+    top: 0;
+    left: 1px;
+    width: 45px;
+    height: 45px;
+    clip-path: polygon(0 0, 100% 0, 0 100%);
+    border-radius: 4px;
+    z-index: 9;
+}
+
+.card-left-top-triangle span {
+  position: absolute;
+  left: 33.33%;
+  top: 33.33%;
+  font-size: 0.8rem;
+  transform: translate(-50%, -50%) rotate(-45deg);
+  transform-origin: center;
+  color: #fff;
+  white-space: nowrap;
+}
+
 .accordion-header .accordion-button-lit {
     padding: 0.5rem 2rem !important
 }
@@ -912,15 +975,23 @@ a:hover {
 .glass-card {
     backdrop-filter: blur(15px);
     -webkit-backdrop-filter: blur(15px);
-    background: rgba(255, 255, 255, 0.15);
     border: 1px solid rgba(255, 255, 255, 0.2);
-    border-radius: 8px;
+    border-radius: 4px;
     box-shadow: 0 4px 16px 0 rgba(var(--tblr-primary-rgb), 0.3);
 }
 
 .glass-card:hover {
     transform: scale(1.01);
     box-shadow: 0 12px 40px 0 rgba(var(--tblr-primary-rgb), 0.8);
+}
+
+.theme-light .glass-card {
+    background: rgba(255, 255, 255, 0.15);
+}
+
+.theme-dark .form-check-input:not(:checked) {
+    background-color: initial;
+    border-color: var(--tblr-border-color-translucent);
 }
 
 /* 分区切换样式 */
