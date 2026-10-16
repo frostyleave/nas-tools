@@ -17,6 +17,16 @@ import log
 
 from app.utils.types import MediaType
 
+# 需要忽略的特殊字符
+CONVERT_EMPTY_CHARS = r"[、.。,，・·:：;；!！'’\"“”()（）\[\]【】「」\-——\+\|\\_/&#～~]"
+
+# 构建映射表（模块加载时执行一次）
+_FULL_TO_HALF_MAP = {
+    ord(chr(c + 0xFEE0)): c        # 全角可见字符 -> 半角
+    for c in range(0x21, 0x7F)
+}
+_FULL_TO_HALF_MAP[0x3000] = 0x20   # 全角空格 -> 半角空格
+
 
 class StringUtils:
 
@@ -263,8 +273,6 @@ class StringUtils:
         """
         忽略特殊字符
         """
-        # 需要忽略的特殊字符
-        CONVERT_EMPTY_CHARS = r"[、.。,，・·:：;；!！'’\"“”()（）\[\]【】「」\-——\+\|\\_/&#～~]"
         if not text:
             return text
         if not isinstance(text, list):
@@ -273,9 +281,9 @@ class StringUtils:
                           re.sub(r"%s" % CONVERT_EMPTY_CHARS, replace_word, text),
                           flags=re.IGNORECASE)
             if not allow_space:
-                return re.sub(r"\s+", "", text)
+                return re.sub(r"\s+", "", text).translate(_FULL_TO_HALF_MAP)
             else:
-                return re.sub(r"\s+", " ", text).strip()
+                return re.sub(r"\s+", " ", text).strip().translate(_FULL_TO_HALF_MAP)
         else:
             return [StringUtils.handler_special_chars(x) for x in text]
 
