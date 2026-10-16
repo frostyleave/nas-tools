@@ -504,6 +504,17 @@ class Qbittorrent(_IDownloadClient):
                 return False, None
 
             # 5.2.x版本
+            if not isinstance(qbc_ret, str):
+                if hasattr(qbc_ret, 'added_torrent_ids') and hasattr(qbc_ret, 'success_count'):
+                    success_count = qbc_ret.success_count
+                    if success_count > 0:
+                        added_torrent_ids = qbc_ret.added_torrent_ids
+                        if added_torrent_ids:
+                            return True, added_torrent_ids[0]
+                        torrent_hash = self._get_torrent_hash(content)
+                        return True, torrent_hash
+                log.warn(f"【{self.client_name}】{self.name} 添加种子错误：{qbc_ret}")
+
             if qbc_ret.find('added_torrent_ids') > 0:
                 ret_data = json.loads(qbc_ret)
                 # 添加成功
