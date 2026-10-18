@@ -2086,11 +2086,8 @@ class WebAction:
         if SubType == "sim":
             # 相似推荐
             TmdbId = data.get("tmdbid")
-            return self.__media_similar({
-                    "tmdbid": TmdbId,
-                    "page": CurrentPage,
-                    "type": Type
-                }).get("data")
+            req_data = { "tmdbid": TmdbId, "page": CurrentPage, "type": Type}
+            return self.__media_similar(req_data).get("data")
         
         if SubType == "more":
             # 更多推荐
@@ -3531,7 +3528,7 @@ class WebAction:
                         "link": douban_info.get('alt'),
                         "genres": genres,
                         "runtime": duration_str,
-                        # "background": self._douBan.get_media_photo(doubanId, mtype),
+                        "background": [image],
                         "fav": fav,
                         "item_url": item_url,
                         "rssid": rssid,
@@ -3558,6 +3555,9 @@ class WebAction:
             info = media_handler.get_tmdb_info(tmdbid=tmdbid, mtype=mtype, append_to_response="all")
             if not info:
                 return { "code": 1, "msg": "无法查询到TMDB信息" }
+
+            if hasattr(info, 'seasons') and info.seasons:
+                info.seasons = media_handler.get_tmdb_tv_seasons(info)
             
             title = MediaUtils.get_tmdb_title(info)
             media_info = MetaInfo(title)
@@ -3584,6 +3584,7 @@ class WebAction:
                 "fav": fav,
                 "item_url": item_url,
                 "rssid": rssid,
+                "tmdb_info": media_info.tmdb_info
             }
         }
 
@@ -3604,20 +3605,25 @@ class WebAction:
             return {"code": 1, "msg": "媒体信息查询失败"}
 
         media_handler = MediaService()
+
         # 演职人员信息整合
         crews = self.__get_crews_from_media_info(media_info, media_handler, mtype)
+
+        extra_info = {
+            "tmdbid": str(media_info.tmdb_id),
+            "douban_id": media_info.douban_id,
+            "background": media_handler.get_tmdb_backdrops(tmdbinfo=media_info.tmdb_info),
+            "crews": crews,
+        }
+
         # 解析季信息
-        seasons = self.__resolve_season_info(media_info, media_handler, mtype)
-                
+        if mediaid.find(":") > 0 and hasattr(media_info.tmdb_info, 'number_of_seasons'):
+            extra_info['number_of_seasons'] = media_info.tmdb_info.number_of_seasons
+            extra_info['seasons'] = self.__resolve_season_info(media_info, media_handler, mtype)
+
         return {
             "code": 0,
-            "data": {
-                "tmdbid": str(media_info.tmdb_id),
-                "douban_id": media_info.douban_id,
-                "background": media_handler.get_tmdb_backdrops(tmdbinfo=media_info.tmdb_info),
-                "crews": crews,
-                "seasons": seasons
-            }
+            "data": extra_info
         }
 
     def __get_crews_from_media_info(self, media_info:MetaInfo, media_handler:MediaService, mtype:MediaType):
@@ -3692,10 +3698,12 @@ class WebAction:
         查询TMDB相似媒体
         """
         tmdbid = data.get("tmdbid")
+        if not tmdbid or tmdbid.find(":") > 0:
+            return {"code": 1, "msg": "未指定TMDBID"}
+
         page = data.get("page") or 1
         mtype = MediaType.MOVIE if data.get("type") in Constants.MOVIE_TYPES else MediaType.TV
-        if not tmdbid:
-            return {"code": 1, "msg": "未指定TMDBID"}
+
         if mtype == MediaType.MOVIE:
             result = MediaService().get_movie_similar(tmdbid=tmdbid, page=page)
         else:

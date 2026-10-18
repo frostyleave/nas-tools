@@ -49,15 +49,20 @@
               $('#main-info-background').before(bgCarousel);
             }
 
+            $('#main-info-container').append(`<div id="season-pannel" class="container-fluid overflow-hidden px-0"></div>`);
+
+            // 季容器
+            renderSeasonContainer(media_info.tmdb_info);
+            
             // 演职人员、季集信息
             asyncRenderExtraDataCard(tmdbid, media_type, media_info);
-
-            // 类似影片
-            asyncRenderSimCard(tmdbid, media_type, media_info.title);
 
             // 推荐影片
             asyncRenderRecommendCard(tmdbid, media_type, media_info.title);
 
+            // 类似影片
+            asyncRenderSimCard(tmdbid, media_type, media_info.title);
+            
             // 绑定动态生成的元素的事件
             bindDynamicEvents(media_info);
 
@@ -70,9 +75,14 @@
 
       // --- HTML 生成辅助函数 ---
       function generateMainHtml(info, fav, item_url, seasons, tmdbid, media_type) {
-          const genresHtml = info.genres ? info.genres.map(el => 
-              `<span class="badge bg-indigo mb-1 mx-1"> ${el}</span>`
+
+          var genresHtml = info.genres ? info.genres.map(el => 
+              `<div class="list-inline-item">${el}</div>`
           ).join('') : '';
+
+          if (info.year) {
+            genresHtml = `<div class="list-inline-item">${info.year}</div>` + genresHtml;
+          }
 
           const doubanHtml = info.douban_id ? 
               `<span class="mb-1 d-inline-flex"><i class="ti ti-brand-douban fs-2 text-green"></i> ${renderDoubanLink(info.douban_id)}</span>` : '';          
@@ -80,68 +90,52 @@
               `<span class="mb-1 d-inline-flex"><i class="ti ti-badge-tm fs-2 text-blue"></i><a class="text-reset" href="${info.link}" target="_blank">${info.tmdbid}</a></span>` : '';
 
           const searchBtnHtml = `
-              <span class="btn btn-primary d-none d-sm-inline-flex" id="search-btn">
-                <i class="ti ti-search fs-2 text-white"></i> 搜索资源
-              </span>
-              <span class="btn btn-icon bg-transparent border-0 d-sm-none" id="search-btn-icon">
-                <i class="ti ti-search fs-2"></i>
+              <span class="btn btn-primary d-sm-inline-flex px-3 badge-pill" id="search-btn">
+                搜索资源
               </span>`;
           
           const favBtnHtml = fav == "1" ? `
-              <span class="btn btn-pinterest d-none d-sm-inline-flex" onclick='rss_love_click(event, "${info.title}", "${info.year}", "${media_type}", "${tmdbid}", "${fav}")'>
-                <i class="ti ti-heart-filled fs-2 text-purple"></i> 删除订阅
-              </span>
-              <span class="btn btn-icon bg-transparent border-0 d-sm-none" onclick='rss_love_click(event, "${info.title}", "${info.year}", "${media_type}", "${tmdbid}", "${fav}")'>
-                <i class="ti ti-heart-filled fs-2 text-purple"></i>
+              <span class="btn btn-pinterest px-3 d-sm-inline-flex badge-pill" onclick='rss_love_click(event, "${info.title}", "${info.year}", "${media_type}", "${tmdbid}", "${fav}")'>
+                删除订阅
               </span>` : `
-              <span class="btn btn-purple d-none d-sm-inline-flex" onclick='rss_love_click(event, "${info.title}", "${info.year}", "${media_type}", "${tmdbid}", "${fav}")'>
-                <i class="ti ti-heart fs-2 text-white"></i> 添加订阅
-              </span>
-              <span class="btn btn-icon bg-transparent border-0 d-sm-none" onclick='rss_love_click(event, "${info.title}", "${info.year}", "${media_type}", "${tmdbid}", "${fav}")'>
-                <i class="ti ti-heart fs-2"></i>
+              <span class="btn btn-purple px-3 d-sm-inline-flex badge-pill" onclick='rss_love_click(event, "${info.title}", "${info.year}", "${media_type}", "${tmdbid}", "${fav}")'>
+                添加订阅
               </span>`;
 
           const watchBtnHtml = item_url ? `
-              <span class="btn btn-green d-none d-sm-inline-flex" id="watch-btn" data-url="${item_url}">
-                <i class="ti ti-device-tv-old fs-2 text-white"></i> 在线观看
-              </span>
-              <span class="btn btn-icon bg-transparent border-0 d-sm-none" id="watch-btn-icon" data-url="${item_url}" >
-                <i class="ti ti-player-play fs-2"></i>
+              <span class="btn btn-green px-3 d-sm-inline-flex badge-pill" id="watch-btn" data-url="${item_url}">
+                在线观看
               </span>` : '';
 
           return `
           <div id="main-card" class="card rounded-0 lit-media-info-background custom-media-info-height">
             <div id="main-info-background" class="card-img-overlay rounded-0 lit-media-info-background">
-              <div class="d-flex flex-row mb-4 align-items-stretch">
-                <custom-img class="d-flex justify-content-center flex-shrink-0" div-style="position:relative;"
+              <div class="d-flex flex-row mb-4 align-items-stretch justify-content-center justify-content-md-start">
+                <custom-img class="d-none d-md-flex justify-content-center flex-shrink-0 me-3" div-style="position:relative;"
                   img-class="rounded-3 object-cover lit-media-info-image"
                   img-error="0"
                   img_vote="${info.vote}"
                   img_mark="${fav == "2" ? "1" : "0"}"
                   img-src="${info.image}">
                 </custom-img>
-                <div class="d-flex flex-column justify-content-end ms-3 text-start">
+                <div class="d-flex flex-column align-items-center justify-content-end">
                   <div>
-                    <h1 class="display-7 text-start text-shadow-b1">
+                    <h1 class="display-6 text-start text-shadow-b1">
                       <strong calss="d-inline">${info.title}</strong>
-                      <strong class="h3 ${!info.year ? 'd-none' : 'd-inline'} ">(${info.year})</strong>
                     </h1>
                   </div>
-                  <div class="text-start mt-1">${genresHtml}</div>
-                  <div class="text-start mt-1" id="tags-container">
+                  <div class="list-inline list-inline-dots mt-1 text-center fw-bold text-shadow-b1">${genresHtml}</div>
+                  <div class="text-center mt-1" id="tags-container">
                     <span class="mb-1 ${!info.runtime ? 'd-none' : 'd-inline-flex'}"><i class="ti ti-clock fs-2"></i>&nbsp;${info.runtime}</span>
                     <span class="mb-1 ${!seasons.length ? 'd-none' : 'd-inline-flex'}"><i class="ti ti-stack-2 fs-2"></i>&nbsp;共${seasons.length}季</span>
                     ${tmdbHtml}
                     ${doubanHtml}
                   </div>
-                  <hr class="d-block d-sm-none mt-3 mb-0">
-                  <div class="text-start mt-1">
+                  <div class="text-start mt-3 mb-1">
                     ${searchBtnHtml}
                     ${favBtnHtml}
                     ${watchBtnHtml}
                   </div>
-                </div>
-                <div id="seasons-info-container" class="d-none d-md-block position-absolute rounded" style="top: 5rem; right: 0rem; z-index: 99;width: auto; min-width: 25rem;max-width: 50rem;">
                 </div>
               </div>
               <h1 class="d-flex">
@@ -159,20 +153,58 @@
           `;
       }
       
-      function renderTagsContainer(info, seasons) {
+      function pickSeason(seasons, targetSeason) {
+        // 空数组保护
+        if (!seasons || seasons.length === 0) return null;
 
-        var doubanHtml = info.douban_id ? 
-            `<span class="mb-1 d-inline-flex"><i class="ti ti-brand-douban fs-2 text-green"></i> ${renderDoubanLink(info.douban_id)}</span>` : '';        
-        var tmdbHtml = info.tmdbid && info.link ?
-            `<span class="mb-1 d-inline-flex"><i class="ti ti-badge-tm fs-2 text-blue"></i><a class="text-reset" href="${info.link}" target="_blank">${info.tmdbid}</a></span>` : '';
-        
+        // 用 $.grep 筛选出 season_number 匹配的项（返回数组）
+        var matched = $.grep(seasons, function (item) {
+          return item.season_number === targetSeason;
+        });
+
+        // 找到就取第一个，否则兜底取最后一个元素
+        return matched.length > 0 ? matched[0] : seasons[seasons.length - 1];
+      }
+
+      function renderSeasonContainer(tmdb_info) {
+
+        if (!tmdb_info || !tmdb_info.seasons || tmdb_info.seasons.length == 0) {
+          return;
+        }
+
+        var seasonBadge = tmdb_info.number_of_seasons && tmdb_info.number_of_seasons > 0
+        ? `<span class="badge badge-pill bg-primary-lt text-primary">共 ${tmdb_info.number_of_seasons} 季</span>`
+        : "";
+
         var innerHtml = `
-          <span class="mb-1 ${!info.runtime ? 'd-none' : 'd-inline-flex'}"><i class="ti ti-clock fs-2"></i>&nbsp;${info.runtime}</span>
-          <span class="mb-1 ${!seasons.length ? 'd-none' : 'd-inline-flex'}"><i class="ti ti-stack-2 fs-2"></i>&nbsp;共${seasons.length}季</span>
-          ${tmdbHtml}
-          ${doubanHtml}
-        `;
-        $('#tags-container').html(innerHtml);
+          <div class="page-header d-print-none">
+            <div class="d-flex justify-content-between">
+              <div class="d-inline-flex">
+                <a class="nav-link ms-3 mb-2 cursor-default" href="javascript:void(0)">
+                  <h2 class="my-1"><strong>最新季</strong></h2>
+                  <div class="ms-2">${seasonBadge}</div>
+                </a>
+              </div>
+            </div>
+          </div>`;
+
+        var displaySeason = pickSeason(tmdb_info.seasons, tmdb_info.number_of_seasons);
+        if (displaySeason != null) {
+          innerHtml +=`
+            <div class="d-flex align-items-stretch mx-1 p-3 rounded-3" style="padding: var(--tblr-card-img-overlay-padding);border: 1px solid var(--lit-navbar-active);">
+              <div class="col-auto d-flex align-items-center border border-1">
+                <img alt="海报" class="rounded" style="display: block;min-width: 100%;max-width: 140px;min-height: 100%;max-height: 100%;object-fit: cover;" src="${displaySeason.poster_path}">
+              </div>                      
+              <div class="col ms-3">
+                <h3>${displaySeason.name}</h3>
+                <small><span class="badge badge-pill px-2">共 ${displaySeason.episode_count} 集</span></small>
+                <p class="text-muted mt-3">${displaySeason.overview}</p>
+              </div>
+            </div>
+          `;
+        }
+        
+        $('#season-pannel').html(innerHtml);
 
       }
 
@@ -226,15 +258,17 @@
                   });
 
                   personSlide.slide_card = slide_cards;                      
-                  $('#overview-container').after(personSlide);
+                  $('#season-pannel').after(personSlide);
 
               }
 
-              var seasons_data = extra_data.seasons || [];
-              // 重绘标签
-              renderTagsContainer(media_info, seasons_data);
               // 生成季集信息
-              renderSeasonPanel(media_info, seasons_data);
+              renderSeasonContainer(extra_data);
+              
+              if ($('#sim-slide').length == 0) {
+                asyncRenderSimCard(media_info.tmdbid, media_type, media_info.title);
+              }
+
             }
           }
         );
@@ -250,6 +284,7 @@
           }
 
           const similarSlide = document.createElement('custom-slide');
+          similarSlide.id = 'sim-slide';
           similarSlide.setAttribute('slide-title', '类似');
           similarSlide.setAttribute('lazy', 'normal-card');
           similarSlide.setAttribute('slide-click',
@@ -319,17 +354,6 @@
 
         });
 
-      }
-
-      function renderSeasonPanel(info, seasons_data) {
-        if (seasons_data && seasons_data.length > 0) {
-          const similarSlide = document.createElement('accordion-seasons');
-          similarSlide.setAttribute('tmdbid', info.tmdbid);
-          similarSlide.setAttribute('title', info.title);
-          similarSlide.setAttribute('year', info.year);
-          similarSlide.seasons_data = seasons_data;
-          $('#seasons-info-container').append(similarSlide);
-        }
       }
 
       function renderDoubanLink(douban_id) {
