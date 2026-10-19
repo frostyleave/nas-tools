@@ -1016,12 +1016,6 @@ class Downloader:
         """停止服务（委托给 TransferManager）"""
         self._transfer_manager.stop_service()
 
-    def get_download_history(self, date=None, hid=None, num=30, page=1):
-        """
-        获取下载历史记录
-        """
-        return self.dbhelper.get_download_history(date=date, hid=hid, num=num, page=page)
-
     def get_download_history_by_title(self, title):
         """
         根据标题查询下载历史记录

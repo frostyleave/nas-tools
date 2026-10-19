@@ -1568,8 +1568,8 @@ class DbHelper:
             return
         
         exists_data = self.query_exists_download_history(enclosure=media_info.enclosure,
-                                           downloader=downloader,
-                                           download_id=download_id)
+                                                         downloader=downloader,
+                                                         download_id=download_id)
         exist = exists_data.first()
         if exist:
             # 记录已存在时只更新最新一条
@@ -1584,6 +1584,7 @@ class DbHelper:
                     "SAVE_PATH": save_dir,
                     "SE": media_info.get_season_episode_string(),
                     "DATE": time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time())),
+                    "PAGE_URL": media_info.page_url,
                 }
             )
         else:
@@ -1594,7 +1595,6 @@ class DbHelper:
                 TMDBID=media_info.tmdb_id,
                 VOTE=media_info.vote_average,
                 POSTER=media_info.get_poster_image(),
-                OVERVIEW=media_info.overview,
                 BACKDROP=media_info.get_backdrop_image(default=False, original=True),
                 ENCLOSURE=media_info.enclosure,
                 DESC=media_info.description,
@@ -1603,32 +1603,9 @@ class DbHelper:
                 DOWNLOADER=downloader,
                 DOWNLOAD_ID=download_id,
                 SAVE_PATH=save_dir,
+                PAGE_URL=media_info.page_url,
                 SE=media_info.get_season_episode_string()
             ))
-
-    def get_download_history(self, date=None, hid=None, num=30, page=1):
-        """
-        查询下载历史
-        """
-        if hid:
-            return self._db.query(DOWNLOADHISTORY).filter(DOWNLOADHISTORY.ID == int(hid)).all()
-        sub_query = self._db.query(DOWNLOADHISTORY,
-                                   func.max(DOWNLOADHISTORY.DATE)
-                                   ).group_by(DOWNLOADHISTORY.TITLE).subquery()
-        if date:
-            return self._db.query(DOWNLOADHISTORY).filter(
-                DOWNLOADHISTORY.DATE > date).join(
-                sub_query,
-                and_(sub_query.c.ID == DOWNLOADHISTORY.ID)
-            ).order_by(DOWNLOADHISTORY.DATE.desc()).all()
-        else:
-            offset = (int(page) - 1) * int(num)
-            return self._db.query(DOWNLOADHISTORY).join(
-                sub_query,
-                and_(sub_query.c.ID == DOWNLOADHISTORY.ID)
-            ).order_by(
-                DOWNLOADHISTORY.DATE.desc()
-            ).limit(num).offset(offset).all()
 
     def get_download_history_by_title(self, title):
         """

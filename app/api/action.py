@@ -176,7 +176,6 @@ class WebAction:
             "get_site_history": self.__get_site_history,
             "get_recommend": self.__get_recommend,
             "batch_get_media_exists_info": self.__batch_get_media_exists_info,
-            "get_downloaded": self.__get_downloaded,
             "get_site_seeding_info": self.__get_site_seeding_info,
             "clear_tmdb_cache": self.__clear_tmdb_cache,
             "check_site_attr": self.__check_site_attr,
@@ -1958,9 +1957,6 @@ class WebAction:
             res_list = [media.to_dict() for media in medias]
             # 相关性排序
             res_list = self.__sort_search_results(res_list, Keyword)
-        elif Type == "DOWNLOADED":
-            # 近期下载
-            res_list = self.__get_downloaded({"page": CurrentPage}).get("Items")
         elif Type == "TRENDING":
             # TMDB流行趋势
             if SubType == "trendingmv":
@@ -1990,6 +1986,8 @@ class WebAction:
                                                    sort=sort,
                                                    tags=tags,
                                                    page=CurrentPage)
+        else:
+             return {"code": 1, "msg": f"未知类型: {Type}"}
 
         fav = data.get("fav", 1)
         # 不检查存在与订阅状态
@@ -2143,28 +2141,6 @@ class WebAction:
             reverse=True
         )
         return sorted_results
-
-    def __get_downloaded(self, data):
-        page = data.get("page")
-        Items = Downloader().get_download_history(page=page)
-        if Items:
-            return {"code": 0, "Items": [{
-                'id': item.TMDBID,
-                'orgid': item.TMDBID,
-                'tmdbid': item.TMDBID,
-                'title': item.TITLE,
-                'type': 'MOV' if item.TYPE == "电影" else "TV",
-                'media_type': item.TYPE,
-                'year': item.YEAR,
-                'vote': item.VOTE,
-                'image': item.POSTER,
-                'backdrop': item.BACKDROP,
-                'overview': item.OVERVIEW,
-                "date": item.DATE,
-                "site": item.SITE
-            } for item in Items]}
-        else:
-            return {"code": 0, "Items": []}
 
     def __clear_tmdb_cache(self):
         """
@@ -2996,12 +2972,12 @@ class WebAction:
         """
         downloader_id = data.get("downloader_id")
 
-        DownloaderHandler = Downloader()
-        torrents = DownloaderHandler.get_downloading_progress(downloader_id=downloader_id)
+        downloaderHandler = Downloader()
+        torrents = downloaderHandler.get_downloading_progress(downloader_id=downloader_id)
         for torrent in torrents:
             # 先查询下载记录，没有再识别
             name = torrent.get("name")
-            download_info = DownloaderHandler.get_download_history_by_downloader(
+            download_info = downloaderHandler.get_download_history_by_downloader(
                 downloader=downloader_id,
                 download_id=torrent.get("id")
             )
@@ -3438,9 +3414,9 @@ class WebAction:
         
         # 查询存在及订阅状态
         fav, rssid, item_url = MediaStatusChecker().get_media_exists_info(mtype=mtype,
-                                                          title=media_info.title,
-                                                          year=media_info.year,
-                                                          mediaid=media_info.tmdb_id)
+                                                                          title=media_info.title,
+                                                                          year=media_info.year,
+                                                                          mediaid=media_info.tmdb_id)
         media_handler = MediaService()
         # 演职人员信息整合
         crews = self.__get_crews_from_media_info(media_info, media_handler, mtype)
@@ -3460,9 +3436,8 @@ class WebAction:
                 "genres": media_handler.get_tmdb_genres_names(tmdbinfo=media_info.tmdb_info),
                 "overview": media_info.overview,
                 "runtime": StringUtils.str_timehours(media_info.runtime),
-                "crews": crews,
-                # "actors": actors,
                 "link": media_info.get_detail_url(),
+                "crews": crews,
                 "fav": fav,
                 "item_url": item_url,
                 "rssid": rssid,

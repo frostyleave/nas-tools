@@ -172,7 +172,7 @@ class DOWNLOADHISTORY(Base):
     SE = Column(Text)
     VOTE = Column(Text)
     POSTER = Column(Text)
-    OVERVIEW = Column(Text)
+    PAGE_URL = Column(Text)
     BACKDROP = Column(Text)
     ENCLOSURE = Column(Text, index=True)
     SITE = Column(Text)
