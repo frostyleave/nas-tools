@@ -675,7 +675,7 @@ class Qbittorrent(_IDownloadClient):
             sizeprogress = ("%sB / %sB" % (StringUtils.str_filesize(downloaded), StringUtils.str_filesize(total_size))).replace('BB', 'B')
             _dlspeed = '0'
             _upspeed = '0'
-            if torrent.get('state') in ['pausedDL']:
+            if torrent.get('state') in ['pausedDL', 'stoppedDL']:
                 state = "Stoped"
                 speed = "已暂停"
             else:
