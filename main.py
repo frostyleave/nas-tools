@@ -100,12 +100,13 @@ async def home_page():
 @app.post("/data/bing")
 async def bing():
 
-    image_code, img_title, img_link = get_login_wallpaper()
+    image_code, img_title, img_link, img_url = get_login_wallpaper()
 
     data = {
-        "imageCode" : image_code,
+        "imgCode" : image_code,
         "imgTitle" : img_title,
-        "imgLink" : img_link
+        "imgLink" : img_link,
+        "imgUrl" : img_url
     }
 
     return JSONResponse(

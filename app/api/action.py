@@ -1988,23 +1988,24 @@ class WebAction:
                                                    page=CurrentPage)
         else:
              return {"code": 1, "msg": f"未知类型: {Type}"}
-
-        fav = data.get("fav", 1)
-        # 不检查存在与订阅状态
-        if not fav:
-            return {"code": 0, "Items": res_list}
+        
+        if not res_list:
+            return {"code": 1, "msg": '没有查到'}
 
         # 补充存在与订阅状态
-        for res in res_list:
-            fav, rssid, item_url = MediaStatusChecker().get_media_exists_info(mtype=res.get("type"),
-                                                              title=res.get("title"),
-                                                              year=res.get("year"),
-                                                              mediaid=res.get("id"))
-            res.update({
-                'fav': fav,
-                'rssid': rssid,
-                'item_url': item_url
-            })
+        fav = data.get("fav", 1)
+        if fav:
+            for res in res_list:
+                fav, rssid, item_url = MediaStatusChecker().get_media_exists_info(mtype=res.get("type"),
+                                                                title=res.get("title"),
+                                                                year=res.get("year"),
+                                                                mediaid=res.get("id"))
+                res.update({
+                    'fav': fav,
+                    'rssid': rssid,
+                    'item_url': item_url
+                })
+
         return {"code": 0, "Items": res_list}
     
     def __batch_get_media_exists_info(self, data):
@@ -3503,7 +3504,7 @@ class WebAction:
                         "link": douban_info.get('alt'),
                         "genres": genres,
                         "runtime": duration_str,
-                        "background": [image],
+                        # "background": [image],
                         "fav": fav,
                         "item_url": item_url,
                         "rssid": rssid,

@@ -146,53 +146,54 @@
       </div>
     </div>
   </div>
+  <!-- 主界面 -->
   <div id="app-layout" class="page d-none">
     <input type="hidden" id="default_transfer_mode" />
     <input type="hidden" id="default_path" />
-    <!-- 搜索栏 -->
-    <div id="navbar-search" class="navbar fixed-top lit-searchbar d-none">
-      <div class="nav-search-bar d-flex flex-row flex-grow-1 align-items-center">
-        <!-- <div class="d-flex flex-row flex-grow-1 align-items-center py-1 ms-2">
-        </div> -->
-        <!-- 导航展开按钮 -->
-        <button class="navbar-toggler d-lg-none py-2 me-1" type="button" data-bs-toggle="offcanvas" data-bs-target="#litLayoutNavbar">
-          <i class="ti ti-menu-2 fs-2"></i>
-        </button>
-        <!-- 搜索栏 -->
-        <div class="input-group input-group-flat">
-          <!-- 搜索图标 -->
-          <span class="input-group-text">
-            <a href="javascript:show_quick_search_modal()" class="link-secondary d-flex align-items-center">
-              <i class="ti ti-search fs-2 text-blue"></i>
-            </a>
-          </span>
-          <!-- 输入框 -->
-          <a href="javascript:show_quick_search_modal()" class="form-control cursor-pointer text-decoration-none">
-            <span class="text-muted">
-              搜索电影、电视剧
-            </span>
-          </a>
-          <!-- 高级搜索图标 -->
-          <span class="input-group-text">
-            <a class="link-secondary d-flex align-items-center" href="javascript:show_search_advanced_modal()">
-              <i class="ti ti-quick-search fs-2 text-tabler"></i>
-            </a>
-          </span>
-          <!-- 头像 dropdown -->
-          <span class="input-group-text border-start-0">
-            <div class="nav-item dropdown">
-              <a href="#" class="d-flex align-items-center" data-bs-toggle="dropdown" aria-expanded="false">
-                <i class="ti ti-user-square-rounded fs-2 text-vimeo"></i>
+    <div class="page-wrapper">
+      <!-- 搜索栏 -->
+      <div id="navbar-search" class="navbar fixed-top lit-searchbar d-none">
+        <div class="nav-search-bar d-flex flex-row flex-grow-1 align-items-center">
+          <!-- <div class="d-flex flex-row flex-grow-1 align-items-center py-1 ms-2">
+          </div> -->
+          <!-- 导航展开按钮 -->
+          <button class="navbar-toggler d-lg-none py-2 me-1" type="button" data-bs-toggle="offcanvas" data-bs-target="#litLayoutNavbar">
+            <i class="ti ti-menu-2 fs-2"></i>
+          </button>
+          <!-- 搜索栏 -->
+          <div class="input-group input-group-flat">
+            <!-- 搜索图标 -->
+            <span class="input-group-text">
+              <a href="javascript:show_quick_search_modal()" class="link-secondary d-flex align-items-center">
+                <i class="ti ti-search fs-2 text-blue"></i>
               </a>
-              <div id="head-dropdown-menu" class="dropdown-menu dropdown-menu-end dropdown-menu-arrow">
+            </span>
+            <!-- 输入框 -->
+            <a href="javascript:show_quick_search_modal()" class="form-control cursor-pointer text-decoration-none">
+              <span class="text-muted">
+                搜索电影、电视剧
+              </span>
+            </a>
+            <!-- 高级搜索图标 -->
+            <span class="input-group-text">
+              <a class="link-secondary d-flex align-items-center" href="javascript:show_search_advanced_modal()">
+                <i class="ti ti-quick-search fs-2 text-tabler"></i>
+              </a>
+            </span>
+            <!-- 头像 dropdown -->
+            <span class="input-group-text border-start-0">
+              <div class="nav-item dropdown">
+                <a href="#" class="d-flex align-items-center" data-bs-toggle="dropdown" aria-expanded="false">
+                  <i class="ti ti-user-square-rounded fs-2 text-vimeo"></i>
+                </a>
+                <div id="head-dropdown-menu" class="dropdown-menu dropdown-menu-end dropdown-menu-arrow">
+                </div>
               </div>
-            </div>
-          </span>
+            </span>
+          </div>
         </div>
       </div>
-    </div>
-    <!-- 主界面 -->
-    <div class="page-wrapper">
+      <!-- 展示区 -->
       <nav class="navbar navbar-expand navbar-secondary" id="top-sub-navbar">
         <div class="container-fluid d-flex justify-content-md-start justify-content-center">
           <ul class="navbar-nav gap-3"></ul>
@@ -1482,8 +1483,8 @@
         if (response.code === 0 && response.data) {
           var data = response.data;
           // 设置背景图片
-          if (data.imageCode) {
-            $("body").css("background", `url(data:image/jpg;base64,${data.imageCode}) center / cover no-repeat fixed`);
+          if (data.imgUrl) {
+            $("body").css("background", `url(${data.imgUrl}) center / cover no-repeat fixed`);
           }
           // 显示图片信息
           $('#image-title').text(data.imgTitle);

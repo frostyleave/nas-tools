@@ -1,5 +1,6 @@
 
-<div id="main-info-container" class="container-xl placeholder-glow page-wrapper-top-off lit-media-info-page-bg">
+<div id="main-info-container" class="container-xl placeholder-glow page-wrapper-top-off" style="position: relative;">
+  <div class="main-info-mask"></div>
 </div>
 
 <script type="text/javascript">
@@ -37,17 +38,7 @@
             $('#main-info-container').append(mainHtml);
 
             // 背景轮播
-            if (media_info.background && media_info.background.length > 0) {
-              const bgCarousel = document.createElement('custom-img');
-              bgCarousel.setAttribute('id', 'background-carousel');
-              bgCarousel.setAttribute('class', 'custom-media-info-height');
-              bgCarousel.setAttribute('div-style', 'display:inline;');
-              bgCarousel.setAttribute('img-placeholder', '0');
-              bgCarousel.setAttribute('img-error', '0');
-              bgCarousel.setAttribute('img-class', 'card-img rounded-0 background-carousel-img');
-              bgCarousel.img_src_list = media_info.background;
-              $('#main-info-background').before(bgCarousel);
-            }
+            buildBackgroundCarousel(media_info.background);
 
             $('#main-info-container').append(`<div id="season-pannel" class="container-fluid overflow-hidden px-0"></div>`);
 
@@ -108,8 +99,8 @@
               </span>` : '';
 
           return `
-          <div id="main-card" class="card rounded-0 lit-media-info-background custom-media-info-height">
-            <div id="main-info-background" class="card-img-overlay rounded-0 lit-media-info-background">
+          <div id="main-card" class="card rounded-0 custom-media-info-height bg-transparent">
+            <div id="main-info-background" class="card-img-overlay rounded-0">
               <div class="d-flex flex-row mb-4 align-items-stretch justify-content-center justify-content-md-start">
                 <custom-img class="d-none d-md-flex justify-content-center flex-shrink-0 me-3" div-style="position:relative;"
                   img-class="rounded-3 object-cover lit-media-info-image"
@@ -138,14 +129,14 @@
                   </div>
                 </div>
               </div>
-              <h1 class="d-flex">
-                <strong>简介</strong>
-              </h1>
             </div>
           </div>
-          <div id="overview-container" class="row">
-            <div class="col-lg-9">
-              <h2 class="text-muted ms-3 me-2">
+          <div id="overview-container">
+            <h1 class="ms-2">
+              <strong>简介</strong>
+            </h1>
+            <div class="col-lg-9 py-2 row-cards overview-container">
+              <h2 class="nav-link-title ms-3 me-2">
                 <small>${info.overview ?? ''}</small>
               </h2>
             </div>
@@ -223,44 +214,10 @@
               media_info.douban_id = extra_data.douban_id;
               
               // 背景轮播
-              if (extra_data.background && extra_data.background.length > 0) {
-                $('#background-carousel').remove();
-                const bgCarousel = document.createElement('custom-img');
-                bgCarousel.setAttribute('class', 'custom-media-info-height');
-                bgCarousel.setAttribute('div-style', 'display:inline;');
-                bgCarousel.setAttribute('img-placeholder', '0');
-                bgCarousel.setAttribute('img-error', '0');
-                bgCarousel.setAttribute('img-class', 'card-img rounded-0 background-carousel-img');
-                bgCarousel.img_src_list = extra_data.background;
-                $('#main-info-background').before(bgCarousel);
-              }
+              buildBackgroundCarousel(extra_data.background);
 
               // 演职人员
-              if (extra_data.crews && extra_data.crews.length > 0) {
-
-                  const personSlide = document.createElement('custom-slide');
-                  personSlide.setAttribute('slide-title', '演职人员');
-                  personSlide.setAttribute('lazy', 'person-card');
-
-                  var slide_cards = [];                      
-                  extra_data.crews.map((card, index) => {
-                    const nc = document.createElement('person-card');
-                    nc.setAttribute('lazy', '1');
-                    nc.setAttribute('person-id', card.id);
-                    nc.setAttribute('person-image', card.image);
-                    nc.setAttribute('person-name', card.original_name);
-                    nc.setAttribute('person-role', card.role);
-                    nc.onclick = () => {
-                      navmenu('recommend?type='+media_type+'&subtype=person&personid='+card.id+'&title=参与作品&subtitle='+card.original_name);
-                    };
-
-                    slide_cards.push(nc);
-                  });
-
-                  personSlide.slide_card = slide_cards;                      
-                  $('#season-pannel').after(personSlide);
-
-              }
+              buildCrewsSlideCards(extra_data.crews)
 
               // 生成季集信息
               renderSeasonContainer(extra_data);
@@ -272,6 +229,61 @@
             }
           }
         );
+      }
+
+      function buildBackgroundCarousel(backgrounds) {
+
+        if (!backgrounds || backgrounds.length == 0) {
+          return;
+        }
+
+        $('#background-carousel').remove();
+
+        const bgCarousel = document.createElement('custom-img');
+        bgCarousel.setAttribute('id', 'background-carousel');
+        // bgCarousel.setAttribute('class', 'custom-media-info-height');
+        bgCarousel.setAttribute('style', 'inset: 0; display: block;  width: 100%; height: 100%; z-index: 0; pointer-events: none; position: absolute;');
+        bgCarousel.setAttribute('div-style', 'display:inline;');
+        bgCarousel.setAttribute('img-placeholder', '0');
+        bgCarousel.setAttribute('img-error', '0');
+        bgCarousel.setAttribute('img-class', 'card-img rounded-0 background-carousel-img');
+        bgCarousel.img_src_list = backgrounds;
+
+        $('#main-card').before(bgCarousel);
+        
+      }
+
+      function buildCrewsSlideCards(crewList) {
+
+        if (!crewList || crewList.length == 0) {
+          return;
+        }
+
+        var slide_cards = [];                      
+        crewList.map((card, index) => {
+          const nc = document.createElement('person-card');
+          nc.setAttribute('lazy', '1');
+          nc.setAttribute('person-id', card.id);
+          nc.setAttribute('person-image', card.image);
+          nc.setAttribute('person-name', card.original_name);
+          nc.setAttribute('person-role', card.role);
+          nc.onclick = () => {
+            navmenu('recommend?type='+media_type+'&subtype=person&personid='+card.id+'&title=参与作品&subtitle='+card.original_name);
+          };
+
+          slide_cards.push(nc);
+        });
+
+        $('#crews-slide-cards').remove();
+
+        const personSlide = document.createElement('custom-slide');
+        personSlide.setAttribute('id', 'crews-slide-cards');
+        personSlide.setAttribute('slide-title', '演职人员');
+        personSlide.setAttribute('lazy', 'person-card');
+        personSlide.slide_card = slide_cards;
+
+        $('#season-pannel').after(personSlide);
+
       }
 
       function asyncRenderSimCard(tmdbid, media_type, media_title) {

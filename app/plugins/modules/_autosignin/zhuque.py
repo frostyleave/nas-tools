@@ -30,54 +30,53 @@ class ZhuQue(_ISiteSigninHandler):
         :param site_info: 站点信息，含有站点Url、站点Cookie、UA等信息
         :return: 签到结果信息
         """
-        site = site_info.name
+        site_name = site_info.name
         site_cookie = site_info.cookie
-        ua = site_info.ua
+        ua = site_info.ua if site_info.ua else Config().get_ua()
         proxy = Config().get_proxies() if site_info.proxy else None
 
         # 获取页面html
         html_res = RequestUtils(cookies=site_cookie,
                                 ua=ua,
                                 proxies=proxy
-                                ).get_res(url="https://zhuque.in")
+                                ).get_res(url="https://zhuque.in/gaming/genshin/character/list")
+        
         if not html_res or html_res.status_code != 200:
-            self.error(f"模拟登录失败，请检查站点连通性")
-            return False, f'[site]模拟登录失败，请检查站点连通性'
+            self.error(f"访问抽卡页失败，请检查站点连通性")
+            return False, f'[{site_name}]访问抽卡页败，请检查站点连通性'
 
         if "login.php" in html_res.text:
-            self.error(f"模拟登录失败，cookie失效")
-            return False, f'[site]模拟登录失败，cookie失效'
+            self.error(f"访问抽卡页失败，cookie失效")
+            return False, f'[{site_name}]访问抽卡页失败，cookie失效'
 
         html = etree.HTML(html_res.text)
-
         if not html:
-            return False, f'[site]模拟登录失败'
+            return False, f'[{site_name}]抽卡页解析失败'
 
         # 释放技能
-        msg = '失败'
         x_csrf_token = html.xpath("//meta[@name='x-csrf-token']/@content")[0]
-        if x_csrf_token:
-            data = {
-                "all": 1,
-                "resetModal": "true"
-            }
-            headers = {
-                "x-csrf-token": str(x_csrf_token),
-                "Content-Type": "application/json; charset=utf-8",
-                "User-Agent": ua
-            }
-            skill_res = RequestUtils(cookies=site_cookie,
-                                     headers=headers,
-                                     proxies=proxy
-                                     ).post_res(url="https://zhuque.in/api/gaming/fireGenshinCharacterMagic", json=data)
-            if not skill_res or skill_res.status_code != 200:
-                self.error(f"模拟登录失败，释放技能失败")
+        if not x_csrf_token:
+            return False, f'[{site_name}]无法获取x-csrf-token'
+        
+        msg = '失败'
 
-            # '{"status":200,"data":{"code":"FIRE_GENSHIN_CHARACTER_MAGIC_SUCCESS","bonus":0}}'
+        headers = {
+            "x-csrf-token": str(x_csrf_token),
+            "Content-Type": "application/json; charset=utf-8",
+            "User-Agent": ua
+        }
+        data = { "all": 1, "resetModal": "true" }
+        skill_res = RequestUtils(cookies=site_cookie,
+                                 headers=headers,
+                                 proxies=proxy
+                                 ).post_res(url="https://zhuque.in/api/gaming/fireGenshinCharacterMagic", json=data)
+        if not skill_res or skill_res.status_code != 200:
+            self.error(f"签到失败：释放技能失败")
+        else:
             skill_dict = json.loads(skill_res.text)
             if skill_dict['status'] == 200:
                 bonus = int(skill_dict['data']['bonus'])
                 msg = f'成功，获得{bonus}魔力'
 
-        self.info(f'[site]模拟登录成功，技能释放{msg}')
-        return True, f'[site]模拟登录成功，技能释放{msg}'
+        self.info(f'[{site_name}]签到{msg}')
+        return True, f'[{site_name}]签到{msg}'

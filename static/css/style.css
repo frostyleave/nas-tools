@@ -20,6 +20,7 @@
 
     --tblr-card-border-color:initial;
 
+    --card-transparent-bg: #e5dede1f;
 }
 
 .theme-dark {
@@ -31,7 +32,9 @@
     --tblr-navbar-border-color:#243049;
 
     --tblr-dark-mode-border-color: rgba(255, 255, 255, 0.15);
-    --tblr-btn-bg: #243049
+    --tblr-btn-bg: #243049;
+
+    --card-transparent-bg: #1d273b61;
 }
 
 .theme-dark .table {
@@ -45,7 +48,7 @@
 .theme-dark .footer:not(.footer-transparent), 
 .theme-dark .toast, 
 .theme-dark .toast-header {
-    background-color: #1d273b61;
+    background-color: var(--card-transparent-bg);
 }
 
 .theme-dark .dropdown-menu, 
@@ -1203,4 +1206,31 @@ h1.login_title>label {
     .advanced-search-toggle-wrapper {
         display: none !important;
     }
+}
+
+@media (min-width: 992px) {
+    .page-wrapper > .navbar.fixed-top.lit-searchbar {
+        left: 15rem;
+    }
+}
+
+.main-info-mask {
+    position: absolute !important;
+    inset: 0;
+    z-index: 1 !important;
+    background: linear-gradient(45deg, var(--tblr-body-bg) 0%, rgba(123, 178, 233, 0.25) 75%);
+    backdrop-filter: blur(1px) saturate(100%);
+    pointer-events: none;
+}
+
+div#main-info-container > * {
+    z-index: 2;
+    position: relative;
+}
+
+.overview-container {
+    background-color: var(--card-transparent-bg);
+    border: 1px solid var(--lit-person-card-bg);
+    border-radius: 5px;
+    margin-left: calc(var(--tblr-gutter-x) * .5);
 }
