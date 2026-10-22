@@ -4,6 +4,7 @@ import requests
 
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
+from enum import Enum
 from lxml import etree
 from threading import Event
 from typing import List, Tuple
@@ -62,6 +63,53 @@ class SignInResults:
     def add_script_error(self, site_name: str):
         """记录一个签到脚本执行时的意外错误"""
         self.failed_info.append(f'🛑{site_name}:签到时发生脚本错误')
+
+
+class Verdict(Enum):
+    OK          = "ok"           # 正常进入站点
+    MAINTENANCE = "maintenance"  # 维护页
+    BLOCKED     = "blocked"      # 403 / WAF 拦截
+    UNKNOWN     = "unknown"      # 无法判定 → 应重试，不要重登
+
+
+@dataclass
+class CheckResult:
+    verdict: Verdict
+    reason: str
+
+
+# ---------- 反向：维护页特征 ----------
+MAINTENANCE_PATTERNS = [
+    re.compile(r"站点关闭维护"),
+    re.compile(r"系统维护"),
+    re.compile(r"升级维护"),
+    re.compile(r"服务器维护"),
+    re.compile(r"暂停访问"),
+    re.compile(r"请稍后再访问"),
+    re.compile(r"\bmaintenance\b", re.I),
+]
+# 维护页通常非常短，超过这个长度就不再当维护页，避免误伤正文里的 maintenance
+MAINT_MAX_LEN = 2000
+
+# ---------- 反向：拦截页特征 ----------
+BLOCK_PATTERNS = [
+    re.compile(r"<title[^>]*>\s*(401|403|404|50\d)\b", re.I),
+    re.compile(r"<h1>\s*403\s+forbidden\s*</h1>", re.I),
+    re.compile(r"<center>\s*403\s+forbidden", re.I),
+    re.compile(r"access\s+denied", re.I),
+    re.compile(r"\bnginx\b.*forbidden", re.I | re.S),
+]
+
+# ---------- 正向：自己站点的“正常页面必有”特征 ----------
+SITE_MARKERS = [
+    re.compile(r'<meta\s+name="generator"\s+content="NexusPHP"', re.I),
+    re.compile(r'id="info_block"'),
+    re.compile(r'href="/torrents\.php'),
+    re.compile(r'class="[^"]*\btorrents\b'),
+    re.compile(r'<a[^>]+id="logout"'),
+]
+
+TITLE_RE = re.compile(r"<title[^>]*>(.*?)</title>", re.I | re.S)
 
 
 class AutoSignIn(_IPluginModule):
@@ -454,22 +502,26 @@ class AutoSignIn(_IPluginModule):
         """
         try:
 
+            # 获取Bing壁纸
+            img_url, _, __ = get_bing_wallpaper(today_str)
+
             notice_title = '自动签到任务完成'
+            fail_count = len(results.failed_info)
+
             # 准备通知文本
             text_parts = []
-
             if results.success_names:
                 text_parts.append(f"🟢签到成功站点:")
                 text_parts.append(f"\t{','.join(results.success_names)}")
             else:
                 text_parts.append("🟢签到成功站点: 无")
-
-            if results.failed_info:
+            
+            if fail_count == 0:
+                text_parts.append("🟢签到失败站点: 无")
+            elif fail_count < 5:
                 text_parts.append(f"🟢签到失败站点:")
                 text_parts.append(f"{'\t\n'.join(results.failed_info)}")
                 notice_title += f'(失败:{len(results.failed_info)})'
-            else:
-                text_parts.append("🟢签到失败站点: 无")
 
             if results.retry_names:
                 text_parts.append(f"🟢命中重试站点:")
@@ -488,6 +540,15 @@ class AutoSignIn(_IPluginModule):
                 text=" \n".join(text_parts),
                 image=img_url
             )
+
+            # 失败数超过4个, 额外再发送一条
+            if fail_count >= 5:
+                self.send_message(
+                    title=f'共有{fail_count}个站点签到失败：',
+                    text=" \n".join(results.failed_info),
+                    image=img_url
+                )
+
             self.debug("签到通知已发送")
         except Exception as e:
             log.exception(f"发送签到通知失败: ")
@@ -558,7 +619,7 @@ class AutoSignIn(_IPluginModule):
             
             if under_challenge(res.text):
                 return False, f"[{site_name}]签到失败: 站点被Cloudflare防护"
-            
+           
             # 本次签到成功, 或是重新请求签到页
             sign_status = SiteHelper.sign_in_result(html_res=res.text,
                                                     regexs=self._sign_regex)
@@ -568,7 +629,10 @@ class AutoSignIn(_IPluginModule):
 
             html_tree = etree.HTML(res.text)
             if not self._is_logged_in(html_tree):
-                return False, f"[{site_name}]签到失败: Cookie已失效"
+                r = self._confirm_forbid(res.text)
+                if r.verdict == Verdict.OK or r.verdict == Verdict.UNKNOWN:
+                    return False, f"[{site_name}]签到失败: Cookie已失效"
+                return False, f"[{site_name}]签到失败: {r.reason}"
 
             attendance_form = html_tree.xpath('//form[@method="post" and @action="attendance.php"]')
             # 存在签到表单
@@ -655,6 +719,36 @@ class AutoSignIn(_IPluginModule):
         if user_info_div:
             return True
         return False
+
+    def get_title(self, html: str) -> str:
+        m = TITLE_RE.search(html or "")
+        return m.group(1).strip() if m else ""
+
+    def _confirm_forbid(
+        self, 
+        html: str,
+    ) -> CheckResult:
+        html = html or ""
+
+        # 1) 维护页：短页面 + 维护关键词
+        if len(html) < MAINT_MAX_LEN:
+            for p in MAINTENANCE_PATTERNS:
+                if p.search(html):
+                    return CheckResult(Verdict.MAINTENANCE, f"维护关键词: {p.pattern}")
+
+        # 2) 拦截页
+        for p in BLOCK_PATTERNS:
+            if p.search(html):
+                return CheckResult(Verdict.BLOCKED, f"拦截特征: {p.pattern}")
+
+        # 3) 正向站点特征
+        for p in SITE_MARKERS:
+            if p.search(html):
+                return CheckResult(Verdict.OK, f"站点特征: {p.pattern}")
+
+        # 4) 兜底
+        return CheckResult(Verdict.UNKNOWN, "未匹配任何特征")
+
 
     def stop_service(self):
         """
