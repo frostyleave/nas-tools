@@ -1214,23 +1214,89 @@ h1.login_title>label {
     }
 }
 
-.main-info-mask {
-    position: absolute !important;
-    inset: 0;
-    z-index: 1 !important;
-    background: linear-gradient(45deg, var(--tblr-body-bg) 0%, rgba(123, 178, 233, 0.25) 75%);
-    backdrop-filter: blur(1px) saturate(100%);
-    pointer-events: none;
+.overview-container {
+    background-color: var(--card-transparent-bg);
+    /* border: 1px solid var(--lit-person-card-bg); */
+    border-radius: 5px;
+    margin-left: calc(var(--tblr-gutter-x) * .5);
+}
+
+.secondry-text-color {
+    color: white !important;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 1.0);
+}
+
+.theme-dark .secondry-text-color {
+    color: #6c7a91 !important;
+}
+
+#main-info-container {
+    position: relative;          /* 给背景层做定位包含块 */
+    background-color: color-mix(in srgb, var(--tblr-body-bg) 15%, transparent); /* 扇形外露出的半透明底色 */
+    min-height: 100vh;
 }
 
 div#main-info-container > * {
-    z-index: 2;
-    position: relative;
+    position: relative;  
+    z-index: 1;
 }
 
-.overview-container {
-    background-color: var(--card-transparent-bg);
-    border: 1px solid var(--lit-person-card-bg);
-    border-radius: 5px;
-    margin-left: calc(var(--tblr-gutter-x) * .5);
+.bg-mask-layer {
+    position: absolute !important;
+    inset: 0 0 auto 0;   /* top:0; right:0; left:0; bottom:auto */
+    height: 100dvh;      /* 固定首屏高度 */
+    container-type: size;
+    z-index: 0 !important;
+    overflow: hidden;            /* 裁掉轮播组件可能的溢出，不影响页面滚动 */
+    pointer-events: none;
+    container-type: size;
+}
+
+/* ========== 背景图：径向遮罩 ========== */
+#background-carousel {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    /* 圆心在右上角 (100% 0)
+       半径 100cqmin = min(背景层宽, 背景层高) = min(容器宽, 内容总高)
+       圆心处不透明(清晰) → 圆周处透明
+       圆外沿用最后的 transparent，露出容器的半透明底色 */
+    -webkit-mask-image: radial-gradient(
+        circle 135cqmin at 100% 0,
+        rgba(0, 0, 0, 1)    0%,
+        rgba(0, 0, 0, 0.95) 35%,
+        rgba(0, 0, 0, 0.70) 65%,
+        rgba(0, 0, 0, 0.32) 85%,
+        rgba(0, 0, 0, 0)    100%
+    );
+    mask-image: radial-gradient(
+        circle 135cqmin at 100% 0,
+        rgba(0, 0, 0, 1)    0%,
+        rgba(0, 0, 0, 0.95) 35%,
+        rgba(0, 0, 0, 0.70) 65%,
+        rgba(0, 0, 0, 0.32) 85%,
+        rgba(0, 0, 0, 0)    100%
+    );
+    -webkit-mask-mode: alpha;
+    mask-mode: alpha;
+    -webkit-mask-repeat: no-repeat;
+    mask-repeat: no-repeat;
+    -webkit-mask-size: 100% 100%;
+    mask-size: 100% 100%;
+    -webkit-mask-position: 0 0;
+    mask-position: 0 0;
+}
+
+#background-carousel img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+#main-card {
+    position: relative;
+    z-index: 1;
+    padding: 48px 24px;
 }

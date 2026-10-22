@@ -444,6 +444,7 @@ class DouBan:
         infos = self.doubanapi.movie_showing(start=(page - 1) * self._movie_num,
                                              count=self._movie_num)
         if not infos:
+            log.warn("【Douban】no movie_showing ")
             return []
         return self.__dict_items(infos.get("subject_collection_items"))
 

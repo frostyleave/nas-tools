@@ -1333,6 +1333,9 @@ function download_link() {
 function show_quick_search_modal() {
   $('#quick-search-keywords').val('');
   $("#quick-search-modal").modal("show");
+  // 快速搜索选项刷新
+  refresh_site_options("advanced_search_site", true);
+  refresh_filter_select("advanced_search_rule");
 }
 
 // 搜索
@@ -1354,13 +1357,6 @@ function quickSearchMedia() {
     navmenu("recommend?type=SEARCH&title=搜索结果&subtitle=" + search_keyword + "&keyword=" + search_keyword + "&source=" + search_source+ "&subtype=" + search_type);
   }
 
-}
-
-// 显示高级搜索框
-function show_search_advanced_modal() {
-  refresh_site_options("advanced_search_site", true);
-  refresh_filter_select("advanced_search_rule");
-  $("#modal-search-advanced").modal("show");
 }
 
 // 开始高级搜索
@@ -1402,7 +1398,7 @@ function search_media_advanced() {
     "rule": search_rule
   };
   const param = { "search_word": keyword, "filters": filters, "unident": true };
-  $("#modal-search-advanced").modal("hide");
+  $("#quick-search-modal").modal("hide");
 
   // 显示进度条
   show_progress_modal(`正在搜索 ${keyword} ...`, "search");
@@ -1413,7 +1409,7 @@ function search_media_advanced() {
     // 请求失败
     if (ret.code != 0) {
       hide_progress_modal();
-      show_fail_modal(ret.msg, function () {$("#modal-search-advanced").modal("show");});
+      show_fail_modal(ret.msg, function () {$("#quick-search-modal").modal("show");});
       return;
     }
 
@@ -1422,7 +1418,7 @@ function search_media_advanced() {
     
       // 没有搜索到内容, 不跳转
       if (resultData && resultData.result == 0) {
-        show_fail_modal('未搜索到任何资源', function () { $("#modal-search-advanced").modal("show"); });
+        show_fail_modal('未搜索到任何资源', function () { $("#quick-search-modal").modal("show"); });
         return;
       }
 
@@ -1546,7 +1542,7 @@ function media_name_test_ui(data, result_div) {
 function show_manual_transfer_modal(manual_type, inpath, syncmod, media_type, unknown_id, transferlog_id) {
   // 初始化类型
   if (!syncmod) {
-    syncmod = $('#default_transfer_mode').val();
+    syncmod = $("#page-content").data('defaultSyncMode');
   }
   let source = CurrentPageUri;
   $("#rename_source").val(source);
@@ -1559,7 +1555,7 @@ function show_manual_transfer_modal(manual_type, inpath, syncmod, media_type, un
     if (inpath) {
       $("#rename_inpath").val(inpath);
     } else {
-      $("#rename_inpath").val($('#default_path').val());
+      $("#rename_inpath").val($("#page-content").data('defaultPath'));
     }
     $("#rename_outpath").val('');
     $("#rename_syncmod_customize").val(syncmod);
@@ -2379,4 +2375,16 @@ function formatNumber(num) {
 
   // 保留两位小数并去掉多余的尾零
   return parseFloat(value.toFixed(2)) + sizes[i];
+}
+
+function isDoubanImgUrl(url) {
+  try {
+    const u = new URL(url);
+    return (
+      u.protocol === 'https:' &&
+      /^img\d+\.doubanio\.com$/.test(u.hostname)
+    );
+  } catch (e) {
+    return false;
+  }
 }

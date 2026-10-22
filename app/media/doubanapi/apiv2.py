@@ -14,6 +14,7 @@ from urllib import parse
 from app.utils import RequestUtils
 from app.utils.commons import singleton
 
+import log
 
 @singleton
 class DoubanApi(object):
@@ -209,15 +210,22 @@ class DoubanApi(object):
         ).get_res(url=req_url, params=params)
 
         if not resp:
+            log.warn(f"【DoubanApi】{req_url} 请求失败")
             return {}
         
-        resp_str = resp.text
-        if resp_str:
-            resp_str = re.sub(r'qnmob\d+', 'img1', resp_str)
+        resp_txt = resp.text
+        if not resp_txt:
+            log.warn(f"【DoubanApi】{req_url} 返回为空, 状态码: {resp.status_code}")
+            return {}
+
+        log.debug(f'【DoubanApi】{req_url}, return:{resp_txt}')
+        resp_txt = re.sub(r'qnmob\d+', 'img1', resp_txt)
 
         try:
-            return json.loads(resp_str)
-        except json.JSONDecodeError as e:
+            response_data = json.loads(resp_txt)
+            return response_data
+        except Exception as e:
+            log.exception("【DoubanApi】返回解析出错: ")
             return {}
 
     @cached(cache=TTLCache(maxsize=256, ttl=7200))

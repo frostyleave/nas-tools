@@ -1,6 +1,6 @@
 
-<div id="main-info-container" class="container-xl placeholder-glow page-wrapper-top-off" style="position: relative;">
-  <div class="main-info-mask"></div>
+<div id="main-info-container" class="container-xl placeholder-glow page-wrapper-top-off" >
+  <div id="bg-mask-layer" class="bg-mask-layer"></div>
 </div>
 
 <script type="text/javascript">
@@ -77,8 +77,9 @@
 
           const doubanHtml = info.douban_id ? 
               `<span class="mb-1 d-inline-flex"><i class="ti ti-brand-douban fs-2 text-green"></i> ${renderDoubanLink(info.douban_id)}</span>` : '';          
-          const tmdbHtml = tmdbid && !tmdbid.startsWith('DB:') && info.link ?
-              `<span class="mb-1 d-inline-flex"><i class="ti ti-badge-tm fs-2 text-blue"></i><a class="text-reset" href="${info.link}" target="_blank">${info.tmdbid}</a></span>` : '';
+
+          const tmdbHtml = info.tmdbid && !info.tmdbid.includes(':') && info.link ?
+            `<span id="tmdbid-link-tag" class="mb-1 d-inline-flex"><i class="ti ti-badge-tm fs-2 text-blue"></i><a class="text-reset" href="${info.link}" target="_blank">${info.tmdbid}</a></span>` : '';
 
           const searchBtnHtml = `
               <span class="btn btn-primary d-sm-inline-flex px-3 badge-pill" id="search-btn">
@@ -102,7 +103,7 @@
           <div id="main-card" class="card rounded-0 custom-media-info-height bg-transparent">
             <div id="main-info-background" class="card-img-overlay rounded-0">
               <div class="d-flex flex-row mb-4 align-items-stretch justify-content-center justify-content-md-start">
-                <custom-img class="d-none d-md-flex justify-content-center flex-shrink-0 me-3" div-style="position:relative;"
+                <custom-img id="main-poster-card" class="d-none d-md-flex justify-content-center flex-shrink-0 me-3" div-style="position:relative;"
                   img-class="rounded-3 object-cover lit-media-info-image"
                   img-error="0"
                   img_vote="${info.vote}"
@@ -136,7 +137,7 @@
               <strong>简介</strong>
             </h1>
             <div class="col-lg-9 py-2 row-cards overview-container">
-              <h2 class="nav-link-title ms-3 me-2">
+              <h2 class="ms-3 me-2 secondry-text-color">
                 <small>${info.overview ?? ''}</small>
               </h2>
             </div>
@@ -159,12 +160,13 @@
 
       function renderSeasonContainer(tmdb_info) {
 
-        if (!tmdb_info || !tmdb_info.seasons || tmdb_info.seasons.length == 0) {
+        // 没有季信息 或者 只有1季，不展示
+        if (!tmdb_info || !tmdb_info.seasons || tmdb_info.seasons.length <= 1) {
           return;
         }
 
         var seasonBadge = tmdb_info.number_of_seasons && tmdb_info.number_of_seasons > 0
-        ? `<span class="badge badge-pill bg-primary-lt text-primary">共 ${tmdb_info.number_of_seasons} 季</span>`
+        ? `<span class="badge bg-info-lt text-blue fw-bolder me-1">共 ${tmdb_info.number_of_seasons} 季</span>`
         : "";
 
         var innerHtml = `
@@ -181,15 +183,25 @@
 
         var displaySeason = pickSeason(tmdb_info.seasons, tmdb_info.number_of_seasons);
         if (displaySeason != null) {
+          var posterPath = displaySeason.poster_path;
+          if (!posterPath || posterPath == '') {
+            var el = document.getElementById('main-poster-card');
+            if (el) {
+              posterPath = el.getAttribute('img-src');
+              if (isDoubanImgUrl(posterPath)) {
+                posterPath = '/doubanimg?url=' + posterPath;
+              }
+            }
+          }
           innerHtml +=`
-            <div class="d-flex align-items-stretch mx-1 p-3 rounded-3" style="padding: var(--tblr-card-img-overlay-padding);border: 1px solid var(--lit-navbar-active);">
+            <div class="d-flex align-items-stretch mx-1 p-3 rounded-3" style="max-width: 43rem; border: 1px solid var(--lit-person-card-bg); background-color: var(--card-transparent-bg);">
               <div class="col-auto d-flex align-items-center border border-1">
-                <img alt="海报" class="rounded" style="display: block;min-width: 100%;max-width: 140px;min-height: 100%;max-height: 100%;object-fit: cover;" src="${displaySeason.poster_path}">
-              </div>                      
-              <div class="col ms-3">
+                <img alt="海报" class="rounded" style="display: block;min-width: 100%;max-width: 140px;object-fit: cover;" src="${posterPath}">
+              </div>
+              <div class="col ms-3 mt-3">
                 <h3>${displaySeason.name}</h3>
                 <small><span class="badge badge-pill px-2">共 ${displaySeason.episode_count} 集</span></small>
-                <p class="text-muted mt-3">${displaySeason.overview}</p>
+                <p class="secondry-text-color mt-3">${displaySeason.overview}</p>
               </div>
             </div>
           `;
@@ -212,6 +224,10 @@
               // 填充主数据
               media_info.tmdbid = extra_data.tmdbid;
               media_info.douban_id = extra_data.douban_id;
+
+              debugger;
+              // 重绘标签
+              renderTagsContainer(extra_data);
               
               // 背景轮播
               buildBackgroundCarousel(extra_data.background);
@@ -231,6 +247,19 @@
         );
       }
 
+      function renderTagsContainer(info) {
+
+        if (document.getElementById('tmdbid-link-tag')) {
+          return;
+        }
+
+        if (info.tmdbid && !info.tmdbid.includes(':') && info.link) {
+          var tmdbHtml = `<span id="tmdbid-link-tag" class="mb-1 d-inline-flex"><i class="ti ti-badge-tm fs-2 text-blue"></i><a class="text-reset" href="${info.link}" target="_blank">${info.tmdbid}</a></span>`;
+          $('#tags-container').append(tmdbHtml);
+        }
+
+      }
+
       function buildBackgroundCarousel(backgrounds) {
 
         if (!backgrounds || backgrounds.length == 0) {
@@ -241,7 +270,6 @@
 
         const bgCarousel = document.createElement('custom-img');
         bgCarousel.setAttribute('id', 'background-carousel');
-        // bgCarousel.setAttribute('class', 'custom-media-info-height');
         bgCarousel.setAttribute('style', 'inset: 0; display: block;  width: 100%; height: 100%; z-index: 0; pointer-events: none; position: absolute;');
         bgCarousel.setAttribute('div-style', 'display:inline;');
         bgCarousel.setAttribute('img-placeholder', '0');
@@ -249,7 +277,7 @@
         bgCarousel.setAttribute('img-class', 'card-img rounded-0 background-carousel-img');
         bgCarousel.img_src_list = backgrounds;
 
-        $('#main-card').before(bgCarousel);
+        $('#bg-mask-layer').append(bgCarousel);
         
       }
 

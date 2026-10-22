@@ -3590,6 +3590,7 @@ class WebAction:
             "douban_id": media_info.douban_id,
             "background": media_handler.get_tmdb_backdrops(tmdbinfo=media_info.tmdb_info),
             "crews": crews,
+            "link": media_info.get_detail_url(),
         }
 
         # 解析季信息
