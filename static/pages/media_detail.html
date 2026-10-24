@@ -61,8 +61,7 @@
             show_fail_modal("未查询到TMDB媒体信息！");
             window.history.go(-1);
           }
-        }
-      );
+        });
 
       // --- HTML 生成辅助函数 ---
       function generateMainHtml(info, fav, item_url, seasons, tmdbid, media_type) {
@@ -242,8 +241,7 @@
               }
 
             }
-          }
-        );
+          }, false);
       }
 
       function renderTagsContainer(info) {
@@ -351,7 +349,7 @@
           
           $('#main-info-container').append(similarSlide);
 
-        });
+        }, false);
       }
 
       function asyncRenderRecommendCard(tmdbid, media_type, media_title) {
@@ -391,7 +389,7 @@
           customSlide.slide_card = slide_cards;
           $('#main-info-container').append(customSlide);
 
-        });
+        }, false);
 
       }
 

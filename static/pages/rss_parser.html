@@ -125,20 +125,55 @@
 
 <script type="text/javascript">
 
-  // 初始化JsonEditor
-  json_editor = ace.edit("rssparser_format");
-  localStorage.getItem("theme") === "dark" ? json_editor.setTheme("ace/theme/one_dark") : json_editor.setTheme("ace/theme/xcode");
-  json_editor.session.setMode("ace/mode/json");
-  json_editor.setOptions({
-    fontFamily: "Consolas, Monaco, monospace",
-    fontSize: "10pt"
+  // 按需初始化 JsonEditor
+  var json_editor = null;
+
+  function ensure_json_editor(callback) {
+    if (json_editor) {
+      if (callback) callback();
+      return;
+    }
+
+    load_ace(function () {
+      if (!window.ace) {
+        if (callback) callback();
+        return;
+      }
+
+      const el = document.getElementById("rssparser_format");
+      if (!el) {
+        if (callback) callback();
+        return;
+      }
+
+      json_editor = ace.edit(el);
+      localStorage.getItem("theme") === "dark"
+        ? json_editor.setTheme("ace/theme/one_dark")
+        : json_editor.setTheme("ace/theme/xcode");
+      json_editor.session.setMode("ace/mode/json");
+      json_editor.setOptions({
+        fontFamily: "Consolas, Monaco, monospace",
+        fontSize: "10pt"
+      });
+
+      if (callback) callback();
+    });
+  }
+
+  // 弹窗显示后重新测量编辑器尺寸
+  $("#modal-userrss-parser").on("shown.bs.modal", function () {
+    if (json_editor) {
+      json_editor.resize();
+    }
   });
 
   // 打开新增窗口
   function show_add_rssparser_modal() {
     $("#rssparser_id").val('');
     $("#add_or_edit_rssparser_btn").text('新增');
-    $("#modal-userrss-parser").modal('show');
+    ensure_json_editor(function () {
+      $("#modal-userrss-parser").modal('show');
+    });
   }
 
   // 新增解析器
@@ -148,6 +183,10 @@
       return;
     } else {
       $("#rssparser_name").removeClass("is-invalid");
+    }
+    if (!json_editor) {
+      show_fail_modal("编辑器加载中，请稍后再试");
+      return;
     }
     try {
       const params = {
@@ -183,14 +222,18 @@
       if (ret.code == 0) {
         $("#rssparser_name").val(ret.detail.name);
         $("#rssparser_type").val(ret.detail.type);
-        try {
-          json_editor.setValue(ret.detail.format);
-        } catch(err) {
-          console.log(err);
-        }
         $("#rssparser_params").val(ret.detail.params);
         $("#add_or_edit_rssparser_btn").text('保存');
-        $("#modal-userrss-parser").modal('show');
+        ensure_json_editor(function () {
+          if (json_editor) {
+            try {
+              json_editor.setValue(ret.detail.format);
+            } catch (err) {
+              console.log(err);
+            }
+          }
+          $("#modal-userrss-parser").modal('show');
+        });
       }
     });
   }

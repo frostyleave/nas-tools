@@ -1350,7 +1350,7 @@ function quickSearchMedia() {
     search_type = 'TV';
   } 
 
-  var search_source = $('#icon-source-trigger').data('id');
+  var search_source = $('#icon-source-trigger').attr('data-id');
   if (search_source === "person") {
     navmenu("discovery_person?title=演员搜索&subtitle=" + search_keyword + "&keyword=" + search_keyword);
   } else {
@@ -2387,4 +2387,65 @@ function isDoubanImgUrl(url) {
   } catch (e) {
     return false;
   }
+}
+
+// 按需加载 Ace 编辑器（仅在打开相关编辑弹窗时加载）
+const ACE_SCRIPT_URL = document.currentScript
+  ? new URL('../libs/ace/ace.js', document.currentScript.src).href
+  : '../static/libs/ace/ace.js';
+
+let aceLoading = null;
+
+function load_ace(callback) {
+  if (window.ace) {
+    if (callback) callback(window.ace);
+    return Promise.resolve(window.ace);
+  }
+
+  if (!aceLoading) {
+    aceLoading = new Promise((resolve, reject) => {
+      const script = document.createElement('script');
+      script.src = ACE_SCRIPT_URL;
+
+      script.onload = () => {
+        if (!window.ace) {
+          reject(new Error('Ace 加载后未找到全局对象'));
+          return;
+        }
+
+        try {
+          if (window.ace.config) {
+            const basePath = new URL('.', script.src).pathname.replace(/\/$/, '');
+            window.ace.config.set('basePath', basePath);
+          }
+          resolve(window.ace);
+        } catch (error) {
+          reject(error);
+        }
+      };
+
+      script.onerror = () => reject(new Error('Ace 编辑器加载失败'));
+      document.head.appendChild(script);
+    });
+  }
+
+  return aceLoading.then(
+    (ace) => {
+      if (callback) {
+        try {
+          callback(ace);
+        } catch (error) {
+          console.error('[Ace] 初始化编辑器失败:', error);
+        }
+      }
+      return ace;
+    },
+    (error) => {
+      aceLoading = null; // 允许后续重试
+      console.error('[Ace] 加载失败:', error);
+      if (typeof show_fail_modal === 'function') {
+        show_fail_modal('编辑器加载失败，请刷新页面重试');
+      }
+    }
+  );
 }
