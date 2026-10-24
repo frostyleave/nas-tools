@@ -934,7 +934,7 @@ a:hover {
 .card-left-top-triangle {
     position: absolute;
     top: 0;
-    left: 1px;
+    left: 0;
     width: 45px;
     height: 45px;
     clip-path: polygon(0 0, 100% 0, 0 100%);

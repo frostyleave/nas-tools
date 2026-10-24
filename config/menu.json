@@ -16,16 +16,16 @@
     "html": "/static/pages/ranking.html?t=RANKING",
     "nav": [
       {
-        "name": "电影",
+        "name": "热门",
         "page": "ranking",
-        "icon": "<i class=\"ti ti-movie fs-2 \"></i>",
+        "icon": "<i class=\"ti ti-flame fs-2 \"></i>",
         "html": "/static/pages/ranking.html?t=RANKING"
       },
       {
-        "name": "剧集",
-        "page": "tv_ranking",
-        "icon": "<i class=\"ti ti-device-tv fs-2 \"></i>",
-        "html": "/static/pages/ranking.html?t=TV"
+        "name": "豆瓣",
+        "page": "douban",
+        "icon": "<i class=\"ti ti-brand-douban fs-2 \"></i>",
+        "html": "/static/pages/ranking.html?t=DOUBAN"
       },
       {
         "name": "BANGUMI",
@@ -35,8 +35,8 @@
       },
       {
         "name": "TOP250",
-        "page": "douban",
-        "icon": "<i class=\"ti ti-brand-douban fs-2 \"></i>",
+        "page": "douban_top",
+        "icon": "<i class=\"ti ti-award fs-2 \"></i>",
         "html": "/static/pages/recommend.html?type=MOV&subtype=dbtop&title=豆瓣电影TOP250"
       }
     ]

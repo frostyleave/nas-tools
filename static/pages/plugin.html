@@ -252,10 +252,11 @@
         }
       }
 
-      var stateAttr = pluginAttr.state ? '<span class="me-1" title="已启用">✅</span>' : '';
+      var stateBadge = pluginAttr.state ? '<div class="card-left-top-triangle bg-green"><span>启用</span></div>' : '<div class="card-left-top-triangle bg-red"><span>停用</span></div>';
       // card
       var html = `
       <div class="card card-link-pop p-0 rounded-3 overflow-hidden">
+        ${stateBadge}
         <div class="right-top-box">
           <a href="javascript:uninstall_plugin_click('${pluginId}', '${pluginAttr.name}')" title="卸载" class="text-danger">
             <i class="ti ti-trash fs-2"></i>
@@ -267,7 +268,7 @@
           </span>
         </div>
         <div class="card-body text-center" data-bs-toggle="modal" data-bs-target="#modal-plugin-${pluginId}">
-          <div class="card-title mb-1">${stateAttr}${pluginAttr.name}</div>
+          <div class="card-title mb-1">${pluginAttr.name}</div>
           <div class="text-muted">${pluginAttr.desc}</div>
         </div>
       </div>
