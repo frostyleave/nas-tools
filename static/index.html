@@ -1355,8 +1355,6 @@
     </div>
   </div>
 
-  <cmd-dialog theme="light"></cmd-dialog>
-
   <!-- 基础库 -->
   <script src="../static/libs/jquery-3.7.1.min.js"></script>
   <script src="../static/libs/navigo.min.js"></script>
@@ -1373,8 +1371,24 @@
   <script src="../static/js/util.js"></script>
   <script src="../static/js/functions.js"></script>
   <!-- 引入组件定义 -->
+  <!-- 独立基础组件 -->
+  <script src="../static/components/layout-navbar.js"></script>
+  <script src="../static/components/plugin-modal.js"></script>
+  <script src="../static/components/custom-chips.js"></script>
+
+  <!-- 图片基础组件：person-card 依赖 custom-img -->
+  <script src="../static/components/custom-img.js"></script>
+  <script src="../static/components/person-card.js"></script>
+
+  <!-- 卡片组件：custom-slide 的占位符依赖 normal-card-placeholder -->
+  <script src="../static/components/normal-card-placeholder.js"></script>
+  <script src="../static/components/normal-card.js"></script>
+
+  <!-- 依赖卡片/图片的视觉组件 -->
+  <script src="../static/components/custom-slide.js"></script>
+  <script src="../static/components/custom-plex-library-img.js"></script>
+
   <script src="../static/js/oops.js"></script>
-  <script src="../static/components/index.js"></script>
 
   <!-- 第三方组件 -->
   <script src="../static/libs/ace/ace.js"></script>
