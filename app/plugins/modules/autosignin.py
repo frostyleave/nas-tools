@@ -10,7 +10,7 @@ from typing import List, Tuple
 from urllib.parse import urljoin
 
 from app.helper import ThreadHelper, SubmoduleHelper, SiteHelper, OcrHelper
-from app.helper.site_signin_helper import TITLE_RE, SiteSigninHelper, Verdict
+from app.helper.site_signin_helper import SiteSigninHelper, Verdict
 from app.plugins import EventHandler
 from app.modules.wallpaper import get_bing_wallpaper
 from app.plugins.modules._base import _IPluginModule
