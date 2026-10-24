@@ -2,9 +2,11 @@ import json
 
 from lxml import etree
 
+from app.helper.site_signin_helper import SiteSigninHelper, Verdict
 from app.plugins.modules._autosignin._base import _ISiteSigninHandler
 from app.models.model import UserSiteConf
 from app.utils import SiteUtils, RequestUtils
+
 from config import Config
 
 
@@ -40,18 +42,17 @@ class ZhuQue(_ISiteSigninHandler):
                                 ua=ua,
                                 proxies=proxy
                                 ).get_res(url="https://zhuque.in/gaming/genshin/character/list")
-        
-        if not html_res or html_res.status_code != 200:
-            self.error(f"访问抽卡页失败，请检查站点连通性")
-            return False, f'[{site_name}]访问抽卡页败，请检查站点连通性'
 
-        if "login.php" in html_res.text:
-            self.error(f"访问抽卡页失败，cookie失效")
-            return False, f'[{site_name}]访问抽卡页失败，cookie失效'
+        sign_status = SiteSigninHelper.check_signin_result(html_res, [])
+        if sign_status.verdict == Verdict.SUCCESS:
+            self.info(f'[{site_name}]今日已签到')
+            return True, f'[{site_name}]今日已签到'
+
+        if sign_status.verdict == Verdict.FAIL:
+            self.warn(f'[{site_name}]签到失败: {sign_status.reason}')
+            return False, f'[{site_name}]签到失败: {sign_status.reason}'
 
         html = etree.HTML(html_res.text)
-        if not html:
-            return False, f'[{site_name}]抽卡页解析失败'
 
         # 释放技能
         x_csrf_token = html.xpath("//meta[@name='x-csrf-token']/@content")[0]

@@ -1,5 +1,6 @@
 import json
 
+from app.helper.site_signin_helper import SiteSigninHelper, Verdict
 from app.plugins.modules._autosignin._base import _ISiteSigninHandler
 from app.models.model import UserSiteConf
 from app.utils import SiteUtils, RequestUtils
@@ -41,17 +42,19 @@ class Hares(_ISiteSigninHandler):
                                 ua=ua,
                                 proxies=proxy
                                 ).get_res(url="https://club.hares.top")
-        if not html_res or html_res.status_code != 200:
-            self.error(f"模拟访问失败，请检查站点连通性")
-            return False, f'[site]模拟访问失败，请检查站点连通性'
+        
+        sign_status = SiteSigninHelper.check_signin_result(html_res)
+        if sign_status.verdict == Verdict.SUCCESS:
+            self.info(f'[{site}]今日已签到')
+            return True, f'[{site}]今日已签到'
 
-        if "login.php" in html_res.text:
-            self.error(f"模拟访问失败，cookie失效")
-            return False, f'[site]模拟访问失败，cookie失效'
-
+        if sign_status.verdict == Verdict.FAIL:
+            self.warn(f'[{site}]签到失败: {sign_status.reason}')
+            return False, f'[{site}]签到失败: {sign_status.reason}'
+        
         # if self._sign_text in html_res.text:
         #     self.info(f"今日已签到")
-        #     return True, f'[site]今日已签到'
+        #     return True, f'{site}今日已签到'
 
         headers = {
             'Accept': 'application/json',
@@ -63,14 +66,14 @@ class Hares(_ISiteSigninHandler):
                                 ).get_res(url="https://club.hares.top/attendance.php?action=sign")
         if not sign_res or sign_res.status_code != 200:
             self.error(f"签到失败，签到接口请求失败")
-            return False, f'[site]签到失败，签到接口请求失败'
+            return False, f'{site}签到失败，签到接口请求失败'
 
         # {"code":1,"msg":"您今天已经签到过了"}
         # {"code":0,"msg":"签到成功"}
         sign_dict = json.loads(sign_res.text)
         if sign_dict['code'] == 0:
             self.info(f"签到成功")
-            return True, f'[site]签到成功'
+            return True, f'{site}签到成功'
         else:
             self.info(f"今日已签到")
-            return True, f'[site]今日已签到'
+            return True, f'{site}今日已签到'

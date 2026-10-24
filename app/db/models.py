@@ -459,14 +459,6 @@ class SITEUSERINFOSTATS(Base):
     EXT_INFO = Column(Text)
 
 
-class SITEFAVICON(Base):
-    __tablename__ = 'SITE_FAVICON'
-
-    SITE = Column(Text, primary_key=True)
-    URL = Column(Text)
-    FAVICON = Column(Text)
-
-
 class SITEUSERSEEDINGINFO(Base):
     __tablename__ = 'SITE_USER_SEEDING_INFO'
 

@@ -4,14 +4,13 @@ import requests
 
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
-from enum import Enum
 from lxml import etree
 from threading import Event
 from typing import List, Tuple
 from urllib.parse import urljoin
 
 from app.helper import ThreadHelper, SubmoduleHelper, SiteHelper, OcrHelper
-from app.helper.cloudflare_helper import under_challenge
+from app.helper.site_signin_helper import TITLE_RE, SiteSigninHelper, Verdict
 from app.plugins import EventHandler
 from app.modules.wallpaper import get_bing_wallpaper
 from app.plugins.modules._base import _IPluginModule
@@ -39,10 +38,6 @@ class SignInResults:
     # 跟踪所有最终签到成功的站点ID（包括本次成功和历史已成功）
     all_signed_site_ids: List[str] = field(default_factory=list)
 
-    def __post_init__(self):
-        # 允许在创建实例时传入已签到的ID列表
-        # 这里我们创建一个副本，以防修改原始列表
-        self.all_signed_site_ids = list(self.all_signed_site_ids)
 
     def add_success(self, site_name: str, site_id: str):
         """记录一个成功的签到"""
@@ -63,53 +58,6 @@ class SignInResults:
     def add_script_error(self, site_name: str):
         """记录一个签到脚本执行时的意外错误"""
         self.failed_info.append(f'🛑{site_name}:签到时发生脚本错误')
-
-
-class Verdict(Enum):
-    OK          = "ok"           # 正常进入站点
-    MAINTENANCE = "maintenance"  # 维护页
-    BLOCKED     = "blocked"      # 403 / WAF 拦截
-    UNKNOWN     = "unknown"      # 无法判定 → 应重试，不要重登
-
-
-@dataclass
-class CheckResult:
-    verdict: Verdict
-    reason: str
-
-
-# ---------- 反向：维护页特征 ----------
-MAINTENANCE_PATTERNS = [
-    re.compile(r"站点关闭维护"),
-    re.compile(r"系统维护"),
-    re.compile(r"升级维护"),
-    re.compile(r"服务器维护"),
-    re.compile(r"暂停访问"),
-    re.compile(r"请稍后再访问"),
-    re.compile(r"\bmaintenance\b", re.I),
-]
-# 维护页通常非常短，超过这个长度就不再当维护页，避免误伤正文里的 maintenance
-MAINT_MAX_LEN = 2000
-
-# ---------- 反向：拦截页特征 ----------
-BLOCK_PATTERNS = [
-    re.compile(r"<title[^>]*>\s*(401|403|404|50\d)\b", re.I),
-    re.compile(r"<h1>\s*403\s+forbidden\s*</h1>", re.I),
-    re.compile(r"<center>\s*403\s+forbidden", re.I),
-    re.compile(r"access\s+denied", re.I),
-    re.compile(r"\bnginx\b.*forbidden", re.I | re.S),
-]
-
-# ---------- 正向：自己站点的“正常页面必有”特征 ----------
-SITE_MARKERS = [
-    re.compile(r'<meta\s+name="generator"\s+content="NexusPHP"', re.I),
-    re.compile(r'id="info_block"'),
-    re.compile(r'href="/torrents\.php'),
-    re.compile(r'class="[^"]*\btorrents\b'),
-    re.compile(r'<a[^>]+id="logout"'),
-]
-
-TITLE_RE = re.compile(r"<title[^>]*>(.*?)</title>", re.I | re.S)
 
 
 class AutoSignIn(_IPluginModule):
@@ -505,49 +453,19 @@ class AutoSignIn(_IPluginModule):
             # 获取Bing壁纸
             img_url, _, __ = get_bing_wallpaper(today_str)
 
-            notice_title = '自动签到任务完成'
             fail_count = len(results.failed_info)
-
-            # 准备通知文本
-            text_parts = []
-            if results.success_names:
-                text_parts.append(f"🟢签到成功站点:")
-                text_parts.append(f"\t{','.join(results.success_names)}")
+            notice_title = f'自动签到任务完成(成功:{len(results.success_names)},失败:{fail_count})'
+            if fail_count > 0:
+                notice_content = "\n".join(results.failed_info)
             else:
-                text_parts.append("🟢签到成功站点: 无")
-            
-            if fail_count == 0:
-                text_parts.append("🟢签到失败站点: 无")
-            elif fail_count < 5:
-                text_parts.append(f"🟢签到失败站点:")
-                text_parts.append(f"{'\t\n'.join(results.failed_info)}")
-                notice_title += f'(失败:{len(results.failed_info)})'
+                notice_content = "签到成功站点:" + f"\n{','.join(results.success_names)}"
 
-            if results.retry_names:
-                text_parts.append(f"🟢命中重试站点:")
-                text_parts.append(f"\t{ ','.join(results.retry_names)}")
-            
-            # 获取下次执行时间
-            if self._cron_job:
-                next_run_time = self._cron_job.next_run_time.strftime('%Y-%m-%d %H:%M:%S')
-                text_parts.append(f"🟢下次签到时间: {next_run_time}")
-            
-            # 获取Bing壁纸
-            img_url, _, __ = get_bing_wallpaper(today_str)
             # 发送消息
             self.send_message(
                 title=notice_title,
-                text=" \n".join(text_parts),
+                text=notice_content,
                 image=img_url
             )
-
-            # 失败数超过4个, 额外再发送一条
-            if fail_count >= 5:
-                self.send_message(
-                    title=f'共有{fail_count}个站点签到失败：',
-                    text=" \n".join(results.failed_info),
-                    image=img_url
-                )
 
             self.debug("签到通知已发送")
         except Exception as e:
@@ -608,32 +526,18 @@ class AutoSignIn(_IPluginModule):
 
             # 访问链接
             res = request_handler.get_res(url=checkin_url)
-            if res is None:
-                return False, f"[{site_name}]签到失败: 无法打开网站"
-            
-            if res.status_code != 200:
-                return False, f"[{site_name}]签到失败: 状态码：{res.status_code}"
-            
-            if "login.php" in res.text:
-                return False, f'[{site_name}]签到失败: cookie失效'
-            
-            if under_challenge(res.text):
-                return False, f"[{site_name}]签到失败: 站点被Cloudflare防护"
-           
+
             # 本次签到成功, 或是重新请求签到页
-            sign_status = SiteHelper.sign_in_result(html_res=res.text,
-                                                    regexs=self._sign_regex)
-            if sign_status:
-                self.info(f"今日已签到")
+            sign_status = SiteSigninHelper.check_signin_result(res, self._sign_regex)
+            if sign_status.verdict == Verdict.SUCCESS:
+                self.info(f'[{site_name}]今日已签到')
                 return True, f'[{site_name}]今日已签到'
 
-            html_tree = etree.HTML(res.text)
-            if not self._is_logged_in(html_tree):
-                r = self._confirm_forbid(res.text)
-                if r.verdict == Verdict.OK or r.verdict == Verdict.UNKNOWN:
-                    return False, f"[{site_name}]签到失败: Cookie已失效"
-                return False, f"[{site_name}]签到失败: {r.reason}"
+            if sign_status.verdict == Verdict.FAIL:
+                self.warn(f'[{site_name}]签到失败: {sign_status.reason}')
+                return False, f'[{site_name}]签到失败: {sign_status.reason}'
 
+            html_tree = etree.HTML(res.text)
             attendance_form = html_tree.xpath('//form[@method="post" and @action="attendance.php"]')
             # 存在签到表单
             if attendance_form:
@@ -682,7 +586,7 @@ class AutoSignIn(_IPluginModule):
                 if not sign_res or sign_res.status_code != 200:
                     return False, f'[FORM][{site_name}]签到失败, form提交失败'
 
-                if SiteHelper.sign_in_result(html_res=sign_res.text, regexs=self._success_regex):
+                if SiteSigninHelper.sign_in_result(html_res=sign_res.text, regexs=self._success_regex):
                     return True, f'[FORM][{site_name}]签到成功'
 
             return False, f'[{site_name}]签到失败，未知原因'
@@ -690,65 +594,6 @@ class AutoSignIn(_IPluginModule):
         except Exception as e:
             log.exception(f"【自动签到】[{site_name}]签到出错: ")
             return False, f"[{site_name}]签到出错: {str(e)}"
-     
-    def _is_logged_in(self, html_tree):
-        """
-        判断站点是否已经登陆
-        :param html_text:
-        :return:
-        """
-        if not html_tree:
-            return False
-        
-        # 存在明显的密码输入框，说明未登录
-        if html_tree.xpath("//input[@type='password']"):
-            return False
-        
-        # 是否存在登出和用户面板等链接
-        xpaths = ['//a[contains(@href, "logout")'
-                  ' or contains(@data-url, "logout")'
-                  ' or contains(@href, "mybonus") '
-                  ' or contains(@onclick, "logout")'
-                  ' or contains(@href, "usercp")]',
-                  '//form[contains(@action, "logout")]']
-        for xpath in xpaths:
-            if html_tree.xpath(xpath):
-                return True
-            
-        user_info_div = html_tree.xpath('//div[@class="user-info-side"]')
-        if user_info_div:
-            return True
-        return False
-
-    def get_title(self, html: str) -> str:
-        m = TITLE_RE.search(html or "")
-        return m.group(1).strip() if m else ""
-
-    def _confirm_forbid(
-        self, 
-        html: str,
-    ) -> CheckResult:
-        html = html or ""
-
-        # 1) 维护页：短页面 + 维护关键词
-        if len(html) < MAINT_MAX_LEN:
-            for p in MAINTENANCE_PATTERNS:
-                if p.search(html):
-                    return CheckResult(Verdict.MAINTENANCE, f"维护关键词: {p.pattern}")
-
-        # 2) 拦截页
-        for p in BLOCK_PATTERNS:
-            if p.search(html):
-                return CheckResult(Verdict.BLOCKED, f"拦截特征: {p.pattern}")
-
-        # 3) 正向站点特征
-        for p in SITE_MARKERS:
-            if p.search(html):
-                return CheckResult(Verdict.OK, f"站点特征: {p.pattern}")
-
-        # 4) 兜底
-        return CheckResult(Verdict.UNKNOWN, "未匹配任何特征")
-
 
     def stop_service(self):
         """

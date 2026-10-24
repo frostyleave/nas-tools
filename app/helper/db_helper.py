@@ -1254,50 +1254,6 @@ class DbHelper:
             return False
 
     @DbPersist(_db)
-    def update_site_favicon(self, site_user_infos: list):
-        """
-        更新站点图标数据
-        """
-        if not site_user_infos:
-            return
-        for site_user_info in site_user_infos:
-            site_icon = "data:image/ico;base64," + \
-                        site_user_info.site_favicon if site_user_info.site_favicon else site_user_info.site_url \
-                                                                                        + "/favicon.ico"
-            if not self.is_exists_site_favicon(site_user_info.site_name):
-                self._db.insert(SITEFAVICON(
-                    SITE=site_user_info.site_name,
-                    URL=site_user_info.site_url,
-                    FAVICON=site_icon
-                ))
-            elif site_user_info.site_favicon:
-                self._db.query(SITEFAVICON).filter(SITEFAVICON.SITE == site_user_info.site_name).update(
-                    {
-                        "URL": site_user_info.site_url,
-                        "FAVICON": site_icon
-                    }
-                )
-
-    def is_exists_site_favicon(self, site):
-        """
-        判断站点图标是否存在
-        """
-        count = self._db.query(SITEFAVICON).filter(SITEFAVICON.SITE == site).count()
-        if count > 0:
-            return True
-        else:
-            return False
-
-    def get_site_favicons(self, site=None):
-        """
-        查询站点数据历史
-        """
-        if site:
-            return self._db.query(SITEFAVICON).filter(SITEFAVICON.SITE == site).all()
-        else:
-            return self._db.query(SITEFAVICON).all()
-
-    @DbPersist(_db)
     def update_site_seed_info_site_name(self, new_name, old_name):
         """
         更新站点做种数据中站点名称

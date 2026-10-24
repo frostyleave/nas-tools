@@ -1,5 +1,6 @@
 import json
 
+from app.helper.site_signin_helper import SiteSigninHelper, Verdict
 from app.plugins.modules._autosignin._base import _ISiteSigninHandler
 from app.models.model import UserSiteConf
 from app.utils import SiteUtils, RequestUtils
@@ -39,9 +40,14 @@ class PTerClub(_ISiteSigninHandler):
                                 ua=ua,
                                 proxies=proxy
                                 ).get_res(url="https://pterclub.net/attendance-ajax.php")
-        if not sign_res or sign_res.status_code != 200:
-            self.error(f"签到失败，签到接口请求失败")
-            return False, f'[{site}]签到失败，请检查cookie是否失效'
+        sign_status = SiteSigninHelper.check_signin_result(sign_res, [])
+        if sign_status.verdict == Verdict.SUCCESS:
+            self.info(f'[{site}]今日已签到')
+            return True, f'[{site}]今日已签到'
+
+        if sign_status.verdict == Verdict.FAIL:
+            self.warn(f'[{site}]签到失败: {sign_status.reason}')
+            return False, f'[{site}]签到失败: {sign_status.reason}'
 
         sign_dict = json.loads(sign_res.text)
         if sign_dict['status'] == '1':

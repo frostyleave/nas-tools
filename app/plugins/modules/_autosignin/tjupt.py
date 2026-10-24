@@ -7,6 +7,7 @@ from io import BytesIO
 from PIL import Image
 from lxml import etree
 
+from app.helper.site_signin_helper import SiteSigninHelper, Verdict
 from app.plugins.modules._autosignin._base import _ISiteSigninHandler
 from app.models.model import UserSiteConf
 from app.utils import SiteUtils, RequestUtils
@@ -65,30 +66,22 @@ class Tjupt(_ISiteSigninHandler):
                                 proxies=proxy
                                 ).get_res(url=self._sign_in_url)
 
-        # 获取签到后返回html，判断是否签到成功
-        if not html_res or html_res.status_code != 200:
-            self.error("签到失败，请检查站点连通性")
-            return False, f'[site]签到失败，请检查站点连通性'
+        sign_status = SiteSigninHelper.check_signin_result(html_res, self._sign_regex)
+        if sign_status.verdict == Verdict.SUCCESS:
+            self.info(f'[{site}]今日已签到')
+            return True, f'[{site}]今日已签到'
 
-        if "login.php" in html_res.text:
-            self.error("签到失败，cookie失效")
-            return False, f'[site]签到失败，cookie失效'
-
-        sign_status = self.sign_in_result(html_res=html_res.text,
-                                          regexs=self._sign_regex)
-        if sign_status:
-            self.info("今日已签到")
-            return True, f'[site]今日已签到'
+        if sign_status.verdict == Verdict.FAIL:
+            self.warn(f'[{site}]签到失败: {sign_status.reason}')
+            return False, f'[{site}]签到失败: {sign_status.reason}'
 
         # 没有签到则解析html
-        html = etree.HTML(html_res.text)
-        if not html:
-            return False, f'[site]签到失败'
+        html = etree.HTML(html_res.text)        
         img_url = html.xpath('//table[@class="captcha"]//img/@src')[0]
 
         if not img_url:
             self.error("签到失败，未获取到签到图片")
-            return False, f'[site]签到失败，未获取到签到图片'
+            return False, f'{site}签到失败，未获取到签到图片'
 
         # 签到图片
         img_url = "https://www.tjupt.org" + img_url
@@ -100,7 +93,7 @@ class Tjupt(_ISiteSigninHandler):
                                        ).get_res(url=img_url)
         if not captcha_img_res or captcha_img_res.status_code != 200:
             self.error(f"签到图片 {img_url} 请求失败")
-            return False, f'[site]签到失败，未获取到签到图片'
+            return False, f'{site}签到失败，未获取到签到图片'
         captcha_img = Image.open(BytesIO(captcha_img_res.content))
         captcha_img_hash = self._tohash(captcha_img)
         self.debug(f"签到图片hash {captcha_img_hash}")
@@ -111,7 +104,7 @@ class Tjupt(_ISiteSigninHandler):
 
         if not values or not options:
             self.error("签到失败，未获取到答案选项")
-            return False, f'[site]签到失败，未获取到答案选项'
+            return False, f'{site}签到失败，未获取到答案选项'
 
         # value+选项
         answers = list(zip(values, options))
@@ -187,7 +180,7 @@ class Tjupt(_ISiteSigninHandler):
         self.error("豆瓣图片匹配，未获取到匹配答案")
 
         # 没有匹配签到成功，则签到失败
-        return False, f'[site]签到失败，未获取到匹配答案'
+        return False, f'{site}签到失败，未获取到匹配答案'
 
     def __signin(self, answer, site_cookie, ua, proxy, site, exits_answers=None, captcha_img_hash=None):
         """
@@ -204,7 +197,7 @@ class Tjupt(_ISiteSigninHandler):
                                    ).post_res(url=self._sign_in_url, data=data)
         if not sign_in_res or sign_in_res.status_code != 200:
             self.error("签到失败，签到接口请求失败")
-            return False, f'[site]签到失败，签到接口请求失败'
+            return False, f'{site}签到失败，签到接口请求失败'
 
         # 获取签到后返回html，判断是否签到成功
         sign_status = self.sign_in_result(html_res=sign_in_res.text,
@@ -216,10 +209,10 @@ class Tjupt(_ISiteSigninHandler):
                 self.__write_local_answer(exits_answers=exits_answers or {},
                                           captcha_img_hash=captcha_img_hash,
                                           answer=answer)
-            return True, f'[site]签到成功'
+            return True, f'{site}签到成功'
         else:
             self.error("签到失败，请到页面查看")
-            return False, f'[site]签到失败，请到页面查看'
+            return False, f'{site}签到失败，请到页面查看'
 
     def __write_local_answer(self, exits_answers, captcha_img_hash, answer):
         """
