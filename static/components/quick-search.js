@@ -13,7 +13,7 @@
       <div class="modal-content">
         <div class="modal-header align-items-end">
           <!-- 1. Tab 导航 -->
-          <ul class="nav nav-tabs w-100" id="myModalTabs" role="tablist">
+          <ul class="nav nav-tabs w-100 border-0" id="myModalTabs" role="tablist">
             <li class="nav-item" role="presentation">
               <button class="nav-link active" id="tab-media-search-tab" data-bs-toggle="tab" data-bs-target="#tab-media-search" type="button" role="tab" aria-controls="tab-media-search" aria-selected="true">搜索</button>
             </li>
