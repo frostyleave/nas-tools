@@ -31,6 +31,8 @@
       this._cardCurrentLoadIndex = 0;
       this._rendered = false;
       this._renderPending = false;
+      this._resizeObserver = null;
+      this._measureRetryTimer = null;
       this._onResize = () => this._countMaxNumber();
       this._onScroll = () => this._countDisabled();
     }
@@ -75,6 +77,15 @@
 
     disconnectedCallback() {
       window.removeEventListener('resize', this._onResize);
+
+      if (this._resizeObserver) {
+        this._resizeObserver.disconnect();
+        this._resizeObserver = null;
+      }
+      if (this._measureRetryTimer) {
+        clearTimeout(this._measureRetryTimer);
+        this._measureRetryTimer = null;
+      }
     }
 
     attributeChangedCallback(name, oldValue, newValue) {
@@ -127,6 +138,20 @@
       this._nextBtn.addEventListener('click', () => this._slideNext(true));
       this._scrollbar.addEventListener('scroll', this._onScroll, { passive: true });
 
+      // 页面刷新时 #page-content 可能仍是 hidden，首次测量宽度为 0；
+      // 等容器真正可见后重新测量，触发懒加载移除 lazy
+      if (typeof ResizeObserver === 'function') {
+        this._resizeObserver = new ResizeObserver(() => {
+          if (!this.isConnected || !this._cardNumber) return;
+
+          const width = this._cardNumber.getBoundingClientRect().width;
+          if (width && width !== this._cardWidth) {
+            this._countMaxNumber();
+          }
+        });
+        this._resizeObserver.observe(this._cardNumber);
+      }
+
       this._updateHeader();
     }
 
@@ -175,9 +200,29 @@
       // 首次需要测量卡片宽度；后续只需更新箭头状态，避免重复强制布局
       if (!this._cardWidth) {
         nextFrame(() => this._countMaxNumber());
+        this._scheduleMeasureRetry();
       } else {
         nextFrame(() => this._countDisabled());
       }
+    }
+
+    _scheduleMeasureRetry() {
+      if (this._measureRetryTimer) return;
+
+      let attempts = 0;
+      const tick = () => {
+        this._measureRetryTimer = null;
+
+        if (!this.isConnected || this._cardWidth) return;
+
+        this._countMaxNumber();
+
+        if (!this._cardWidth && attempts++ < 60) {
+          this._measureRetryTimer = setTimeout(tick, 16);
+        }
+      };
+
+      this._measureRetryTimer = setTimeout(tick, 16);
     }
 
     _countMaxNumber() {
@@ -215,17 +260,28 @@
 
       if (this.lazy) {
         if (this._cardCurrent > this._cardCurrentLoadIndex - this._cardMax) {
-          let cards;
-          try {
-            cards = this._cardNumber.querySelectorAll(this.lazy);
-          } catch (e) {
-            return;
-          }
-          if (cards.length > 0) {
-            const showMax = this._cardCurrent + this._cardMax + 1;
-            for (let i = this._cardCurrent; i < showMax && i < cards.length; i++) {
-              cards[i].removeAttribute('lazy');
+          const children = this._cardNumber.children;
+          const showMax = Math.min(
+            this._cardCurrent + this._cardMax + 1,
+            children.length
+          );
+
+          // 按完整子节点索引处理，避免 querySelectorAll 在移除 lazy 后
+          // 列表收缩导致索引错位
+          for (let i = this._cardCurrent; i < showMax; i++) {
+            const card = children[i];
+            if (!card || !card.hasAttribute('lazy')) continue;
+
+            try {
+              if (card.matches(this.lazy)) {
+                card.removeAttribute('lazy');
+              }
+            } catch (e) {
+              break;
             }
+          }
+
+          if (showMax > this._cardCurrentLoadIndex) {
             this._cardCurrentLoadIndex = showMax;
           }
         }

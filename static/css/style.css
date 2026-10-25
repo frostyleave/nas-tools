@@ -1300,3 +1300,24 @@ div#main-info-container > * {
     z-index: 1;
     padding: 48px 24px;
 }
+
+@media (max-width: 767.98px) {
+  /* 顶部 page-header 整体绝对定位，脱离文档流 */
+  .page-header.top-header {
+    position: absolute;
+    right: 0.75rem;       /* 与容器内容右边缘对齐，可微调 */
+    left: auto;
+    width: auto;
+    margin: 0;
+    padding: 0;
+    z-index: 10;
+  }
+
+  /* 清掉内部 row/col 的间距，避免撑出额外高度 */
+  .page-header.top-header .row {
+    margin: 0;
+  }
+  .page-header.top-header .col-auto {
+    padding: 0;
+  }
+}
