@@ -93,7 +93,7 @@
   },  
   {
     "name": "服务",
-    "level": 1,
+    "level": 9,
     "page": "service",
     "group": "任务",
     "icon": "<i class=\"ti ti-stack-2 fs-2 \"></i>",
@@ -101,7 +101,7 @@
   },
   {
     "name": "文件",
-    "level": 1,
+    "level": 9,
     "page": "mediafile",
     "group": "管理",
     "icon": "<i class=\"ti ti-files fs-2 \"></i>",
@@ -136,12 +136,18 @@
         "page": "tmdbcache",
         "icon": "<i class=\"ti ti-keyframes fs-2 \"></i>",
         "html": "/static/pages/tmdbcache.html"
+      },
+      {
+        "name": "自定义识别词",
+        "page": "customwords",
+        "icon": "<i class=\"ti ti-text-grammar fs-2 \"></i>",
+        "html": "/static/pages/customwords.html"
       }
     ]
   },
   {
     "name": "站点",
-    "level": 1,
+    "level": 9,
     "page": "site",
     "group": "管理",
     "icon": "<i class=\"ti ti-world-www fs-2 \"></i>",
@@ -169,6 +175,7 @@
   },
   {
     "name": "插件",
+    "level": 9,
     "page": "plugin",
     "group": "管理",
     "icon": "<i class=\"ti ti-apps fs-2 \"></i>",
@@ -176,6 +183,7 @@
   },
   {
     "name": "设置",
+    "level": 9,
     "page": "basic",
     "group": "管理",
     "icon": "<i class=\"ti ti-settings fs-2 \"></i>",
@@ -212,19 +220,12 @@
         "html": "/static/pages/filterrule.html"
       },
       {
-        "name": "自定义识别词",
-        "page": "customwords",
-        "icon": "<i class=\"ti ti-text-grammar fs-2 \"></i>",
-        "html": "/static/pages/customwords.html"
+        "name": "用户管理",
+        "level": 99,
+        "page": "users",
+        "icon": "<i class=\"ti ti-users fs-2 \"></i>",
+        "html": "/static/pages/users.html"
       }
     ]
-  },
-  {
-    "name": "用户",
-    "page": "users",
-    "hide": true,
-    "group": "管理",
-    "icon": "<i class=\"ti ti-users fs-2 \"></i>",
-    "html": "/static/pages/users.html"
   }
 ]

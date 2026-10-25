@@ -1412,29 +1412,11 @@
           $navbar[0].navbar_list = sysInfo.menus;
           $("#app-layout").prepend($navbar);
 
-          // 填充搜索栏下拉选项
-          $('#head-dropdown-menu').empty();
-          $('#head-dropdown-menu').append(`
-            <a class="dropdown-item hide-theme-dark" data-id="dark" href="javascript:void(0)" onclick="theme_toggle(this)" role="button">暗黑风格</a>
-            <a class="dropdown-item hide-theme-light" data-id="light" href="javascript:void(0)" onclick="theme_toggle(this)" role="button">明亮风格</a>
-            <div class="dropdown-divider"></div>
-          `);
-          if (sysInfo.admin) {
-            $('#head-dropdown-menu').append(`
-              <a class="dropdown-item" href="javascript:navmenu('users')" role="button">用户管理</a>
-              <div class="dropdown-divider"></div>
-              <a class="dropdown-item" href="javascript:show_message_modal()" role="button">消息中心</a>
-              <a class="dropdown-item" href="javascript:show_logging_modal()" role="button">实时日志</a>
-              <div class="dropdown-divider"></div>
-            `);
-            if (sysInfo.systemFlag == 'Docker' || sysInfo.systemFlag == 'Synology') {
-              $('#head-dropdown-menu').append(`<a class="dropdown-item" href="javascript:restart()">重启</a>`);
-            }
+          // 填充用户头像下拉菜单
+          const navbarSearch = document.querySelector('navbar-search');
+          if (navbarSearch && typeof navbarSearch.updateUserMenu === 'function') {
+            navbarSearch.updateUserMenu(sysInfo);
           }
-          $('#head-dropdown-menu').append(`
-            <a class="dropdown-item" href="javascript:logout()"> 注销 <span class="text-muted mx-3">${sysInfo.username}</span></a>
-            <div class="dropdown-divider"></div>
-          `);
           // 显示搜索栏
           $("#navbar-search").removeClass('d-none');
           

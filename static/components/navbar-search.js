@@ -5,11 +5,55 @@
     constructor() {
       super();
       this._rendered = false;
+      this._userMenuData = null;
 
       this._onScroll = () => {
         const scrollTop = document.body.scrollTop || window.pageYOffset || 0;
         this.classList.toggle('lit-searchbar-blur', scrollTop >= 5);
       };
+    }
+
+    /**
+     * 填充用户头像下拉菜单
+     * @param {Object} sysInfo /data/sysinfo 返回的数据
+     */
+    updateUserMenu(sysInfo) {
+      this._userMenuData = sysInfo || null;
+      this._renderUserMenu();
+    }
+
+    _renderUserMenu() {
+      const menu = this.querySelector('#head-dropdown-menu');
+      if (!menu || !this._userMenuData) return;
+
+      const sysInfo = this._userMenuData;
+
+      let html = `
+        <a class="dropdown-item hide-theme-dark" data-id="dark" href="javascript:void(0)" onclick="theme_toggle(this)" role="button">暗黑风格</a>
+        <a class="dropdown-item hide-theme-light" data-id="light" href="javascript:void(0)" onclick="theme_toggle(this)" role="button">明亮风格</a>
+        <div class="dropdown-divider"></div>`;
+
+      if (sysInfo.admin) {
+        html += `
+          <a class="dropdown-item" href="javascript:show_message_modal()" role="button">消息中心</a>
+          <a class="dropdown-item" href="javascript:show_logging_modal()" role="button">实时日志</a>
+          <div class="dropdown-divider"></div>`;
+
+        if (sysInfo.systemFlag === 'Docker' || sysInfo.systemFlag === 'Synology') {
+          html += `<a class="dropdown-item" href="javascript:restart()">重启</a>`;
+        }
+      }
+
+      html += `
+        <a class="dropdown-item" href="javascript:logout()"> 注销 <span class="text-muted mx-3"></span></a>
+        <div class="dropdown-divider"></div>`;
+
+      menu.innerHTML = html;
+
+      const username = menu.querySelector('a[href="javascript:logout()"] .text-muted');
+      if (username) {
+        username.textContent = sysInfo.username || '';
+      }
     }
 
     connectedCallback() {
@@ -71,6 +115,10 @@
           }
         });
       });
+
+      if (this._userMenuData) {
+        this._renderUserMenu();
+      }
     }
   }
 
