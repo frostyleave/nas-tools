@@ -62,19 +62,7 @@
       if (this._pageInitialized || !this._navbarList.length) return;
       this._pageInitialized = true;
 
-      let page = (window.history.state && window.history.state.page) || this._getPageFromUrl();
-      if (!page) {
-        const first = this._navbarList[0];
-        page = first.page || (first.list && first.list[0] && first.list[0].page) || 'index';
-      }
-
-      navmenu(page || 'index');
       setTimeout(() => this._ensureVisible(), 200);
-    }
-
-    _getPageFromUrl() {
-      const parts = window.location.href.split('#');
-      return parts.length > 1 ? parts[parts.length - 1] : undefined;
     }
 
     _ensureVisible() {

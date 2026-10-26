@@ -8,6 +8,13 @@ let GlobalModalAbort = true;
 // 当前页面地址
 let CurrentPageUri = "";
 
+// 初始页面是否已由顶部 router.resolve() 加载
+// 用于避免 registerRouter() 再次 resolve 同一个固定路由，导致页面片段重复加载
+let InitialPageLoadStarted = false;
+
+// 页面在菜单创建前已加载时，等待菜单就绪后再补执行菜单激活和页面后处理
+let PendingPageState = false;
+
 // 轮询管理器：收集所有需要停止的函数
 const PollingManager = {
   // key -> stopFunction
@@ -152,6 +159,8 @@ function showLogin() {
 // SPA页面加载
 function loadPage(htmlPath, queryString) {
 
+  InitialPageLoadStarted = true;
+
   $('#login-container').addClass('d-none');
   $('#app-layout').removeClass('d-none');
   $("body").removeClass("no-after");
@@ -176,32 +185,6 @@ function loadPage(htmlPath, queryString) {
     // 关闭加载标记
     NavPageLoading = false;
 
-    // 首次进入页面, 菜单数据没有加载完成
-    var navbarMenu = document.querySelector("#navbar-menu")
-    if (!navbarMenu || !navbarMenu.navbar_list) {
-      $('#top-sub-navbar').hide();
-      return;
-    }
-
-    var page = window.location.hash;
-    if (page) {
-      page = page.replace(/^[#/]+/, "");
-    }
-
-    // 激活菜单
-    var pageMenu = getMenuId(page);
-    var prevMenu = getMenuId(CurrentPageUri);
-
-    // 记录当前页面ID
-    if (page !== CurrentPageUri) {
-      CurrentPageUri = page;
-    }
-
-    // 刷新子菜单
-    if (pageMenu !== prevMenu) {    
-      activeMenu(pageMenu);
-    }
-
     if (status == "error") {
       $("#page-content").html(`<system-error title="${xhr.status}" text="${xhr.statusText || ''}"></system-error>`);
     } else {
@@ -209,12 +192,56 @@ function loadPage(htmlPath, queryString) {
       $(window).scrollTop(0);
     }
 
-    // 加载完成
-    renderOther();
+    // 激活菜单、刷新子菜单并执行页面后处理
+    applyPageState();
 
   });
 
 }
+
+// 页面加载后的菜单状态处理
+// 如果菜单尚未创建，先记录 pending，等 initSysInfo 创建菜单后再补执行
+function applyPageState() {
+  var navbarMenu = document.querySelector("#navbar-menu");
+  if (!navbarMenu || !navbarMenu.navbar_list) {
+    $('#top-sub-navbar').hide();
+    PendingPageState = true;
+    return;
+  }
+
+  PendingPageState = false;
+
+  var page = window.location.hash;
+  if (page) {
+    page = page.replace(/^[#/]+/, "");
+  }
+
+  // 激活菜单
+  var pageMenu = getMenuId(page);
+  var prevMenu = getMenuId(CurrentPageUri);
+
+  // 记录当前页面ID
+  if (page !== CurrentPageUri) {
+    CurrentPageUri = page;
+  }
+
+  // 刷新子菜单
+  if (pageMenu !== prevMenu) {
+    activeMenu(pageMenu);
+  }
+
+  // 页面后处理
+  renderOther();
+}
+
+// 菜单创建完成后，补执行之前挂起的页面状态处理
+function initPendingPageState() {
+  if (PendingPageState) {
+    applyPageState();
+  }
+}
+
+window.initPendingPageState = initPendingPageState;
 
 // 导航菜单点击
 function navmenu(page) {
@@ -536,7 +563,11 @@ function registerRouter(user_menus) {
 
   });
 
-  router.resolve(); 
+  // 如果初始 URL 已经由顶部 router.resolve() 命中固定路由并加载，
+  // 不能再 resolve 一次，否则会重复 loadPage，页面内联脚本会执行两次
+  if (!InitialPageLoadStarted) {
+    router.resolve();
+  }
 }
 
 window.navmenu = navmenu;

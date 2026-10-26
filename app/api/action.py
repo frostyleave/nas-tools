@@ -1946,7 +1946,7 @@ class WebAction:
             CurrentPage = int(CurrentPage)
 
         res_list = []
-        if Type in ['MOV', 'TV', 'ALL']:
+        if Type in ['MOV', 'TV', 'ANI', 'ALL']:
             res_list = self.__get_randking_data(data, Type, SubType, CurrentPage)
         elif Type == "SEARCH":
             # 搜索词条

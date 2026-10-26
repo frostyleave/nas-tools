@@ -1440,6 +1440,11 @@
           // 注册路由
           registerRouter(sysInfo.menus);
 
+          // 页面在菜单创建前已加载时，补执行菜单激活和页面后处理
+          if (typeof initPendingPageState === 'function') {
+            initPendingPageState();
+          }
+
           var current = router.current && router.current[0] && router.current[0].url;
           if (!current || current == 'login') {
             navmenu('index');
