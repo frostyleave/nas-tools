@@ -1254,50 +1254,6 @@ class DbHelper:
             return False
 
     @DbPersist(_db)
-    def update_site_favicon(self, site_user_infos: list):
-        """
-        更新站点图标数据
-        """
-        if not site_user_infos:
-            return
-        for site_user_info in site_user_infos:
-            site_icon = "data:image/ico;base64," + \
-                        site_user_info.site_favicon if site_user_info.site_favicon else site_user_info.site_url \
-                                                                                        + "/favicon.ico"
-            if not self.is_exists_site_favicon(site_user_info.site_name):
-                self._db.insert(SITEFAVICON(
-                    SITE=site_user_info.site_name,
-                    URL=site_user_info.site_url,
-                    FAVICON=site_icon
-                ))
-            elif site_user_info.site_favicon:
-                self._db.query(SITEFAVICON).filter(SITEFAVICON.SITE == site_user_info.site_name).update(
-                    {
-                        "URL": site_user_info.site_url,
-                        "FAVICON": site_icon
-                    }
-                )
-
-    def is_exists_site_favicon(self, site):
-        """
-        判断站点图标是否存在
-        """
-        count = self._db.query(SITEFAVICON).filter(SITEFAVICON.SITE == site).count()
-        if count > 0:
-            return True
-        else:
-            return False
-
-    def get_site_favicons(self, site=None):
-        """
-        查询站点数据历史
-        """
-        if site:
-            return self._db.query(SITEFAVICON).filter(SITEFAVICON.SITE == site).all()
-        else:
-            return self._db.query(SITEFAVICON).all()
-
-    @DbPersist(_db)
     def update_site_seed_info_site_name(self, new_name, old_name):
         """
         更新站点做种数据中站点名称
@@ -1568,8 +1524,8 @@ class DbHelper:
             return
         
         exists_data = self.query_exists_download_history(enclosure=media_info.enclosure,
-                                           downloader=downloader,
-                                           download_id=download_id)
+                                                         downloader=downloader,
+                                                         download_id=download_id)
         exist = exists_data.first()
         if exist:
             # 记录已存在时只更新最新一条
@@ -1584,6 +1540,7 @@ class DbHelper:
                     "SAVE_PATH": save_dir,
                     "SE": media_info.get_season_episode_string(),
                     "DATE": time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time())),
+                    "PAGE_URL": media_info.page_url,
                 }
             )
         else:
@@ -1594,7 +1551,6 @@ class DbHelper:
                 TMDBID=media_info.tmdb_id,
                 VOTE=media_info.vote_average,
                 POSTER=media_info.get_poster_image(),
-                OVERVIEW=media_info.overview,
                 BACKDROP=media_info.get_backdrop_image(default=False, original=True),
                 ENCLOSURE=media_info.enclosure,
                 DESC=media_info.description,
@@ -1603,32 +1559,9 @@ class DbHelper:
                 DOWNLOADER=downloader,
                 DOWNLOAD_ID=download_id,
                 SAVE_PATH=save_dir,
+                PAGE_URL=media_info.page_url,
                 SE=media_info.get_season_episode_string()
             ))
-
-    def get_download_history(self, date=None, hid=None, num=30, page=1):
-        """
-        查询下载历史
-        """
-        if hid:
-            return self._db.query(DOWNLOADHISTORY).filter(DOWNLOADHISTORY.ID == int(hid)).all()
-        sub_query = self._db.query(DOWNLOADHISTORY,
-                                   func.max(DOWNLOADHISTORY.DATE)
-                                   ).group_by(DOWNLOADHISTORY.TITLE).subquery()
-        if date:
-            return self._db.query(DOWNLOADHISTORY).filter(
-                DOWNLOADHISTORY.DATE > date).join(
-                sub_query,
-                and_(sub_query.c.ID == DOWNLOADHISTORY.ID)
-            ).order_by(DOWNLOADHISTORY.DATE.desc()).all()
-        else:
-            offset = (int(page) - 1) * int(num)
-            return self._db.query(DOWNLOADHISTORY).join(
-                sub_query,
-                and_(sub_query.c.ID == DOWNLOADHISTORY.ID)
-            ).order_by(
-                DOWNLOADHISTORY.DATE.desc()
-            ).limit(num).offset(offset).all()
 
     def get_download_history_by_title(self, title):
         """

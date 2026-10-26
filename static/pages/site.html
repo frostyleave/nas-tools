@@ -722,14 +722,17 @@
 
   function table_display(site) {
     return `
-      <table class="table table-borderless table-transparent mb-0 ms-2 me-4">
+      <table class="table table-borderless table-transparent mb-0 ms-2 me-5">
+        <colgroup>
+          <col style="width: 30%">
+          <col style="width: 35%">
+          <col style="width: 35%">
+        </colgroup>
         <thead>
           <tr>
             <th class="p-0">分享率</th>
             <th class="p-0">上传量</th>
             <th class="p-0">下载量</th>
-            <th class="p-0">做种数</th>
-            <th class="p-0">魔力值</th>
           </tr>
         </thead>
         <tbody class="fw-bold">
@@ -737,8 +740,6 @@
             <td class="p-0 text-azure">${site.ratio}</td>
             <td class="p-0 text-indigo">${formatFileSize(site.upload)}</td>
             <td class="p-0 text-purple">${formatFileSize(site.download)}</td>
-            <td class="p-0 text-orange">${site.seeding}</td>
-            <td class="p-0">${formatNumber(site.bonus)}</td>
           </tr>
         </tbody>
       </table>
@@ -873,7 +874,7 @@
                         </small>
                       </div>
                     </div>
-                    <div class="d-flex justify-content-between mt-2">
+                    <div class="d-flex justify-content-between mt-2 pe-2">
                       ${table_display(site)}
                     </div>
                   </div>

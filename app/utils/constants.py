@@ -1,3 +1,5 @@
+import re
+
 from app.utils.types import MediaType
 
 
@@ -8,6 +10,13 @@ class Constants(object):
 
     # 种子名/文件名要素分隔字符
     SPLIT_CHARS = r"\.|\s+|\(|\)|\[|]|-|\+|【|】|/|;|&|\||#|_|「|」"
+
+    # 分隔符正则缓存
+    SPLIT_CHARS_ESCAPED = re.escape(SPLIT_CHARS)
+
+    # 种子名/文件名要素分隔字符（空格：单空格不分割，仅分割连续空格）
+    SPLIT_CHARS_NO_BLANK = r"\.|\s{2,}|\(|\)|\[|]|-|\+|/|;|&|\||#|_"
+    SPLIT_CHARS_NO_BLANK_ESCAPED = re.escape(SPLIT_CHARS)
 
     # TMDB域名地址
     TMDB_API_DOMAINS = [

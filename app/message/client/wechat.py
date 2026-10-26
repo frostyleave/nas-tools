@@ -59,7 +59,7 @@ class WeChat(_IMessageClient):
         if not self._access_token:
             token_valid = False
         else:
-            log.info("[微信]Token申请时间: " + str(self._access_token_time))
+            log.debug("[微信]Token申请时间: " + str(self._access_token_time))
             # 计算token已申请时间
             token_life_seconds = (datetime.now() - self._access_token_time).seconds
             # token 已过期, 或有效期小于5分钟
@@ -74,7 +74,7 @@ class WeChat(_IMessageClient):
                 res = RequestUtils().get_res(token_url)
                 if res:
                     ret_json = res.json()
-                    log.debug("[微信]获取微信Token: " + json.dumps(ret_json))
+                    log.info("[微信]获取微信Token: " + json.dumps(ret_json))
                     if ret_json.get('errcode') == 0:
                         self._access_token = ret_json.get('access_token')
                         self._expires_in = ret_json.get('expires_in')
@@ -93,9 +93,11 @@ class WeChat(_IMessageClient):
         :param url: 点击消息跳转URL
         :return: 发送状态，错误信息
         """
-        if not self.__get_access_token():
-            return False, "参数未配置或配置不正确"
-        message_url = self._send_msg_url % self.__get_access_token()
+        access_token = self.__get_access_token()
+        if not access_token:
+            return False, "获取微信access_token失败, 参数未配置或配置不正确"
+        
+        message_url = self._send_msg_url % access_token
         if text:
             conent = "%s\n%s" % (title, text.replace("\n\n", "\n"))
         else:
@@ -127,9 +129,11 @@ class WeChat(_IMessageClient):
         :param user_id: 消息发送对象的ID，为空则发给所有人
         :return: 发送状态，错误信息
         """
-        if not self.__get_access_token():
-            return False, "获取微信access_token失败，请检查参数配置"
-        message_url = self._send_msg_url % self.__get_access_token()
+        access_token = self.__get_access_token()
+        if not access_token:
+            return False, "获取微信access_token失败, 请检查参数配置"
+        
+        message_url = self._send_msg_url % access_token
         if text:
             text = text.replace("\n\n", "\n")
         if not user_id:
@@ -173,11 +177,14 @@ class WeChat(_IMessageClient):
         """
         发送列表类消息
         """
-        if not self.__get_access_token():
-            return False, "参数未配置或配置不正确"
         if not isinstance(medias, list):
             return False, "数据错误"
-        message_url = self._send_msg_url % self.__get_access_token()
+
+        access_token = self.__get_access_token()
+        if not access_token:
+            return False, "获取微信access_token失败, 参数未配置或配置不正确"
+        
+        message_url = self._send_msg_url % access_token
         if not user_id:
             user_id = "@all"
         articles = []

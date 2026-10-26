@@ -2359,16 +2359,15 @@ class MediaService:
         """
         if not person_info and not person_id:
             return ""
-        # 返回中文名
-        name = ""
+
         # 所有别名
-        alter_names = []
+        all_names = []
         try:
             if not person_info:
-                person_proxy = Person()
-                person_info = person_proxy.details(person_id)
+                person_info = Person().details(person_id)
             if person_info:
                 aka_names = person_info.get("also_known_as", []) or []
+                aka_names.append(person_info.get('name'))
             else:
                 return ""
         except Exception as err:
@@ -2376,19 +2375,19 @@ class MediaService:
             return ""
         for aka_name in aka_names:
             if StringUtils.contain_chinese(aka_name):
-                alter_names.append(aka_name)
+                all_names.append(aka_name)
 
-        if len(alter_names) == 1:
-            return alter_names[0]
+        if len(all_names) == 1:
+            return all_names[0]
         
-        if len(alter_names) > 1:
-            for alter_name in alter_names:
+        if len(all_names) > 1:
+            for alter_name in all_names:
                 # 繁体
                 if StringUtils.contain_traditional_chinese(alter_name):
                     continue
                 return alter_name
             
-        return alter_names[0]
+        return all_names[0]
 
     def get_tmdbperson_aka_names(self, person_id):
         """

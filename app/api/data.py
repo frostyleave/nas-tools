@@ -113,9 +113,7 @@ async def sysinfo(current_user: User = Depends(get_current_user)):
     system_flag = SystemUtils.get_system()
     tmdb_flag = 1 if Config().get_config('app').get('rmt_tmdbkey') else 0
     default_path = Config().get_config('media').get('media_default_path')
-    sync_mod = Config().get_config('media').get('default_rmt_mode')
-    if not sync_mod:
-        sync_mod = "link"
+    sync_mod = Config().get_config('media').get('default_rmt_mode') or "link"
 
     username = current_user.username
     

@@ -28,8 +28,8 @@ def get_login_wallpaper(time_now=None):
         img_url, img_title, img_link = get_bing_wallpaper(today)
     img_enc = __get_image_b64(img_url)
     if img_enc:
-        return img_enc, img_title, img_link
-    return "", "", ""
+        return img_enc, img_title, img_link, img_url
+    return "", img_title, img_link, img_url
 
 
 @cached(cache=TTLCache(maxsize=512, ttl=3600))

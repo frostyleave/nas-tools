@@ -60,6 +60,7 @@
                 <th>年份</th>
                 <th>类型</th>
                 <th>季集</th>
+                <th>源网页</th>
                 <th>时间</th>
               </tr>
             </thead>
@@ -141,7 +142,7 @@
             const row = `
               <tr>
                 <td>
-                  <span class="badge badge-outline text-teal">${item.SITE || ''}</span>
+                  <span>${item.SITE || ''}</span>
                 </td>
                 <td>
                   <span>${item.TMDBID || ''}</span>
@@ -157,6 +158,9 @@
                 </td>
                 <td>
                   <span>${item.SE || ''}</span>
+                </td>
+                <td>
+                  <span>${item.PAGE_URL || ''}</span>
                 </td>
                 <td>
                   <small>${item.DATE || ''}</small>

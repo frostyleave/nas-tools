@@ -176,7 +176,6 @@ class WebAction:
             "get_site_history": self.__get_site_history,
             "get_recommend": self.__get_recommend,
             "batch_get_media_exists_info": self.__batch_get_media_exists_info,
-            "get_downloaded": self.__get_downloaded,
             "get_site_seeding_info": self.__get_site_seeding_info,
             "clear_tmdb_cache": self.__clear_tmdb_cache,
             "check_site_attr": self.__check_site_attr,
@@ -1947,7 +1946,7 @@ class WebAction:
             CurrentPage = int(CurrentPage)
 
         res_list = []
-        if Type in ['MOV', 'TV', 'ALL']:
+        if Type in ['MOV', 'TV', 'ANI', 'ALL']:
             res_list = self.__get_randking_data(data, Type, SubType, CurrentPage)
         elif Type == "SEARCH":
             # 搜索词条
@@ -1958,9 +1957,6 @@ class WebAction:
             res_list = [media.to_dict() for media in medias]
             # 相关性排序
             res_list = self.__sort_search_results(res_list, Keyword)
-        elif Type == "DOWNLOADED":
-            # 近期下载
-            res_list = self.__get_downloaded({"page": CurrentPage}).get("Items")
         elif Type == "TRENDING":
             # TMDB流行趋势
             if SubType == "trendingmv":
@@ -1990,23 +1986,26 @@ class WebAction:
                                                    sort=sort,
                                                    tags=tags,
                                                    page=CurrentPage)
-
-        fav = data.get("fav", 1)
-        # 不检查存在与订阅状态
-        if not fav:
-            return {"code": 0, "Items": res_list}
+        else:
+             return {"code": 1, "msg": f"未知类型: {Type}"}
+        
+        if not res_list:
+            return {"code": 1, "msg": '没有查到'}
 
         # 补充存在与订阅状态
-        for res in res_list:
-            fav, rssid, item_url = MediaStatusChecker().get_media_exists_info(mtype=res.get("type"),
-                                                              title=res.get("title"),
-                                                              year=res.get("year"),
-                                                              mediaid=res.get("id"))
-            res.update({
-                'fav': fav,
-                'rssid': rssid,
-                'item_url': item_url
-            })
+        fav = data.get("fav", 1)
+        if fav:
+            for res in res_list:
+                fav, rssid, item_url = MediaStatusChecker().get_media_exists_info(mtype=res.get("type"),
+                                                                title=res.get("title"),
+                                                                year=res.get("year"),
+                                                                mediaid=res.get("id"))
+                res.update({
+                    'fav': fav,
+                    'rssid': rssid,
+                    'item_url': item_url
+                })
+
         return {"code": 0, "Items": res_list}
     
     def __batch_get_media_exists_info(self, data):
@@ -2086,11 +2085,8 @@ class WebAction:
         if SubType == "sim":
             # 相似推荐
             TmdbId = data.get("tmdbid")
-            return self.__media_similar({
-                    "tmdbid": TmdbId,
-                    "page": CurrentPage,
-                    "type": Type
-                }).get("data")
+            req_data = { "tmdbid": TmdbId, "page": CurrentPage, "type": Type}
+            return self.__media_similar(req_data).get("data")
         
         if SubType == "more":
             # 更多推荐
@@ -2146,28 +2142,6 @@ class WebAction:
             reverse=True
         )
         return sorted_results
-
-    def __get_downloaded(self, data):
-        page = data.get("page")
-        Items = Downloader().get_download_history(page=page)
-        if Items:
-            return {"code": 0, "Items": [{
-                'id': item.TMDBID,
-                'orgid': item.TMDBID,
-                'tmdbid': item.TMDBID,
-                'title': item.TITLE,
-                'type': 'MOV' if item.TYPE == "电影" else "TV",
-                'media_type': item.TYPE,
-                'year': item.YEAR,
-                'vote': item.VOTE,
-                'image': item.POSTER,
-                'backdrop': item.BACKDROP,
-                'overview': item.OVERVIEW,
-                "date": item.DATE,
-                "site": item.SITE
-            } for item in Items]}
-        else:
-            return {"code": 0, "Items": []}
 
     def __clear_tmdb_cache(self):
         """
@@ -2999,12 +2973,12 @@ class WebAction:
         """
         downloader_id = data.get("downloader_id")
 
-        DownloaderHandler = Downloader()
-        torrents = DownloaderHandler.get_downloading_progress(downloader_id=downloader_id)
+        downloaderHandler = Downloader()
+        torrents = downloaderHandler.get_downloading_progress(downloader_id=downloader_id)
         for torrent in torrents:
             # 先查询下载记录，没有再识别
             name = torrent.get("name")
-            download_info = DownloaderHandler.get_download_history_by_downloader(
+            download_info = downloaderHandler.get_download_history_by_downloader(
                 downloader=downloader_id,
                 download_id=torrent.get("id")
             )
@@ -3441,9 +3415,9 @@ class WebAction:
         
         # 查询存在及订阅状态
         fav, rssid, item_url = MediaStatusChecker().get_media_exists_info(mtype=mtype,
-                                                          title=media_info.title,
-                                                          year=media_info.year,
-                                                          mediaid=media_info.tmdb_id)
+                                                                          title=media_info.title,
+                                                                          year=media_info.year,
+                                                                          mediaid=media_info.tmdb_id)
         media_handler = MediaService()
         # 演职人员信息整合
         crews = self.__get_crews_from_media_info(media_info, media_handler, mtype)
@@ -3463,9 +3437,8 @@ class WebAction:
                 "genres": media_handler.get_tmdb_genres_names(tmdbinfo=media_info.tmdb_info),
                 "overview": media_info.overview,
                 "runtime": StringUtils.str_timehours(media_info.runtime),
-                "crews": crews,
-                # "actors": actors,
                 "link": media_info.get_detail_url(),
+                "crews": crews,
                 "fav": fav,
                 "item_url": item_url,
                 "rssid": rssid,
@@ -3531,7 +3504,7 @@ class WebAction:
                         "link": douban_info.get('alt'),
                         "genres": genres,
                         "runtime": duration_str,
-                        # "background": self._douBan.get_media_photo(doubanId, mtype),
+                        # "background": [image],
                         "fav": fav,
                         "item_url": item_url,
                         "rssid": rssid,
@@ -3558,6 +3531,9 @@ class WebAction:
             info = media_handler.get_tmdb_info(tmdbid=tmdbid, mtype=mtype, append_to_response="all")
             if not info:
                 return { "code": 1, "msg": "无法查询到TMDB信息" }
+
+            if hasattr(info, 'seasons') and info.seasons:
+                info.seasons = media_handler.get_tmdb_tv_seasons(info)
             
             title = MediaUtils.get_tmdb_title(info)
             media_info = MetaInfo(title)
@@ -3584,6 +3560,7 @@ class WebAction:
                 "fav": fav,
                 "item_url": item_url,
                 "rssid": rssid,
+                "tmdb_info": media_info.tmdb_info
             }
         }
 
@@ -3604,20 +3581,26 @@ class WebAction:
             return {"code": 1, "msg": "媒体信息查询失败"}
 
         media_handler = MediaService()
+
         # 演职人员信息整合
         crews = self.__get_crews_from_media_info(media_info, media_handler, mtype)
+
+        extra_info = {
+            "tmdbid": str(media_info.tmdb_id),
+            "douban_id": media_info.douban_id,
+            "background": media_handler.get_tmdb_backdrops(tmdbinfo=media_info.tmdb_info),
+            "crews": crews,
+            "link": media_info.get_detail_url(),
+        }
+
         # 解析季信息
-        seasons = self.__resolve_season_info(media_info, media_handler, mtype)
-                
+        if mediaid.find(":") > 0 and hasattr(media_info.tmdb_info, 'number_of_seasons'):
+            extra_info['number_of_seasons'] = media_info.tmdb_info.number_of_seasons
+            extra_info['seasons'] = self.__resolve_season_info(media_info, media_handler, mtype)
+
         return {
             "code": 0,
-            "data": {
-                "tmdbid": str(media_info.tmdb_id),
-                "douban_id": media_info.douban_id,
-                "background": media_handler.get_tmdb_backdrops(tmdbinfo=media_info.tmdb_info),
-                "crews": crews,
-                "seasons": seasons
-            }
+            "data": extra_info
         }
 
     def __get_crews_from_media_info(self, media_info:MetaInfo, media_handler:MediaService, mtype:MediaType):
@@ -3692,10 +3675,12 @@ class WebAction:
         查询TMDB相似媒体
         """
         tmdbid = data.get("tmdbid")
+        if not tmdbid or tmdbid.find(":") > 0:
+            return {"code": 1, "msg": "未指定TMDBID"}
+
         page = data.get("page") or 1
         mtype = MediaType.MOVIE if data.get("type") in Constants.MOVIE_TYPES else MediaType.TV
-        if not tmdbid:
-            return {"code": 1, "msg": "未指定TMDBID"}
+
         if mtype == MediaType.MOVIE:
             result = MediaService().get_movie_similar(tmdbid=tmdbid, page=page)
         else:

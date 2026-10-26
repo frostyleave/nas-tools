@@ -657,8 +657,12 @@
     }
     axios_post_do("get_category_config", { "category_name": category_name }, function (ret) {
       if (ret.code === 0) {
-        category_editor.setValue(ret.text);
-        $("#modal-library-category").modal('show');
+        ensure_category_editor(function () {
+          if (category_editor) {
+            category_editor.setValue(ret.text);
+          }
+          $("#modal-library-category").modal('show');
+        });
       } else {
         show_warning_modal(ret.msg);
       }
@@ -667,6 +671,10 @@
 
   // 保存二级分类配置
   function save_category_config() {
+    if (!category_editor) {
+      show_warning_modal("编辑器加载中，请稍后再试");
+      return;
+    }
     const value = category_editor.getValue();
     const params = { "config": value };
     axios_post_do("update_category_config", params, function (ret) {
@@ -733,14 +741,47 @@
       }
     }
 
-  var target_theme = localStorage.getItem("theme") === "dark" ? "ace/theme/one_dark" : "ace/theme/xcode";
-  // yaml编辑器
-  category_editor = ace.edit("library_category_config");
-  category_editor.setTheme(target_theme);
-  category_editor.session.setMode("ace/mode/yaml");
-  category_editor.setOptions({
-    fontFamily: "Consolas, Monaco, monospace",
-    fontSize: "10pt"
+  // 按需初始化 YAML 编辑器
+  var category_editor = null;
+
+  function ensure_category_editor(callback) {
+    if (category_editor) {
+      if (callback) callback();
+      return;
+    }
+
+    load_ace(function () {
+      if (!window.ace) {
+        if (callback) callback();
+        return;
+      }
+
+      const el = document.getElementById("library_category_config");
+      if (!el) {
+        if (callback) callback();
+        return;
+      }
+
+      category_editor = ace.edit(el);
+      const target_theme = localStorage.getItem("theme") === "dark"
+        ? "ace/theme/one_dark"
+        : "ace/theme/xcode";
+      category_editor.setTheme(target_theme);
+      category_editor.session.setMode("ace/mode/yaml");
+      category_editor.setOptions({
+        fontFamily: "Consolas, Monaco, monospace",
+        fontSize: "10pt"
+      });
+
+      if (callback) callback();
+    });
+  }
+
+  // 弹窗显示后重新测量编辑器尺寸
+  $("#modal-library-category").on("shown.bs.modal", function () {
+    if (category_editor) {
+      category_editor.resize();
+    }
   });
 
 </script>

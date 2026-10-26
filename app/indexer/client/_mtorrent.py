@@ -26,6 +26,8 @@ class MTorrentSpider:
     _pageurl = "%sdetail/%s"
     _timeout = 15
 
+    _host = None
+
     # 电影分类
     _movie_category = ['401', '419', '420', '421', '439', '405', '404']
     _tv_category = ['403', '402', '435', '438', '404', '405']
@@ -52,6 +54,7 @@ class MTorrentSpider:
             self._indexerid = indexer.id
             self._url = indexer.domain
             self._domain = SiteUtils.get_url_domain(self._url)
+            self._host = SiteUtils.get_url_netloc(self._url)
             self._searchurl = self._searchurl % self._domain
             self._name = indexer.name
             if indexer.proxy:
@@ -75,6 +78,7 @@ class MTorrentSpider:
             categories = self._tv_category
         else:
             categories = self._movie_category
+
         params = {
             "keyword": keyword,
             "categories": categories,
@@ -89,7 +93,6 @@ class MTorrentSpider:
                 "x-api-key": self._apikey
             },
             proxies=self._proxy,
-            referer=f"{self._domain}/browse",
             timeout=self._timeout
         ).post_res(url=self._searchurl, json=params)
 
@@ -200,13 +203,12 @@ class MTorrentSpider:
             "Accept": "application/json, text/plain, */*",
             "User-Agent": f"{self._ua}",
             "x-api-key": self._apikey
-            }
+        }
 
-        res = RequestUtils(
-            headers=headers, 
-            proxies=self._proxy,
-            timeout=self._timeout
-            ).post_res(url=url)
+        res = RequestUtils(headers=headers, 
+                           proxies=self._proxy,
+                           timeout=self._timeout
+                           ).post_res(url=url)
         
         if not res:
             return None

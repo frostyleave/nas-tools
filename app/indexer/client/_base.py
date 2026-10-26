@@ -312,11 +312,16 @@ class _IIndexClient(metaclass=ABCMeta):
             return True
         
         if item_meta.subtitle:
-            splited_text = re.split(r'%s' % Constants.SPLIT_CHARS, item_meta.subtitle)
+            subtitle = item_meta.subtitle.replace(item_meta.labels, '').strip() if item_meta.labels else item_meta.subtitle
+            if any(' ' in name for name in target_names):
+                splited_text = re.findall(r'[^%s]+' % Constants.SPLIT_CHARS_NO_BLANK_ESCAPED, subtitle)
+            else:
+                splited_text = re.findall(r'[^%s]+' % Constants.SPLIT_CHARS_ESCAPED, subtitle)
             for splited_item in splited_text:
-                if not splited_item:
+                check_item = splited_item.strip()
+                if not check_item:
                     continue
-                if splited_item in target_names:
+                if check_item in target_names:
                     return True
 
         return False

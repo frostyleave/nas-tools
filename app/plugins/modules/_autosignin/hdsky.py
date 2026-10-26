@@ -2,6 +2,7 @@ import json
 import time
 
 from app.helper import OcrHelper
+from app.helper.site_signin_helper import SiteSigninHelper, Verdict
 from app.plugins.modules._autosignin._base import _ISiteSigninHandler
 from app.models.model import UserSiteConf
 from app.utils import SiteUtils, RequestUtils
@@ -43,19 +44,15 @@ class HDSky(_ISiteSigninHandler):
                                  ua=ua,
                                  proxies=proxy
                                  ).get_res(url='https://hdsky.me')
-        if not index_res or index_res.status_code != 200:
-            self.error(f"签到失败，请检查站点连通性")
-            return False, f'[site]签到失败，请检查站点连通性'
+        
+        sign_status = SiteSigninHelper.check_signin_result(index_res, self._sign_regex)
+        if sign_status.verdict == Verdict.SUCCESS:
+            self.info(f'[{site}]今日已签到')
+            return True, f'[{site}]今日已签到'
 
-        if "login.php" in index_res.text:
-            self.error(f"签到失败，cookie失效")
-            return False, f'[site]签到失败，cookie失效'
-
-        sign_status = self.sign_in_result(html_res=index_res.text,
-                                          regexs=self._sign_regex)
-        if sign_status:
-            self.info(f"今日已签到")
-            return True, f'[site]今日已签到'
+        if sign_status.verdict == Verdict.FAIL:
+            self.warn(f'[{site}]签到失败: {sign_status.reason}')
+            return False, f'[{site}]签到失败: {sign_status.reason}'
 
         # 获取验证码请求，考虑到网络问题获取失败，多获取几次试试
         res_times = 0
@@ -113,15 +110,15 @@ class HDSky(_ISiteSigninHandler):
                 if res and res.status_code == 200:
                     if json.loads(res.text)["success"]:
                         self.info(f"签到成功")
-                        return True, f'[site]签到成功'
+                        return True, f'{site}签到成功'
                     elif str(json.loads(res.text)["message"]) == "date_unmatch":
                         # 重复签到
                         self.warn(f"重复成功")
-                        return True, f'[site]今日已签到'
+                        return True, f'{site}今日已签到'
                     elif str(json.loads(res.text)["message"]) == "invalid_imagehash":
                         # 验证码错误
                         self.warn(f"签到失败：验证码错误")
-                        return False, f'[site]签到失败：验证码错误'
+                        return False, f'{site}签到失败：验证码错误'
 
         self.error(f'签到失败：未获取到验证码')
-        return False, f'[site]签到失败：未获取到验证码'
+        return False, f'{site}签到失败：未获取到验证码'

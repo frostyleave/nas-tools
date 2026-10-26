@@ -19,7 +19,7 @@ class User:
             self.pris = user.get('pris')
             self.admin = user.get('admin', 0)
             self.search = 1
-            self.level = 99 if self.admin else (2 if '系统设置' in self.pris else 1)
+            self.level = 99 if self.admin else (9 if '系统设置' in self.pris else 1)
 
     # 验证密码
     def verify_password(self, password):
@@ -40,7 +40,20 @@ class User:
         if self.admin:
             return Config().menu
         menu_lst = self.get_topmenus()
-        return list(filter(lambda x: x.get("name") in menu_lst, Config().menu))
+        if menu_lst:
+            menuGroup = list(filter(lambda x: x.get("name") in menu_lst, Config().menu))
+        else:
+            menuGroup = list(filter(lambda x: x.get("level", 0) <= self.level, Config().menu))
+
+        if menuGroup:
+            for groupItem in menuGroup:
+                navList = groupItem.get('nav')
+                if not navList:
+                    continue
+                navList = list(filter(lambda x: x.get("level", groupItem.get('level'), 1) <= self.level, navList))
+                groupItem['nav'] = navList
+
+        return menuGroup
 
     # 查询服务
     def get_services(self):

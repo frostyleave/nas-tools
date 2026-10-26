@@ -1,8 +1,10 @@
 import re
 
+from app.helper.site_signin_helper import SiteSigninHelper, Verdict
 from app.plugins.modules._autosignin._base import _ISiteSigninHandler
 from app.models.model import UserSiteConf
 from app.utils import SiteUtils, RequestUtils
+
 from config import Config
 
 
@@ -45,21 +47,15 @@ class TTG(_ISiteSigninHandler):
                                 ua=ua,
                                 proxies=proxy
                                 ).get_res(url="https://totheglory.im")
-        if not html_res or html_res.status_code != 200:
-            self.error(f"签到失败，请检查站点连通性")
-            return False, f'[{site}]签到失败，请检查站点连通性'
-
-        if "login.php" in html_res.text:
-            self.error(f"签到失败，cookie失效")
-            return False, f'[{site}]签到失败，cookie失效'
-
-        # 判断是否已签到
-        html_res.encoding = "utf-8"
-        sign_status = self.sign_in_result(html_res=html_res.text,
-                                          regexs=self._sign_regex)
-        if sign_status:
-            self.info(f"今日已签到")
+        # html_res.encoding = "utf-8"
+        sign_status = SiteSigninHelper.check_signin_result(html_res, self._sign_regex)
+        if sign_status.verdict == Verdict.SUCCESS:
+            self.info(f'[{site}]今日已签到')
             return True, f'[{site}]今日已签到'
+
+        if sign_status.verdict == Verdict.FAIL:
+            self.warn(f'[{site}]签到失败: {sign_status.reason}')
+            return False, f'[{site}]签到失败: {sign_status.reason}'
 
         # 获取签到参数
         signed_timestamp = re.search('(?<=signed_timestamp: ")\\d{10}', html_res.text).group()

@@ -172,7 +172,7 @@ class DOWNLOADHISTORY(Base):
     SE = Column(Text)
     VOTE = Column(Text)
     POSTER = Column(Text)
-    OVERVIEW = Column(Text)
+    PAGE_URL = Column(Text)
     BACKDROP = Column(Text)
     ENCLOSURE = Column(Text, index=True)
     SITE = Column(Text)
@@ -457,14 +457,6 @@ class SITEUSERINFOSTATS(Base):
     URL = Column(Text, unique=True)
     MSG_UNREAD = Column(Integer)
     EXT_INFO = Column(Text)
-
-
-class SITEFAVICON(Base):
-    __tablename__ = 'SITE_FAVICON'
-
-    SITE = Column(Text, primary_key=True)
-    URL = Column(Text)
-    FAVICON = Column(Text)
 
 
 class SITEUSERSEEDINGINFO(Base):
