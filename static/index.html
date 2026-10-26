@@ -621,6 +621,7 @@
           <input type="hidden" id="rss_id">
           <input type="hidden" id="rss_type">
           <input type="hidden" id="rss_tmdbid">
+          <input type="hidden" id="trigger_card_id">
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
         <div class="modal-body">
@@ -783,9 +784,8 @@
             取消订阅
           </a>
           <div class="btn-list">
-            <a href="javascript:add_rss_manual(true)" name="rss_add_btn" class="btn btn-secondary">添加并继续</a>
-            <a href="javascript:add_rss_manual(false)" name="rss_add_btn" class="btn btn-primary">添加</a>
-            <a href="javascript:add_rss_manual(false)" name="rss_edit_btn" class="btn btn-primary">确定</a>
+            <a href="javascript:add_rss_manual()" name="rss_add_btn" class="btn btn-primary">添加</a>
+            <a href="javascript:add_rss_manual()" name="rss_edit_btn" class="btn btn-primary">确定</a>
           </div>
         </div>
       </div>

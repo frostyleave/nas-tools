@@ -239,30 +239,24 @@
       row.appendChild(searchLink);
       this._searchLink = searchLink;
 
-      if (showSub === '1') {
-        const heartWrap = document.createElement('div');
-        heartWrap.className = 'ms-auto';
+      const heartWrap = document.createElement('div');
+      heartWrap.className = 'ms-auto';
 
-        const heart = document.createElement('div');
-        heart.className = 'text-muted';
-        heart.title = '加入/取消订阅';
-        heart.style.cursor = 'pointer';
-        heart.addEventListener('click', (e) => this._loveClick(e));
+      const heart = document.createElement('div');
+      heart.className = 'text-muted';
+      heart.title = '加入/取消订阅';
+      heart.style.cursor = 'pointer';
+      heart.addEventListener('click', (e) => this._loveClick(e));
 
-        const heartSpan = document.createElement('span');
-        heartSpan.className = 'icon-pulse text-white';
-        const heartIcon = document.createElement('i');
-        heartIcon.className = 'ti ti-heart fs-2 text-white';
-        heartSpan.appendChild(heartIcon);
-        heart.appendChild(heartSpan);
-        heartWrap.appendChild(heart);
-        row.appendChild(heartWrap);
-        this._heartIcon = heartIcon;
-      } else {
-        const rss = document.createElement('div');
-        rss.className = 'ms-auto rss-btn';
-        row.appendChild(rss);
-      }
+      const heartSpan = document.createElement('span');
+      heartSpan.className = 'icon-pulse text-white';
+      const heartIcon = document.createElement('i');
+      heartIcon.className = 'ti ti-heart fs-2 text-white';
+      heartSpan.appendChild(heartIcon);
+      heart.appendChild(heartSpan);
+      heartWrap.appendChild(heart);
+      row.appendChild(heartWrap);
+      this._heartIcon = heartIcon;
 
       this._bottomEl.appendChild(row);
     }
@@ -309,7 +303,7 @@
       }
 
       rss_love_click(
-        null,
+        e,
         fixedText(this.getAttribute('card-title')),
         fixedText(this.getAttribute('card-year')),
         fixedText(this.getAttribute('card-mediatype')),

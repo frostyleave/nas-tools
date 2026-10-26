@@ -657,8 +657,8 @@ function refresh_rss_media(type, rssid, page) {
   });
 }
 
-//显示订阅季选择框
-function show_rss_seasons_modal(name, year, type, mediaid, seasons, func) {
+// 显示订阅季选择框
+function show_rss_seasons_modal(name, year, mediaid, seasons, trigger_card_id) {
   let system_rss_seasons_content = "";
   for (let season of seasons) {
     system_rss_seasons_content += `<label class="form-selectgroup-item">
@@ -671,7 +671,7 @@ function show_rss_seasons_modal(name, year, type, mediaid, seasons, func) {
     $("#system-rss-seasons").modal('hide');
     let rss_seasons = select_GetSelectedVAL("system_rss_season");
     if (rss_seasons.length > 0) {
-      add_rss_media(name, year, type, mediaid, '', rss_seasons, func);
+      show_add_rss_media_modal('TV', mediaid, name, year, rss_seasons, trigger_card_id);
     }
   });
   $("#system-rss-seasons").modal('show');
@@ -683,8 +683,10 @@ function search_mediainfo_media(tmdbid, title, typestr) {
   media_search(tmdbid, title, typestr);
 }
 
-//新增订阅
-function add_rss_manual(flag) {
+// 新增订阅
+function add_rss_manual() {
+
+  const rssid = $("#rss_id").val();
   const mtype = $("#rss_type").val();
   const name = $("#rss_name").val();
   const year = $("#rss_year").val();
@@ -703,7 +705,7 @@ function add_rss_manual(flag) {
   const download_setting = $("#rss_download_setting").val();
   const total_ep = $("#rss_total_ep").val();
   const current_ep = $("#rss_current_ep").val();
-  const rssid = $("#rss_id").val();
+  
   if (!name) {
     $("#rss_name").addClass("is-invalid");
     return;
@@ -722,6 +724,7 @@ function add_rss_manual(flag) {
   } else {
     $("#rss_season").removeClass("is-invalid");
   }
+
   if (total_ep && isNaN(total_ep)) {
     $("#rss_total_ep").addClass("is-invalid");
     return;
@@ -734,12 +737,12 @@ function add_rss_manual(flag) {
   } else {
     $("#rss_current_ep").removeClass("is-invalid");
   }
-  //订阅站点
+  // 订阅站点
   let rss_sites = select_GetSelectedVAL("rss_sites");
   if (rss_sites.length === RssSitesLength) {
     rss_sites = [];
   }
-  //搜索站点
+  // 搜索站点
   let search_sites = [];
   if (!fuzzy_match) {
     search_sites = select_GetSelectedVAL("search_sites");
@@ -787,10 +790,14 @@ function add_rss_manual(flag) {
       if (CurrentPageUri.startsWith("tv_rss") || CurrentPageUri.startsWith("movie_rss")) {
         window_history_refresh();
       } else {
-        show_rss_success_modal(ret.rssid, type, name + " 添加订阅成功！");
+        show_rss_success_modal(ret.rssid, mtype, name + " 添加订阅成功！");
       }
-      if (flag) {
-        show_add_rss_media_modal(mtype);
+      var trigger_card_id = $('#trigger_card_id').val();
+      if (trigger_card_id) {
+        const card = document.getElementById(trigger_card_id);
+        if (card) {
+            card.setAttribute('card-fav', 1);
+        }
       }
     } else {
       if (CurrentPageUri.startsWith("tv_rss") || CurrentPageUri.startsWith("movie_rss")) {
@@ -833,35 +840,43 @@ function convert_mediaid(tmdbid) {
 // 订阅按钮被点击时
 function rss_love_click(event, title, year, media_type, tmdb_id, fav, remove_func, add_func) {
 
+  var trigger_card_id = '';
   if (event) {
     event.stopPropagation();
+    trigger_card_id = event.currentTarget.closest('normal-card')?.id
   }
 
+  // 取消订阅
   if (fav == "1"){
     show_ask_modal("是否确定将 " + title + " 从订阅中移除？", function () {
       remove_rss_media(title, year, media_type, "", "", tmdb_id, remove_func);
     });
-  } else {
-    show_ask_modal("是否确定订阅： " + title + "？", function () {
-      const mediaid = convert_mediaid(tmdb_id);
-      if (media_type == "MOV" || media_type == "电影") {
-        add_rss_media(title, year, media_type, mediaid, "", "", add_func);
+    return;
+  }
+  
+  // 添加订阅
+  show_ask_modal("是否确定订阅： " + title + "？", function () {
+    const mediaid = convert_mediaid(tmdb_id); // 转字符串
+    // 电影订阅
+    if (media_type == "MOV" || media_type == "电影") {
+      show_add_rss_media_modal('MOV', mediaid, title, year, '', trigger_card_id);
+      return;
+    } 
+    // 剧集订阅：查询季
+    axios_post_do("get_tvseason_list", {tmdbid: mediaid, title: title}, function (ret) {
+      if (ret.seasons.length === 1) {
+        show_add_rss_media_modal('TV', mediaid, title, year, ret.seasons[0].num, trigger_card_id);
+      } else if (ret.seasons.length > 1) {
+        show_rss_seasons_modal(title, year, mediaid, ret.seasons, trigger_card_id);
       } else {
-        axios_post_do("get_tvseason_list", {tmdbid: mediaid, title: title}, function (ret) {
-          if (ret.seasons.length === 1) {
-            add_rss_media(title, year, "TV", mediaid, "", ret.seasons[0].num, add_func);
-          } else if (ret.seasons.length > 1) {
-            show_rss_seasons_modal(title, year, "TV", mediaid, ret.seasons, add_func);
-          } else {
-            show_fail_modal(title + " 添加RSS订阅失败：未查询到季信息！");
-          }
-        });
+        show_fail_modal(title + " 添加RSS订阅失败：未查询到季信息！");
       }
     });
-  }
+  });
+
 }
 
-//取消订阅
+// 取消订阅
 function remove_rss_manual(type, name, year, rssid) {
   $("#modal-manual-rss").modal('hide');
   let page;
@@ -876,31 +891,46 @@ function remove_rss_manual(type, name, year, rssid) {
 }
 
 // 新增订阅
-function show_add_rss_media_modal(mtype) {
+function show_add_rss_media_modal(mtype, tmdbid, rss_name, rss_year, rss_season='', trigger_card_id='') {
+
+  // 绑定触发卡片id
+  $("#trigger_card_id").val(trigger_card_id || '');
+
   // 刷新下拉框
   refresh_rss_download_setting_dirs();
+
   // 界面初始化
   $("#rss_id").val("");
   $("#rss_modal_title").text("新增订阅");
-  $("#rss_name").val("").attr("readonly", false);
-  $("#rss_year").val("").attr("readonly", false);
+  $("#rss_name").val(rss_name || '').attr("readonly", false);
+  $("#rss_year").val(rss_year || '').attr("readonly", false);
   $("#rss_keyword").val("");
-  $("#rss_tmdbid").val("");
+  $("#rss_tmdbid").val(tmdbid || '');
   $("#fuzzy_match").prop("checked", false);
   $("#over_edition").prop("checked", false);
   $("#rss_season").val("");
   $("#rss_total_ep").val("");
   $("#rss_current_ep").val("");
+
   let rss_setting;
   if (mtype === "TV") {
     $("#rss_type").val("TV");
     $("#rss_tv_season_div").show();
+    // 季
+    if (rss_season) {
+      if (typeof(rss_season) === "number") {
+        $("#rss_season").val(rss_season);
+      } else {
+        $("#rss_season").val(parseInt(rss_season.replace("S", "")));
+      }
+    }
     rss_setting = localStorage.getItem("RssSettingTV");
   } else if (mtype === "MOV") {
     $("#rss_type").val("MOV");
     $("#rss_tv_season_div").hide();
     rss_setting = localStorage.getItem("RssSettingMOV");
   }
+
   if (rss_setting) {
     rss_setting = JSON.parse(rss_setting);
     $("#rss_restype").val(rss_setting.filter_restype);
@@ -935,10 +965,12 @@ function show_add_rss_media_modal(mtype) {
     select_SelectALL(false, "rss_sites");
     select_SelectALL(false, "search_sites");
   }
+
+  $("#rss_delete_btn").hide();
   $("[name='rss_edit_btn']").hide();
   $("[name='rss_add_btn']").show();
-  $("#rss_delete_btn").hide();
   $("#modal-manual-rss").modal('show');
+
 }
 
 // 显示默认订阅设置页面
@@ -1009,6 +1041,7 @@ function save_default_rss_setting() {
 
 // 显示编辑订阅
 function show_edit_rss_media_modal(rssid, type) {
+
   $("#system-media-modal").modal('hide');
   $("#rss_id").val(rssid);
   $("#rss_type").val(type);
@@ -1091,17 +1124,7 @@ function show_edit_rss_media_modal(rssid, type) {
 // 显示订阅成功（带后续操作）
 function show_rss_success_modal(rssid, type, text) {
   $("#system_success_action_message").text(text);
-  if (rssid) {
-    $("#system_success_action_btn").text("编辑订阅")
-      .unbind('click').click(function () {
-        $("#system-success-action-modal").modal('hide');
-        show_edit_rss_media_modal(rssid, type);
-      });
-    ;
-    $("#system_success_action_div").show();
-  } else {
-    $("#system_success_action_div").hide();
-  }
+  $("#system_success_action_div").hide();
   $("#system-success-action-modal").modal('show');
 }
 
