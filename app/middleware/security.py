@@ -2,9 +2,12 @@ from datetime import datetime, timedelta
 from functools import partial, wraps
 from typing import Optional
 
+import jwt
+
 from fastapi import HTTPException, Request, status
 from fastapi.requests import HTTPConnection
-from jose import JWTError, jwt
+from jwt.exceptions import InvalidTokenError
+
 from passlib.context import CryptContext
 
 import log
@@ -53,7 +56,7 @@ def decode_access_token(token: str) -> Optional[str]:
         if username is None:
             return None
         return username
-    except JWTError:
+    except InvalidTokenError:
         return None
     
 def validate_refresh_token(token: str) -> Optional[str]:
@@ -65,7 +68,7 @@ def validate_refresh_token(token: str) -> Optional[str]:
         if username is None:
             return None
         return username
-    except JWTError:
+    except InvalidTokenError:
         return None
     
 
