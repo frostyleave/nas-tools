@@ -10,7 +10,7 @@ import re
 from typing import Optional
 from urllib.parse import unquote
 
-from bencode import bdecode
+from fastbencode import bdecode
 
 import log
 

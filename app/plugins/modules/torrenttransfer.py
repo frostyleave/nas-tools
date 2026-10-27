@@ -6,7 +6,7 @@ from copy import deepcopy
 from threading import Event
 from typing import Optional
 
-from bencode import bdecode, bencode
+from fastbencode import bdecode, bencode
 
 from app.downloader import Downloader
 from app.helper import ThreadHelper
@@ -453,7 +453,7 @@ class TorrentTransfer(_IPluginModule):
                         continue
                     # 读取trackers
                     try:
-                        torrent_main = bdecode(content, decode=False)
+                        torrent_main = bdecode(content)
                         main_announce = torrent_main.get(b'announce')
                     except Exception as err:
                         self.error(f"解析种子文件 {torrent_file} 失败：{err}")
@@ -474,7 +474,7 @@ class TorrentTransfer(_IPluginModule):
                             with open(fastresume_file, 'rb') as f:
                                 fastresume = f.read()
                             # 解析fastresume文件
-                            torrent_fastresume = bdecode(fastresume, decode=False)
+                            torrent_fastresume = bdecode(fastresume)
                             # 读取trackers
                             fastresume_trackers = torrent_fastresume.get(b'trackers')
                             if isinstance(fastresume_trackers, list) \
