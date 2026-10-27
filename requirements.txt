@@ -1,5 +1,4 @@
 anitopy==2.1.1
-bencodepy==0.9.5
 cacheout==0.16.0
 cn2an==0.5.23
 python-multipart==0.0.32

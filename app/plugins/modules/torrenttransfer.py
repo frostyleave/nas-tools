@@ -453,8 +453,8 @@ class TorrentTransfer(_IPluginModule):
                         continue
                     # 读取trackers
                     try:
-                        torrent_main = bdecode(content)
-                        main_announce = torrent_main.get('announce')
+                        torrent_main = bdecode(content, decode=False)
+                        main_announce = torrent_main.get(b'announce')
                     except Exception as err:
                         self.error(f"解析种子文件 {torrent_file} 失败：{err}")
                         fail += 1
@@ -474,14 +474,14 @@ class TorrentTransfer(_IPluginModule):
                             with open(fastresume_file, 'rb') as f:
                                 fastresume = f.read()
                             # 解析fastresume文件
-                            torrent_fastresume = bdecode(fastresume)
+                            torrent_fastresume = bdecode(fastresume, decode=False)
                             # 读取trackers
-                            fastresume_trackers = torrent_fastresume.get('trackers')
+                            fastresume_trackers = torrent_fastresume.get(b'trackers')
                             if isinstance(fastresume_trackers, list) \
                                     and len(fastresume_trackers) > 0 \
                                     and fastresume_trackers[0]:
                                 # 重新赋值
-                                torrent_main['announce'] = fastresume_trackers[0][0]
+                                torrent_main[b'announce'] = fastresume_trackers[0][0]
                                 # 替换种子文件路径
                                 torrent_file = os.path.join(Config().get_temp_path(),
                                                             f"{hash_item.get('hash')}.torrent")

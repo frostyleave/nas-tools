@@ -1,8 +1,9 @@
 import hashlib
 import os.path
 import re
-import bencodepy
 import urllib
+
+from bencode import bdecode, bencode
 
 from dataclasses import dataclass, field
 
@@ -54,7 +55,7 @@ class TorrentUtils:
         file_names = []
         file_folder = ""
         try:
-            torrent = bencodepy.decode(content)
+            torrent = bdecode(content, decode=False)
             if torrent.get(b"info"):
                 files = torrent.get(b"info", {}).get(b"files") or []
                 if files:
@@ -102,11 +103,11 @@ class TorrentUtils:
         """
         # 读取种子文件
         with open(torrent_file, 'rb') as f:
-            torrent_data = bencodepy.decode(f.read())
+            torrent_data = bdecode(f.read(), decode=False)
 
         # 提取info部分并计算info hash
         info = torrent_data[b'info']
-        info_hash = hashlib.sha1(bencodepy.encode(info)).hexdigest()
+        info_hash = hashlib.sha1(bencode(info)).hexdigest()
 
         # 获取种子文件中的文件名
         name = torrent_data[b'info'].get(b'name', b'').decode('utf-8')
