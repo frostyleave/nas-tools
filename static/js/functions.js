@@ -335,6 +335,23 @@ function update_system() {
     axios_post_do("update_system", {}, function (ret) {
       // 关闭浮层
       hide_wait_modal();
+      if (!ret || ret.code !== 0) {
+        show_fail_modal((ret && ret.msg) || "更新失败，请查看日志");
+        return;
+      }
+      if (ret.updated) {
+        // 拉取到更新，提示重启
+        show_confirm_modal((ret.msg || "已拉取到新版本") + "，是否立即重启生效？", function () {
+          // 关闭日志窗口，避免遮挡重启等待框
+          $("#modal-logging").modal("hide");
+          axios_post_do("restart", {}, function () {
+          }, false);
+          show_wait_modal(true);
+          setTimeout("check_system_online()", 5000);
+        });
+      } else {
+        show_success_modal(ret.msg || "当前已是最新版本");
+      }
       return ret;
     });
   })
@@ -413,6 +430,28 @@ function hide_progress_modal() {
   stopProgress();
 }
 
+// 将弹窗提升到当前已打开弹窗之上，避免被实时日志等弹窗遮挡
+function raise_modal_above_others($modal) {
+  let maxZ = 0;
+  $('.modal.show').not($modal).each(function () {
+    const z = parseInt($(this).css('z-index'), 10);
+    if (!isNaN(z) && z > maxZ) {
+      maxZ = z;
+    }
+  });
+  if (maxZ > 0) {
+    $modal.css('z-index', maxZ + 10);
+    $modal.one('shown.bs.modal', function () {
+      const z = parseInt($modal.css('z-index'), 10);
+      if (!isNaN(z)) {
+        $('.modal-backdrop').last().css('z-index', z - 5);
+      }
+    });
+  } else {
+    $modal.css('z-index', '');
+  }
+}
+
 // 显示确认提示框
 function show_confirm_modal(title, func, auto_close=true) {
 
@@ -426,6 +465,7 @@ function show_confirm_modal(title, func, auto_close=true) {
     func && func();
   });
 
+  raise_modal_above_others($modal);
   $modal.modal('show');
 
 }
@@ -443,6 +483,7 @@ function show_ask_modal(message, func, title = '询问', auto_close=true) {
     func && func();
   });
 
+  raise_modal_above_others($modal);
   $modal.modal('show');
 
 }
@@ -455,7 +496,9 @@ function show_success_modal(title, func) {
   } else {
     $("#system_success_modal_btn").unbind('click');
   }
-  $("#system-success-modal").modal("show");
+  var $modal = $("#system-success-modal");
+  raise_modal_above_others($modal);
+  $modal.modal("show");
 }
 
 // 显示失败提示
@@ -466,7 +509,9 @@ function show_fail_modal(title, func) {
   } else {
     $("#system_fail_modal_btn").unbind('click');
   }
-  $("#system-fail-modal").modal("show");
+  var $modal = $("#system-fail-modal");
+  raise_modal_above_others($modal);
+  $modal.modal("show");
 }
 
 // 显示警告提示
@@ -477,7 +522,9 @@ function show_warning_modal(title, func) {
   } else {
     $("#system_warning_modal_btn").unbind('click');
   }
-  $("#system-warning-modal").modal("show");
+  var $modal = $("#system-warning-modal");
+  raise_modal_above_others($modal);
+  $modal.modal("show");
 }
 
 //显示媒体详情弹窗
