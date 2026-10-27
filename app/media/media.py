@@ -1734,7 +1734,7 @@ class MediaService:
             return []
         ret_info = []
         for info in tv_info.get("seasons") or []:
-            if not info.get("season_number"):
+            if not info.get("season_number") or not info.get("episode_count"):
                 continue
             ret_info.append({
                 "air_date": info.get("air_date"),

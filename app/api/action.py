@@ -3589,8 +3589,10 @@ class WebAction:
 
         # 解析季信息
         if mediaid.find(":") > 0 and hasattr(media_info.tmdb_info, 'number_of_seasons'):
-            extra_info['number_of_seasons'] = media_info.tmdb_info.number_of_seasons
             extra_info['seasons'] = self.__resolve_season_info(media_info, media_handler, mtype)
+            extra_info['number_of_seasons'] = media_info.tmdb_info.number_of_seasons
+            extra_info['next_episode_to_air'] = media_info.tmdb_info.next_episode_to_air
+            extra_info['last_episode_to_air'] = media_info.tmdb_info.last_episode_to_air
 
         return {
             "code": 0,
