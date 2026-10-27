@@ -7,7 +7,6 @@ on:
     paths:
       - version.py
       - .github/workflows/build.yml
-      - package_list.txt
       - requirements.txt
       - docker/Dockerfile
 

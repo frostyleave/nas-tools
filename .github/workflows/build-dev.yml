@@ -7,11 +7,9 @@ on:
     paths:
       - version.py
       - .github/workflows/build-dev.yml
-      - package_list.txt
       - requirements.txt
       - docker/dev.Dockerfile
       - app/*
-      - web/*
 
 jobs:
   build:
