@@ -110,15 +110,15 @@ class HDSky(_ISiteSigninHandler):
                 if res and res.status_code == 200:
                     if json.loads(res.text)["success"]:
                         self.info(f"签到成功")
-                        return True, f'{site}签到成功'
+                        return True, f'[{site}]签到成功'
                     elif str(json.loads(res.text)["message"]) == "date_unmatch":
                         # 重复签到
                         self.warn(f"重复成功")
-                        return True, f'{site}今日已签到'
+                        return True, f'[{site}]今日已签到'
                     elif str(json.loads(res.text)["message"]) == "invalid_imagehash":
                         # 验证码错误
                         self.warn(f"签到失败：验证码错误")
-                        return False, f'{site}签到失败：验证码错误'
+                        return False, f'[{site}]签到失败：验证码错误'
 
         self.error(f'签到失败：未获取到验证码')
-        return False, f'{site}签到失败：未获取到验证码'
+        return False, f'[{site}]签到失败：未获取到验证码'

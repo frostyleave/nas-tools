@@ -526,12 +526,15 @@ class AutoSignIn(_IPluginModule):
             # 本次签到成功, 或是重新请求签到页
             sign_status = SiteSigninHelper.check_signin_result(res, self._sign_regex)
             if sign_status.verdict == Verdict.SUCCESS:
-                self.info(f'[{site_name}]今日已签到')
+                # self.info(f'[{site_name}]今日已签到')
                 return True, f'[{site_name}]今日已签到'
 
             if sign_status.verdict == Verdict.FAIL:
-                self.warn(f'[{site_name}]签到失败: {sign_status.reason}')
+                # self.warn(f'[{site_name}]签到失败: {sign_status.reason}')
                 return False, f'[{site_name}]签到失败: {sign_status.reason}'
+
+            if SiteSigninHelper.sign_in_result(html_res=res.text, regexs=self._success_regex):
+                return True, f'[{site_name}]签到成功'
 
             html_tree = etree.HTML(res.text)
             attendance_form = html_tree.xpath('//form[@method="post" and @action="attendance.php"]')

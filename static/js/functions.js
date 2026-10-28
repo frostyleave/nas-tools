@@ -15,6 +15,11 @@ let ProgressES;
 let LoggingSource = "";
 // 日志EventSource
 let LoggingES;
+// 待渲染的日志: 同一帧内合并成一次 DOM 操作, 避免逐条 append 导致日志滞后于结果
+let PendingLogRows = [];
+let LoggingFlushTimer = null;
+// 日志表格最多保留的行数, 防止长时间运行后 DOM 过大
+const LOGGING_MAX_ROWS = 1000;
 // 消息WebSocket
 let MessageWS;
 // 当前协议
@@ -77,12 +82,23 @@ function hide_wait_modal() {
 }
 
 // 停止日志服务
-function stopLogging() {
+// clear=false 时保留已经收到的日志内容
+function stopLogging(clear = true) {
   if (LoggingES) {
     LoggingES.close();
     LoggingES = undefined;
   }
-  $("#logging_content").empty();
+  if (LoggingFlushTimer) {
+    cancelAnimationFrame(LoggingFlushTimer);
+    LoggingFlushTimer = null;
+  }
+  if (clear) {
+    PendingLogRows = [];
+    $("#logging_content").empty();
+  } else {
+    // 关闭前把已收到的日志一次性写完, 避免最后一批被丢弃
+    flush_logging();
+  }
 }
 
 // 连接日志服务
@@ -105,64 +121,95 @@ function start_logging() {
   };
 }
 
-// 刷新日志
+// 刷新日志: 支持单条或批量(服务端一次 SSE 事件可能携带多条)
 function render_logging(logData) {
-  if (logData) {
-
-    let tdstyle = "padding-top: 0.5rem; padding-bottom: 0.5rem";
-    
-    let text = logData.text;
-    const source = logData.source;
-    const time = logData.time;
-    const level = logData.level;
-
-    let tcolor = '';
-    let bgcolor = '';
-    let tstyle = '-webkit-line-clamp:4; display: -webkit-box; -webkit-box-orient:vertical; overflow:hidden; text-overflow: ellipsis;';
-    if (level === "WARN") {
-      tcolor = "text-warning";
-      bgcolor = "bg-warning";
-    } else if (level === "ERROR") {
-      tcolor = "text-danger";
-      bgcolor = "bg-danger";
-    } else if (source === "System") {
-      tcolor = "text-info";
-      bgcolor = "bg-info";
-    } else {
-      tcolor = "text";
+  if (!logData) {
+    return;
+  }
+  if ($("#modal-logging").is(":hidden")) {
+    stopLogging();
+    return;
+  }
+  const records = Array.isArray(logData) ? logData : [logData];
+  for (const record of records) {
+    if (record) {
+      PendingLogRows.push(record);
     }
-    if (["Rmt", "Plugin"].includes(source) && text.includes(" 到 ")) {
-      tstyle = `${tstyle} white-space: pre;`
-      text = text.replace(/\s到\s/, "\n=> ")
-    }
-    if (text.includes("http") || text.includes("magnet")) {
-      tstyle = `${tstyle} word-break: break-all;`
-      text = text.replace(/：((?:http|magnet).+?)(?:\s|$)/g, "：<a href='$1' target='_blank'>$1</a>")
-    }
+  }
+  if (PendingLogRows.length && !LoggingFlushTimer) {
+    // 同一帧内到达的日志合并成一次 DOM 操作 + 一次滚动
+    LoggingFlushTimer = requestAnimationFrame(function () {
+      LoggingFlushTimer = null;
+      flush_logging();
+    });
+  }
+}
 
-    let tbody = `<tr>
+// 生成单条日志的表格行
+function build_logging_row(logData) {
+  let tdstyle = "padding-top: 0.5rem; padding-bottom: 0.5rem";
+
+  let text = logData.text || "";
+  const source = logData.source;
+  const time = logData.time;
+  const level = logData.level;
+
+  let tcolor = '';
+  let bgcolor = '';
+  let tstyle = '-webkit-line-clamp:4; display: -webkit-box; -webkit-box-orient:vertical; overflow:hidden; text-overflow: ellipsis;';
+  if (level === "WARN") {
+    tcolor = "text-warning";
+    bgcolor = "bg-warning";
+  } else if (level === "ERROR") {
+    tcolor = "text-danger";
+    bgcolor = "bg-danger";
+  } else if (source === "System") {
+    tcolor = "text-info";
+    bgcolor = "bg-info";
+  } else {
+    tcolor = "text";
+  }
+  if (["Rmt", "Plugin"].includes(source) && text.includes(" 到 ")) {
+    tstyle = `${tstyle} white-space: pre;`
+    text = text.replace(/\s到\s/, "\n=> ")
+  }
+  if (text.includes("http") || text.includes("magnet")) {
+    tstyle = `${tstyle} word-break: break-all;`
+    text = text.replace(/：((?:http|magnet).+?)(?:\s|$)/g, "：<a href='$1' target='_blank'>$1</a>")
+  }
+
+  return `<tr>
                 <td style="${tdstyle}"><span class="${tcolor}">${time}</span></td>
                 <td style="${tdstyle}"><span class="badge ${bgcolor}">${source}</span></td>
                 <td style="${tdstyle}"><span class="${tcolor}" style="${tstyle}" title="${text}">${text}</span></td>
                 </tr>`;
+}
 
-    if (tbody) {
-      let logging_table_obj = $("#logging_table");
-      let bool_ToScrolTop = (logging_table_obj.scrollTop() + logging_table_obj.prop("offsetHeight")) >= logging_table_obj.prop("scrollHeight");
-      let logging_content = $("#logging_content");
-      if (logging_content.text().indexOf("刷新中...") !== -1) {
-        logging_content.empty();
-      }
-      logging_content.append(tbody);
-      if (bool_ToScrolTop) {
-        setTimeout(function () {
-          logging_table_obj.scrollTop(logging_table_obj.prop("scrollHeight"));
-        }, 500);
-      }
-    }
+// 把缓冲的日志一次性写入表格
+function flush_logging() {
+  if (!PendingLogRows.length) {
+    return;
   }
-  if ($("#modal-logging").is(":hidden")) {
-    stopLogging();
+  const records = PendingLogRows;
+  PendingLogRows = [];
+
+  let logging_table_obj = $("#logging_table");
+  let bool_ToScrolTop = (logging_table_obj.scrollTop() + logging_table_obj.prop("offsetHeight")) >= logging_table_obj.prop("scrollHeight");
+  let logging_content = $("#logging_content");
+  // 只有占位行时才需要判断, 避免每批都扫描整张表
+  if (logging_content.children().length === 1 && logging_content.text().indexOf("刷新中...") !== -1) {
+    logging_content.empty();
+  }
+  logging_content.append(records.map(build_logging_row).join(""));
+
+  // 限制表格行数, 避免长时间运行后 DOM 越来越大
+  const row_count = logging_content.children().length;
+  if (row_count > LOGGING_MAX_ROWS) {
+    logging_content.children().slice(0, row_count - LOGGING_MAX_ROWS).remove();
+  }
+
+  if (bool_ToScrolTop) {
+    logging_table_obj.scrollTop(logging_table_obj.prop("scrollHeight"));
   }
 }
 
@@ -206,8 +253,11 @@ function logger_select(source) {
     logtype = `【${LoggingSource}】刷新中...`;
   }
   $("#logging_content").html(`<tr><td colspan="3" class="text-center">${logtype}</td></tr>`);
-  // 拉取新日志
-  start_logging();
+  // 只在日志弹窗已经打开时立即重连；否则等 shown.bs.modal 统一启动，
+  // 避免同一个弹窗建立两次 SSE 连接、重复回放日志
+  if ($("#modal-logging").is(":visible")) {
+    start_logging();
+  }
 }
 
 // 停止消息服务
@@ -284,14 +334,41 @@ function get_message(lst_time) {
 }
 
 //检查系统是否在线
+let systemOnlineCheckCount = 0;
+
 function check_system_online() {
-  axios_post_do("get_jobs", {}, function (ret) {
-    if (!ret) {
-      setTimeout("check_system_online()", 2000);
-    } else {
-      window.location.reload(true);
+  if (systemOnlineCheckCount >= 60) {
+    hide_wait_modal();
+    show_fail_modal("系统重启超时，请手动刷新页面");
+    return;
+  }
+
+  systemOnlineCheckCount++;
+
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 3000);
+
+  fetch(`do?random=${Math.random()}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ cmd: 'get_jobs', data: {} }),
+    credentials: 'same-origin',
+    cache: 'no-store',
+    signal: controller.signal
+  }).then((response) => {
+    clearTimeout(timeoutId);
+
+    // 200 表示服务已恢复；401 也说明 Web 服务已经起来了
+    if (response.ok || response.status === 401) {
+      show_success_modal("已重启", () => window.location.reload(true));
+      return;
     }
-  }, false)
+
+    throw new Error('HTTP ' + response.status);
+  }).catch(() => {
+    clearTimeout(timeoutId);
+    setTimeout(check_system_online, 2000);
+  });
 }
 
 //注销
@@ -304,10 +381,13 @@ function logout() {
 //重启
 function restart() {
   show_confirm_modal("立即重启系统？", function () {
+    systemOnlineCheckCount = 0;
+
     axios_post_do("restart", {}, function (ret) {
     }, false);
+
     show_wait_modal(true);
-    setTimeout("check_system_online()", 5000);
+    setTimeout(check_system_online, 5000);
   });
 }
 
@@ -335,6 +415,20 @@ function update_system() {
     axios_post_do("update_system", {}, function (ret) {
       // 关闭浮层
       hide_wait_modal();
+
+      // 更新已经结束，停止实时日志，避免结果已出但日志还在滚动
+      stopLogging(false);
+
+      // 把最终结果补到日志窗口（最后一条日志可能在关闭连接时丢失）
+      if (ret && ret.msg) {
+        render_logging({
+          text: `更新结束：${ret.msg}`,
+          source: "UpdateSystem",
+          time: new Date().toLocaleTimeString("zh-CN", { hour12: false }),
+          level: ret.code === 0 ? "INFO" : "ERROR"
+        });
+      }
+
       if (!ret || ret.code !== 0) {
         show_fail_modal((ret && ret.msg) || "更新失败，请查看日志");
         return;

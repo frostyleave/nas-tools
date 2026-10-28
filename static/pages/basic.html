@@ -182,17 +182,6 @@
           </div>
         </div>
       </div>
-      <div class="row">
-        <div class="col-lg">
-          <div class="mb-3">
-            <label class="form-check form-switch">
-              <input class="form-check-input" type="checkbox" id="app.releases_update_only">
-              <span class="form-check-label">仅检查Releases更新 <span class="form-help" title="开启后，只有Releases更新，才会有更新提示"
-                  data-bs-toggle="tooltip">?</span></span>
-            </label>
-          </div>
-        </div>
-      </div>
     </div>
   </div>
   <div class="card border-0">
@@ -683,7 +672,6 @@
           $('#app\\.ocr_url').val(data.Config.app.ocr_url || '');
           $('#app\\.ssl_cert').val(data.Config.app.ssl_cert || '');
           $('#app\\.ssl_key').val(data.Config.app.ssl_key || '');
-          $('#app\\.releases_update_only').prop('checked', data.Config.app.releases_update_only || false);
         }
 
         // 填充代理设置

@@ -6,22 +6,12 @@ import shutil
 import subprocess
 
 
-from urllib.parse import quote
-
-from app.utils.http_utils import RequestUtils
 from app.utils.path_utils import PathUtils
 from app.utils.types import OsType
 
-from config import Config
 from version import APP_VERSION
 
 import log
-
-# WebDriver路径
-WEBDRIVER_PATH = {
-    "Docker": "/usr/lib/chromium/chromedriver",
-    "Synology": "/var/packages/NASTool/target/bin/chromedriver"
-}
 
 
 class SystemUtils:
@@ -107,10 +97,6 @@ class SystemUtils:
     @staticmethod
     def is_macos():
         return True if platform.system() == 'Darwin' else False
-
-    @staticmethod
-    def get_webdriver_path():
-        return WEBDRIVER_PATH.get(SystemUtils.get_system().value)
 
     @staticmethod
     def copy(src, dest):
@@ -392,23 +378,3 @@ class SystemUtils:
         if commit_id and len(commit_id) > 7:
             commit_id = commit_id[:7]
         return "%s %s" % (APP_VERSION, commit_id)
-
-    @staticmethod
-    def get_latest_version():
-        """
-        获取最新版本号
-        """
-        try:
-            releases_update_only = Config().get_config("app").get("releases_update_only")
-            version_res = RequestUtils(proxies=Config().get_proxies()).get_res(
-                f"https://nastool.cn/{quote(SystemUtils.get_current_version())}/update")
-            if version_res:
-                ver_json = version_res.json()
-                version = ver_json.get("latest")
-                link = ver_json.get("link")
-                if version and releases_update_only:
-                    version = version.split()[0]
-                return version, link
-        except Exception as e:
-            log.exception('[Web]获取最新版本号: ')
-        return None, None

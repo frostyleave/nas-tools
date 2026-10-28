@@ -64,13 +64,13 @@ class HDUpt(_ISiteSigninHandler):
                                 ).post_res(url="https://pt.hdupt.com/added.php?action=qiandao")
         if not sign_res or sign_res.status_code != 200:
             self.error(f"签到失败，请检查站点连通性")
-            return False, f'{site}签到失败，请检查站点连通性'
+            return False, f'[{site}]签到失败，请检查站点连通性'
 
         log.debug(f"签到接口返回 {sign_res.text}")
         # 判断是否已签到 sign_res.text = ".23"
         if len(list(map(int, re.findall("\d+", sign_res.text)))) > 0:
             self.info(f"签到成功")
-            return True, f'{site}签到成功'
+            return True, f'[{site}]签到成功'
 
         self.error(f"签到失败，签到接口返回 {sign_res.text}")
-        return False, f'{site}签到失败'
+        return False, f'[{site}]签到失败'

@@ -55,7 +55,7 @@ class BTSchool(_ISiteSigninHandler):
         # 已签到
         if self._sign_text not in html_res.text:
             self.info("今日已签到")
-            return True, f'{site}今日已签到'
+            return True, f'[{site}]今日已签到'
 
         sign_res = RequestUtils(cookies=site_cookie,
                                 ua=ua,
@@ -63,11 +63,11 @@ class BTSchool(_ISiteSigninHandler):
                                 ).get_res(url=self.sign_url)
         if not sign_res or sign_res.status_code != 200:
             self.error("签到失败, 签到接口请求失败")
-            return False, f'{site}签到失败, 签到接口请求失败'
+            return False, f'[{site}]签到失败, 签到接口请求失败'
 
         # 签到成功
         if self._sign_text not in sign_res.text:
             self.info("签到成功")
-            return True, f'{site}签到成功'
+            return True, f'[{site}]签到成功'
         
-        return False, f'{site}签到执行失败'
+        return False, f'[{site}]签到执行失败'

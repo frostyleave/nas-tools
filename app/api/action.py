@@ -132,7 +132,6 @@ class WebAction:
             "rename": self.__rename,
             "rename_udf": self.__rename_udf,
             "delete_history": self.__delete_history,
-            "version": self.__version,
             "update_site": self.__update_site,
             "get_site": self.__get_site,
             "del_site": self.__del_site,
@@ -820,15 +819,6 @@ class WebAction:
         """
         return FileTransfer().delete_history(data)
 
-    def __version(self):
-        """
-        检查新版本
-        """
-        version, url = SystemUtils.get_latest_version()
-        if version:
-            return {"code": 0, "version": version, "url": url}
-        return {"code": -1, "version": "", "url": ""}
-
     def __update_site(self, data):
         """
         维护站点信息
@@ -948,15 +938,20 @@ class WebAction:
         重启
         """
         # 退出主进程
+        self._add_background_task(self.__delayed_restart)
+        return {"code": 0, "msg": "系统即将重启"}
+    
+    @staticmethod
+    def __delayed_restart():
+        time.sleep(1)
         ServiceManager.restart_server()
-        return {"code": 0}
 
     def __update_system(self):
         """
         更新
         """
         if not SystemUtils.is_docker():
-            log.warning('【UpdateSystem】当前环境不支持在线更新，仅支持Docker环境')
+            log.warn('【UpdateSystem】当前环境不支持在线更新，仅支持Docker环境')
             return {
                 "code": 1, 
                 "updated": False,
@@ -1003,7 +998,7 @@ class WebAction:
 
         if code != 0:
             # pull 冲突或失败时，强制以远程分支覆盖本地
-            log.warning('【UpdateSystem】git pull 失败，尝试强制覆盖本地...')
+            log.warn('【UpdateSystem】git pull 失败，尝试强制覆盖本地...')
             code, _, fetch_output = run_git("fetch", "origin")
             outputs.append(fetch_output)
             if code != 0:

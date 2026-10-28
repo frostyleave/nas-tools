@@ -852,9 +852,7 @@
   // 立即运行任务
   function run_userrss_now(id) {
     axios_post_do("run_userrss", { "id": id }, function (ret) {
-      show_success_modal("任务运行完成！", function () {
-        window_history_refresh();
-      });
+      show_success_modal("任务运行完成！", () => window_history_refresh());
     });
   }
 
@@ -984,13 +982,9 @@
     $("#modal-rss-articles").modal('hide');
     axios_post_do("rss_articles_download", { "articles": articles, "taskid": id }, function (ret) {
       if (ret.code == 0) {
-        show_success_modal("添加下载成功！", function() {
-          show_rss_articles_modal(id);//
-        });
+        show_success_modal("添加下载成功！", () => show_rss_articles_modal(id));
       } else if (ret.code == 1) {
-        show_fail_modal(" 添加下载失败！", function() {
-          show_rss_articles_modal(id);//
-        });
+        show_fail_modal(" 添加下载失败！", () => show_rss_articles_modal(id));
       }
     });
   }
