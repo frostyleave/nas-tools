@@ -6,6 +6,7 @@ import json
 import os.path
 import re
 import shutil
+import subprocess
 import threading
 import time
 
@@ -131,7 +132,6 @@ class WebAction:
             "rename": self.__rename,
             "rename_udf": self.__rename_udf,
             "delete_history": self.__delete_history,
-            "version": self.__version,
             "update_site": self.__update_site,
             "get_site": self.__get_site,
             "del_site": self.__del_site,
@@ -819,15 +819,6 @@ class WebAction:
         """
         return FileTransfer().delete_history(data)
 
-    def __version(self):
-        """
-        检查新版本
-        """
-        version, url = SystemUtils.get_latest_version()
-        if version:
-            return {"code": 0, "version": version, "url": url}
-        return {"code": -1, "version": "", "url": ""}
-
     def __update_site(self, data):
         """
         维护站点信息
@@ -947,108 +938,106 @@ class WebAction:
         重启
         """
         # 退出主进程
+        self._add_background_task(self.__delayed_restart)
+        return {"code": 0, "msg": "系统即将重启"}
+    
+    @staticmethod
+    def __delayed_restart():
+        time.sleep(1)
         ServiceManager.restart_server()
-        return {"code": 0}
 
     def __update_system(self):
         """
         更新
         """
-        third_version = Config().get_config("app").get("third_version")
-        log.info(f'【UpdateSystem】检查是否开启第三方更新源: {third_version}')
-        if third_version:
-            log.info("【UpdateSystem】开始第三方源更新流程")
-            # 获取当前系统根目录
-            root_path = Config().get_root_path()
-            log.info(f'【UpdateSystem】获取系统根目录: {root_path}')
+        if not SystemUtils.is_docker():
+            log.warn('【UpdateSystem】当前环境不支持在线更新，仅支持Docker环境')
+            return {
+                "code": 1, 
+                "updated": False,
+                "msg": "仅支持在Docker环境中执行系统更新", 
+                "output": ""
+            }
 
-            # 下载文件临时目录
-            tmp_path = "/tmp/nas-tools"
-            # 文件不存在则创建
-            if not os.path.exists(tmp_path):
-                log.info(f'【UpdateSystem】创建临时目录: {tmp_path}')
-                os.makedirs(tmp_path)
+        root_path = Config().get_root_path()
+        log.info('【UpdateSystem】----------------------------检查更新----------------------------')
+        log.info(f'【UpdateSystem】获取系统根目录: {root_path}')
 
-            tmp_path_file = os.path.join(tmp_path, "nas-tools.zip")
+        def run_git(*args):
+            """执行git命令，返回(返回码, stdout, 合并输出)"""
+            cmd = ["git", "-C", root_path] + list(args)
+            log.info(f'【UpdateSystem】执行：git {" ".join(args)}')
+            try:
+                ret = subprocess.run(cmd, capture_output=True, text=True, timeout=300,
+                                     env={**os.environ, "GIT_TERMINAL_PROMPT": "0"})
+            except Exception as err:
+                log.error(f'【UpdateSystem】执行 git {" ".join(args)} 异常：{str(err)}')
+                return 1, "", str(err)
+            stdout = (ret.stdout or "").strip()
+            output = "\n".join([x for x in [stdout, (ret.stderr or "").strip()] if x])
+            for line in output.splitlines():
+                log.info(f'【UpdateSystem】>>> {line}')
+            return ret.returncode, stdout, output
 
-            # 获取版本下载地址
-            version, download_url = SystemUtils.get_latest_version()
-            log.info(f'【UpdateSystem】获取最新系统版本: {version}')
-            log.info(f'【UpdateSystem】获取最新系统下载地址: {download_url}')
+        # 当前分支
+        code, stdout, _ = run_git("rev-parse", "--abbrev-ref", "HEAD")
+        branch = stdout if code == 0 and stdout else os.getenv("NASTOOL_VERSION", "master")
+        log.info(f'【UpdateSystem】当前分支：{branch}')
 
-            # 开始下载文件
-            log.info("【UpdateSystem】正在下载最新系统")
-            result = RequestUtils(timeout=5, proxies=Config().get_proxies()).get_res(download_url)
-            if result.status_code != 200:
-                log.error("【UpdateSystem】系统下载失败，停止更新")
-                return {"code": 1, "msg": "系统下载失败"}
-            log.info(f'【UpdateSystem】保存系统文件：{tmp_path_file}')
-            open(tmp_path_file, "wb").write(result.content)
+        # 更新前的提交
+        code, old_commit, _ = run_git("rev-parse", "HEAD")
+        if code != 0:
+            return {"code": 1, "updated": False,
+                    "msg": "获取当前版本失败，请查看日志", "output": ""}
 
-            # 解压文件
-            log.info('【UpdateSystem】正在解压文件...')
-            shutil.unpack_archive(tmp_path_file, tmp_path, format='zip')
-            tmp_path_root = os.path.join(tmp_path, f"nas-tools-{version.split()[0]}")
-            log.info(f'【UpdateSystem】文件解压成功：{tmp_path_root}')
+        # 默认执行 git pull
+        log.info(f'【UpdateSystem】正在拉取当前分支 {branch} ...')
+        code, _, pull_output = run_git("pull")
+        outputs = [pull_output]
+        mode = "pull"
 
-            # 删除不需要的文件
-            PathUtils.del_files(os.path.join(tmp_path_root, ".github"))
-            PathUtils.del_files(os.path.join(tmp_path_root, "config"))
+        if code != 0:
+            # pull 冲突或失败时，强制以远程分支覆盖本地
+            log.warn('【UpdateSystem】git pull 失败，尝试强制覆盖本地...')
+            code, _, fetch_output = run_git("fetch", "origin")
+            outputs.append(fetch_output)
+            if code != 0:
+                return {"code": 1, "updated": False,
+                        "msg": "拉取更新失败，请查看日志",
+                        "output": "\n".join([x for x in outputs if x])}
 
-            # 拷贝文件
-            log.info('【UpdateSystem】正在升级系统版本...')
-            os.system(f"cp -R {tmp_path_root}/* {root_path}/")
+            code, _, reset_output = run_git("reset", "--hard", f"origin/{branch}")
+            outputs.append(reset_output)
+            if code != 0:
+                return {"code": 1, "updated": False,
+                        "msg": "强制覆盖本地失败，请查看日志",
+                        "output": "\n".join([x for x in outputs if x])}
+            mode = "force-reset"
 
-            # 安装依赖
-            log.info('【UpdateSystem】正在安装系统依赖...')
-            os.system(f'sudo pip install -r {root_path}/requirements.txt')
-            # 修复权限
-            user_auth = os.stat(root_path)
-            os.chown(f"{root_path}", user_auth.st_uid, user_auth.st_gid)
+        # 更新后的提交
+        code, new_commit, _ = run_git("rev-parse", "HEAD")
+        if code != 0:
+            return {"code": 1, "updated": False,
+                    "msg": "获取更新后版本失败，请查看日志",
+                    "output": "\n".join([x for x in outputs if x])}
 
-            # 清理临时目录
-            PathUtils.del_files(tmp_path)
-            log.info('【UpdateSystem】清理临时目录...')
+        updated = old_commit != new_commit
+        # 修复权限
+        os.system(f"chown -R nt:nt {root_path}")
 
-            # 重启
-            log.info('【UpdateSystem】系统升级完成，正在重启...')
-            log.info("【UpdateSystem】请手动刷新页面！")
-            time.sleep(3)
-            ServiceManager.restart_server()
-        # 升级
-        elif SystemUtils.is_synology():
-            if SystemUtils.execute('/bin/ps -w -x | grep -v grep | grep -w "nastool update" | wc -l') == '0':
-                # 调用群晖套件内置命令升级
-                os.system('【UpdateSystem】nastool update')
-                # 重启
-                ServiceManager.restart_server()
+        if updated:
+            if mode == "force-reset":
+                msg = f"本地存在冲突，已强制覆盖为 {branch} 分支最新版本 {new_commit[:8]}"
+            else:
+                msg = f"已更新到 {branch} 分支最新版本 {new_commit[:8]}"
+        elif mode == "force-reset":
+            msg = "已强制覆盖本地修改，当前已是最新版本"
         else:
-            # 清除git代理
-            os.system("sudo git config --global --unset http.proxy")
-            os.system("sudo git config --global --unset https.proxy")
-            # 设置git代理
-            proxy = Config().get_proxies() or {}
-            http_proxy = proxy.get("http")
-            https_proxy = proxy.get("https")
-            if http_proxy or https_proxy:
-                os.system(
-                    f"sudo git config --global http.proxy {http_proxy or https_proxy}")
-                os.system(
-                    f"sudo git config --global https.proxy {https_proxy or http_proxy}")
-            # 清理
-            os.system("sudo git clean -dffx")
-            # 升级
-            branch = os.getenv("NASTOOL_VERSION", "master")
-            os.system(f"sudo git fetch --depth 1 origin {branch}")
-            os.system(f"sudo git reset --hard origin/{branch}")
-            os.system("sudo git submodule update --init --recursive")
-            # 安装依赖
-            os.system('sudo pip install -r /nas-tools/requirements.txt')
-            # 修复权限
-            os.system('sudo chown -R nt:nt /nas-tools')
-            # 重启
-            ServiceManager.restart_server()
-        return {"code": 0}
+            msg = "当前已是最新版本"
+        log.info(f'【UpdateSystem】>>> {msg}')
+        return {"code": 0, "updated": updated, "msg": msg, "branch": branch,
+                "old_commit": old_commit, "new_commit": new_commit, "mode": mode,
+                "output": "\n".join([x for x in outputs if x])}
 
     def __logout(self):
         """
@@ -3595,8 +3584,10 @@ class WebAction:
 
         # 解析季信息
         if mediaid.find(":") > 0 and hasattr(media_info.tmdb_info, 'number_of_seasons'):
-            extra_info['number_of_seasons'] = media_info.tmdb_info.number_of_seasons
             extra_info['seasons'] = self.__resolve_season_info(media_info, media_handler, mtype)
+            extra_info['number_of_seasons'] = media_info.tmdb_info.number_of_seasons
+            extra_info['next_episode_to_air'] = media_info.tmdb_info.next_episode_to_air
+            extra_info['last_episode_to_air'] = media_info.tmdb_info.last_episode_to_air
 
         return {
             "code": 0,

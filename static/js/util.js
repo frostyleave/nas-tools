@@ -265,26 +265,28 @@ function dictArraySorting(objArr, sortKey, sortType = "asc") {
   })
 }
 
-/**
- * bytes转换为size
- * @param: bytes 字节数
- **/
-function bytesToSize(bytes) {
-  let size = ''
-  if (bytes < 0.1 * 1024) { // 小于0.1KB 则转化成B
-    size = bytes + ' B'
-  } else if (bytes < 0.1 * 1024 * 1024) { // 小于0.1MB 则转换成KB
-    size = (bytes / 1024).toFixed(2) + ' KB'
-  } else if (bytes < 0.1 * 1024 * 1024 * 1024) { // 小于0.1GB 则转换成MB
-    size = (bytes / (1024 * 1024)).toFixed(2) + ' MB'
-  } else if (bytes < 0.1 * 1024 * 1024 * 1024 * 1024) { // 小于0.1TB 则转换成GB
-    size = (bytes / (1024 * 1024 * 1024)).toFixed(2) + ' GB'
-  } else if (bytes < 0.1 * 1024 * 1024 * 1024 * 1024 * 1024) { // 小于0.1PB 则转换成TB
-    size = (bytes / (1024 * 1024 * 1024 * 1024)).toFixed(2) + ' TB'
-  } else if (bytes < 0.1 * 1024 * 1024 * 1024 * 1024 * 1024 * 1024) { // 小于0.1EB 则转换成PB
-    size = (bytes / (1024 * 1024 * 1024 * 1024 * 1024)).toFixed(2) + ' PB'
+// 格式化文件大小
+function formatFileSize(bytes) {
+
+  if (bytes === 0) return '0 B';
+
+  const k = 1024;
+  const sizes = ['B', 'KB', 'MB', 'GB', 'TB', 'PB'];
+
+  // 先按 1024 进制定位到初始单位
+  let i = Math.floor(Math.log(bytes) / Math.log(k));
+  // 防止超出 sizes 数组范围
+  i = Math.min(i, sizes.length - 1);
+
+  let value = bytes / Math.pow(k, i);
+
+  // 整数部分 >= 1000 时，向上进一个单位
+  while (Math.floor(value) >= 1000 && i < sizes.length - 1) {
+    i++;
+    value = bytes / Math.pow(k, i);
   }
-  return size
+
+  return parseFloat(value.toFixed(2)) + ' ' + sizes[i];
 }
 
 /**
@@ -417,5 +419,121 @@ function check_selectgroup_raido(obj) {
 function scroll_to_element(id) {
   if (id) {
     $("html,body").animate({scrollTop: $(`#${id}`).offset().top}, 300);
+  }
+}
+
+// 计算分页显示的范围
+function get_page_range(currentPage, totalPage) {
+  var startPage, endPage;
+
+  if (totalPage <= 5) {
+    startPage = 1;
+    endPage = totalPage;
+  } else {
+    if (currentPage <= 3) {
+      startPage = 1;
+      endPage = 5;
+    } else if (currentPage >= totalPage - 2) {
+      startPage = totalPage - 4;
+      endPage = totalPage;
+    } else {
+      startPage = currentPage - 2;
+      endPage = Math.min(currentPage + 2, totalPage);
+    }
+  }
+
+  var pageRange = [];
+  for (let i = startPage; i <= endPage; i++) {
+    pageRange.push(i);
+  }
+
+  return pageRange;
+}
+
+// json合法性检查
+function object_json_valid(json_str, allow_empty) {
+
+  if (!json_str || json_str == '') {
+    console.log(json_str)
+    return allow_empty;
+  }
+
+  try {
+
+    const json_obj = JSON.parse(json_str);
+
+    if (typeof json_obj == 'object' && json_obj) {
+      if (Object.prototype.toString.call(json_obj) === '[object Array]') {
+        console.log('对象为数组')
+        return false;
+      }
+      return true;
+    } else {
+      console.log('对象为不是object')
+      return false;
+    }
+  } catch (e) {
+    console.log('对象解析失败：' + e)
+    return false;
+  }
+}
+
+// 压缩json字符串
+function zip_json(raw_json) {
+
+  if (!raw_json || raw_json == '') {
+    return raw_json;
+  }
+
+  // 压缩
+  var t = raw_json.replace(/[\r\n]/g, "")
+  for (var n = [], o = !1, i = 0, r = t.length; r > i; i++) {
+    var a = t.charAt(i);
+    o && a === o ? "\\" !== t.charAt(i - 1) && (o = !1) : o || '"' !== a && "'" !== a ? o || " " !== a && "	" !== a || (a = "") : o = a, n.push(a)
+  }
+  return n.join("");
+
+}
+
+// 判断是否为网址
+function isUrl(str) {
+  // 根据网址的特征进行判断
+  var hasProtocol = str.startsWith("http://") || str.startsWith("https://");
+  var hasDomain = str.includes(".");
+  return hasProtocol && hasDomain;
+}
+
+// 展开/收起div
+function slideToggle(id) {
+  $(`#${id}`).slideToggle();
+}
+
+// 刷新tooltip
+function fresh_tooltip() {
+  const tooltipTriggerList = Array.prototype.slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+  tooltipTriggerList.map(function (tooltipTriggerEl) {
+    return new bootstrap.Tooltip(tooltipTriggerEl)
+  });
+}
+
+// 将弹窗提升到当前已打开弹窗之上，避免被实时日志等弹窗遮挡
+function raise_modal_above_others($modal) {
+  let maxZ = 0;
+  $('.modal.show').not($modal).each(function () {
+    const z = parseInt($(this).css('z-index'), 10);
+    if (!isNaN(z) && z > maxZ) {
+      maxZ = z;
+    }
+  });
+  if (maxZ > 0) {
+    $modal.css('z-index', maxZ + 10);
+    $modal.one('shown.bs.modal', function () {
+      const z = parseInt($modal.css('z-index'), 10);
+      if (!isNaN(z)) {
+        $('.modal-backdrop').last().css('z-index', z - 5);
+      }
+    });
+  } else {
+    $modal.css('z-index', '');
   }
 }

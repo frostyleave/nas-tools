@@ -7,12 +7,12 @@ import jwt
 from fastapi import HTTPException, Request, status
 from fastapi.requests import HTTPConnection
 from jwt.exceptions import InvalidTokenError
-
 from passlib.context import CryptContext
 
 import log
 
 from config import Config
+
 from app.models.user import User, UserManager
 
 def get_secret() -> str:

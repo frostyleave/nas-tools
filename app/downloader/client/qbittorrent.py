@@ -6,7 +6,7 @@ import time
 from datetime import datetime
 from typing import Optional, Tuple, Union
 
-import bencodepy
+import fastbencode
 
 
 import log
@@ -552,9 +552,9 @@ class Qbittorrent(_IDownloadClient):
                 return None
         elif isinstance(content, bytes):
             try:
-                torrent_data = bencodepy.decode(content)
+                torrent_data = fastbencode.bdecode(content)
                 info_dict = torrent_data[b'info']
-                info_bencoded = bencodepy.encode(info_dict)
+                info_bencoded = fastbencode.bencode(info_dict)
                 hash_v1 = hashlib.sha1(info_bencoded).hexdigest()                
                 return hash_v1.lower()
             except Exception as e:

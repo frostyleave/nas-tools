@@ -1,6 +1,5 @@
 import os
 import signal
-import sys
 import warnings
 import uvicorn
 
@@ -22,30 +21,12 @@ warnings.filterwarnings('ignore')
 
 # 运行环境判断
 is_windows = os.name == "nt"
-is_executable = getattr(sys, 'frozen', False)
-is_windows_exe = is_executable and is_windows
 
 if is_windows:
     import mimetypes
     # fix Windows registry stuff
     mimetypes.add_type('application/javascript', '.js')
     mimetypes.add_type('text/css', '.css')
-
-if is_windows_exe:
-    # 托盘相关库
-    import threading
-    from package.trayicon import TrayIcon, NullWriter
-
-if is_executable:
-    # 可执行文件初始化环境变量
-    config_path = os.path.join(os.path.dirname(sys.executable), "config").replace("\\", "/")
-    os.environ["NASTOOL_CONFIG"] = os.path.join(config_path, "config.yaml").replace("\\", "/")
-    os.environ["NASTOOL_LOG"] = os.path.join(config_path, "logs").replace("\\", "/")
-    try:
-        if not os.path.exists(config_path):
-            os.makedirs(config_path)
-    except Exception as err:
-        print(str(err))
 
 
 def sigal_handler(num, stack):
@@ -149,24 +130,6 @@ server = uvicorn.Server(server_conf)
 
 # 本地运行
 if __name__ == '__main__':
-   
-    # Windows启动托盘
-    if is_windows_exe:
-        homepage = Config().get_config('app').get('domain')
-        if not homepage:
-            homepage = "http://localhost:%s" % str(Config().get_config('app').get('web_port'))
-            
-        log_path = os.environ.get("NASTOOL_LOG")
-
-        sys.stdout = NullWriter()
-        sys.stderr = NullWriter()
-
-        def traystart():
-            TrayIcon(homepage, log_path)
-
-        if len(os.popen("tasklist| findstr %s" % os.path.basename(sys.executable), 'r').read().splitlines()) <= 2:
-            p1 = threading.Thread(target=traystart, daemon=True)
-            p1.start()
 
     try:
         

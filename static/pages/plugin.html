@@ -191,9 +191,7 @@
     axios_post_do("install_plugin", { id: id }, function (ret) {
       $("#modal-plugin-apps").modal('hide');
       if (ret.code === 0) {
-        show_success_modal(name + " 插件安装成功！", function () {
-          window_history_refresh();
-        });
+        show_success_modal(name + " 插件安装成功！", () => window_history_refresh());
       } else {
         show_fail_modal(ret.msg, function () {
           $("#modal-plugin-apps").modal('show');

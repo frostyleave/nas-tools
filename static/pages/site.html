@@ -716,6 +716,127 @@
     }
   });
 
+  // 格式化json文本内容并填充到textarea
+  function append_json_to_textarea(elem_id, json_str) {
+
+    if (!json_str) {
+      return
+    }
+
+    // 格式化
+    var lint_json = JSON.parse(json_str);
+    // 格式化显示
+    var json = JSON.stringify(lint_json, undefined, 4);
+
+    $("#" + elem_id).val(json);
+
+    var match_break_line = json.match(/\n/ig);
+    if (match_break_line) {
+      var height = Math.min(match_break_line.length * 22 + 15, 500);
+      $("#" + elem_id).height(height + 'px');
+    }
+
+  }
+
+  // 编辑索引配置
+  function edit_indexer_conf(site_url, ispt) {
+
+    $("#modal-manual-indexer").data("indexer", NaN);
+    if (ispt) {
+      $('.pt-hide').hide();
+      $("[name='indexer-cop-btn']").show();
+    } else {
+      $('.pt-hide').show();
+      $("[name='indexer-copy-btn']").hide();
+    }
+
+    // 根据ID查询详细信息
+    axios_post_do("get_indexer", { "url": site_url }, function (ret) {
+
+      if (ret.data) {
+
+        // 数据绑定到容器上
+        $("#modal-manual-indexer").data("indexer", ret.data);
+
+        $("#indexer-id").val(ret.data.id).prop("disabled", true);
+        $("#indexer-name").val(ret.data.name).prop("disabled", true);
+        $("#indexer-url").val(ret.data.domain);
+
+        // 下拉
+        $("#indexer-download-setting").val(ret.data.downloader ?? 0);
+        $("#indexer-parser-type").val(ret.data.parser ?? '');
+
+        if (ret.data.search) {
+          append_json_to_textarea('search_cfg', ret.data.search)
+        }
+
+        if (ret.data.torrents) {
+          append_json_to_textarea('torrent_cfg', ret.data.torrents)
+        }
+
+        if (ret.data.category) {
+          append_json_to_textarea('category_cfg', ret.data.category)
+        }
+
+        if (ret.data.public && ret.data.extra != '') {
+
+          var extra_json = JSON.parse(ret.data.extra);
+
+          // 多选
+          select_SelectPart(extra_json.source_type, "indexer-source-type")
+
+          $('#indexer-search-params').val(extra_json.search_param ?? 'kw')
+
+          $("#indexer-proxy").prop("checked", extra_json.proxy);
+          $("#indexer-render").prop("checked", extra_json.render);
+          $("#indexer-en-expand").prop("checked", extra_json.en_expand);
+
+        }
+
+        $("#indexer-modal-title").text("编辑索引站点");
+        $("[name='indexer-add-btn']").hide();
+        $("[name='indexer-edit-btn']").show();
+
+        $("#modal-manual-indexer").modal("show");
+        return;
+      }
+
+      if (ret.msg) {
+        show_fail_modal(ret.msg);
+        return;
+      }
+
+    });
+  }
+
+  /**
+   * 纯数字大小格式化（1000 进制）
+   * 示例：1234 → 1.23K，2000000 → 2M
+   * @param {number} num 需要格式化的数字
+   * @returns {string} 格式化后的字符串，如 "1.23K"、"2M"
+   */
+  function formatNumber(num) {
+    if (num === 0) return '0';
+
+    const k = 1000;
+    const sizes = ['', 'K', 'M', 'B', 'T', 'P', 'E']; // 可根据需要增减
+
+    // 初始单位索引
+    let i = Math.floor(Math.log(num) / Math.log(k));
+    i = Math.min(i, sizes.length - 1);
+
+    let value = num / Math.pow(k, i);
+
+    // 四舍五入后若整数部分 >= 1000，则向上进一个单位
+    while (parseFloat(value.toFixed(2)) >= 1000 && i < sizes.length - 1) {
+      i++;
+      value = num / Math.pow(k, i);
+    }
+
+    // 保留两位小数并去掉多余的尾零
+    return parseFloat(value.toFixed(2)) + sizes[i];
+  }
+
 </script>
 
 <script type="text/javascript">

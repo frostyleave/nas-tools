@@ -77,7 +77,7 @@
           }
 
           const doubanHtml = info.douban_id ? 
-              `<span id="doubanid-link-tag" class="mb-1 d-inline-flex"><i class="ti ti-brand-douban fs-2 text-green"></i> ${renderDoubanLink(info.douban_id)}</span>` : '';          
+              `<span id="doubanid-link-tag" class="mb-1 ms-1 d-inline-flex"><i class="ti ti-brand-douban fs-2 text-green"></i> ${renderDoubanLink(info.douban_id)}</span>` : '';          
 
           const tmdbHtml = info.tmdbid && !info.tmdbid.includes(':') && info.link ?
             `<span id="tmdbid-link-tag" class="mb-1 d-inline-flex"><i class="ti ti-badge-tm fs-2 text-blue"></i><a class="text-reset" href="${info.link}" target="_blank">${info.tmdbid}</a></span>` : '';
@@ -144,6 +144,49 @@
           </div>
           `;
       }
+
+      function isToday(dateStr) {
+
+        if (!dateStr) return false;
+
+        const now = new Date();
+        const pad = n => String(n).padStart(2, '0');
+
+        // 今天的本地日期字符串
+        const today = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+
+        // 取输入的前 10 位，兼容 "2026-10-23 10:00:00" 这种带时间的格式
+        return dateStr.slice(0, 10) === today;
+      }
+
+      function getLatestEpisode(tmdb_info, seasonInfo) {
+
+        // 下一集信息
+        var next_episode_to_air = tmdb_info.next_episode_to_air;
+
+        // 判断是否当前季
+        if (next_episode_to_air 
+          && seasonInfo.season_number == next_episode_to_air.season_number
+          && next_episode_to_air.air_date
+          && next_episode_to_air.episode_number
+        ) {
+          // 比较更新时间是否为今天
+          var air_date = next_episode_to_air.air_date;
+          if (isToday(air_date)) {
+            return next_episode_to_air.episode_number;
+          }
+          
+        }
+
+        // 最新更新集
+        var last_episode_to_air = tmdb_info.last_episode_to_air;
+        if (last_episode_to_air) {
+          return last_episode_to_air.episode_number;
+        }
+
+        return 0;
+
+      }
       
       function pickSeason(seasons, targetSeason) {
         // 空数组保护
@@ -160,8 +203,28 @@
 
       function renderSeasonContainer(tmdb_info) {
 
-        // 没有季信息 或者 只有1季，不展示
-        if (!tmdb_info || !tmdb_info.seasons || tmdb_info.seasons.length <= 1) {
+        // 没有季信息 不展示
+        if (!tmdb_info || !tmdb_info.seasons || tmdb_info.seasons.length == 0) {
+          return;
+        }
+
+        var displaySeason = pickSeason(tmdb_info.seasons, tmdb_info.number_of_seasons);
+        // 绘制更新进度标签
+        if (!document.getElementById('progress-tag') && displaySeason.episode_count) {
+          var latestEp = getLatestEpisode(tmdb_info, displaySeason);
+          if (latestEp) {
+            var progressHtml = '';
+            if (latestEp < displaySeason.episode_count) {
+              progressHtml = `<span id="progress-tag" class="mb-1 me-1 d-inline-flex fw-bold"><i class="ti ti-flame2 fs-2 text-google"></i>${latestEp}/${displaySeason.episode_count}</span>`;
+            } else {
+              progressHtml = `<span id="progress-tag" class="mb-1 me-1 d-inline-flex fw-bold"><i class="ti ti-circle-check fs-2 text-google"></i>已完结</span>`;
+            }
+            $('#tags-container').append(progressHtml);
+          }
+        }
+
+        // 只有1季 不单独展示面板
+        if (tmdb_info.seasons.length <= 1) {
           return;
         }
 
@@ -173,7 +236,7 @@
           <div class="page-header d-print-none">
             <div class="d-flex justify-content-between">
               <div class="d-inline-flex">
-                <a class="nav-link ms-3 mb-2 cursor-default" href="javascript:void(0)">
+                <a class="nav-link ms-2 mb-2 cursor-default" href="javascript:void(0)">
                   <h2 class="my-1"><strong>最新季</strong></h2>
                   <div class="ms-2">${seasonBadge}</div>
                 </a>
@@ -250,13 +313,21 @@
         if (!document.getElementById('tmdbid-link-tag')) {
           if (info.tmdbid && !info.tmdbid.includes(':') && info.link) {
             var tmdbHtml = `<span id="tmdbid-link-tag" class="mb-1 d-inline-flex"><i class="ti ti-badge-tm fs-2 text-blue"></i><a class="text-reset" href="${info.link}" target="_blank">${info.tmdbid}</a></span>`;
-            $('#tags-container').append(tmdbHtml);
+            if (document.getElementById('doubanid-link-tag')) {
+              $('#doubanid-link-tag').before(tmdbHtml);
+            } else {
+              $('#tags-container').append(tmdbHtml);
+            }
           }
         }
 
         if (!document.getElementById('doubanid-link-tag') && info.douban_id) {
-            var doubanHtml = `<span id="doubanid-link-tag" class="mb-1 d-inline-flex"><i class="ti ti-brand-douban fs-2 text-green"></i> ${renderDoubanLink(info.douban_id)}</span>`;
-            $('#tags-container').append(doubanHtml);
+            var doubanHtml = `<span id="doubanid-link-tag" class="mb-1 ms-1 d-inline-flex"><i class="ti ti-brand-douban fs-2 text-green"></i> ${renderDoubanLink(info.douban_id)}</span>`;
+            if (document.getElementById('tmdbid-link-tag')) {
+              $('#tmdbid-link-tag').after(doubanHtml);
+            } else {
+              $('#tags-container').append(doubanHtml);
+            }
         }
 
       }
@@ -365,8 +436,6 @@
         axios_post_do("get_recommend", { "type": media_type, "subtype": "more", "tmdbid": tmdbid, "page": 1 }, 
         (ret) => {
 
-          debugger
-
           if (!ret.Items || ret.Items.length == 0) {
             return;
           }
@@ -440,4 +509,17 @@
       }
 
   });
+
+  function isDoubanImgUrl(url) {
+    try {
+      const u = new URL(url);
+      return (
+        u.protocol === 'https:' &&
+        /^img\d+\.doubanio\.com$/.test(u.hostname)
+      );
+    } catch (e) {
+      return false;
+    }
+  }
+
 </script>

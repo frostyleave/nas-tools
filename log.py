@@ -1,4 +1,5 @@
 from collections import deque
+import itertools
 import logging
 import re
 import sys
@@ -21,6 +22,9 @@ LOG_BUFFER_SIZE = 100 # 内存中最多保留 100 条日志
 # 新的日志缓冲区和广播系统
 log_buffer: Deque[Dict[str, Any]] = deque(maxlen=LOG_BUFFER_SIZE)   # 全局日志缓冲区 (固定大小, 自动丢弃旧日志)
 active_sse_queues: List[asyncio.Queue[Dict[str, Any]]] = []     # 活跃的 SSE 客户端队列列表 (扇出目标)
+
+# 全局递增的日志序号, 供 SSE 客户端对“历史重放 + 实时广播”去重和排序
+_log_seq = itertools.count(1)
 
 # 初始化为 None, 等待注入
 _event_loop: asyncio.AbstractEventLoop | None = None
@@ -77,6 +81,7 @@ class SSEHandler(logging.Handler):
                 source = "System"
 
             log_data = {
+                "seq": next(_log_seq),
                 "text": text,
                 "source": source,
                 "time": time.strftime('%H:%M:%S', time.localtime(record.created)),

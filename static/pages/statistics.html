@@ -934,11 +934,11 @@
           .replaceAll('{SITE}', statistic.site)
           .replaceAll('{USERNAME_BLUR}', username_blur_text)
           .replaceAll('{USERNAME}', statistic.username)
-          .replaceAll('{UPLOAD}', bytesToSize(statistic.upload))
-          .replaceAll('{DOWNLOAD}', bytesToSize(statistic.download))
+          .replaceAll('{UPLOAD}', formatFileSize(statistic.upload))
+          .replaceAll('{DOWNLOAD}', formatFileSize(statistic.download))
           .replaceAll('{RATIO}', ratio)
           .replaceAll('{SEEDING}', statistic.seeding)
-          .replaceAll('{SEEDING_SIZE}', bytesToSize(statistic.seeding_size))
+          .replaceAll('{SEEDING_SIZE}', formatFileSize(statistic.seeding_size))
         table_content += tr;
         total_upload += statistic.upload;
         total_download += statistic.download;
@@ -948,10 +948,10 @@
 
       let table_text = $("#statistics_pic_table_template").text()
         .replaceAll('{TBODY_CONTENT}', table_content)
-        .replaceAll('{TOTALUPLOAD}', bytesToSize(total_upload))
-        .replaceAll('{TOTALDOWNLOAD}', bytesToSize(total_download))
+        .replaceAll('{TOTALUPLOAD}', formatFileSize(total_upload))
+        .replaceAll('{TOTALDOWNLOAD}', formatFileSize(total_download))
         .replaceAll('{TOTALSEEDING}', total_seeding)
-        .replaceAll('{TOTALSEEDINGSIZE}', bytesToSize(total_seeding_size))
+        .replaceAll('{TOTALSEEDINGSIZE}', formatFileSize(total_seeding_size))
         .replaceAll('{BGCOLOR}', card_bgcolor);
 
       let pic = document.createElement('div');

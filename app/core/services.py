@@ -18,6 +18,9 @@ from app.modules.sync import Sync
 from app.modules.torrentremover import TorrentRemover
 from app.plugins import PluginManager
 from app.sites import SiteConf
+from app.utils.system_utils import SystemUtils
+
+import log
 
 class ServiceManager:
 

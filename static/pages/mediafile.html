@@ -293,9 +293,7 @@
     let path = $(`#mediafilepath_${id}`).val();
     axios_post_do("media_path_scrap", {path: path, name: name}, function (ret) {
       if (ret.code == 0) {
-        show_success_modal(ret.msg, function () {
-          refresh_files();
-        });
+        show_success_modal(ret.msg, () => refresh_files());
       } else {
         show_fail_modal(`${ret.msg}！`);
       }
@@ -309,9 +307,7 @@
     axios_post_do("download_subtitle", {path: path, name: name}, 
     function (ret) {
       if (ret.code == 0) {
-        show_success_modal(ret.msg, function () {
-          refresh_files();
-        });
+        show_success_modal(ret.msg, () => refresh_files());
       } else {
         show_fail_modal(`${ret.msg}！`);
       }
@@ -377,9 +373,7 @@
       axios_post_do("media_path_scrap", {path: path}, 
       function (ret) {
         if (ret.code === 0) {
-          show_success_modal(ret.msg, function () {
-            refresh_files();
-          });
+          show_success_modal(ret.msg, () => refresh_files());
         } else {
           show_fail_modal(`${ret.msg}！`);
         }

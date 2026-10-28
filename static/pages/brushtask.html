@@ -1117,9 +1117,7 @@
   function run_brushtask_now(id, name) {
     show_confirm_modal("立即执行刷流任务 " + name + " ？", function () {
       axios_post_do("run_brushtask", {"id": id}, function (ret) {
-        show_success_modal("任务运行完成！", function () {
-          window_history_refresh();
-        });
+        show_success_modal("任务运行完成！", () => window_history_refresh());
       });
     });
   }

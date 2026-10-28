@@ -683,9 +683,7 @@
   // 立即运行任务
   function run_torrent_remove_now(tid) {
     axios_post_do("auto_remove_torrents", { "tid": tid }, function (ret) {
-      show_success_modal("任务运行完成！", function () {
-        window_history_refresh();
-      });
+      show_success_modal("任务运行完成！", () => window_history_refresh());
     });
   }
 

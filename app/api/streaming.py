@@ -1,7 +1,8 @@
 import asyncio
 import json
 import re
-from typing import Any, Dict
+import time
+from typing import Any, Dict, List
 
 from fastapi import APIRouter, Query, Request, WebSocket, WebSocketDisconnect
 from fastapi.responses import StreamingResponse
@@ -17,6 +18,23 @@ from app.utils.types import SearchType
 
 # 流式/实时路由
 streaming_router = APIRouter()
+
+# 单条 SSE 事件最多携带的日志条数
+LOG_BATCH_SIZE = 200
+
+# SSE 通用响应头:
+# - identity: 避免被 GZipMiddleware 压缩后产生缓冲
+# - X-Accel-Buffering: 让 nginx 等反代不要缓存, 保证日志实时到达
+SSE_HEADERS = {
+    "Content-Encoding": "identity",
+    "Cache-Control": "no-cache",
+    "X-Accel-Buffering": "no",
+}
+
+
+def _sse_event(records: List[Dict[str, Any]]) -> str:
+    """把一条或多条日志打包成一条 SSE 事件"""
+    return f"data: {json.dumps(records, ensure_ascii=False)}\n\n"
 
 
 # WebSocket连接 - 消息中心
@@ -125,43 +143,68 @@ async def message_handler(websocket: WebSocket):
 async def stream_logging(request: Request, source: str = ""):
     """
     实时日志SSE
+
+    每个事件携带一个日志数组, 客户端一次渲染一批。日志密集时(如 git 更新),
+    批量推送/渲染可避免逐条积压, 出现“任务已完成但日志还在滚动”的现象。
     """
-    
+
     # 创建此客户端专用的队列
     my_queue: asyncio.Queue[Dict[str, Any]] = asyncio.Queue()
 
+    def match(log_data: Dict[str, Any]) -> bool:
+        return bool(log_data) and (not source or log_data.get("source") == source)
+
     async def event_generator():
         try:
-            for log_data in list(log_buffer):
-                if source and log_data.get('source') != source:
-                    continue
-                json_message = json.dumps(log_data)
-                yield f"data: {json_message}\n\n"
-                # 短暂释放控制权, 以防历史日志过多导致堵塞
-                await asyncio.sleep(0)
-            
-            # 注册到广播列表, 开始接收"直播"
+            # 先注册队列再读取历史: 两者之间产生的日志会进入队列。
+            # 与历史重复的部分按 seq 去重, 做到不丢不重。
             active_sse_queues.append(my_queue)
 
+            pending: Dict[int, Dict[str, Any]] = {}
+            for log_data in list(log_buffer):
+                if match(log_data):
+                    pending[log_data.get("seq")] = log_data
             while True:
                 try:
-                    log_data = await my_queue.get()
-                    my_queue.task_done()
+                    log_data = my_queue.get_nowait()
+                except asyncio.QueueEmpty:
+                    break
+                if match(log_data):
+                    pending[log_data.get("seq")] = log_data
 
-                    if source and log_data.get('source') != source:
-                        continue
-                    yield f"data: {json.dumps(log_data)}\n\n"
+            history = [pending[k] for k in sorted(pending)]
+            for i in range(0, len(history), LOG_BATCH_SIZE):
+                yield _sse_event(history[i:i + LOG_BATCH_SIZE])
+                # 释放控制权, 防止历史日志过多导致堵塞
+                await asyncio.sleep(0)
 
-                except Exception as e:
-                    log.error("[SSE-日志]处理失败: ")
-                finally:
-                    await asyncio.sleep(0.2)
+            while True:
+                # 取到一条后, 把队列中已积压的全部取出合并成一批发送
+                log_data = await my_queue.get()
+                batch = [log_data] if match(log_data) else []
+                while len(batch) < LOG_BATCH_SIZE:
+                    try:
+                        log_data = my_queue.get_nowait()
+                    except asyncio.QueueEmpty:
+                        break
+                    if match(log_data):
+                        batch.append(log_data)
+                if batch:
+                    yield _sse_event(batch)
+                # 仅让出事件循环, 不做限速
+                await asyncio.sleep(0)
 
         except asyncio.CancelledError:
             log.debug("SSE client disconnected.")
         except Exception as e:
             log.error("[SSE-日志]连接异常: ")
-            yield f"data: {json.dumps({'code': -1, 'value': 0, 'text': f'实时日志连接异常: {str(e)}'})}\n\n"
+            yield _sse_event([{
+                "seq": 0,
+                "source": "System",
+                "level": "ERROR",
+                "time": time.strftime("%H:%M:%S"),
+                "text": f"实时日志连接异常: {str(e)}",
+            }])
         finally:
             log.debug("Removing client queue from active SSE listeners.")
             try:
@@ -169,7 +212,7 @@ async def stream_logging(request: Request, source: str = ""):
             except ValueError:
                 log.debug("SSE queue was already removed.")
 
-    return StreamingResponse(event_generator(), media_type="text/event-stream", headers={ "Content-Encoding": "identity" })
+    return StreamingResponse(event_generator(), media_type="text/event-stream", headers=SSE_HEADERS)
 
 
 # 进度SSE
@@ -223,7 +266,7 @@ async def sse_progress(
             log.warn("[SSE-进度]连接异常: ")
             yield f"data: {json.dumps({'code': -1, 'value': 0, 'text': f'进度连接异常: {str(e)}'})}\n\n"
 
-    return StreamingResponse(event_generator(), media_type="text/event-stream", headers={ "Content-Encoding": "identity" })
+    return StreamingResponse(event_generator(), media_type="text/event-stream", headers=SSE_HEADERS)
 
 def get_system_message(lst_time):
 
