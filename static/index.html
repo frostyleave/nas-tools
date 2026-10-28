@@ -1208,6 +1208,12 @@
   <script src="../static/libs/modules/reconnecting-websocket.js"></script>
 
   <script type="text/javascript">
+
+    // 初始化DropZone
+    function initDropzone() {
+      TorrentDropZone = new Dropzone("#torrent_files");
+      TorrentDropZone.options.acceptedFiles = ".torrent";
+    }
     
     // 请求登陆
     function performLogin() {

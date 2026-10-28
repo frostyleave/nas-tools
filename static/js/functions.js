@@ -400,12 +400,6 @@ function showInitAlertModal() {
   });
 }
 
-// 显示用户认证对话框
-function show_user_auth_modal() {
-  GlobalModalAbort = false;
-  $("#modal-user-auth").modal("show");
-}
-
 function update_system() {
   show_confirm_modal("更新系统版本，是否确认？", function () {
     show_wait_modal(true);
@@ -449,14 +443,6 @@ function update_system() {
       return ret;
     });
   })
-}
-
-
-// TomSelect响应事件
-function switch_cooperation_sites(obj) {
-  let siteid = $(obj).val();
-  $(".user_auth_params").hide();
-  $(`#user_auth_${siteid}_params`).show();
 }
 
 // 停止刷新进度条
@@ -522,28 +508,6 @@ function show_progress_modal(title) {
 function hide_progress_modal() {
   $("#modal-process").modal("hide");
   stopProgress();
-}
-
-// 将弹窗提升到当前已打开弹窗之上，避免被实时日志等弹窗遮挡
-function raise_modal_above_others($modal) {
-  let maxZ = 0;
-  $('.modal.show').not($modal).each(function () {
-    const z = parseInt($(this).css('z-index'), 10);
-    if (!isNaN(z) && z > maxZ) {
-      maxZ = z;
-    }
-  });
-  if (maxZ > 0) {
-    $modal.css('z-index', maxZ + 10);
-    $modal.one('shown.bs.modal', function () {
-      const z = parseInt($modal.css('z-index'), 10);
-      if (!isNaN(z)) {
-        $('.modal-backdrop').last().css('z-index', z - 5);
-      }
-    });
-  } else {
-    $modal.css('z-index', '');
-  }
 }
 
 // 显示确认提示框
@@ -621,117 +585,6 @@ function show_warning_modal(title, func) {
   $modal.modal("show");
 }
 
-//显示媒体详情弹窗
-function show_mediainfo_modal(rtype, name, year, mediaid, page, rssid) {
-  if (!page) {
-    page = "";
-  }
-  if (!rssid) {
-    rssid = "";
-  }
-  axios_post_do("media_info", {
-    "id": mediaid,
-    "title": name,
-    "year": year,
-    "type": rtype,
-    "page": page,
-    "rssid": rssid
-  }, function (ret) {
-    if (ret.code === 0) {
-      //显示信息
-      $("#system_media_name").text(ret.title);
-      $("#system_release_date").text(ret.release_date)
-      if (ret.poster_path) {
-        $("#system_media_poster").attr("img-src", ret.poster_path);
-      } else {
-        $("#system_media_poster").attr("img-src", "../static/img/no-image.svg");
-      }
-      if (ret.overview && ret.overview.length > 200) {
-        $("#system_media_overview").text(ret.overview.substr(0, 200) + " ...");
-      } else {
-        $("#system_media_overview").text(ret.overview);
-      }
-      if (!ret.vote_average || ret.vote_average == "0") {
-        $("#system_media_vote").hide();
-      } else {
-        $("#system_media_vote").text(ret.vote_average).show();
-      }
-      //订阅按钮、搜索按钮
-      if ($("#system_media_rss_dropdown").hasClass("show")) {
-        $("#system_media_rss_btn").dropdown("toggle");
-      }
-      //先隐藏所有按钮，有需要再显示
-      $("#system_media_rss_btn").hide();
-      $("#system_media_search_btn").hide();
-      $("#system_media_refresh_btn").hide();
-      $("#system_media_url_btn").hide();
-      if (ret.rssid) {
-        //取消订阅按钮
-        $("#system_media_rss_btn").text("取消订阅")
-          .removeAttr("data-bs-toggle")
-          .removeClass("dropdown-toggle")
-          .attr("href", 'javascript:remove_rss_media("' + ret.title + '","' + ret.year + '","' + ret.type + '","' + ret.rssid + '","' + ret.page + '")')
-          .show();
-        //搜索按钮
-        $("#system_media_search_btn").text("搜索")
-          .attr("href", 'javascript:search_mediainfo_media("' + ret.tmdbid + '", "' + ret.title + '", "' + ret.type_str + '")')
-          .show();
-        //刷新和编辑按钮
-        if (ret.page.startsWith("movie_rss") || ret.page.startsWith("tv_rss")) {
-          //编辑
-          $("#system_media_url_btn").text("编辑")
-            .attr("href", "javascript:show_edit_rss_media_modal('" + ret.rssid + "', '" + ret.type_str + "')")
-            .show();
-          //刷新
-          $("#system_media_refresh_btn").text("刷新")
-            .attr("href", 'javascript:refresh_rss_media("' + ret.type + '","' + ret.rssid + '","' + ret.page + '")')
-            .show();
-        } else {
-          //详情按钮
-          $("#system_media_url_btn").text("详情")
-            .attr("href", 'javascript:navmenu("media_detail?type=' + ret.type + '&id=' + ret.tmdbid + '")')
-            .show();
-        }
-      } else {
-        //详情按钮
-        $("#system_media_url_btn").text("详情")
-          .attr("href", 'javascript:navmenu("media_detail?type=' + ret.type + '&id=' + ret.tmdbid + '")')
-          .show();
-        //订阅按钮
-        $("#system_media_rss_btn").text("订阅");
-        $("#system_media_rss_dropdown").empty();
-        if (ret.seasons.length === 0) {
-          $("#system_media_rss_btn").removeAttr("data-bs-toggle")
-            .removeClass("dropdown-toggle")
-            .attr("href", 'javascript:add_rss_media("' + ret.title + '","' + ret.year + '","' + ret.type + '","' + ret.tmdbid + '","' + ret.page + '","")')
-        } else {
-          $("#system_media_rss_btn").prop("data-bs-toggle", "dropdown")
-            .addClass("dropdown-toggle")
-            .attr("href", 'javascript:$("#system_media_rss_btn").dropdown("toggle")')
-          //订阅季的下拉框
-          for (let i = 0; i < ret.seasons.length; i++) {
-            $("#system_media_rss_dropdown").append('<a class="dropdown-item" href=\'javascript:add_rss_media("' + ret.title + '","' + ret.year + '","' + ret.type + '","' + ret.tmdbid + '","' + ret.page + '","' + ret.seasons[i].num + '")\'>' + ret.seasons[i].text + '</a>');
-          }
-        }
-        $("#system_media_rss_btn").show();
-        //搜索按钮
-        $("#system_media_search_btn").text("搜索")
-          .attr("href", 'javascript:search_mediainfo_media("' + ret.tmdbid + '", "' + ret.title + '", "' + ret.type_str + '")')
-          .show();
-      }
-      $("#system_media_name_link").attr("href", ret.link_url);
-      //弹窗
-      $("#system-media-modal").modal("show");
-    } else if (ret.code === 1) {
-      if (ret.rssid) {
-        show_edit_rss_media_modal(ret.rssid, ret.type_str);
-      } else {
-        show_fail_modal(`${name} 未查询到TMDB媒体信息！`);
-      }
-    }
-  });
-}
-
 //隐藏媒体详情
 function hide_mediainfo_modal() {
   $("#system-media-modal").modal("hide");
@@ -776,13 +629,6 @@ function remove_rss_media(name, year, type, rssid, page, tmdbid, func) {
     } else {
       show_success_modal(ret.name + " 已从订阅中移除！");
     }
-  });
-}
-
-// 询问取消订阅
-function remove_rss_click(title, year, media_type, rssid, page, tmdb_id, remove_func) {
-  show_ask_modal("是否确定将 " + title + " 从订阅中移除？", function () {
-    remove_rss_media(title, year, media_type, rssid, page, tmdb_id, remove_func);
   });
 }
 
@@ -1114,72 +960,6 @@ function show_add_rss_media_modal(mtype, tmdbid, rss_name, rss_year, rss_season=
 
 }
 
-// 显示默认订阅设置页面
-function show_default_rss_setting_modal(mtype) {
-  refresh_rsssites_select("default_rss_setting_rss_sites_group", "default_rss_sites", false);
-  refresh_searchsites_select("default_rss_setting_search_sites_group", "default_search_sites", false);
-  refresh_filter_select("default_rss_setting_rule", false);
-  refresh_downloadsetting_select("default_rss_setting_download_setting", false)
-
-  // 查询已保存配置
-  axios_post_do("get_default_rss_setting", { mtype: mtype }, function (ret) {
-    if (ret.code === 0 && ret.data) {
-      $("#default_rss_setting_restype").val(ret.data.restype);
-      $("#default_rss_setting_pix").val(ret.data.pix);
-      $("#default_rss_setting_team").val(ret.data.team);
-      $("#default_rss_setting_rule").val(ret.data.rule);
-      $("#default_rss_setting_include").val(ret.data.include);
-      $("#default_rss_setting_exclude").val(ret.data.exclude);
-      $("#default_rss_setting_download_setting").val(ret.data.download_setting);
-      $("#default_rss_setting_over_edition").val(ret.data.over_edition);
-      if (ret.data.rss_sites.length === 0) {
-        select_SelectALL(false, 'default_rss_sites');
-      } else {
-        select_SelectPart(ret.data.rss_sites, 'default_rss_sites')
-      }
-      if (ret.data.search_sites.length === 0) {
-        select_SelectALL(false, 'default_search_sites');
-      } else {
-        select_SelectPart(ret.data.search_sites, 'default_search_sites')
-      }
-    } else {
-      $("#default_rss_setting_restype").val('');
-      $("#default_rss_setting_pix").val('');
-      $("#default_rss_setting_team").val('');
-      $("#default_rss_setting_rule").val('');
-      $("#default_rss_setting_include").val('');
-      $("#default_rss_setting_exclude").val('');
-      $("#default_rss_setting_download_setting").val('');
-      $("#default_rss_setting_over_edition").val('0');
-      select_SelectALL(false, "default_rss_sites");
-      select_SelectALL(false, "default_search_sites");
-    }
-    $("#default_rss_setting_mtype").val(mtype);
-    $("#modal-default-rss-setting").modal('show');
-  });
-}
-
-// 保存默认订阅设置
-function save_default_rss_setting() {
-  const rss_sites = select_GetSelectedVAL("default_rss_sites");
-  const search_sites = select_GetSelectedVAL("default_search_sites");
-  const sites = {
-    rss_sites: (rss_sites.length === RssSitesLength) ? [] : rss_sites,
-    search_sites: (search_sites.length === SearchSitesLength) ? [] : search_sites
-  };
-  const common = input_select_GetVal("modal-default-rss-setting", "default_rss_setting_");
-  const key = common.mtype === "MOV" ? "DefaultRssSettingMOV" : "DefaultRssSettingTV";
-  const value = { ...common, ...sites };
-  $("#modal-default-rss-setting").modal("hide");
-  axios_post_do("set_system_config", { key: key, value: value }, function (ret) {
-    if (ret.code === 0) {
-      show_success_modal("设置订阅默认配置成功！");
-    } else {
-      show_fail_modal(`设置订阅默认配置失败：${ret.msg}！`);
-    }
-  });
-}
-
 // 显示编辑订阅
 function show_edit_rss_media_modal(rssid, type) {
 
@@ -1477,7 +1257,7 @@ function show_download_modal(id, name, site = undefined, func = undefined, show_
   $("#modal-search-download").modal('show');
 }
 
-//点击链接下载
+// 点击链接下载
 function download_link() {
   const id = $("#search_download_id").val();
   const name = $("#search_download_name").val();
@@ -1594,15 +1374,7 @@ function search_media_advanced() {
   }, false);
 }
 
-//刷新tooltip
-function fresh_tooltip() {
-  const tooltipTriggerList = Array.prototype.slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
-  tooltipTriggerList.map(function (tooltipTriggerEl) {
-    return new bootstrap.Tooltip(tooltipTriggerEl)
-  });
-}
-
-//打开路径选择框
+// 打开路径选择框
 function openFileBrowser(el, root, filter, on_folders, on_files, close_on_select) {
   if (on_folders === undefined) on_folders = true;
   if (on_files === undefined) on_files = true;
@@ -1664,7 +1436,7 @@ function openFileBrowser(el, root, filter, on_folders, on_files, close_on_select
   ft.slideDown('fast');
 }
 
-//初始化目录选择控件
+// 初始化目录选择控件
 function init_filetree_element() {
   $('.filetree-folders-only').each(function () {
     $(this).attr("onclick", "openFileBrowser(this,$(this).val(),'',true,false);");
@@ -2025,12 +1797,6 @@ function send_web_message(obj) {
   $(".offcanvas-body").animate({ scrollTop: 0 }, 300);
 }
 
-// 初始化DropZone
-function initDropzone() {
-  TorrentDropZone = new Dropzone("#torrent_files");
-  TorrentDropZone.options.acceptedFiles = ".torrent";
-}
-
 // 生成空的表单元素
 function gen_form_empty_elements(obj_fileds) {
 
@@ -2144,182 +1910,6 @@ function applyTheme(targetTheme) {
 
   $("html").attr("data-bs-theme", targetTheme);
 
-}
-
-// 计算分页显示的范围
-function get_page_range(currentPage, totalPage) {
-  var startPage, endPage;
-
-  if (totalPage <= 5) {
-    startPage = 1;
-    endPage = totalPage;
-  } else {
-    if (currentPage <= 3) {
-      startPage = 1;
-      endPage = 5;
-    } else if (currentPage >= totalPage - 2) {
-      startPage = totalPage - 4;
-      endPage = totalPage;
-    } else {
-      startPage = currentPage - 2;
-      endPage = Math.min(currentPage + 2, totalPage);
-    }
-  }
-
-  var pageRange = [];
-  for (let i = startPage; i <= endPage; i++) {
-    pageRange.push(i);
-  }
-
-  return pageRange;
-}
-
-
-// json合法性检查
-function object_json_valid(json_str, allow_empty) {
-
-  if (!json_str || json_str == '') {
-    console.log(json_str)
-    return allow_empty;
-  }
-
-  try {
-
-    json_obj = JSON.parse(json_str);
-
-    if (typeof json_obj == 'object' && json_obj) {
-      if (Object.prototype.toString.call(json_obj) === '[object Array]') {
-        console.log('对象为数组')
-        return false;
-      }
-      return true;
-    } else {
-      console.log('对象为不是object')
-      return false;
-    }
-  } catch (e) {
-    console.log('对象解析失败：' + e)
-    return false;
-  }
-}
-
-// 压缩json字符串
-function zip_json(raw_json) {
-
-  if (!raw_json || raw_json == '') {
-    return raw_json;
-  }
-
-  // 压缩
-  var t = raw_json.replace(/[\r\n]/g, "")
-  for (var n = [], o = !1, i = 0, r = t.length; r > i; i++) {
-    var a = t.charAt(i);
-    o && a === o ? "\\" !== t.charAt(i - 1) && (o = !1) : o || '"' !== a && "'" !== a ? o || " " !== a && "	" !== a || (a = "") : o = a, n.push(a)
-  }
-  return n.join("");
-
-}
-
-// 格式化json文本内容并填充到textarea
-function append_json_to_textarea(elem_id, json_str) {
-
-  if (!json_str) {
-    return
-  }
-
-  // 格式化
-  var lint_json = JSON.parse(json_str);
-  // 格式化显示
-  var json = JSON.stringify(lint_json, undefined, 4);
-
-  $("#" + elem_id).val(json);
-
-  var match_break_line = json.match(/\n/ig);
-  if (match_break_line) {
-    var height = Math.min(match_break_line.length * 22 + 15, 500);
-    $("#" + elem_id).height(height + 'px');
-  }
-
-}
-
-// 判断是否为网址
-function isUrl(str) {
-  // 根据网址的特征进行判断
-  var hasProtocol = str.startsWith("http://") || str.startsWith("https://");
-  var hasDomain = str.includes(".");
-  return hasProtocol && hasDomain;
-}
-
-
-// 编辑索引配置
-function edit_indexer_conf(site_url, ispt) {
-
-  $("#modal-manual-indexer").data("indexer", NaN);
-  if (ispt) {
-    $('.pt-hide').hide();
-    $("[name='indexer-cop-btn']").show();
-  } else {
-    $('.pt-hide').show();
-    $("[name='indexer-copy-btn']").hide();
-  }
-
-  // 根据ID查询详细信息
-  axios_post_do("get_indexer", { "url": site_url }, function (ret) {
-
-    if (ret.data) {
-
-      // 数据绑定到容器上
-      $("#modal-manual-indexer").data("indexer", ret.data);
-
-      $("#indexer-id").val(ret.data.id).prop("disabled", true);
-      $("#indexer-name").val(ret.data.name).prop("disabled", true);
-      $("#indexer-url").val(ret.data.domain);
-
-      // 下拉
-      $("#indexer-download-setting").val(ret.data.downloader ?? 0);
-      $("#indexer-parser-type").val(ret.data.parser ?? '');
-
-      if (ret.data.search) {
-        append_json_to_textarea('search_cfg', ret.data.search)
-      }
-
-      if (ret.data.torrents) {
-        append_json_to_textarea('torrent_cfg', ret.data.torrents)
-      }
-
-      if (ret.data.category) {
-        append_json_to_textarea('category_cfg', ret.data.category)
-      }
-
-      if (ret.data.public && ret.data.extra != '') {
-
-        var extra_json = JSON.parse(ret.data.extra);
-        
-        // 多选
-        select_SelectPart(extra_json.source_type, "indexer-source-type")
-
-        $('#indexer-search-params').val(extra_json.search_param ?? 'kw')
-
-        $("#indexer-proxy").prop("checked", extra_json.proxy);
-        $("#indexer-render").prop("checked", extra_json.render);
-        $("#indexer-en-expand").prop("checked", extra_json.en_expand);
-
-      }
-
-      $("#indexer-modal-title").text("编辑索引站点");
-      $("[name='indexer-add-btn']").hide();
-      $("[name='indexer-edit-btn']").show();
-
-      $("#modal-manual-indexer").modal("show");
-      return;
-    }
-
-    if (ret.msg) {
-      show_fail_modal(ret.msg);
-      return;
-    }
-
-  });
 }
 
 function do_copy_indexer() {
@@ -2483,75 +2073,6 @@ function do_update_indexer() {
   });
 
 };
-
-// 展开/收起div
-function slideToggle(id) {
-  $(`#${id}`).slideToggle();
-}
-
-// 格式化文件大小
-function formatFileSize(bytes) {
-
-  if (bytes === 0) return '0 B';
-
-  const k = 1024;
-  const sizes = ['B', 'KB', 'MB', 'GB', 'TB', 'PB'];
-
-  // 先按 1024 进制定位到初始单位
-  let i = Math.floor(Math.log(bytes) / Math.log(k));
-  // 防止超出 sizes 数组范围
-  i = Math.min(i, sizes.length - 1);
-
-  let value = bytes / Math.pow(k, i);
-
-  // 整数部分 >= 1000 时，向上进一个单位
-  while (Math.floor(value) >= 1000 && i < sizes.length - 1) {
-    i++;
-    value = bytes / Math.pow(k, i);
-  }
-
-  return parseFloat(value.toFixed(2)) + ' ' + sizes[i];
-}
-
-/**
- * 纯数字大小格式化（1000 进制）
- * 示例：1234 → 1.23K，2000000 → 2M
- * @param {number} num 需要格式化的数字
- * @returns {string} 格式化后的字符串，如 "1.23K"、"2M"
- */
-function formatNumber(num) {
-  if (num === 0) return '0';
-
-  const k = 1000;
-  const sizes = ['', 'K', 'M', 'B', 'T', 'P', 'E']; // 可根据需要增减
-
-  // 初始单位索引
-  let i = Math.floor(Math.log(num) / Math.log(k));
-  i = Math.min(i, sizes.length - 1);
-
-  let value = num / Math.pow(k, i);
-
-  // 四舍五入后若整数部分 >= 1000，则向上进一个单位
-  while (parseFloat(value.toFixed(2)) >= 1000 && i < sizes.length - 1) {
-    i++;
-    value = num / Math.pow(k, i);
-  }
-
-  // 保留两位小数并去掉多余的尾零
-  return parseFloat(value.toFixed(2)) + sizes[i];
-}
-
-function isDoubanImgUrl(url) {
-  try {
-    const u = new URL(url);
-    return (
-      u.protocol === 'https:' &&
-      /^img\d+\.doubanio\.com$/.test(u.hostname)
-    );
-  } catch (e) {
-    return false;
-  }
-}
 
 // 按需加载 Ace 编辑器（仅在打开相关编辑弹窗时加载）
 const ACE_SCRIPT_URL = document.currentScript

@@ -136,6 +136,117 @@
     }
   };
 
+  //显示媒体详情弹窗
+  function show_mediainfo_modal(rtype, name, year, mediaid, page, rssid) {
+    if (!page) {
+      page = "";
+    }
+    if (!rssid) {
+      rssid = "";
+    }
+    axios_post_do("media_info", {
+      "id": mediaid,
+      "title": name,
+      "year": year,
+      "type": rtype,
+      "page": page,
+      "rssid": rssid
+    }, function (ret) {
+      if (ret.code === 0) {
+        //显示信息
+        $("#system_media_name").text(ret.title);
+        $("#system_release_date").text(ret.release_date)
+        if (ret.poster_path) {
+          $("#system_media_poster").attr("img-src", ret.poster_path);
+        } else {
+          $("#system_media_poster").attr("img-src", "../static/img/no-image.svg");
+        }
+        if (ret.overview && ret.overview.length > 200) {
+          $("#system_media_overview").text(ret.overview.substr(0, 200) + " ...");
+        } else {
+          $("#system_media_overview").text(ret.overview);
+        }
+        if (!ret.vote_average || ret.vote_average == "0") {
+          $("#system_media_vote").hide();
+        } else {
+          $("#system_media_vote").text(ret.vote_average).show();
+        }
+        //订阅按钮、搜索按钮
+        if ($("#system_media_rss_dropdown").hasClass("show")) {
+          $("#system_media_rss_btn").dropdown("toggle");
+        }
+        //先隐藏所有按钮，有需要再显示
+        $("#system_media_rss_btn").hide();
+        $("#system_media_search_btn").hide();
+        $("#system_media_refresh_btn").hide();
+        $("#system_media_url_btn").hide();
+        if (ret.rssid) {
+          //取消订阅按钮
+          $("#system_media_rss_btn").text("取消订阅")
+            .removeAttr("data-bs-toggle")
+            .removeClass("dropdown-toggle")
+            .attr("href", 'javascript:remove_rss_media("' + ret.title + '","' + ret.year + '","' + ret.type + '","' + ret.rssid + '","' + ret.page + '")')
+            .show();
+          //搜索按钮
+          $("#system_media_search_btn").text("搜索")
+            .attr("href", 'javascript:search_mediainfo_media("' + ret.tmdbid + '", "' + ret.title + '", "' + ret.type_str + '")')
+            .show();
+          //刷新和编辑按钮
+          if (ret.page.startsWith("movie_rss") || ret.page.startsWith("tv_rss")) {
+            //编辑
+            $("#system_media_url_btn").text("编辑")
+              .attr("href", "javascript:show_edit_rss_media_modal('" + ret.rssid + "', '" + ret.type_str + "')")
+              .show();
+            //刷新
+            $("#system_media_refresh_btn").text("刷新")
+              .attr("href", 'javascript:refresh_rss_media("' + ret.type + '","' + ret.rssid + '","' + ret.page + '")')
+              .show();
+          } else {
+            //详情按钮
+            $("#system_media_url_btn").text("详情")
+              .attr("href", 'javascript:navmenu("media_detail?type=' + ret.type + '&id=' + ret.tmdbid + '")')
+              .show();
+          }
+        } else {
+          //详情按钮
+          $("#system_media_url_btn").text("详情")
+            .attr("href", 'javascript:navmenu("media_detail?type=' + ret.type + '&id=' + ret.tmdbid + '")')
+            .show();
+          //订阅按钮
+          $("#system_media_rss_btn").text("订阅");
+          $("#system_media_rss_dropdown").empty();
+          if (ret.seasons.length === 0) {
+            $("#system_media_rss_btn").removeAttr("data-bs-toggle")
+              .removeClass("dropdown-toggle")
+              .attr("href", 'javascript:add_rss_media("' + ret.title + '","' + ret.year + '","' + ret.type + '","' + ret.tmdbid + '","' + ret.page + '","")')
+          } else {
+            $("#system_media_rss_btn").prop("data-bs-toggle", "dropdown")
+              .addClass("dropdown-toggle")
+              .attr("href", 'javascript:$("#system_media_rss_btn").dropdown("toggle")')
+            //订阅季的下拉框
+            for (let i = 0; i < ret.seasons.length; i++) {
+              $("#system_media_rss_dropdown").append('<a class="dropdown-item" href=\'javascript:add_rss_media("' + ret.title + '","' + ret.year + '","' + ret.type + '","' + ret.tmdbid + '","' + ret.page + '","' + ret.seasons[i].num + '")\'>' + ret.seasons[i].text + '</a>');
+            }
+          }
+          $("#system_media_rss_btn").show();
+          //搜索按钮
+          $("#system_media_search_btn").text("搜索")
+            .attr("href", 'javascript:search_mediainfo_media("' + ret.tmdbid + '", "' + ret.title + '", "' + ret.type_str + '")')
+            .show();
+        }
+        $("#system_media_name_link").attr("href", ret.link_url);
+        //弹窗
+        $("#system-media-modal").modal("show");
+      } else if (ret.code === 1) {
+        if (ret.rssid) {
+          show_edit_rss_media_modal(ret.rssid, ret.type_str);
+        } else {
+          show_fail_modal(`${name} 未查询到TMDB媒体信息！`);
+        }
+      }
+    });
+  }
+
 </script>
 
 <script>
