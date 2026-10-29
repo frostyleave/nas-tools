@@ -74,6 +74,8 @@ function show_wait_modal(blur) {
     $('#modal-wait').removeClass('modal-blur');
   }
   $("#modal-wait").modal("show");
+  // 确保等待动画盖在其他已打开的弹窗之上
+  raise_modal_above_others($("#modal-wait"));
 }
 
 // 关闭全局加载蒙版
@@ -708,6 +710,8 @@ function git_panel_finish(result) {
 
 function git_panel_restart() {
   show_confirm_modal("重启系统以应用更新？", function () {
+    // 先关闭更新面板，否则它和等待框的 z-index 相同、又在 DOM 后面，会盖住转圈动画
+    $("#modal-git-update").modal("hide");
     axios_post("/sys/restart", {}, function () {
     }, false);
     show_wait_modal(true);
