@@ -510,7 +510,6 @@
             <div class="progress-bar progress-bar-striped progress-bar-animated" id="git_panel_progress"
               style="width:0%" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
           </div>
-          <div class="text-muted mb-2" id="git_panel_status">空闲</div>
           <div class="table-responsive border" id="git_panel_log_scroll" style="max-height: 50vh; overflow-y: auto;">
             <table class="table table-vcenter card-table table-striped">
               <thead class="sticky-top">
@@ -530,7 +529,7 @@
           <div class="my-1" id="git_panel_result"></div>
         </div>
         <div class="modal-footer">
-          <span class="text-muted me-auto" id="git_panel_log_count">0 条</span>
+          <span class="text-muted me-auto" id="git_panel_status"></span>
           <a href="javascript:git_panel_check_update()" class="btn btn-link" id="git_panel_check_btn">检查更新</a>
           <a href="javascript:git_panel_start_update()" class="btn btn-primary disabled" id="git_panel_update_btn">开始更新</a>
         </div>
