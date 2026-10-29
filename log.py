@@ -6,6 +6,7 @@ import re
 import sys
 import time
 from collections import deque
+from contextvars import ContextVar
 from logging.config import dictConfig
 from typing import Any
 
@@ -24,6 +25,13 @@ active_sse_queues: list[asyncio.Queue[dict[str, Any]]] = []     # 活跃的 SSE 
 # 全局递增的日志序号, 供 SSE 客户端对“历史重放 + 实时广播”去重和排序
 _log_seq = itertools.count(1)
 
+# --- 后台任务日志 (按 task_id 归集, 供前端逐步展示某次任务的完整日志) ---
+TASK_LOG_MAX_LINES = 5000   # 单个任务最多保留的日志条数
+TASK_LOG_MAX_TASKS = 10     # 内存中最多保留的任务日志个数
+
+_task_logs: dict[str, list[dict[str, Any]]] = {}
+_current_task_id: ContextVar[str | None] = ContextVar("log_task_id", default=None)
+
 # 初始化为 None, 等待注入
 _event_loop: asyncio.AbstractEventLoop | None = None
 
@@ -37,6 +45,35 @@ def set_event_loop_for_logging(loop: asyncio.AbstractEventLoop):
     
     logger = logging.getLogger("app.setup")
     logger.info(f"事件循环已绑定: {loop}")
+
+
+def bind_task_log(task_id: str):
+    """
+    把当前线程后续产生的日志归集到指定任务。
+
+    返回的 token 用于 unbind_task_log 解除绑定。
+    """
+    _task_logs.setdefault(task_id, [])
+    # 控制内存占用，丢弃最早的任务日志
+    while len(_task_logs) > TASK_LOG_MAX_TASKS:
+        _task_logs.pop(next(iter(_task_logs)))
+    return _current_task_id.set(task_id)
+
+
+def unbind_task_log(token):
+    """解除任务日志绑定"""
+    _current_task_id.reset(token)
+
+
+def get_task_logs(task_id: str) -> list[dict[str, Any]]:
+    """获取某个任务已经产生的全部日志"""
+    return list(_task_logs.get(task_id, []))
+
+
+def get_last_task_seq(task_id: str) -> int:
+    """获取某个任务最后一条日志的序号"""
+    task_logs = _task_logs.get(task_id)
+    return task_logs[-1].get("seq", 0) if task_logs else 0
 
 
 # 广播函数 (将在事件循环中运行)
@@ -78,13 +115,23 @@ class SSEHandler(logging.Handler):
             else:
                 source = "System"
 
+            seq = next(_log_seq)
             log_data = {
-                "seq": next(_log_seq),
+                "seq": seq,
                 "text": text,
                 "source": source,
                 "time": time.strftime('%H:%M:%S', time.localtime(record.created)),
                 "level": record.levelname,
             }
+
+            # 1.1 如果当前线程绑定了后台任务，同时归集到该任务的日志中
+            task_id = _current_task_id.get()
+            if task_id:
+                log_data["task_id"] = task_id
+                task_logs = _task_logs.setdefault(task_id, [])
+                task_logs.append(log_data)
+                if len(task_logs) > TASK_LOG_MAX_LINES:
+                    del task_logs[:len(task_logs) - TASK_LOG_MAX_LINES]
 
             # 2. 存入全局缓冲区
             log_buffer.append(log_data)

@@ -383,7 +383,7 @@ function restart() {
   show_confirm_modal("立即重启系统？", function () {
     systemOnlineCheckCount = 0;
 
-    axios_post_do("restart", {}, function (ret) {
+    axios_post("/sys/restart", {}, function (ret) {
     }, false);
 
     show_wait_modal(true);
@@ -400,49 +400,322 @@ function showInitAlertModal() {
   });
 }
 
+// Git 系统更新面板
+let GitPanelAbort = null;
+let GitPanelLogPending = [];
+let GitPanelFlushTimer = null;
+let GitPanelRunning = false;
+let GitPanelChecking = false;
+let GitPanelHasUpdate = false;
+let GitPanelIsDocker = false;
+const GIT_PANEL_MAX_ROWS = 5000;
+
 function update_system() {
-  show_confirm_modal("更新系统版本，是否确认？", function () {
+  // 打开面板；开始更新必须先检查到新版本
+  GitPanelHasUpdate = false;
+  git_panel_sync_buttons();
+  $("#modal-git-update").modal("show");
+  git_panel_refresh_info();
+}
+
+// 根据状态刷新底部按钮
+function git_panel_sync_buttons() {
+  const can_check = !GitPanelRunning && !GitPanelChecking;
+  const can_update = can_check && GitPanelHasUpdate && GitPanelIsDocker;
+  $("#git_panel_check_btn").toggleClass("disabled", !can_check);
+  $("#git_panel_update_btn").toggleClass("disabled", !can_update);
+}
+
+// 刷新仓库信息
+function git_panel_refresh_info() {
+  axios_post("/sys/git_info", {}, function (ret) {
+    if (!ret || ret.code !== 0) {
+      $("#git_panel_branch").text("-");
+      $("#git_panel_commit").text("-");
+      $("#git_panel_commit_msg").text("-").removeAttr("title");
+      GitPanelIsDocker = false;
+      git_panel_sync_buttons();
+      return;
+    }
+    GitPanelIsDocker = !!ret.is_docker;
+    $("#git_panel_branch").text(ret.branch || "-");
+    $("#git_panel_commit").text(ret.short_commit || "-");
+    $("#git_panel_commit_msg")
+      .text(ret.commit_msg || "-")
+      .attr("title", ret.commit_msg || "");
+    if (!ret.is_docker) {
+      $("#git_panel_status").text("当前环境不支持在线更新（仅 Docker）");
+    }
+    git_panel_sync_buttons();
+  }, false);
+}
+
+// 检查远程是否有更新（只 fetch，不修改本地代码）
+function git_panel_check_update() {
+  if (GitPanelRunning || GitPanelChecking) {
+    return;
+  }
+  GitPanelChecking = true;
+  GitPanelHasUpdate = false;
+  git_panel_sync_buttons();
+
+  GitPanelLogPending = [];
+  if (GitPanelFlushTimer) {
+    cancelAnimationFrame(GitPanelFlushTimer);
+    GitPanelFlushTimer = null;
+  }
+  $("#git_panel_status").text("正在检查更新...");
+  $("#git_panel_progress").removeClass("progress-bar-animated").css("width", "0%").attr("aria-valuenow", 0);
+  $("#git_panel_result").empty();
+  $("#git_panel_log_content").html('<tr><td colspan="3" class="text-center text-muted py-4">正在检查更新...</td></tr>');
+  $("#git_panel_log_count").text("0 条");
+
+  axios_post("/sys/git_check", {}, function (ret) {
+    GitPanelChecking = false;
+
+    if (ret && ret.logs && ret.logs.length) {
+      $("#git_panel_log_content").empty();
+      git_panel_render_logs(ret.logs);
+    }
+
+    if (!ret || ret.code !== 0) {
+      GitPanelHasUpdate = false;
+      $("#git_panel_status").text("检查失败");
+      $("#git_panel_result").html(`<div class="alert alert-danger mb-3">${git_panel_escape((ret && ret.msg) || "检查更新失败")}</div>`);
+      git_panel_sync_buttons();
+      return;
+    }
+
+    GitPanelHasUpdate = !!ret.has_update;
+    if (GitPanelHasUpdate) {
+      $("#git_panel_status").text(`发现 ${ret.behind} 个新提交`);
+      $("#git_panel_result").html(`<div class="alert alert-info mb-3">发现 ${ret.behind} 个新提交，可以点击“开始更新”。</div>`);
+    } else {
+      $("#git_panel_status").text("当前已是最新版本");
+      $("#git_panel_result").html('<div class="alert alert-success mb-3">没有更新内容，当前已是最新版本。</div>');
+    }
+    git_panel_sync_buttons();
+    git_panel_refresh_info();
+  }, false).catch(function () {
+    // 网络异常已由 axios 封装处理
+  }).finally(function () {
+    // 网络异常时 axios 封装不会回调 handler，这里兜底恢复按钮
+    GitPanelChecking = false;
+    git_panel_sync_buttons();
+  });
+}
+
+// 开始更新：POST 获取 SSE 流，日志和结果在同一个响应里按顺序返回
+function git_panel_start_update() {
+  if (GitPanelRunning || GitPanelChecking || !GitPanelHasUpdate || !GitPanelIsDocker) {
+    return;
+  }
+  GitPanelRunning = true;
+  GitPanelHasUpdate = false;
+  git_panel_sync_buttons();
+  if (GitPanelAbort) {
+    GitPanelAbort.abort();
+    GitPanelAbort = null;
+  }
+  GitPanelLogPending = [];
+  if (GitPanelFlushTimer) {
+    cancelAnimationFrame(GitPanelFlushTimer);
+    GitPanelFlushTimer = null;
+  }
+
+  $("#git_panel_log_content").html('<tr><td colspan="3" class="text-center text-muted py-4">正在启动更新...</td></tr>');
+  $("#git_panel_log_count").text("0 条");
+  $("#git_panel_progress").addClass("progress-bar-animated").css("width", "0%").attr("aria-valuenow", 0);
+  $("#git_panel_status").text("进行中");
+  $("#git_panel_result").empty();
+
+  GitPanelAbort = new AbortController();
+  fetch("stream-update-system", {
+    method: "POST",
+    credentials: "same-origin",
+    headers: { "Content-Type": "application/json" },
+    body: "{}",
+    signal: GitPanelAbort.signal
+  }).then(function (response) {
+    if (!response.ok || !response.body) {
+      throw new Error("HTTP " + response.status);
+    }
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder("utf-8");
+    let buffer = "";
+
+    function pump() {
+      return reader.read().then(function (result) {
+        if (result.done) {
+          return;
+        }
+        buffer += decoder.decode(result.value, { stream: true });
+        let idx;
+        // 解析 SSE 帧：data: {...}\n\n
+        while ((idx = buffer.indexOf("\n\n")) >= 0) {
+          const frame = buffer.slice(0, idx);
+          buffer = buffer.slice(idx + 2);
+          const data = frame.split("\n")
+            .filter(line => line.startsWith("data:"))
+            .map(line => line.slice(5).trim())
+            .join("\n");
+          if (!data) {
+            continue;
+          }
+          let event;
+          try {
+            event = JSON.parse(data);
+          } catch (e) {
+            console.error("更新事件解析失败:", data);
+            continue;
+          }
+          git_panel_handle_event(event);
+        }
+        return pump();
+      });
+    }
+    return pump();
+  }).catch(function (err) {
+    if (err && err.name === "AbortError") {
+      return;
+    }
+    // 已经收到 done 并结束的不再覆盖结果
+    if (!GitPanelAbort) {
+      return;
+    }
+    git_panel_finish({ code: -1, msg: "更新连接异常：" + (err && err.message ? err.message : err) });
+  });
+}
+
+function git_panel_handle_event(event) {
+  if (!event || !event.type) {
+    return;
+  }
+  if (event.type === "logs") {
+    git_panel_render_logs(event.records);
+  } else if (event.type === "progress") {
+    const value = Number(event.value) || 0;
+    $("#git_panel_progress").css("width", value + "%").attr("aria-valuenow", value);
+    if (event.text) {
+      $("#git_panel_status").text(event.text);
+    }
+  } else if (event.type === "done") {
+    git_panel_finish(event.result || { code: -1, msg: "更新未返回结果" });
+  }
+}
+
+function git_panel_render_logs(records) {
+  if (!records) {
+    return;
+  }
+  if (!Array.isArray(records)) {
+    records = [records];
+  }
+  for (const record of records) {
+    if (record) {
+      GitPanelLogPending.push(record);
+    }
+  }
+  if (GitPanelLogPending.length && !GitPanelFlushTimer) {
+    GitPanelFlushTimer = requestAnimationFrame(git_panel_flush_logs);
+  }
+}
+
+function git_panel_flush_logs() {
+  GitPanelFlushTimer = null;
+  if (!GitPanelLogPending.length) {
+    return;
+  }
+  const records = GitPanelLogPending;
+  GitPanelLogPending = [];
+
+  const tbody = $("#git_panel_log_content");
+  const scrollEl = document.getElementById("git_panel_log_scroll");
+  const atBottom = scrollEl
+    ? (scrollEl.scrollTop + scrollEl.clientHeight >= scrollEl.scrollHeight - 30)
+    : true;
+
+  if (tbody.children().length === 1 && tbody.children().first().find("td[colspan]").length > 0) {
+    tbody.empty();
+  }
+  tbody.append(records.map(git_panel_build_row).join(""));
+
+  const rows = tbody.children();
+  if (rows.length > GIT_PANEL_MAX_ROWS) {
+    rows.slice(0, rows.length - GIT_PANEL_MAX_ROWS).remove();
+  }
+  $("#git_panel_log_count").text(tbody.children().length + " 条");
+
+  if (atBottom && scrollEl) {
+    scrollEl.scrollTop = scrollEl.scrollHeight;
+  }
+}
+
+function git_panel_build_row(record) {
+  const level = record.level || "INFO";
+  let cls = "";
+  if (level === "WARN") {
+    cls = "text-warning";
+  } else if (level === "ERROR") {
+    cls = "text-danger";
+  } else if (level === "DEBUG") {
+    cls = "text-muted";
+  }
+  return `<tr>
+            <td class="text-muted text-nowrap">${git_panel_escape(record.time || "")}</td>
+            <td class="text-nowrap ${cls}">${git_panel_escape(level)}</td>
+            <td class="${cls}"><span style="white-space: pre-wrap; word-break: break-all;">${git_panel_escape(record.text || "")}</span></td>
+          </tr>`;
+}
+
+function git_panel_escape(text) {
+  return String(text)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+function git_panel_finish(result) {
+  const ret = result || {};
+  GitPanelRunning = false;
+  GitPanelChecking = false;
+  GitPanelHasUpdate = false;
+  GitPanelAbort = null;
+  git_panel_sync_buttons();
+
+  $("#git_panel_progress").removeClass("progress-bar-animated")
+    .css("width", "100%").attr("aria-valuenow", 100);
+  $("#git_panel_status").text(ret.code === 0 ? "已完成" : "失败");
+
+  // 先把还在缓冲的日志写完，再展示结果
+  if (GitPanelFlushTimer) {
+    cancelAnimationFrame(GitPanelFlushTimer);
+    GitPanelFlushTimer = null;
+  }
+  git_panel_flush_logs();
+
+  const msg = git_panel_escape(ret.msg || (ret.code === 0 ? "更新完成" : "更新失败，请查看日志"));
+  if (ret.code !== 0) {
+    $("#git_panel_result").html(`<div class="alert alert-danger mb-3">${msg}</div>`);
+  } else if (ret.updated) {
+    $("#git_panel_result").html(`<div class="alert alert-success mb-3">${msg}
+      <a href="javascript:git_panel_restart()" class="btn btn-sm btn-warning ms-2">立即重启生效</a></div>`);
+  } else {
+    $("#git_panel_result").html(`<div class="alert alert-info mb-3">${msg}</div>`);
+  }
+
+  git_panel_refresh_info();
+}
+
+function git_panel_restart() {
+  show_confirm_modal("重启系统以应用更新？", function () {
+    axios_post("/sys/restart", {}, function () {
+    }, false);
     show_wait_modal(true);
-    // 显示实时日志
-    logger_select("UpdateSystem");
-    show_logging_modal();
-    axios_post_do("update_system", {}, function (ret) {
-      // 关闭浮层
-      hide_wait_modal();
-
-      // 更新已经结束，停止实时日志，避免结果已出但日志还在滚动
-      stopLogging(false);
-
-      // 把最终结果补到日志窗口（最后一条日志可能在关闭连接时丢失）
-      if (ret && ret.msg) {
-        render_logging({
-          text: `更新结束：${ret.msg}`,
-          source: "UpdateSystem",
-          time: new Date().toLocaleTimeString("zh-CN", { hour12: false }),
-          level: ret.code === 0 ? "INFO" : "ERROR"
-        });
-      }
-
-      if (!ret || ret.code !== 0) {
-        show_fail_modal((ret && ret.msg) || "更新失败，请查看日志");
-        return;
-      }
-      if (ret.updated) {
-        // 拉取到更新，提示重启
-        show_confirm_modal((ret.msg || "已拉取到新版本") + "，是否立即重启生效？", function () {
-          // 关闭日志窗口，避免遮挡重启等待框
-          $("#modal-logging").modal("hide");
-          axios_post_do("restart", {}, function () {
-          }, false);
-          show_wait_modal(true);
-          setTimeout("check_system_online()", 5000);
-        });
-      } else {
-        show_success_modal(ret.msg || "当前已是最新版本");
-      }
-      return ret;
-    });
-  })
+    setTimeout("check_system_online()", 5000);
+  });
 }
 
 // 停止刷新进度条

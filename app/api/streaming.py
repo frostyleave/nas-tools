@@ -1,14 +1,17 @@
 import asyncio
 import json
 import re
+import threading
 import time
+import uuid
 from typing import Any
 
-from fastapi import APIRouter, Query, Request, WebSocket, WebSocketDisconnect
+from fastapi import APIRouter, Depends, Query, Request, WebSocket, WebSocketDisconnect
 from fastapi.responses import StreamingResponse
 
 import log
 from app.core.cmd_handler import CommandHandler
+from app.core.system_update import run_system_update
 from app.core.task_manager import TaskStore
 from app.message.message_center import SysMessageCenter
 from app.middleware.security import get_current_user
@@ -34,6 +37,15 @@ SSE_HEADERS = {
 def _sse_event(records: list[dict[str, Any]]) -> str:
     """把一条或多条日志打包成一条 SSE 事件"""
     return f"data: {json.dumps(records, ensure_ascii=False)}\n\n"
+
+
+def _sse_json_event(payload: dict[str, Any]) -> str:
+    """把一个 JSON 对象打包成一条 SSE 事件"""
+    return f"data: {json.dumps(payload, ensure_ascii=False)}\n\n"
+
+
+# 系统更新互斥锁，避免并发执行 git pull
+_update_lock = threading.Lock()
 
 
 # WebSocket连接 - 消息中心
@@ -210,6 +222,119 @@ async def stream_logging(request: Request, source: str = ""):
                 active_sse_queues.remove(my_queue)
             except ValueError:
                 log.debug("SSE queue was already removed.")
+
+    return StreamingResponse(event_generator(), media_type="text/event-stream", headers=SSE_HEADERS)
+
+
+# 系统更新：以 SSE 流式返回本次更新的日志和最终结果
+@streaming_router.post("/stream-update-system", dependencies=[Depends(get_current_user)])
+async def stream_update_system(request: Request):
+    """
+    执行一次系统更新，并把日志和结果以 SSE 的形式流式返回给前端。
+
+    每条 SSE 事件的 data 为一个 JSON 对象：
+      {"type": "logs", "records": [...]}
+      {"type": "progress", "value": 10, "text": "..."}
+      {"type": "done", "result": {...}}
+
+    日志与结果走同一个响应，顺序天然有保证，无需 TaskStore。
+    """
+    # 同一时间只允许一个更新任务
+    if not _update_lock.acquire(blocking=False):
+        async def busy_generator():
+            yield _sse_json_event({
+                "type": "done",
+                "result": {"code": -1, "msg": "已有更新任务正在执行，请稍后再试"},
+            })
+
+        return StreamingResponse(busy_generator(), media_type="text/event-stream", headers=SSE_HEADERS)
+
+    update_id = uuid.uuid4().hex
+    result_holder: dict[str, Any] = {}
+    done = threading.Event()
+    progress_state = {"value": 0, "text": "准备开始..."}
+    progress_lock = threading.Lock()
+
+    def report(value: int, text: str) -> None:
+        with progress_lock:
+            progress_state["value"] = value
+            progress_state["text"] = text
+
+    def worker():
+        # 把本次更新的日志归集到 update_id
+        token = log.bind_task_log(update_id)
+        try:
+            try:
+                result_holder["result"] = run_system_update(progress_cb=report)
+            except Exception as e:
+                log.exception("执行系统更新任务出错")
+                result_holder["result"] = {
+                    "code": 1,
+                    "updated": False,
+                    "msg": f"更新失败：{e!s}",
+                    "output": "",
+                }
+        finally:
+            log.unbind_task_log(token)
+            done.set()
+            _update_lock.release()
+
+    try:
+        threading.Thread(target=worker, daemon=True).start()
+    except Exception:
+        _update_lock.release()
+        raise
+
+    async def event_generator():
+        last_seq = 0
+        last_progress = None
+
+        def dump(event: dict[str, Any]) -> str:
+            return _sse_json_event(event)
+
+        def new_records() -> list[dict[str, Any]]:
+            # 按 seq 增量获取，避免日志超出缓存上限后按索引取错
+            records = log.get_task_logs(update_id)
+            pending = []
+            for record in reversed(records):
+                if record.get("seq", 0) <= last_seq:
+                    break
+                pending.append(record)
+            pending.reverse()
+            return pending
+
+        try:
+            while True:
+                pending = new_records()
+                if pending:
+                    last_seq = pending[-1].get("seq", last_seq)
+                    yield dump({"type": "logs", "records": pending})
+
+                with progress_lock:
+                    current = dict(progress_state)
+                if current != last_progress:
+                    last_progress = current
+                    yield dump({"type": "progress", **current})
+
+                if done.is_set():
+                    # 再取一次，确保 done 之前的日志全部发出
+                    pending = new_records()
+                    if pending:
+                        yield dump({"type": "logs", "records": pending})
+                    yield dump({"type": "done", "result": result_holder.get("result", {})})
+                    break
+
+                if await request.is_disconnected():
+                    log.debug("[SSE-更新] 客户端断开连接，任务在后台继续执行")
+                    break
+
+                await asyncio.sleep(0.05)
+
+        except asyncio.CancelledError:
+            log.debug("[SSE-更新] 连接已取消")
+        except Exception as e:
+            log.error(f"[SSE-更新] 连接异常: {e!s}")
+            yield dump({"type": "done", "result": {"code": -1, "msg": f"更新连接异常：{e!s}"}})
 
     return StreamingResponse(event_generator(), media_type="text/event-stream", headers=SSE_HEADERS)
 

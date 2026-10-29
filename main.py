@@ -12,6 +12,7 @@ from app.api.auth import auth_router
 from app.api.data import data_router
 from app.api.open import open_router
 from app.api.streaming import streaming_router
+from app.api.sys import sys_router
 from app.api.utility import utility_router
 from app.core.lifespan import lifespan
 from app.middleware.staticfile import NoCacheStaticFiles
@@ -43,6 +44,7 @@ app.include_router(data_router)
 app.include_router(auth_router)
 app.include_router(action_router)
 app.include_router(streaming_router)
+app.include_router(sys_router)
 app.include_router(utility_router)
 
 # 静态文件

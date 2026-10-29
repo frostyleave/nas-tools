@@ -42,8 +42,8 @@
         if (sysInfo.systemFlag === 'Synology') {
           html += `<a class="dropdown-item" href="javascript:restart()">重启</a>`;
         } else if (sysInfo.systemFlag === 'Docker') {
-          html += `<a class="dropdown-item" href="javascript:update_system()">检查更新</a
-          ><a class="dropdown-item" href="javascript:restart()">重启</a>`;
+          html += `<a class="dropdown-item" href="javascript:update_system()">检查更新</a>
+          <a class="dropdown-item" href="javascript:restart()">重启</a>`;
         }
       }
 

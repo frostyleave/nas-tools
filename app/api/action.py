@@ -6,10 +6,8 @@ import json
 import os.path
 import re
 import shutil
-import subprocess
 import threading
 import time
-from typing import Optional
 
 from fastapi import APIRouter, BackgroundTasks, Body, Depends
 
@@ -17,7 +15,6 @@ import log
 from app.conf import ModuleConf, SystemConfig
 from app.core.cmd_handler import CommandHandler
 from app.core.jobcenter import JobCenter
-from app.core.services import ServiceManager
 from app.core.task_manager import TaskStore
 from app.downloader import Downloader
 from app.helper import FileHelper, MetaHelper, RssHelper, ThreadHelper, WordsHelper
@@ -124,7 +121,7 @@ class WebAction:
     _actions = {}
     _commands = {}
     _current_user : User | None = None
-    _douBan : DouBan | None =  None
+    _douBan = DouBan()
     _background_tasks : BackgroundTasks | None = None
 
     def __init__(self, current_user:User | None=None, background_tasks:BackgroundTasks | None=None):
@@ -145,8 +142,6 @@ class WebAction:
             "update_site": self.__update_site,
             "get_site": self.__get_site,
             "del_site": self.__del_site,
-            "restart": self.__restart,
-            "update_system": self.__update_system,
             "logout": self.__logout,
             "update_config": self.__update_config,
             "update_directory": self.__update_directory,
@@ -286,8 +281,6 @@ class WebAction:
         self._current_user = current_user
         # 后台任务(用于将耗时操作放入后台执行)
         self._background_tasks = background_tasks
-        # 豆瓣实例
-        self._douBan = DouBan()
 
     def action(self, cmd, data):
         """
@@ -941,112 +934,6 @@ class WebAction:
             return {"code": ret}
         
         return {"code": 0}
-
-    def __restart(self):
-        """
-        重启
-        """
-        # 退出主进程
-        self._add_background_task(self.__delayed_restart)
-        return {"code": 0, "msg": "系统即将重启"}
-    
-    @staticmethod
-    def __delayed_restart():
-        time.sleep(1)
-        ServiceManager.restart_server()
-
-    def __update_system(self):
-        """
-        更新
-        """
-        if not SystemUtils.is_docker():
-            log.warn('【UpdateSystem】当前环境不支持在线更新，仅支持Docker环境')
-            return {
-                "code": 1, 
-                "updated": False,
-                "msg": "仅支持在Docker环境中执行系统更新", 
-                "output": ""
-            }
-
-        root_path = Config().get_root_path()
-        log.info('【UpdateSystem】----------------------------检查更新----------------------------')
-        log.info(f'【UpdateSystem】获取系统根目录: {root_path}')
-
-        def run_git(*args):
-            """执行git命令，返回(返回码, stdout, 合并输出)"""
-            cmd = ["git", "-C", root_path] + list(args)
-            log.info(f'【UpdateSystem】执行：git {" ".join(args)}')
-            try:
-                ret = subprocess.run(cmd, capture_output=True, text=True, timeout=300,
-                                     env={**os.environ, "GIT_TERMINAL_PROMPT": "0"})
-            except Exception as err:
-                log.error(f'【UpdateSystem】执行 git {" ".join(args)} 异常：{err!s}')
-                return 1, "", str(err)
-            stdout = (ret.stdout or "").strip()
-            output = "\n".join([x for x in [stdout, (ret.stderr or "").strip()] if x])
-            for line in output.splitlines():
-                log.info(f'【UpdateSystem】>>> {line}')
-            return ret.returncode, stdout, output
-
-        # 当前分支
-        code, stdout, _ = run_git("rev-parse", "--abbrev-ref", "HEAD")
-        branch = stdout if code == 0 and stdout else os.getenv("NASTOOL_VERSION", "master")
-        log.info(f'【UpdateSystem】当前分支：{branch}')
-
-        # 更新前的提交
-        code, old_commit, _ = run_git("rev-parse", "HEAD")
-        if code != 0:
-            return {"code": 1, "updated": False,
-                    "msg": "获取当前版本失败，请查看日志", "output": ""}
-
-        # 默认执行 git pull
-        log.info(f'【UpdateSystem】正在拉取当前分支 {branch} ...')
-        code, _, pull_output = run_git("pull")
-        outputs = [pull_output]
-        mode = "pull"
-
-        if code != 0:
-            # pull 冲突或失败时，强制以远程分支覆盖本地
-            log.warn('【UpdateSystem】git pull 失败，尝试强制覆盖本地...')
-            code, _, fetch_output = run_git("fetch", "origin")
-            outputs.append(fetch_output)
-            if code != 0:
-                return {"code": 1, "updated": False,
-                        "msg": "拉取更新失败，请查看日志",
-                        "output": "\n".join([x for x in outputs if x])}
-
-            code, _, reset_output = run_git("reset", "--hard", f"origin/{branch}")
-            outputs.append(reset_output)
-            if code != 0:
-                return {"code": 1, "updated": False,
-                        "msg": "强制覆盖本地失败，请查看日志",
-                        "output": "\n".join([x for x in outputs if x])}
-            mode = "force-reset"
-
-        # 更新后的提交
-        code, new_commit, _ = run_git("rev-parse", "HEAD")
-        if code != 0:
-            return {"code": 1, "updated": False,
-                    "msg": "获取更新后版本失败，请查看日志",
-                    "output": "\n".join([x for x in outputs if x])}
-
-        updated = old_commit != new_commit
-        # 修复权限
-        os.system(f"chown -R nt:nt {root_path}")
-
-        if updated:
-            if mode == "force-reset":
-                msg = f"本地存在冲突，已强制覆盖为 {branch} 分支最新版本 {new_commit[:8]}"
-            else:
-                msg = f"已更新到 {branch} 分支最新版本 {new_commit[:8]}"
-        elif mode == "force-reset":
-            msg = "已强制覆盖本地修改，当前已是最新版本"
-        else:
-            msg = "当前已是最新版本"
-        log.info(f'【UpdateSystem】>>> {msg}')
-        return {"code": 0, "updated": updated, "msg": msg, "branch": branch,
-                "old_commit": old_commit, "new_commit": new_commit, "mode": mode,
-                "output": "\n".join([x for x in outputs if x])}
 
     def __logout(self):
         """
