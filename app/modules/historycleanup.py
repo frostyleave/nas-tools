@@ -2,10 +2,8 @@ import datetime
 import os
 
 import log
-
 from app.helper import DbHelper
 from app.utils.commons import singleton
-
 from config import Config
 
 # 单次最大删除数据量

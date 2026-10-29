@@ -1,11 +1,12 @@
 import os
 import time
 
-from app.modules.filetransfer import FileTransfer
 from app.media import MediaService
+from app.modules.filetransfer import FileTransfer
 from app.plugins import EventHandler
 from app.plugins.modules._base import _IPluginModule
 from app.utils.types import EventType, MediaType
+
 
 class MediaSyncDel(_IPluginModule):
     # 插件名称

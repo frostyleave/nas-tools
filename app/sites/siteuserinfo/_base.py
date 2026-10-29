@@ -1,19 +1,16 @@
-# -*- coding: utf-8 -*-
 import base64
 import json
 import re
-import requests
-
 from abc import ABCMeta, abstractmethod
-from lxml import etree
 from urllib.parse import urljoin, urlsplit
 
-import log
+import requests
+from lxml import etree
 
+import log
 from app.helper import SiteHelper
 from app.utils.http_utils import RequestUtils
 from app.utils.types import SiteSchema
-
 from config import Config
 
 SITE_BASE_ORDER = 1000

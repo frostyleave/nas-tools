@@ -1,11 +1,9 @@
-# -*- coding: utf-8 -*-
 import re
-from typing import List
 
 from lxml import etree
 
 import log
-from app.sites.siteuserinfo._base import _ISiteUserInfo, SITE_BASE_ORDER
+from app.sites.siteuserinfo._base import SITE_BASE_ORDER, _ISiteUserInfo
 from app.utils import StringUtils
 from app.utils.types import SiteSchema
 
@@ -143,7 +141,7 @@ class NexusPhpSiteUserInfo(_ISiteUserInfo):
                 return
             bonus_match = re.search(r"[魔力值|\]][\[\]:：<>/a-zA-Z_\-=\"'\s#;]+\s*([\d,.]+|\"[\d,.]+\")[<>()&\s]",
                                     html_text,
-                                    flags=re.S)
+                                    flags=re.DOTALL)
             if bonus_match and bonus_match.group(1).strip():
                 self.bonus = StringUtils.str_float(bonus_match.group(1).strip('"'))
         except Exception as e:
@@ -311,7 +309,7 @@ class NexusPhpSiteUserInfo(_ISiteUserInfo):
         if seeding_sizes and seeding_seeders:
             page_seeding = len(seeding_sizes)
 
-            for i in range(0, len(seeding_sizes)):
+            for i in range(len(seeding_sizes)):
                 size = StringUtils.num_filesize(seeding_sizes[i].xpath("string(.)").strip())
                 seeders = StringUtils.str_int(seeding_seeders[i])
 
@@ -391,7 +389,7 @@ class NexusPhpSiteUserInfo(_ISiteUserInfo):
         tmp_seeding = len(seeding_sizes)
         tmp_seeding_size = 0
         tmp_seeding_info = []
-        for i in range(0, len(seeding_sizes)):
+        for i in range(len(seeding_sizes)):
             size = StringUtils.num_filesize(seeding_sizes[i].xpath("string(.)").strip())
             seeders = StringUtils.str_int(seeding_seeders[i])
 
@@ -479,7 +477,7 @@ class NexusPhpSiteUserInfo(_ISiteUserInfo):
         elif seeding_url_text and csrf_text:
             if csrf_text[0].strip():
                 self._torrent_seeding_page \
-                    = f"ajax_getusertorrentlist.php"
+                    = "ajax_getusertorrentlist.php"
                 self._torrent_seeding_params = {'userid': self.userid, 'type': 'seeding', 'csrf': csrf_text[0].strip()}
 
         # 分类做种模式
@@ -582,7 +580,7 @@ class NexusPhpSiteUserInfo(_ISiteUserInfo):
             if bonus_text:
                 self.bonus = StringUtils.str_float(bonus_text[0].strip())
 
-    def clean_text_list(self, texts: List[str]) -> List[str]:
+    def clean_text_list(self, texts: list[str]) -> list[str]:
         """
         过滤掉空白，只保留有内容的
         """

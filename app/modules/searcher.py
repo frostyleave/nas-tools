@@ -1,11 +1,9 @@
-from typing import List, Tuple
-
 from app.core.task_manager import TaskStore
 from app.helper import DbHelper
+from app.indexer import Indexer
 from app.media import MediaService
 from app.media.meta.metainfo import MetaInfo
 from app.message import MessageService
-from app.indexer import Indexer
 from app.utils.commons import singleton
 from app.utils.constants import Constants
 from app.utils.types import SearchType
@@ -36,9 +34,9 @@ class Searcher:
                         filter_args: dict,
                         match_media=None,
                         in_from: SearchType = None,
-                        search_theme: str = None,
+                        search_theme: str | None = None,
                         task_id=None,
-                        ident_flag:bool=False) -> List[MetaInfo]:
+                        ident_flag:bool=False) -> list[MetaInfo]:
         """
         根据关键字调用索引器检查媒体
         :param key_word: 搜索的关键字，不能为空
@@ -53,7 +51,7 @@ class Searcher:
             return []
 
         if task_id:
-            TaskStore().update_task(task_id=task_id, progress=1, message="开始搜索 %s ..." % search_theme)
+            TaskStore().update_task(task_id=task_id, progress=1, message=f"开始搜索 {search_theme} ...")
 
         torrent_list = self.indexer.search_by_keyword(key_word, filter_args, match_media, in_from, task_id)
 
@@ -73,7 +71,7 @@ class Searcher:
         return torrent_list
 
 
-    def get_search_result_info_by_id(self, res_id) -> Tuple[MetaInfo, str]:
+    def get_search_result_info_by_id(self, res_id) -> tuple[MetaInfo, str]:
         """
         根据下载ID获取搜索结果
         :param res_id: 下载ID

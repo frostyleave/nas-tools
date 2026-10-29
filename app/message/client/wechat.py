@@ -1,10 +1,9 @@
 import json
 from datetime import datetime
 
+import log
 from app.message.client._base import _IMessageClient
 from app.utils import RequestUtils
-
-import log
 
 
 class WeChat(_IMessageClient):
@@ -48,7 +47,7 @@ class WeChat(_IMessageClient):
 
     @classmethod
     def match(cls, ctype):
-        return True if ctype == cls.schema else False
+        return ctype == cls.schema
 
     def __get_access_token(self, force=False):
         """
@@ -99,7 +98,7 @@ class WeChat(_IMessageClient):
         
         message_url = self._send_msg_url % access_token
         if text:
-            conent = "%s\n%s" % (title, text.replace("\n\n", "\n"))
+            conent = "{}\n{}".format(title, text.replace("\n\n", "\n"))
         else:
             conent = title
         if url:

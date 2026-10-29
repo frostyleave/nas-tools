@@ -102,7 +102,7 @@ class TorrentRemover(_IPluginModule):
         download_id = from_download_id
 
         # 查询是否有转种记录
-        history_key = "%s-%s" % (download, download_id)
+        history_key = f"{download}-{download_id}"
         plugin_id = "TorrentTransfer"
         transfer_history = self.get_history(key=history_key,
                                             plugin_id=plugin_id)
@@ -164,7 +164,7 @@ class TorrentRemover(_IPluginModule):
                 # 处理辅种
                 self.__del_seed(download=download, download_id=download_id)
         except Exception as e:
-            self.error(f"删除转种辅种下载任务失败: {str(e)}")
+            self.error(f"删除转种辅种下载任务失败: {e!s}")
 
     def __del_seed(self, download, download_id):
         """

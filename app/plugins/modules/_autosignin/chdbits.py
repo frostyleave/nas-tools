@@ -6,9 +6,9 @@ import re
 from lxml import etree
 
 from app.helper.site_signin_helper import SiteSigninHelper, Verdict
-from app.plugins.modules._autosignin._base import _ISiteSigninHandler
 from app.models.model import UserSiteConf
-from app.utils import SiteUtils, RequestUtils
+from app.plugins.modules._autosignin._base import _ISiteSigninHandler
+from app.utils import RequestUtils, SiteUtils
 from config import Config
 
 
@@ -38,7 +38,7 @@ class CHDBits(_ISiteSigninHandler):
         :param url: 站点Url
         :return: 是否匹配，如匹配则会调用该类的signin方法
         """
-        return True if SiteUtils.url_equal(url, cls.site_url) else False
+        return bool(SiteUtils.url_equal(url, cls.site_url))
 
     def signin(self, site_info: UserSiteConf):
         """
@@ -86,7 +86,7 @@ class CHDBits(_ISiteSigninHandler):
             question_str = match.group(1)
             self.debug(f"获取到签到问题 {question_str}")
         else:
-            self.error(f"未获取到签到问题")
+            self.error("未获取到签到问题")
             return False, f"【{site}】签到失败，未获取到签到问题"
 
         # 查询已有答案
@@ -114,7 +114,7 @@ class CHDBits(_ISiteSigninHandler):
                                      ua=ua,
                                      proxy=proxy,
                                      site=site)
-        except (FileNotFoundError, IOError, OSError) as e:
+        except Exception as e:
             self.debug("查询本地已知答案失败，继续请求豆瓣查询")
 
         # 正确答案，默认随机，如果gpt返回则用gpt返回的答案提交
@@ -133,11 +133,11 @@ class CHDBits(_ISiteSigninHandler):
 
         # 处理chatgpt返回的答案信息
         if answer is None:
-            self.warn(f"ChatGPT未启用, 开始随机签到")
+            self.warn("ChatGPT未启用, 开始随机签到")
             # return f"【{site}】签到失败，ChatGPT未启用"
         elif answer:
             # 正则获取字符串中的数字
-            answer_nums = list(map(int, re.findall("\d+", answer)))
+            answer_nums = list(map(int, re.findall(r"\d+", answer)))
             if not answer_nums:
                 self.warn(f"无法从chatgpt回复 {answer} 中获取答案, 将采用随机签到")
             else:
@@ -180,14 +180,14 @@ class CHDBits(_ISiteSigninHandler):
                                 proxies=proxy
                                 ).post_res(url='https://chdbits.co/bakatest.php', data=data)
         if not sign_res or sign_res.status_code != 200:
-            self.error(f"签到失败，签到接口请求失败")
+            self.error("签到失败，签到接口请求失败")
             return False, f'[{site}]签到失败，签到接口请求失败'
 
         # 判断是否签到成功
         sign_status = self.sign_in_result(html_res=sign_res.text,
                                           regexs=self._success_regex)
         if sign_status:
-            self.info(f"签到成功")
+            self.info("签到成功")
             if exits_answers and question:
                 # 签到成功写入本地文件
                 self.__write_local_answer(exits_answers=exits_answers or {},
@@ -198,10 +198,10 @@ class CHDBits(_ISiteSigninHandler):
             sign_status = self.sign_in_result(html_res=sign_res.text,
                                               regexs=self._sign_regex)
             if sign_status:
-                self.info(f"今日已签到")
+                self.info("今日已签到")
                 return True, f'[{site}]今日已签到'
 
-            self.error(f"签到失败，请到页面查看")
+            self.error("签到失败，请到页面查看")
             return False, f'[{site}]签到失败，请到页面查看'
 
     def __write_local_answer(self, exits_answers, question, answer):
@@ -214,5 +214,5 @@ class CHDBits(_ISiteSigninHandler):
             formatted_data = json.dumps(exits_answers, indent=4)
             with open(self._answer_file, 'w') as f:
                 f.write(formatted_data)
-        except (FileNotFoundError, IOError, OSError) as e:
+        except Exception as e:
             self.debug("签到成功写入本地文件失败")

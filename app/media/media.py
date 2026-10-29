@@ -3,24 +3,39 @@ import os
 import random
 import re
 import traceback
-import zhconv
 
-from lxml import etree
+import zhconv
 from cachetools import TTLCache, cached
+from lxml import etree
 
 import log
-
 from app.helper import MetaHelper
-from app.media.doubanapi.apiv2 import DoubanApi
 from app.media.bangumi import Bangumi
 from app.media.douban import DouBan
+from app.media.doubanapi.apiv2 import DoubanApi
 from app.media.meta._base import MetaBase
 from app.media.meta.metainfo import MetaInfo
+from app.media.tmdbv3api import (
+    TV,
+    Discover,
+    Episode,
+    Movie,
+    Person,
+    Search,
+    TMDb,
+    TMDbException,
+    Trending,
+)
+from app.utils import (
+    EpisodeFormat,
+    NumberUtils,
+    PathUtils,
+    RequestUtils,
+    StringUtils,
+    cacheman,
+)
 from app.utils.media_utils import MediaUtils
-from app.media.tmdbv3api import TMDb, Search, Movie, TV, Person, Find, TMDbException, Discover, Trending, Episode, Genre
-from app.utils import PathUtils, EpisodeFormat, RequestUtils, NumberUtils, StringUtils, cacheman
-from app.utils.types import MediaType, MatchMode
-
+from app.utils.types import MatchMode, MediaType
 from config import Config
 
 # 季信息前缀
@@ -168,7 +183,7 @@ class MediaService:
                 info = self.__search_movie_by_name(serach_api, file_media_name, year)
                 if info:
                     info['media_type'] = MediaType.MOVIE
-                    log.info("【Meta】%s 识别到 电影：TMDBID=%s, 名称=%s, 上映日期=%s" % (
+                    log.info("【Meta】{} 识别到 电影：TMDBID={}, 名称={}, 上映日期={}".format(
                         file_media_name,
                         info.get('id'),
                         info.get('title'),
@@ -186,14 +201,14 @@ class MediaService:
                 info = self.__search_tv_by_name(serach_api, file_media_name, first_media_year)
             if info:
                 info['media_type'] = MediaType.TV
-                log.info("【Meta】%s 识别到 电视剧：TMDBID=%s, 名称=%s, 首播日期=%s" % (
+                log.info("【Meta】{} 识别到 电视剧：TMDBID={}, 名称={}, 首播日期={}".format(
                     file_media_name,
                     info.get('id'),
                     info.get('name'),
                     info.get('first_air_date')))
         # 返回
         if not info:
-            log.info("【Meta】%s 以年份 %s 在TMDB中未找到%s信息!" % (
+            log.info("【Meta】{} 以年份 {} 在TMDB中未找到{}信息!".format(
                 file_media_name, StringUtils.xstr(first_media_year), search_type.value if search_type else ""))
         return info
 
@@ -210,10 +225,10 @@ class MediaService:
             else:
                 movies = serach_api.movies({"query": file_media_name})
         except TMDbException as err:
-            log.error(f"【Meta】连接TMDB出错：{str(err)}")
+            log.error(f"【Meta】连接TMDB出错：{err!s}")
             return None
         except Exception as e:
-            log.error(f"【Meta】连接TMDB出错：{str(e)}")
+            log.error(f"【Meta】连接TMDB出错：{e!s}")
             return None
 
         if len(movies) == 0:
@@ -351,10 +366,10 @@ class MediaService:
             try:
                 seasons = self.get_tmdb_tv_seasons(tv_info=tv_info)
                 for season in seasons:
-                    if season.get("air_date") and season.get("season_number"):
-                        if season.get("air_date")[0:4] == str(season_year) \
-                                and season.get("season_number") == int(season_number):
-                            return True
+                    if season.get("air_date") and season.get("season_number") \
+                        and season.get("air_date")[0:4] == str(season_year) \
+                            and season.get("season_number") == int(season_number):
+                        return True
             except Exception as e1:
                 log.error(f"【Meta】连接TMDB出错：{e1}")
                 return False
@@ -363,28 +378,28 @@ class MediaService:
         try:
             tvs = serach_api.tv_shows({"query": file_media_name})
         except TMDbException as err:
-            log.error(f"【Meta】连接TMDB出错：{str(err)}")
+            log.error(f"【Meta】连接TMDB出错：{err!s}")
             return None
         except Exception as e:
-            log.error(f"【Meta】连接TMDB出错：{e}")
+            log.error(f"【Meta】连接TMDB出错：{e!s}")
             return None
 
         if len(tvs) == 0:
-            log.debug("【Meta】%s 未找到季%s相关信息!" % (file_media_name, season_number))
+            log.debug(f"【Meta】{file_media_name} 未找到季{season_number}相关信息!")
             return {}
-        else:
-            for tv in tvs:
-                if (self.__compare_tmdb_names(file_media_name, tv.get('name'))
-                    or self.__compare_tmdb_names(file_media_name, tv.get('original_name'))) \
-                        and (tv.get('first_air_date') and tv.get('first_air_date')[0:4] == str(media_year)):
-                    return tv
 
-            for tv in tvs[:5]:
-                info, names = self.__search_tmdb_allnames(MediaType.TV, tv.get("id"))
-                if not self.__compare_tmdb_names(file_media_name, names):
-                    continue
-                if __season_match(tv_info=info, season_year=media_year):
-                    return info
+        for tv in tvs:
+            if (self.__compare_tmdb_names(file_media_name, tv.get('name'))
+                or self.__compare_tmdb_names(file_media_name, tv.get('original_name'))) \
+                    and (tv.get('first_air_date') and tv.get('first_air_date')[0:4] == str(media_year)):
+                return tv
+
+        for tv in tvs[:5]:
+            info, names = self.__search_tmdb_allnames(MediaType.TV, tv.get("id"))
+            if not self.__compare_tmdb_names(file_media_name, names):
+                continue
+            if __season_match(tv_info=info, season_year=media_year):
+                return info
         return {}
 
     def __search_multi_tmdb(self, serach_api:Search, file_media_name):
@@ -396,10 +411,10 @@ class MediaService:
         try:
             multis = serach_api.multi({"query": file_media_name}) or []
         except TMDbException as err:
-            log.error(f"【Meta】连接TMDB出错：{str(err)}")
+            log.error(f"【Meta】连接TMDB出错：{err!s}")
             return None
         except Exception as e:
-            log.error(f"【Meta】连接TMDB出错：{str(e)}")
+            log.error(f"【Meta】连接TMDB出错：{e!s}")
             return None
 
         if len(multis) == 0:
@@ -431,7 +446,7 @@ class MediaService:
             info['media_type'] = MediaType.MOVIE if info.get('media_type') in ['movie',
                                                                                MediaType.MOVIE] else MediaType.TV
         else:
-            log.info("【Meta】%s 在TMDB中未找到媒体信息!" % file_media_name)
+            log.info(f"【Meta】{file_media_name} 在TMDB中未找到媒体信息!")
         return info
 
     @cached(cache=TTLCache(maxsize=512, ttl=3600))
@@ -444,8 +459,8 @@ class MediaService:
             return None
         if StringUtils.contain_chinese(file_media_name):
             return {}
-        log.info("【Meta】正在从TheDbMovie网站查询：%s ..." % file_media_name)
-        tmdb_url = "https://www.themoviedb.org/search?query=%s" % file_media_name
+        log.info(f"【Meta】正在从TheDbMovie网站查询：{file_media_name} ...")
+        tmdb_url = f"https://www.themoviedb.org/search?query={file_media_name}"
         res = RequestUtils(timeout=5).get_res(url=tmdb_url)
         if res and res.status_code == 200:
             html_text = res.text
@@ -471,22 +486,22 @@ class MediaService:
                         if mtype == MediaType.TV and tmdbinfo.get('media_type') != MediaType.TV:
                             return {}
                         if tmdbinfo.get('media_type') == MediaType.MOVIE:
-                            log.info("【Meta】%s 从WEB识别到 电影：TMDBID=%s, 名称=%s, 上映日期=%s" % (
+                            log.info("【Meta】{} 从WEB识别到 电影：TMDBID={}, 名称={}, 上映日期={}".format(
                                 file_media_name,
                                 tmdbinfo.get('id'),
                                 tmdbinfo.get('title'),
                                 tmdbinfo.get('release_date')))
                         else:
-                            log.info("【Meta】%s 从WEB识别到 电视剧：TMDBID=%s, 名称=%s, 首播日期=%s" % (
+                            log.info("【Meta】{} 从WEB识别到 电视剧：TMDBID={}, 名称={}, 首播日期={}".format(
                                 file_media_name,
                                 tmdbinfo.get('id'),
                                 tmdbinfo.get('name'),
                                 tmdbinfo.get('first_air_date')))
                     return tmdbinfo
                 elif len(tmdb_links) > 1:
-                    log.info("【Meta】%s TMDB网站返回数据过多：%s" % (file_media_name, len(tmdb_links)))
+                    log.info(f"【Meta】{file_media_name} TMDB网站返回数据过多：{len(tmdb_links)}")
                 else:
-                    log.info("【Meta】%s TMDB网站未查询到媒体信息！" % file_media_name)
+                    log.info(f"【Meta】{file_media_name} TMDB网站未查询到媒体信息！")
             except Exception as err:
                 print(str(err))
                 return None
@@ -677,7 +692,7 @@ class MediaService:
         # 识别
         meta_info = meta_info if meta_info else MetaInfo(title, subtitle=subtitle, no_extra=no_extra)
         if not meta_info.get_name() or not meta_info.type:
-            log.warn("【Meta】%s 未识别出有效信息！" % meta_info.org_string)
+            log.warn(f"【Meta】{meta_info.org_string} 未识别出有效信息！")
             return None
         if mtype and not meta_info.type:
             meta_info.type = mtype
@@ -686,7 +701,7 @@ class MediaService:
         en_name = meta_info.get_en_name()
         # 没有年份、但有英文名时, 结合英文名搜索
         if not meta_info.year and en_name and en_name != search_name:
-            search_name = '{} {}'.format(search_name, en_name)
+            search_name = f'{search_name} {en_name}'
 
         # 查询tmdb数据
         file_media_info = self.query_tmdb_info(search_name, meta_info.type, meta_info.year,
@@ -782,7 +797,7 @@ class MediaService:
                 cache_name, is_movie = self.__search_engine(name)
                 cacheman["tmdb_supply"].set(name, cache_name)
             if cache_name:
-                log.info("【Meta】开始辅助查询：%s ..." % cache_name)
+                log.info(f"【Meta】开始辅助查询：{cache_name} ...")
                 if is_movie:
                     file_media_info = self.__search_tmdb(file_media_name=cache_name, search_type=MediaType.MOVIE)
                 else:
@@ -866,7 +881,7 @@ class MediaService:
                     if meta_info.end_episode and meta_info.end_episode - meta_info.begin_episode > match_season.episode_count:
                         meta_info.end_episode = None
                     elif meta_info.begin_episode and meta_info.begin_episode > match_season.episode_count:
-                        pre_total = sum(map(lambda x: x.episode_count, filter(lambda t: t.season_number > 0 and t.season_number < match_season.season_number, tmdb_info.seasons)))
+                        pre_total = sum(x.episode_count for x in filter(lambda t: t.season_number > 0 and t.season_number < match_season.season_number, tmdb_info.seasons))
                         meta_info.begin_episode -= pre_total
                     return
             else:
@@ -889,7 +904,7 @@ class MediaService:
             if meta_info.end_episode and meta_info.end_episode - meta_info.begin_episode > match_season.episode_count:
                 meta_info.end_episode = None
             elif meta_info.begin_episode and meta_info.begin_episode > match_season.episode_count:
-                pre_total = sum(map(lambda x: x.episode_count, filter(lambda t: t.season_number > 0 and t.season_number < match_season.season_number, tmdb_info.seasons)))
+                pre_total = sum(x.episode_count for x in filter(lambda t: t.season_number > 0 and t.season_number < match_season.season_number, tmdb_info.seasons))
                 meta_info.begin_episode -= pre_total
    
     def _try_adjust_season_info(self, media_info: MetaBase):
@@ -1041,7 +1056,7 @@ class MediaService:
         for file_path in file_list:
             try:
                 if not os.path.exists(file_path):
-                    log.warn("【Meta】%s 不存在" % file_path)
+                    log.warn(f"【Meta】{file_path} 不存在")
                     continue
                 # 解析媒体名称
                 # 先用自己的名称
@@ -1049,9 +1064,8 @@ class MediaService:
                 parent_name = os.path.basename(os.path.dirname(file_path))
                 parent_parent_name = os.path.basename(PathUtils.get_parent_paths(file_path, 2))
                 # 过滤掉蓝光原盘目录下的子文件
-                if not os.path.isdir(file_path) \
-                        and PathUtils.get_bluray_dir(file_path):
-                    log.info("【Meta】%s 跳过蓝光原盘文件：" % file_path)
+                if not os.path.isdir(file_path) and PathUtils.get_bluray_dir(file_path):
+                    log.info(f"【Meta】{file_path} 跳过蓝光原盘文件：")
                     continue
                 # 没有自带TMDB信息
                 if not tmdb_info:
@@ -1080,7 +1094,7 @@ class MediaService:
                             meta_info.begin_season = NumberUtils.max_ele(parent_info.begin_season,
                                                                          meta_info.begin_season)
                     if not meta_info.get_name() or not meta_info.type:
-                        log.warn("【Rmt】%s 未识别出有效信息！" % meta_info.org_string)
+                        log.warn(f"【Rmt】{meta_info.org_string} 未识别出有效信息！")
                         continue
                     # 区配缓存及TMDB
                     media_key = self.__make_cache_key(meta_info)
@@ -1091,11 +1105,10 @@ class MediaService:
                                                              search_type=meta_info.type,
                                                              media_year=meta_info.year,
                                                              season_number=meta_info.begin_season)
-                        if not file_media_info:
-                            if rmt_match_mode == MatchMode.NORMAL:
-                                # 去掉年份再查一次，有可能是年份错误
-                                file_media_info = self.__search_tmdb(file_media_name=meta_info.get_name(),
-                                                                     search_type=meta_info.type)
+                        if not file_media_info and rmt_match_mode == MatchMode.NORMAL:
+                            # 去掉年份再查一次，有可能是年份错误
+                            file_media_info = self.__search_tmdb(file_media_name=meta_info.get_name(),
+                                                                 search_type=meta_info.type)
                         if not file_media_info and self._search_keyword:
                             cache_name = cacheman["tmdb_supply"].get(meta_info.get_name())
                             is_movie = False
@@ -1103,7 +1116,7 @@ class MediaService:
                                 cache_name, is_movie = self.__search_engine(meta_info.get_name())
                                 cacheman["tmdb_supply"].set(meta_info.get_name(), cache_name)
                             if cache_name:
-                                log.info("【Meta】开始辅助查询：%s ..." % cache_name)
+                                log.info(f"【Meta】开始辅助查询：{cache_name} ...")
                                 if is_movie:
                                     file_media_info = self.__search_tmdb(file_media_name=cache_name,
                                                                          search_type=MediaType.MOVIE)
@@ -1153,7 +1166,7 @@ class MediaService:
                 return_media_infos[file_path] = meta_info
             except Exception as err:
                 print(str(err))
-                log.error("【Rmt】发生错误：%s - %s" % (str(err), traceback.format_exc()))
+                log.error(f"【Rmt】发生错误：{err!s} - {traceback.format_exc()}")
         # 循环结束
         return return_media_infos
 
@@ -1431,7 +1444,7 @@ class MediaService:
         movie_api = Movie()
         self.__set_language(movie_api, language)
         try:
-            log.info("【Meta】正在查询TMDB电影：%s ..." % tmdbid)
+            log.info(f"【Meta】正在查询TMDB电影：{tmdbid} ...")
             tmdbinfo = movie_api.details(tmdbid, append_to_response)
             if tmdbinfo:
                 log.info(f"【Meta】{tmdbid} 查询结果：{tmdbinfo.get('title')}")
@@ -1608,7 +1621,7 @@ class MediaService:
         try:
             tv_api = TV()
             self.__set_language(tv_api, language)
-            log.info("【Meta】正在查询TMDB电视剧：%s ..." % tmdbid)
+            log.info(f"【Meta】正在查询TMDB电视剧：{tmdbid} ...")
             tmdbinfo = tv_api.details(tmdbid, append_to_response)
             if tmdbinfo:
                 log.info(f"【Meta】{tmdbid} 查询结果：{tmdbinfo.get('name')}")
@@ -1682,7 +1695,7 @@ class MediaService:
         }
         """
         try:
-            log.info("【Meta】正在查询TMDB电视剧：%s，季：%s ..." % (tmdbid, season))
+            log.info(f"【Meta】正在查询TMDB电视剧：{tmdbid}，季：{season} ...")
             tmdbinfo = TV().season_details(tmdbid, season)
             return tmdbinfo or {}
         except Exception as e:
@@ -1902,7 +1915,7 @@ class MediaService:
             "credit_id": crew.get("credit_id"),
             "department": crew.get("department"),
             "job": crew.get("job"),
-            "profile": 'https://www.themoviedb.org/person/%s' % crew.get('id')
+            "profile": 'https://www.themoviedb.org/person/{}'.format(crew.get('id'))
         } for crew in crews or []]
 
     @staticmethod
@@ -1922,7 +1935,7 @@ class MediaService:
             "role": cast.get("character"),
             "credit_id": cast.get("credit_id"),
             "order": cast.get("order"),
-            "profile": 'https://www.themoviedb.org/person/%s' % cast.get('id')
+            "profile": 'https://www.themoviedb.org/person/{}'.format(cast.get('id'))
         } for cast in casts or []]
 
     @staticmethod
@@ -2161,7 +2174,7 @@ class MediaService:
                 if personid.isdigit():
                     movies = douban_api.celebrity_works(personid).get("works") or []
                     # celebrity_works 接口返回结构多了一层subject
-                    movies = list(map(lambda x: x.get("subject"), movies))
+                    movies = [x.get("subject") for x in movies]
                 else:
                     movies = douban_api.movie_search(personid).get("subjects") or []
                 if movies:
@@ -2259,8 +2272,8 @@ class MediaService:
                     continue
                 r_dict[s.lower()] = score
 
-        bing_url = "https://www.cn.bing.com/search?q=%s&qs=n&form=QBRE&sp=-1" % feature_name
-        baidu_url = "https://www.baidu.com/s?ie=utf-8&tn=baiduhome_pg&wd=%s" % feature_name
+        bing_url = f"https://www.cn.bing.com/search?q={feature_name}&qs=n&form=QBRE&sp=-1"
+        baidu_url = f"https://www.baidu.com/s?ie=utf-8&tn=baiduhome_pg&wd={feature_name}"
         res_bing = RequestUtils(timeout=5).get_res(url=bing_url)
         res_baidu = RequestUtils(timeout=5).get_res(url=baidu_url)
         ret_dict = {}
@@ -2271,16 +2284,15 @@ class MediaService:
                 strongs_bing = list(
                     filter(lambda x: (0 if not x else difflib.SequenceMatcher(None, feature_name,
                                                                               x).ratio()) > KEYWORD_STR_SIMILARITY_THRESHOLD,
-                           map(lambda x: x.text, html.cssselect(
+                           (x.text for x in html.cssselect(
                                "#sp_requery strong, #sp_recourse strong, #tile_link_cn strong, .b_ad .ad_esltitle~div strong, h2 strong, .b_caption p strong, .b_snippetBigText strong, .recommendationsTableTitle+.b_slideexp strong, .recommendationsTableTitle+table strong, .recommendationsTableTitle+ul strong, .pageRecoContainer .b_module_expansion_control strong, .pageRecoContainer .b_title>strong, .b_rs strong, .b_rrsr strong, #dict_ans strong, .b_listnav>.b_ans_stamp>strong, #b_content #ans_nws .na_cnt strong, .adltwrnmsg strong"))))
                 if strongs_bing:
                     title = html.xpath("//aside//h2[@class = \" b_entityTitle\"]/text()")
                     if len(title) > 0:
-                        if title:
-                            t = re.compile(r"\s*\(\d{4}\)$").sub("", title[0])
-                            ret_dict[t] = 200
-                            if html.xpath("//aside//div[@data-feedbk-ids = \"Movie\"]"):
-                                is_movie = True
+                        t = re.compile(r"\s*\(\d{4}\)$").sub("", title[0])
+                        ret_dict[t] = 200
+                        if html.xpath("//aside//div[@data-feedbk-ids = \"Movie\"]"):
+                            is_movie = True
                     cal_score(strongs_bing, ret_dict)
         if res_baidu and res_baidu.status_code == 200:
             html_text = res_baidu.text
@@ -2289,7 +2301,7 @@ class MediaService:
                 ems = list(
                     filter(lambda x: (0 if not x else difflib.SequenceMatcher(None, feature_name,
                                                                               x).ratio()) > KEYWORD_STR_SIMILARITY_THRESHOLD,
-                           map(lambda x: x.text, html.cssselect("em"))))
+                           (x.text for x in html.cssselect("em"))))
                 if len(ems) > 0:
                     cal_score(ems, ret_dict)
         if not ret_dict:
@@ -2319,7 +2331,7 @@ class MediaService:
 
             else:
                 keyword = pre[0]
-        log.info("【Meta】选择关键字为：%s " % keyword)
+        log.info(f"【Meta】选择关键字为：{keyword} ")
         return keyword, is_movie
 
     @staticmethod
@@ -2452,11 +2464,11 @@ class MediaService:
         if not tmdbid:
             return ""
         if str(tmdbid).startswith("DB:"):
-            return "https://movie.douban.com/subject/%s" % str(tmdbid).replace("DB:", "")
+            return "https://movie.douban.com/subject/{}".format(str(tmdbid).replace("DB:", ""))
         elif mtype == MediaType.MOVIE:
-            return "https://www.themoviedb.org/movie/%s" % tmdbid
+            return f"https://www.themoviedb.org/movie/{tmdbid}"
         else:
-            return "https://www.themoviedb.org/tv/%s" % tmdbid
+            return f"https://www.themoviedb.org/tv/{tmdbid}"
 
     def get_episode_images(self, tv_id, season_id, episode_id, orginal=False):
         """
@@ -2497,19 +2509,19 @@ class MediaService:
 
             begin_season = None
             # 剧集类型，去掉标题中的季信息
-            if mtype == MediaType.TV and re.search(r'%s' % DB_SEASON_SUFFIX, title, flags=re.IGNORECASE):
+            if mtype == MediaType.TV and re.search(rf'{DB_SEASON_SUFFIX}', title, flags=re.IGNORECASE):
                 title, begin_season = MediaUtils.resolve_douban_season_tag(title)
 
             tmdb_info = MediaService().query_tmdb_info(title, mtype, year, begin_season, append_to_response="all")
             if not tmdb_info:
-                log.warn("【Douban】根据名称[%s]查询tmdb数据失败" % title)
+                log.warn(f"【Douban】根据名称[{title}]查询tmdb数据失败")
                 if original_title:
-                    log.info("【Douban】尝试根据别名[%s]查询tmdb数据" % original_title)
+                    log.info(f"【Douban】尝试根据别名[{original_title}]查询tmdb数据")
                     tmdb_info = MediaService().query_tmdb_info(original_title, mtype, year, begin_season, append_to_response="all")
                     if not tmdb_info:
-                        log.info("【Douban】尝试根据别名[%s]查询tmdb数据失败" % original_title)
+                        log.info(f"【Douban】尝试根据别名[{original_title}]查询tmdb数据失败")
                     else:
-                        log.info("【Douban】根据别名[%s]查询tmdb数据成功！" % original_title)
+                        log.info(f"【Douban】根据别名[{original_title}]查询tmdb数据成功！")
 
             if not tmdb_info:
                 return None

@@ -60,6 +60,11 @@ class SignInResults:
         self.failed_info.append(f'🛑{site_name}:签到时发生脚本错误')
 
 
+
+# 签到成功
+_SIGN_REGEX = ['签到已得', '簽到已得', '今日签到排名', '今日簽到排名', '签到成功', '簽到成功', '今天已签到', '今天已经签到']
+_SUCCESS_REGEX = ['今日签到排名', '今日簽到排名', '本次签到获得 \\d+ 个魔力值', '本次簽到獲得 \\d+ 個魔力值','\\d+点魔力']
+
 class AutoSignIn(_IPluginModule):
     # 插件名称
     module_name = "站点自动签到"
@@ -103,10 +108,6 @@ class AutoSignIn(_IPluginModule):
     
     # 退出事件
     _event = Event()
-
-    # 签到成功
-    _sign_regex = ['签到已得', '簽到已得', '今日签到排名', '今日簽到排名', '签到成功', '簽到成功', '今天已签到', '今天已经签到']
-    _success_regex = ['今日签到排名', '今日簽到排名', '本次签到获得 \\d+ 个魔力值', '本次簽到獲得 \\d+ 個魔力值','\\d+点魔力']
 
     @staticmethod
     def get_fields():
@@ -474,7 +475,7 @@ class AutoSignIn(_IPluginModule):
                 return site_module().signin(site_info) or (False, f"[{site_info.name}]签到函数未返回明确结果")
             except Exception as e:
                 log.exception(f"【自动签到】[{site_info.name}]签到失败: ")
-                return False, f"[{site_info.name}]签到失败：{str(e)}"
+                return False, f"[{site_info.name}]签到失败：{e!s}"
         else:
             return self.__base_sign_in(site_info)
 
@@ -521,7 +522,7 @@ class AutoSignIn(_IPluginModule):
             res = request_handler.get_res(url=checkin_url)
 
             # 本次签到成功, 或是重新请求签到页
-            sign_status = SiteSigninHelper.check_signin_result(res, self._sign_regex)
+            sign_status = SiteSigninHelper.check_signin_result(res, _SIGN_REGEX)
             if sign_status.verdict == Verdict.SUCCESS:
                 # self.info(f'[{site_name}]今日已签到')
                 return True, f'[{site_name}]今日已签到'
@@ -530,7 +531,7 @@ class AutoSignIn(_IPluginModule):
                 # self.warn(f'[{site_name}]签到失败: {sign_status.reason}')
                 return False, f'[{site_name}]签到失败: {sign_status.reason}'
 
-            if SiteSigninHelper.sign_in_result(res.text, self._success_regex):
+            if SiteSigninHelper.sign_in_result(res.text, _SUCCESS_REGEX):
                 return True, f'[{site_name}]签到成功'
 
             html_tree = etree.HTML(res.text)
@@ -582,7 +583,7 @@ class AutoSignIn(_IPluginModule):
                 if not sign_res or sign_res.status_code != 200:
                     return False, f'[FORM][{site_name}]签到失败: form提交失败'
 
-                if SiteSigninHelper.sign_in_result(sign_res.text, self._success_regex):
+                if SiteSigninHelper.sign_in_result(sign_res.text, _SUCCESS_REGEX):
                     return True, f'[FORM][{site_name}]签到成功'
 
                 self.warn(f'[FORM][{site_name}]签到失败，未知原因: {sign_res.text}')
@@ -593,7 +594,7 @@ class AutoSignIn(_IPluginModule):
             
         except Exception as e:
             log.exception(f"【自动签到】[{site_name}]签到出错: ")
-            return False, f"[{site_name}]签到出错: {str(e)}"
+            return False, f"[{site_name}]签到出错: {e!s}"
 
     def stop_service(self):
         """

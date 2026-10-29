@@ -2,18 +2,16 @@ import json
 import re
 
 import log
-
 from app.downloader.downloader import Downloader
-from app.media import MediaService, DouBan
+from app.media import DouBan, MediaService
 from app.media.meta import MetaInfo
 from app.message import MessageService
 from app.modules.searcher import Searcher
-
-from app.utils.string_utils import StringUtils
 from app.utils.media_utils import MediaUtils
+from app.utils.string_utils import StringUtils
 from app.utils.types import MediaType, SearchType
-
 from config import Config
+
 
 class SearchProxy:
 
@@ -35,8 +33,8 @@ class SearchProxy:
         """
         mtype, key_word, season_num, episode_num, year, content = StringUtils.get_keyword_from_string(content)
         if not key_word:
-            log.info("【Web】%s 搜索关键字有误！" % content)
-            return -1, "%s 未识别到搜索关键字！" % content
+            log.info(f"【Web】{content} 搜索关键字有误！")
+            return -1, f"{content} 未识别到搜索关键字！"
         
         # 类型
         if media_type:
@@ -123,10 +121,10 @@ class SearchProxy:
 
         result_count = len(media_list)
         if result_count == 0:
-            log.info("【Web】%s 未搜索到任何资源" % content)
-            return 1, "%s 未搜索到任何资源" % content
+            log.info(f"【Web】{content} 未搜索到任何资源")
+            return 1, f"{content} 未搜索到任何资源"
         else:
-            log.info("【Web】共搜索到 %s 个有效资源" % result_count)       
+            log.info(f"【Web】共搜索到 {result_count} 个有效资源")       
             return 0, ""
 
 
@@ -185,7 +183,7 @@ class SearchProxy:
             else:
                 search_name = media_info.title
 
-        log.info("【Searcher】开始搜索 %s ..." % search_name)
+        log.info(f"【Searcher】开始搜索 {search_name} ...")
 
         # 开始搜索
         media_list = Searcher().search_torrents(search_name, filter_args, media_info, in_from)
@@ -206,11 +204,11 @@ class SearchProxy:
                                                                   need_tvs=no_exists,
                                                                   user_name=user_name)
         if not download_items:
-            log.info("【Searcher】%s 未下载到资源" % media_info.title)
+            log.info(f"【Searcher】{media_info.title} 未下载到资源")
             return None, left_medias, len(media_list), 0
 
         # 统计下载情况
-        log.info("【Searcher】实际下载了 %s 个资源" % len(download_items))
+        log.info(f"【Searcher】实际下载了 {len(download_items)} 个资源")
         # 还有剩下的缺失，说明没下完，返回False
         if left_medias:
             return None, left_medias, len(media_list), len(download_items)
@@ -260,9 +258,9 @@ class SearchProxy:
                 if meta_info.type != MediaType.MOVIE and tmp_info.type == MediaType.MOVIE:
                     continue
                 if tmp_info.begin_season:
-                    tmp_info.title = "%s 第%s季" % (tmp_info.title, StringUtils.number_to_cn(meta_info.begin_season))
+                    tmp_info.title = f"{tmp_info.title} 第{StringUtils.number_to_cn(meta_info.begin_season)}季"
                 if tmp_info.begin_episode:
-                    tmp_info.title = "%s 第%s集" % (tmp_info.title, meta_info.begin_episode)
+                    tmp_info.title = f"{tmp_info.title} 第{meta_info.begin_episode}集"
                 medias.append(tmp_info)
 
         return medias
@@ -327,8 +325,7 @@ class SearchProxy:
                       if label in ["官方", "官组", "中字", "中配", "国语", "粤语", "特效", "特效字幕", "杜比视界"]]
 
             pubdate = item.PUBDATE or ''
-            if pubdate.endswith(' 00:00:00'):
-                pubdate = pubdate[:-9]
+            pubdate = pubdate.removesuffix(' 00:00:00')
 
             # 种子信息
             torrent_item = {
@@ -488,10 +485,10 @@ class SearchProxy:
             if re.match(r"^(E\d+)-E\d+$", k[1], flags=re.I):
                 parts = k[1].split('-')
                 if len(parts) == 2:
-                    return (k[0], '{}-{}'.format(parts[1], parts[0]))
+                    return (k[0], f'{parts[1]}-{parts[0]}')
             return (k[0], k[1])
 
-        for _, item in search_results.items():
+        for item in search_results.values():
             # 排序筛选器: 季倒序
             item["filter"]["season"].sort(reverse=True)
             # 排序筛选器: 制作组/字幕组，未知放最后

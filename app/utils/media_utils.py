@@ -2,9 +2,8 @@ import re
 
 import PTN
 
-from app.utils.string_utils import StringUtils
-
 import log
+from app.utils.string_utils import StringUtils
 
 
 class MediaUtils:
@@ -125,12 +124,7 @@ class MediaUtils:
         # 它覆盖了：第..季, 第..集, X集全, 以及像 21集 这样的独立数字。
         # 它还允许数字之间有空格、连字符、逗号等多种分隔符
 
-        unified_reg_pattern = r'(' + '|'.join([
-            r'[第全共][^第全共]+[季期卷]',  # 季、期模式
-            r'[第全共][^第全共]+[集话話]',  # 集数模式  
-            r'\d+[集话話]全',               # 数字+集全模式
-            r'(?<!第)(?<!全)(?<!共)(?<!\d)\b\d+[集话話]'  # 单独数字+集模式
-        ]) + ')'
+        unified_reg_pattern = r'(' + r'[第全共][^第全共]+[季期卷]|[第全共][^第全共]+[集话話]|\d+[集话話]全|(?<!第)(?<!全)(?<!共)(?<!\d)\b\d+[集话話]' + ')'
 
         matches = list(re.finditer(unified_reg_pattern, title, flags=re.IGNORECASE))
         
@@ -203,7 +197,7 @@ class MediaUtils:
                 season_rindex = cleaned_filename.find(season_name) + len(season_name) + 1
             elif len(season_match) > 1:
                 # 去重后检查真是季数
-                real_season = sorted(list(set(list(map(lambda x: x.group().upper().strip('S'), season_match)))))
+                real_season = sorted({x.group().upper().strip('S') for x in season_match})
                 if len(real_season) == 1:
                     # 移除第一个
                     cleaned_filename = cleaned_filename.replace(season_match[0].group(), "", 1)
@@ -239,19 +233,19 @@ class MediaUtils:
                                     if len(behind_seasons) == 0:
                                         # 季、集 混着的情况: 插入最后一个季信息所在位置
                                         episode_rindex = (season_match[-1]).regs[0][0] - sum(len(s.group()) for s in season_match) + len(last_season_name)
-                                    season_name = ' {}-{} '.format(first_season, last_season_name)     
+                                    season_name = f' {first_season}-{last_season_name} '     
                                     cleaned_filename = StringUtils.insert_char_at_index(cleaned_filename, season_name, episode_rindex)
                                     season_rindex = cleaned_filename.find(season_name) + len(season_name) + 1
                                 else:
-                                    season_name = ' 第{}-{}季'.format(first_season, last_season_name).replace('S', '').replace('s', '')
+                                    season_name = f' 第{first_season}-{last_season_name}季'.replace('S', '').replace('s', '')
                                     subtitle += season_name
 
             # 集
             if episode_match:
                 # 去重后排序
-                real_ep = sorted(list(set(list(map(lambda x: int(x.group().upper().strip('E')), episode_match)))))
+                real_ep = sorted({int(x.group().upper().strip('E')) for x in episode_match})
                 if len(real_ep) == 1:
-                    ep_name = ' E{} '.format(real_ep[0])
+                    ep_name = f' E{real_ep[0]} '
                 else:
                     real_ep = list(filter(lambda x: x > 0, real_ep))
                     if len(real_ep) == 0:
@@ -266,7 +260,7 @@ class MediaUtils:
                 elif episode_rindex > 0:
                     cleaned_filename = StringUtils.insert_char_at_index(cleaned_filename, ep_name, episode_rindex)
                 else:
-                    subtitle += ' 第{}集'.format(ep_name).replace('E', '')
+                    subtitle += f' 第{ep_name}集'.replace('E', '')
 
         except Exception as e:
             log.exception("调整剧集文件的季集信息所在位置出错: ")
@@ -284,34 +278,16 @@ class MediaUtils:
         target_str = target_str[len(first_season):].strip(".-")
 
         if episode_rindex > 0:
-            return StringUtils.insert_char_at_index(target_str, ' {} '.format(first_season), episode_rindex)                
+            return StringUtils.insert_char_at_index(target_str, f' {first_season} ', episode_rindex)                
         
         t = PTN.parse(target_str)
         t_title = t.get('title')
         if t_title:
             insert_pos = target_str.find(t_title) + len(t_title)
-            return StringUtils.insert_char_at_index(target_str, ' {} '.format(first_season), insert_pos)
+            return StringUtils.insert_char_at_index(target_str, f' {first_season} ', insert_pos)
         
         return target_str + ' ' + first_season
 
-        """
-        把集信息插入季信息之后
-        """
-        season_pattern = r"(S\d{1,2})"
-        season_match = re.findall(season_pattern, target_str)
-        if not season_match:
-            return target_str, -1
-        
-        if len(season_match) > 1:
-            return target_str, -1
-        
-        # 移除first_episode
-        target_str = target_str.replace(first_episode, "", 1)
-        
-        p_index = target_str.find(season_match[0]) + len(season_match[0])
-        # 拼接到季信息之后
-        splicing = StringUtils.insert_char_at_index(target_str, '.{}.'.format(first_episode), p_index)
-        return splicing, p_index + 1
     
     @staticmethod
     def get_tmdb_title(tmdb_info, title=None):
@@ -334,13 +310,10 @@ class MediaUtils:
         tmdb_id = media_info.tmdb_id
         tmdb_link = media_info.get_detail_url()
         tmdb_S_E_link = ""
-        if tmdb_id:
-            if media_info.get_season_string():
-                tmdb_S_E_link = "%s/season/%s" % (tmdb_link,
-                                                media_info.get_season_seq())
-                if media_info.get_episode_string():
-                    tmdb_S_E_link = "%s/episode/%s" % (
-                        tmdb_S_E_link, media_info.get_episode_seq())
+        if tmdb_id and media_info.get_season_string():
+            tmdb_S_E_link = f"{tmdb_link}/season/{media_info.get_season_seq()}"
+            if media_info.get_episode_string():
+                tmdb_S_E_link = f"{tmdb_S_E_link}/episode/{media_info.get_episode_seq()}"
         return {
             "type": media_info.type.value if media_info.type else "",
             "name": media_info.get_name(),
@@ -385,7 +358,7 @@ class MediaUtils:
             "1.0 0.7": "70%",
             "1.0 0.3": "30%"
         }
-        return free_strs.get('%.1f %.1f' % (upload_volume_factor, download_volume_factor), "未知")
+        return free_strs.get(f'{upload_volume_factor:.1f} {download_volume_factor:.1f}', "未知")
     
     @staticmethod
     def batch_convert_ch_season_info(season_list):
@@ -397,7 +370,7 @@ class MediaUtils:
         
         seasons = [
                 {
-                    "text": "第%s季" % StringUtils.number_to_cn(season.get("season_number")),
+                    "text": "第{}季".format(StringUtils.number_to_cn(season.get("season_number"))),
                     "num": season.get("season_number")
                 }
                 for season in season_list

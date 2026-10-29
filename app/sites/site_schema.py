@@ -1,26 +1,23 @@
 import requests
 
-from typing import List, Optional
-
 import log
-
 from app.helper import SubmoduleHelper
 from app.models.model import UserSiteConf
 from app.sites.siteuserinfo._base import _ISiteUserInfo
 from app.sites.siteuserinfo.mTorrent import MTorrentUserInfo
-from app.utils.types import Spider
-from app.utils.http_utils import RequestUtils
 from app.utils.commons import singleton
-
+from app.utils.http_utils import RequestUtils
+from app.utils.types import Spider
 from config import Config
 
+
 @singleton
-class SitesschemaCenter(object):
+class SitesschemaCenter:
     """
     站点解析中心单例
     """
 
-    _site_schema : List[_ISiteUserInfo] = []
+    _site_schema : list[_ISiteUserInfo] = []
 
     def __init__(self):
 
@@ -67,7 +64,7 @@ class SitesschemaCenter(object):
         # 解析站点类型
         site_schema = self.__build_class(html_text)
         if not site_schema:
-            log.error("【Sites】站点 %s 无法识别站点类型" % site_name)
+            log.error(f"【Sites】站点 {site_name} 无法识别站点类型")
             return None
         return site_schema(site_name, site_url, site_cookie, html_text, session=session, ua=ua, emulate=emulate, proxy=use_proxy)
 
@@ -88,7 +85,7 @@ class SitesschemaCenter(object):
                             site_cookie=None, 
                             ua=None, 
                             emulate=None, 
-                            proxy=False) -> Optional[str]:
+                            proxy=False) -> str | None:
         
         # 直接请求
         proxies = Config().get_proxies() if proxy else None

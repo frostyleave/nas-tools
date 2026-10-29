@@ -1,13 +1,11 @@
-# -*- coding: utf-8 -*-
 import json
 
 from lxml import etree
 
+import log
 from app.sites.siteuserinfo._base import SITE_BASE_ORDER
 from app.sites.siteuserinfo.nexus_php import NexusPhpSiteUserInfo
 from app.utils.types import SiteSchema
-
-import log
 
 
 class NexusRabbitSiteUserInfo(NexusPhpSiteUserInfo):

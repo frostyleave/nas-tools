@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import threading
 import time
 from collections import OrderedDict
@@ -21,7 +20,6 @@ def singleton(cls):
             with lock:
                 if cls not in INSTANCES:
                     INSTANCES[cls] = cls(*args, **kwargs)
-                    pass
         # 将实例对象返回
         return INSTANCES[cls]
 
@@ -45,9 +43,9 @@ def retry(ExceptionToCheck, tries=3, delay=3, backoff=2, logger=None):
                 try:
                     return f(*args, **kwargs)
                 except ExceptionToCheck as e:
-                    msg = f"{str(e)}, {mdelay} 秒后重试 ..."
+                    msg = f"{e!s}, {mdelay} 秒后重试 ..."
                     if logger:
-                        logger.warn(msg)
+                        logger.warning(msg)
                     else:
                         print(msg)
                     time.sleep(mdelay)

@@ -1,20 +1,17 @@
 import random
-
 from datetime import datetime
 from threading import Event
 
 from jinja2 import Template
 
 import log
-
 from app.conf import ModuleConf
-from app.helper import RssHelper
-from app.helper import ThreadHelper
+from app.helper import RssHelper, ThreadHelper
 from app.media import MediaService
 from app.mediaserver import MediaServer
-from app.plugins.modules._base import _IPluginModule
 from app.modules.subscribe import Subscribe
-from app.utils.types import SearchType, RssType, MediaType
+from app.plugins.modules._base import _IPluginModule
+from app.utils.types import MediaType, RssType, SearchType
 
 
 class MovieRandom(_IPluginModule):
@@ -256,7 +253,7 @@ class MovieRandom(_IPluginModule):
           }
         """
 
-    def init_config(self, config: dict = None):
+    def init_config(self, config: dict | None = None):
         self.mediaserver = MediaServer()
         self.subscribe = Subscribe()
         self.rsshelper = RssHelper()
@@ -276,7 +273,7 @@ class MovieRandom(_IPluginModule):
         if self.get_state() or self._onlyonce:
 
             if self._onlyonce:
-                self.info(f"电影随机服务启动，立即运行一次")
+                self.info("电影随机服务启动，立即运行一次")
                 ThreadHelper().start_thread(self.__random, ())
                 # 关闭一次性开关
                 self._onlyonce = False
@@ -326,8 +323,7 @@ class MovieRandom(_IPluginModule):
         log.info(f"当前所选条件下获取到电影数据 {random_max_page} 页，开始随机订阅")
 
         # ['page must be less than or equal to 500']
-        if random_max_page > 500:
-            random_max_page = 500
+        random_max_page = min(random_max_page, 500)
 
         movie_list = []
         retry_time = 0
@@ -387,12 +383,12 @@ class MovieRandom(_IPluginModule):
             in_from=SearchType.PLUGIN
         )
         if not rss_media or code != 0:
-            self.warn("%s 添加订阅失败：%s" % (title, msg))
+            self.warn(f"{title} 添加订阅失败：{msg}")
             # 订阅已存在
             if code == 9:
                 self.__update_history(media=media_info, state="RSS")
         else:
-            self.info("%s 添加订阅成功" % title)
+            self.info(f"{title} 添加订阅成功")
             # 插入为已RSS状态
             self.__update_history(media=media_info, state="RSS")
 

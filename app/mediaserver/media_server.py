@@ -1,10 +1,7 @@
 import json
 import threading
 
-from typing import Tuple
-
 import log
-
 from app.conf import SystemConfig
 from app.core.task_manager import TaskStore
 from app.db.media_db import MediaDb
@@ -14,7 +11,6 @@ from app.message import MessageService
 from app.utils.commons import singleton
 from app.utils.constants import Constants
 from app.utils.types import MediaServerType, SystemConfigKey
-
 from config import Config
 
 lock = threading.Lock()
@@ -65,7 +61,7 @@ class MediaServer:
                 self._server = self.__get_server(self._server_type)
             return self._server
 
-    def __get_server(self, ctype: Tuple[MediaServerType, str], conf=None):
+    def __get_server(self, ctype: tuple[MediaServerType, str], conf=None):
         return self.__build_class(ctype=ctype, conf=conf)
 
     def get_type(self):
@@ -253,7 +249,7 @@ class MediaServer:
                 if str(library.get("id")) not in librarys:
                     continue
                 # 获取媒体库所有项目
-                __update_progress(message="正在获取 %s 数据..." % (library.get("name")))
+                __update_progress(message="正在获取 {} 数据...".format(library.get("name")))
                 for item in self.get_items(library.get("id")):
                     if not item:
                         continue
@@ -268,7 +264,7 @@ class MediaServer:
                     # 更新进度
                     if total_media_count:
                         __update_progress(progress=round(100 * total_count / total_media_count, 1),
-                                          message="正在同步 %s，已完成：%s / %s ..." % (
+                                          message="正在同步 {}，已完成：{} / {} ...".format(
                                               library.get("name"), total_count, total_media_count))
                     # 插入数据
                     self.mediadb.insert(server_type=self._server_type,
@@ -281,8 +277,8 @@ class MediaServer:
                                     movie_count=movie_count,
                                     tv_count=tv_count)
             __update_progress(progress=100,
-                              message="媒体库数据同步完成，同步数量：%s" % total_count)
-            log.info("【MediaServer】媒体库数据同步完成，同步数量：%s" % total_count)
+                              message=f"媒体库数据同步完成，同步数量：{total_count}")
+            log.info(f"【MediaServer】媒体库数据同步完成，同步数量：{total_count}")
 
     def check_item_exists(self,
                           mtype,
@@ -309,18 +305,14 @@ class MediaServer:
             return None
 
         # 剧集没有季时默认为第1季
-        if mtype not in Constants.MOVIE_TYPES:
-            if not season:
-                season = 1
+        if mtype not in Constants.MOVIE_TYPES and not season:
+            season = 1
         if season:
             # 匹配剧集是否存在
             seasoninfos = json.loads(media.JSON or "[]")
             for seasoninfo in seasoninfos:
-                if seasoninfo.get("season_num") == int(season):
-                    if not episode:
-                        return media.ITEM_ID
-                    elif seasoninfo.get("episode_num") == int(episode):
-                        return media.ITEM_ID
+                if seasoninfo.get("season_num") == int(season) and (not episode or seasoninfo.get("episode_num") == int(episode)):
+                    return media.ITEM_ID
             return None
         else:
             return media.ITEM_ID
@@ -367,7 +359,7 @@ class MediaServer:
         try:
             event_info = self.server.get_webhook_message(message)
         except Exception as e:
-            log.exception(f"【MediaServer】webhook 消息解析异常: ")
+            log.exception("【MediaServer】webhook 消息解析异常: ")
 
         if event_info:
             # 获取消息图片

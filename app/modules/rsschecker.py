@@ -1,35 +1,30 @@
 import json
-import jsonpath
 import time
 
-from typing import Optional
-
+import jsonpath
 from apscheduler.executors.pool import ThreadPoolExecutor
-from apscheduler.triggers.cron import CronTrigger
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.schedulers.base import STATE_STOPPED
-
+from apscheduler.triggers.cron import CronTrigger
 from lxml import etree
 
 import log
-
 from app.downloader import Downloader
-from app.modules.filter import Filter
 from app.helper import DbHelper, RssHelper
 from app.media import MediaService
 from app.media.meta import MetaInfo
 from app.message import MessageService
+from app.modules.filter import Filter
 from app.modules.searcher import Searcher
 from app.modules.subscribe import Subscribe
 from app.utils import RequestUtils, StringUtils
 from app.utils.commons import singleton
-from app.utils.types import MediaType, SearchType, RssType
-
+from app.utils.types import MediaType, RssType, SearchType
 from config import Config
 
 
 @singleton
-class RssChecker(object):
+class RssChecker:
     message = None
     searcher = None
     filter = None
@@ -48,7 +43,7 @@ class RssChecker(object):
         "S": "搜索"
     }
 
-    _scheduler : Optional[BackgroundScheduler] = None
+    _scheduler : BackgroundScheduler | None = None
 
     def __init__(self):
         self.init_config()
@@ -96,7 +91,7 @@ class RssChecker(object):
                     note = {}
             save_path = note.get("save_path") or ""
             recognization = note.get("recognization") or "Y"
-            proxy = True if note.get("proxy") in ["Y", "1", True] else False
+            proxy = note.get("proxy") in ["Y", "1", True]
             try:
                 addresses = json.loads(task.ADDRESS)
                 if not isinstance(addresses, list):
@@ -111,7 +106,7 @@ class RssChecker(object):
             except Exception as e:
                 print(str(e))
                 parsers = [task.PARSER]
-            state = True if task.STATE in ["Y", "1", True] else False
+            state = task.STATE in ["Y", "1", True]
             self._rss_tasks.append({
                 "id": task.ID,
                 "name": task.NAME,
@@ -160,7 +155,7 @@ class RssChecker(object):
                                             trigger=CronTrigger.from_crontab(cron),
                                             name='[RSS]' + task.get('name'))
                 except Exception as e:
-                    log.error("%s 自定义订阅cron表达式 配置格式错误：%s %s" % (task.get("name"), cron, str(e)))
+                    log.error("{} 自定义订阅cron表达式 配置格式错误：{} {}".format(task.get("name"), cron, str(e)))
             
         # 启动
         self._scheduler.start()
@@ -200,10 +195,10 @@ class RssChecker(object):
             return
         rss_result = self.__parse_userrss_result(taskinfo)
         if len(rss_result) == 0:
-            log.warn("【RssChecker】%s 未下载到数据" % taskinfo.get("name"))
+            log.warn("【RssChecker】{} 未下载到数据".format(taskinfo.get("name")))
             return
         else:
-            log.info("【RssChecker】%s 获取数据：%s" % (taskinfo.get("name"), len(rss_result)))
+            log.info("【RssChecker】{} 获取数据：{}".format(taskinfo.get("name"), len(rss_result)))
         # 处理RSS结果
         res_num = 0
         no_exists = {}
@@ -228,13 +223,13 @@ class RssChecker(object):
                 if mediatype:
                     mediatype = MediaType.MOVIE if mediatype == "movie" else MediaType.TV
 
-                log.info("【RssChecker】开始处理：%s" % title)
+                log.info(f"【RssChecker】开始处理：{title}")
 
                 task_type = taskinfo.get("uses")
-                meta_name = "%s %s" % (title, year) if year else title
+                meta_name = f"{title} {year}" if year else title
                 # 检查是否已处理过
                 if self.is_article_processed(task_type, title, year, enclosure):
-                    log.info("【RssChecker】%s 已处理过" % title)
+                    log.info(f"【RssChecker】{title} 已处理过")
                     continue
 
                 if task_type == "D":
@@ -253,17 +248,17 @@ class RssChecker(object):
                             media_info = self.media.get_media_info(title=meta_name,
                                                                    mtype=mediatype)
                             if not media_info:
-                                log.warn("【RssChecker】%s 识别媒体信息出错！" % title)
+                                log.warn(f"【RssChecker】{title} 识别媒体信息出错！")
                                 continue
                             if not media_info.tmdb_info:
-                                log.debug("【RssChecker】%s 识别为 %s 未匹配到媒体信息" % (title, media_info.get_name()))
+                                log.debug(f"【RssChecker】{title} 识别为 {media_info.get_name()} 未匹配到媒体信息")
                                 continue
                         # 检查是否已存在
                         if media_info.type == MediaType.MOVIE:
                             exist_flag, no_exists, _ = self.downloader.check_exists_medias(meta_info=media_info,
                                                                                            no_exists=no_exists)
                             if exist_flag:
-                                log.info("【RssChecker】电影 %s 已存在" % media_info.get_title_string())
+                                log.info(f"【RssChecker】电影 {media_info.get_title_string()} 已存在")
                                 continue
                         else:
                             exist_flag, no_exists, _ = self.downloader.check_exists_medias(meta_info=media_info,
@@ -273,12 +268,10 @@ class RssChecker(object):
                                 # 已全部存在
                                 if not no_exists or not no_exists.get(
                                         media_info.tmdb_id):
-                                    log.info("【RssChecker】电视剧 %s %s 已存在" % (
-                                        media_info.get_title_string(), media_info.get_season_episode_string()))
+                                    log.info(f"【RssChecker】电视剧 {media_info.get_title_string()} {media_info.get_season_episode_string()} 已存在")
                                 continue
                             if no_exists.get(media_info.tmdb_id):
-                                log.info("【RssChecker】%s 缺失季集：%s"
-                                         % (media_info.get_title_string(), no_exists.get(media_info.tmdb_id)))
+                                log.info(f"【RssChecker】{media_info.get_title_string()} 缺失季集：{no_exists.get(media_info.tmdb_id)}")
                     # 大小及种子页面
                     media_info.set_torrent_info(size=size,
                                                 page_url=page_url,
@@ -300,10 +293,7 @@ class RssChecker(object):
                         # 匹配优先级
                         media_info.set_torrent_info(res_order=res_order)
                         if taskinfo.get("recognization") == "Y":
-                            log.debug("【RssChecker】%s 识别为 %s %s 匹配成功" % (
-                                title,
-                                media_info.get_title_string(),
-                                media_info.get_season_episode_string()))
+                            log.debug(f"【RssChecker】{title} 识别为 {media_info.get_title_string()} {media_info.get_season_episode_string()} 匹配成功")
                             # 补充TMDB完整信息
                             if not media_info.tmdb_info:
                                 media_info.set_tmdb_info(self.media.get_tmdb_info(mtype=media_info.type,
@@ -315,7 +305,7 @@ class RssChecker(object):
                             log.info(f"【RssChecker】{title}  匹配成功")
                     # 添加下载列表
                     if not enclosure:
-                        log.warn("【RssChecker】%s RSS报文中没有enclosure种子链接" % taskinfo.get("name"))
+                        log.warn("【RssChecker】{} RSS报文中没有enclosure种子链接".format(taskinfo.get("name")))
                         continue
                     if media_info not in rss_download_torrents:
                         rss_download_torrents.append(media_info)
@@ -355,7 +345,7 @@ class RssChecker(object):
             except Exception as e:
                 log.exception("【RssChecker】处理RSS发生错误: ")
                 continue
-        log.info("【RssChecker】%s 处理结束，匹配到 %s 个有效资源" % (taskinfo.get("name"), res_num))
+        log.info("【RssChecker】{} 处理结束，匹配到 {} 个有效资源".format(taskinfo.get("name"), res_num))
         # 添加下载
         if rss_download_torrents:
             for media in rss_download_torrents:
@@ -372,7 +362,7 @@ class RssChecker(object):
                     downloader_name = self.downloader.get_downloader_conf(downloader_id).get("name")
                     self.dbhelper.insert_userrss_task_history(taskid, media.org_string, downloader_name)
                 else:
-                    log.error("【RssChecker】添加下载任务 %s 失败：%s" % (
+                    log.error("【RssChecker】添加下载任务 {} 失败：{}".format(
                         media.get_title_string(), ret_msg or "请检查下载任务是否已存在"))
         # 添加订阅
         if rss_subscribe_torrents:
@@ -386,7 +376,7 @@ class RssChecker(object):
                     season=media.begin_season,
                     rss_sites=taskinfo.get("sites", {}).get("rss_sites"),
                     search_sites=taskinfo.get("sites", {}).get("search_sites"),
-                    over_edition=True if taskinfo.get("over_edition") else False,
+                    over_edition=bool(taskinfo.get("over_edition")),
                     filter_restype=taskinfo.get("filter_args", {}).get("restype"),
                     filter_pix=taskinfo.get("filter_args", {}).get("pix"),
                     filter_team=taskinfo.get("filter_args", {}).get("team"),
@@ -396,7 +386,7 @@ class RssChecker(object):
                     in_from=SearchType.USERRSS
                 )
                 if not rss_media or code != 0:
-                    log.warn("【RssChecker】%s 添加订阅失败：%s" % (media.get_name(), msg))
+                    log.warn(f"【RssChecker】{media.get_name()} 添加订阅失败：{msg}")
 
         # 更新状态
         counter = len(rss_download_torrents) + len(rss_subscribe_torrents) + len(rss_search_torrents)
@@ -444,7 +434,7 @@ class RssChecker(object):
                 except Exception as e:
                     log.exception("【RssChecker】任务 %s 配置解析器 %s 附加参数不合法:", task_name, parser_name)
                     continue
-                rss_url = "%s?%s" % (rss_url, param_url) if rss_url.find("?") == -1 else "%s&%s" % (rss_url, param_url)
+                rss_url = f"{rss_url}?{param_url}" if rss_url.find("?") == -1 else f"{rss_url}&{param_url}"
             # 请求数据
             try:
                 ret = RequestUtils(proxies=Config().get_proxies() if taskinfo.get("proxy") else None
@@ -465,7 +455,7 @@ class RssChecker(object):
                         for key, attr in rss_parser_format.get("item", {}).items():
                             if attr.get("path"):
                                 if attr.get("namespaces"):
-                                    value = item.xpath("//ns:%s" % attr.get("path"),
+                                    value = item.xpath("//ns:{}".format(attr.get("path")),
                                                        namespaces={"ns": attr.get("namespaces")})
                                 else:
                                     value = item.xpath(attr.get("path"))
@@ -592,7 +582,7 @@ class RssChecker(object):
         else:
             media_info = self.media.get_media_info(title=title)
             if not media_info:
-                log.warn("【RssChecker】%s 识别媒体信息出错！" % title)
+                log.warn(f"【RssChecker】{title} 识别媒体信息出错！")
         # 检查是否匹配
         filter_args = {
             "include": taskinfo.get("include"),
@@ -605,29 +595,25 @@ class RssChecker(object):
         if not match_flag:
             log.debug(f"【RssChecker】{match_msg}")
         else:
-            log.debug("【RssChecker】%s 识别为 %s %s 匹配成功" % (
-                title,
-                media_info.get_title_string(),
-                media_info.get_season_episode_string()))
+            log.debug(f"【RssChecker】{title} 识别为 {media_info.get_title_string()} {media_info.get_season_episode_string()} 匹配成功")
         media_info.set_torrent_info(res_order=res_order)
         # 检查是否已存在
         no_exists = {}
         exist_flag = False
         if not media_info.tmdb_id:
-            log.debug("【RssChecker】%s 识别为 %s 未匹配到媒体信息" % (title, media_info.get_name()))
+            log.debug(f"【RssChecker】{title} 识别为 {media_info.get_name()} 未匹配到媒体信息")
         else:
             if media_info.type == MediaType.MOVIE:
                 exist_flag, no_exists, _ = self.downloader.check_exists_medias(meta_info=media_info,
                                                                                no_exists=no_exists)
                 if exist_flag:
-                    log.info("【RssChecker】电影 %s 已存在" % media_info.get_title_string())
+                    log.info(f"【RssChecker】电影 {media_info.get_title_string()} 已存在")
             else:
                 exist_flag, no_exists, _ = self.downloader.check_exists_medias(meta_info=media_info,
                                                                                no_exists=no_exists)
-                if exist_flag:
-                    # 已全部存在
-                    if not no_exists or not no_exists.get( media_info.tmdb_id):
-                        log.info("【RssChecker】电视剧 %s %s 已存在", media_info.get_title_string(), media_info.get_season_episode_string())
+                # 已全部存在
+                if exist_flag and (not no_exists or not no_exists.get( media_info.tmdb_id)):
+                    log.info("【RssChecker】电视剧 %s %s 已存在", media_info.get_title_string(), media_info.get_season_episode_string())
                 if no_exists.get(media_info.tmdb_id):
                     log.info("【RssChecker】%s 缺失季集：%s", media_info.get_title_string(), no_exists.get(media_info.tmdb_id))
         return media_info, match_flag, exist_flag
@@ -697,7 +683,7 @@ class RssChecker(object):
                 # 登记自定义RSS任务下载记录
                 self.dbhelper.insert_userrss_task_history(taskid, media.org_string, downloader_name)
             else:
-                log.error("【RssChecker】添加下载任务 %s 失败：%s" % (
+                log.error("【RssChecker】添加下载任务 {} 失败：{}".format(
                     media.get_title_string(), ret_msg or "请检查下载任务是否已存在"))
                 return False
         return True

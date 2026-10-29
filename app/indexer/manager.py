@@ -1,13 +1,10 @@
 import json
 
-from typing import List, Optional
-
 import log
-
 from app.helper.db_helper import DbHelper
-from app.models.model import UserSiteConf, SiteBaseModel, IndexerInfo
-from app.utils.site_utils import SiteUtils
+from app.models.model import IndexerInfo, SiteBaseModel, UserSiteConf
 from app.utils.commons import singleton
+from app.utils.site_utils import SiteUtils
 
 
 @singleton
@@ -16,7 +13,7 @@ class IndexerManager:
     站点索引配置管理器
     """
 
-    _indexers : List[SiteBaseModel] = []
+    _indexers : list[SiteBaseModel] = []
 
     def __init__(self):
         self.init_config()
@@ -56,7 +53,7 @@ class IndexerManager:
         """
         return self._indexers
 
-    def get_indexer_base_by_id(self, indexer_id) -> Optional[SiteBaseModel]:
+    def get_indexer_base_by_id(self, indexer_id) -> SiteBaseModel | None:
         """
         根据url获取对应的站点索引基础配置
         :param indexer_id: indexer_id
@@ -68,7 +65,7 @@ class IndexerManager:
                 return indexer
         return None
     
-    def get_indexer_base(self, url, public=False) -> Optional[SiteBaseModel]:
+    def get_indexer_base(self, url, public=False) -> SiteBaseModel | None:
         """
         根据url获取对应的站点索引基础配置
         :param url: 详情页面地址
@@ -81,7 +78,7 @@ class IndexerManager:
                 return indexer
         return None
 
-    def get_public_indexer_base_by_name(self, site_name) -> Optional[SiteBaseModel]:
+    def get_public_indexer_base_by_name(self, site_name) -> SiteBaseModel | None:
         """
         根据名称查询对应的公共站点基础索引配置
         :param site_name: 站点名称
@@ -91,7 +88,7 @@ class IndexerManager:
                 return indexer
         return None
 
-    def build_indexer_conf(self, url, site_conf:UserSiteConf=None) -> Optional[IndexerInfo]:
+    def build_indexer_conf(self, url, site_conf:UserSiteConf=None) -> IndexerInfo | None:
         """
         根据url获取并生成相应的索引器配置
         """

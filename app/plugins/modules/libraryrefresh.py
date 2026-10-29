@@ -1,10 +1,10 @@
+from datetime import datetime, timedelta
+
+import log
 from app.mediaserver import MediaServer
 from app.plugins import EventHandler
 from app.plugins.modules._base import _IPluginModule
 from app.utils.types import EventType
-from datetime import datetime, timedelta
-
-import log
 
 
 class LibraryRefresh(_IPluginModule):
@@ -42,11 +42,10 @@ class LibraryRefresh(_IPluginModule):
             try:
                 # 延迟时间
                 delay = int(float(config.get("delay") or 0))
-                if delay < 0:
-                    delay = 0
+                delay = max(delay, 0)
                 self._refresh_delay = delay
             except Exception as e:
-                log.exception(f"【LibraryRefresh】延迟时间解析失败: ")
+                log.exception("【LibraryRefresh】延迟时间解析失败: ")
                 self._refresh_delay = 0
 
         self.stop_service()

@@ -2,19 +2,18 @@ import asyncio
 import json
 import re
 import time
-from typing import Any, Dict, List
+from typing import Any
 
 from fastapi import APIRouter, Query, Request, WebSocket, WebSocketDisconnect
 from fastapi.responses import StreamingResponse
 
 import log
-from log import log_buffer, active_sse_queues
-
 from app.core.cmd_handler import CommandHandler
 from app.core.task_manager import TaskStore
 from app.message.message_center import SysMessageCenter
 from app.middleware.security import get_current_user
 from app.utils.types import SearchType
+from log import active_sse_queues, log_buffer
 
 # 流式/实时路由
 streaming_router = APIRouter()
@@ -32,7 +31,7 @@ SSE_HEADERS = {
 }
 
 
-def _sse_event(records: List[Dict[str, Any]]) -> str:
+def _sse_event(records: list[dict[str, Any]]) -> str:
     """把一条或多条日志打包成一条 SSE 事件"""
     return f"data: {json.dumps(records, ensure_ascii=False)}\n\n"
 
@@ -74,7 +73,7 @@ async def message_handler(websocket: WebSocket):
                 break
             except Exception as e:
                 # 其他异常，记录日志并退出
-                log.warn(f"[WebSocket-消息]接收消息异常: {str(e)}")
+                log.warn(f"[WebSocket-消息]接收消息异常: {e!s}")
                 break
 
             try:
@@ -134,7 +133,7 @@ async def message_handler(websocket: WebSocket):
                     break
 
     except Exception as e:
-        log.warn(f"[WebSocket-消息]连接异常: {str(e)}")
+        log.warn(f"[WebSocket-消息]连接异常: {e!s}")
         # 不要在连接异常时尝试发送消息
 
 
@@ -149,9 +148,9 @@ async def stream_logging(request: Request, source: str = ""):
     """
 
     # 创建此客户端专用的队列
-    my_queue: asyncio.Queue[Dict[str, Any]] = asyncio.Queue()
+    my_queue: asyncio.Queue[dict[str, Any]] = asyncio.Queue()
 
-    def match(log_data: Dict[str, Any]) -> bool:
+    def match(log_data: dict[str, Any]) -> bool:
         return bool(log_data) and (not source or log_data.get("source") == source)
 
     async def event_generator():
@@ -160,7 +159,7 @@ async def stream_logging(request: Request, source: str = ""):
             # 与历史重复的部分按 seq 去重, 做到不丢不重。
             active_sse_queues.append(my_queue)
 
-            pending: Dict[int, Dict[str, Any]] = {}
+            pending: dict[int, dict[str, Any]] = {}
             for log_data in list(log_buffer):
                 if match(log_data):
                     pending[log_data.get("seq")] = log_data
@@ -203,7 +202,7 @@ async def stream_logging(request: Request, source: str = ""):
                 "source": "System",
                 "level": "ERROR",
                 "time": time.strftime("%H:%M:%S"),
-                "text": f"实时日志连接异常: {str(e)}",
+                "text": f"实时日志连接异常: {e!s}",
             }])
         finally:
             log.debug("Removing client queue from active SSE listeners.")
@@ -264,7 +263,7 @@ async def sse_progress(
 
         except Exception as e:
             log.warn("[SSE-进度]连接异常: ")
-            yield f"data: {json.dumps({'code': -1, 'value': 0, 'text': f'进度连接异常: {str(e)}'})}\n\n"
+            yield f"data: {json.dumps({'code': -1, 'value': 0, 'text': f'进度连接异常: {e!s}'})}\n\n"
 
     return StreamingResponse(event_generator(), media_type="text/event-stream", headers=SSE_HEADERS)
 

@@ -1,5 +1,6 @@
-from app.plugins.modules._base import _IPluginModule
 from app.modules.sync import Sync
+from app.plugins.modules._base import _IPluginModule
+
 
 class SyncTimer(_IPluginModule):
     # 插件名称
@@ -67,7 +68,7 @@ class SyncTimer(_IPluginModule):
                 self._cron_job = self.add_cron_job(self.__timersync, self._cron, '目录定时同步')
 
     def get_state(self):
-        return True if self._cron else False
+        return bool(self._cron)
 
     def __timersync(self):
         """

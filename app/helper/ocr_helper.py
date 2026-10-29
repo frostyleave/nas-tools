@@ -3,7 +3,6 @@ import base64
 from app.utils import RequestUtils
 from config import Config
 
-
 OCR_B64_URL = "https://ocr.ddsrem.com/captcha/base64"
 
 
@@ -27,9 +26,8 @@ class OcrHelper:
 
         if image_url:
             ret = RequestUtils(ua=ua, cookies=cookie).get_res(image_url)
-            if ret is not None:
-                if ret.content:
-                    image_b64 = base64.b64encode(ret.content).decode()
+            if ret is not None and ret.content:
+                image_b64 = base64.b64encode(ret.content).decode()
 
         if not image_b64:
             return ""

@@ -2,16 +2,13 @@ import queue
 import threading
 import time
 import uuid
-
 from enum import Enum
 from multiprocessing import Queue
 from queue import Empty
-from typing import Dict, Any, Optional
+from typing import Any, Dict, Optional
 
 import log
-
 from app.utils.commons import singleton
-
 
 # 1. 共享的状态存储（受锁保护）
 TASK_STORE: Dict[str, Any] = {}
@@ -20,7 +17,7 @@ TASK_STORE_LOCK: threading.Lock = threading.Lock()
 # 3. 线程安全的队列 (生产者/消费者模式)
 TASK_QUEUE: Queue = Queue()
 # 4. 消费者线程的引用
-_PROCESSOR_THREAD: Optional[threading.Thread] = None
+_PROCESSOR_THREAD: threading.Thread | None = None
 # 5. 用于优雅停止的“哨兵”
 _STOP_EVENT = "STOP"
 # 每 60 秒触发一次清理检查
@@ -83,9 +80,9 @@ class TaskStore:
     @staticmethod
     def _enqueue(task_id: str,
                  status: str,
-                 progress: Optional[int],
+                 progress: int | None,
                  progress_add: int,
-                 message: Optional[str],
+                 message: str | None,
                  result: Any = None) -> bool:
         """
         将任务更新消息放入队列，*不等待锁*；
@@ -108,8 +105,8 @@ class TaskStore:
 
     def update_task(self,
                     task_id: str,
-                    progress: Optional[int] = None,
-                    message: Optional[str] = None,
+                    progress: int | None = None,
+                    message: str | None = None,
                     progress_add: int = 0,
                     status: str = TaskStatus.PROCESSING.value):
         """
@@ -121,7 +118,7 @@ class TaskStore:
     def finish_task(self,
                     task_id: str,
                     result: Any = None,
-                    message: Optional[str] = None):
+                    message: str | None = None):
         """
         设置任务完成
         """
@@ -143,9 +140,8 @@ def _task_cleanup(now: float):
         if status == TaskStatus.FINISH.value:
             if now - updated_at >= TASK_TTL_SECONDS:
                 tasks_to_delete.append(task_id)
-        elif status == TaskStatus.PROCESSING.value:
-            if now - updated_at >= STALE_TASK_SECONDS:
-                tasks_to_delete.append(task_id)
+        elif status == TaskStatus.PROCESSING.value and now - updated_at >= STALE_TASK_SECONDS:
+            tasks_to_delete.append(task_id)
 
     for task_id in tasks_to_delete:
         TASK_STORE.pop(task_id, None)  # 安全删除

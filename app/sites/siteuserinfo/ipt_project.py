@@ -1,9 +1,8 @@
-# -*- coding: utf-8 -*-
 import re
 
 from lxml import etree
 
-from app.sites.siteuserinfo._base import _ISiteUserInfo, SITE_BASE_ORDER
+from app.sites.siteuserinfo._base import SITE_BASE_ORDER, _ISiteUserInfo
 from app.utils import StringUtils
 from app.utils.types import SiteSchema
 

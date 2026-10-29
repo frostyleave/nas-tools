@@ -3,7 +3,7 @@ import re
 from app.utils.types import MediaType
 
 
-class Constants(object):
+class Constants:
     """
     常量类
     """

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import re
 
 from app.sites.siteuserinfo._base import SITE_BASE_ORDER

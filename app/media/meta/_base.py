@@ -2,13 +2,11 @@ import regex as re
 import zhconv
 
 import log
-
 from app.media.category import Category
-from app.utils.string_utils import StringUtils
-from app.utils.media_utils import MediaUtils
 from app.utils.constants import Constants
+from app.utils.media_utils import MediaUtils
+from app.utils.string_utils import StringUtils
 from app.utils.types import MediaType
-
 from config import Config
 
 # 默认背景图地址
@@ -16,7 +14,7 @@ DEFAULT_TMDB_IMAGE = 'https://s3.bmp.ovh/imgs/2022/07/10/77ef9500c851935b.webp'
 # 电视剧动漫的分类genre_ids
 ANIME_GENREIDS = ['16']
 
-class MetaBase(object):
+class MetaBase:
     """
     媒体信息基类
     """
@@ -191,42 +189,42 @@ class MetaBase(object):
 
     def get_title_string(self):
         if self.title:
-            return "%s (%s)" % (self.title, self.year) if self.year else self.title
+            return f"{self.title} ({self.year})" if self.year else self.title
         elif self.get_name():
-            return "%s (%s)" % (self.get_name(), self.year) if self.year else self.get_name()
+            return f"{self.get_name()} ({self.year})" if self.year else self.get_name()
         else:
             return ""
 
     def get_star_string(self):
         if self.vote_average:
-            return "评分：%s" % self.get_stars()
+            return f"评分：{self.get_stars()}"
         else:
             return ""
 
     def get_vote_string(self):
         if self.vote_average:
-            return "评分：%s" % round(float(self.vote_average), 1)
+            return f"评分：{round(float(self.vote_average), 1)}"
         else:
             return ""
 
     def get_type_string(self):
         if not self.type:
             return ""
-        return "类型：%s" % self.type.value
+        return f"类型：{self.type.value}"
 
     def get_title_vote_string(self):
         if not self.vote_average:
             return self.get_title_string()
         else:
-            return "%s\n%s" % (self.get_title_string(), self.get_vote_string())
+            return f"{self.get_title_string()}\n{self.get_vote_string()}"
 
     def get_title_ep_string(self):
         string = self.get_title_string()
         if self.get_episode_list():
-            string = "%s %s" % (string, self.get_season_episode_string())
+            string = f"{string} {self.get_season_episode_string()}"
         else:
             if self.get_season_list():
-                string = "%s %s" % (string, self.get_season_string())
+                string = f"{string} {self.get_season_string()}"
         return string
 
     def get_overview_string(self, max_len=140):
@@ -247,10 +245,9 @@ class MetaBase(object):
     # 返回季字符串
     def get_season_string(self):
         if self.begin_season is not None:
-            return "S%s" % str(self.begin_season).rjust(2, "0") \
+            return "S{}".format(str(self.begin_season).rjust(2, "0")) \
                 if self.end_season is None \
-                else "S%s-S%s" % \
-                     (str(self.begin_season).rjust(2, "0"),
+                else "S{}-S{}".format(str(self.begin_season).rjust(2, "0"),
                       str(self.end_season).rjust(2, "0"))
         else:
             if self.type == MediaType.MOVIE:
@@ -261,7 +258,7 @@ class MetaBase(object):
     # 返回begin_season 的Sxx
     def get_season_item(self):
         if self.begin_season is not None:
-            return "S%s" % str(self.begin_season).rjust(2, "0")
+            return "S{}".format(str(self.begin_season).rjust(2, "0"))
         else:
             if self.type == MediaType.MOVIE:
                 return ""
@@ -324,10 +321,9 @@ class MetaBase(object):
     def get_episode_string(self):
         if self.begin_episode is not None:
             padding_val = self.get_format_padding_val()
-            return "E%s" % str(self.begin_episode).rjust(padding_val, "0") \
+            return "E{}".format(str(self.begin_episode).rjust(padding_val, "0")) \
                 if self.end_episode is None \
-                else "E%s-E%s" % \
-                     (
+                else "E{}-E{}".format(
                          str(self.begin_episode).rjust(padding_val, "0"),
                          str(self.end_episode).rjust(padding_val, "0"))
         else:
@@ -356,7 +352,7 @@ class MetaBase(object):
 
     # 返回集的并列表达方式，用于支持单文件多集
     def get_episode_items(self):
-        return "E%s" % "E".join(str(episode).rjust(2, '0') for episode in self.get_episode_list())
+        return "E{}".format("E".join(str(episode).rjust(2, '0') for episode in self.get_episode_list()))
 
     # 返回单文件多集的集数表达方式，用于支持单文件多集
     def get_episode_seqs(self):
@@ -366,7 +362,7 @@ class MetaBase(object):
             if len(episodes) == 1:
                 return str(episodes[0])
             else:
-                return "%s-%s" % (episodes[0], episodes[-1])
+                return f"{episodes[0]}-{episodes[-1]}"
         else:
             return ""
 
@@ -386,11 +382,11 @@ class MetaBase(object):
             seaion = self.get_season_string()
             episode = self.get_episode_string()
             if seaion and episode:
-                return "%s %s" % (seaion, episode)
+                return f"{seaion} {episode}"
             elif seaion:
-                return "%s" % seaion
+                return f"{seaion}"
             elif episode:
-                return "%s" % episode
+                return f"{episode}"
         return ""
 
     # 返回资源类型字符串，含分辨率
@@ -460,13 +456,13 @@ class MetaBase(object):
     def get_detail_url(self):
         if self.tmdb_id:
             if str(self.tmdb_id).startswith("DB:"):
-                return "https://movie.douban.com/subject/%s" % str(self.tmdb_id).replace("DB:", "")
+                return "https://movie.douban.com/subject/{}".format(str(self.tmdb_id).replace("DB:", ""))
             elif self.type == MediaType.MOVIE:
-                return "https://www.themoviedb.org/movie/%s" % self.tmdb_id
+                return f"https://www.themoviedb.org/movie/{self.tmdb_id}"
             else:
-                return "https://www.themoviedb.org/tv/%s" % self.tmdb_id
+                return f"https://www.themoviedb.org/tv/{self.tmdb_id}"
         elif self.douban_id:
-            return "https://movie.douban.com/subject/%s" % self.douban_id.split(",")[0]
+            return "https://movie.douban.com/subject/{}".format(self.douban_id.split(",")[0])
         return ""
 
     # 返回评分星星个数
@@ -655,7 +651,7 @@ class MetaBase(object):
         title_text = f" {title_text} "
         if re.search(r'[全第季集话話期]', title_text, re.IGNORECASE):
             # 第x-y季
-            season_range = re.findall(r'%s' % self._subtitle_season_range_re, title_text, re.IGNORECASE)
+            season_range = re.findall(rf'{self._subtitle_season_range_re}', title_text, re.IGNORECASE)
             if season_range:
                 try:
                     range_item = season_range[0]
@@ -667,7 +663,7 @@ class MetaBase(object):
                     log.exception("【Meta】副标题-季集范围解析 出错: ")
                     return
             # 第x季
-            season_str = re.search(r'%s' % self._subtitle_season_re, title_text, re.IGNORECASE)
+            season_str = re.search(rf'{self._subtitle_season_re}', title_text, re.IGNORECASE)
             if season_str:
                 seasons = season_str.group(1)
                 if seasons:
@@ -698,7 +694,7 @@ class MetaBase(object):
                 self.type = MediaType.TV
                 self._subtitle_flag = True
             # 第x集
-            episode_str = re.search(r'%s' % self._subtitle_episode_re, title_text, re.IGNORECASE)
+            episode_str = re.search(rf'{self._subtitle_episode_re}', title_text, re.IGNORECASE)
             if episode_str:
                 episodes = episode_str.group(1)
                 if episodes:
@@ -728,9 +724,9 @@ class MetaBase(object):
                 self.type = MediaType.TV
                 self._subtitle_flag = True
             # 第x-y集
-            episode_range = re.findall(r'%s' % self._subtitle_episode_range_re, title_text, re.IGNORECASE)
+            episode_range = re.findall(rf'{self._subtitle_episode_range_re}', title_text, re.IGNORECASE)
             if not episode_range:
-                episode_range = re.findall(r'%s' % self._subtitle_episode_range_re_2, title_text, re.IGNORECASE)
+                episode_range = re.findall(rf'{self._subtitle_episode_range_re_2}', title_text, re.IGNORECASE)
             if episode_range:
                 try:
                     range_item = episode_range[0]
@@ -746,7 +742,7 @@ class MetaBase(object):
                     log.exception("【Meta】副标题-集范围解析 出错: ")
                     return
             # x集全
-            episode_all_str = re.search(r'%s' % self._subtitle_episode_all_re, title_text, re.IGNORECASE)
+            episode_all_str = re.search(rf'{self._subtitle_episode_all_re}', title_text, re.IGNORECASE)
             if episode_all_str:
                 episode_all = episode_all_str.group(1)
                 if not episode_all:
@@ -762,7 +758,7 @@ class MetaBase(object):
                         log.exception("【Meta】副标题-集范围解析 出错: ")
                         return
             # 全x季 x季全
-            season_all_str = re.search(r"%s" % self._subtitle_season_all_re, title_text, re.IGNORECASE)
+            season_all_str = re.search(rf"{self._subtitle_season_all_re}", title_text, re.IGNORECASE)
             if season_all_str:
                 season_all = season_all_str.group(1)
                 if not season_all:
@@ -778,7 +774,7 @@ class MetaBase(object):
                     self.type = MediaType.TV
                     self._subtitle_flag = True
         elif not self.begin_episode:
-            episode_range = re.findall(r'%s' % self._subtitle_episode_range_simple, title_text, re.IGNORECASE)
+            episode_range = re.findall(rf'{self._subtitle_episode_range_simple}', title_text, re.IGNORECASE)
             if episode_range:
                 try:
                     range_item = episode_range[0]

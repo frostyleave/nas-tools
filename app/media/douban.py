@@ -1,14 +1,13 @@
 import random
-import log
-
 from time import sleep
-from typing import Optional
 
+import log
 from app.media.doubanapi import DoubanApi, DoubanWebApi
 from app.media.meta import MetaInfo
 from app.utils import StringUtils
 from app.utils.commons import singleton
 from app.utils.types import MediaType
+
 
 @singleton
 class DouBan:
@@ -30,7 +29,7 @@ class DouBan:
         """
         根据imdb id查询豆瓣id
         """
-        log.info("【Douban】正在通过imdbid查询豆瓣详情: %s" % imdbid)
+        log.info(f"【Douban】正在通过imdbid查询豆瓣详情: {imdbid}")
         return self.doubanapi.imdbid(imdbid)
     
     def tv_search(self, key_word, start=0, count=30):
@@ -40,13 +39,13 @@ class DouBan:
         """
         聚合搜索
         """
-        log.info("【Douban】正在通过关键字查询豆瓣详情: %s" % key_word)
+        log.info(f"【Douban】正在通过关键字查询豆瓣详情: {key_word}")
         douban_info = self.doubanapi.search_agg(key_word, start=start, count=count)
         if not douban_info:
-            log.warn("【Douban】%s 未找到豆瓣详细信息" % key_word)
+            log.warn(f"【Douban】{key_word} 未找到豆瓣详细信息")
             return None
         if douban_info.get("localized_message"):
-            log.warn("【Douban】查询豆瓣详情错误: %s" % douban_info.get("localized_message"))
+            log.warn("【Douban】查询豆瓣详情错误: {}".format(douban_info.get("localized_message")))
             return None
 
         result_items = []
@@ -59,7 +58,7 @@ class DouBan:
             result_items.extend(douban_info['smart_box'])
 
         if len(result_items) == 0:
-            log.warn("【Douban】%s 查询结果为空" % key_word)
+            log.warn(f"【Douban】{key_word} 查询结果为空")
             return None
 
         return result_items
@@ -118,12 +117,12 @@ class DouBan:
             detail_list.append(detail_item)
         return detail_list
     
-    def search_agg_by_page(self, key_word, page, mtype : Optional[MediaType] = None):
+    def search_agg_by_page(self, key_word, page, mtype : MediaType | None = None):
         douban_info = self.doubanapi.search_agg(key_word)
         if not douban_info:
             return None
         if douban_info.get("localized_message"):
-            log.warn("【Douban】查询豆瓣详情错误: %s" % douban_info.get("localized_message"))
+            log.warn("【Douban】查询豆瓣详情错误: {}".format(douban_info.get("localized_message")))
             return None
 
         result_items = []
@@ -147,7 +146,7 @@ class DouBan:
         return detail_list
     
     # 媒体资源类型是否适用
-    def is_target_type_match(self, item_type, mtype : Optional[MediaType] = None):
+    def is_target_type_match(self, item_type, mtype : MediaType | None = None):
         if not item_type:
             return False
         if item_type != 'tv' and item_type != 'movie':
@@ -241,23 +240,23 @@ class DouBan:
         """
         根据豆瓣ID返回豆瓣详情，带休眠
         """
-        log.info("【Douban】正在通过API查询豆瓣详情: %s" % doubanid)
+        log.info(f"【Douban】正在通过API查询豆瓣详情: {doubanid}")
         # 随机休眠
         if wait:
             time = round(random.uniform(1, 5), 1)
-            log.info("【Douban】随机休眠: %s 秒" % time)
+            log.info(f"【Douban】随机休眠: {time} 秒")
             sleep(time)
 
         douban_info = self.doubanapi.movie_detail(doubanid)
         if not douban_info:
-            log.warn("【Douban】%s 豆瓣详细信息查询失败" % doubanid)
+            log.warn(f"【Douban】{doubanid} 豆瓣详细信息查询失败")
             return None
         
         title = douban_info.get('title')
         if not title or title == "未知电影" or title == "未知电视剧":
             return None
         
-        log.info("【Douban】查询到数据: %s" % title)
+        log.info(f"【Douban】查询到数据: {title}")
 
         original_title = douban_info.get("original_title")
         # 如果标题中包含原始标题，则去除原始标题部分
@@ -353,9 +352,9 @@ class DouBan:
                 if meta_info.type != MediaType.TV:
                     continue
                 meta_info.begin_episode = int(episode)
-                meta_info.title = "%s 第%s集" % (meta_info.title, episode)
+                meta_info.title = f"{meta_info.title} 第{episode}集"
             meta_info.year = item.get("year")
-            meta_info.tmdb_id = "DB:%s" % item.get("id")
+            meta_info.tmdb_id = "DB:{}".format(item.get("id"))
             meta_info.douban_id = item.get("id")
             meta_info.overview = item.get("card_subtitle") or ""
             meta_info.poster_path = item.get("cover_url").split('?')[0]
@@ -371,7 +370,7 @@ class DouBan:
         :param doubanid: 豆瓣ID
         :return: {title, year, intro, cover_url, rating{value}, episodes_count}
         """
-        log.info("【Douban】正在通过网页API查询豆瓣详情: %s" % doubanid)
+        log.info(f"【Douban】正在通过网页API查询豆瓣详情: {doubanid}")
         douban_id = doubanid.split(',')[0]
         web_info = self.webapi.movie_detail(subject_id=douban_id)
         if not web_info:
@@ -431,11 +430,11 @@ class DouBan:
             if imdbid:
                 ret_media['imdbid'] = str(imdbid).strip()
         except Exception as err:
-            log.exception(f"【Douban】从豆瓣详情页抓取媒体信息异常: ")
+            log.exception("【Douban】从豆瓣详情页抓取媒体信息异常: ")
         if ret_media:
-            log.info("【Douban】查询到数据: %s" % ret_media.get("title"))
+            log.info("【Douban】查询到数据: {}".format(ret_media.get("title")))
         else:
-            log.warn("【Douban】%s 未查询到豆瓣数据: %s" % doubanid)
+            log.warn("【Douban】{} 未查询到豆瓣数据: {}".format(*doubanid))
         return ret_media
 
     def get_douban_online_movie(self, page=1):
@@ -581,8 +580,7 @@ class DouBan:
 
             # 简介
             overview = info.get("card_subtitle") or ""
-            if not year and overview:
-                if overview.split("/")[0].strip().isdigit():
+            if not year and overview and overview.split("/")[0].strip().isdigit():
                     year = overview.split("/")[0].strip()
 
             # 高清海报
@@ -595,7 +593,7 @@ class DouBan:
                 continue
 
             ret_infos.append({
-                'id': "DB:%s" % rid,
+                'id': f"DB:{rid}",
                 'orgid': rid,
                 'title': title,
                 'type': type_str,

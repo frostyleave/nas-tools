@@ -1,24 +1,22 @@
 import re
 import time
-
-from apscheduler.job import Job
 from copy import deepcopy
 from threading import Event
 from typing import Optional
 
+from apscheduler.job import Job
 from jinja2 import Template
 from lxml import etree
 
 from app.downloader import Downloader
 from app.helper import ThreadHelper
 from app.media.meta import MetaInfo
+from app.models.model import UserSiteConf
 from app.plugins.modules._base import _IPluginModule
 from app.plugins.modules.iyuu.iyuu_helper import IyuuHelper
-from app.models.model import UserSiteConf
 from app.sites import Sites
 from app.utils import RequestUtils
 from app.utils.types import DownloaderType
-
 from config import Config
 
 
@@ -90,7 +88,7 @@ class IYUUAutoSeedEnhance(_IPluginModule):
     _version = "2.0.0"
     _api_base = "https://api.iyuu.cn/%s"
 
-    _check_job : Optional[Job] = None
+    _check_job : Job | None = None
 
     @staticmethod
     def get_fields():
@@ -243,7 +241,7 @@ class IYUUAutoSeedEnhance(_IPluginModule):
 
             # 立即运行一次
             if self._onlyonce:
-                self.info(f"辅种服务启动，立即运行一次")
+                self.info("辅种服务启动，立即运行一次")
                 ThreadHelper().start_thread(self.auto_seed, ())
                 # 关闭一次性开关
                 self._onlyonce = False
@@ -263,7 +261,7 @@ class IYUUAutoSeedEnhance(_IPluginModule):
                     self._check_job = self.get_scheduler().add_job(self.check_recheck, 'interval', minutes=3, name='IYUU自动辅种校验')
 
     def get_state(self):
-        return True if self._enable and self._cron and self._token and self._downloaders else False
+        return bool(self._enable and self._cron and self._token and self._downloaders)
 
     def get_page(self):
         """
@@ -560,7 +558,7 @@ class IYUUAutoSeedEnhance(_IPluginModule):
             hash_strs = []
             for torrent in torrents:
                 if self._event.is_set():
-                    self.info(f"辅种服务停止")
+                    self.info("辅种服务停止")
                     return
                 # 获取种子hash
                 hash_str = self.__get_hash(torrent, downloader_type)
@@ -596,21 +594,20 @@ class IYUUAutoSeedEnhance(_IPluginModule):
                 # 触发校验检查
                 self.check_recheck()
             else:
-                self.info(f"没有需要辅种的种子")
+                self.info("没有需要辅种的种子")
         # 保存缓存
         self.__update_config()
         # 发送消息
-        if self._notify:
-            if self.success or self.fail:
-                self.send_message(
-                    title="【IYUU自动辅种任务完成】",
-                    text=f"服务器返回可辅种总数：{self.total}\n"
-                         f"实际可辅种数：{self.realtotal}\n"
-                         f"已存在：{self.exist}\n"
-                         f"成功：{self.success}\n"
-                         f"失败：{self.fail}\n"
-                         f"{self.cached} 条失败记录已加入缓存"
-                )
+        if self._notify and (self.success or self.fail):
+            self.send_message(
+                title="【IYUU自动辅种任务完成】",
+                text=f"服务器返回可辅种总数：{self.total}\n"
+                     f"实际可辅种数：{self.realtotal}\n"
+                     f"已存在：{self.exist}\n"
+                     f"成功：{self.success}\n"
+                     f"失败：{self.fail}\n"
+                     f"{self.cached} 条失败记录已加入缓存"
+            )
         self.info("辅种任务执行完成")
 
     def check_recheck(self):
@@ -931,9 +928,7 @@ class IYUUAutoSeedEnhance(_IPluginModule):
                 return True
             if "hdcity.in" in url:
                 return True
-            if "totheglory.im" in url:
-                return True
-            return False
+            return "totheglory.im" in url
 
         try:
             if __is_special_site(site.strict_url):
@@ -1008,7 +1003,7 @@ class IYUUAutoSeedEnhance(_IPluginModule):
                 self.error(f"获取种子下载链接失败，请求失败：{page_url}，{res.status_code if res else ''}")
                 return None
         except Exception as e:
-            self.warn(f"获取种子下载链接失败：{str(e)}")
+            self.warn(f"获取种子下载链接失败：{e!s}")
             return None
 
     def stop_service(self):
@@ -1050,7 +1045,7 @@ class IYUUAutoSeedEnhance(_IPluginModule):
         elif ret is not None:
             return None, f"请求IYUU失败，状态码：{ret.status_code}，错误原因：{ret.reason}"
         else:
-            return None, f"请求IYUU失败，未获取到返回信息"
+            return None, "请求IYUU失败，未获取到返回信息"
 
     def __get_sites(self):
         """
@@ -1085,7 +1080,5 @@ class IYUUAutoSeedEnhance(_IPluginModule):
             return {}
 
     def __get_user(self):
-        result, msg = self.__request_iyuu(url=self._api_base % 'App.Api.GetUser')
-        if result and result.get("user") and result.get("user").get("username"):
-            return True
-        return False
+        result, _msg = self.__request_iyuu(url=self._api_base % 'App.Api.GetUser')
+        return bool(result and result.get("user") and result.get("user").get("username"))

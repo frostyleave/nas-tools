@@ -58,9 +58,8 @@ class PathUtils:
             return []
         for file in os.listdir(in_path):
             path = os.path.join(in_path, file)
-            if os.path.isfile(path):
-                if not exts or os.path.splitext(file)[-1].lower() in exts:
-                    ret_list.append(path)
+            if os.path.isfile(path) and (not exts or os.path.splitext(file)[-1].lower() in exts):
+                ret_list.append(path)
         return ret_list
 
     @staticmethod
@@ -90,10 +89,7 @@ class PathUtils:
         """
         if not path:
             return True
-        if path.find('/@Recycle/') != -1 or path.find('/#recycle/') != -1 or path.find('/.') != -1 or path.find(
-                '/@eaDir') != -1:
-            return True
-        return False
+        return bool(path.find('/@Recycle/') != -1 or path.find('/#recycle/') != -1 or path.find('/.') != -1 or path.find('/@eaDir') != -1)
 
     @staticmethod
     def is_path_in_path(path1, path2):
@@ -150,7 +146,7 @@ class PathUtils:
         """
         获取父目录路径，level为向上查找的层数
         """
-        for lv in range(0, level):
+        for lv in range(level):
             path = os.path.dirname(path)
         return path
 

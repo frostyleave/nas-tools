@@ -1,18 +1,16 @@
-from typing import Any, Dict, List, Optional
+from typing import Any, ClassVar
 
-from apscheduler.job import Job
+from apscheduler.events import EVENT_JOB_ERROR, EVENT_JOB_EXECUTED, EVENT_JOB_SUBMITTED
 from apscheduler.executors.pool import ThreadPoolExecutor
-from apscheduler.schedulers import SchedulerNotRunningError, SchedulerAlreadyRunningError
+from apscheduler.job import Job
+from apscheduler.schedulers import (
+    SchedulerAlreadyRunningError,
+    SchedulerNotRunningError,
+)
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.schedulers.base import STATE_STOPPED
-from apscheduler.events import (
-    EVENT_JOB_SUBMITTED,
-    EVENT_JOB_EXECUTED,
-    EVENT_JOB_ERROR
-)
 
 import log
-
 from app.utils.commons import singleton
 from config import Config
 
@@ -24,16 +22,13 @@ class JobCenter:
 
     # 系统任务管理器
     _sys_scheduler : BackgroundScheduler = BackgroundScheduler(timezone=_timezone, executors={"default": ThreadPoolExecutor(5)})
-    setattr(_sys_scheduler, 'name', '系统任务管理器')
+    _sys_scheduler.name = '系统任务管理器'
 
     # 插件任务管理器
     _plg_scheduler : BackgroundScheduler = BackgroundScheduler(timezone=_timezone, executors={"default": ThreadPoolExecutor(5)})
-    setattr(_plg_scheduler, 'name', '插件任务管理器')
+    _plg_scheduler.name = '插件任务管理器'
 
-    _scheduler_list = [
-        _sys_scheduler,
-        _plg_scheduler
-    ]
+    _scheduler_list : ClassVar[list] = (_sys_scheduler, _plg_scheduler)
 
     def __init__(self):
 
@@ -91,14 +86,14 @@ class JobCenter:
         """获取插件任务管理器"""
         return self._plg_scheduler
     
-    def get_job(self, job_id: str) -> Optional[Job]:
+    def get_job(self, job_id: str) -> Job | None:
         """获取单个 job 实例"""
         job = self._sys_scheduler.get_job(job_id)
         if job:
             return job
         return self._plg_scheduler.get_job(job_id)
     
-    def get_jobs(self) -> List[Dict[str, Any]]:
+    def get_jobs(self) -> list[dict[str, Any]]:
         """
         获取所有已注册的任务，并将其格式化为适合 API 返回的列表。
         """

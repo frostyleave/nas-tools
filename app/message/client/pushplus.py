@@ -1,10 +1,9 @@
 import time
 from urllib.parse import urlencode
 
+import log
 from app.message.client._base import _IMessageClient
 from app.utils import RequestUtils
-
-import log
 
 
 class PushPlus(_IMessageClient):
@@ -29,7 +28,7 @@ class PushPlus(_IMessageClient):
 
     @classmethod
     def match(cls, ctype):
-        return True if ctype == cls.schema else False
+        return ctype == cls.schema
 
     def send_msg(self, title, text="", image="", url="", user_id=""):
         """
@@ -56,7 +55,7 @@ class PushPlus(_IMessageClient):
                 "content": text,
                 "timestamp": time.time_ns() + 60
             }
-            sc_url = "http://www.pushplus.plus/send?%s" % urlencode(values)
+            sc_url = f"http://www.pushplus.plus/send?{urlencode(values)}"
             res = RequestUtils().get_res(sc_url)
             if res and res.status_code == 200:
                 ret_json = res.json()

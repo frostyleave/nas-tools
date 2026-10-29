@@ -1,17 +1,16 @@
 import os
 import signal
 import warnings
-import uvicorn
 
+import uvicorn
 from fastapi import FastAPI
 
 from config import Config
-
 from log import setup_logging
+
 setup_logging()
 
 import log
-
 
 # 导入FastAPI应用
 from main import app
@@ -33,7 +32,7 @@ def sigal_handler(num, stack):
     """
     信号处理
     """
-    log.warn('捕捉到退出信号：%s, 开始退出...' % num)
+    log.warn(f'捕捉到退出信号：{num}, 开始退出...')
 
     # 退出主进程
     log.info('退出主进程...')
@@ -106,13 +105,13 @@ def set_git_proxy():
 
         log.info('✅ Git 代理已设置')
     except Exception as e:
-        log.error(f'❌ 执行git config异常: {str(e)}')
+        log.error(f'❌ 执行git config异常: {e!s}')
 
 
 def init_system():
-    from app.core.initializer import init_data, update_config, check_config
+    from app.core.initializer import check_config, init_data, update_config
     # 配置
-    log.debug('NAStool 当前版本号：%s' % APP_VERSION)
+    log.debug(f'NAStool 当前版本号：{APP_VERSION}')
     # 数据初始化
     init_data()
     # 升级配置文件

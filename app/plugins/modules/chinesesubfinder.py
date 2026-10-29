@@ -5,7 +5,7 @@ from cachetools import TTLCache, cached
 from app.plugins import EventHandler
 from app.plugins.modules._base import _IPluginModule
 from app.utils import RequestUtils
-from app.utils.types import MediaType, EventType
+from app.utils.types import EventType, MediaType
 from config import Config
 
 
@@ -169,7 +169,7 @@ class ChineseSubFinder(_IPluginModule):
         if not item:
             return
 
-        req_url = "%sapi/v1/add-job" % self._host
+        req_url = f"{self._host}api/v1/add-job"
 
         item_media = item.get("media_info")
         item_type = item_media.get("type")
@@ -178,10 +178,10 @@ class ChineseSubFinder(_IPluginModule):
         item_file_ext = item.get("file_ext")
 
         if item_bluray:
-            file_path = "%s.mp4" % item_file
+            file_path = f"{item_file}.mp4"
         else:
             if os.path.splitext(item_file)[-1] != item_file_ext:
-                file_path = "%s%s" % (item_file, item_file_ext)
+                file_path = f"{item_file}{item_file_ext}"
             else:
                 file_path = item_file
 
@@ -204,7 +204,7 @@ class ChineseSubFinder(_IPluginModule):
     @cached(cache=TTLCache(maxsize=512, ttl=3600))
     def __request_csf(self, req_url, file_path, item_type, item_bluray):
         # 一个名称只建一个任务
-        self.info("通知ChineseSubFinder下载字幕: %s" % file_path)
+        self.info(f"通知ChineseSubFinder下载字幕: {file_path}")
         params = {
             "video_type": item_type,
             "physical_video_file_full_path": file_path,
@@ -214,7 +214,7 @@ class ChineseSubFinder(_IPluginModule):
         }
         try:
             res = RequestUtils(headers={
-                "Authorization": "Bearer %s" % self._api_key
+                "Authorization": f"Bearer {self._api_key}"
             }).post(req_url, json=params)
             if not res or res.status_code != 200:
                 self.error("调用ChineseSubFinder API失败！")
@@ -225,10 +225,10 @@ class ChineseSubFinder(_IPluginModule):
                     job_id = res.json().get("job_id")
                     message = res.json().get("message")
                     if not job_id:
-                        self.warn("ChineseSubFinder下载字幕出错：%s" % message)
+                        self.warn(f"ChineseSubFinder下载字幕出错：{message}")
                     else:
-                        self.info("ChineseSubFinder任务添加成功：%s" % job_id)
+                        self.info(f"ChineseSubFinder任务添加成功：{job_id}")
                 else:
-                    self.error("%s 目录缺失nfo元数据" % file_path)
+                    self.error(f"{file_path} 目录缺失nfo元数据")
         except Exception as e:
             self.error("连接ChineseSubFinder出错：" + str(e))

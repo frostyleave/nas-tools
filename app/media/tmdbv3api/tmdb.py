@@ -1,11 +1,9 @@
-# -*- coding: utf-8 -*-
 import logging
 import time
+from operator import attrgetter
 
 from cachetools import TTLCache, cachedmethod
-from operator import attrgetter
-from requests import Session, Response
-from typing import Dict, Optional
+from requests import Response, Session
 from urllib3.util.retry import Retry
 
 from app.models.model import SSLAdapter
@@ -17,21 +15,21 @@ from .exceptions import TMDbException
 logger = logging.getLogger(__name__)
 
 
-class TMDb(object):
+class TMDb:
 
-    _session : Optional[Session] = None
+    _session : Session | None = None
 
     _proxies = {}
     _language = 'zh'
     _domain = 'https://api.themoviedb.org/3'
     _api_key = ''
 
-    _cache : Optional[TTLCache] = None
+    _cache : TTLCache | None = None
     _debug = False
     _wait_on_rate_limit = False
 
     def __init__(self, 
-                 session: Optional[Session] = None,
+                 session: Session | None = None,
                  cache_ttl: int = 3600,
                  cache_size: int = 512,
         ):
@@ -99,7 +97,7 @@ class TMDb(object):
             return [AsObj(**res) for res in result[key]]
 
 
-    def _do_request(self, method: str, url: str, data: Optional[Dict] = None) -> Response:
+    def _do_request(self, method: str, url: str, data: dict | None = None) -> Response:
         """
         实际请求方法
         """
@@ -125,7 +123,7 @@ class TMDb(object):
                       frozenset(data.items()) if data else None
                     )
                 )
-    def _cache_request(self, method: str, url: str, data: Optional[Dict] = None) -> Response:
+    def _cache_request(self, method: str, url: str, data: dict | None = None) -> Response:
         """
         缓存请求
         """
@@ -136,21 +134,14 @@ class TMDb(object):
               append_to_response: str,
               call_cached: bool=True,
               method: str="GET", 
-              data: Optional[Dict]=None
+              data: dict | None=None
     ):
         if self._api_key is None or self._api_key == "":
             raise TMDbException("No API key found.")
         
         include_adult = Config().get_config('laboratory').get("search_adult")
 
-        url = "%s%s?api_key=%s&%s&language=%s&include_adult=%s" % (
-            self._domain,
-            action,
-            self._api_key,
-            append_to_response,
-            self._language,
-            str(include_adult)
-        )
+        url = f"{self._domain}{action}?api_key={self._api_key}&{append_to_response}&language={self._language}&include_adult={include_adult!s}"
 
         use_cache = call_cached and method.upper() != "POST"
         if use_cache:
@@ -170,14 +161,12 @@ class TMDb(object):
             sleep_time = self._reset - current_time
 
             if self._wait_on_rate_limit:
-                logger.warning("Rate limit reached. Sleeping for: %d" % sleep_time)
+                logger.warning(f"Rate limit reached. Sleeping for: {sleep_time}")
                 time.sleep(abs(sleep_time))
                 # 递归重试
                 return self._call(action, append_to_response, call_cached, method, data)
             else:
-                raise TMDbException(
-                    "Rate limit reached. Try again in %d seconds." % sleep_time
-                )
+                raise TMDbException(f"Rate limit reached. Try again in {sleep_time} seconds.")
 
         json = req.json()
 

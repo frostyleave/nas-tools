@@ -1,26 +1,23 @@
 import json
 import re
 import xml.dom.minidom
-
-from fastapi import APIRouter, Request, Response
 from typing import Optional
 
+from fastapi import APIRouter, Request, Response
+
+import log
 from app.conf.moduleconf import ModuleConf
 from app.core.cmd_handler import CommandHandler
-from app.helper import ThreadHelper, SecurityHelper
+from app.helper import SecurityHelper, ThreadHelper
 from app.media.meta.metainfo import MetaInfo
 from app.mediaserver.media_server import MediaServer
 from app.message import MessageService
-from app.plugins.event_manager import EventManager
+from app.middleware.security import auth_required
+from app.models.WXBizMsgCrypt3 import WXBizMsgCrypt
 from app.modules.subscribe import Subscribe
+from app.plugins.event_manager import EventManager
 from app.utils import DomUtils
 from app.utils.types import EventType, MediaServerType, MediaType, RssType, SearchType
-
-import log
-
-from app.models.WXBizMsgCrypt3 import WXBizMsgCrypt
-from app.middleware.security import auth_required
-
 
 # 开放接口路由
 open_router = APIRouter()
@@ -30,7 +27,7 @@ def send_text_response(content: str, status_code: int = 200) -> Response:
 
 # 微信回调
 @open_router.get("/wechat")
-async def wechat(request: Request, appid: Optional[str] = None):
+async def wechat(request: Request, appid: str | None = None):
 
     # 当前在用的交互渠道
     interactive_clients = MessageService().get_interactive_client(SearchType.WX)
@@ -66,7 +63,7 @@ async def wechat(request: Request, appid: Optional[str] = None):
     log.info(f"收到微信验证请求: echostr= {sVerifyEchoStr}")
     ret, sEchoStr = wxcpt.VerifyURL(sVerifyMsgSig, sVerifyTimeStamp, sVerifyNonce, sVerifyEchoStr)
     if ret != 0:
-        log.error(f"微信请求验证失败 VerifyURL ret: {str(ret)}")
+        log.error(f"微信请求验证失败 VerifyURL ret: {ret!s}")
 
     return send_text_response(content=sEchoStr, status_code=200)
 
@@ -114,7 +111,7 @@ async def wechat_post(request: Request):
 
         ret, sMsg = wxcpt.DecryptMsg(req_bytes, sVerifyMsgSig, sVerifyTimeStamp, sVerifyNonce)
         if ret != 0:
-            log.error(f"解密微信消息失败 DecryptMsg ret = {str(ret)}")
+            log.error(f"解密微信消息失败 DecryptMsg ret = {ret!s}")
             return Response(content="ok", status_code=200)
 
         # 解析XML
@@ -165,7 +162,7 @@ async def wechat_post(request: Request):
 # 微信发送消息
 @open_router.post("/sendwechat")
 @auth_required
-async def sendwechat(request: Request, appid: Optional[str] = None):
+async def sendwechat(request: Request, appid: str | None = None):
     
     if not SecurityHelper().check_mediaserver_ip(request.client.host):
         log.warn(f"非法IP地址的媒体服务器消息通知: {request.client.host}")

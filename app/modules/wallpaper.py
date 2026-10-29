@@ -3,11 +3,10 @@ import datetime
 
 from cachetools import TTLCache, cached
 
+import log
 from app.media import MediaService
 from app.utils import RequestUtils
 from config import Config
-
-import log
 
 
 def get_login_wallpaper(time_now=None):
@@ -59,7 +58,7 @@ def get_bing_wallpaper(today):
     """
     获取Bing每日壁纸
     """
-    url = "https://cn.bing.com/HPImageArchive.aspx?format=js&idx=0&n=1&today=%s" % today
+    url = f"https://cn.bing.com/HPImageArchive.aspx?format=js&idx=0&n=1&today={today}"
     try:
         resp = RequestUtils(timeout=5).get_res(url)
     except Exception as err:

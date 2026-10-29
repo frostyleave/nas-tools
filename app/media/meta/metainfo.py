@@ -1,16 +1,15 @@
 import os.path
-import regex as re
 
 import anitopy
+import regex as re
 
 from app.conf import ModuleConf
 from app.helper import WordsHelper
 from app.media.meta.metaanime import MetaAnime
 from app.media.meta.metavideo import MetaVideo
-from app.utils import StringUtils, ReleaseGroupsMatcher, MediaUtils
+from app.utils import MediaUtils, ReleaseGroupsMatcher, StringUtils
 from app.utils.constants import Constants
 from app.utils.types import MediaType
-
 
 NAME_NOSTRING_RE = r"高清影视之家发布|连载|日剧|美剧|电视剧|动画片|动漫|欧美|西德|日韩|超高清|高清|蓝光|翡翠台|梦幻天堂·龙网|★?\d?\+?\d*月?新?番★?|[日美国][漫剧]" \
                    r"|高码版|最终季|全集|合集|[多中国英葡法俄日韩德意西印泰台港粤双文语简繁体特效内封官译外挂]+[字|幕|配|音|轨]+|版本|出品|台版|港版|未删减版"
@@ -43,7 +42,7 @@ def MetaInfo(title, subtitle=None, mtype=None, no_extra=False):
         return meta_info
     
     # 预去除一些无用的词
-    rev_title = re.sub(r'%s' % NAME_NOSTRING_RE, "", title, flags=re.IGNORECASE)
+    rev_title = re.sub(rf'{NAME_NOSTRING_RE}', "", title, flags=re.IGNORECASE)
 
     # 应用自定义识别词，获取识别词处理后名称
     wordsHelper = WordsHelper()
@@ -141,9 +140,7 @@ def is_anime(name):
                  check_name,
                  re.IGNORECASE):
         return False
-    if re.search(r'\[[+0-9XVPI-]+]\s*\[', check_name, re.IGNORECASE):
-        return True
-    return False
+    return bool(re.search(r'\[[+0-9XVPI-]+]\s*\[', check_name, re.IGNORECASE))
 
 
 def identify_anime_year(meta_info: MetaAnime, anime_flag: bool, file_flag: bool):

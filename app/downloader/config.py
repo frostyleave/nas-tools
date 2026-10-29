@@ -9,15 +9,12 @@ import json
 import os
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Optional
+from typing import Any
 
 import log
-
-from app.conf import ModuleConf
-from app.conf import SystemConfig
+from app.conf import ModuleConf, SystemConfig
 from app.helper import DbHelper
-from app.utils import SystemUtils, NumberUtils, StringUtils
-from app.utils.constants import Constants
+from app.utils import NumberUtils, StringUtils, SystemUtils
 from app.utils.types import DownloaderType, SystemConfigKey
 
 # 标签隔离
@@ -55,12 +52,12 @@ class DownloadConfig:
     """
 
     def __init__(self):
-        self._dbhelper: Optional[DbHelper] = None
+        self._dbhelper: DbHelper | None = None
         self._downloader_confs: dict[str, DownloaderConfItem] = {}
         self._download_settings: dict[str, dict] = {}
         self._monitor_downloader_ids: list[int] = []
-        self._download_order: Optional[str] = None
-        self._DownloaderEnum: Optional[Enum] = None
+        self._download_order: str | None = None
+        self._DownloaderEnum: Enum | None = None
 
     def reload(self) -> None:
         """重新加载所有配置（从数据库）"""
@@ -196,7 +193,7 @@ class DownloadConfig:
         return ret_dict
 
     @property
-    def downloader_enum(self) -> Optional[Enum]:
+    def downloader_enum(self) -> Enum | None:
         """下载器ID-名称枚举"""
         return self._DownloaderEnum
 
@@ -279,7 +276,7 @@ class DownloadConfig:
         return list(set(visit_path_list))
 
     @property
-    def download_order(self) -> Optional[str]:
+    def download_order(self) -> str | None:
         """获取下载排序设置"""
         return self._download_order
 
@@ -314,7 +311,7 @@ class DownloadConfig:
         return {"path": None, "category": None}
 
     @staticmethod
-    def get_client_type(type_name) -> Optional[DownloaderType]:
+    def get_client_type(type_name) -> DownloaderType | None:
         """根据名称返回下载器类型"""
         if not type_name:
             return None

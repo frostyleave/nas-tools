@@ -1,14 +1,11 @@
 import os
 import threading
 
-from fastapi import FastAPI, Request, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.encoders import jsonable_encoder
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
-
-from app.middleware.staticfile import NoCacheStaticFiles
-from app.modules.wallpaper import get_login_wallpaper
 
 from app.api.action import action_router
 from app.api.auth import auth_router
@@ -16,9 +13,9 @@ from app.api.data import data_router
 from app.api.open import open_router
 from app.api.streaming import streaming_router
 from app.api.utility import utility_router
-
 from app.core.lifespan import lifespan
-
+from app.middleware.staticfile import NoCacheStaticFiles
+from app.modules.wallpaper import get_login_wallpaper
 from version import APP_VERSION
 
 # FastAPI App

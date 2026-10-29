@@ -1,8 +1,7 @@
 import os
-from urllib.parse import quote
-from urllib.parse import quote_plus
-from cachetools import TTLCache, cached
+from urllib.parse import quote, quote_plus
 
+from cachetools import TTLCache, cached
 from plexapi import media
 from plexapi.myplex import MyPlexAccount
 from plexapi.server import PlexServer
@@ -10,7 +9,6 @@ from plexapi.server import PlexServer
 import log
 from app.mediaserver.client._base import _IMediaClient
 from app.utils.types import MediaServerType, MediaType
-
 from config import Config
 
 
@@ -79,7 +77,7 @@ class Plex(_IMediaClient):
 
     @classmethod
     def match(cls, ctype):
-        return True if ctype in [cls.client_id, cls.client_type, cls.client_name] else False
+        return ctype in [cls.client_id, cls.client_type, cls.client_name]
 
     def get_type(self):
         return self.client_type
@@ -88,7 +86,7 @@ class Plex(_IMediaClient):
         """
         测试连通性
         """
-        return True if self._plex else False
+        return bool(self._plex)
 
     @staticmethod
     def get_user_count(**kwargs):
@@ -112,17 +110,16 @@ class Plex(_IMediaClient):
                 # 过滤掉最后播放时间为空的
                 if his.lastViewedAt:
                     if his.type == "episode":
-                        event_title = "%s %s%s %s" % (
+                        event_title = "{} {}{} {}".format(
                             his.grandparentTitle,
                             "S" + str(his.parentIndex),
                             "E" + str(his.index),
                             his.title
                         )
-                        event_str = "开始播放剧集 %s" % event_title
+                        event_str = f"开始播放剧集 {event_title}"
                     else:
-                        event_title = "%s %s" % (
-                            his.title, "(" + str(his.year) + ")")
-                        event_str = "开始播放电影 %s" % event_title
+                        event_title = "{} {}".format(his.title, "(" + str(his.year) + ")")
+                        event_str = f"开始播放电影 {event_title}"
 
                     event_type = "PL"
                     event_date = his.lastViewedAt.strftime('%Y-%m-%d %H:%M:%S')
@@ -242,7 +239,7 @@ class Plex(_IMediaClient):
         if not self._plex:
             return None
         try:
-            images = self._plex.fetchItems('/library/metadata/%s/posters' % item_id, cls=media.Poster)
+            images = self._plex.fetchItems(f'/library/metadata/{item_id}/posters', cls=media.Poster)
             for image in images:
                 if hasattr(image, 'key') and image.key.startswith('http'):
                     return image.key
@@ -262,9 +259,9 @@ class Plex(_IMediaClient):
             return None
         try:
             if image_type == "Poster":
-                images = self._plex.fetchItems('/library/metadata/%s/posters' % item_id, cls=media.Poster)
+                images = self._plex.fetchItems(f'/library/metadata/{item_id}/posters', cls=media.Poster)
             else:
-                images = self._plex.fetchItems('/library/metadata/%s/arts' % item_id, cls=media.Art)
+                images = self._plex.fetchItems(f'/library/metadata/{item_id}/arts', cls=media.Art)
             for image in images:
                 if hasattr(image, 'key') and image.key.startswith('http'):
                     return image.key
@@ -517,7 +514,7 @@ class Plex(_IMediaClient):
         if message.get('Metadata'):
             if message.get('Metadata', {}).get('type') == 'episode':
                 eventItem['item_type'] = "TV"
-                eventItem['item_name'] = "%s %s%s %s" % (
+                eventItem['item_name'] = "{} {}{} {}".format(
                     message.get('Metadata', {}).get('grandparentTitle'),
                     "S" + str(message.get('Metadata', {}).get('parentIndex')),
                     "E" + str(message.get('Metadata', {}).get('index')),
@@ -532,7 +529,7 @@ class Plex(_IMediaClient):
                     eventItem['overview'] = message.get('Metadata', {}).get('summary')
             else:
                 eventItem['item_type'] = "MOV" if message.get('Metadata', {}).get('type') == 'movie' else "SHOW"
-                eventItem['item_name'] = "%s %s" % (
+                eventItem['item_name'] = "{} {}".format(
                     message.get('Metadata', {}).get('title'), "(" + str(message.get('Metadata', {}).get('year')) + ")")
                 eventItem['item_id'] = message.get('Metadata', {}).get('ratingKey')
                 if len(message.get('Metadata', {}).get('summary')) > 100:
@@ -566,9 +563,9 @@ class Plex(_IMediaClient):
                 name = item.title
             else:
                 if item.parentIndex == 1:
-                    name = "%s 第%s集" % (item.grandparentTitle, item.index)
+                    name = f"{item.grandparentTitle} 第{item.index}集"
                 else:
-                    name = "%s 第%s季第%s集" % (item.grandparentTitle, item.parentIndex, item.index)
+                    name = f"{item.grandparentTitle} 第{item.parentIndex}季第{item.index}集"
             link = self.get_play_url(item.key)
             image = self.get_nt_image_url(item.artUrl)
             ret_resume.append({
@@ -593,7 +590,7 @@ class Plex(_IMediaClient):
             item_type = MediaType.MOVIE.value if item.TYPE == "movie" else MediaType.TV.value
             link = self.get_play_url(item.key)
             title = item.title if item_type == MediaType.MOVIE.value else \
-                "%s 第%s季" % (item.parentTitle, item.index)
+                f"{item.parentTitle} 第{item.index}季"
             image = self.get_nt_image_url(item.posterUrl)
             ret_resume.append({
                 "id": item.key,

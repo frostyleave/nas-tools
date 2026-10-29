@@ -1,4 +1,3 @@
-import log
 
 from app.media.meta import MetaInfo
 from app.mediaserver import MediaServer

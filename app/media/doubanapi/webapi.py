@@ -1,7 +1,7 @@
 import json
 import re
-import requests
 
+import requests
 from cachetools import TTLCache, cached
 
 from app.utils import RequestUtils
@@ -9,7 +9,7 @@ from app.utils.commons import singleton
 
 
 @singleton
-class DoubanWebApi(object):
+class DoubanWebApi:
 
     _base_url = "https://m.douban.com/rexxar/api/v2"
     _refer_url = "https://m.douban.com"

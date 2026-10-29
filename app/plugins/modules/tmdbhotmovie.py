@@ -3,14 +3,14 @@ from threading import Event
 
 from jinja2 import Template
 
-from app.helper import RssHelper
-from app.helper import ThreadHelper
+from app.helper import RssHelper, ThreadHelper
 from app.media.meta.metainfo import MetaInfo
 from app.media.tmdbv3api.objs.movie import Movie
 from app.mediaserver import MediaServer
-from app.plugins.modules._base import _IPluginModule
 from app.modules.subscribe import Subscribe
+from app.plugins.modules._base import _IPluginModule
 from app.utils.types import MediaType, RssType
+
 
 class TmdbHotMovieRank(_IPluginModule):
     # 插件名称
@@ -47,7 +47,7 @@ class TmdbHotMovieRank(_IPluginModule):
     _cron = ""
     _vote = 0
 
-    def init_config(self, config: dict = None):
+    def init_config(self, config: dict | None = None):
         self.mediaserver = MediaServer()
         self.subscribe = Subscribe()
         self.rsshelper = RssHelper()
@@ -282,13 +282,13 @@ class TmdbHotMovieRank(_IPluginModule):
         try:
             rank_list = self.movie.popular()
             if not rank_list:
-                self.error(f"未查TMDB热门电影询到数据")
+                self.error("未查TMDB热门电影询到数据")
                 return
             else:
                 self.info(f"TMDB热门电影 共 {len(rank_list)} 条数据")
             for tmdb_info in rank_list:
                 if self._event.is_set():
-                    self.info(f"订阅服务已停止")
+                    self.info("订阅服务已停止")
                     return
 
                 tmdb_id = tmdb_info.id
@@ -348,14 +348,14 @@ class TmdbHotMovieRank(_IPluginModule):
                     in_from='TMDB热门电影订阅'
                 )
                 if not rss_media or code != 0:
-                    self.warn("%s 添加订阅失败: %s" % (title, msg))
+                    self.warn(f"{title} 添加订阅失败: {msg}")
                     # 订阅已存在
                     if code == 9:
                         self.__update_history(media=media_info, state="RSS")
                 else:
-                    self.info("%s 添加订阅成功" % title)
+                    self.info(f"{title} 添加订阅成功")
                     self.__update_history(media=media_info, state="RSS")
         except Exception as e:
             self.error(str(e))
 
-        self.info(f"刷新完成")
+        self.info("刷新完成")

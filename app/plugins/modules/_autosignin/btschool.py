@@ -1,9 +1,8 @@
 
 from app.helper.site_signin_helper import SiteSigninHelper, Verdict
-from app.plugins.modules._autosignin._base import _ISiteSigninHandler
 from app.models.model import UserSiteConf
-from app.utils import SiteUtils, RequestUtils
-
+from app.plugins.modules._autosignin._base import _ISiteSigninHandler
+from app.utils import RequestUtils, SiteUtils
 from config import Config
 
 
@@ -26,7 +25,7 @@ class BTSchool(_ISiteSigninHandler):
         :param url: 站点Url
         :return: 是否匹配, 如匹配则会调用该类的signin方法
         """
-        return True if SiteUtils.url_equal(url, cls.site_url) else False
+        return bool(SiteUtils.url_equal(url, cls.site_url))
 
     def signin(self, site_info: UserSiteConf):
         """
@@ -37,7 +36,7 @@ class BTSchool(_ISiteSigninHandler):
         site = site_info.name
         site_cookie = site_info.cookie
         ua = site_info.ua
-        proxy = True if site_info.proxy else False
+        proxy = bool(site_info.proxy)
 
         self.info(f"{site} 开始签到")
         proxies = Config().get_proxies() if proxy else None

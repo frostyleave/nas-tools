@@ -1,13 +1,13 @@
+from functools import lru_cache
+from typing import Any
+
 import requests
 import urllib3
-
-from functools import lru_cache
-from typing import Any, Optional, Union
-from requests import Session, Response
+from requests import Response, Session
 from urllib3.exceptions import InsecureRequestWarning
 
-from config import Config
 import log
+from config import Config
 
 urllib3.disable_warnings(InsecureRequestWarning)
 
@@ -21,15 +21,15 @@ class RequestUtils:
     _cookies = None
 
     def __init__(self,
-                 headers: dict = None,
-                 ua: str = None,
-                 cookies: Union[str, dict] = None,
-                 proxies: dict = None,
+                 headers: dict | None = None,
+                 ua: str | None = None,
+                 cookies: str | dict | None = None,
+                 proxies: dict | None = None,
                  session: Session = None,
-                 timeout: int = None,
-                 referer: str = None,
-                 content_type: str = None,
-                 accept_type: str = None):
+                 timeout: int | None = None,
+                 referer: str | None = None,
+                 content_type: str | None = None,
+                 accept_type: str | None = None):
         if not content_type:
             content_type = "application/x-www-form-urlencoded; charset=UTF-8"
         if headers:
@@ -54,7 +54,7 @@ class RequestUtils:
         if timeout:
             self._timeout = timeout
 
-    def request(self, method: str, url: str, raise_exception: bool = False, **kwargs) -> Optional[requests.Response]:
+    def request(self, method: str, url: str, raise_exception: bool = False, **kwargs) -> Response | None:
         """
         发起HTTP请求
         :param method: HTTP方法, 如 get, post, put 等
@@ -83,7 +83,7 @@ class RequestUtils:
                 raise
             return None
 
-    def post(self, url: str, data: Any = None, json: dict = None, **kwargs) -> Optional[Response]:
+    def post(self, url: str, data: Any = None, json: dict | None = None, **kwargs) -> Response | None:
         """
         发送POST请求
         :param url: 请求的URL
@@ -96,7 +96,7 @@ class RequestUtils:
             json = {}
         return self.request(method="post", url=url, data=data, json=json, **kwargs)
 
-    def get(self, url: str, params: dict = None, **kwargs) -> Optional[str]:
+    def get(self, url: str, params: dict | None = None, **kwargs) -> str | None:
         """
         发送GET请求
         :param url: 请求的URL
@@ -109,12 +109,12 @@ class RequestUtils:
 
     def get_res(self, 
                 url: str,
-                params: dict = None,
+                params: dict | None = None,
                 data: Any = None,
-                json: dict = None,
+                json: dict | None = None,
                 allow_redirects: bool = True,
                 raise_exception: bool = False,
-                **kwargs) -> Optional[Response]:
+                **kwargs) -> Response | None:
         return self.request(method="get",
                             url=url,
                             params=params,
@@ -127,12 +127,12 @@ class RequestUtils:
     def post_res(self,
                  url: str,
                  data: Any = None,
-                 params: dict = None,
+                 params: dict | None = None,
                  allow_redirects: bool = True,
                  files: Any = None,
-                 json: dict = None,
+                 json: dict | None = None,
                  raise_exception: bool = False,
-                 **kwargs) -> Optional[Response]:
+                 **kwargs) -> Response | None:
         return self.request(method="post",
                             url=url,
                             data=data,
@@ -143,7 +143,7 @@ class RequestUtils:
                             raise_exception=raise_exception,
                             **kwargs)
 
-    def get_json(self, url: str, params: dict = None, **kwargs) -> Optional[dict]:
+    def get_json(self, url: str, params: dict | None = None, **kwargs) -> dict | None:
         """
         发送GET请求并返回JSON数据, 自动关闭连接
         :param url: 请求的URL
@@ -163,7 +163,7 @@ class RequestUtils:
                 response.close()
         return None
 
-    def post_json(self, url: str, data: Any = None, json: dict = None, **kwargs) -> Optional[dict]:
+    def post_json(self, url: str, data: Any = None, json: dict | None = None, **kwargs) -> dict | None:
         """
         发送POST请求并返回JSON数据, 自动关闭连接
         :param url: 请求的URL
@@ -187,7 +187,7 @@ class RequestUtils:
         return None
 
     @staticmethod
-    def cookie_parse(cookies_str: str, array: bool = False) -> Union[list, dict]:
+    def cookie_parse(cookies_str: str, array: bool = False) -> list | dict:
         """
         解析cookie, 转化为字典或者数组
         :param cookies_str: cookie字符串
@@ -205,7 +205,7 @@ class RequestUtils:
                 if len(cstr) > 1:
                     cookie_dict[cstr[0].strip()] = cstr[1].strip()
         except Exception as e:
-            log.exception(f'【Http】cookie解析异常: ')
+            log.exception('【Http】cookie解析异常: ')
         if array:
             return [{"name": k, "value": v} for k, v in cookie_dict.items()]
         return cookie_dict

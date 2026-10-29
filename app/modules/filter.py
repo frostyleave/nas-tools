@@ -2,13 +2,11 @@ import os
 import re
 
 import log
-
 from app.conf import ModuleConf
 from app.helper import DbHelper
-from app.utils import StringUtils, ReleaseGroupsMatcher
+from app.utils import ReleaseGroupsMatcher, StringUtils
 from app.utils.commons import singleton
 from app.utils.types import MediaType
-
 from config import Config
 
 
@@ -138,7 +136,7 @@ class Filter:
                     for include in includes:
                         if not include:
                             continue
-                        if not re.search(r'%s' % include.strip(), title, re.IGNORECASE):
+                        if not re.search(rf'{include.strip()}', title, re.IGNORECASE):
                             include_flag = False
                             break
                     if not include_flag:
@@ -153,7 +151,7 @@ class Filter:
                         if not exclude:
                             continue
                         exclude_count += 1
-                        if not re.search(r'%s' % exclude.strip(), title, re.IGNORECASE):
+                        if not re.search(rf'{exclude.strip()}', title, re.IGNORECASE):
                             exclude_flag = True
                     if exclude_count > 0 and not exclude_flag:
                         rule_match = False
@@ -230,23 +228,19 @@ class Filter:
         :param year_str: 要匹配的年份，为空则不匹配
         :return: 是否命中
         """
-        if not s_name or media_info.get_name() not in s_name:
-            if s_num:
-                if not media_info.get_season_list():
-                    return False
-                if not isinstance(s_num, list):
-                    s_num = [s_num]
-                if not set(s_num).issuperset(set(media_info.get_season_list())):
-                    return False
+        if (not s_name or media_info.get_name() not in s_name) and s_num:
+            if not media_info.get_season_list():
+                return False
+            if not isinstance(s_num, list):
+                s_num = [s_num]
+            if not set(s_num).issuperset(set(media_info.get_season_list())):
+                return False
         if e_num:
             if not isinstance(e_num, list):
                 e_num = [e_num]
             if not set(e_num).issuperset(set(media_info.get_episode_list())):
                 return False
-        if year_str:
-            if str(media_info.year) != str(year_str):
-                return False
-        return True
+        return not (year_str and str(media_info.year) != str(year_str))
 
     def check_torrent_filter(self,
                              meta_info,
@@ -270,14 +264,14 @@ class Filter:
             restype_re = ModuleConf.TORRENT_SEARCH_PARAMS["restype"].get(filter_args.get("restype"))
             if not meta_info.get_edtion_string():
                 return False, 0, f"{meta_info.org_string} 不符合质量 {filter_args.get('restype')} 要求"
-            if restype_re and not re.search(r"%s" % restype_re, meta_info.get_edtion_string(), re.I):
+            if restype_re and not re.search(rf"{restype_re}", meta_info.get_edtion_string(), re.IGNORECASE):
                 return False, 0, f"{meta_info.org_string} 不符合质量 {filter_args.get('restype')} 要求"
         # 过滤分辨率
         if filter_args.get("pix"):
             pix_re = ModuleConf.TORRENT_SEARCH_PARAMS["pix"].get(filter_args.get("pix"))
             if not meta_info.resource_pix:
                 return False, 0, f"{meta_info.org_string} 不符合分辨率 {filter_args.get('pix')} 要求"
-            if pix_re and not re.search(r"%s" % pix_re, meta_info.resource_pix, re.I):
+            if pix_re and not re.search(rf"{pix_re}", meta_info.resource_pix, re.IGNORECASE):
                 return False, 0, f"{meta_info.org_string} 不符合分辨率 {filter_args.get('pix')} 要求"
         # 过滤制作组/字幕组
         if filter_args.get("team"):
@@ -290,7 +284,7 @@ class Filter:
                     return False, 0, f"{meta_info.org_string} 不符合制作组/字幕组 {team} 要求"
                 else:
                     meta_info.resource_team = resource_team
-            elif not re.search(r"%s" % team, meta_info.resource_team, re.I):
+            elif not re.search(rf"{team}", meta_info.resource_team, re.IGNORECASE):
                 return False, 0, f"{meta_info.org_string} 不符合制作组/字幕组 {team} 要求"
         # 过滤促销
         if filter_args.get("sp_state"):
@@ -302,38 +296,28 @@ class Filter:
         # 过滤包含
         if filter_args.get("include"):
             include = filter_args.get("include")
-            if not re.search(r"%s" % include, text, re.I):
+            if not re.search(rf"{include}", text, re.IGNORECASE):
                 return False, 0, f"{text} 不符合包含 {include} 要求"
         # 过滤排除
         if filter_args.get("exclude"):
             exclude = filter_args.get("exclude")
-            if re.search(r"%s" % exclude, text, re.I):
+            if re.search(rf"{exclude}", text, re.IGNORECASE):
                 return False, 0, f"{text} 不符合排除 {exclude} 要求"
         # 过滤关键字
         if filter_args.get("key"):
             key = filter_args.get("key")
-            if not re.search(r"%s" % key, text, re.I):
+            if not re.search(rf"{key}", text, re.IGNORECASE):
                 return False, 0, f"{text} 不符合 {key} 要求"
         # 过滤过滤规则，-1表示不使用过滤规则，空则使用默认过滤规则
         if filter_args.get("rule"):
             # 已设置默认规则
             match_flag, order_seq, rule_name = self.check_rules(meta_info, filter_args.get("rule"))
-            match_msg = "%s 大小：%s 促销：%s 不符合订阅/站点过滤规则 %s 要求" % (
-                meta_info.org_string,
-                StringUtils.str_filesize(meta_info.size),
-                meta_info.get_volume_factor_string(),
-                rule_name
-            )
+            match_msg = f"{meta_info.org_string} 大小：{StringUtils.str_filesize(meta_info.size)} 促销：{meta_info.get_volume_factor_string()} 不符合订阅/站点过滤规则 {rule_name} 要求"
             return match_flag, order_seq, match_msg
         else:
             # 默认过滤规则
             match_flag, order_seq, rule_name = self.check_rules(meta_info)
-            match_msg = "%s 大小：%s 促销：%s 不符合默认过滤规则 %s 要求" % (
-                meta_info.org_string,
-                StringUtils.str_filesize(meta_info.size),
-                meta_info.get_volume_factor_string(),
-                rule_name
-            )
+            match_msg = f"{meta_info.org_string} 大小：{StringUtils.str_filesize(meta_info.size)} 促销：{meta_info.get_volume_factor_string()} 不符合默认过滤规则 {rule_name} 要求"
             return match_flag, order_seq, match_msg
 
     def add_group(self, name, default='N'):
@@ -407,14 +391,14 @@ class Filter:
             while i < len(sql_list):
                 rulegroup = {}
                 rulegroup_info = re.findall(
-                    r"[0-9]+,'[^\"]+NULL", sql_list[i], re.I)[0].split(",")
+                    r"[0-9]+,'[^\"]+NULL", sql_list[i], re.IGNORECASE)[0].split(",")
                 rulegroup['id'] = int(rulegroup_info[0])
                 rulegroup['name'] = rulegroup_info[1][1:-1]
                 rulegroup['rules'] = []
                 rulegroup['sql'] = [sql_list[i]]
                 if i + 1 < len(sql_list):
                     rules = re.findall(
-                        r"[0-9]+,'[^\"]+NULL", sql_list[i + 1], re.I)[0].split("),\n (")
+                        r"[0-9]+,'[^\"]+NULL", sql_list[i + 1], re.IGNORECASE)[0].split("),\n (")
                     for rule in rules:
                         rule_info = {}
                         rule = rule.split(",")

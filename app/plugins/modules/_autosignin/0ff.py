@@ -1,13 +1,12 @@
 import re
-import requests
-
-from lxml import etree
 from urllib.parse import urljoin
 
-from app.plugins.modules._autosignin._base import _ISiteSigninHandler
-from app.models.model import UserSiteConf
-from app.utils import SiteUtils, RequestUtils
+import requests
+from lxml import etree
 
+from app.models.model import UserSiteConf
+from app.plugins.modules._autosignin._base import _ISiteSigninHandler
+from app.utils import RequestUtils, SiteUtils
 from config import Config
 
 
@@ -34,7 +33,7 @@ class FreeFarm(_ISiteSigninHandler):
         :param url: 站点Url
         :return: 是否匹配，如匹配则会调用该类的signin方法
         """
-        return True if SiteUtils.url_equal(url, cls.site_url) else False
+        return bool(SiteUtils.url_equal(url, cls.site_url))
 
     def signin(self, site_info: UserSiteConf):
         """
@@ -58,16 +57,16 @@ class FreeFarm(_ISiteSigninHandler):
 
         # 判断今日是否已签到       
         if not index_res or index_res.status_code != 200:
-            self.error(f"签到失败，请检查站点连通性")
+            self.error("签到失败，请检查站点连通性")
             return False, f'【{site_name}】签到失败，请检查站点连通性'
 
         if "login.php" in index_res.text:
-            self.error(f"签到失败，cookie失效")
+            self.error("签到失败，cookie失效")
             return False, f'【{site_name}】签到失败，cookie失效'
 
         sign_status = self.sign_in_result(index_res.text, self._sign_regex)
         if sign_status:
-            self.info(f"今日已签到")
+            self.info("今日已签到")
             return True, f'【{site_name}】今日已签到'
 
         # 解析html
@@ -110,7 +109,7 @@ class FreeFarm(_ISiteSigninHandler):
         sign_status = self.sign_in_result(sign_res.text, self._success_regex)
         
         if sign_status:
-            self.info(f"签到成功")
+            self.info("签到成功")
             return True, f'【{site_name}】签到成功'
 
         self.error(f"签到失败，签到接口返回 {sign_res.text}")

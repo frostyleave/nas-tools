@@ -9,47 +9,57 @@ import shutil
 import subprocess
 import threading
 import time
-
 from typing import Optional
 
 from fastapi import APIRouter, BackgroundTasks, Body, Depends
 
 import log
-
-from app.conf import SystemConfig, ModuleConf
-from app.helper import ThreadHelper, MetaHelper, WordsHelper, RssHelper, FileHelper
-from app.utils import StringUtils, EpisodeFormat, RequestUtils, PathUtils, SystemUtils, MediaUtils
-
+from app.conf import ModuleConf, SystemConfig
 from app.core.cmd_handler import CommandHandler
 from app.core.jobcenter import JobCenter
 from app.core.services import ServiceManager
 from app.core.task_manager import TaskStore
 from app.downloader import Downloader
+from app.helper import FileHelper, MetaHelper, RssHelper, ThreadHelper, WordsHelper
 from app.indexer import Indexer
 from app.indexer.manager import IndexerManager
-from app.media import MediaService, Bangumi, DouBan, Scraper
+from app.media import Bangumi, DouBan, MediaService, Scraper
 from app.media.meta import MetaInfo
 from app.mediaserver import MediaServer
 from app.message import MessageService
-from app.models.user import User, UserManager
 from app.middleware.security import get_current_user
+from app.models.user import User, UserManager
+from app.modules.brushtaskv2 import BrushTaskV2 as BrushTask
 from app.modules.filetransfer import FileTransfer
 from app.modules.filter import Filter
-from app.modules.brushtaskv2 import BrushTaskV2 as BrushTask
+from app.modules.media_status import MediaStatusChecker
 from app.modules.rss import Rss
 from app.modules.rsschecker import RssChecker
 from app.modules.search import SearchProxy
 from app.modules.searcher import Searcher
 from app.modules.subscribe import Subscribe
-from app.modules.media_status import MediaStatusChecker
 from app.modules.sync import Sync
 from app.modules.torrentremover import TorrentRemover
-from app.plugins import PluginManager, EventManager
-from app.sites import SitesManager, SitesDataStatisticsCenter, SiteConf
+from app.plugins import EventManager, PluginManager
+from app.sites import SiteConf, SitesDataStatisticsCenter, SitesManager
+from app.utils import (
+    EpisodeFormat,
+    MediaUtils,
+    PathUtils,
+    RequestUtils,
+    StringUtils,
+    SystemUtils,
+)
 from app.utils.constants import Constants
-from app.utils.types import MediaType, SyncType, SearchType, EventType, SystemConfigKey, RssType
 from app.utils.password_hash import generate_password_hash
-
+from app.utils.types import (
+    EventType,
+    MediaType,
+    RssType,
+    SearchType,
+    SyncType,
+    SystemConfigKey,
+)
 from config import Config
 
 # action接口路由
@@ -82,7 +92,7 @@ def search(background_tasks: BackgroundTasks, data: dict = Body(...)):
         if not search_word:
             return {"code": -1, "msg": '缺少搜索关键词'}
 
-        ident_flag = False if data.get("unident") else True
+        ident_flag = not data.get("unident")
         filters = data.get("filters")
         tmdbid = data.get("tmdbid")
         media_type = data.get("media_type")
@@ -113,11 +123,11 @@ class WebAction:
     
     _actions = {}
     _commands = {}
-    _current_user : Optional[User] = None
-    _douBan : Optional[DouBan] =  None
-    _background_tasks : Optional[BackgroundTasks] = None
+    _current_user : User | None = None
+    _douBan : DouBan | None =  None
+    _background_tasks : BackgroundTasks | None = None
 
-    def __init__(self, current_user:Optional[User]=None, background_tasks:Optional[BackgroundTasks]=None):
+    def __init__(self, current_user:User | None=None, background_tasks:BackgroundTasks | None=None):
         # WEB请求响应
         self._actions = {
             "sch": self.__sch,
@@ -298,8 +308,8 @@ class WebAction:
         # 密码
         if cfg_key == "app.login_password":
             if cfg_value and not cfg_value.startswith("[hash]"):
-                password_hash = "[hash]%s" % generate_password_hash(cfg_value)
-                cfg['app']['login_password'] = "[hash]%s" % password_hash
+                password_hash = f"[hash]{generate_password_hash(cfg_value)}"
+                cfg['app']['login_password'] = f"[hash]{password_hash}"
             else:
                 cfg['app']['login_password'] = cfg_value or "password"
             return cfg
@@ -308,10 +318,9 @@ class WebAction:
             if cfg_value:
                 if not cfg_value.startswith("http") and not cfg_value.startswith("sock"):
                     cfg['app']['proxies'] = {
-                        "https": "http://%s" % cfg_value, "http": "http://%s" % cfg_value}
+                        "https": f"http://{cfg_value}", "http": f"http://{cfg_value}"}
                 else:
-                    cfg['app']['proxies'] = {"https": "%s" %
-                                                      cfg_value, "http": "%s" % cfg_value}
+                    cfg['app']['proxies'] = {"https": f"{cfg_value}", "http": f"{cfg_value}"}
             else:
                 cfg['app']['proxies'] = {"https": None, "http": None}
             return cfg
@@ -645,7 +654,7 @@ class WebAction:
                                   episode_part=episode_part,
                                   episode_offset=episode_offset,
                                   need_fix_all=need_fix_all,
-                                  update_unknown_state=True if (not need_fix_all and not logid) else False,
+                                  update_unknown_state=bool(not need_fix_all and not logid),
                                   min_filesize=min_filesize,
                                   tmdbid=tmdbid,
                                   season=season)
@@ -715,7 +724,7 @@ class WebAction:
             return False, "输入路径不存在"
         
         outpath = os.path.normpath(outpath) if outpath else None
-        is_dir_specified = True if outpath else False
+        is_dir_specified = bool(outpath)
         episode_conf = (EpisodeFormat(episode_format, episode_details, episode_part, episode_offset), need_fix_all)
         
         if tmdbid:
@@ -810,7 +819,7 @@ class WebAction:
         except Exception as e:
             log.exception("手工转移任务执行出错, task_id=%s", task_id)
             TaskStore().finish_task(task_id=task_id,
-                                            message=f"转移失败：{str(e)}",
+                                            message=f"转移失败：{e!s}",
                                             result={"code": 2, "msg": str(e)})
 
     def __delete_history(self, data):
@@ -908,10 +917,10 @@ class WebAction:
         """
         查询多个站点信息
         """
-        rss = True if data.get("rss") else False
-        brush = True if data.get("brush") else False
-        statistic = True if data.get("statistic") else False
-        basic = True if data.get("basic") else False
+        rss = bool(data.get("rss"))
+        brush = bool(data.get("brush"))
+        statistic = bool(data.get("statistic"))
+        basic = bool(data.get("basic"))
         if basic:
             sites = SitesManager().get_site_dict(rss=rss,
                                                  brush=brush,
@@ -971,7 +980,7 @@ class WebAction:
                 ret = subprocess.run(cmd, capture_output=True, text=True, timeout=300,
                                      env={**os.environ, "GIT_TERMINAL_PROMPT": "0"})
             except Exception as err:
-                log.error(f'【UpdateSystem】执行 git {" ".join(args)} 异常：{str(err)}')
+                log.error(f'【UpdateSystem】执行 git {" ".join(args)} 异常：{err!s}')
                 return 1, "", str(err)
             stdout = (ret.stdout or "").strip()
             output = "\n".join([x for x in [stdout, (ret.stderr or "").strip()] if x])
@@ -1416,9 +1425,8 @@ class WebAction:
                         ret = eval(command)
                 # 重载配置
                 Config().init_config()
-                if module_obj:
-                    if hasattr(module_obj, "init_config"):
-                        module_obj.init_config()
+                if module_obj and hasattr(module_obj, "init_config"):
+                    module_obj.init_config()
             except Exception as e:
                 ret = None
                 log.exception("[act]测试连通性出错:")
@@ -1575,11 +1583,11 @@ class WebAction:
             for episode in tmdb_info.get("episodes"):
                 episode_events.append({
                     "type": "剧集",
-                    "title": "%s 第%s季第%s集" % (
+                    "title": "{} 第{}季第{}集".format(
                         name,
                         season,
                         episode.get("episode_number")
-                    ) if season != 1 else "%s 第%s集" % (
+                    ) if season != 1 else "{} 第{}集".format(
                         name,
                         episode.get("episode_number")
                     ),
@@ -1599,13 +1607,13 @@ class WebAction:
             rssdetail = Subscribe().get_subscribe_movies(rid=rid)
             if not rssdetail:
                 return {"code": 1}
-            rssdetail = list(rssdetail.values())[0]
+            rssdetail = next(iter(rssdetail.values()))
             rssdetail["type"] = "MOV"
         else:
             rssdetail = Subscribe().get_subscribe_tvs(rid=rid)
             if not rssdetail:
                 return {"code": 1}
-            rssdetail = list(rssdetail.values())[0]
+            rssdetail = next(iter(rssdetail.values()))
             rssdetail["type"] = "TV"
         return {"code": 0, "detail": rssdetail}
 
@@ -1773,7 +1781,7 @@ class WebAction:
             return {"code": -1}
         meta_info = MetaInfo(title=title, subtitle=subtitle)
         meta_info.size = float(size) * 1024 ** 3 if size else 0
-        match_flag, res_order, match_msg = \
+        match_flag, res_order, _match_msg = \
             Filter().check_torrent_filter(meta_info=meta_info,
                                           filter_args={"rule": rulegroup})
         return {
@@ -1802,11 +1810,11 @@ class WebAction:
         seconds = int((datetime.datetime.now() -
                        start_time).microseconds / 1000)
         if not res:
-            return {"res": False, "time": "%s 毫秒" % seconds}
+            return {"res": False, "time": f"{seconds} 毫秒"}
         elif res.ok:
-            return {"res": True, "time": "%s 毫秒" % seconds}
+            return {"res": True, "time": f"{seconds} 毫秒"}
         else:
-            return {"res": False, "time": "%s 毫秒" % seconds}
+            return {"res": False, "time": f"{seconds} 毫秒"}
 
     def __get_site_activity(self, data):
         """
@@ -2213,10 +2221,9 @@ class WebAction:
         if not status:
             return {"code": 0, "text": "未同步"}
         else:
-            return {"code": 0, "text": "电影：%s，电视剧：%s，同步时间：%s" %
-                                       (status.get("movie_count"),
-                                        status.get("tv_count"),
-                                        status.get("time"))}
+            return {"code": 0, 
+                    "text": "电影：{}，电视剧：{}，同步时间：{}".format(status.get("movie_count"), status.get("tv_count"), status.get("time"))
+                }
 
     def __get_tvseason_list(self, data):
         """
@@ -2239,7 +2246,7 @@ class WebAction:
         if title_season:
             seasons = [
                 {
-                    "text": "第%s季" % title_season,
+                    "text": f"第{title_season}季",
                     "num": title_season
                 }
             ]
@@ -2543,7 +2550,7 @@ class WebAction:
                                                     whelp=whelp if whelp else "")
                     return {"code": 0, "msg": ""}
                 else:
-                    return {"code": 1, "msg": "识别词已存在\n（被替换词：%s）" % replaced}
+                    return {"code": 1, "msg": f"识别词已存在\n（被替换词：{replaced}）"}
             # 替换
             elif wtype == "2":
                 if not _wordshelper.is_custom_words_existed(replaced=replaced):
@@ -2560,7 +2567,7 @@ class WebAction:
                                                     whelp=whelp if whelp else "")
                     return {"code": 0, "msg": ""}
                 else:
-                    return {"code": 1, "msg": "识别词已存在\n（被替换词：%s）" % replaced}
+                    return {"code": 1, "msg": f"识别词已存在\n（被替换词：{replaced}）"}
             # 集偏移
             elif wtype == "4":
                 if not _wordshelper.is_custom_words_existed(front=front, back=back):
@@ -2577,7 +2584,7 @@ class WebAction:
                                                     whelp=whelp if whelp else "")
                     return {"code": 0, "msg": ""}
                 else:
-                    return {"code": 1, "msg": "识别词已存在\n（前后定位词：%s@%s）" % (front, back)}
+                    return {"code": 1, "msg": f"识别词已存在\n（前后定位词：{front}@{back}）"}
             # 替换+集偏移
             elif wtype == "3":
                 if not _wordshelper.is_custom_words_existed(replaced=replaced):
@@ -2594,7 +2601,7 @@ class WebAction:
                                                     whelp=whelp if whelp else "")
                     return {"code": 0, "msg": ""}
                 else:
-                    return {"code": 1, "msg": "识别词已存在\n（被替换词：%s）" % replaced}
+                    return {"code": 1, "msg": f"识别词已存在\n（被替换词：{replaced}）"}
             else:
                 return {"code": 1, "msg": ""}
         except Exception as e:
@@ -2737,12 +2744,12 @@ class WebAction:
                 season_count = group.get("season_count") or ""
                 words = group.get("words")
                 if tmdbid:
-                    link = "https://www.themoviedb.org/%s/%s" % (
+                    link = "https://www.themoviedb.org/{}/{}".format(
                         "movie" if int(wtype) == 1 else "tv", tmdbid)
                 else:
                     link = ""
                 groups.append({"id": wid,
-                               "name": "%s（%s）" % (title, year) if year else title,
+                               "name": f"{title}（{year}）" if year else title,
                                "link": link,
                                "type": wtype,
                                "seasons": season_count,
@@ -2801,11 +2808,10 @@ class WebAction:
                 # 屏蔽, 替换, 替换+集偏移
                 if wtype in [1, 2, 3]:
                     if _wordshelper.is_custom_words_existed(replaced=replaced):
-                        return {"code": 1, "msg": "识别词已存在\n（被替换词：%s）" % replaced}
+                        return {"code": 1, "msg": f"识别词已存在\n（被替换词：{replaced}）"}
                 # 集偏移
-                elif wtype == 4:
-                    if _wordshelper.is_custom_words_existed(front=front, back=back):
-                        return {"code": 1, "msg": "识别词已存在\n（前后定位词：%s@%s）" % (front, back)}
+                elif wtype == 4 and _wordshelper.is_custom_words_existed(front=front, back=back):
+                        return {"code": 1, "msg": f"识别词已存在\n（前后定位词：{front}@{back}）"}
                 _wordshelper.insert_custom_word(replaced=replaced,
                                                 replace=replace,
                                                 front=front,
@@ -2909,7 +2915,7 @@ class WebAction:
             return {"code": 0, "msg": ""}
         except Exception as err:
             log.exception("[act]导入过滤规则失败:")
-            return {"code": 1, "msg": "数据格式不正确，%s" % str(err)}
+            return {"code": 1, "msg": f"数据格式不正确，{err!s}"}
 
     def __get_transfer_statistics(self):
         """
@@ -2977,7 +2983,7 @@ class WebAction:
                 poster_path = download_info.POSTER
                 backdrop = download_info.BACKDROP
                 se = download_info.SE
-                title = "%s(%s)" % (name, year) if year and download_info.TYPE == '电影' else name
+                title = f"{name}({year})" if year and download_info.TYPE == '电影' else name
                 tpye_str = 'MOV' if download_info.TYPE == '电影' else 'TV'
                 vote = download_info.VOTE
 
@@ -3628,14 +3634,8 @@ class WebAction:
         media_server = MediaServer()
 
         for season in seasons:
-            season.update({
-                "state": True if media_server.check_item_exists(
-                    mtype=mtype,
-                    title=media_info.title,
-                    year=media_info.year,
-                    tmdbid=media_info.tmdb_id,
-                    season=season.get("season_number")) else False
-            })
+            exist_status = bool(media_server.check_item_exists(mtype=mtype, title=media_info.title, year=media_info.year, tmdbid=media_info.tmdb_id, season=season.get("season_number")))
+            season.update({"state": exist_status})
         return seasons
 
     def __try_get_ch_title_from_douban(self, douban_id, douban_info):
@@ -3759,15 +3759,8 @@ class WebAction:
         episodes = MediaService().get_tmdb_season_episodes(tmdbid=tmdbid, season=season)
         MediaServerHandler = MediaServer()
         for episode in episodes:
-            episode.update({
-                "state": True if MediaServerHandler.check_item_exists(
-                    mtype=MediaType.TV,
-                    title=title,
-                    year=year,
-                    tmdbid=tmdbid,
-                    season=season,
-                    episode=episode.get("episode_number")) else False
-            })
+            ep_exists = bool(MediaServerHandler.check_item_exists(mtype=MediaType.TV, title=title, year=year, tmdbid=tmdbid, season=season, episode=episode.get("episode_number")))
+            episode.update({"state": ep_exists})
         return {
             "code": 0,
             "episodes": episodes

@@ -1,17 +1,15 @@
 import os
-
 from functools import wraps
 from math import floor
 
-from fastapi import APIRouter, Request, Depends
+from fastapi import APIRouter, Depends, Request
 from fastapi.encoders import jsonable_encoder
 from fastapi.responses import JSONResponse
 
 import log
-
-from app.core.cmd_registry import CommandRegistry
 from app.conf.moduleconf import ModuleConf
 from app.conf.systemconfig import SystemConfig
+from app.core.cmd_registry import CommandRegistry
 from app.downloader.config import PT_TRANSFER_INTERVAL
 from app.downloader.downloader import Downloader
 from app.helper.meta_helper import MetaHelper
@@ -21,23 +19,22 @@ from app.media.category import Category
 from app.mediaserver.media_server import MediaServer
 from app.message import MessageService
 from app.middleware.security import get_current_user
+from app.models.user import User, UserManager
 from app.modules.brushtaskv2 import BrushTaskV2 as BrushTask
-from app.modules.filter import Filter
-from app.modules.rsschecker import RssChecker
-from app.modules.sync import Sync
-from app.modules.torrentremover import TorrentRemover
 from app.modules.filetransfer import FileTransfer
+from app.modules.filter import Filter
 from app.modules.rss import Rss
+from app.modules.rsschecker import RssChecker
 from app.modules.search import SearchProxy
 from app.modules.subscribe import Subscribe
-from app.models.user import User, UserManager
+from app.modules.sync import Sync
+from app.modules.torrentremover import TorrentRemover
 from app.plugins.plugin_manager import PluginManager
 from app.sites.site_manager import SitesManager
 from app.sites.site_statistics import SitesDataStatisticsCenter
 from app.utils.constants import Constants
 from app.utils.system_utils import SystemUtils
 from app.utils.types import Spider, SystemConfigKey
-
 from config import Config
 
 # 页面数据路由
@@ -96,7 +93,7 @@ def response(code: int = 0, msg: str = "success", data=None, status_code: int = 
 
 # userinfo
 @data_router.post("/userinfo")
-async def sysinfo(current_user: User = Depends(get_current_user)):
+async def userinfo(current_user: User = Depends(get_current_user)):
 
     return response(data=
         {
@@ -623,14 +620,12 @@ async def service(current_user: User = Depends(get_current_user)):
         })
 
     # 目录同步
-    if "sync" in service_list:
-        if Sync().monitor_sync_path_ids:
-            service_list['sync'].update({'state': 'ON'})
+    if "sync" in service_list and Sync().monitor_sync_path_ids:
+        service_list['sync'].update({'state': 'ON'})
 
     # 系统进程
-    if "processes" in service_list:
-        if not SystemUtils.is_docker() or not SystemUtils.get_all_processes():
-            service_list.pop('processes')
+    if "processes" in service_list and (not SystemUtils.is_docker() or not SystemUtils.get_all_processes()):
+        service_list.pop('processes')
 
     # 所有规则组
     rule_groups = Filter().get_rule_groups()
@@ -648,7 +643,7 @@ async def service(current_user: User = Depends(get_current_user)):
 
 # 下载器
 @data_router.post("/downloaders")
-async def downloading():
+async def downloaders():
     """
     正在下载页面
     """
@@ -1055,19 +1050,19 @@ def _get_library_spacesize():
         used_percent = "%0.1f" % ((used_sapce / total_space) * 100)
         # 总剩余空间 格式化
         if free_space > 1024:
-            free_space = "{:,} TB".format(round(free_space / 1024, 2))
+            free_space = f"{round(free_space / 1024, 2):,} TB"
         else:
-            free_space = "{:,} GB".format(round(free_space, 2))
+            free_space = f"{round(free_space, 2):,} GB"
         # 总使用空间 格式化
         if used_sapce > 1024:
-            used_sapce = "{:,} TB".format(round(used_sapce / 1024, 2))
+            used_sapce = f"{round(used_sapce / 1024, 2):,} TB"
         else:
-            used_sapce = "{:,} GB".format(round(used_sapce, 2))
+            used_sapce = f"{round(used_sapce, 2):,} GB"
         # 总空间 格式化
         if total_space > 1024:
-            total_space = "{:,} TB".format(round(total_space / 1024, 2))
+            total_space = f"{round(total_space / 1024, 2):,} TB"
         else:
-            total_space = "{:,} GB".format(round(total_space, 2))
+            total_space = f"{round(total_space, 2):,} GB"
 
     return {
         "TotalSpace": total_space,

@@ -3,15 +3,14 @@ import os
 import threading
 import time
 
-from cachetools import cached, TTLCache
+from cachetools import TTLCache, cached
 from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker, scoped_session
+from sqlalchemy.orm import scoped_session, sessionmaker
 from sqlalchemy.pool import QueuePool
 
-from app.db.models import BaseMedia, MEDIASYNCITEMS, MEDIASYNCSTATISTIC
-from config import Config
-
 import log
+from app.db.models import MEDIASYNCITEMS, MEDIASYNCSTATISTIC, BaseMedia
+from config import Config
 
 lock = threading.Lock()
 _Engine = create_engine(
@@ -121,9 +120,8 @@ class MediaDb:
         else:
             item = self.session.query(MEDIASYNCITEMS).filter(MEDIASYNCITEMS.SERVER == server_type,
                                                              MEDIASYNCITEMS.TITLE == title).first()
-        if item:
-            if tmdbid and (not item.TMDBID or item.TMDBID != str(tmdbid)):
-                return None
+        if item and tmdbid and (not item.TMDBID or item.TMDBID != str(tmdbid)):
+            return None
         return item
 
     def get_statistics(self, server_type):

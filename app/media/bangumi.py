@@ -1,15 +1,14 @@
 from datetime import datetime
 
-from cachetools import TTLCache, cached
 import requests
+from cachetools import TTLCache, cached
 
 from app.utils import RequestUtils
 from app.utils.types import MediaType
-
 from config import Config
 
 
-class Bangumi(object):
+class Bangumi:
     """
     https://bangumi.github.io/api/
     """
@@ -68,7 +67,7 @@ class Bangumi(object):
             image = ''
         summary = item.get("summary")
         return {
-            'id': "BG:%s" % bid,
+            'id': f"BG:{bid}",
             'orgid': bid,
             'title': title,
             'year': air_date[:4] if air_date else "",

@@ -1,8 +1,8 @@
 import os
 
-from app.modules.filetransfer import FileTransfer
 from app.media import Category
 from app.mediaserver import MediaServer
+from app.modules.filetransfer import FileTransfer
 from app.plugins import EventHandler
 from app.plugins.modules._base import _IPluginModule
 from app.utils import SystemUtils
@@ -46,7 +46,7 @@ class MovieLike(_IPluginModule):
     filetransfer = None
     category = None
 
-    def init_config(self, config: dict = None):
+    def init_config(self, config: dict | None = None):
         self.mediaserver = MediaServer()
         self.filetransfer = FileTransfer()
         self.category = Category()

@@ -2,7 +2,7 @@ from python_hosts import Hosts, HostsEntry
 
 from app.plugins import EventHandler
 from app.plugins.modules._base import _IPluginModule
-from app.utils import SystemUtils, IpUtils
+from app.utils import IpUtils, SystemUtils
 from app.utils.types import EventType
 
 

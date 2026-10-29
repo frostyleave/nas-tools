@@ -1,8 +1,7 @@
-# -*- coding: utf-8 -*-
 import json
 import re
 
-from app.sites.siteuserinfo._base import _ISiteUserInfo, SITE_BASE_ORDER
+from app.sites.siteuserinfo._base import SITE_BASE_ORDER, _ISiteUserInfo
 from app.utils import StringUtils
 from app.utils.types import SiteSchema
 
@@ -59,7 +58,6 @@ class TNodeSiteUserInfo(_ISiteUserInfo):
 
         self.message_unread = user_info.get("unreadAdmin", 0) + user_info.get("unreadInbox", 0) + user_info.get(
             "unreadSystem", 0)
-        pass
 
     def _parse_user_torrent_seeding_info(self, html_text, multi_page=False):
         """

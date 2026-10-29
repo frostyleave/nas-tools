@@ -137,7 +137,7 @@ class DiskSpaceSaver(_IPluginModule):
 
         # 如果没有配置信息， 则不处理
         if not path_list or not file_size or not ext_list or not result_path:
-            self.info(f"磁盘空间释放配置信息不完整，不进行处理")
+            self.info("磁盘空间释放配置信息不完整，不进行处理")
             return
 
         self.info(f"磁盘空间释放配置信息：{config}")
@@ -147,17 +147,17 @@ class DiskSpaceSaver(_IPluginModule):
             self.info(f"磁盘空间释放 开始处理目录：{path}")
             # 如果目录不存在， 则不处理
             if not os.path.exists(path):
-                self.info(f"磁盘空间释放 目录不存在，不进行处理")
+                self.info("磁盘空间释放 目录不存在，不进行处理")
                 continue
 
             # 如果目录不是文件夹， 则不处理
             if not os.path.isdir(path):
-                self.info(f"磁盘空间释放 目录不是文件夹，不进行处理")
+                self.info("磁盘空间释放 目录不是文件夹，不进行处理")
                 continue
 
             # 如果目录不是绝对路径， 则不处理
             if not os.path.isabs(path):
-                self.info(f"磁盘空间释放 目录不是绝对路径，不进行处理")
+                self.info("磁盘空间释放 目录不是绝对路径，不进行处理")
                 continue
 
             _last_result = self.load_last_result(result_path)
@@ -165,9 +165,9 @@ class DiskSpaceSaver(_IPluginModule):
             _duplicates = self.find_duplicates(path, ext_list, int(file_size), _last_result, fast)
             self.info(f"磁盘空间释放 找到 {len(_duplicates)} 个重复文件。")
             self.process_duplicates(_duplicates, dry_run)
-            self.info(f"磁盘空间释放 处理完毕。")
+            self.info("磁盘空间释放 处理完毕。")
             self.save_last_result(result_path, _last_result)
-            self.info(f"磁盘空间释放 保存处理结果。")
+            self.info("磁盘空间释放 保存处理结果。")
 
     def get_state(self):
         return False
@@ -276,7 +276,7 @@ class DiskSpaceSaver(_IPluginModule):
         """
         处理重复的文件，保留一个文件，其他的用硬链接替换
         """
-        for sha1, files in duplicates.items():
+        for files in duplicates.values():
             if len(files) > 1:
 
                 for file_path in files[1:]:

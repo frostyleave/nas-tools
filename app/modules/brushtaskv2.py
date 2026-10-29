@@ -1,31 +1,27 @@
-import pytz
 import re
 import sys
 import time
-
 from datetime import datetime
-from typing import Optional
 
+import pytz
 from apscheduler.executors.pool import ThreadPoolExecutor
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.schedulers.base import STATE_STOPPED
 from apscheduler.triggers.cron import CronTrigger
 
 import log
-
 from app.downloader import Downloader
-from app.modules.filter import Filter
 from app.helper import DbHelper
 from app.indexer.client.builtin import BuiltinIndexer
 from app.indexer.manager import IndexerManager
 from app.media.meta import MetaInfo
 from app.message import MessageService
-from app.models.model import UserSiteConf, BrushedTorrentUpdate
-from app.sites import SitesManager, SiteConf
+from app.models.model import BrushedTorrentUpdate, UserSiteConf
+from app.modules.filter import Filter
+from app.sites import SiteConf, SitesManager
 from app.utils import StringUtils
 from app.utils.commons import singleton
 from app.utils.types import BrushDeleteType
-
 from config import Config
 
 # 刷流删除的检查时间间隔
@@ -47,7 +43,7 @@ class BrushTaskV2(object):
     _qb_client = "qbittorrent"
     _tr_client = "transmission"
 
-    _scheduler : Optional[BackgroundScheduler] = None
+    _scheduler : BackgroundScheduler | None = None
 
     def __init__(self):
         self.init_config()
@@ -74,7 +70,7 @@ class BrushTaskV2(object):
         # 启动任务
         self._scheduler = BackgroundScheduler(timezone=Config().get_timezone(), executors={"default": ThreadPoolExecutor(5)})
         scheduler_jobs = []
-        for _, task in self._brush_tasks.items():
+        for task in self._brush_tasks.values():
             # 任务状态：Y-正常, S-停止下载新种, N-完全停止
             task_state = task.get("state")
             if task_state == 'Y' and task.get("interval"):
@@ -141,8 +137,8 @@ class BrushTaskV2(object):
                 "state": task.STATE,
                 "downloader": task.DOWNLOADER,
                 "downloader_name": downloader_info.get("name") if downloader_info else None,
-                "transfer": True if task.TRANSFER == "Y" else False,
-                "sendmessage": True if task.SENDMESSAGE == "Y" else False,
+                "transfer": task.TRANSFER == "Y",
+                "sendmessage": task.SENDMESSAGE == "Y",
                 "free": task.FREELEECH,
                 "rss_rule": eval(task.RSS_RULE),
                 "remove_rule": eval(task.REMOVE_RULE),
@@ -184,32 +180,32 @@ class BrushTaskV2(object):
 
         state = taskinfo.get("state")
         if state != 'Y':
-            log.info("【Brush】刷流任务 %s 已停止下载新种!" % task_name)
+            log.info(f"【Brush】刷流任务 {task_name} 已停止下载新种!")
             return
         
         # 查询站点信息
         site_id = taskinfo.get("site_id")
         site_info = self.sites.get_site(siteid=site_id)
         if not site_info:
-            log.error("【Brush】刷流任务 %s 的站点已不存在, 无法刷流!" % task_name)
+            log.error(f"【Brush】刷流任务 {task_name} 的站点已不存在, 无法刷流!")
             return
         
         site_name = site_info.name
         if not site_info.indexer_id:
-            log.error("【Brush】刷流站点 %s 的站索引器匹配失败, 无法刷流!" % site_name)
+            log.error(f"【Brush】刷流站点 {site_name} 的站索引器匹配失败, 无法刷流!")
             return
         
         # 站点属性
         site_brush_enable = site_info.brush_enable
         if not site_brush_enable:
-            log.error("【Brush】站点 %s 未开启刷流功能, 无法刷流!" % site_name)
+            log.error(f"【Brush】站点 {site_name} 未开启刷流功能, 无法刷流!")
             return
                
         # 下载器参数
         downloader_id = taskinfo.get("downloader")
         downloader_cfg = self.downloader.get_downloader_conf(downloader_id)
         if not downloader_cfg:
-            log.error("【Brush】任务 %s 下载器不存在, 无法刷流!" % task_name)
+            log.error(f"【Brush】任务 {task_name} 下载器不存在, 无法刷流!")
             return
 
         rss_rule = taskinfo.get("rss_rule")
@@ -220,20 +216,20 @@ class BrushTaskV2(object):
 
         site_indexer = IndexerManager().build_indexer_conf(url=site_info.strict_url, site_conf=site_info)
         if not site_indexer:
-            log.error("【Brush】刷流站点 %s 的站索引器获取失败, 无法刷流!" % site_name)
+            log.error(f"【Brush】刷流站点 {site_name} 的站索引器获取失败, 无法刷流!")
             return
 
-        log.info("【Brush】开始站点 %s 的刷流任务：%s..." % (site_name, task_name))
+        log.info(f"【Brush】开始站点 {site_name} 的刷流任务：{task_name}...")
 
         fail, result_aaray = self.indexer.search_torrents(indexer=site_indexer)
         if fail:
             log.error(f"【Brush】{task_name} 获取站点资源列表失败!")
             return
         if len(result_aaray) == 0:
-            log.warn("【Brush】%s 未下载到站点资源列表" % site_name)
+            log.warn(f"【Brush】{site_name} 未下载到站点资源列表")
             return
         else:
-            log.info("【Brush】%s 本次查询到的站点资源数: %s" % (site_name, len(result_aaray)))
+            log.info(f"【Brush】{site_name} 本次查询到的站点资源数: {len(result_aaray)}")
 
         # 同时下载数
         max_dlcount = rss_rule.get("dlcount")
@@ -255,7 +251,7 @@ class BrushTaskV2(object):
                 if enclosure not in self._torrents_cache:
                     self._torrents_cache.append(enclosure)
                 else:
-                    log.debug("【Brush】%s 已处理过" % torrent_name)
+                    log.debug(f"【Brush】{torrent_name} 已处理过")
                     continue
 
                 # 检查种子是否符合选种规则
@@ -272,10 +268,10 @@ class BrushTaskV2(object):
                     continue
                 # 检查是否已处理过
                 if self.is_torrent_handled(enclosure=enclosure):
-                    log.info("【Brush】%s 已在刷流任务中" % torrent_name)
+                    log.info(f"【Brush】{torrent_name} 已在刷流任务中")
                     continue
                 # 开始下载
-                log.debug("【Brush】%s 符合条件, 开始下载..." % torrent_name)
+                log.debug(f"【Brush】{torrent_name} 符合条件, 开始下载...")
                 if self.__download_torrent(taskinfo=taskinfo,
                                            rss_rule=rss_rule,
                                            site_info=site_info,
@@ -295,7 +291,7 @@ class BrushTaskV2(object):
             except Exception as err:
                 log.exception('【Brush】刷流种子过滤出错: ')
                 continue
-        log.info("【Brush】任务 %s 本次添加了 %s 个下载" % (task_name, success_count))
+        log.info(f"【Brush】任务 {task_name} 本次添加了 {success_count} 个下载")
 
     def remove_tasks_torrents(self):
         """
@@ -348,7 +344,7 @@ class BrushTaskV2(object):
                 # 下载器参数
                 downloader_cfg = self.downloader.get_downloader_conf(downloader_id)
                 if not downloader_cfg:
-                    log.warn("【Brush】任务 %s 下载器不存在" % task_name)
+                    log.warn(f"【Brush】任务 {task_name} 下载器不存在")
                     continue
                 # 下载器的类型
                 downloader_type = downloader_cfg.get("type")
@@ -357,14 +353,14 @@ class BrushTaskV2(object):
                                                                   ids=torrent_ids)
                 # 有错误不处理了, 避免误删种子
                 if torrents is None:
-                    log.warn("【Brush】任务 %s 获取下载完成种子失败" % task_name)
+                    log.warn(f"【Brush】任务 {task_name} 获取下载完成种子失败")
                     continue
                 # 被手动从下载器删除的种子列表
                 remove_torrent_ids = list(
                     set(torrent_ids).difference(
-                        set([(torrent.get("hash")
+                        {(torrent.get("hash")
                               if downloader_type == 'qbittorrent'
-                              else str(torrent.hashString)) for torrent in torrents])))
+                              else str(torrent.hashString)) for torrent in torrents}))
                 # 完成的种子
                 for torrent in torrents:
                     torrent_info = self.__get_torrent_dict(downloader_type=downloader_type,
@@ -407,8 +403,7 @@ class BrushTaskV2(object):
                                                                         avg_upspeed=avg_upspeed,
                                                                         iatime=iatime)
                     if need_delete:
-                        log.info(
-                            "【Brush】%s 做种达到删种条件：%s, 删除任务..." % (torrent_name, delete_type.value))
+                        log.info(f"【Brush】{torrent_name} 做种达到删种条件：{delete_type.value}, 删除任务...")
                         if sendmessage:
                             __send_message(_task_name=task_name,
                                            _delete_type=delete_type,
@@ -432,14 +427,14 @@ class BrushTaskV2(object):
                                                                     ids=torrent_ids)
                 # 有错误不处理了, 避免误删种子
                 if torrents is None:
-                    log.warn("【BRUSH】任务 %s 获取下载中种子失败" % task_name)
+                    log.warn(f"【BRUSH】任务 {task_name} 获取下载中种子失败")
                     continue
                 # 更新手动从下载器删除的种子列表
                 remove_torrent_ids = list(
                     set(remove_torrent_ids).difference(
-                        set([(torrent.get("hash")
+                        {(torrent.get("hash")
                               if downloader_type == 'qbittorrent'
-                              else str(torrent.hashString)) for torrent in torrents])))
+                              else str(torrent.hashString)) for torrent in torrents}))
                 # 下载中的种子
                 for torrent in torrents:
                     torrent_info = self.__get_torrent_dict(downloader_type=downloader_type,
@@ -483,8 +478,7 @@ class BrushTaskV2(object):
                                                                         avg_upspeed=avg_upspeed,
                                                                         iatime=iatime)
                     if need_delete:
-                        log.info(
-                            "【Brush】%s 达到删种条件：%s, 删除下载任务..." % (torrent_name, delete_type.value))
+                        log.info(f"【Brush】{torrent_name} 达到删种条件：{delete_type.value}, 删除下载任务...")
                         if sendmessage:
                             __send_message(_task_name=task_name,
                                            _delete_type=delete_type,
@@ -506,8 +500,7 @@ class BrushTaskV2(object):
 
                 # 手工删除的种子, 清除对应记录
                 if remove_torrent_ids:
-                    log.info("【Brush】任务 %s 的这些下载任务在下载器中不存在, 将删除任务记录：%s" % (
-                        task_name, remove_torrent_ids))
+                    log.info(f"【Brush】任务 {task_name} 的这些下载任务在下载器中不存在, 将删除任务记录：{remove_torrent_ids}")
                     for remove_torrent_id in remove_torrent_ids:
                         self.dbhelper.delete_brushtask_torrent(taskid, remove_torrent_id)
 
@@ -536,9 +529,9 @@ class BrushTaskV2(object):
                         update_torrents = [ut for ut in update_torrents
                                            if ut.torrent_id in delete_ids]
                         self.dbhelper.update_brushtask_torrent_state(update_torrents)
-                        log.info("【Brush】任务 %s 共删除 %s 个刷流下载任务" % (task_name, len(delete_ids)))
+                        log.info(f"【Brush】任务 {task_name} 共删除 {len(delete_ids)} 个刷流下载任务")
                     else:
-                        log.info("【Brush】任务 %s 本次检查未删除下载任务" % task_name)
+                        log.info(f"【Brush】任务 {task_name} 本次检查未删除下载任务")
                 # 更新上传下载量和删除种子数
                 self.dbhelper.add_brushtask_upload_count(brush_id=taskid,
                                                          upload_size=total_uploaded,
@@ -559,26 +552,20 @@ class BrushTaskV2(object):
         downloader_id = taskinfo.get("downloader")
         downloader_name = taskinfo.get("downloader_name")
         total_size = self.dbhelper.get_brushtask_totalsize(taskinfo.get("id"))
-        if torrent_size and seed_size:
-            if float(torrent_size) + int(total_size) >= (float(seed_size) + 5) * 1024 ** 3:
-                log.warn("【Brush】刷流任务 %s 当前保种体积 %sGB, 种子大小 %sGB, 不添加刷流任务"
-                         % (task_name, round(int(total_size) / (1024 ** 3), 1),
-                            round(int(torrent_size) / (1024 ** 3), 1)))
-                return False
-        if seed_size:
-            if float(seed_size) * 1024 ** 3 <= int(total_size):
-                log.warn("【Brush】刷流任务 %s 当前保种体积 %sGB, 不再新增下载"
-                         % (task_name, round(int(total_size) / 1024 / 1024 / 1024, 1)))
-                return False
+        if torrent_size and seed_size and float(torrent_size) + int(total_size) >= (float(seed_size) + 5) * 1024 ** 3:
+            log.warn(f"【Brush】刷流任务 {task_name} 当前保种体积 {round(int(total_size) / (1024 ** 3), 1)}GB, 种子大小 {round(int(torrent_size) / (1024 ** 3), 1)}GB, 不添加刷流任务")
+            return False
+        if seed_size and float(seed_size) * 1024 ** 3 <= int(total_size):
+            log.warn(f"【Brush】刷流任务 {task_name} 当前保种体积 {round(int(total_size) / 1024 / 1024 / 1024, 1)}GB, 不再新增下载")
+            return False
         # 检查正在下载的任务数
         if dlcount:
             downloading_count = self.__get_downloading_count(downloader_id)
             if downloading_count is None:
-                log.error("【Brush】任务 %s 下载器 %s 无法连接" % (task_name, downloader_name))
+                log.error(f"【Brush】任务 {task_name} 下载器 {downloader_name} 无法连接")
                 return False
             if int(downloading_count) >= int(dlcount):
-                log.warn("【Brush】下载器 %s 正在下载任务数：%s, 超过设定上限, 暂不添加下载" % (
-                    downloader_name, downloading_count))
+                log.warn(f"【Brush】下载器 {downloader_name} 正在下载任务数：{downloading_count}, 超过设定上限, 暂不添加下载")
                 return False
         return True
 
@@ -648,7 +635,7 @@ class BrushTaskV2(object):
             return False
         else:
             # 下载成功
-            log.info("【Brush】成功添加下载：%s" % title)
+            log.info(f"【Brush】成功添加下载：{title}")
             if sendmessage:
                 # 下载器参数
                 downloader_cfg = self.downloader.get_downloader_conf(downloader_id)
@@ -671,7 +658,7 @@ class BrushTaskV2(object):
             # 更新下载次数
             self.dbhelper.add_brushtask_download_count(brush_id=taskid)
         else:
-            log.info("【Brush】%s 已下载过" % title)
+            log.info(f"【Brush】{title} 已下载过")
 
         return True
 
@@ -697,30 +684,27 @@ class BrushTaskV2(object):
         try:
             if rss_rule.get("size"):
                 rule_sizes = rss_rule.get("size").split("#")
-                if rule_sizes[0]:
-                    if len(rule_sizes) > 1 and rule_sizes[1]:
-                        min_max_size = rule_sizes[1].split(',')
-                        min_size = min_max_size[0]
-                        if len(min_max_size) > 1:
-                            max_size = min_max_size[1]
-                        else:
-                            max_size = 0
-                        if rule_sizes[0] == "gt" and float(torrent_size) < float(min_size) * 1024 ** 3:
-                            return False
-                        if rule_sizes[0] == "lt" and float(torrent_size) > float(min_size) * 1024 ** 3:
-                            return False
-                        if rule_sizes[0] == "bw" and not float(min_size) * 1024 ** 3 < float(torrent_size) < float(
-                                max_size) * 1024 ** 3:
-                            return False
+                if rule_sizes[0] and len(rule_sizes) > 1 and rule_sizes[1]:
+                    min_max_size = rule_sizes[1].split(',')
+                    min_size = min_max_size[0]
+                    if len(min_max_size) > 1:
+                        max_size = min_max_size[1]
+                    else:
+                        max_size = 0
+                    if rule_sizes[0] == "gt" and float(torrent_size) < float(min_size) * 1024 ** 3:
+                        return False
+                    if rule_sizes[0] == "lt" and float(torrent_size) > float(min_size) * 1024 ** 3:
+                        return False
+                    if rule_sizes[0] == "bw" and not float(min_size) * 1024 ** 3 < float(torrent_size) < float(
+                            max_size) * 1024 ** 3:
+                        return False
 
             # 检查包含规则
-            if rss_rule.get("include"):
-                if not re.search(r"%s" % rss_rule.get("include"), title):
-                    return False
+            if rss_rule.get("include") and not re.search(r"{}".format(rss_rule.get("include")), title):
+                return False
 
             # 检查排除规则
-            if rss_rule.get("exclude"):
-                if re.search(r"%s" % rss_rule.get("exclude"), title):
+            if rss_rule.get("exclude") and re.search(r"{}".format(rss_rule.get("exclude")), title):
                     return False
 
             # 站点流控
@@ -738,10 +722,9 @@ class BrushTaskV2(object):
                 if downloadvolumefactor != 0:
                     log.debug(f"【Brush】{title} 不是一个FREE资源, 跳过")
                     return False
-            elif rss_rule.get("free") == "2XFREE":
-                if uploadvolumefactor < 2:
-                    log.debug(f"【Brush】{title} 不是一个2XFREE资源, 跳过")
-                    return False
+            elif rss_rule.get("free") == "2XFREE" and uploadvolumefactor < 2:
+                log.debug(f"【Brush】{title} 不是一个2XFREE资源, 跳过")
+                return False
 
             # 检查HR状态
             if rss_rule.get("hr") and torrent.get("hr"):
@@ -768,16 +751,13 @@ class BrushTaskV2(object):
                     else:
                         max_count = sys.maxsize
                     if peer_counts[0] == "gt" and torrent_peer_count <= min_count:
-                        log.debug("【Brush】%s `判断做种数, 判断条件: peer_count:%d %s threshold:%d" % (
-                            title, torrent_peer_count, peer_counts[0], min_count))
+                        log.debug(f"【Brush】{title} `判断做种数, 判断条件: peer_count:{torrent_peer_count} {peer_counts[0]} threshold:{min_count}")
                         return False
                     if peer_counts[0] == "lt" and torrent_peer_count >= min_count:
-                        log.debug("【Brush】%s `判断做种数, 判断条件: peer_count:%d %s threshold:%d" % (
-                            title, torrent_peer_count, peer_counts[0], min_count))
+                        log.debug(f"【Brush】{title} `判断做种数, 判断条件: peer_count:{torrent_peer_count} {peer_counts[0]} threshold:{min_count}")
                         return False
                     if peer_counts[0] == "bw" and not (min_count <= torrent_peer_count <= max_count):
-                        log.debug("【Brush】%s `判断做种数, 判断条件: left:%d %s peer_count:%d %s right:%d" % (
-                            title, min_count, peer_counts[0], torrent_peer_count, peer_counts[0], max_count))
+                        log.debug(f"【Brush】{title} `判断做种数, 判断条件: left:{min_count} {peer_counts[0]} peer_count:{torrent_peer_count} {peer_counts[0]} right:{max_count}")
                         return False
 
             # 检查发布时间
@@ -795,22 +775,16 @@ class BrushTaskV2(object):
                     localnowtime = datetime.now().astimezone(localtz)
                     pudate_hour = int(localnowtime.timestamp() - file_pubdate.timestamp()) / 3600
 
-                    log.debug('【Brush】种子发布时间: %s, 当前时间：%s, 时间间隔：%f hour' % (
-                        file_pubdate.isoformat(), localnowtime.isoformat(), pudate_hour))
+                    log.debug(f'【Brush】种子发布时间: {file_pubdate.isoformat()}, 当前时间：{localnowtime.isoformat()}, 时间间隔：{pudate_hour:f} hour')
                     
                     if rule_pubdates[0] == "lt" and pudate_hour >= float(min_pubdate):
-                        log.debug("【Brush】%s `判断发布时间, 判断条件: pubdate: %s %d" % (
-                            title, rule_pubdates[0], float(min_pubdate)))
+                        log.debug(f"【Brush】{title} `判断发布时间, 判断条件: pubdate: {rule_pubdates[0]} {float(min_pubdate)}")
                         return False
                     if rule_pubdates[0] == "gt" and pudate_hour <= float(min_pubdate):
-                        log.debug("【Brush】%s `判断发布时间, 判断条件: pubdate: %s %d" % (
-                            title, rule_pubdates[0], float(min_pubdate)))
+                        log.debug(f"【Brush】{title} `判断发布时间, 判断条件: pubdate: {rule_pubdates[0]} {float(min_pubdate)}")
                         return False
-                    if rule_pubdates[0] == "bw" and (
-                            not max_pubdate or not (
-                            float(min_pubdate) <= pudate_hour <= float(max_pubdate))):
-                        log.debug("【Brush】%s `判断发布时间, 判断条件: pubdate: %s %d %d" % (
-                            title, rule_pubdates[0], float(min_pubdate), float(max_pubdate or 0)))
+                    if rule_pubdates[0] == "bw" and (not max_pubdate or not (float(min_pubdate) <= pudate_hour <= float(max_pubdate))):
+                        log.debug(f"【Brush】{title} `判断发布时间, 判断条件: pubdate: {rule_pubdates[0]} {float(min_pubdate)} {float(max_pubdate or 0)}")
                         return False
 
         except Exception as err:
@@ -841,40 +815,28 @@ class BrushTaskV2(object):
         try:
             if remove_rule.get("time") and seeding_time:
                 rule_times = remove_rule.get("time").split("#")
-                if rule_times[0]:
-                    if len(rule_times) > 1 and rule_times[1]:
-                        if float(seeding_time) > float(rule_times[1]) * 3600:
-                            return True, BrushDeleteType.SEEDTIME
+                if rule_times[0] and len(rule_times) > 1 and rule_times[1] and float(seeding_time) > float(rule_times[1]) * 3600:
+                    return True, BrushDeleteType.SEEDTIME
             if remove_rule.get("ratio") and ratio:
                 rule_ratios = remove_rule.get("ratio").split("#")
-                if rule_ratios[0]:
-                    if len(rule_ratios) > 1 and rule_ratios[1]:
-                        if float(ratio) > float(rule_ratios[1]):
-                            return True, BrushDeleteType.RATIO
+                if rule_ratios[0] and len(rule_ratios) > 1 and rule_ratios[1] and float(ratio) > float(rule_ratios[1]):
+                    return True, BrushDeleteType.RATIO
             if remove_rule.get("uploadsize") and uploaded:
                 rule_uploadsizes = remove_rule.get("uploadsize").split("#")
-                if rule_uploadsizes[0]:
-                    if len(rule_uploadsizes) > 1 and rule_uploadsizes[1]:
-                        if float(uploaded) > float(rule_uploadsizes[1]) * 1024 ** 3:
-                            return True, BrushDeleteType.UPLOADSIZE
+                if rule_uploadsizes[0] and len(rule_uploadsizes) > 1 and rule_uploadsizes[1] and float(uploaded) > float(rule_uploadsizes[1]) * 1024 ** 3:
+                    return True, BrushDeleteType.UPLOADSIZE
             if remove_rule.get("dltime") and dltime:
                 rule_times = remove_rule.get("dltime").split("#")
-                if rule_times[0]:
-                    if len(rule_times) > 1 and rule_times[1]:
-                        if float(dltime) > float(rule_times[1]) * 3600:
-                            return True, BrushDeleteType.DLTIME
+                if rule_times[0] and len(rule_times) > 1 and rule_times[1] and float(dltime) > float(rule_times[1]) * 3600:
+                    return True, BrushDeleteType.DLTIME
             if remove_rule.get("avg_upspeed") and avg_upspeed:
                 rule_avg_upspeeds = remove_rule.get("avg_upspeed").split("#")
-                if rule_avg_upspeeds[0]:
-                    if len(rule_avg_upspeeds) > 1 and rule_avg_upspeeds[1]:
-                        if float(avg_upspeed) < float(rule_avg_upspeeds[1]) * 1024:
-                            return True, BrushDeleteType.AVGUPSPEED
+                if rule_avg_upspeeds[0] and len(rule_avg_upspeeds) > 1 and rule_avg_upspeeds[1] and float(avg_upspeed) < float(rule_avg_upspeeds[1]) * 1024:
+                    return True, BrushDeleteType.AVGUPSPEED
             if remove_rule.get("iatime") and iatime:
                 rule_times = remove_rule.get("iatime").split("#")
-                if rule_times[0]:
-                    if len(rule_times) > 1 and rule_times[1]:
-                        if float(iatime) > float(rule_times[1]) * 3600:
-                            return True, BrushDeleteType.IATIME
+                if rule_times[0] and len(rule_times) > 1 and rule_times[1] and float(iatime) > float(rule_times[1]) * 3600:
+                    return True, BrushDeleteType.IATIME
         except Exception as err:
             log.exception('【Brush】检查是否符合删种规则出错: ')
         return False, BrushDeleteType.NOTDELETE

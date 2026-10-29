@@ -1,12 +1,10 @@
 # author: https://github.com/jxxghp/MoviePilot/blob/main/app/modules/indexer/mtorrent.py
 import re
-from typing import Tuple
 
 import log as logger
-
 from app.models.model import IndexerInfo
+from app.utils import RequestUtils, SiteUtils, StringUtils
 from app.utils.types import MediaType
-from app.utils import RequestUtils, StringUtils, SiteUtils
 from config import Config
 
 
@@ -64,7 +62,7 @@ class MTorrentSpider:
             self._token = indexer.token
             self._timeout = indexer.timeout or 15
 
-    def search(self, keyword: str, mtype: MediaType = None, page: int = 0) -> Tuple[bool, list]:
+    def search(self, keyword: str, mtype: MediaType = None, page: int = 0) -> tuple[bool, list]:
         """
         搜索
         """

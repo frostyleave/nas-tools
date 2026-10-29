@@ -1,12 +1,10 @@
 import re
 
 import log
-
 from app.helper.site_signin_helper import SiteSigninHelper, Verdict
-from app.plugins.modules._autosignin._base import _ISiteSigninHandler
-from app.utils import SiteUtils, RequestUtils
 from app.models.model import UserSiteConf
-
+from app.plugins.modules._autosignin._base import _ISiteSigninHandler
+from app.utils import RequestUtils, SiteUtils
 from config import Config
 
 
@@ -30,7 +28,7 @@ class HDUpt(_ISiteSigninHandler):
         :param url: 站点Url
         :return: 是否匹配，如匹配则会调用该类的signin方法
         """
-        return True if SiteUtils.url_equal(url, cls.site_url) else False
+        return bool(SiteUtils.url_equal(url, cls.site_url))
 
     def signin(self, site_info: UserSiteConf):
         """
@@ -63,13 +61,13 @@ class HDUpt(_ISiteSigninHandler):
                                 proxies=proxy
                                 ).post_res(url="https://pt.hdupt.com/added.php?action=qiandao")
         if not sign_res or sign_res.status_code != 200:
-            self.error(f"签到失败，请检查站点连通性")
+            self.error("签到失败，请检查站点连通性")
             return False, f'[{site}]签到失败，请检查站点连通性'
 
         log.debug(f"签到接口返回 {sign_res.text}")
         # 判断是否已签到 sign_res.text = ".23"
-        if len(list(map(int, re.findall("\d+", sign_res.text)))) > 0:
-            self.info(f"签到成功")
+        if len(list(map(int, re.findall(r"\d+", sign_res.text)))) > 0:
+            self.info("签到成功")
             return True, f'[{site}]签到成功'
 
         self.error(f"签到失败，签到接口返回 {sign_res.text}")

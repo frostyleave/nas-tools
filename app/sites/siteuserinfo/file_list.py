@@ -1,9 +1,8 @@
-# -*- coding: utf-8 -*-
 import re
 
 from lxml import etree
 
-from app.sites.siteuserinfo._base import _ISiteUserInfo, SITE_BASE_ORDER
+from app.sites.siteuserinfo._base import SITE_BASE_ORDER, _ISiteUserInfo
 from app.utils import StringUtils
 from app.utils.types import SiteSchema
 
@@ -71,7 +70,6 @@ class FileListSiteUserInfo(_ISiteUserInfo):
         bonus_html = html.xpath('//a[contains(@href, "shop.php")]')
         if bonus_html:
             self.bonus = StringUtils.str_float(bonus_html[0].xpath("string(.)").strip())
-        pass
 
     def _parse_user_torrent_seeding_info(self, html_text, multi_page=False):
         """
@@ -95,7 +93,7 @@ class FileListSiteUserInfo(_ISiteUserInfo):
         if seeding_sizes and seeding_seeders:
             page_seeding = len(seeding_sizes)
 
-            for i in range(0, len(seeding_sizes)):
+            for i in range(len(seeding_sizes)):
                 size = StringUtils.num_filesize(seeding_sizes[i].xpath("string(.)").strip())
                 seeders = StringUtils.str_int(seeding_seeders[i].xpath("string(.)").strip())
 

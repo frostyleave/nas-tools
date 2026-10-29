@@ -1,19 +1,16 @@
-# coding: utf-8
 import json
 import re
-import requests
-
-from typing import Tuple
 from urllib.parse import quote
 
-import log
+import requests
 
+import log
 from app.models.model import IndexerInfo
 from app.utils.string_utils import StringUtils
 from config import Config
 
 
-class InterfaceSpider(object):
+class InterfaceSpider:
 
     torrents_info_array = []
     result_num = 100
@@ -48,7 +45,7 @@ class InterfaceSpider(object):
         # 搜索配置
         self.search_config = self._indexer.search.get('paths', [{}])[0]
 
-    def search(self, keyword: str, page=None, mtype=None) -> Tuple[bool, list]:
+    def search(self, keyword: str, page=None, mtype=None) -> tuple[bool, list]:
         """
         开始搜索
         :param: keyword: 搜索关键字
@@ -65,7 +62,7 @@ class InterfaceSpider(object):
         response = self.request(search_url)
 
         if response.status_code != 200:
-            log.warn(f"【InterfaceSpider】请求{search_url} 失败: {str(response.status_code)}")
+            log.warn(f"【InterfaceSpider】请求{search_url} 失败: {response.status_code!s}")
             return True, []
 
         # 获取HTML文本
@@ -171,7 +168,7 @@ class InterfaceSpider(object):
         response = session.get(search_url, headers=headers, allow_redirects=True,  proxies=proxies)
 
         if response.status_code != 200:
-            log.warn(f"【InterfaceSpider】请求{search_url} 失败: {str(response.status_code)}")
+            log.warn(f"【InterfaceSpider】请求{search_url} 失败: {response.status_code!s}")
             return response
 
         if check_cookie:

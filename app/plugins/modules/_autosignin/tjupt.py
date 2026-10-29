@@ -1,16 +1,15 @@
 import json
 import os
 import time
-
 from io import BytesIO
 
-from PIL import Image
 from lxml import etree
+from PIL import Image
 
 from app.helper.site_signin_helper import SiteSigninHelper, Verdict
-from app.plugins.modules._autosignin._base import _ISiteSigninHandler
 from app.models.model import UserSiteConf
-from app.utils import SiteUtils, RequestUtils
+from app.plugins.modules._autosignin._base import _ISiteSigninHandler
+from app.utils import RequestUtils, SiteUtils
 from config import Config
 
 
@@ -43,7 +42,7 @@ class Tjupt(_ISiteSigninHandler):
         :param url: 站点Url
         :return: 是否匹配，如匹配则会调用该类的signin方法
         """
-        return True if SiteUtils.url_equal(url, cls.site_url) else False
+        return bool(SiteUtils.url_equal(url, cls.site_url))
 
     def signin(self, site_info: UserSiteConf):
         """
@@ -129,7 +128,7 @@ class Tjupt(_ISiteSigninHandler):
                                              ua=ua,
                                              proxy=proxy,
                                              site=site)
-        except (FileNotFoundError, IOError, OSError):
+        except Exception as ex:
             self.debug("查询本地已知答案失败，继续请求豆瓣查询")
 
         # 本地不存在正确答案则请求豆瓣查询匹配
@@ -224,7 +223,7 @@ class Tjupt(_ISiteSigninHandler):
             formatted_data = json.dumps(exits_answers, indent=4)
             with open(self._answer_file, 'w') as f:
                 f.write(formatted_data)
-        except (FileNotFoundError, IOError, OSError):
+        except Exception as ex:
             self.debug("签到成功写入本地文件失败")
 
     @staticmethod

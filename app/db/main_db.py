@@ -2,15 +2,13 @@ import os
 import threading
 
 from sqlalchemy import create_engine, text
-from sqlalchemy.orm import sessionmaker, scoped_session
+from sqlalchemy.orm import scoped_session, sessionmaker
 from sqlalchemy.pool import QueuePool
 
+import log
 from app.db.models import Base
 from app.utils import PathUtils
-
 from config import Config
-
-import log
 
 lock = threading.Lock()
 _Engine = create_engine(

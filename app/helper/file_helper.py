@@ -1,15 +1,13 @@
 import os
 import re
 import shutil
-
 from urllib.parse import unquote
 
 import log
-
+from app.utils.constants import Constants
 from app.utils.path_utils import PathUtils
 from app.utils.string_utils import StringUtils
 from app.utils.system_utils import SystemUtils
-from app.utils.constants import Constants
 from app.utils.types import OsType
 
 

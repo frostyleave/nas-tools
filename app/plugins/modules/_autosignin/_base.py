@@ -1,9 +1,7 @@
-# -*- coding: utf-8 -*-
 import re
 from abc import ABCMeta, abstractmethod
 
 import log
-
 from app.models.model import UserSiteConf
 from app.utils import SiteUtils
 
@@ -23,7 +21,7 @@ class _ISiteSigninHandler(metaclass=ABCMeta):
         :param url: 站点Url
         :return: 是否匹配，如匹配则会调用该类的signin方法
         """
-        return True if SiteUtils.url_equal(url, self.site_url) else False
+        return bool(SiteUtils.url_equal(url, self.site_url))
 
     @abstractmethod
     def signin(self, site_info: UserSiteConf):

@@ -4,7 +4,7 @@ from app.utils.commons import singleton
 
 
 @singleton
-class ReleaseGroupsMatcher(object):
+class ReleaseGroupsMatcher:
     """
     识别制作组、字幕组
     """
@@ -93,7 +93,7 @@ class ReleaseGroupsMatcher(object):
             else:
                 groups = self.__release_groups
         title = f"{title} "
-        groups_re = re.compile(r"(?<=[-@\[￡【&])(?:%s)(?=[@.\s\]\[】&])" % groups, re.I)
+        groups_re = re.compile(rf"(?<=[-@\[￡【&])(?:{groups})(?=[@.\s\]\[】&])", re.I)
         # 处理一个制作组识别多次的情况，保留顺序
         unique_groups = []
         for match in re.finditer(groups_re, title):

@@ -1,23 +1,19 @@
-import os
 import hashlib
-import httpx
+import os
+from pathlib import Path
+from urllib.parse import unquote, urlparse, urlunparse
 
-from fastapi import APIRouter, HTTPException, Query, Request, Depends, Response
+import httpx
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response
 from fastapi.responses import FileResponse, StreamingResponse
 
-from urllib.parse import unquote, urlparse, urlunparse
-from pathlib import Path
-
 import log
-
 from app.middleware.security import get_current_user
 from app.modules.system.backup import Backup
 from app.utils import RequestUtils, SystemUtils
-from app.utils.types import OsType
 from app.utils.async_request import AsyncRequestUtils
-
+from app.utils.types import OsType
 from config import Config
-
 
 # 工具/文件路由
 utility_router = APIRouter(
@@ -58,17 +54,17 @@ async def dirlist(request: Request):
             if not f:
                 f = ff
             if os.path.isdir(ff):
-                r.append('<li class="directory collapsed"><a rel="%s/">%s</a></li>' % (
+                r.append('<li class="directory collapsed"><a rel="{}/">{}</a></li>'.format(
                     ff.replace("\\", "/"), f.replace("\\", "/")))
             else:
                 if ft != "HIDE_FILES_FILTER":
                     e = os.path.splitext(f)[1][1:]
-                    r.append('<li class="file ext_%s"><a rel="%s">%s</a></li>' % (
+                    r.append('<li class="file ext_{}"><a rel="{}">{}</a></li>'.format(
                         e, ff.replace("\\", "/"), f.replace("\\", "/")))
         r.append('</ul>')
     except Exception as e:
         log.exception('[App]加载路径失败: ')
-        r.append('加载路径失败: %s' % str(e))
+        r.append(f'加载路径失败: {e!s}')
     r.append('</ul>')
     return Response(content=''.join(r), media_type="text/html")
 

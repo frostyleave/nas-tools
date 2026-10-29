@@ -1,24 +1,22 @@
 import json
 import re
-
 from datetime import datetime
+
 from lxml import etree
-from typing import List, Optional, Tuple
 
 import log
-
 from app.db.models import CONFIGSITE
-from app.helper import SiteHelper, DbHelper
+from app.helper import DbHelper, SiteHelper
 from app.indexer.manager import IndexerManager
 from app.message import MessageService
-from app.models.model import UserSiteConf, SiteBaseModel
+from app.models.model import SiteBaseModel, UserSiteConf
 from app.sites import SiteRateLimiter
 from app.sites.siteuserinfo.mTorrent import MTorrentUserInfo
 from app.utils import RequestUtils, SiteUtils
 from app.utils.commons import singleton
 from app.utils.types import Spider
-
 from config import Config
+
 
 @singleton
 class SitesManager:
@@ -87,9 +85,9 @@ class SitesManager:
             site_uses = site.INCLUDE or ''
             uses = []
             if site_uses:
-                rss_enable = True if "D" in site_uses and site_rssurl else False
-                brush_enable = True if "S" in site_uses and site_rssurl else False
-                statistic_enable = True if "T" in site_uses and (site_rssurl or site_signurl) else False
+                rss_enable = bool("D" in site_uses and site_rssurl)
+                brush_enable = bool("S" in site_uses and site_rssurl)
+                statistic_enable = bool("T" in site_uses and (site_rssurl or site_signurl))
                 uses.append("D") if rss_enable else None
                 uses.append("S") if brush_enable else None
                 uses.append("T") if statistic_enable else None
@@ -135,11 +133,11 @@ class SitesManager:
                     "rule": site_note.get("rule"),
                     "download_setting": site_note.get("download_setting"),
                     "source_type": site_note.get("source_type").split(',') if site_note.get("source_type") else [],
-                    "parse_detail": True if site_note.get("parse") == "Y" else False,
-                    "unread_msg_notify": True if site_note.get("message") == "Y" else False,
-                    "chrome": True if site_note.get("chrome") == "Y" else False,
-                    "proxy": True if site_note.get("proxy") == "Y" else False,
-                    "subtitle": True if site_note.get("subtitle") == "Y" else False
+                    "parse_detail": site_note.get("parse") == "Y",
+                    "unread_msg_notify": site_note.get("message") == "Y",
+                    "chrome": site_note.get("chrome") == "Y",
+                    "proxy": site_note.get("proxy") == "Y",
+                    "subtitle": site_note.get("subtitle") == "Y"
                 }
 
                 # 限流策略参数
@@ -161,7 +159,7 @@ class SitesManager:
             log.exception(f'【Sites】站点[{site.NAME}]配置解析异常: ')
             return None
 
-    def get_site(self, siteid=None, siteurl=None) -> Optional[UserSiteConf]:
+    def get_site(self, siteid=None, siteurl=None) -> UserSiteConf | None:
         """
         获取单个站点配置
         """
@@ -176,7 +174,7 @@ class SitesManager:
                   siteids=None,
                   rss=False,
                   brush=False,
-                  statistic=False) -> List[UserSiteConf]:
+                  statistic=False) -> list[UserSiteConf]:
         """
         获取站点配置
         """
@@ -223,7 +221,7 @@ class SitesManager:
                 return self._siteByUrls[key]
         return None
 
-    def get_sites_by_name(self, name) -> List[UserSiteConf]:
+    def get_sites_by_name(self, name) -> list[UserSiteConf]:
         """
         根据站点名称获取站点配置
         """
@@ -262,7 +260,7 @@ class SitesManager:
     def get_site_names(self,
                        rss=False,
                        brush=False,
-                       statistic=False) -> List[str]:
+                       statistic=False) -> list[str]:
         """
         获取站点名称集合
         """
@@ -274,7 +272,7 @@ class SitesManager:
             )
         ]
 
-    def get_site_download_setting(self, site_name=None) -> Optional[str]:
+    def get_site_download_setting(self, site_name=None) -> str | None:
         """
         获取站点下载设置
         """
@@ -290,7 +288,7 @@ class SitesManager:
             return indexer_base.extra.get('downloader', None)
         return None
 
-    def test_connection(self, site_id) -> Tuple[bool, str, int]:
+    def test_connection(self, site_id) -> tuple[bool, str, int]:
         """
         测试站点连通性
         :param site_id: 站点编号
@@ -369,7 +367,7 @@ class SitesManager:
 
 
     # 解析网站下载链接
-    def parse_site_download_url(self, page_url, xpath) -> Optional[str]:
+    def parse_site_download_url(self, page_url, xpath) -> str | None:
         """
         从站点详情页面中解析中下载链接
         :param page_url: 详情页面地址
@@ -399,9 +397,8 @@ class SitesManager:
                 proxies=proxy
             ).get_res(url=page_url)
 
-            if req and req.status_code == 200:
-                if req.text:
-                    page_source = req.text
+            if req and req.status_code == 200 and req.text:
+                page_source = req.text
             # xpath解析
             if page_source:
                 html = etree.HTML(page_source)
@@ -412,7 +409,7 @@ class SitesManager:
             log.exception('【Sites】解析网站下载链接出错: ')
         return None
 
-    def match_indexer_sites(self, url, site_name=None) -> Optional[SiteBaseModel]:
+    def match_indexer_sites(self, url, site_name=None) -> SiteBaseModel | None:
         """
         根据url匹配索引站点信息
         """

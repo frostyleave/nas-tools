@@ -1,24 +1,20 @@
-import chardet
 import datetime
 import re
-
-from typing import Optional, Tuple
 from urllib.parse import quote, urlencode
 
+import chardet
 from jinja2 import Template
 from pyquery import PyQuery
 
 import log
-
 from app.models.model import IndexerInfo
 from app.sites.siteconf import SiteConf
-from app.utils import StringUtils, RequestUtils
+from app.utils import RequestUtils, StringUtils
 from app.utils.types import MediaType
-
-
 from config import Config
 
-class TorrentSpider(object):
+
+class TorrentSpider:
 
     # 索引器ID
     indexerid = None
@@ -88,7 +84,7 @@ class TorrentSpider(object):
         if referer:
             self.referer = referer
 
-    def search(self, keyword: str, page=None, mtype=None) -> Tuple[bool, list]:
+    def search(self, keyword: str, page=None, mtype=None) -> tuple[bool, list]:
         """
         页面查询
         :param keyword: 搜索关键字，如果数组则为批量搜索
@@ -152,7 +148,7 @@ class TorrentSpider(object):
                 }
                 # 额外参数
                 for key, value in self.search_conf.get("params").items():
-                    params.update({"%s" % key: str(value).format(**inputs_dict)})
+                    params.update({f"{key}": str(value).format(**inputs_dict)})
                 # 分类条件
                 if self.category:
                     if mtype == MediaType.MOVIE:
@@ -177,7 +173,7 @@ class TorrentSpider(object):
                                 params[field] = field+delimiter.join(cat_ids)
                         else:
                             for cat_id in cat_ids:
-                                params["cat%s" % cat_id] = 1
+                                params[f"cat{cat_id}"] = 1
                 searchurl = self.domain + torrentspath + "?" + urlencode(params, doseq=True)
             else:
                 # 变量字典
@@ -509,7 +505,7 @@ class TorrentSpider(object):
         torrents_date_elapsed = self.__index(items, selector)
         return self.__filter_text(torrents_date_elapsed, selector.get("filters"))
 
-    def _getdownloadvolumefactor(self, torrent) -> Optional[float]:
+    def _getdownloadvolumefactor(self, torrent) -> float | None:
         # downloadvolumefactor
         selector = self.fields_conf.get("downloadvolumefactor")
         if not selector:
@@ -535,7 +531,7 @@ class TorrentSpider(object):
                     torrents_downloadvolumefactor = float(downloadvolumefactor.group(1))
         return torrents_downloadvolumefactor
 
-    def _getuploadvolumefactor(self, torrent) -> Optional[float]:
+    def _getuploadvolumefactor(self, torrent) -> float | None:
         # uploadvolumefactor
         selector = self.fields_conf.get("uploadvolumefactor")
         if not selector:
@@ -583,7 +579,7 @@ class TorrentSpider(object):
                 hr_tag = torrent(selector.get("selector", ""))
             else:
                 hr_tag = torrent(selector)
-            return False if hr_tag is None else True        
+            return not hr_tag is None        
         return False
 
     def _getinfo(self, torrent_html):
@@ -626,19 +622,19 @@ class TorrentSpider(object):
                 method_name = filter_item.get("name")
                 args = filter_item.get("args")
                 if method_name == "re_search" and isinstance(args, list):
-                    re_search = re.search(r"%s" % args[0], text)
+                    re_search = re.search(rf"{args[0]}", text)
                     if re_search:
                         text = re_search.group(args[-1])
                 if method_name == "re_sub" and isinstance(args, list):
-                    text = re.sub(r"%s" % args[0], args[1], text)
+                    text = re.sub(rf"{args[0]}", args[1], text)
                 if method_name == "re_format" and isinstance(args, list):
                     text = self.__format_string(args[0], args[1], text)
                 elif method_name == "split" and isinstance(args, list):
-                    text = text.split(r"%s" % args[0])[args[-1]]
+                    text = text.split(rf"{args[0]}")[args[-1]]
                 elif method_name == "replace" and isinstance(args, list):
-                    text = text.replace(r"%s" % args[0], r"%s" % args[-1])
+                    text = text.replace(rf"{args[0]}", rf"{args[-1]}")
                 elif method_name == "dateparse" and isinstance(args, str):
-                    text = datetime.datetime.strptime(text, r"%s" % args)
+                    text = datetime.datetime.strptime(text, rf"{args}")
                 elif method_name == "strip":
                     text = text.strip()
                 elif method_name == "appendleft":

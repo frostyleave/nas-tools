@@ -3,9 +3,9 @@ import time
 
 from app.helper import OcrHelper
 from app.helper.site_signin_helper import SiteSigninHelper, Verdict
-from app.plugins.modules._autosignin._base import _ISiteSigninHandler
 from app.models.model import UserSiteConf
-from app.utils import SiteUtils, RequestUtils
+from app.plugins.modules._autosignin._base import _ISiteSigninHandler
+from app.utils import RequestUtils, SiteUtils
 from config import Config
 
 
@@ -26,7 +26,7 @@ class HDSky(_ISiteSigninHandler):
         :param url: 站点Url
         :return: 是否匹配，如匹配则会调用该类的signin方法
         """
-        return True if SiteUtils.url_equal(url, cls.site_url) else False
+        return bool(SiteUtils.url_equal(url, cls.site_url))
 
     def signin(self, site_info: UserSiteConf):
         """
@@ -75,7 +75,7 @@ class HDSky(_ISiteSigninHandler):
         # 获取到二维码hash
         if img_hash:
             # 完整验证码url
-            img_get_url = 'https://hdsky.me/image.php?action=regimage&imagehash=%s' % img_hash
+            img_get_url = f'https://hdsky.me/image.php?action=regimage&imagehash={img_hash}'
             self.debug(f"获取到{site}验证码链接 {img_get_url}")
             # ocr识别多次，获取6位验证码
             times = 0
@@ -87,10 +87,9 @@ class HDSky(_ISiteSigninHandler):
                                                         cookie=site_cookie,
                                                         ua=ua)
                 self.debug(f"ocr识别{site}验证码 {ocr_result}")
-                if ocr_result:
-                    if len(ocr_result) == 6:
-                        self.info(f"ocr识别{site}验证码成功 {ocr_result}")
-                        break
+                if ocr_result and len(ocr_result) == 6:
+                    self.info(f"ocr识别{site}验证码成功 {ocr_result}")
+                    break
                 times += 1
                 self.debug(f"ocr识别{site}验证码失败，正在进行重试，目前重试次数 {times}")
                 time.sleep(1)
@@ -109,16 +108,16 @@ class HDSky(_ISiteSigninHandler):
                                    ).post_res(url='https://hdsky.me/showup.php', data=data)
                 if res and res.status_code == 200:
                     if json.loads(res.text)["success"]:
-                        self.info(f"签到成功")
+                        self.info("签到成功")
                         return True, f'[{site}]签到成功'
                     elif str(json.loads(res.text)["message"]) == "date_unmatch":
                         # 重复签到
-                        self.warn(f"重复成功")
+                        self.warn("重复成功")
                         return True, f'[{site}]今日已签到'
                     elif str(json.loads(res.text)["message"]) == "invalid_imagehash":
                         # 验证码错误
-                        self.warn(f"签到失败：验证码错误")
+                        self.warn("签到失败：验证码错误")
                         return False, f'[{site}]签到失败：验证码错误'
 
-        self.error(f'签到失败：未获取到验证码')
+        self.error('签到失败：未获取到验证码')
         return False, f'[{site}]签到失败：未获取到验证码'

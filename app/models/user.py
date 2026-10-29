@@ -1,10 +1,8 @@
-from typing import Optional
-
 from app.helper import DbHelper
 from app.utils.commons import singleton
 from app.utils.password_hash import check_password_hash
-
 from config import Config
+
 
 class User:
     """
@@ -104,7 +102,7 @@ class UserManager:
             self.dbhelper.insert_user(name, password, pris)
             return 1
         except Exception as e:
-            print("新增用户出现严重错误！请检查：%s" % str(e))
+            print(f"新增用户出现严重错误！请检查：{e!s}")
             return 0
 
     # 删除用户
@@ -113,14 +111,14 @@ class UserManager:
             self.dbhelper.delete_user(name)
             return 1
         except Exception as e:
-            print("删除用户出现严重错误！请检查：%s" % str(e))
+            print(f"删除用户出现严重错误！请检查：{e!s}")
             return 0
 
     def get_admin_user(self) -> User:
         return User(self.admin_user)
     
     # 根据用户ID获取用户实体，为 login_user 方法提供支持
-    def get_user_by_id(self, user_id) -> Optional[User]:
+    def get_user_by_id(self, user_id) -> User | None:
         if user_id is None:
             return None
         if self.admin_user == user_id:
@@ -133,7 +131,7 @@ class UserManager:
         return None
 
     # 根据用户名获取用户对像
-    def get_user_by_name(self, user_name) -> Optional[User]:
+    def get_user_by_name(self, user_name) -> User | None:
         if not user_name:
             return None
         if self.admin_user.get("name") == user_name:

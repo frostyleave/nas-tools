@@ -1,7 +1,6 @@
+import log
 from app.message.client._base import _IMessageClient
 from app.utils import RequestUtils, SiteUtils
-
-import log
 
 
 class Ntfy(_IMessageClient):
@@ -36,7 +35,7 @@ class Ntfy(_IMessageClient):
 
     @classmethod
     def match(cls, ctype):
-        return True if ctype == cls.schema else False
+        return ctype == cls.schema
 
     def send_msg(self, title, text="", image="", url="", user_id=""):
         """
@@ -53,7 +52,7 @@ class Ntfy(_IMessageClient):
         try:
             if not self._server or not self._token:
                 return False, "参数未配置"
-            sc_url = "%s" % self._server
+            sc_url = self._server
             sc_data = {
                 "topic": self._topic, 
                 "title": title,

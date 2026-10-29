@@ -1,5 +1,14 @@
-# coding: utf-8
-from sqlalchemy import Column, Float, Index, Integer, String, Text, text, Sequence, Boolean
+from sqlalchemy import (
+    Boolean,
+    Column,
+    Float,
+    Index,
+    Integer,
+    Sequence,
+    String,
+    Text,
+    text,
+)
 from sqlalchemy.ext.declarative import declarative_base
 
 Base = declarative_base()

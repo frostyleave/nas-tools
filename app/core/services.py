@@ -5,12 +5,11 @@ import signal
 
 import zhconv
 
+import log
 from app.core.jobcenter import JobCenter
 from app.core.scheduler import Scheduler
 from app.downloader import Downloader
-
-from app.helper import ThreadHelper, DisplayHelper
-
+from app.helper import DisplayHelper, ThreadHelper
 from app.indexer.manager import IndexerManager
 from app.modules.brushtaskv2 import BrushTaskV2 as BrushTask
 from app.modules.rsschecker import RssChecker
@@ -20,7 +19,6 @@ from app.plugins import PluginManager
 from app.sites import SiteConf
 from app.utils.system_utils import SystemUtils
 
-import log
 
 class ServiceManager:
 

@@ -1,13 +1,11 @@
-from typing import Tuple
 from urllib.parse import quote
 
 import log
-
 from app.utils import RequestUtils, StringUtils
 from config import Config
 
 
-class TorrentLeech(object):
+class TorrentLeech:
     _indexer = None
     _proxy = None
     _size = 100
@@ -26,7 +24,7 @@ class TorrentLeech(object):
         self._size = 100
 
 
-    def search(self, keyword, page=0) -> Tuple[bool, list]:
+    def search(self, keyword, page=0) -> tuple[bool, list]:
 
         if keyword:
             url = self._searchurl % (self._indexer.domain, quote(keyword))

@@ -1,19 +1,17 @@
 import re
 import xml.dom.minidom
-
 from datetime import datetime
 from threading import Event
 
 from jinja2 import Template
 
-from app.helper import RssHelper
-from app.helper import ThreadHelper
+from app.helper import RssHelper, ThreadHelper
 from app.media import MediaService
 from app.mediaserver import MediaServer
-from app.plugins.modules._base import _IPluginModule
 from app.modules.subscribe import Subscribe
-from app.utils import RequestUtils, DomUtils
-from app.utils.types import MediaType, SearchType, RssType
+from app.plugins.modules._base import _IPluginModule
+from app.utils import DomUtils, RequestUtils
+from app.utils.types import MediaType, RssType, SearchType
 from config import Config
 
 
@@ -64,7 +62,7 @@ class DoubanRank(_IPluginModule):
     _useproxy = False
 
         
-    def init_config(self, config: dict = None):
+    def init_config(self, config: dict | None = None):
         self.mediaserver = MediaServer()
         self.subscribe = Subscribe()
         self.rsshelper = RssHelper()
@@ -378,7 +376,7 @@ class DoubanRank(_IPluginModule):
         """
         刷新RSS
         """
-        self.info(f"开始刷新RSS ...")
+        self.info("开始刷新RSS ...")
 
         for rank_id in self._ranks:
             addr_info = self._douban_address.get(rank_id, {})
@@ -392,7 +390,7 @@ class DoubanRank(_IPluginModule):
                     continue
                 self.__try_do_rss_subscribe(addr, '榜单(自定义)')
 
-        self.info(f"所有RSS刷新完成")
+        self.info("所有RSS刷新完成")
 
     def __try_do_rss_subscribe(self, addr, rss_name=''):
         try:
@@ -405,7 +403,7 @@ class DoubanRank(_IPluginModule):
                 self.info(f"RSS地址: {addr} ，共 {len(rss_infos)} 条数据")
             for rss_info in rss_infos:
                 if self._event.is_set():
-                    self.info(f"订阅服务停止")
+                    self.info("订阅服务停止")
                     return
 
                 title = rss_info.get('title')
@@ -474,12 +472,12 @@ class DoubanRank(_IPluginModule):
                     in_from= rss_name if rss_name else SearchType.PLUGIN
                 )
                 if not rss_media or code != 0:
-                    self.warn("%s 添加订阅失败: %s" % (media_info.get_title_string(), msg))
+                    self.warn(f"{media_info.get_title_string()} 添加订阅失败: {msg}")
                     # 订阅已存在
                     if code == 9:
                         self.__update_history(media=media_info, state="RSS")
                 else:
-                    self.info("%s 添加订阅成功" % media_info.get_title_string())
+                    self.info(f"{media_info.get_title_string()} 添加订阅成功")
                     self.__update_history(media=media_info, state="RSS")
         except Exception as e:
             self.error(str(e))
@@ -508,7 +506,7 @@ class DoubanRank(_IPluginModule):
                     # 链接
                     link = DomUtils.tag_value(item, "link", default="")
                     if not title and not link:
-                        self.warn(f"条目标题和链接均为空，无法处理")
+                        self.warn("条目标题和链接均为空，无法处理")
                         continue
                     doubanid = re.findall(r"/(\d+)/", link)
                     if doubanid:

@@ -1,20 +1,18 @@
 import bisect
-import cn2an
-import dateparser
 import hashlib
 import random
 import re
 import string
-
 from datetime import datetime, timedelta
-from dateutil.parser import parse as parse_date, isoparse
-from typing import Optional, Tuple
 
+import cn2an
+import dateparser
 import zhconv
+from dateutil.parser import isoparse
+from dateutil.parser import parse as parse_date
 from zhon.hanzi import punctuation as zh_punc
 
 import log
-
 from app.utils.types import MediaType
 
 # 需要忽略的特殊字符
@@ -27,21 +25,21 @@ _FULL_TO_HALF_MAP = {
 }
 _FULL_TO_HALF_MAP[0x3000] = 0x20   # 全角空格 -> 半角空格
 
+CHINESE_TO_DIGIT = {
+    "零": 0, 
+    "一": 1, 
+    "二": 2, 
+    "三": 3, 
+    "四": 4, 
+    "五": 5, 
+    "六": 6, 
+    "七": 7, 
+    "八": 8, 
+    "九": 9
+}
 
 class StringUtils:
 
-    chinese_to_digit = {
-        "零": 0, 
-        "一": 1, 
-        "二": 2, 
-        "三": 3, 
-        "四": 4, 
-        "五": 5, 
-        "六": 6, 
-        "七": 7, 
-        "八": 8, 
-        "九": 9
-    }
 
     @staticmethod
     def num_filesize(text):
@@ -116,10 +114,7 @@ class StringUtils:
         if isinstance(word, list):
             word = " ".join(word)
         chn = re.compile(r'[\u4e00-\u9fff]')
-        if chn.search(word):
-            return True
-        else:
-            return False
+        return bool(chn.search(word))
     
     @staticmethod
     def contain_traditional_chinese(text: str) -> bool:
@@ -133,18 +128,12 @@ class StringUtils:
     @staticmethod
     def is_japanese(word):
         jap = re.compile(r'[\u3040-\u309F\u30A0-\u30FF]')
-        if jap.search(word):
-            return True
-        else:
-            return False
+        return bool(jap.search(word))
 
     @staticmethod
     def is_korean(word):
         kor = re.compile(r'[\uAC00-\uD7FF]')
-        if kor.search(word):
-            return True
-        else:
-            return False
+        return bool(kor.search(word))
 
     @staticmethod
     def is_all_chinese(word):
@@ -180,10 +169,7 @@ class StringUtils:
         判断是否全是英文和数字
         """
         eng = re.compile(r'^[a-zA-Z0-9\s]+$')
-        if eng.search(word):
-            return True
-        else:
-            return False
+        return bool(eng.search(word))
 
     @staticmethod
     def is_alpha_numeric_punct(s):
@@ -278,7 +264,7 @@ class StringUtils:
         if not isinstance(text, list):
             text = re.sub(r"[\u200B-\u200D\uFEFF]",
                           "",
-                          re.sub(r"%s" % CONVERT_EMPTY_CHARS, replace_word, text),
+                          re.sub(rf"{CONVERT_EMPTY_CHARS}", replace_word, text),
                           flags=re.IGNORECASE)
             if not allow_space:
                 return re.sub(r"\s+", "", text).translate(_FULL_TO_HALF_MAP)
@@ -309,7 +295,7 @@ class StringUtils:
             except Exception as e:
                 log.exception('str_filesize error:')
                 return ""
-        if re.findall(r"[KMGTP]", size, re.I):
+        if re.findall(r"[KMGTP]", size, re.IGNORECASE):
             return size
         else:
             return size + "B"
@@ -433,7 +419,7 @@ class StringUtils:
     @staticmethod
     def convert_chinese_to_digit(chinese_str):
         # 将中文数字转换为阿拉伯数字
-        digit_str = ''.join(str(StringUtils.chinese_to_digit.get(char, char)) for char in chinese_str)
+        digit_str = ''.join(str(CHINESE_TO_DIGIT.get(char, char)) for char in chinese_str)
         return int(digit_str) if digit_str.isdigit() else None
 
     @staticmethod
@@ -538,11 +524,9 @@ class StringUtils:
             return default_val
         if isinstance(text, bool):
             return text
-        if isinstance(text, int) or isinstance(text, float):
-            return True if text > 0 else False
-        if isinstance(text, str) and text.lower() in ['y', 'true', '1']:
-            return True
-        return False
+        if isinstance(text, (int, float)):
+            return text > 0
+        return bool(isinstance(text, str) and text.lower() in ['y', 'true', '1'])
 
     @staticmethod
     def str_from_cookiejar(cj):
@@ -583,12 +567,12 @@ class StringUtils:
         hours = minutes // 60
         minutes = minutes % 60
         if hours:
-            return "%s小时%s分" % (hours, minutes)
+            return f"{hours}小时{minutes}分"
         else:
-            return "%s分钟" % minutes
+            return f"{minutes}分钟"
 
     @staticmethod
-    def str_to_datetime(date_str: str, formats: Optional[list[str]] = None) -> Optional[datetime]:
+    def str_to_datetime(date_str: str, formats: list[str] | None = None) -> datetime | None:
         """
         将字符串转换为 datetime 对象。
 
@@ -711,10 +695,7 @@ class StringUtils:
         today = datetime.today()
         one_month_ago = today - timedelta(days=30)
         # 比较日期对象，判断是否早于一个月前
-        if date_obj < one_month_ago:
-            return True
-        else:
-            return False
+        return date_obj < one_month_ago
 
     @staticmethod
     def adjust_en_name(en_name):
@@ -762,7 +743,7 @@ class StringUtils:
         return bool(re.match(r'.*\d$', s))
     
     @staticmethod
-    def remove_numbers_from_end(s) -> Tuple[str, Optional[int]]:
+    def remove_numbers_from_end(s) -> tuple[str, int | None]:
         """
         拆分字符串与末尾数字
         - 返回 (去掉尾数的字符串, 末尾数字 or None)
@@ -779,10 +760,7 @@ class StringUtils:
         """
         判断是否是字符串并且字符串是否为空
         """
-        if isinstance(word, str) and word.strip():
-            return True
-        else:
-            return False
+        return bool(isinstance(word, str) and word.strip())
         
     @staticmethod
     def is_public_url(url: str) -> bool:

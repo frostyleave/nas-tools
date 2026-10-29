@@ -1,20 +1,17 @@
 import copy
 import datetime
-
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from typing import List, Optional
 
 import log
-
+from app.core.task_manager import TaskStore
 from app.indexer.client.builtin import BuiltinIndexer
-from app.models.model import IndexerInfo
 from app.media import MediaService
 from app.media.meta._base import MetaBase
 from app.media.meta.metainfo import MetaInfo
+from app.models.model import IndexerInfo
 from app.utils import StringUtils
 from app.utils.commons import singleton
 from app.utils.types import SearchType
-from app.core.task_manager import TaskStore
 
 # 索引器默认分类
 INDEXER_CATEGORY = ['MOVIE', 'TV', 'ANIME']
@@ -89,9 +86,9 @@ class Indexer(object):
     def search_by_keyword(self,
                           key_word: str,
                           filter_args: dict,
-                          match_media: Optional[MetaBase]=None,
-                          in_from: Optional[SearchType]=None,
-                          task_id=None) -> List[MetaInfo]:
+                          match_media: MetaBase | None=None,
+                          in_from: SearchType | None=None,
+                          task_id=None) -> list[MetaInfo]:
         """
         根据关键字调用 Index API 搜索
         :param key_word: 搜索的关键字，不能为空
@@ -172,7 +169,7 @@ class Indexer(object):
 
         return ret_array
     
-    def update_process(self, task_id:Optional[str], process_val:int, text:Optional[str]=None):
+    def update_process(self, task_id:str | None, process_val:int, text:str | None=None):
         """
         进度更新
         """
@@ -188,12 +185,12 @@ class Indexer(object):
         return (data_list[i * k + min(i, m):(i + 1) * k + min(i + 1, m)] for i in range(chunks))
     
 def exec_search_by_threads(client_instance: BuiltinIndexer,
-                           search_indexers: List[IndexerInfo],
+                           search_indexers: list[IndexerInfo],
                            search_keywords: str,
                            filter_args: dict,
-                           match_media: Optional[MetaBase]=None,
-                           in_from: Optional[SearchType]=None,
-                           task_id: Optional[str]=None):
+                           match_media: MetaBase | None=None,
+                           in_from: SearchType | None=None,
+                           task_id: str | None=None):
     """
     接收一组索引器，使用线程池并发执行
     """

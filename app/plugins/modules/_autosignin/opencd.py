@@ -5,9 +5,9 @@ from lxml import etree
 
 from app.helper import OcrHelper
 from app.helper.site_signin_helper import SiteSigninHelper, Verdict
-from app.plugins.modules._autosignin._base import _ISiteSigninHandler
 from app.models.model import UserSiteConf
-from app.utils import SiteUtils, RequestUtils
+from app.plugins.modules._autosignin._base import _ISiteSigninHandler
+from app.utils import RequestUtils, SiteUtils
 from config import Config
 
 
@@ -28,7 +28,7 @@ class Opencd(_ISiteSigninHandler):
         :param url: 站点Url
         :return: 是否匹配，如匹配则会调用该类的signin方法
         """
-        return True if SiteUtils.url_equal(url, cls.site_url) else False
+        return bool(SiteUtils.url_equal(url, cls.site_url))
 
     def signin(self, site_info: UserSiteConf):
         """
@@ -61,7 +61,7 @@ class Opencd(_ISiteSigninHandler):
                                       proxies=proxy
                                       ).get_res(url='https://www.open.cd/plugin_sign-in.php')
         if not sign_param_res or sign_param_res.status_code != 200:
-            self.error(f"签到失败，请检查站点连通性")
+            self.error("签到失败，请检查站点连通性")
             return False, f'[{site}]签到失败，请检查站点连通性'
 
         # 没有签到则解析html
@@ -73,11 +73,11 @@ class Opencd(_ISiteSigninHandler):
         img_url = html.xpath('//form[@id="frmSignin"]//img/@src')[0]
         img_hash = html.xpath('//form[@id="frmSignin"]//input[@name="imagehash"]/@value')[0]
         if not img_url or not img_hash:
-            self.error(f"签到失败，获取签到参数失败")
+            self.error("签到失败，获取签到参数失败")
             return False, f'[{site}]签到失败，获取签到参数失败'
 
         # 完整验证码url
-        img_get_url = 'https://www.open.cd/%s' % img_url
+        img_get_url = f'https://www.open.cd/{img_url}'
         self.debug(f"获取到{site}验证码链接 {img_get_url}")
 
         # ocr识别多次，获取6位验证码
@@ -90,10 +90,9 @@ class Opencd(_ISiteSigninHandler):
                                                     cookie=site_cookie,
                                                     ua=ua)
             self.debug(f"ocr识别{site}验证码 {ocr_result}")
-            if ocr_result:
-                if len(ocr_result) == 6:
-                    self.info(f"ocr识别{site}验证码成功 {ocr_result}")
-                    break
+            if ocr_result and len(ocr_result) == 6:
+                self.info(f"ocr识别{site}验证码成功 {ocr_result}")
+                break
             times += 1
             self.debug(f"ocr识别{site}验证码失败，正在进行重试，目前重试次数 {times}")
             time.sleep(1)
@@ -114,11 +113,11 @@ class Opencd(_ISiteSigninHandler):
                 # sign_res.text = '{"state":"success","signindays":"0","integral":"10"}'
                 sign_dict = json.loads(sign_res.text)
                 if sign_dict['state']:
-                    self.info(f"签到成功")
+                    self.info("签到成功")
                     return True, f'[{site}]签到成功'
                 else:
                     self.error(f"签到失败，签到接口返回 {sign_dict}")
                     return False, f'[{site}]签到失败'
 
-        self.error(f'签到失败：未获取到验证码')
+        self.error('签到失败：未获取到验证码')
         return False, f'[{site}]签到失败：未获取到验证码'

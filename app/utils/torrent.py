@@ -1,10 +1,10 @@
 import hashlib
 import os.path
 import re
-import fastbencode
 import urllib
-
 from dataclasses import dataclass, field
+
+import fastbencode
 
 from app.utils.types import MediaType
 
@@ -76,7 +76,7 @@ class TorrentUtils:
         :return: TorrentDownloadResult
         """
         if not path or not os.path.exists(path):
-            return TorrentDownloadResult(ret_msg="种子文件不存在：%s" % path)
+            return TorrentDownloadResult(ret_msg=f"种子文件不存在：{path}")
 
         content, retmsg, file_folder, files = None, "", "", []
 
@@ -90,7 +90,7 @@ class TorrentUtils:
             files = resolve_result.files
             retmsg = resolve_result.ret_msg
         except Exception as e:
-            retmsg = "读取种子文件出错：%s" % str(e)
+            retmsg = f"读取种子文件出错：{e!s}"
 
         return TorrentDownloadResult(file_path=path, content=content, files_folder=file_folder, files=files, ret_msg=retmsg)
 
@@ -182,8 +182,7 @@ class TorrentUtils:
         for t_item in media_list:
             # 控重的主链是名称、年份、季、集
             if t_item.type != MediaType.MOVIE:
-                media_name = "%s%s" % (t_item.get_title_string(),
-                                       t_item.get_season_episode_string())
+                media_name = f"{t_item.get_title_string()}{t_item.get_season_episode_string()}"
             else:
                 media_name = t_item.get_title_string()
             if media_name not in can_download_list:

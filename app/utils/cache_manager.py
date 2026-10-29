@@ -1,8 +1,6 @@
-# -*- coding: utf-8 -*-
 import time
 
-from cacheout import CacheManager, LRUCache, Cache
-from functools import lru_cache, wraps
+from cacheout import Cache, CacheManager, LRUCache
 
 CACHES = {
     "tmdb_supply": {'maxsize': 200}

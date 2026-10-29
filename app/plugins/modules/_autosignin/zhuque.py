@@ -3,10 +3,9 @@ import json
 from lxml import etree
 
 from app.helper.site_signin_helper import SiteSigninHelper, Verdict
-from app.plugins.modules._autosignin._base import _ISiteSigninHandler
 from app.models.model import UserSiteConf
-from app.utils import SiteUtils, RequestUtils
-
+from app.plugins.modules._autosignin._base import _ISiteSigninHandler
+from app.utils import RequestUtils, SiteUtils
 from config import Config
 
 
@@ -24,7 +23,7 @@ class ZhuQue(_ISiteSigninHandler):
         :param url: 站点Url
         :return: 是否匹配，如匹配则会调用该类的signin方法
         """
-        return True if SiteUtils.url_equal(url, cls.site_url) else False
+        return bool(SiteUtils.url_equal(url, cls.site_url))
 
     def signin(self, site_info: UserSiteConf):
         """
@@ -72,7 +71,7 @@ class ZhuQue(_ISiteSigninHandler):
                                  proxies=proxy
                                  ).post_res(url="https://zhuque.in/api/gaming/fireGenshinCharacterMagic", json=data)
         if not skill_res or skill_res.status_code != 200:
-            self.error(f"签到失败：释放技能失败")
+            self.error("签到失败：释放技能失败")
         else:
             skill_dict = json.loads(skill_res.text)
             if skill_dict['status'] == 200:

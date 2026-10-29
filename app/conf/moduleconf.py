@@ -1,5 +1,4 @@
-# coding: utf-8
-from app.utils.types import SearchType, DownloaderType, RmtMode
+from app.utils.types import DownloaderType, RmtMode, SearchType
 
 
 class ModuleConf(object):

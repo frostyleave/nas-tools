@@ -1,23 +1,20 @@
 import json
 import re
 import time
-
 from enum import Enum
 
 import log
-
 from app.conf import ModuleConf
 from app.helper import DbHelper, SubmoduleHelper
 from app.message.message_center import SysMessageCenter
-from app.utils import StringUtils, IpUtils
+from app.utils import IpUtils, StringUtils
 from app.utils.commons import singleton
-from app.utils.types import SearchType, MediaType
-
+from app.utils.types import MediaType, SearchType
 from config import Config
 
 
 @singleton
-class MessageService(object):
+class MessageService:
     """
     消息服务
     """
@@ -132,10 +129,10 @@ class MessageService(object):
             if url:
                 # 唤起App
                 if '/open?url=' in url:
-                    url = "%s%s" % (self._domain, url)
+                    url = f"{self._domain}{url}"
                 # 跳转页面
                 elif not url.startswith("http"):
-                    url = "%s?next=%s" % (self._domain, url)
+                    url = f"{self._domain}?next={url}"
             else:
                 url = ""
         elif not StringUtils.is_public_url(url):
@@ -321,9 +318,8 @@ class MessageService(object):
             msg_str = f"{media_info.get_vote_string()}，类型：电影"
         else:
             msg_str = "类型：电影"
-        if media_info.category:
-            if category_flag:
-                msg_str = f"{msg_str}，类别：{media_info.category}"
+        if media_info.category and category_flag:
+            msg_str = f"{msg_str}，类别：{media_info.category}"
         if media_info.get_resource_type_string():
             msg_str = f"{msg_str}，质量：{media_info.get_resource_type_string()}"
         if StringUtils.is_string_and_not_empty(media_info.get_resource_team_string()):
@@ -414,9 +410,8 @@ class MessageService(object):
             msg_str = f"{msg_str}，{media_info.get_resource_type_string()}"
 
         # 获取类型，如：动漫
-        if media_info.category:
-            if category_flag:
-                msg_str = f"{msg_str}，类型：{media_info.category}"
+        if media_info.category and category_flag:
+            msg_str = f"{msg_str}，类型：{media_info.category}"
 
         if exist_filenum != 0:
             msg_str = f"{msg_str}，{exist_filenum}个文件已存在"
@@ -492,7 +487,7 @@ class MessageService(object):
         """
         发送下载失败的消息
         """
-        title = "添加下载任务失败：%s %s" % (item.get_title_string(), item.get_season_episode_string())
+        title = f"添加下载任务失败：{item.get_title_string()} {item.get_season_episode_string()}"
         text = f"站点：{item.site}\n种子名称：{item.org_string}\n种子链接：{item.enclosure}\n错误信息：{error_msg}"
         # 插入消息中心
         self.sysMsgCenter.insert_system_message(title=title, content=text)

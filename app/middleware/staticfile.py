@@ -1,6 +1,7 @@
 from fastapi.staticfiles import StaticFiles
 from starlette.responses import Response
 
+
 class NoCacheStaticFiles(StaticFiles):
     def __init__(self, *args, **kwargs):
         # 默认缓存时间设为 0

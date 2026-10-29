@@ -1,8 +1,7 @@
 import json
-
 from collections import defaultdict
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from threading import Event
 
 from app.helper import ThreadHelper
@@ -11,6 +10,7 @@ from app.indexer.manager import IndexerManager
 from app.plugins.modules._base import _IPluginModule
 from app.sites import SitesManager
 from app.utils import RequestUtils
+
 
 @dataclass
 class CookieCloudSyncResult:
@@ -203,7 +203,7 @@ class CookieCloud(_IPluginModule):
         if self._enabled:
             # 运行一次
             if self._onlyonce:
-                self.info(f"同步服务启动，立即运行一次")
+                self.info("同步服务启动，立即运行一次")
                 ThreadHelper().start_thread(self.__cookie_sync, ())
                 # 关闭一次性开关
                 self._onlyonce = False
@@ -237,7 +237,7 @@ class CookieCloud(_IPluginModule):
         self._notify = config.get("notify")
         self._onlyonce = config.get("onlyonce")
 
-        plugin_id = "plugin.%s" % self.__class__.__name__
+        plugin_id = f"plugin.{self.__class__.__name__}"
         extra = self.dicthelper.get_note("SystemConfig", plugin_id)
         if extra:
             extra_data = json.loads(extra)
@@ -245,10 +245,9 @@ class CookieCloud(_IPluginModule):
                 self._cc_upd_time = self.__parse_to_datetime(extra_data.get("cc_upd_time"))
 
         if not self._server.startswith("http"):
-            self._server = "http://%s" % self._server
+            self._server = f"http://{self._server}"
 
-        if self._server.endswith("/"):
-            self._server = self._server[:-1]
+        self._server = self._server.removesuffix("/")
 
         # 测试
         ret = self.__download_data()
@@ -268,13 +267,13 @@ class CookieCloud(_IPluginModule):
         if not self._server or not self._key or not self._password:
             return CookieCloudSyncResult(ret_msg="CookieCloud参数不正确")
         
-        req_url = "%s/get/%s" % (self._server, self._key)
+        req_url = f"{self._server}/get/{self._key}"
         ret = self.request_handler.post_res(url=req_url, json={"password": self._password})
         if not ret:
             return CookieCloudSyncResult(ret_msg="CookieCloud请求失败，请检查服务器地址、用户KEY及加密密码是否正确")
 
         if ret.status_code != 200:
-            return CookieCloudSyncResult(ret_msg="同步CookieCloud失败，错误码：%s" % ret.status_code)
+            return CookieCloudSyncResult(ret_msg=f"同步CookieCloud失败，错误码：{ret.status_code}")
         
         result = ret.json()
         if not result:
@@ -321,7 +320,7 @@ class CookieCloud(_IPluginModule):
                 return
             
             # 只有cf的cookie过滤掉
-            if not content_list or all(map(lambda c: c["name"] == "cf_clearance", content_list)):
+            if not content_list or all(c["name"] == "cf_clearance" for c in content_list):
                 continue
 
             # 拼接Cookie
@@ -365,7 +364,7 @@ class CookieCloud(_IPluginModule):
         if cloud_data.update_time:
             # 更新到DB
             self._cc_upd_time = cloud_data.update_time
-            plugin_id = "plugin.%s" % self.__class__.__name__
+            plugin_id = f"plugin.{self.__class__.__name__}"
             extra_data = {"cc_upd_time": self._cc_upd_time.strftime(TIME_FORMART)}
             self.dicthelper.update_note("SystemConfig", plugin_id, json.dumps(extra_data))
 
@@ -431,7 +430,7 @@ class CookieCloud(_IPluginModule):
         fmt = "%Y-%m-%dT%H:%M:%S.%fZ"
         dt_naive = datetime.strptime(iso_str, fmt)
         # 加上 UTC 时区，并去掉微秒，只保留到秒
-        return dt_naive.replace(tzinfo=timezone.utc, microsecond=0)
+        return dt_naive.replace(tzinfo=UTC, microsecond=0)
 
     def __parse_to_datetime(self, time_str: str) -> datetime:
         """
@@ -441,4 +440,4 @@ class CookieCloud(_IPluginModule):
         if not time_str:
             return None
         dt_naive = datetime.strptime(time_str, TIME_FORMART)
-        return dt_naive.replace(tzinfo=timezone.utc)
+        return dt_naive.replace(tzinfo=UTC)

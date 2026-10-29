@@ -1,17 +1,16 @@
 import datetime
+
 import requests
-
-from lxml import etree
 from cachetools import TTLCache, cached
+from lxml import etree
 
+import log
 from app.utils import RequestUtils
 from app.utils.commons import singleton
 
-import log
-
 
 @singleton
-class DoubanScaper(object):
+class DoubanScaper:
 
     _session = requests.Session()
 

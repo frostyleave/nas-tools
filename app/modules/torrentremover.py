@@ -1,29 +1,27 @@
 import json
 from threading import Lock
-from typing import List
 
 from apscheduler.job import Job
 from apscheduler.schedulers.background import BackgroundScheduler
 
 import log
-
 from app.conf import ModuleConf
+from app.core.jobcenter import JobCenter
 from app.downloader import Downloader
 from app.helper import DbHelper
 from app.message import MessageService
 from app.utils.commons import singleton
-from app.core.jobcenter import JobCenter
 
 lock = Lock()
 
 
 @singleton
-class TorrentRemover(object):
+class TorrentRemover:
     message = None
     downloader = None
     dbhelper = None
 
-    scheduler_jobs : List[Job] = []
+    scheduler_jobs : list[Job] = []
     _remove_tasks = {}
 
     def __init__(self):
@@ -248,7 +246,7 @@ class TorrentRemover(object):
             if qb_state:
                 for qb_state_item in qb_state:
                     if qb_state_item not in \
-                            ModuleConf.TORRENTREMOVER_DICT.get(downloader_type).get("torrent_state").keys():
+                            ModuleConf.TORRENTREMOVER_DICT.get(downloader_type).get("torrent_state"):
                         return False, "种子状态参数不合法"
             qb_category = data.get("qb_category")
             qb_category = qb_category.split(";") if qb_category else []
@@ -260,7 +258,7 @@ class TorrentRemover(object):
             if tr_state:
                 for tr_state_item in tr_state:
                     if tr_state_item not in \
-                            ModuleConf.TORRENTREMOVER_DICT.get(downloader_type).get("torrent_state").keys():
+                            ModuleConf.TORRENTREMOVER_DICT.get(downloader_type).get("torrent_state"):
                         return False, "种子状态参数不合法"
             tr_error_key = data.get("tr_error_key")
         config = {

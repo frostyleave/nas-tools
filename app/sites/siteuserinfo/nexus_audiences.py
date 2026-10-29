@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import re
 
 from lxml import etree
@@ -51,4 +50,3 @@ class NexusAudiencesSiteUserInfo(NexusPhpSiteUserInfo):
         if resource_total_match:
             self.seeding_size = StringUtils.num_filesize(resource_total_match.group(1))
     
-        return None

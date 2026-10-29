@@ -9,7 +9,6 @@
 from typing import TYPE_CHECKING
 
 import log
-
 from app.utils import TorrentUtils
 from app.utils.types import MediaType, SearchType
 
@@ -30,7 +29,7 @@ class BatchDownloader:
     def execute(self,
                 in_from: SearchType,
                 media_list: list,
-                need_tvs: dict = None,
+                need_tvs: dict | None = None,
                 user_name=None):
         """
         根据命中的种子媒体信息, 添加下载, 由RSS或Searcher调用
@@ -180,7 +179,7 @@ class BatchDownloader:
                             url=item.enclosure, page_url=item.page_url)
                         selected_episodes = set(torrent_episodes).intersection(set(need_episodes))
                         if not selected_episodes:
-                            log.info("【Downloader】%s 没有需要的集, 跳过..." % item.org_string)
+                            log.info(f"【Downloader】{item.org_string} 没有需要的集, 跳过...")
                             continue
 
                         downloader_id, download_id = self._do_download(
@@ -196,10 +195,10 @@ class BatchDownloader:
                         need_episodes = self._update_episodes(
                             need_tmdbid, idx, need_episodes, selected_episodes, need_tvs)
 
-                        log.info("【Downloader】从 %s 中选取集: %s" % (item.org_string, selected_episodes))
+                        log.info(f"【Downloader】从 {item.org_string} 中选取集: {selected_episodes}")
                         downloader.set_files_status(tid=download_id, need_episodes=selected_episodes,
                                                     downloader_id=downloader_id)
-                        log.info("【Downloader】%s 开始下载 " % item.org_string)
+                        log.info(f"【Downloader】{item.org_string} 开始下载 ")
                         downloader.start_torrents(ids=download_id, downloader_id=downloader_id)
                         return_items.append(item)
 
@@ -222,9 +221,8 @@ class BatchDownloader:
             is_paused=is_paused,
             in_from=in_from,
             user_name=user_name)
-        if did:
-            if item not in return_items:
-                return_items.append(item)
+        if did and item not in return_items:
+            return_items.append(item)
         return _downloader_id, did
 
     @staticmethod

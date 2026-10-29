@@ -6,10 +6,10 @@ import time
 from cachetools import TTLCache, cached
 from lxml import etree
 
-from app.utils import SiteUtils, RequestUtils
+import log
+from app.utils import RequestUtils, SiteUtils
 from app.utils.commons import singleton
 from config import Config
-import log
 
 
 @singleton

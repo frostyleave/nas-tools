@@ -2,16 +2,14 @@ import os.path
 import re
 
 import log
-
 from app.downloader import Downloader
 from app.indexer import Indexer
 from app.media import MediaService
 from app.message import MessageService
 from app.modules.search import SearchProxy
-from app.sites import SitesManager
 from app.modules.subscribe import Subscribe
-from app.utils.types import SearchType, RssType
-
+from app.sites import SitesManager
+from app.utils.types import RssType, SearchType
 from config import Config
 
 SEARCH_MEDIA_CACHE = {}
@@ -68,12 +66,12 @@ class MessageSearchHandler:
             if not search_media_type or search_media_type == "SEARCH":
                 # 如果是豆瓣数据，需要重新查询TMDB的数据
                 if media_info.douban_id:
-                    log.info("【message】豆瓣id: %s" % media_info.douban_id)
+                    log.info(f"【message】豆瓣id: {media_info.douban_id}")
                     _title = media_info.get_title_string()
                     # 重新根据豆瓣ID查询媒体数据
                     media_info = MediaService().get_mediainfo_from_id('DB:' + media_info.douban_id, media_info.type)
                     if not media_info or not media_info.tmdb_info:
-                        self.__send_channel_msg(title="%s 从TMDB查询不到媒体信息!" % _title)
+                        self.__send_channel_msg(title=f"{_title} 从TMDB查询不到媒体信息!")
                         return
                 # 搜索
                 self.__search_media(media_info=media_info)
@@ -128,7 +126,7 @@ class MessageSearchHandler:
                                       user_name=self.user_name)
             # 搜索或订阅
             else:
-                log.info("【Searcher】正在识别 %s ..." % input_str)
+                log.info(f"【Searcher】正在识别 {input_str} ...")
 
                 # 获取字符串中可能的RSS站点列表
                 site_dict = [{"id": site.id, "name": site.name } for site in SitesManager().get_sites(rss=True)]
@@ -150,12 +148,12 @@ class MessageSearchHandler:
                     self.__send_channel_msg(title="无法识别搜索内容！")
                     return
 
-                log.info("【Searcher】正在识别 %s 的媒体信息..." % content)
+                log.info(f"【Searcher】正在识别 {content} 的媒体信息...")
                 # 搜索名称
                 medias = SearchProxy().search_media_by_keyword(keyword=content)
                 if not medias:
                     # 查询不到媒体信息
-                    self.__send_channel_msg(title="%s 查询不到媒体信息！" % content)
+                    self.__send_channel_msg(title=f"{content} 查询不到媒体信息！")
                     return
                 
                 log.info(f"【Searcher】关键字 {content} 共找到{len(medias)}条数据" )
@@ -176,12 +174,12 @@ class MessageSearchHandler:
                         
                         if media_info.douban_id:
                             # 如果是豆瓣数据，需要重新查询TMDB的数据
-                            log.info("【message】豆瓣id: %s" % media_info.douban_id)
+                            log.info(f"【message】豆瓣id: {media_info.douban_id}")
                             _title = media_info.get_title_string()
                             media_info = MediaService().get_mediainfo_from_id('DB:' + media_info.douban_id, mtype=media_info.type)
 
                             if not media_info or not media_info.tmdb_info:
-                                self.__send_channel_msg(title="%s 从TMDB查询不到媒体信息！" % _title)
+                                self.__send_channel_msg(title=f"{_title} 从TMDB查询不到媒体信息！")
                                 return
                             
                         # 发送消息
@@ -197,7 +195,7 @@ class MessageSearchHandler:
                 else:
                     # 发送消息通知选择
                     MessageService().send_channel_list_msg(channel=self.in_from,
-                                                    title="共找到%s条相关信息，请回复对应序号" % len(SEARCH_MEDIA_CACHE[self.user_id]),
+                                                    title=f"共找到{len(SEARCH_MEDIA_CACHE[self.user_id])}条相关信息，请回复对应序号",
                                                     medias=SEARCH_MEDIA_CACHE[self.user_id],
                                                     user_id=self.user_id,
                                                     client_id=self.client_id)
@@ -216,7 +214,7 @@ class MessageSearchHandler:
             return
 
         # 开始搜索
-        self.__send_channel_msg(title="开始搜索 %s ..." % media_info.title)
+        self.__send_channel_msg(title=f"开始搜索 {media_info.title} ...")
         search_result, no_exists, search_count, download_count = SearchProxy().search_one_torrent(media_info=media_info,
                                                                                                in_from=self.in_from,
                                                                                                no_exists=no_exists,
@@ -224,17 +222,17 @@ class MessageSearchHandler:
                                                                                                user_name=self.user_name)
         # 没有搜索到数据
         if not search_count:
-            self.__send_channel_msg(title="%s 未搜索到任何资源" % media_info.title)
+            self.__send_channel_msg(title=f"{media_info.title} 未搜索到任何资源")
         else:
             # 搜索到了但是没开自动下载
             if download_count is None:
-                self.__send_channel_msg(title="%s 共搜索到%s个资源，点击选择下载" % (media_info.title, search_count),
+                self.__send_channel_msg(title=f"{media_info.title} 共搜索到{search_count}个资源，点击选择下载",
                                       image=media_info.get_message_image(),
                                       url="search")
                 return
             # 搜索到了但是没下载到数据
             if download_count == 0:
-                self.__send_channel_msg("%s 共搜索到%s个结果，但没有下载到任何资源" % (media_info.title, search_count))
+                self.__send_channel_msg(f"{media_info.title} 共搜索到{search_count}个结果，但没有下载到任何资源")
 
         # 没有下载完成，且打开了自动添加订阅，添加订阅
         if not search_result and Config().get_config('pt').get('search_no_result_rss'):
@@ -261,11 +259,11 @@ class MessageSearchHandler:
                                                               in_from=self.in_from,
                                                               user_name=self.user_name)
         if code == 0:
-            log.info("【Web】%s %s 已添加订阅" % (media_info.type.value, media_info.get_title_string()))
+            log.info(f"【Web】{media_info.type.value} {media_info.get_title_string()} 已添加订阅")
         else:
             if self.in_from in MessageService().get_search_types():
-                log.info("【Web】%s 添加订阅失败：%s" % (media_info.title, msg))
-                self.__send_channel_msg(title="%s 添加订阅失败：%s" % (media_info.title, msg))
+                log.info(f"【Web】{media_info.title} 添加订阅失败：{msg}")
+                self.__send_channel_msg(title=f"{media_info.title} 添加订阅失败：{msg}")
 
 
     def __send_channel_msg(self, title, text='', image='', url=''):

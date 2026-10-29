@@ -25,9 +25,7 @@ class SiteUtils:
             url1 = parse.urlparse(url1).netloc
         if url2.startswith("http"):
             url2 = parse.urlparse(url2).netloc
-        if url1.replace("www.", "") == url2.replace("www.", ""):
-            return True
-        return False
+        return url1.replace("www.", "") == url2.replace("www.", "")
 
     @staticmethod
     def get_url_netloc(url: str):

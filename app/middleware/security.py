@@ -1,19 +1,16 @@
 from datetime import datetime, timedelta
 from functools import partial, wraps
-from typing import Optional
 
 import jwt
-
 from fastapi import HTTPException, Request, status
 from fastapi.requests import HTTPConnection
 from jwt.exceptions import InvalidTokenError
 from passlib.context import CryptContext
 
 import log
-
+from app.models.user import User, UserManager
 from config import Config
 
-from app.models.user import User, UserManager
 
 def get_secret() -> str:
     """
@@ -43,13 +40,13 @@ def authenticate_user(username: str, password: str) -> User:
 # ------------------------
 # JWT 工具函数
 # ------------------------
-def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
+def create_access_token(data: dict, expires_delta: timedelta | None = None) -> str:
     to_encode = data.copy()
     expire = datetime.utcnow() + (expires_delta or timedelta(minutes=15))
     to_encode.update({"exp": expire})
     return jwt.encode(to_encode, get_secret(), algorithm=ALGORITHM)
 
-def decode_access_token(token: str) -> Optional[str]:
+def decode_access_token(token: str) -> str | None:
     try:
         payload = jwt.decode(token, get_secret(), algorithms=[ALGORITHM])
         username: str = payload.get("sub")
@@ -59,7 +56,7 @@ def decode_access_token(token: str) -> Optional[str]:
     except InvalidTokenError:
         return None
     
-def validate_refresh_token(token: str) -> Optional[str]:
+def validate_refresh_token(token: str) -> str | None:
     try:
         payload = jwt.decode(token, get_secret(), algorithms=[ALGORITHM])
         if not payload or payload.get("type") != "refresh":
@@ -73,7 +70,7 @@ def validate_refresh_token(token: str) -> Optional[str]:
     
 
 # 解析http请求中的用户
-async def get_current_user(request: HTTPConnection) -> Optional[User]:
+async def get_current_user(request: HTTPConnection) -> User | None:
     token = request.cookies.get("access_token")
     if not token:
         raise HTTPException(status_code=401, detail="缺少 access_token")
@@ -118,9 +115,8 @@ def auth_required(func=None):
             
         # 允许使用在api后面拼接 ?apikey=xxx 的方式进行验证
         auth = request.query_params.get("apikey")
-        if auth:
-            if auth == setting_api_key:
-                return await func(*args, **kwargs)
+        if auth and auth == setting_api_key:
+            return await func(*args, **kwargs)
             
         log.warn(f"【Security】{func.__name__} 认证未通过, 请检查API Key")
         raise HTTPException(status_code=401, detail="安全认证未通过, 请检查ApiKey")

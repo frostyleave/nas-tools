@@ -1,12 +1,10 @@
-from typing import Tuple
 
 import regex as re
 
+import log
 from app.helper.db_helper import DbHelper
 from app.utils.commons import singleton
 from app.utils.string_utils import StringUtils
-
-import log
 
 
 @singleton
@@ -91,18 +89,18 @@ class WordsHelper:
         return title, {"ignored": used_ignored_words, "replaced": used_replaced_words, "offset": used_offset_words}
 
     @staticmethod
-    def replace_regex(title, replaced, replace) -> Tuple[str, str, bool]:
+    def replace_regex(title, replaced, replace) -> tuple[str, str, bool]:
         try:
-            if not re.findall(r'%s' % replaced, title):
+            if not re.findall(rf'{replaced}', title):
                 return title, "", False
             else:
-                return re.sub(r'%s' % replaced, r'%s' % replace, title), "", True
+                return re.sub(rf'{replaced}', rf'{replace}', title), "", True
         except Exception as err:
             log.exception("replace_regex error : ")
             return title, str(err), False
 
     @staticmethod
-    def replace_noregex(title, replaced, replace) -> Tuple[str, str, bool]:
+    def replace_noregex(title, replaced, replace) -> tuple[str, str, bool]:
         try:
             if title.find(replaced) == -1:
                 return title, "", False
@@ -113,13 +111,13 @@ class WordsHelper:
             return title, str(err), False
 
     @staticmethod
-    def episode_offset(title, front, back, offset) -> Tuple[str, str, bool]:
+    def episode_offset(title, front, back, offset) -> tuple[str, str, bool]:
         try:
-            if back and not re.findall(r'%s' % back, title):
+            if back and not re.findall(rf'{back}', title):
                 return title, "", False
-            if front and not re.findall(r'%s' % front, title):
+            if front and not re.findall(rf'{front}', title):
                 return title, "", False
-            offset_word_info_re = re.compile(r'(?<=%s.*?)[0-9一二三四五六七八九十]+(?=.*?%s)' % (front, back))
+            offset_word_info_re = re.compile(rf'(?<={front}.*?)[0-9一二三四五六七八九十]+(?=.*?{back})')
             episode_nums_str = re.findall(offset_word_info_re, title)
             if not episode_nums_str:
                 return title, "", False
@@ -154,8 +152,8 @@ class WordsHelper:
                 episode_nums_list = sorted(episode_nums_dict.items(), key=lambda x: x[1], reverse=True)
             for episode_num in episode_nums_list:
                 episode_offset_re = re.compile(
-                    r'(?<=%s.*?)%s(?=.*?%s)' % (front, episode_num[0], back))
-                title = re.sub(episode_offset_re, r'%s' % episode_num[1], title)
+                    rf'(?<={front}.*?){episode_num[0]}(?=.*?{back})')
+                title = re.sub(episode_offset_re, rf'{episode_num[1]}', title)
             return title, "", True
         except Exception as err:
             log.exception("episode_offset error : ")
@@ -291,11 +289,11 @@ class WordsHelper:
                               "regex": word_info.REGEX,
                               "help": word_info.HELP, })
                 
-            name = "%s (%s)" % (group_info.TITLE, group_info.YEAR)
+            name = f"{group_info.TITLE} ({group_info.YEAR})"
             if group_info.TYPE == 1:
-                link = "https://www.themoviedb.org/movie/%s" % group_info.TMDBID
+                link = f"https://www.themoviedb.org/movie/{group_info.TMDBID}"
             else:
-                link = "https://www.themoviedb.org/tv/%s" % group_info.TMDBID
+                link = f"https://www.themoviedb.org/tv/{group_info.TMDBID}"
 
             customwords_group.append(
                 {

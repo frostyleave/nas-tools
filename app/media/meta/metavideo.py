@@ -2,11 +2,11 @@ import os
 import re
 
 from app.media.meta._base import MetaBase
+from app.media.meta.customization import CustomizationMatcher
 from app.utils import StringUtils
 from app.utils.constants import Constants
 from app.utils.tokens import Tokens
 from app.utils.types import MediaType
-from app.media.meta.customization import CustomizationMatcher
 
 
 class MetaVideo(MetaBase):
@@ -30,7 +30,7 @@ class MetaVideo(MetaBase):
     _source_re = r"^BLURAY$|^HDTV$|^UHDTV$|^HDDVD$|^WEBRIP$|^DVDRIP$|^BDRIP$|^BLU$|^WEB$|^BD$|^HDRip$"
     _source_tc_re = r"^TS|HDTS|TC|CAM"
     _effect_re = r"^REMUX$|^UHD$|^SDR$|^HDR\d*$|^DOLBY$|^DOVI$|^DV$|^3D$|^REPACK$"
-    _resources_type_re = r"%s|%s" % (_source_re, _effect_re)
+    _resources_type_re = rf"{_source_re}|{_effect_re}"
     _name_no_begin_re = r"^\[.+?]"
     _name_no_url = r"((https?|ftp|file)://)?(www\.)?[-A-Z0-9+&@#/%?=~_|!:,;]*[-A-Z0-9+&@#/%=~_|](\.com|\.cn|\.org|\.net|\.edu|.\tv|.\.info)(?=[^A-Z0-9a-z])"
     _name_no_chinese_re = r".*版|.*字幕"
@@ -67,7 +67,7 @@ class MetaVideo(MetaBase):
             return
 
         # 去除网址部分
-        title = re.sub(r'%s' % self._name_no_url, "", title, count=1, flags=re.IGNORECASE)
+        title = re.sub(rf'{self._name_no_url}', "", title, count=1, flags=re.IGNORECASE)
         # 把xxxx-xxxx年份换成前一个年份，常出现在季集上
         title = re.sub(r'([\s.]+)(\d{4})-(\d{4})', r'\1\2', title)
         # 把大小去掉
@@ -132,12 +132,12 @@ class MetaVideo(MetaBase):
         if self.cn_roman_digit and self.cn_name and self.en_name:
             # 如果英文名不包含罗马字符序号, 则说明可能是误判
             if not self.en_roman_digit:
-                self.en_name = "%s %s" % (self.cn_roman_digit, self.en_name)
+                self.en_name = f"{self.cn_roman_digit} {self.en_name}"
                 self.cn_name = self.cn_name[:-len(self.cn_roman_digit)]
             # 如果中英文罗马序号不一致, 则也可能是误判
             elif self.cn_roman_digit != self.en_roman_digit:
                 self.cn_name = self.cn_name[:-len(self.cn_roman_digit)]
-                self.en_name = "%s %s %s" % (self.cn_roman_digit, self.en_name, self.en_roman_digit)
+                self.en_name = f"{self.cn_roman_digit} {self.en_name} {self.en_roman_digit}"
 
         # 去掉名字中不需要的干扰字符，过短的纯数字不要
         self.cn_name = self.__fix_name(self.cn_name)
@@ -151,7 +151,7 @@ class MetaVideo(MetaBase):
     def __fix_name(self, name):
         if not name:
             return name
-        name = re.sub(r'%s' % self._name_nostring_re, '', name,
+        name = re.sub(rf'{self._name_nostring_re}', '', name,
                       flags=re.IGNORECASE).strip()
         name = re.sub(r'\s+', ' ', name)
         if name.isdigit() \
@@ -178,7 +178,7 @@ class MetaVideo(MetaBase):
                 if not self.en_name:
                     self.en_name = self._unknown_name_str
                 elif self._unknown_name_str != self.year:
-                    self.en_name = "%s %s" % (self.en_name, self._unknown_name_str)
+                    self.en_name = f"{self.en_name} {self._unknown_name_str}"
                 self._last_token_type = "enname"
             self._unknown_name_str = ""
         if self._stop_name_flag:
@@ -197,9 +197,9 @@ class MetaVideo(MetaBase):
                 self.cn_name = token
                 self._stop_cnname_flag = True
             elif not self._stop_cnname_flag:
-                if not re.search("%s" % self._name_no_chinese_re, token, flags=re.IGNORECASE) \
-                        and not re.search("%s" % self._name_se_words, token, flags=re.IGNORECASE):
-                    self.cn_name = "%s %s" % (self.cn_name, token)
+                if not re.search(f"{self._name_no_chinese_re}", token, flags=re.IGNORECASE) \
+                        and not re.search(f"{self._name_se_words}", token, flags=re.IGNORECASE):
+                    self.cn_name = f"{self.cn_name} {token}"
                 self._stop_cnname_flag = True
         else:
             is_roman_digit = re.search(self._roman_numerals, token)
@@ -226,17 +226,17 @@ class MetaVideo(MetaBase):
                     if (token.isdigit() and len(token) < 4) or is_roman_digit:
                         # 4位以下的数字或者罗马数字，拼装到已有标题中
                         if self._last_token_type == "cnname":
-                            self.cn_name = "%s %s" % (self.cn_name, token)
+                            self.cn_name = f"{self.cn_name} {token}"
                             if is_roman_digit:
                                 if self.cn_roman_digit:
-                                    self.cn_roman_digit = "%s %s" % (self.cn_roman_digit, token)
+                                    self.cn_roman_digit = f"{self.cn_roman_digit} {token}"
                                 else:
                                     self.cn_roman_digit = token
                         elif self._last_token_type == "enname":
-                            self.en_name = "%s %s" % (self.en_name, token)
+                            self.en_name = f"{self.en_name} {token}"
                             if is_roman_digit:
                                 if self.en_roman_digit:
-                                    self.en_roman_digit = "%s %s" % (self.en_roman_digit, token)
+                                    self.en_roman_digit = f"{self.en_roman_digit} {token}"
                                 else:
                                     self.en_roman_digit = token
                         self._continue_flag = False
@@ -248,16 +248,16 @@ class MetaVideo(MetaBase):
                     # 名字未出现前的第一个数字，记下来
                     if not self._unknown_name_str:
                         self._unknown_name_str = token
-            elif re.search(r"%s" % self._season_re, token, re.IGNORECASE):
+            elif re.search(rf"{self._season_re}", token, re.IGNORECASE):
                 # 季的处理
                 if self.en_name and re.search(r"SEASON$", self.en_name, re.IGNORECASE):
                     # 如果匹配到季，英文名结尾为Season，说明Season属于标题，不应在后续作为干扰词去除
                     self.en_name += ' '
                 self._stop_name_flag = True
                 return
-            elif re.search(r"%s" % self._episode_re, token, re.IGNORECASE) \
-                    or re.search(r"(%s)" % self._resources_type_re, token, re.IGNORECASE) \
-                    or re.search(r"%s" % self._resources_pix_re, token, re.IGNORECASE):
+            elif re.search(rf"{self._episode_re}", token, re.IGNORECASE) \
+                    or re.search(rf"({self._resources_type_re})", token, re.IGNORECASE) \
+                    or re.search(rf"{self._resources_pix_re}", token, re.IGNORECASE):
                 # 集、来源、版本等不要
                 self._stop_name_flag = True
                 return
@@ -267,7 +267,7 @@ class MetaVideo(MetaBase):
                     return
                 # 英文或者英文+数字，拼装起来
                 if self.en_name:
-                    self.en_name = "%s %s" % (self.en_name, token)
+                    self.en_name = f"{self.en_name} {token}"
                 else:
                     self.en_name = token
                 self._last_token_type = "enname"
@@ -281,7 +281,7 @@ class MetaVideo(MetaBase):
                 and not self.resource_pix \
                 and not self.resource_type:
             return
-        re_res = re.search(r"%s" % self._part_re, token, re.IGNORECASE)
+        re_res = re.search(rf"{self._part_re}", token, re.IGNORECASE)
         if re_res:
             if not self.part:
                 self.part = re_res.group(1)
@@ -289,7 +289,7 @@ class MetaVideo(MetaBase):
             if nextv \
                     and ((nextv.isdigit() and (len(nextv) == 1 or len(nextv) == 2 and nextv.startswith('0')))
                          or nextv.upper() in ['A', 'B', 'C', 'I', 'II', 'III']):
-                self.part = "%s%s" % (self.part, nextv)
+                self.part = f"{self.part}{nextv}"
                 self.tokens.get_next()
             self._last_token_type = "part"
             self._continue_flag = False
@@ -306,9 +306,9 @@ class MetaVideo(MetaBase):
             return
         if self.year:
             if self.en_name:
-                self.en_name = "%s %s" % (self.en_name.strip(), self.year)
+                self.en_name = f"{self.en_name.strip()} {self.year}"
             elif self.cn_name:
-                self.cn_name = "%s %s" % (self.cn_name, self.year)
+                self.cn_name = f"{self.cn_name} {self.year}"
         elif self.en_name and re.search(r"SEASON$", self.en_name, re.IGNORECASE):
             # 如果匹配到年，且英文名结尾为Season，说明Season属于标题，不应在后续作为干扰词去除
             self.en_name += ' '
@@ -320,7 +320,7 @@ class MetaVideo(MetaBase):
     def __init_resource_pix(self, token):
         if not self.get_name():
             return
-        re_res = re.findall(r"%s" % self._resources_pix_re, token, re.IGNORECASE)
+        re_res = re.findall(rf"{self._resources_pix_re}", token, re.IGNORECASE)
         if re_res:
             self._last_token_type = "pix"
             self._continue_flag = False
@@ -343,9 +343,9 @@ class MetaVideo(MetaBase):
             if self.resource_pix \
                     and self.resource_pix.isdigit() \
                     and self.resource_pix[-1] not in 'kpi':
-                self.resource_pix = "%sp" % self.resource_pix
+                self.resource_pix = f"{self.resource_pix}p"
         else:
-            re_res = re.search(r"%s" % self._resources_pix_re2, token, re.IGNORECASE)
+            re_res = re.search(rf"{self._resources_pix_re2}", token, re.IGNORECASE)
             if re_res:
                 self._last_token_type = "pix"
                 if self.en_name:
@@ -355,7 +355,7 @@ class MetaVideo(MetaBase):
                     self.resource_pix = self.convert_resolution(re_res.group(1).lower())
 
     def __init_season(self, token):
-        re_res = re.findall(r"%s" % self._season_re, token, re.IGNORECASE)
+        re_res = re.findall(rf"{self._season_re}", token, re.IGNORECASE)
         if re_res:
             self._last_token_type = "season"
             self.type = MediaType.TV
@@ -402,7 +402,7 @@ class MetaVideo(MetaBase):
             self._last_token_type = "SEASON"
 
     def __init_episode(self, token):
-        re_res = re.findall(r"%s" % self._episode_re, token, re.IGNORECASE)
+        re_res = re.findall(rf"{self._episode_re}", token, re.IGNORECASE)
         if re_res:
             self._last_token_type = "episode"
             self._continue_flag = False
@@ -474,7 +474,7 @@ class MetaVideo(MetaBase):
     def __init_resource_type(self, token):
         if not self.get_name():
             return
-        source_res = re.search(r"(%s)" % self._source_re, token, re.IGNORECASE)
+        source_res = re.search(rf"({self._source_re})", token, re.IGNORECASE)
         if source_res:
             self._last_token_type = "source"
             self._continue_flag = False
@@ -498,7 +498,7 @@ class MetaVideo(MetaBase):
             self._source = "WEB-DL"
             self._continue_flag = False
             return
-        effect_res = re.search(r"(%s)" % self._effect_re, token, re.IGNORECASE)
+        effect_res = re.search(rf"({self._effect_re})", token, re.IGNORECASE)
         if effect_res:
             self._last_token_type = "effect"
             self._continue_flag = False
@@ -516,7 +516,7 @@ class MetaVideo(MetaBase):
                 and not self.begin_season \
                 and not self.begin_episode:
             return
-        re_res = re.search(r"(%s)" % self._video_encode_re, token, re.IGNORECASE)
+        re_res = re.search(rf"({self._video_encode_re})", token, re.IGNORECASE)
         if re_res:
             self._continue_flag = False
             self._stop_name_flag = True
@@ -535,11 +535,11 @@ class MetaVideo(MetaBase):
         elif token in ["264", "265"] \
                 and self._last_token_type == "videoencode" \
                 and self._last_token in ['H', 'X']:
-            self.video_encode = "%s%s" % (self._last_token, token)
+            self.video_encode = f"{self._last_token}{token}"
         elif token.isdigit() \
                 and self._last_token_type == "videoencode" \
                 and self._last_token in ['VC', 'MPEG']:
-            self.video_encode = "%s%s" % (self._last_token, token)
+            self.video_encode = f"{self._last_token}{token}"
         elif token.upper() == "10BIT":
             self._last_token_type = "videoencode"
             if not self.video_encode:
@@ -556,7 +556,7 @@ class MetaVideo(MetaBase):
                 and not self.begin_season \
                 and not self.begin_episode:
             return
-        re_res = re.search(r"(%s)" % self._audio_encode_re, token, re.IGNORECASE)
+        re_res = re.search(rf"({self._audio_encode_re})", token, re.IGNORECASE)
         if re_res:
             self._continue_flag = False
             self._stop_name_flag = True
@@ -566,18 +566,18 @@ class MetaVideo(MetaBase):
                 self.audio_encode = re_res.group(1)
             else:
                 if self.audio_encode.upper() == "DTS":
-                    self.audio_encode = "%s-%s" % (self.audio_encode, re_res.group(1))
+                    self.audio_encode = f"{self.audio_encode}-{re_res.group(1)}"
                 else:
-                    self.audio_encode = "%s %s" % (self.audio_encode, re_res.group(1))
+                    self.audio_encode = f"{self.audio_encode} {re_res.group(1)}"
         elif token.isdigit() \
                 and self._last_token_type == "audioencode":
             if self.audio_encode:
                 if self._last_token.isdigit():
-                    self.audio_encode = "%s.%s" % (self.audio_encode, token)
+                    self.audio_encode = f"{self.audio_encode}.{token}"
                 elif self.audio_encode[-1].isdigit():
-                    self.audio_encode = "%s %s.%s" % (self.audio_encode[:-1], self.audio_encode[-1], token)
+                    self.audio_encode = f"{self.audio_encode[:-1]} {self.audio_encode[-1]}.{token}"
                 else:
-                    self.audio_encode = "%s %s" % (self.audio_encode, token)
+                    self.audio_encode = f"{self.audio_encode} {token}"
             self._last_token = token
 
     def convert_resolution(self, resource_pix):

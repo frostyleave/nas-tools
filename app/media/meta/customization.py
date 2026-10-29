@@ -1,9 +1,10 @@
 import regex as re
+
 from app.utils.commons import singleton
 
 
 @singleton
-class CustomizationMatcher(object):
+class CustomizationMatcher:
     """
     识别自定义占位符
     """
@@ -23,7 +24,7 @@ class CustomizationMatcher(object):
             return ""
         if not self.customization:
             return ""
-        customization_re = re.compile(r"%s" % self.customization)
+        customization_re = re.compile(rf"{self.customization}")
         # 处理重复多次的情况，保留先后顺序（按添加自定义占位符的顺序）
         unique_customization = {}
         for item in re.findall(customization_re, title):

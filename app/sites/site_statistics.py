@@ -1,11 +1,9 @@
 import json
-
 from datetime import datetime
 from multiprocessing.dummy import Pool as ThreadPool
 from threading import Lock
 
 import log
-
 from app.helper import DbHelper
 from app.message import MessageService
 from app.models.model import UserSiteConf
@@ -18,7 +16,7 @@ lock = Lock()
 
 
 @singleton
-class SitesDataStatisticsCenter(object):
+class SitesDataStatisticsCenter:
     """
     站点数据统计中心单例
     """
@@ -260,7 +258,6 @@ class SitesDataStatisticsCenter(object):
                     dates.append(datetime.strptime(s.get("join_at"), '%Y-%m-%d %H:%M:%S'))
                 except Exception as err:
                     print(str(err))
-                    pass
         if dates:
             return min(dates).strftime("%Y-%m-%d")
         return ""

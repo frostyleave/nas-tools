@@ -7,18 +7,16 @@
 
 import os
 import re
-from typing import Optional
 from urllib.parse import unquote
 
 from fastbencode import bdecode
 
 import log
-
-from app.utils import TorrentUtils, RequestUtils, SiteUtils
-from app.utils.torrent import TorrentDownloadResult
 from app.indexer.client import InterfaceSpider, MTorrentSpider
 from app.indexer.manager import IndexerManager
 from app.models.model import IndexerInfo, UserSiteConf
+from app.utils import RequestUtils, SiteUtils, TorrentUtils
+from app.utils.torrent import TorrentDownloadResult
 from config import Config
 
 
@@ -56,8 +54,8 @@ class TorrentDownloader:
 
         cookie = indexer_info.cookie if indexer_info else None
         ua = indexer_info.ua if indexer_info else None
-        proxy = True if indexer_info.proxy else False
-        render = True if indexer_info.render else False
+        proxy = bool(indexer_info.proxy)
+        render = bool(indexer_info.render)
 
         return self.get_torrent_info(
             url=url,
@@ -89,7 +87,7 @@ class TorrentDownloader:
             return TorrentDownloadResult(ret_msg="URL为空")
         
         if url.startswith("magnet:"):
-            return TorrentDownloadResult(content=url, ret_msg=("%s 为磁力链接" % url))
+            return TorrentDownloadResult(content=url, ret_msg=(f"{url} 为磁力链接"))
 
         try:
             save_result = self.save_torrent_file(url=url, 
@@ -112,7 +110,7 @@ class TorrentDownloader:
             )
 
         except Exception as err:
-            return TorrentDownloadResult(ret_msg=("下载种子文件出现异常: %s" % str(err)))
+            return TorrentDownloadResult(ret_msg=(f"下载种子文件出现异常: {err!s}"))
 
     def save_torrent_file(self, 
                           url, 
@@ -131,11 +129,11 @@ class TorrentDownloader:
                            proxies=proxies).get_res(url=url, allow_redirects=True)
 
         if req is None:
-            return TorrentDownloadResult(ret_msg="无法打开链接: %s" % url)
+            return TorrentDownloadResult(ret_msg=f"无法打开链接: {url}")
         if req.status_code == 429:
             return TorrentDownloadResult(ret_msg="触发站点流控, 请稍后重试")
         if req.status_code != 200:
-            return TorrentDownloadResult(ret_msg="下载种子出错, 状态码: %s" % req.status_code)
+            return TorrentDownloadResult(ret_msg=f"下载种子出错, 状态码: {req.status_code}")
         if not req.content:
             return TorrentDownloadResult(ret_msg="未下载到种子数据")
 
@@ -162,7 +160,7 @@ class TorrentDownloader:
         return TorrentDownloadResult(ret_msg="下载内容有误, 请确认链接是否正确")
 
     def download_torrent_from_site(self, url: str, page_url: str,
-                                   site_info: Optional[UserSiteConf]) -> TorrentDownloadResult:
+                                   site_info: UserSiteConf | None) -> TorrentDownloadResult:
         """
         从网站下载并解析种子信息
         :param url: 种子链接
@@ -209,11 +207,11 @@ class TorrentDownloader:
                                          ret_msg=resolve_result.ret_msg)
 
         elif req is None:
-            return TorrentDownloadResult(ret_msg="无法打开链接: %s" % url)
+            return TorrentDownloadResult(ret_msg=f"无法打开链接: {url}")
         elif req.status_code == 429:
             return TorrentDownloadResult(ret_msg="触发站点流控, 请稍后重试")
         else:
-            return TorrentDownloadResult(ret_msg="下载种子出错, 状态码: %s" % req.status_code)
+            return TorrentDownloadResult(ret_msg=f"下载种子出错, 状态码: {req.status_code}")
 
     def _resolve_torrent_from_http(self, url, req) -> TorrentDownloadResult:
         """从HTTP响应中解析并保存种子文件"""
@@ -237,7 +235,7 @@ class TorrentDownloader:
         :return: TorrentDownloadResult
         """
         try:
-            form = re.findall(r'<form.*?action="(.*?)".*?>(.*?)</form>', text_content, re.S)
+            form = re.findall(r'<form.*?action="(.*?)".*?>(.*?)</form>', text_content, re.DOTALL)
             if not form:
                 log.warn("【Downloader】触发了站点首次种子下载, 无法解析页面form : %s ", url)
                 return TorrentDownloadResult(ret_msg="未下载到种子数据")
@@ -252,7 +250,7 @@ class TorrentDownloader:
                 log.warn("【Downloader】触发了站点首次种子下载, 无法解析页面form.action : %s ", url)
                 return TorrentDownloadResult(ret_msg="未下载到种子数据")
 
-            inputs = re.findall(r'<input.*?name="(.*?)".*?value="(.*?)".*?>', form[0][1], re.S)
+            inputs = re.findall(r'<input.*?name="(.*?)".*?value="(.*?)".*?>', form[0][1], re.DOTALL)
             if not inputs:
                 log.warn("【Downloader】触发了站点首次种子下载, 无法解析页面form.inputs : %s ", url)
                 return TorrentDownloadResult(ret_msg="未下载到种子数据")
@@ -287,10 +285,10 @@ class TorrentDownloader:
                     bdecode(req.content)
                     return self._resolve_torrent_from_http(action, req)
                 except Exception as err:
-                    return TorrentDownloadResult(ret_msg=f"种子数据有误: {str(err)}")
+                    return TorrentDownloadResult(ret_msg=f"种子数据有误: {err!s}")
 
         except Exception as err:
-            log.warn(f"【Downloader】触发了站点首次种子下载, 尝试自动跳过时出现错误: {str(err)}, 链接: {url}")
+            log.warn(f"【Downloader】触发了站点首次种子下载, 尝试自动跳过时出现错误: {err!s}, 链接: {url}")
 
         return TorrentDownloadResult(ret_msg="种子数据有误, 请确认链接是否正确")
 
@@ -303,8 +301,7 @@ class TorrentDownloader:
         file_name = re.findall(r"filename=\"?(.+)\"?", disposition)
         if file_name:
             file_name = unquote(str(file_name[0].encode('ISO-8859-1').decode()).split(";")[0].strip())
-            if file_name.endswith('"'):
-                file_name = file_name[:-1]
+            file_name = file_name.removesuffix('"')
         elif url and url.endswith(".torrent"):
             file_name = unquote(url.split("/")[-1])
 

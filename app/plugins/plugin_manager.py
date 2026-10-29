@@ -1,16 +1,13 @@
 import os.path
-
 from threading import Thread
 
 import log
-
 from app.conf import SystemConfig
 from app.helper import SubmoduleHelper
 from app.plugins.event_manager import EventManager
-from app.utils import SystemUtils, PathUtils, ImageUtils
+from app.utils import ImageUtils, PathUtils, SystemUtils
 from app.utils.commons import singleton
 from app.utils.types import SystemConfigKey
-
 from config import Config
 
 
@@ -73,7 +70,7 @@ class PluginManager:
                         names = handler.__qualname__.split(".")
                         self.run_plugin(names[0], names[1], event)
                     except Exception as e:
-                        log.exception(f"‼️ 事件处理出错: ")
+                        log.exception("‼️ 事件处理出错: ")
 
     def start_service(self):
         """
@@ -323,7 +320,7 @@ class PluginManager:
         }]
         """
         ret_commands = []
-        for _, plugin in self._running_plugins.items():
+        for plugin in self._running_plugins.values():
             if hasattr(plugin, "get_command"):
                 ret_commands.append(plugin.get_command())
         return ret_commands

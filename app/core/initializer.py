@@ -1,23 +1,19 @@
 import os
 import time
 
-from alembic.config import Config as AlembicConfig
 from alembic.command import upgrade as alembic_upgrade
-
+from alembic.config import Config as AlembicConfig
 from watchdog.events import FileSystemEventHandler
 from watchdog.observers import Observer
 
+import log
 from app.db.main_db import MainDb
 from app.db.media_db import MediaDb
-
-import log
-
 from app.media import Category
-from app.utils.cache_manager import ConfigLoadCache, CategoryLoadCache
+from app.utils.cache_manager import CategoryLoadCache, ConfigLoadCache
 from app.utils.commons import INSTANCES
 from app.utils.password_hash import generate_password_hash
 from app.utils.string_utils import StringUtils
-
 from config import Config
 
 _observer = Observer(timeout=10)
@@ -76,19 +72,19 @@ def check_config():
         if not login_user or not login_password:
             log.warn("【Config】WEB管理用户或密码未设置，将使用默认用户：admin，密码：password")
         else:
-            log.info(f"WEB管理页面用户：{str(login_user)}")
+            log.info(f"WEB管理页面用户：{login_user!s}")
 
         # 检查HTTPS
         ssl_cert = Config().get_config('app').get('ssl_cert')
         ssl_key = Config().get_config('app').get('ssl_key')
         if not ssl_cert or not ssl_key:
-            log.info(f"未启用https，请使用 http://IP:{str(web_port)} 访问管理页面")
+            log.info(f"未启用https，请使用 http://IP:{web_port!s} 访问管理页面")
         else:
             if not os.path.exists(ssl_cert):
                 log.warn(f"【Config】ssl_cert文件不存在：{ssl_cert}")
             if not os.path.exists(ssl_key):
                 log.warn(f"【Config】ssl_key文件不存在：{ssl_key}")
-            log.info(f"已启用https，请使用 https://IP:{str(web_port)} 访问管理页面")
+            log.info(f"已启用https，请使用 https://IP:{web_port!s} 访问管理页面")
     else:
         log.error("【Config】配置文件格式错误，找不到app配置项！")
 
@@ -103,8 +99,8 @@ def update_config():
     # 密码初始化
     login_password = _config.get("app", {}).get("login_password") or "password"
     if login_password and not login_password.startswith("[hash]"):
-        _config['app']['login_password'] = "[hash]%s" % generate_password_hash(
-            login_password)
+        _config['app']['login_password'] = "[hash]{}".format(generate_password_hash(
+            login_password))
         overwrite_cofig = True
 
     # API密钥初始化

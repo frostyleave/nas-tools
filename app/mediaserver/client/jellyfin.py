@@ -2,9 +2,8 @@ import re
 from urllib.parse import quote
 
 import log
-
 from app.mediaserver.client._base import _IMediaClient
-from app.utils import RequestUtils, SystemUtils, IpUtils
+from app.utils import IpUtils, RequestUtils, SystemUtils
 from app.utils.types import MediaServerType, MediaType
 from config import Config
 
@@ -63,7 +62,7 @@ class Jellyfin(_IMediaClient):
 
     @classmethod
     def match(cls, ctype):
-        return True if ctype in [cls.client_id, cls.client_type, cls.client_name] else False
+        return ctype in [cls.client_id, cls.client_type, cls.client_name]
 
     def get_type(self):
         return self.client_type
@@ -72,7 +71,7 @@ class Jellyfin(_IMediaClient):
         """
         测试连通性
         """
-        return True if self.get_medias_count() else False
+        return bool(self.get_medias_count())
 
     def __get_jellyfin_librarys(self):
         """
@@ -285,9 +284,8 @@ class Jellyfin(_IMediaClient):
                 return []
             # 验证tmdbid是否相同
             item_tmdbid = self.get_iteminfo(item_id).get("ProviderIds", {}).get("Tmdb")
-            if tmdb_id and item_tmdbid:
-                if str(tmdb_id) != str(item_tmdbid):
-                    return []
+            if tmdb_id and item_tmdbid and str(tmdb_id) != str(item_tmdbid):
+                return []
         if not season:
             season = ""
         req_url = f"{self._host}Shows/{item_id}/Episodes?season={season}&isMissing=false"
@@ -354,7 +352,7 @@ class Jellyfin(_IMediaClient):
                         # 没查到tmdb图片则判断播放地址是不是外网，使用jellyfin刮削的图片（直接挂载网盘场景）
                         if not img_url and not IpUtils.is_internal(self._play_host) \
                                 and res_item.get('ImageTags', {}).get('Primary'):
-                            return "%sItems/%s/Images/Primary?maxHeight=225&maxWidth=400&tag=%s&quality=90" % (
+                            return "{}Items/{}/Images/Primary?maxHeight=225&maxWidth=400&tag={}&quality=90".format(
                                 self._play_host, res_item.get("Id"), res_item.get('ImageTags', {}).get('Primary'))
                         return img_url
         except Exception as e:
@@ -543,8 +541,7 @@ class Jellyfin(_IMediaClient):
                                "path": item_info.get("Path"),
                                "json": str(item_info)}
                     elif "Folder" in result.get("Type"):
-                        for item in self.get_items(result.get("Id")):
-                            yield item
+                        yield from self.get_items(result.get("Id"))
         except Exception as e:
             log.exception(f"【{self.client_name}】连接/Items出错: " + str(e))
         yield {}

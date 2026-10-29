@@ -1,12 +1,11 @@
 import re
-from typing import Tuple
 
 import log
 from app.utils import RequestUtils, StringUtils
 from config import Config
 
 
-class TNodeSpider(object):
+class TNodeSpider:
     _indexerid = None
     _domain = None
     _name = ""
@@ -47,7 +46,7 @@ class TNodeSpider(object):
             if csrf_token:
                 self._token = csrf_token.group(1)
 
-    def search(self, keyword, page=0) -> Tuple[bool, list]:
+    def search(self, keyword, page=0) -> tuple[bool, list]:
         
         if not self._token:
             log.warn(f"【INDEXER】{self._name} 未获取到token, 无法搜索")

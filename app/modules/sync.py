@@ -6,10 +6,9 @@ from watchdog.observers import Observer
 from watchdog.observers.polling import PollingObserver
 
 import log
-
 from app.conf import ModuleConf
-from app.modules.filetransfer import FileTransfer
 from app.helper import DbHelper
+from app.modules.filetransfer import FileTransfer
 from app.utils import PathUtils
 from app.utils.commons import singleton
 from app.utils.constants import Constants
@@ -66,11 +65,11 @@ class Sync(object):
             # ID
             sid = sync_conf.ID
             # 启用标志
-            enabled = True if sync_conf.ENABLED else False
+            enabled = bool(sync_conf.ENABLED)
             # 仅硬链接标志
-            rename = True if sync_conf.RENAME else False
+            rename = bool(sync_conf.RENAME)
             # 兼容模式
-            compatibility = True if sync_conf.COMPATIBILITY else False
+            compatibility = bool(sync_conf.COMPATIBILITY)
             # 转移方式
             syncmode = sync_conf.MODE
             syncmode_enum = ModuleConf.RMT_MODES.get(syncmode)
@@ -165,7 +164,7 @@ class Sync(object):
             try:
                 if not os.path.exists(event_path):
                     return
-                log.debug("【Sync】文件%s：%s" % (text, event_path))
+                log.debug(f"【Sync】文件{text}：{event_path}")
                 # 判断是否处理过了
                 need_handler_flag = False
                 try:
@@ -176,7 +175,7 @@ class Sync(object):
                 finally:
                     lock.release()
                 if not need_handler_flag:
-                    log.debug("【Sync】文件已处理过：%s" % event_path)
+                    log.debug(f"【Sync】文件已处理过：{event_path}")
                     return
 
                 # 上级目录
@@ -245,7 +244,7 @@ class Sync(object):
                                                                         unknown_dir=unknown_path,
                                                                         rmt_mode=sync_mode)
                         if not ret:
-                            log.warn("【Sync】%s 转移失败：%s" % (event_path, ret_msg))
+                            log.warn(f"【Sync】{event_path} 转移失败：{ret_msg}")
                     else:
                         try:
                             lock.acquire()
@@ -307,7 +306,7 @@ class Sync(object):
                                                                     rmt_mode=sync_mode,
                                                                     root_path=is_root_path)
                     if not ret:
-                        log.warn("【Sync】%s转移失败：%s" % (path, ret_msg))
+                        log.warn(f"【Sync】{path}转移失败：{ret_msg}")
                 self._need_sync_paths.pop(path)
         finally:
             lock.release()
@@ -370,8 +369,9 @@ class Sync(object):
             sids = sid
         else:
             sids = [sid]
-        for sid in sids:
-            sync_path_conf = self.get_sync_path_conf(sid)
+
+        for id_item in sids:
+            sync_path_conf = self.get_sync_path_conf(id_item)
             mon_path = sync_path_conf.get("from")
             target_path = sync_path_conf.get("to")
             unknown_path = sync_path_conf.get("unknown")
@@ -391,7 +391,7 @@ class Sync(object):
                                                                     unknown_dir=unknown_path,
                                                                     rmt_mode=sync_mode)
                     if not ret:
-                        log.error("【Sync】%s 处理失败：%s", mon_path, ret_msg)
+                        log.error(f"【Sync】{mon_path} 处理失败：{ret_msg}")
 
     def __link(self, event_path, mon_path, target_path, sync_mode):
         """

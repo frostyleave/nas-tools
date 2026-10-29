@@ -1,5 +1,5 @@
-from app.utils.release_groups import ReleaseGroupsMatcher
 from app.plugins.modules._base import _IPluginModule
+from app.utils.release_groups import ReleaseGroupsMatcher
 
 
 class CustomReleaseGroups(_IPluginModule):
@@ -77,10 +77,8 @@ class CustomReleaseGroups(_IPluginModule):
             custom_release_groups = config.get('release_groups')
             custom_separator = config.get('separator')
             if custom_release_groups:
-                if custom_release_groups.startswith(';'):
-                    custom_release_groups = custom_release_groups[1:]
-                if custom_release_groups.endswith(';'):
-                    custom_release_groups = custom_release_groups[:-1]
+                custom_release_groups = custom_release_groups.removeprefix(';')
+                custom_release_groups = custom_release_groups.removesuffix(';')
                 custom_release_groups = custom_release_groups.replace(";", "|").replace("\n", "|")
             if custom_release_groups or custom_separator:
                 if custom_release_groups:
@@ -92,7 +90,7 @@ class CustomReleaseGroups(_IPluginModule):
                 self._custom_separator = custom_separator
 
     def get_state(self):
-        return True if self._custom_release_groups or self._custom_separator else False
+        return bool(self._custom_release_groups or self._custom_separator)
 
     def stop_service(self):
         """

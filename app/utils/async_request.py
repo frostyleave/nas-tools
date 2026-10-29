@@ -1,26 +1,23 @@
+from typing import Any
+
 import aiohttp
 import httpx
-
-from typing import Any, Optional, Union
 from httpx import AsyncClient, Response
 
-from config import Config
-
 import log
-
-# 1. 定义一个全局变量，初始为 None
+from config import Config
 
 
 class AsyncRequestUtils:
 
-    http_session: Optional[aiohttp.ClientSession] = None
+    http_session: aiohttp.ClientSession | None = None
     http_client: httpx.AsyncClient | None = None
 
     _headers: dict
-    _proxies: Optional[dict] = None
+    _proxies: dict | None = None
     _timeout: int = 20
-    _session: Optional[AsyncClient] = None
-    _cookies: Optional[Union[str, dict]] = None
+    _session: AsyncClient | None = None
+    _cookies: str | dict | None = None
 
     
     @classmethod
@@ -50,15 +47,15 @@ class AsyncRequestUtils:
             cls.http_client = None
 
     def __init__(self,
-                 headers: dict = None,
-                 ua: str = None,
-                 cookies: Union[str, dict] = None,
-                 proxies: dict = None,  # 接收 'http' 或 'http://' 格式
+                 headers: dict | None = None,
+                 ua: str | None = None,
+                 cookies: str | dict | None = None,
+                 proxies: dict | None = None,  # 接收 'http' 或 'http://' 格式
                  session: AsyncClient = None,
-                 timeout: int = None,
-                 referer: str = None,
-                 content_type: str = None,
-                 accept_type: str = None):
+                 timeout: int | None = None,
+                 referer: str | None = None,
+                 content_type: str | None = None,
+                 accept_type: str | None = None):
         
         if not content_type:
             content_type = "application/x-www-form-urlencoded; charset=UTF-8"
@@ -100,7 +97,7 @@ class AsyncRequestUtils:
         if timeout:
             self._timeout = timeout
 
-    async def request(self, method: str, url: str, raise_exception: bool = False, **kwargs) -> Optional[Response]:
+    async def request(self, method: str, url: str, raise_exception: bool = False, **kwargs) -> Response | None:
         """
         发起异步HTTP请求
         :param method: HTTP方法, 如 get, post, put 等
@@ -133,13 +130,13 @@ class AsyncRequestUtils:
                 raise
             return None
 
-    async def post(self, url: str, data: Any = None, json: dict = None, **kwargs) -> Optional[Response]:
+    async def post(self, url: str, data: Any = None, json: dict | None = None, **kwargs) -> Response | None:
         """
         发送异步POST请求
         """
         return await self.request(method="post", url=url, data=data, json=json, **kwargs)
 
-    async def get(self, url: str, params: dict = None, **kwargs) -> Optional[str]:
+    async def get(self, url: str, params: dict | None = None, **kwargs) -> str | None:
         """
         发送异步GET请求
         :return: 响应的文本内容, 若发生异常则返回None
@@ -149,12 +146,12 @@ class AsyncRequestUtils:
 
     async def get_res(self, 
                       url: str,
-                      params: dict = None,
+                      params: dict | None = None,
                       data: Any = None,
-                      json: dict = None,
+                      json: dict | None = None,
                       allow_redirects: bool = True,
                       raise_exception: bool = False,
-                      **kwargs) -> Optional[Response]:
+                      **kwargs) -> Response | None:
         
         return await self.request(method="get",
                                   url=url,
@@ -168,12 +165,12 @@ class AsyncRequestUtils:
     async def post_res(self,
                        url: str,
                        data: Any = None,
-                       params: dict = None,
+                       params: dict | None = None,
                        allow_redirects: bool = True,
                        files: Any = None,
-                       json: dict = None,
+                       json: dict | None = None,
                        raise_exception: bool = False,
-                       **kwargs) -> Optional[Response]:
+                       **kwargs) -> Response | None:
         
         return await self.request(method="post",
                                   url=url,
@@ -185,7 +182,7 @@ class AsyncRequestUtils:
                                   raise_exception=raise_exception,
                                   **kwargs)
 
-    async def get_json(self, url: str, params: dict = None, **kwargs) -> Optional[dict]:
+    async def get_json(self, url: str, params: dict | None = None, **kwargs) -> dict | None:
         """
         发送异步GET请求并返回JSON数据
         """
@@ -199,7 +196,7 @@ class AsyncRequestUtils:
                 return None
         return None
 
-    async def post_json(self, url: str, data: Any = None, json: dict = None, **kwargs) -> Optional[dict]:
+    async def post_json(self, url: str, data: Any = None, json: dict | None = None, **kwargs) -> dict | None:
         """
         发送异步POST请求并返回JSON数据
         """
@@ -214,7 +211,7 @@ class AsyncRequestUtils:
         return None
 
     @staticmethod
-    def cookie_parse(cookies_str: str, array: bool = False) -> Union[list, dict]:
+    def cookie_parse(cookies_str: str, array: bool = False) -> list | dict:
         if not cookies_str:
             return [] if array else {}
         
@@ -226,7 +223,7 @@ class AsyncRequestUtils:
                 if len(cstr) > 1:
                     cookie_dict[cstr[0].strip()] = cstr[1].strip()
         except Exception as e:
-            log.exception(f'【Http】cookie解析异常: ')
+            log.exception('【Http】cookie解析异常: ')
         if array:
             return [{"name": k, "value": v} for k, v in cookie_dict.items()]
         return cookie_dict

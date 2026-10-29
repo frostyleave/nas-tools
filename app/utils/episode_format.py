@@ -1,10 +1,11 @@
 import re
+
 import parse
 
 from app.utils.constants import Constants
 
 
-class EpisodeFormat(object):
+class EpisodeFormat:
     _key = ""
 
     def __init__(self, eformat, details: str = None, part: str = None, offset=None, key="ep"):
@@ -22,7 +23,7 @@ class EpisodeFormat(object):
                 tmp = details.split(",")
                 if len(tmp) > 1:
                     self._start_ep = int(tmp[0])
-                    self._end_ep = int(tmp[0]) if int(tmp[0]) > int(tmp[1]) else int(tmp[1])
+                    self._end_ep = max(int(tmp[1]), int(tmp[0]))
                 else:
                     self._start_ep = self._end_ep = int(tmp[0])
         self.__offset = int(offset) if offset else 0
@@ -56,9 +57,7 @@ class EpisodeFormat(object):
             return False
         if self._start_ep is None:
             return True
-        if self._start_ep <= s <= self._end_ep:
-            return True
-        return False
+        return self._start_ep <= s <= self._end_ep
 
     def split_episode(self, file_name):
         # 指定的具体集数，直接返回
@@ -84,7 +83,7 @@ class EpisodeFormat(object):
         if not re.compile(r"^(EP)?(\d{1,4})(-(EP)?(\d{1,4}))?$", re.IGNORECASE).match(episodes):
             return None, None
         episode_splits = list(filter(lambda x: re.compile(r'[a-zA-Z]*\d{1,4}', re.IGNORECASE).match(x),
-                                     re.split(r'%s' % Constants.SPLIT_CHARS, episodes)))
+                                     re.split(rf'{Constants.SPLIT_CHARS}', episodes)))
         if len(episode_splits) == 1:
             return int(re.compile(r'[a-zA-Z]*', re.IGNORECASE).sub("", episode_splits[0])), None
         else:

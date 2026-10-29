@@ -1,21 +1,17 @@
 import json
 import os
-
 from abc import ABCMeta, abstractmethod
-from typing import Optional
 
 from apscheduler.job import Job
-from apscheduler.triggers.cron import CronTrigger
 from apscheduler.schedulers.background import BackgroundScheduler
-
-from app.conf import SystemConfig
-from app.helper import DbHelper
-from app.message import MessageService
-from app.core.jobcenter import JobCenter
-
-from config import Config
+from apscheduler.triggers.cron import CronTrigger
 
 import log
+from app.conf import SystemConfig
+from app.core.jobcenter import JobCenter
+from app.helper import DbHelper
+from app.message import MessageService
+from config import Config
 
 
 class _IPluginModule(metaclass=ABCMeta):
@@ -68,7 +64,7 @@ class _IPluginModule(metaclass=ABCMeta):
     # 可使用的用户级别
     auth_level = 1
     # 定时任务
-    _cron_job : Optional[Job] = None
+    _cron_job : Job | None = None
 
     @staticmethod
     @abstractmethod
@@ -102,7 +98,7 @@ class _IPluginModule(metaclass=ABCMeta):
 
     @staticmethod
     def __is_obj(obj):
-        if isinstance(obj, list) or isinstance(obj, dict):
+        if isinstance(obj, (list, dict)):
             return True
         else:
             return str(obj).startswith("{") or str(obj).startswith("[")
@@ -115,7 +111,7 @@ class _IPluginModule(metaclass=ABCMeta):
         """
         if not plugin_id:
             plugin_id = self.__class__.__name__
-        return SystemConfig().set("plugin.%s" % plugin_id, config)
+        return SystemConfig().set(f"plugin.{plugin_id}", config)
 
     def get_config(self, plugin_id=None):
         """
@@ -124,7 +120,7 @@ class _IPluginModule(metaclass=ABCMeta):
         """
         if not plugin_id:
             plugin_id = self.__class__.__name__
-        return SystemConfig().get("plugin.%s" % plugin_id)
+        return SystemConfig().get(f"plugin.{plugin_id}")
 
     def get_data_path(self, plugin_id=None):
         """
@@ -255,7 +251,7 @@ class _IPluginModule(metaclass=ABCMeta):
         """获取任务管理器"""
         return JobCenter().get_plugin_scheduler()
     
-    def add_cron_job(self, func, cron:str, func_name:str) -> Optional[Job]:
+    def add_cron_job(self, func, cron:str, func_name:str) -> Job | None:
         """
         向任务管理器添加定时任务
         :param scheduler: 任务管理器
@@ -274,7 +270,7 @@ class _IPluginModule(metaclass=ABCMeta):
                 log.exception(f'【Plugin】定时任务{func_name}注册失败: ')
         return None
     
-    def remove_job(self, job_info:Optional[Job]):
+    def remove_job(self, job_info:Job | None):
         """
         移除任务管理器中的定时任务
         """
@@ -283,4 +279,3 @@ class _IPluginModule(metaclass=ABCMeta):
                 self.get_scheduler().remove_job(job_info.id)
             except Exception as err:
                 log.exception(f'【Plugin】定时任务{job_info.id}移除失败: ')
-        return None

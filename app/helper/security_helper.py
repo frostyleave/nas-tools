@@ -1,8 +1,7 @@
 import ipaddress
 
-from config import Config
-
 import log
+from config import Config
 
 
 class SecurityHelper:

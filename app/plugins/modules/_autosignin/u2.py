@@ -5,10 +5,9 @@ import re
 from lxml import etree
 
 from app.helper.site_signin_helper import SiteSigninHelper, Verdict
-from app.plugins.modules._autosignin._base import _ISiteSigninHandler
 from app.models.model import UserSiteConf
-from app.utils import SiteUtils, RequestUtils
-
+from app.plugins.modules._autosignin._base import _ISiteSigninHandler
+from app.utils import RequestUtils, SiteUtils
 from config import Config
 
 
@@ -52,7 +51,7 @@ class U2(_ISiteSigninHandler):
         now = datetime.datetime.now()
         # 判断当前时间是否小于9点
         if now.hour < 9:
-            self.error(f"签到失败，9点前不签到")
+            self.error("签到失败，9点前不签到")
             return False, f'[{site}]签到失败，9点前不签到'
         
         # 获取页面html
@@ -99,13 +98,13 @@ class U2(_ISiteSigninHandler):
                                 ).post_res(url="https://u2.dmhy.org/showup.php?action=show",
                                            data=data)
         if not sign_res or sign_res.status_code != 200:
-            self.error(f"签到失败，签到接口请求失败")
+            self.error("签到失败，签到接口请求失败")
             return False, f'[{site}]签到失败，签到接口请求失败'
 
         # 判断是否签到成功
         # sign_res.text = "<script type="text/javascript">window.location.href = 'showup.php';</script>"
         if self._success_text in sign_res.text:
-            self.info(f"签到成功")
+            self.info("签到成功")
             return True, f'[{site}]签到成功'
         else:
             self.warn(f"[{site}]签到失败，未知原因")

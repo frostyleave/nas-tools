@@ -1,22 +1,20 @@
-import chardet
 import os
 import re
 import shutil
-
-from cachetools import TTLCache, cached
-from pyquery import PyQuery
 from urllib.parse import quote
 
+import chardet
+from cachetools import TTLCache, cached
+from pyquery import PyQuery
+
+import log
 from app.helper import SiteHelper
 from app.plugins import EventHandler
 from app.plugins.modules._base import _IPluginModule
-from app.utils import RequestUtils, PathUtils
+from app.utils import PathUtils, RequestUtils
 from app.utils.constants import Constants
-from app.utils.types import MediaType, EventType
-
+from app.utils.types import EventType, MediaType
 from config import Config
-
-import log
 
 
 class OpenSubtitles(_IPluginModule):
@@ -53,7 +51,7 @@ class OpenSubtitles(_IPluginModule):
     def __init__(self):
         self._ua = Config().get_ua()
 
-    def init_config(self, config: dict = None):
+    def init_config(self, config: dict | None = None):
         self.sitehelper = SiteHelper()
         self._save_tmp_path = Config().get_temp_path()
         if not os.path.exists(self._save_tmp_path):
@@ -118,19 +116,18 @@ class OpenSubtitles(_IPluginModule):
         # 后缀
         item_file_ext = item.get("file_ext")
 
-        self.info("开始从Opensubtitle.org搜索字幕: %s，imdbid=%s" % (item_name, imdb_id))
+        self.info(f"开始从Opensubtitle.org搜索字幕: {item_name}，imdbid={imdb_id}")
         subtitles = self.search_subtitles(imdb_id=imdb_id, name=item_name, year=item_year)
         if not subtitles:
-            self.warn("%s 未搜索到字幕" % item_name)
+            self.warn(f"{item_name} 未搜索到字幕")
         else:
-            self.info("opensubtitles.org返回数据：%s" % len(subtitles))
+            self.info(f"opensubtitles.org返回数据：{len(subtitles)}")
             # 成功数
             subtitle_count = 0
             for subtitle in subtitles:
                 # 标题
-                if not imdb_id:
-                    if str(subtitle.get('title')) != "%s (%s)" % (item_name, item_year):
-                        continue
+                if not imdb_id and str(subtitle.get('title')) != f"{item_name} ({item_year})":
+                    continue
                 # 季
                 if item_season \
                         and subtitle.get('season') \
@@ -146,8 +143,8 @@ class OpenSubtitles(_IPluginModule):
                 # 下载链接
                 Download_Link = subtitle.get('link')
                 # 下载后的字幕文件路径
-                Media_File = "%s.chi.zh-cn%s" % (item_file, item_file_ext)
-                self.info("正在从opensubtitles.org下载字幕 %s 到 %s " % (SubFileName, Media_File))
+                Media_File = f"{item_file}.chi.zh-cn{item_file_ext}"
+                self.info(f"正在从opensubtitles.org下载字幕 {SubFileName} 到 {Media_File} ")
                 # 下载
                 ret = RequestUtils(cookies=self._cookie,
                                    ua=self._ua).get_res(Download_Link)
@@ -170,9 +167,9 @@ class OpenSubtitles(_IPluginModule):
                         shutil.rmtree(zip_path)
                         os.remove(zip_file)
                     except Exception as err:
-                        log.exception(f"【OpenSubtitles】删除临时文件异常: ")
+                        log.exception("【OpenSubtitles】删除临时文件异常: ")
                 else:
-                    self.error("下载字幕文件失败：%s" % Download_Link)
+                    self.error(f"下载字幕文件失败：{Download_Link}")
                     continue
                 # 最多下载3个字幕
                 subtitle_count += 1
@@ -180,18 +177,17 @@ class OpenSubtitles(_IPluginModule):
                     break
             if not subtitle_count:
                 if item_episode:
-                    self.info("%s 第%s季 第%s集 未找到符合条件的字幕" % (
-                        item_name, item_season, item_episode))
+                    self.info(f"{item_name} 第{item_season}季 第{item_episode}集 未找到符合条件的字幕")
                 else:
-                    self.info("%s 未找到符合条件的字幕" % item_name)
+                    self.info(f"{item_name} 未找到符合条件的字幕")
             else:
-                self.info("%s 共下载了 %s 个字幕" % (item_name, subtitle_count))
+                self.info(f"{item_name} 共下载了 {subtitle_count} 个字幕")
 
     def search_subtitles(self, imdb_id, name, year):
         if imdb_id:
             return self.__search_subtitles_by_imdbid(imdb_id)
         else:
-            return self.__search_subtitles_by_keyword("%s %s" % (name, year))
+            return self.__search_subtitles_by_keyword(f"{name} {year}")
 
     def __search_subtitles_by_imdbid(self, imdbid):
         """
@@ -225,7 +221,7 @@ class OpenSubtitles(_IPluginModule):
                 # 解码为字符串
                 return raw_data.decode(encoding)
             except Exception as e:
-                log.debug(f"chardet解码失败: {str(e)}")
+                log.debug(f"chardet解码失败: {e!s}")
                 # 探测utf-8解码
                 if re.search(r"charset=\"?utf-8\"?", ret.text, re.IGNORECASE):
                     ret.encoding = "utf-8"
@@ -269,7 +265,7 @@ class OpenSubtitles(_IPluginModule):
                 description = tr_doc('span[itemprop="name"]').text()
                 link = tr_doc('a[href^="/download/"]').attr("href")
             if link:
-                link = "https://www.opensubtitles.org%s" % link
+                link = f"https://www.opensubtitles.org{link}"
             else:
                 continue
             ret_subtitles.append({

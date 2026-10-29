@@ -1,13 +1,12 @@
 import os.path
-import sqlite3
 import shutil
+import sqlite3
 import time
-
 from pathlib import Path
 
 import log
-
 from config import Config
+
 
 class Backup:
 

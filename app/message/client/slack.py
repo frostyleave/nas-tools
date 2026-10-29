@@ -1,14 +1,13 @@
 import re
 
 import requests
+from slack_bolt import App
+from slack_bolt.adapter.socket_mode import SocketModeHandler
 from slack_sdk.errors import SlackApiError
 
 import log
-
 from app.message.client._base import _IMessageClient
 from config import Config
-from slack_bolt import App
-from slack_bolt.adapter.socket_mode import SocketModeHandler
 
 
 class Slack(_IMessageClient):
@@ -31,7 +30,7 @@ class Slack(_IMessageClient):
     def init_config(self):
         _web_port = self._config.get_config("app").get("web_port")
         _api_key = self._config.get_config("security").get("api_key")
-        self._ds_url = "http://127.0.0.1:%s/slack?apikey=%s" % (_web_port, _api_key)
+        self._ds_url = f"http://127.0.0.1:{_web_port}/slack?apikey={_api_key}"
         if self._client_config:
             try:
                 slack_app = App(token=self._client_config.get("bot_token"))
@@ -44,25 +43,25 @@ class Slack(_IMessageClient):
             @slack_app.event("message")
             def slack_message(message):
                 local_res = requests.post(self._ds_url, json=message, timeout=10)
-                log.debug("【Slack】message: %s processed, response is: %s" % (message, local_res.text))
+                log.debug(f"【Slack】message: {message} processed, response is: {local_res.text}")
 
             @slack_app.action(re.compile(r"actionId-\d+"))
             def slack_action(ack, body):
                 ack()
                 local_res = requests.post(self._ds_url, json=body, timeout=60)
-                log.debug("【Slack】message: %s processed, response is: %s" % (body, local_res.text))
+                log.debug(f"【Slack】message: {body} processed, response is: {local_res.text}")
 
             @slack_app.event("app_mention")
             def slack_mention(say, body):
                 say(f"收到，请稍等... <@{body.get('event', {}).get('user')}>")
                 local_res = requests.post(self._ds_url, json=body, timeout=10)
-                log.debug("【Slack】message: %s processed, response is: %s" % (body, local_res.text))
+                log.debug(f"【Slack】message: {body} processed, response is: {local_res.text}")
 
             @slack_app.shortcut(re.compile(r"/*"))
             def slack_shortcut(ack, body):
                 ack()
                 local_res = requests.post(self._ds_url, json=body, timeout=10)
-                log.debug("【Slack】message: %s processed, response is: %s" % (body, local_res.text))
+                log.debug(f"【Slack】message: {body} processed, response is: {local_res.text}")
 
             # 启动服务
             if self._interactive:
@@ -78,7 +77,7 @@ class Slack(_IMessageClient):
 
     @classmethod
     def match(cls, ctype):
-        return True if ctype == cls.schema else False
+        return ctype == cls.schema
 
     def stop_service(self):
         if self._service:
@@ -115,7 +114,7 @@ class Slack(_IMessageClient):
                 if not text:
                     text = "\n".join(titles[1:])
                 else:
-                    text = "%s\n%s" % ("\n".join(titles[1:]), text)
+                    text = "{}\n{}".format("\n".join(titles[1:]), text)
             block = {
                 "type": "section",
                 "text": {

@@ -13,13 +13,9 @@ class FfmpegHelper:
         """
         if not video_path or not image_path:
             return False
-        cmd = 'ffmpeg -i "{video_path}" -ss {frames} -vframes 1 -f image2 "{image_path}"'.format(video_path=video_path,
-                                                                                                 frames=frames,
-                                                                                                 image_path=image_path)
+        cmd = f'ffmpeg -i "{video_path}" -ss {frames} -vframes 1 -f image2 "{image_path}"'
         result = SystemUtils.execute(cmd)
-        if result:
-            return True
-        return False
+        return bool(result)
 
     @staticmethod
     def extract_wav_from_video(video_path, audio_path, audio_index=None):
@@ -39,9 +35,7 @@ class FfmpegHelper:
                        '-acodec', 'pcm_s16le', '-ac', '1', '-ar', '16000', audio_path]
 
         ret = subprocess.run(command).returncode
-        if ret == 0:
-            return True
-        return False
+        return ret == 0
 
     @staticmethod
     def get_video_metadata(video_path):
@@ -75,6 +69,4 @@ class FfmpegHelper:
         else:
             command = ['ffmpeg', "-hide_banner", "-loglevel", "warning", '-y', '-i', video_path, subtitle_path]
         ret = subprocess.run(command).returncode
-        if ret == 0:
-            return True
-        return False
+        return ret == 0

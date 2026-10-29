@@ -1,12 +1,11 @@
 import json
-
 from urllib.parse import quote
 
+import log
 from app.message.client._base import _IMessageClient
 from app.utils import RequestUtils, SiteUtils
 from config import Config
 
-import log
 
 class SynologyChat(_IMessageClient):
     schema = "synologychat"
@@ -35,10 +34,10 @@ class SynologyChat(_IMessageClient):
 
     @classmethod
     def match(cls, ctype):
-        return True if ctype == cls.schema else False
+        return ctype == cls.schema
 
     def check_token(self, token):
-        return True if token == self._token else False
+        return token == self._token
 
     def send_msg(self, title, text="", image="", url="", user_id=""):
         """
@@ -65,7 +64,7 @@ class SynologyChat(_IMessageClient):
                     text = f"%s\n%s" % ("\n".join(titles[1:]), text)
 
             if text:
-                caption = "*%s*\n%s" % (title, text.replace("\n\n", "\n"))
+                caption = "*{}*\n{}".format(title, text.replace("\n\n", "\n"))
             else:
                 caption = title
             if url and image:
@@ -102,18 +101,9 @@ class SynologyChat(_IMessageClient):
                 if not image:
                     image = media.get_message_image()
                 if media.get_vote_string():
-                    caption = "%s\n%s. <%s|%s>\n%s，%s" % (caption,
-                                                          index,
-                                                          media.get_detail_url(),
-                                                          media.get_title_string(),
-                                                          media.get_type_string(),
-                                                          media.get_vote_string())
+                    caption = f"{caption}\n{index}. <{media.get_detail_url()}|{media.get_title_string()}>\n{media.get_type_string()}，{media.get_vote_string()}"
                 else:
-                    caption = "%s\n%s. <%s|%s>\n%s" % (caption,
-                                                       index,
-                                                       media.get_detail_url(),
-                                                       media.get_title_string(),
-                                                       media.get_type_string())
+                    caption = f"{caption}\n{index}. <{media.get_detail_url()}|{media.get_title_string()}>\n{media.get_type_string()}"
                 index += 1
 
             if user_id:
@@ -136,9 +126,7 @@ class SynologyChat(_IMessageClient):
         """
         if not self._domain or not self._token:
             return []
-        req_url = f"{self._domain}" \
-                  f"/webapi/entry.cgi?api=SYNO.Chat.External&method=user_list&version=2&token=" \
-                  f"{self._token}"
+        req_url = f"{self._domain}/webapi/entry.cgi?api=SYNO.Chat.External&method=user_list&version=2&token={self._token}"
         ret = self._req.get_res(url=req_url)
         if ret and ret.status_code == 200:
             users = ret.json().get("data", {}).get("users", []) or []

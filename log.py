@@ -1,15 +1,13 @@
-from collections import deque
+import asyncio
 import itertools
 import logging
+import os
 import re
 import sys
-import os
-import asyncio
-
-from logging.config import dictConfig
-
 import time
-from typing import Any, Deque, Dict, List
+from collections import deque
+from logging.config import dictConfig
+from typing import Any
 
 from config import Config
 
@@ -20,8 +18,8 @@ LOG_BACKUP_COUNT = 5
 LOG_BUFFER_SIZE = 100 # 内存中最多保留 100 条日志
 
 # 新的日志缓冲区和广播系统
-log_buffer: Deque[Dict[str, Any]] = deque(maxlen=LOG_BUFFER_SIZE)   # 全局日志缓冲区 (固定大小, 自动丢弃旧日志)
-active_sse_queues: List[asyncio.Queue[Dict[str, Any]]] = []     # 活跃的 SSE 客户端队列列表 (扇出目标)
+log_buffer: deque[dict[str, Any]] = deque(maxlen=LOG_BUFFER_SIZE)   # 全局日志缓冲区 (固定大小, 自动丢弃旧日志)
+active_sse_queues: list[asyncio.Queue[dict[str, Any]]] = []     # 活跃的 SSE 客户端队列列表 (扇出目标)
 
 # 全局递增的日志序号, 供 SSE 客户端对“历史重放 + 实时广播”去重和排序
 _log_seq = itertools.count(1)
@@ -42,13 +40,13 @@ def set_event_loop_for_logging(loop: asyncio.AbstractEventLoop):
 
 
 # 广播函数 (将在事件循环中运行)
-def broadcast_log(log_data: Dict[str, Any]):
+def broadcast_log(log_data: dict[str, Any]):
     """
     将日志数据放入所有活跃的 SSE 队列中。
     此函数必须在主事件循环中被调用。
     """
     # 遍历列表的副本, 以防止在迭代时列表被修改
-    for q in list(active_sse_queues):
+    for q in active_sse_queues:
         try:
             q.put_nowait(log_data)
         except asyncio.QueueFull:

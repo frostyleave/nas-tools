@@ -3,17 +3,16 @@ import pickle
 import random
 import time
 
+import log
 from app.utils.commons import singleton
 from config import Config
-
-import log
 
 CACHE_EXPIRE_TIMESTAMP_STR = "cache_expire_timestamp"
 EXPIRE_TIMESTAMP = 7 * 24 * 3600
 
 
 @singleton
-class MetaHelper(object):
+class MetaHelper:
     """
     {
         "id": '',

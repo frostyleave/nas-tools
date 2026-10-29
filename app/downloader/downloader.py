@@ -1,6 +1,5 @@
-import shutil
 import os
-
+import shutil
 from dataclasses import dataclass, field
 from threading import Lock
 from typing import Optional
@@ -8,30 +7,28 @@ from typing import Optional
 from apscheduler.schedulers.background import BackgroundScheduler
 
 import log
-
 from app.conf import SystemConfig
-from app.downloader.client._base import _IDownloadClient
-from app.downloader.config import DownloadConfig, PT_TAG
-from app.downloader.torrent import TorrentDownloader
-from app.downloader.media_check import MediaExistenceChecker
-from app.downloader.transfer import TransferManager
-from app.downloader.batch import BatchDownloader
-from app.modules.filetransfer import FileTransfer
-from app.models.model import UserSiteConf, IndexerInfo
-from app.helper import DbHelper, ThreadHelper, SubmoduleHelper
 from app.core.jobcenter import JobCenter
+from app.downloader.batch import BatchDownloader
+from app.downloader.client._base import _IDownloadClient
+from app.downloader.config import PT_TAG, DownloadConfig
+from app.downloader.media_check import MediaExistenceChecker
+from app.downloader.torrent import TorrentDownloader
+from app.downloader.transfer import TransferManager
+from app.helper import DbHelper, SubmoduleHelper, ThreadHelper
 from app.media import MediaService
 from app.media.meta import MetaInfo
 from app.mediaserver import MediaServer
 from app.message import MessageService
+from app.models.model import IndexerInfo, UserSiteConf
+from app.modules.filetransfer import FileTransfer
 from app.plugins import EventManager
 from app.sites import SitesManager, SiteSubtitle
-from app.utils import TorrentUtils, StringUtils
-from app.utils.torrent import TorrentDownloadResult
+from app.utils import StringUtils, TorrentUtils
 from app.utils.commons import singleton
 from app.utils.constants import Constants
+from app.utils.torrent import TorrentDownloadResult
 from app.utils.types import DownloaderType, SearchType
-
 from config import Config
 
 client_lock = Lock()
@@ -47,7 +44,7 @@ class _DownloadContentInfo:
     dl_files_folder: str = ""
     dl_files: list = field(default_factory=list)
     retmsg: str = ""
-    site_info: Optional[UserSiteConf] = None
+    site_info: UserSiteConf | None = None
 
     @property
     def success(self) -> bool:
@@ -241,7 +238,7 @@ class Downloader:
 
         # 2. 验证解析结果
         if retmsg:
-            log.warn("【Downloader】种子解析: %s" % retmsg)
+            log.warn(f"【Downloader】种子解析: {retmsg}")
 
         if not content and not torrent_file:
             self._download_fail_notify(in_from, media_info, retmsg)
@@ -262,7 +259,7 @@ class Downloader:
             if is_paused is None:
                 is_paused = StringUtils.to_bool(download_attr.get("is_paused"))
             else:
-                is_paused = True if is_paused else False
+                is_paused = bool(is_paused)
 
             # 下载设置中的分类
             category = download_attr.get("category")
@@ -357,7 +354,7 @@ class Downloader:
             if not content:
                 return _DownloadContentInfo(
                     url=url,
-                    retmsg="无法从详情页面: %s 解析出下载链接" % url,
+                    retmsg=f"无法从详情页面: {url} 解析出下载链接",
                 )
 
             # 解析出磁力链, 补充Trackers
@@ -369,7 +366,7 @@ class Downloader:
                 if not content:
                     return _DownloadContentInfo(
                         url=url,
-                        retmsg="%s 转换磁力链失败" % content,
+                        retmsg=f"{content} 转换磁力链失败",
                     )
         else:
             site_info = self.sites.get_site(siteurl=url)
@@ -451,7 +448,7 @@ class Downloader:
                     category,
                     tag,
                     download_attr,
-                    site_info: Optional[UserSiteConf]):
+                    site_info: UserSiteConf | None):
 
         # 站点 cookie
         site_cookie = site_info.cookie if site_info else None
@@ -533,7 +530,7 @@ class Downloader:
     def _add_torrent_aria2(client, content, torrent_file, tags, is_paused,
                            download_dir, category):
         """Aria2 添加下载"""
-        if content and (isinstance(content, bytes) or isinstance(content, str)):
+        if content and (isinstance(content, (bytes, str))):
             return client.add_torrent(content, is_paused=is_paused, tag=tags,
                                       download_dir=download_dir, category=category)
         elif torrent_file:
@@ -562,7 +559,7 @@ class Downloader:
                 content = TorrentUtils.torrent_to_magnet(torrent_file)
                 return client.add_torrent(content, name=title, download_dir=download_dir, tag=PT_TAG)
             else:
-                task_name = os.path.basename(mv_file).strip('.torrent')
+                task_name = os.path.basename(mv_file).removesuffix('.torrent')
                 if not task_name:
                     task_name = title
                 elif title not in task_name:
@@ -573,7 +570,7 @@ class Downloader:
         else:
             return client.add_torrent(content, name=title, download_dir=download_dir, tag=PT_TAG)
 
-    def _download_torrent_from_site(self, url: str, page_url: str, site_info: Optional[UserSiteConf]):
+    def _download_torrent_from_site(self, url: str, page_url: str, site_info: UserSiteConf | None):
         """从网站下载并解析种子信息（委托给 TorrentDownloader）"""
         return self._torrent_downloader.download_torrent_from_site(url, page_url, site_info)
 

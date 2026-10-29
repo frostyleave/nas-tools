@@ -2,11 +2,9 @@ import datetime
 import math
 import random
 
-from typing import Optional
-
 from apscheduler.job import Job
-from apscheduler.triggers.cron import CronTrigger
 from apscheduler.schedulers.background import BackgroundScheduler
+from apscheduler.triggers.cron import CronTrigger
 from apscheduler.util import undefined
 
 import log
@@ -15,7 +13,7 @@ import log
 class SchedulerUtils:
 
     @staticmethod
-    def add_job(scheduler:BackgroundScheduler, func, func_desc:str, cron:str, next_run_time=undefined) -> Optional[Job]:
+    def add_job(scheduler:BackgroundScheduler, func, func_desc:str, cron:str, next_run_time=undefined) -> Job | None:
         """
         解析任务的定时规则,启动定时服务
         :param func: 可调用的一个函数,在指定时间运行
@@ -28,7 +26,7 @@ class SchedulerUtils:
           4、配置间隔, 单位小时, 比如23.5
         """
         if not cron:
-            log.warn(f"[计划任务]%s 缺少cron表达式 ", func_desc)
+            log.warn("[计划任务]%s 缺少cron表达式 ", func_desc)
             return None
 
         cron = cron.strip()
@@ -104,20 +102,19 @@ class SchedulerUtils:
         return interval_job
 
     @staticmethod
-    def start_range_job(scheduler:BackgroundScheduler, func, func_desc, hour, minute, next_run_time=None) -> Optional[Job]:
+    def start_range_job(scheduler:BackgroundScheduler, func, func_desc, hour, minute, next_run_time=None) -> Job | None:
         year = datetime.datetime.now().year
         month = datetime.datetime.now().month
         day = datetime.datetime.now().day
         # 随机数从1秒开始, 不在整点签到
         second = random.randint(1, 59)
-        log.info("%s到时间 即将在%s-%s-%s,%s:%s:%s签到" % (
-            func_desc, str(year), str(month), str(day), str(hour), str(minute), str(second)))
+        log.info(f"{func_desc}到时间 即将在{year!s}-{month!s}-{day!s},{hour!s}:{minute!s}:{second!s}签到")
         if hour < 0 or hour > 24:
             hour = -1
         if minute < 0 or minute > 60:
             minute = -1
         if hour < 0 or minute < 0:
-            log.warn("%s时间 配置格式错误：不启动任务" % func_desc)
+            log.warn(f"{func_desc}时间 配置格式错误：不启动任务")
             return None
         return scheduler.add_job(func,
                                  "date",

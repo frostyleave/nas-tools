@@ -4,12 +4,10 @@ import shutil
 from lxml import etree
 
 import log
-
-from app.sites import SiteConf, SitesManager
 from app.helper import SiteHelper
-from app.utils import RequestUtils, SiteUtils, PathUtils, SiteUtils
+from app.sites import SiteConf, SitesManager
+from app.utils import PathUtils, RequestUtils, SiteUtils
 from app.utils.constants import Constants
-
 from config import Config
 
 
@@ -34,7 +32,7 @@ class SiteSubtitle:
         if not media_info.page_url:
             return
         # 字幕下载目录
-        log.info("【Sites】开始从站点下载字幕：%s" % media_info.page_url)
+        log.info(f"【Sites】开始从站点下载字幕：{media_info.page_url}")
         if not download_dir:
             log.warn("【Sites】未找到字幕下载目录")
             return
@@ -61,9 +59,9 @@ class SiteSubtitle:
                         if not sublink.startswith("http"):
                             base_url = SiteUtils.get_base_url(media_info.page_url)
                             if sublink.startswith("/"):
-                                sublink = "%s%s" % (base_url, sublink)
+                                sublink = f"{base_url}{sublink}"
                             else:
-                                sublink = "%s/%s" % (base_url, sublink)
+                                sublink = f"{base_url}/{sublink}"
                         sublink_list.append(sublink)
             # 下载所有字幕文件
             for sublink in sublink_list:

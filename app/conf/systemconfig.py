@@ -28,7 +28,7 @@ class SystemConfig:
 
     @staticmethod
     def __is_obj(obj):
-        if isinstance(obj, list) or isinstance(obj, dict):
+        if isinstance(obj, (list, dict)):
             return True
         else:
             return str(obj).startswith("{") or str(obj).startswith("[")

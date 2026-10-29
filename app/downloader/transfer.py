@@ -7,18 +7,17 @@
 
 import re
 from threading import Lock
-from typing import Optional, TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional
 
 from apscheduler.job import Job
 from apscheduler.schedulers.background import BackgroundScheduler
 
 import log
-
 from app.conf import ModuleConf
+from app.core.jobcenter import JobCenter
 from app.downloader.config import PT_TAG, PT_TRANSFER_INTERVAL
 from app.utils.constants import Constants
 from app.utils.types import MediaType, RmtMode
-from app.core.jobcenter import JobCenter
 
 if TYPE_CHECKING:
     from app.downloader.downloader import Downloader
@@ -36,10 +35,10 @@ class TransferManager:
 
     def __init__(self, downloader: 'Downloader'):
         self._downloader = downloader
-        self._transfer_job: Optional[Job] = None
+        self._transfer_job: Job | None = None
 
     @property
-    def transfer_job(self) -> Optional[Job]:
+    def transfer_job(self) -> Job | None:
         return self._transfer_job
 
     def start_service(self):
@@ -69,14 +68,14 @@ class TransferManager:
         downloader_ids = [downloader_id] if downloader_id \
             else self._downloader._config.monitor_downloader_ids
 
-        for downloader_id in downloader_ids:
+        for item_id in downloader_ids:
             with transfer_lock:
-                download_client = self._downloader._get_client(downloader_id)
+                download_client = self._downloader._get_client(item_id)
                 if not download_client:
-                    log.warn(f"【Downloader】下载器id = {downloader_id} 无效")
+                    log.warn(f"【Downloader】下载器id = {item_id} 无效")
                     continue
 
-                downloader_conf = self._downloader.get_downloader_conf(downloader_id)
+                downloader_conf = self._downloader.get_downloader_conf(item_id)
                 downloader_name = downloader_conf.name
                 filter_tag = PT_TAG if downloader_conf.only_nastool else None
                 match_path = downloader_conf.match_path
@@ -93,7 +92,7 @@ class TransferManager:
                     tmdb_info = None
                     season = None
                     download_info = self._downloader.get_download_history_by_downloader(
-                        downloader=downloader_id, download_id=task.get("id"))
+                        downloader=item_id, download_id=task.get("id"))
                     if download_info:
                         media_type = MediaType.MOVIE if download_info.TYPE in Constants.MOVIE_TYPES else MediaType.TV
                         tmdb_info = self._downloader.media.get_tmdb_info(mtype=media_type, tmdbid=download_info.TMDBID)
@@ -102,7 +101,7 @@ class TransferManager:
                             season = m.group(1) if m else None
 
                     done_flag, done_msg = self._downloader.filetransfer.transfer_media(
-                        in_from=self._downloader._config.downloader_enum[str(downloader_id)],
+                        in_from=self._downloader._config.downloader_enum[str(item_id)],
                         in_path=task.get("path"),
                         rmt_mode=rmt_mode,
                         media_type=media_type,

@@ -1,23 +1,22 @@
-# -*- coding: utf-8 -*-
 import base64
 import hashlib
 import hmac
 import json
 import re
-import requests
-
-from cachetools import TTLCache, cached
 from datetime import datetime
 from random import choice
 from urllib import parse
 
+import requests
+from cachetools import TTLCache, cached
+
+import log
 from app.utils import RequestUtils
 from app.utils.commons import singleton
 
-import log
 
 @singleton
-class DoubanApi(object):
+class DoubanApi:
     _urls = {
         # 搜索类
         # sort=U:近期热门 T:标记最多 S:评分最高 R:最新上映

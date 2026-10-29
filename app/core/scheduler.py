@@ -3,19 +3,17 @@ import datetime
 from apscheduler.schedulers.background import BackgroundScheduler
 
 import log
-
-from app.helper import MetaHelper
-from app.modules.historycleanup import HistoryCleanup
-from app.mediaserver import MediaServer
-from app.modules.rss import Rss
 from app.core.jobcenter import JobCenter
-from app.modules.wallpaper import get_login_wallpaper
-from app.sites import SitesDataStatisticsCenter
+from app.helper import MetaHelper
+from app.mediaserver import MediaServer
+from app.modules.historycleanup import HistoryCleanup
+from app.modules.rss import Rss
 from app.modules.subscribe import Subscribe
 from app.modules.sync import Sync
+from app.modules.wallpaper import get_login_wallpaper
+from app.sites import SitesDataStatisticsCenter
 from app.utils import SchedulerUtils
 from app.utils.commons import singleton
-
 from config import Config
 
 # TMDB信息缓存定时保存时间
@@ -71,11 +69,10 @@ class Scheduler:
                     try:
                         pt_check_interval = round(float(pt_check_interval))
                     except Exception as e:
-                        log.error("RSS订阅周期 配置格式错误：%s" % str(e))
+                        log.error(f"RSS订阅周期 配置格式错误：{str(e)}")
                         pt_check_interval = 0
                 if pt_check_interval:
-                    if pt_check_interval < 300:
-                        pt_check_interval = 300
+                    pt_check_interval = max(pt_check_interval, 300)
                     self.get_scheduler().add_job(
                         Rss().rssdownload, "interval", seconds=pt_check_interval, name='RSS订阅'
                     )
@@ -92,11 +89,10 @@ class Scheduler:
                     try:
                         search_rss_interval = round(float(search_rss_interval))
                     except Exception as e:
-                        log.error("订阅定时搜索周期 配置格式错误：%s" % str(e))
+                        log.error(f"订阅定时搜索周期 配置格式错误：{str(e)}")
                         search_rss_interval = 0
                 if search_rss_interval:
-                    if search_rss_interval < 3:
-                        search_rss_interval = 3
+                    search_rss_interval = max(search_rss_interval, 3)
                     self.get_scheduler().add_job(
                         Subscribe().subscribe_search_all,
                         "interval",
@@ -115,7 +111,7 @@ class Scheduler:
                         try:
                             mediasync_interval = round(float(mediasync_interval))
                         except Exception as e:
-                            log.info("媒体库数据同步服务启动失败：%s" % str(e))
+                            log.info(f"媒体库数据同步服务启动失败：{e!s}")
                             mediasync_interval = 0
                 if mediasync_interval:
                     self.get_scheduler().add_job(
@@ -170,7 +166,7 @@ class Scheduler:
             scheduler=self.get_scheduler(),
             func=HistoryCleanup().cleanup_history_tables,
             func_desc="清理历史记录",
-            cron=str('30 1,2 * * *')
+            cron='30 1,2 * * *'
         )
 
         # 定时刷新壁纸

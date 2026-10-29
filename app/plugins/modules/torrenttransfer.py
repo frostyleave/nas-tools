@@ -1,13 +1,12 @@
 import json
 import os.path
-
-from apscheduler.job import Job
 from copy import deepcopy
 from threading import Event
-from typing import Optional
 
+from apscheduler.job import Job
 from fastbencode import bdecode, bencode
 
+import log
 from app.downloader import Downloader
 from app.helper import ThreadHelper
 from app.media.meta import MetaInfo
@@ -15,8 +14,6 @@ from app.plugins.modules._base import _IPluginModule
 from app.utils import TorrentUtils
 from app.utils.types import DownloaderType
 from config import Config
-
-import log
 
 
 class TorrentTransfer(_IPluginModule):
@@ -66,7 +63,7 @@ class TorrentTransfer(_IPluginModule):
     # 任务标签
     _torrent_tags = ["已整理", "转移做种"]
 
-    _recheck_job : Optional[Job] = None
+    _recheck_job : Job | None = None
 
 
     @staticmethod
@@ -337,18 +334,13 @@ class TorrentTransfer(_IPluginModule):
                     "nopaths": self._nopaths,
                     "autostart": self._autostart
                 })
-            if self._cron_job:
-                if self._autostart:
-                    # 追加种子校验服务
-                    self._recheck_job = self.get_scheduler().add_job(self.check_recheck, 'interval', minutes=3, name='自动移转做种校验')
+            if self._cron_job and self._autostart:
+                # 追加种子校验服务
+                self._recheck_job = self.get_scheduler().add_job(self.check_recheck, 'interval', minutes=3, name='自动移转做种校验')
 
 
     def get_state(self):
-        return True if self._enable \
-                       and self._cron \
-                       and self._fromdownloader \
-                       and self._todownloader \
-                       and self._fromtorrentpath else False
+        return bool(self._enable and self._cron and self._fromdownloader and self._todownloader and self._fromtorrentpath)
 
     def transfer(self):
         """
@@ -529,7 +521,7 @@ class TorrentTransfer(_IPluginModule):
                                                         delete_file=False)
                     success += 1
                     # 插入转种记录
-                    history_key = "%s-%s" % (int(self._fromdownloader[0]), hash_item.get('hash'))
+                    history_key = "{}-{}".format(int(self._fromdownloader[0]), hash_item.get('hash'))
                     self.history(key=history_key,
                                  value={
                                      "to_download": int(self._todownloader[0]),

@@ -1,18 +1,17 @@
 import re
-
 from decimal import Decimal
 
 import anitopy
 import zhconv
 
+import log
 from app.media.meta._base import MetaBase
-from app.utils.constants import Constants
-from app.utils.release_groups import ReleaseGroupsMatcher
 from app.media.meta.customization import CustomizationMatcher
 from app.utils import StringUtils
+from app.utils.constants import Constants
+from app.utils.release_groups import ReleaseGroupsMatcher
 from app.utils.types import MediaType
 
-import log
 
 class MetaAnime(MetaBase):
     """
@@ -61,28 +60,27 @@ class MetaAnime(MetaBase):
                     for word in name.split():
                         if not word:
                             continue
-                        if word.endswith(']'):
-                            word = word[:-1]
+                        word = word.removesuffix(']')
                         if word.isdigit():
                             if lastword_type == "cn":
-                                self.cn_name = "%s %s" % (self.cn_name or "", word)
+                                self.cn_name = "{} {}".format(self.cn_name or "", word)
                             elif lastword_type == "en":
-                                self.en_name = "%s %s" % (self.en_name or "", word)
+                                self.en_name = "{} {}".format(self.en_name or "", word)
                         elif StringUtils.contain_chinese(word):
-                            self.cn_name = "%s %s" % (self.cn_name or "", word)
+                            self.cn_name = "{} {}".format(self.cn_name or "", word)
                             lastword_type = "cn"
                         else:
-                            self.en_name = "%s %s" % (self.en_name or "", word)
+                            self.en_name = "{} {}".format(self.en_name or "", word)
                             lastword_type = "en"
                 if self.cn_name:
                     _, self.cn_name, _, _, _, _ = StringUtils.get_keyword_from_string(self.cn_name)
                     if self.cn_name:
-                        self.cn_name = re.sub(r'%s' % self._name_nostring_re, '', self.cn_name,
+                        self.cn_name = re.sub(rf'{self._name_nostring_re}', '', self.cn_name,
                                               flags=re.IGNORECASE).strip()
                         if StringUtils.contain_traditional_chinese(self.cn_name):
                             self.cn_name = zhconv.convert(self.cn_name, "zh-hans")
                 if self.en_name:
-                    self.en_name = re.sub(r'%s' % self._name_nostring_re, '', self.en_name,
+                    self.en_name = re.sub(rf'{self._name_nostring_re}', '', self.en_name,
                                           flags=re.IGNORECASE).strip().title()
                     self._name = StringUtils.str_title(self.en_name)
                 # 年份
@@ -252,7 +250,7 @@ class MetaAnime(MetaBase):
                     if name == '[':
                         titles.append("")
                     else:
-                        titles.append("%s%s" % (left_char, name.strip()))
+                        titles.append(f"{left_char}{name.strip()}")
 
             title = "]".join(titles)
             

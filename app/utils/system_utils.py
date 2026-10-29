@@ -1,17 +1,15 @@
 import datetime
 import os
 import platform
-import psutil
 import shutil
 import subprocess
 
-
-from app.utils.path_utils import PathUtils
-from app.utils.types import OsType
-
-from version import APP_VERSION
+import psutil
 
 import log
+from app.utils.path_utils import PathUtils
+from app.utils.types import OsType
+from version import APP_VERSION
 
 
 class SystemUtils:
@@ -88,15 +86,15 @@ class SystemUtils:
     def is_synology():
         if SystemUtils.is_windows():
             return False
-        return True if "synology" in SystemUtils.execute('uname -a') else False
+        return "synology" in SystemUtils.execute('uname -a')
         
     @staticmethod
     def is_windows():
-        return True if os.name == "nt" else False
+        return os.name == "nt"
 
     @staticmethod
     def is_macos():
-        return True if platform.system() == 'Darwin' else False
+        return platform.system() == 'Darwin'
 
     @staticmethod
     def copy(src, dest):
@@ -198,8 +196,7 @@ class SystemUtils:
         try:
             src = os.path.normpath(src)
             dest = dest.replace("\\", "/")
-            if dest.startswith("/"):
-                dest = dest[1:]
+            dest = dest.removeprefix("/")
             retcode = subprocess.run(['mc', 'mv',
                                       '--recursive',
                                       src,
@@ -218,8 +215,7 @@ class SystemUtils:
         try:
             src = os.path.normpath(src)
             dest = dest.replace("\\", "/")
-            if dest.startswith("/"):
-                dest = dest[1:]
+            dest = dest.removeprefix("/")
             retcode = subprocess.run(['mc', 'cp',
                                       '--recursive',
                                       src,
@@ -377,4 +373,4 @@ class SystemUtils:
         commit_id = SystemUtils.execute('git rev-parse HEAD')
         if commit_id and len(commit_id) > 7:
             commit_id = commit_id[:7]
-        return "%s %s" % (APP_VERSION, commit_id)
+        return f"{APP_VERSION} {commit_id}"
