@@ -1,28 +1,25 @@
 import base64
 import re
-import requests
-
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
-from lxml import etree
 from threading import Event
-from typing import List, Tuple
 from urllib.parse import urljoin
 
-from app.helper import ThreadHelper, SubmoduleHelper, OcrHelper
+import requests
+from lxml import etree
+
+import log
+from app.helper import OcrHelper, SubmoduleHelper, ThreadHelper
 from app.helper.site_signin_helper import SiteSigninHelper, Verdict
 from app.models.model import UserSiteConf
 from app.modules.wallpaper import get_bing_wallpaper
 from app.plugins import EventHandler
 from app.plugins.modules._base import _IPluginModule
-from app.sites.siteconf import SiteConf
 from app.sites.site_manager import SitesManager
-from app.utils import RequestUtils, SiteUtils, SchedulerUtils
+from app.sites.siteconf import SiteConf
+from app.utils import RequestUtils, SchedulerUtils, SiteUtils
 from app.utils.types import EventType
-
 from config import Config
-
-import log
 
 
 @dataclass
@@ -30,13 +27,13 @@ class SignInResults:
     """
     签到循环结果
     """
-    success_names: List[str] = field(default_factory=list)
-    failed_info: List[str] = field(default_factory=list)  # 格式: '站点名:失败信息'
-    retry_names: List[str] = field(default_factory=list)
-    retry_ids: List[str] = field(default_factory=list)
+    success_names: list[str] = field(default_factory=list)
+    failed_info: list[str] = field(default_factory=list)  # 格式: '站点名:失败信息'
+    retry_names: list[str] = field(default_factory=list)
+    retry_ids: list[str] = field(default_factory=list)
     
     # 跟踪所有最终签到成功的站点ID（包括本次成功和历史已成功）
-    all_signed_site_ids: List[str] = field(default_factory=list)
+    all_signed_site_ids: list[str] = field(default_factory=list)
 
 
     def add_success(self, site_name: str, site_id: str):
@@ -342,13 +339,13 @@ class AutoSignIn(_IPluginModule):
         finally:
             self.info("站点签到任务结束")
 
-    def _setup_dates(self) -> Tuple[str, str]:
+    def _setup_dates(self) -> tuple[str, str]:
         """获取今天和昨天的日期字符串"""
         today_dt = datetime.today()
         yesterday_dt = today_dt - timedelta(days=1)
         return today_dt.strftime('%Y-%m-%d'), yesterday_dt.strftime('%Y-%m-%d')
 
-    def _calc_sites_to_sign_in(self, today_str: str) -> Tuple[List[str], List[str], bool]:
+    def _calc_sites_to_sign_in(self, today_str: str) -> tuple[list[str], list[str], bool]:
         """
         根据历史记录，决定今天要签到的站点列表。
         
@@ -382,13 +379,13 @@ class AutoSignIn(_IPluginModule):
             wait_sign_sites = list(wait_sign_set)
             
             if wait_sign_sites:
-                self.info(f"开始重签重试站点、特殊站点、未签站点")
+                self.info("开始重签重试站点、特殊站点、未签站点")
             
             history_exists = True
 
         return wait_sign_sites, already_sign_sites, history_exists
 
-    def _batch_sign_in(self, sites_to_sign_info: List[UserSiteConf], already_signed_sites: List[str]) -> SignInResults:
+    def _batch_sign_in(self, sites_to_sign_info: list[UserSiteConf], already_signed_sites: list[str]) -> SignInResults:
         """
         遍历站点执行签到，并收集结果
         """
@@ -424,7 +421,7 @@ class AutoSignIn(_IPluginModule):
         
         return results
 
-    def _save_sign_in_history(self, today_str: str, all_signed_ids: List[str], retry_ids: List[str], history_exists: bool):
+    def _save_sign_in_history(self, today_str: str, all_signed_ids: list[str], retry_ids: list[str], history_exists: bool):
         """
         将签到结果存入历史。
         """
@@ -465,9 +462,9 @@ class AutoSignIn(_IPluginModule):
 
             self.debug("签到通知已发送")
         except Exception as e:
-            log.exception(f"发送签到通知失败: ")
+            log.exception("发送签到通知失败: ")
 
-    def _sign_in_one_site(self, site_info:UserSiteConf) -> Tuple[bool, str]:
+    def _sign_in_one_site(self, site_info:UserSiteConf) -> tuple[bool, str]:
         """
         签到一个站点
         """
@@ -490,7 +487,7 @@ class AutoSignIn(_IPluginModule):
                 log.exception(f"【自动签到】[{url}]签到插件加载失败: ")
         return None
     
-    def __base_sign_in(self, site_info:UserSiteConf) -> Tuple[bool, str]:
+    def __base_sign_in(self, site_info:UserSiteConf) -> tuple[bool, str]:
         """
         通用签到处理
         :param site_info: 站点信息
@@ -505,7 +502,7 @@ class AutoSignIn(_IPluginModule):
             site_cookie = site_info.cookie
             
             if not site_url or not site_cookie:
-                err_msg = "未配置 %s 的站点地址或Cookie, 无法签到" % str(site_name)
+                err_msg = f"未配置 {site_name} 的站点地址或Cookie, 无法签到"
                 return False, err_msg
 
             home_url = SiteUtils.get_base_url(site_url)
@@ -533,7 +530,7 @@ class AutoSignIn(_IPluginModule):
                 # self.warn(f'[{site_name}]签到失败: {sign_status.reason}')
                 return False, f'[{site_name}]签到失败: {sign_status.reason}'
 
-            if SiteSigninHelper.sign_in_result(html_res=res.text, regexs=self._success_regex):
+            if SiteSigninHelper.sign_in_result(res.text, self._success_regex):
                 return True, f'[{site_name}]签到成功'
 
             html_tree = etree.HTML(res.text)
@@ -583,11 +580,15 @@ class AutoSignIn(_IPluginModule):
                 sign_res = request_handler.post(url=checkin_url, data=form_data)
 
                 if not sign_res or sign_res.status_code != 200:
-                    return False, f'[FORM][{site_name}]签到失败, form提交失败'
+                    return False, f'[FORM][{site_name}]签到失败: form提交失败'
 
-                if SiteSigninHelper.sign_in_result(html_res=sign_res.text, regexs=self._success_regex):
+                if SiteSigninHelper.sign_in_result(sign_res.text, self._success_regex):
                     return True, f'[FORM][{site_name}]签到成功'
 
+                self.warn(f'[FORM][{site_name}]签到失败，未知原因: {sign_res.text}')
+                return False, f'[FORM][{site_name}]签到失败，未知原因'
+
+            self.warn(f'[{site_name}]签到失败，未知原因: {res.text}')
             return False, f'[{site_name}]签到失败，未知原因'
             
         except Exception as e:
