@@ -1,11 +1,9 @@
 import re
-
 from dataclasses import dataclass
 from enum import Enum
 
 from lxml import etree
 from requests import Response
-from typing import List, Optional
 
 from app.helper.cloudflare_helper import under_challenge
 
@@ -33,21 +31,21 @@ MAINTENANCE_PATTERNS = [
     re.compile(r"服务器维护"),
     re.compile(r"暂停访问"),
     re.compile(r"请稍后再访问"),
-    re.compile(r"\bmaintenance\b", re.I),
+    re.compile(r"\bmaintenance\b", re.IGNORECASE),
 ]
 
 # ---------- 反向：拦截页特征 ----------
 BLOCK_PATTERNS = [
-    re.compile(r"<title[^>]*>\s*(401|403|404|50\d)\b", re.I),
-    re.compile(r"<h1>\s*403\s+forbidden\s*</h1>", re.I),
-    re.compile(r"<center>\s*403\s+forbidden", re.I),
-    re.compile(r"access\s+denied", re.I),
-    re.compile(r"\bnginx\b.*forbidden", re.I | re.S),
+    re.compile(r"<title[^>]*>\s*(401|403|404|50\d)\b", re.IGNORECASE),
+    re.compile(r"<h1>\s*403\s+forbidden\s*</h1>", re.IGNORECASE),
+    re.compile(r"<center>\s*403\s+forbidden", re.IGNORECASE),
+    re.compile(r"access\s+denied", re.IGNORECASE),
+    re.compile(r"\bnginx\b.*forbidden", re.IGNORECASE | re.S),
 ]
 
 # ---------- 正向：自己站点的“正常页面必有”特征 ----------
 SITE_MARKERS = [
-    re.compile(r'<meta\s+name="generator"\s+content="NexusPHP"', re.I),
+    re.compile(r'<meta\s+name="generator"\s+content="NexusPHP"', re.IGNORECASE),
     re.compile(r'id="info_block"'),
     re.compile(r'href="/torrents\.php'),
     re.compile(r'class="[^"]*\btorrents\b'),
@@ -69,7 +67,7 @@ class SiteSigninHelper:
 
 
     @staticmethod
-    def check_signin_result(html_res: Optional[Response], sign_success_regexs:Optional[List]=None):
+    def check_signin_result(html_res: Response | None, sign_success_regexs:list | None=None):
         """
         判断是否签到成功
         """
