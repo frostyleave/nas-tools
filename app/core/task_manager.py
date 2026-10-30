@@ -5,13 +5,13 @@ import uuid
 from enum import Enum
 from multiprocessing import Queue
 from queue import Empty
-from typing import Any, Dict, Optional
+from typing import Any
 
 import log
 from app.utils.commons import singleton
 
 # 1. 共享的状态存储（受锁保护）
-TASK_STORE: Dict[str, Any] = {}
+TASK_STORE: dict[str, Any] = {}
 # 2. 保护 TASK_STORE 的锁 (防止读/写冲突)
 TASK_STORE_LOCK: threading.Lock = threading.Lock()
 # 3. 线程安全的队列 (生产者/消费者模式)

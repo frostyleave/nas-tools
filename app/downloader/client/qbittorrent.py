@@ -4,16 +4,13 @@ import os
 import re
 import time
 from datetime import datetime
-from typing import Optional, Tuple, Union
 
 import fastbencode
-
-
-import log
 import qbittorrentapi
 
+import log
 from app.downloader.client._base import _IDownloadClient
-from app.utils import StringUtils, SiteUtils
+from app.utils import SiteUtils, StringUtils
 from app.utils.types import DownloaderType
 
 
@@ -413,7 +410,7 @@ class Qbittorrent(_IDownloadClient):
                     ratio_limit=None,
                     seeding_time_limit=None,
                     cookie=None
-                    ) -> Tuple[bool, Optional[str]]:
+                    ) -> tuple[bool, str | None]:
         """
         添加种子
         :param content: 种子urls或文件
@@ -538,7 +535,7 @@ class Qbittorrent(_IDownloadClient):
             return False, None
         
     @staticmethod
-    def _get_torrent_hash(content: Union[str, bytes]) -> Optional[str]:
+    def _get_torrent_hash(content: str | bytes) -> str | None:
         """
         从磁力链接(str)或 .torrent 文件内容(bytes)中提取 v1 info hash。
         (这是我们上一轮中生成的辅助函数)

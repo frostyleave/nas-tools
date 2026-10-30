@@ -2,7 +2,6 @@ import re
 import time
 from copy import deepcopy
 from threading import Event
-from typing import Optional
 
 from apscheduler.job import Job
 from jinja2 import Template

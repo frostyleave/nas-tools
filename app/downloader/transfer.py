@@ -7,7 +7,7 @@
 
 import re
 from threading import Lock
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING
 
 from apscheduler.job import Job
 from apscheduler.schedulers.background import BackgroundScheduler

@@ -1,7 +1,6 @@
 import json
 import re
 import xml.dom.minidom
-from typing import Optional
 
 from fastapi import APIRouter, Request, Response
 

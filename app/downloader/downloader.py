@@ -2,7 +2,6 @@ import os
 import shutil
 from dataclasses import dataclass, field
 from threading import Lock
-from typing import Optional
 
 from apscheduler.schedulers.background import BackgroundScheduler
 
