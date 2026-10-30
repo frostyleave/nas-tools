@@ -1,7 +1,7 @@
 #-------------------------------------------------------------------
 # 阶段 1: 'builder' - 用于构建所有依赖和产物
 #-------------------------------------------------------------------
-FROM python:3.12-slim-bookworm AS builder
+FROM python:3.14-slim-bookworm AS builder
 
 # 设置环境变量
 ENV DEBIAN_FRONTEND=noninteractive \
@@ -43,7 +43,7 @@ RUN git config --global pull.ff only \
     && git config --global --add safe.directory ${WORKDIR}
 
 # 2. 再安装 Python 依赖 (使用本地文件)
-RUN pip install --no-cache-dir --upgrade pip setuptools==70.1.1 wheel \
+RUN pip install --no-cache-dir --upgrade pip setuptools==80.9 wheel \
     && pip install --no-cache-dir cython \
     && pip install --no-cache-dir -r ${WORKDIR}/requirements.txt \
     && rm -rf /root/.cache
@@ -55,7 +55,7 @@ COPY --chmod=755 ./rootfs /
 #-------------------------------------------------------------------
 # 阶段 2: 'final' - 最终的轻量级运行时镜像
 #-------------------------------------------------------------------
-FROM python:3.12-slim-bookworm AS final
+FROM python:3.14-slim-bookworm AS final
 
 # 重新声明 ARG，以便在 ENV 中使用
 ARG BRANCH=dev_fastapi
