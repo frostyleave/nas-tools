@@ -544,7 +544,7 @@
     return `
       <div class="card">
         ${stateBadge}
-        <div class="card-header">
+        <div class="card-header border-0">
           <div>
             <input class="form-check-input m-0 align-middle" name="burshtask" value="${task.id}" type="checkbox">
           </div>
@@ -605,7 +605,7 @@
     const stateText = getStateText(task.state);
 
     return `
-      <div class="card-body" id="detail_${task.id}" style="display: ${displayStyle};">
+      <div class="card-body border-top" id="detail_${task.id}" style="display: ${displayStyle};">
         <div class="datagrid">
           <div class="datagrid-item">
             <div class="datagrid-title">站点</div>

@@ -47,5 +47,4 @@ typing-extensions==4.16.0
 tzdata==2026.3
 urllib3==2.8.0
 zhon==2.1.1
-passlib[bcrypt]==1.7.4
 uvicorn[standard]==0.52.1
