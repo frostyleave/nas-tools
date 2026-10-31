@@ -72,6 +72,7 @@
       {
         "name": "自定义订阅",
         "page": "user_rss",
+        "level": 9,
         "icon": "<i class=\"ti ti-file-rss fs-2 \"></i>",
         "html": "/static/pages/user_rss.html"
       },
@@ -85,19 +86,11 @@
   },
   {
     "name": "下载",
-    "level": 1,
+    "level": 9,
     "page": "downloading",
     "group": "任务",
     "icon": "<i class=\"ti ti-download fs-2 \"></i>",
     "html": "/static/pages/downloading.html"
-  },  
-  {
-    "name": "服务",
-    "level": 9,
-    "page": "service",
-    "group": "任务",
-    "icon": "<i class=\"ti ti-stack-2 fs-2 \"></i>",
-    "html": "/static/pages/service.html"
   },
   {
     "name": "文件",
@@ -154,8 +147,9 @@
     "html": "/static/pages/site.html",
     "nav": [
       {
-        "name": "站点维护",
+        "name": "站点管理",
         "page": "site",
+        "level": 99,
         "icon": "<i class=\"ti ti-settings-search fs-2 \"></i>",
         "html": "/static/pages/site.html"
       },
@@ -166,7 +160,7 @@
         "html": "/static/pages/statistics.html"
       },
       {
-        "name": "PT刷流",
+        "name": "刷流",
         "page": "brushtask",
         "icon": "<i class=\"ti ti-list-check fs-2 \"></i>",
         "html": "/static/pages/brushtask.html"
@@ -182,8 +176,16 @@
     "html": "/static/pages/plugin.html"
   },
   {
+    "name": "服务",
+    "level": 99,
+    "page": "service",
+    "group": "管理",
+    "icon": "<i class=\"ti ti-stack-2 fs-2 \"></i>",
+    "html": "/static/pages/service.html"
+  },
+  {
     "name": "设置",
-    "level": 9,
+    "level": 99,
     "page": "basic",
     "group": "管理",
     "icon": "<i class=\"ti ti-settings fs-2 \"></i>",
@@ -221,7 +223,6 @@
       },
       {
         "name": "用户管理",
-        "level": 99,
         "page": "users",
         "icon": "<i class=\"ti ti-users fs-2 \"></i>",
         "html": "/static/pages/users.html"

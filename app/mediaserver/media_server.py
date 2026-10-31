@@ -70,6 +70,20 @@ class MediaServer:
         """
         return self.server.get_type()
 
+    def test_connection(self, ctype: str) -> bool:
+        """
+        测试指定媒体服务器的连通性（使用已保存的配置）
+        :param ctype: 媒体服务器类型，emby/jellyfin/plex
+        """
+        try:
+            server = self.__build_class(ctype=ctype, conf=None)
+            if not server:
+                return False
+            return bool(server.get_status())
+        except Exception:
+            log.exception(f"【MediaServer】测试媒体服务器 {ctype} 连通性出错: ")
+            return False
+
     def get_activity_log(self, limit):
         """
         获取媒体服务器的活动日志

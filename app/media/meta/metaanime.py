@@ -2,12 +2,12 @@ import re
 from decimal import Decimal
 
 import anitopy
-import zhconv
 
 import log
 from app.media.meta._base import MetaBase
 from app.media.meta.customization import CustomizationMatcher
 from app.utils import StringUtils
+from app.utils import zhconv_compat as zhconv
 from app.utils.constants import Constants
 from app.utils.release_groups import ReleaseGroupsMatcher
 from app.utils.types import MediaType

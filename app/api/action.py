@@ -1,6 +1,5 @@
 import base64
 import datetime
-import importlib
 import inspect
 import json
 import os.path
@@ -8,6 +7,7 @@ import re
 import shutil
 import threading
 import time
+from typing import Annotated
 
 from fastapi import APIRouter, BackgroundTasks, Body, Depends
 
@@ -24,7 +24,7 @@ from app.media import Bangumi, DouBan, MediaService, Scraper
 from app.media.meta import MetaInfo
 from app.mediaserver import MediaServer
 from app.message import MessageService
-from app.middleware.security import get_current_user
+from app.middleware.security import CurrentUser, get_current_user
 from app.models.user import User, UserManager
 from app.modules.brushtaskv2 import BrushTaskV2 as BrushTask
 from app.modules.filetransfer import FileTransfer
@@ -64,7 +64,7 @@ action_router = APIRouter(dependencies=[Depends(get_current_user)])
 
 # 事件响应
 @action_router.post("/do")
-def do(background_tasks: BackgroundTasks, content: dict = Body(...), current_user: User = Depends(get_current_user)):
+def do(background_tasks: BackgroundTasks, content: Annotated[dict, Body(...)], current_user: CurrentUser):
 
     start_time = time.time()
     try:
@@ -82,7 +82,7 @@ def do(background_tasks: BackgroundTasks, content: dict = Body(...), current_use
 
 # search
 @action_router.post("/search")
-def search(background_tasks: BackgroundTasks, data: dict = Body(...)):
+def search(background_tasks: BackgroundTasks, data: Annotated[dict, Body(...)]):
     
     try:
         search_word = data.get("search_word")
@@ -153,7 +153,7 @@ class WebAction:
             "add_rss_media": self.__add_rss_media,
             "re_identification": self.__re_identification,
             "media_info": self.__media_info,
-            "test_connection": self.__test_connection,
+            "test_mediaserver": self.__test_mediaserver,
             "user_manager": self.__user_manager,
             "refresh_rss": self.__refresh_rss,
             "delete_tmdb_cache": self.__delete_tmdb_cache,
@@ -292,7 +292,7 @@ class WebAction:
         elif inspect.signature(func).parameters:
             return func(data)
         else:
-            return func(**{})
+            return func()
 
     def set_config_value(self, cfg, cfg_key, cfg_value):
         """
@@ -1284,41 +1284,17 @@ class WebAction:
             "seasons": seasons
         }
 
-    def __test_connection(self, data):
+    def __test_mediaserver(self, data):
         """
-        测试连通性
+        测试媒体服务器连通性
+        :param data: {"type": "emby/jellyfin/plex"}
         """
-        # 支持两种传入方式：命令数组或单个命令，单个命令时xx|xx模式解析为模块和类，进行动态引入
-        command = data.get("command")
-        ret = None
-        if command:
-            try:
-                module_obj = None
-                if isinstance(command, list):
-                    for cmd_str in command:
-                        ret = eval(cmd_str)
-                        if not ret:
-                            break
-                else:
-                    if command.find("|") != -1:
-                        module = command.split("|")[0]
-                        class_name = command.split("|")[1]
-                        module_obj = getattr(
-                            importlib.import_module(module), class_name)()
-                        if hasattr(module_obj, "init_config"):
-                            module_obj.init_config()
-                        ret = module_obj.get_status()
-                    else:
-                        ret = eval(command)
-                # 重载配置
-                Config().init_config()
-                if module_obj and hasattr(module_obj, "init_config"):
-                    module_obj.init_config()
-            except Exception as e:
-                ret = None
-                log.exception("[act]测试连通性出错:")
-            return {"code": 0 if ret else 1}
-        return {"code": 0}
+        server_type = (data or {}).get("type")
+        if not server_type or server_type not in ModuleConf.MEDIASERVER_CONF:
+            return {"code": 1, "msg": "不支持的媒体服务器类型"}
+
+        ret = MediaServer().test_connection(server_type)
+        return {"code": 0 if ret else 1}
 
     def __user_manager(self, data):
         """

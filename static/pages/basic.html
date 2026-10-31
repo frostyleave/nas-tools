@@ -526,19 +526,13 @@
 
     $("#" + type + "_test_btn").text("测试中...").attr("disabled", true);
 
-    var mediaServerConf = $("#media-server-list").data("server_conf");
-    if (mediaServerConf && mediaServerConf[type]) {
-      var command = mediaServerConf[type].test_command;
-      axios_post_do("test_connection", {"command": command}, function (ret) {
-        if (ret.code === 0) {
-          $("#" + type + "_test_btn").text("测试成功").attr("disabled", false);
-        } else {
-          $("#" + type + "_test_btn").text("测试失败！").attr("disabled", false);
-        }
-      });
-
-      return;
-    }
+    axios_post_do("test_mediaserver", {"type": type}, function (ret) {
+      if (ret.code === 0) {
+        $("#" + type + "_test_btn").text("测试成功").attr("disabled", false);
+      } else {
+        $("#" + type + "_test_btn").text("测试失败！").attr("disabled", false);
+      }
+    });
 
   }
 

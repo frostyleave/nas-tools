@@ -1,8 +1,9 @@
 import os
+import threading
 from functools import wraps
 from math import floor
 
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.encoders import jsonable_encoder
 from fastapi.responses import JSONResponse
 
@@ -10,7 +11,7 @@ import log
 from app.conf.moduleconf import ModuleConf
 from app.conf.systemconfig import SystemConfig
 from app.core.cmd_registry import CommandRegistry
-from app.downloader.config import PT_TRANSFER_INTERVAL
+from app.downloader.config import PT_TRANSFER_INTERVAL, DownloaderConfItem
 from app.downloader.downloader import Downloader
 from app.helper.meta_helper import MetaHelper
 from app.helper.words_helper import WordsHelper
@@ -18,8 +19,9 @@ from app.indexer.indexer import Indexer
 from app.media.category import Category
 from app.mediaserver.media_server import MediaServer
 from app.message import MessageService
-from app.middleware.security import get_current_user
-from app.models.user import User, UserManager
+from app.middleware.security import CurrentUser, auth_check, get_current_user
+from app.models.model import UserSiteConf
+from app.models.user import UserManager
 from app.modules.brushtaskv2 import BrushTaskV2 as BrushTask
 from app.modules.filetransfer import FileTransfer
 from app.modules.filter import Filter
@@ -71,6 +73,9 @@ def router_exception_handler(router: APIRouter):
             async def wrapped(*args, **kwargs):
                 try:
                     return await endpoint(*args, **kwargs)
+                except HTTPException:
+                    # 保留 FastAPI 的 4xx 语义（如 401/403），不要统一转成 500
+                    raise
                 except Exception as e:
                     return JSONResponse(
                         status_code=500,
@@ -93,8 +98,7 @@ def response(code: int = 0, msg: str = "success", data=None, status_code: int = 
 
 # userinfo
 @data_router.post("/userinfo")
-async def userinfo(current_user: User = Depends(get_current_user)):
-
+async def userinfo(current_user: CurrentUser):
     return response(data=
         {
             "username" : current_user.username
@@ -104,7 +108,7 @@ async def userinfo(current_user: User = Depends(get_current_user)):
 
 # sysinfo
 @data_router.post("/sysinfo")
-async def sysinfo(current_user: User = Depends(get_current_user)):
+async def sysinfo(current_user: CurrentUser):
 
     # 判断当前的运营环境
     system_flag = SystemUtils.get_system()
@@ -150,6 +154,7 @@ async def sysinfo(current_user: User = Depends(get_current_user)):
 
 # 基础设置页面
 @data_router.post("/basic")
+@auth_check(99)
 async def basic():
 
     proxy = Config().get_config('app').get("proxies", {}).get("http")
@@ -321,6 +326,7 @@ async def rss_calendar():
 
 # 索引站点页面
 @data_router.post("/indexer")
+@auth_check(99)
 async def indexer(p: int = 1):
 
     # 启用的索引站点
@@ -363,8 +369,38 @@ async def indexer(p: int = 1):
         })
 
 
+# /data/site 的 Sites 仅返回 static/pages/site.html 实际使用的字段
+SITE_PUBLIC_KEYS = (
+    "id",
+    "name",
+    "indexer_id",
+    "strict_url",
+    "rule",
+    "download_setting",
+    "unread_msg_notify",
+    "chrome",
+    "proxy",
+)
+
+
+def _site_view(site: UserSiteConf) -> dict:
+    """
+    生成站点信息的展示视图：只保留页面使用的字段，凭据与未使用字段一律不下发
+    页面只根据 RSS/签到地址是否存在来显示功能徽标，该判断统一在后端完成
+    """
+    item = {key: getattr(site, key) for key in SITE_PUBLIC_KEYS}
+    # 页面使用 site.parse 判断是否解析种子详情，模型字段名为 parse_detail
+    item["parse"] = site.parse_detail
+    # 功能徽标：是否已配置可用的 RSS / 签到地址
+    item["subscribe_enabled"] = bool(site.rss_enable and site.rssurl)
+    item["brush_enabled"] = bool(site.brush_enable and site.rssurl)
+    item["statistic_enabled"] = bool(site.statistic_enable and (site.signurl or site.rssurl))
+    return item
+
+
 # 站点维护页面
 @data_router.post("/site")
+@auth_check(99)
 async def sites_page():
 
     indexer_sites = SystemConfig().get(SystemConfigKey.UserIndexerSites)
@@ -373,7 +409,6 @@ async def sites_page():
 
     rule_groups = {str(group["id"]): group["name"] for group in Filter().get_rule_groups()}
     download_settings = {did: attr["name"] for did, attr in Downloader().get_download_setting().items()}
-    cookie_cloud_cfg = SystemConfig().get(SystemConfigKey.CookieCloud)
 
     # 站点数据
     cfg_sites = SitesManager().get_sites()
@@ -384,7 +419,7 @@ async def sites_page():
 
     enriched = []
     for it in cfg_sites:
-        new_item = it.model_dump()
+        new_item = _site_view(it)
         enriched.append(new_item)
         # 填充统计数据
         statistic_info = statistic_dict.get(it.name)
@@ -406,43 +441,54 @@ async def sites_page():
             "Sites": enriched,
             "RuleGroups": rule_groups,
             "DownloadSettings": download_settings,
-            "CookieCloudCfg": cookie_cloud_cfg,
             "indexerSites": indexer_sites,
             "sourceTypes": SOURCE_TYPES,
         }
     )
 
 
-# 站点资源页面
-@data_router.post("/sitelist")
-async def sitelist_page():
-    indexer_sites = Indexer().get_indexers(check=False)
-    return response(data=
-        {
-            "Sites": indexer_sites,
-        }
-    )
-
-
 # 媒体库页面
 @data_router.post("/library")
+@auth_check(9)
 async def library():
     rmt_mode_dict = _get_rmt_modes_dict()
     scraper_conf = SystemConfig().get(SystemConfigKey.UserScraperConf) or {}
     return response(data=
         {
-            "Config": Config().get_config(),
+            "MediaConfig": Config().get_config('media'),
             "RmtModeDict": rmt_mode_dict,
             "ScraperNfo": scraper_conf.get("scraper_nfo") or {},
             "ScraperPic": scraper_conf.get("scraper_pic") or {},
         })
 
 
+# /data/notification 的 MessageClients 仅返回 static/pages/notification.html 实际使用的字段
+MESSAGE_CLIENT_PUBLIC_KEYS = (
+    "name",
+    "type",
+    "enabled",
+    "interactive",
+    "switchs",
+)
+
+
+def _message_client_view(client: dict) -> dict:
+    """
+    生成消息客户端的展示视图：只保留页面使用的字段，配置中的凭据一律不下发
+    页面仅使用 config.host / config.port 展示服务地址
+    """
+    item = {key: client.get(key) for key in MESSAGE_CLIENT_PUBLIC_KEYS}
+    config = client.get("config") or {}
+    item["config"] = {key: config[key] for key in ("host", "port") if key in config}
+    return item
+
+
 # 通知消息页面
 @data_router.post("/notification")
+@auth_check(9)
 async def notification():
 
-    message_clients = MessageService().get_message_client_info()
+    message_clients = MessageService().get_message_client_info() or {}
     switchs = ModuleConf.MESSAGE_CONF.get("switch")
 
     channels = ModuleConf.MESSAGE_CONF.get("client")
@@ -459,13 +505,14 @@ async def notification():
             "Channels": channels,
             "Switchs": switchs,
             "ChannelsTpyes": channels_tpyes,
-            "MessageClients": dict(message_clients) if message_clients else {},
+            "MessageClients": {cid: _message_client_view(client) for cid, client in message_clients.items()},
         })
 
 
 # 用户管理页面
 @data_router.post("/users")
-async def users(current_user: User = Depends(get_current_user)):
+@auth_check(99)
+async def users(current_user: CurrentUser):
 
     users = []
     top_menus = []
@@ -487,6 +534,7 @@ async def users(current_user: User = Depends(get_current_user)):
 
 # 过滤规则设置页面
 @data_router.post("/filterrule")
+@auth_check(9)
 async def filterrule():
 
     _filter = Filter()
@@ -502,6 +550,7 @@ async def filterrule():
 
 # 目录同步页面
 @data_router.post("/directorysync")
+@auth_check(9)
 async def directorysync():
     rmt_mode_dict = _get_rmt_modes_dict()
     sync_paths = Sync().get_sync_path_conf()
@@ -514,6 +563,7 @@ async def directorysync():
 
 # 自定义识别词设置页面
 @data_router.post("/customwords")
+@auth_check(9)
 async def customwords():
     groups = WordsHelper().get_customwords_groups()
     return response(data=
@@ -525,7 +575,8 @@ async def customwords():
 
 # 插件页面
 @data_router.post("/plugin")
-async def plugin(current_user: User = Depends(get_current_user)):
+@auth_check(9)
+async def plugin(current_user: CurrentUser):
 
     # 插件
     plugins = PluginManager().get_plugins_conf(current_user.level)
@@ -538,6 +589,7 @@ async def plugin(current_user: User = Depends(get_current_user)):
 
 # 用户RSS页面
 @data_router.post("/user_rss")
+@auth_check(9)
 async def user_rss():
     """
     用户RSS页面
@@ -566,7 +618,8 @@ async def user_rss():
 
 # 服务页面
 @data_router.post("/service")
-async def service(current_user: User = Depends(get_current_user)):
+@auth_check(9)
+async def service(current_user: CurrentUser):
     """
     服务页面
     """
@@ -641,8 +694,32 @@ async def service(current_user: User = Depends(get_current_user)):
     )
 
 
+# /data/downloaders 的 downloaders 仅返回 static/pages/downloaders.html 实际使用的字段
+DOWNLOADER_PUBLIC_KEYS = (
+    "name",
+    "type",
+    "enabled",
+    "transfer",
+    "only_nastool",
+    "match_path",
+    "rmt_mode_name",
+)
+
+
+def _downloader_view(conf: DownloaderConfItem) -> dict:
+    """
+    生成下载器的展示视图：只保留页面使用的字段，配置中的账号密码一律不下发
+    页面仅使用 config.host / config.port 展示服务地址
+    """
+    item = {key: getattr(conf, key) for key in DOWNLOADER_PUBLIC_KEYS}
+    config = conf.config or {}
+    item["config"] = {key: config[key] for key in ("host", "port") if key in config}
+    return item
+
+
 # 下载器
 @data_router.post("/downloaders")
+@auth_check(9)
 async def downloaders():
     """
     正在下载页面
@@ -651,7 +728,10 @@ async def downloaders():
     # 下载器
     download_manager = Downloader()
     default_downloader = download_manager.default_downloader_id
-    downloader_confs = download_manager.get_downloader_conf()
+    downloader_confs = {
+        did: _downloader_view(conf)
+        for did, conf in download_manager.get_downloader_conf().items()
+    }
 
     # 目录配置
     category_manager = Category()
@@ -676,6 +756,7 @@ async def downloaders():
 
 # 正在下载页面
 @data_router.post("/downloading")
+@auth_check(9)
 async def downloading():
     """
     正在下载页面
@@ -700,6 +781,7 @@ async def downloading():
 
 # 媒体文件管理页面
 @data_router.post("/mediafile")
+@auth_check(9)
 async def mediafile():
     """
     媒体文件管理页面
@@ -727,7 +809,8 @@ async def mediafile():
 
 # 数据统计页面
 @data_router.post("/statistics")
-async def statistics(current_user: User = Depends(get_current_user)):
+@auth_check(9)
+async def statistics():
     """
     数据统计页面
     """
@@ -791,6 +874,7 @@ async def statistics(current_user: User = Depends(get_current_user)):
 
 # 刷流任务页面
 @data_router.post("/brushtask")
+@auth_check(9)
 async def brushtask():
     """
     刷流任务页面
@@ -814,6 +898,7 @@ async def brushtask():
 
 # RSS解析器页面
 @data_router.post("/rss_parser")
+@auth_check(9)
 async def rss_parser():
     """
     RSS解析器页面
@@ -830,6 +915,7 @@ async def rss_parser():
 
 # 自动删种页面
 @data_router.post("/torrent_remove")
+@auth_check(9)
 async def torrent_remove():
     """
     自动删种页面
@@ -849,6 +935,7 @@ async def torrent_remove():
 
 # 下载设置页面
 @data_router.post("/download_setting")
+@auth_check(9)
 async def download_setting():
     """
     下载设置页面
@@ -868,6 +955,7 @@ async def download_setting():
 
 # TMDB缓存页面
 @data_router.post("/tmdbcache")
+@auth_check(9)
 async def tmdbcache(request: Request):
     """
     TMDB缓存页面
@@ -900,6 +988,7 @@ async def tmdbcache(request: Request):
 
 # 历史记录页面
 @data_router.post("/history")
+@auth_check(9)
 async def history(request: Request):
     """
     历史记录页面
@@ -952,6 +1041,7 @@ async def history(request: Request):
 
 # 手工识别页面
 @data_router.post("/unidentification")
+@auth_check(9)
 async def unidentification(request: Request):
     """
     手工识别页面
@@ -1072,7 +1162,6 @@ def _get_library_spacesize():
     }
 
 
-
 # 下载历史页面
 @data_router.post("/download_history")
 async def download_history(request: Request):
@@ -1127,6 +1216,14 @@ async def download_history(request: Request):
         "Site": search_site,
     })
 
+
+@data_router.get("/threads")
+def thread_debug():
+    threads = threading.enumerate()
+    return {
+        "thread_count": len(threads),
+        "threads": [t.name for t in threads]
+    }
 
 # 给这个 router 加异常捕获
 router_exception_handler(data_router)

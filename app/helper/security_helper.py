@@ -26,7 +26,7 @@ class SecurityHelper:
         return self.allow_access(self.synology_webhook_allow_ip, ip)
 
     def check_slack_ip(self, ip):
-        return self.allow_access({"ipve": "127.0.0.1"}, ip)
+        return self.allow_access({"ipv4": "127.0.0.1"}, ip)
 
     @staticmethod
     def allow_access(allow_ips, ip):

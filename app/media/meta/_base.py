@@ -1,8 +1,8 @@
 import regex as re
-import zhconv
 
 import log
 from app.media.category import Category
+from app.utils import zhconv_compat as zhconv
 from app.utils.constants import Constants
 from app.utils.media_utils import MediaUtils
 from app.utils.string_utils import StringUtils

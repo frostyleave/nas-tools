@@ -1294,3 +1294,38 @@ div#main-info-container > * {
     padding: 0;
   }
 }
+
+/* 媒体库目录表格：rowspan 后续行的目录单元格会被 card-table 的 :first-child 规则加上额外左内边距 */
+.library-table td.library-path {
+    padding-left: .75rem !important;
+    padding-right: .75rem !important;
+}
+
+/* 媒体库目录表格：分类列左右内边距收窄 */
+.library-table td.library-cat,
+.library-table th.library-cat {
+    padding-left: .75rem !important;
+}
+
+/* 媒体库目录表格：未配置单元格左右内边距对称，保证水平居中 */
+.library-table td.library-empty {
+    padding-right: .75rem !important;
+}
+
+/* 媒体库目录表格：删除图标与路径文字水平方向（垂直中线）对齐 */
+.library-table .library-del {
+    display: inline-flex;
+    align-items: center;
+    height: 1.5rem;
+    vertical-align: middle;
+}
+
+.library-table .library-del .ti {
+    display: inline-flex;
+    align-items: center;
+    line-height: 1;
+}
+
+.library-table .library-del .ti::before {
+    vertical-align: middle;
+}

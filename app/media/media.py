@@ -4,7 +4,6 @@ import random
 import re
 import traceback
 
-import zhconv
 from cachetools import TTLCache, cached
 from lxml import etree
 
@@ -33,6 +32,7 @@ from app.utils import (
     RequestUtils,
     StringUtils,
     cacheman,
+    zhconv_compat as zhconv,
 )
 from app.utils.media_utils import MediaUtils
 from app.utils.types import MatchMode, MediaType

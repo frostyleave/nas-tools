@@ -1,5 +1,4 @@
 import os
-import threading
 
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.encoders import jsonable_encoder
@@ -98,16 +97,13 @@ async def home_page():
 # bing
 @app.post("/data/bing")
 async def bing():
-
     image_code, img_title, img_link, img_url = get_login_wallpaper()
-
     data = {
         "imgCode" : image_code,
         "imgTitle" : img_title,
         "imgLink" : img_link,
         "imgUrl" : img_url
     }
-
     return JSONResponse(
         content=jsonable_encoder({
             "code": 0,
@@ -116,11 +112,3 @@ async def bing():
         }),
         status_code=200
     )
-
-@app.get("/debug/threads")
-def thread_debug():
-    threads = threading.enumerate()
-    return {
-        "thread_count": len(threads),
-        "threads": [t.name for t in threads]
-    }

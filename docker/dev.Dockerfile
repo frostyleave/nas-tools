@@ -35,6 +35,16 @@ RUN apt-get update -y \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
+# Rust 工具链（仅 builder 阶段，用于编译 fastbencode 的 Rust 扩展）
+ENV RUSTUP_HOME=/root/.rustup \
+    CARGO_HOME=/root/.cargo \
+    PATH=/root/.cargo/bin:${PATH}
+
+RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs \
+    | sh -s -- -y --profile minimal --default-toolchain stable --no-modify-path \
+    && rustc --version \
+    && cargo --version
+
 WORKDIR ${WORKDIR}
 
 # 1. 先克隆代码

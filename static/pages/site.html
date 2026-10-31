@@ -3,7 +3,7 @@
   <div class="page-header d-print-none mt-2">
     <div class="row align-items-center">
       <div class="col">
-        <h2 class="page-title">PT站点</h2>
+        <h2 class="page-title">站点管理</h2>
       </div>
       <!-- Page title actions -->
       <div class="col-auto ms-auto d-print-none">
@@ -981,9 +981,9 @@
                     <div class="flex-grow-1 px-1 py-2">
                       <div class="d-flex align-items-center">
                         <small>
-                          ${site.rss_enable && site.rssurl ? '<span class="badge bg-primary-lt text-blue me-1">订阅</span>' : ''}
-                          ${site.brush_enable && site.rssurl ? '<span class="badge bg-primary-lt text-blue me-1">刷流</span>' : ''}
-                          ${site.statistic_enable && (site.signurl || site.rssurl) ? '<span class="badge bg-primary-lt text-blue me-1">数据统计</span>' : ''}
+                          ${site.subscribe_enabled ? '<span class="badge bg-primary-lt text-blue me-1">订阅</span>' : ''}
+                          ${site.brush_enabled ? '<span class="badge bg-primary-lt text-blue me-1">刷流</span>' : ''}
+                          ${site.statistic_enabled ? '<span class="badge bg-primary-lt text-blue me-1">数据统计</span>' : ''}
                           ${site.rule && data.RuleGroups && data.RuleGroups[site.rule] ? `<span class="badge bg-primary-lt text-rss me-1">${data.RuleGroups[site.rule]}</span>` : ''}
                           ${site.download_setting && data.DownloadSettings && data.DownloadSettings[site.download_setting] ? `<span class="badge bg-primary-lt text-rss me-1">${data.DownloadSettings[site.download_setting]}</span>` : ''}
                         </small>

@@ -135,7 +135,7 @@
         </div>
       </div>
     </div>
-    <div class="d-grid gap-2 grid-large-card align-items-start" id="library-list">
+    <div class="card" id="library-list">
       <!-- JS 动态填充 -->
     </div>
   </div>
@@ -789,48 +789,59 @@
 
 <script type="text/javascript">
 
-  var configInfo = {};
+  var mediaConfig = {};
 
-  // 渲染媒体库目录
+  // 渲染媒体库目录（单个 card、单个 table，同分类合并单元格）
   function renderLibraries() {
     const types = { movie: "电影", tv: "电视剧", anime: "动漫", unknown: "未识别" };
     let $list = $("#library-list");
+    $list.empty();
+
+    var bodyRows = "";
 
     $.each(types, function (type, title) {
 
-      var rows = "";
-      if (configInfo.media[type + "_path"] && configInfo.media[type + "_path"].length > 0) {
-        $.each(configInfo.media[type + "_path"], function (i, path) {
-          rows += `
-            <tr>
-              <td><input type="hidden" value="${path}">${path}</td>
-              <td><a href="javascript:sub_directory_config('${type}','${path}')" title="删除目录"><i class="ti ti-x fs-2 text-danger"></i></a></td>
+      var paths = mediaConfig[type + "_path"] || [];
+      var addBtn = `<a href="javascript:show_directory_modal('${type}')" class="btn-action me-1" title="新增目录"><i class="ti ti-plus fs-2"></i></a>`;
+      var titleCell = `${addBtn}<strong>${title}目录</strong>`;
+
+      if (paths.length > 0) {
+        $.each(paths, function (i, path) {
+          bodyRows += "<tr>";
+          if (i === 0) {
+            bodyRows += `<td class="library-cat text-start align-middle" rowspan="${paths.length}">${titleCell}</td>`;
+          }
+          bodyRows += `
+              <td class="library-path text-start align-middle">
+                <div class="d-flex align-items-center justify-content-between">
+                  <span><input type="hidden" value="${path}">${path}</span>
+                  <a href="javascript:sub_directory_config('${type}','${path}')" class="library-del ms-1" title="删除目录"><i class="ti ti-x fs-2 text-danger"></i></a>
+                </div>
+              </td>
             </tr>`;
         });
       } else {
-        rows = `<tr><td colspan="2" align="center">未配置</td></tr>`;
+        bodyRows += `
+            <tr>
+              <td class="library-cat text-start align-middle">${titleCell}</td>
+              <td class="library-empty text-center align-middle">未配置</td>
+            </tr>`;
       }
-
-      $list.append(`
-          <div class="card align-self-start">
-            <div class="card-header">
-              <h3 class="card-title"><strong>${title}目录</strong></h3>
-              <div class="card-actions btn-actions">
-                <a href="javascript:show_directory_modal('${type}')" class="btn-action ms-auto"><i class="ti ti-plus fs-2"></i></a>
-                <a href="javascript:slideToggle('library-list-${type}')" class="btn-action ms-1" title="展开/折叠">
-                  <i class="ti ti-menu-2 fs-2"></i>
-                </a>
-              </div>
-            </div>
-            <div class="table-responsive" id="library-list-${type}">
-              <table class="mb-4 card-table table text-nowrap table-hover">
-                <thead><tr><th>目录</th><th class="w-3"></th></tr></thead>
-                <tbody>${rows}</tbody>
-              </table>
-            </div>
-          </div>
-      `);
     });
+
+    $list.append(`
+        <div class="table-responsive">
+          <table class="card-table library-table table text-nowrap table-hover table-bordered border-top-0 mb-0">
+            <thead class="border-top-0">
+              <tr>
+                <th class="library-cat text-start" style="width:9rem">分类</th>
+                <th class="text-start">目录</th>
+              </tr>
+            </thead>
+            <tbody>${bodyRows}</tbody>
+          </table>
+        </div>
+    `);
   }
 
   // 页面初始化
@@ -841,8 +852,8 @@
       if (response.code === 0 && response.data) {
         const data = response.data;
 
-        if (data.Config) {
-          configInfo = data.Config;
+        if (data.MediaConfig) {
+          mediaConfig = data.MediaConfig;
         }
 
         // 渲染页面
@@ -852,19 +863,18 @@
         setScraperCheckboxes(data.ScraperNfo, data.ScraperPic);
 
         // 填充媒体设置数据
-        if (data.Config && data.Config.media) {
-          $('#media\\.mediasync_interval').val(data.Config.media.mediasync_interval || '');
-          $('#media\\.media_default_path').val(data.Config.media.media_default_path || '');
-          $('#media\\.category').val(data.Config.media.category || '');
-          $('#media\\.default_rmt_mode').val(data.Config.media.default_rmt_mode || '');
-          $('#media\\.min_filesize').val(data.Config.media.min_filesize || '');
-          $('#media\\.ignored_paths').val(data.Config.media.ignored_paths || '');
-          $('#media\\.ignored_files').val(data.Config.media.ignored_files || '');
-          $('#media\\.movie_name_format').val(data.Config.media.movie_name_format || '');
-          $('#media\\.tv_name_format').val(data.Config.media.tv_name_format || '');
-          $('#media\\.tmdb_language').val(data.Config.media.tmdb_language || 'zh');
-          $('#media\\.filesize_cover').prop('checked', data.Config.media.filesize_cover || false);
-          $('#media\\.nfo_poster').prop('checked', data.Config.media.nfo_poster || false);
+        if (data.MediaConfig) {
+          $('#media\\.media_default_path').val(data.MediaConfig.media_default_path || '');
+          $('#media\\.category').val(data.MediaConfig.category || '');
+          $('#media\\.default_rmt_mode').val(data.MediaConfig.default_rmt_mode || '');
+          $('#media\\.min_filesize').val(data.MediaConfig.min_filesize || '');
+          $('#media\\.ignored_paths').val(data.MediaConfig.ignored_paths || '');
+          $('#media\\.ignored_files').val(data.MediaConfig.ignored_files || '');
+          $('#media\\.movie_name_format').val(data.MediaConfig.movie_name_format || '');
+          $('#media\\.tv_name_format').val(data.MediaConfig.tv_name_format || '');
+          $('#media\\.tmdb_language').val(data.MediaConfig.tmdb_language || 'zh');
+          $('#media\\.filesize_cover').prop('checked', data.MediaConfig.filesize_cover || false);
+          $('#media\\.nfo_poster').prop('checked', data.MediaConfig.nfo_poster || false);
         }
 
         // 填充转移模式选项
@@ -877,12 +887,9 @@
           syncModSelect.empty();
 
           data.RmtModeDict.forEach(function(mode) {
-
-            const selected = data.Config && data.Config.media && data.Config.media.default_rmt_mode === mode.value ? 'selected' : '';
+            const selected = data.MediaConfig && data.MediaConfig.default_rmt_mode === mode.value ? 'selected' : '';
             rmtModeSelect.append(`<option value="${mode.value}" ${selected}>${mode.name}</option>`);
-
             syncModSelect.append(`<option value="${mode.value}">${mode.name}</option>`);
-
           });
 
         }

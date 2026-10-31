@@ -1,8 +1,10 @@
 from datetime import UTC, datetime, timedelta
 from functools import partial, wraps
+from inspect import Parameter, isawaitable, signature
+from typing import Annotated
 
 import jwt
-from fastapi import HTTPException, Request, status
+from fastapi import Depends, HTTPException, Request, status
 from fastapi.requests import HTTPConnection
 from jwt.exceptions import InvalidTokenError
 
@@ -93,6 +95,10 @@ async def get_current_user(request: HTTPConnection) -> User | None:
     return user
 
 
+# FastAPI 依赖注入类型别名
+CurrentUser = Annotated[User, Depends(get_current_user)]
+
+
 def auth_required(func=None):
     """
     API安全认证
@@ -128,3 +134,47 @@ def auth_required(func=None):
         raise HTTPException(status_code=401, detail="安全认证未通过, 请检查ApiKey")
 
     return wrapper
+
+
+def auth_check(min_level: int = 1):
+    """
+    接口权限校验装饰器：仅允许 level >= min_level 的用户访问
+
+    用法：
+        @data_router.post("/users")
+        @auth_check(99)
+        async def users():
+            ...
+
+    说明：装饰器会把一个带权限校验的依赖注入到接口签名中，接口本身无需声明当前用户；
+         未登录由 get_current_user 返回 401，level 不足返回 403。
+    """
+    def decorator(func):
+        async def checker(current_user: CurrentUser) -> User:
+            if current_user.level < min_level:
+                log.warn(
+                    f"【Security】{func.__name__} 权限不足: "
+                    f"user={current_user.username}, level={current_user.level}, required={min_level}"
+                )
+                raise HTTPException(status_code=403, detail="权限不足")
+            return current_user
+
+        # 向 FastAPI 解析的签名中追加依赖，接口无需显式声明 current_user
+        sig = signature(func)
+        params = list(sig.parameters.values())
+        params.append(Parameter("_auth_user", Parameter.KEYWORD_ONLY,
+                                annotation=Annotated[User, Depends(checker)]))
+
+        @wraps(func)
+        async def wrapper(*args, **kwargs):
+            # 依赖已在 FastAPI 解析阶段执行并校验，这里只需丢弃注入参数
+            kwargs.pop("_auth_user", None)
+            result = func(*args, **kwargs)
+            if isawaitable(result):
+                return await result
+            return result
+
+        wrapper.__signature__ = sig.replace(parameters=params)
+        return wrapper
+
+    return decorator

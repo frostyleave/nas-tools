@@ -1,6 +1,7 @@
 import hashlib
 import os
 from pathlib import Path
+from typing import Annotated
 from urllib.parse import unquote, urlparse, urlunparse
 
 import httpx
@@ -137,7 +138,7 @@ async def img(request: Request, url: str):
 # 豆瓣图片中转服务
 @utility_router.get("/doubanimg")
 async def proxy_douban_image(
-    url: str = Query(..., description="Douban image url")
+    url: Annotated[str, Query(..., description="Douban image url")]
 ):
     parsed = urlparse(url)
 

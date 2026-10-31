@@ -7,12 +7,12 @@ from datetime import datetime, timedelta
 
 import cn2an
 import dateparser
-import zhconv
 from dateutil.parser import isoparse
 from dateutil.parser import parse as parse_date
 from zhon.hanzi import punctuation as zh_punc
 
 import log
+from app.utils import zhconv_compat as zhconv
 from app.utils.types import MediaType
 
 # 需要忽略的特殊字符

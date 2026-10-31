@@ -1,4 +1,5 @@
 from datetime import timedelta
+from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.responses import JSONResponse
@@ -19,7 +20,7 @@ auth_router = APIRouter(prefix="/auth")
 
 
 @auth_router.post("/token")
-async def login(request: Request, form_data: OAuth2PasswordRequestForm = Depends()):
+async def login(request: Request, form_data: Annotated[OAuth2PasswordRequestForm, Depends()]):
     """
     登陆: 验证授权信息, 生成access_token和refresh_token
     """

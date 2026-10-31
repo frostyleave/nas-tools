@@ -3,8 +3,7 @@ import threading
 import time
 import uuid
 from enum import Enum
-from multiprocessing import Queue
-from queue import Empty
+from queue import Empty, Queue
 from typing import Any
 
 import log

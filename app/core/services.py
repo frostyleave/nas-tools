@@ -3,8 +3,6 @@
 import os
 import signal
 
-import zhconv
-
 import log
 from app.core.jobcenter import JobCenter
 from app.core.scheduler import Scheduler
@@ -17,6 +15,7 @@ from app.modules.sync import Sync
 from app.modules.torrentremover import TorrentRemover
 from app.plugins import PluginManager
 from app.sites import SiteConf
+from app.utils import zhconv_compat as zhconv
 from app.utils.system_utils import SystemUtils
 
 

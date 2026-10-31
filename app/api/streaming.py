@@ -4,7 +4,7 @@ import re
 import threading
 import time
 import uuid
-from typing import Any
+from typing import Annotated, Any
 
 from fastapi import APIRouter, Depends, Query, Request, WebSocket, WebSocketDisconnect
 from fastapi.responses import StreamingResponse
@@ -54,18 +54,19 @@ async def message_handler(websocket: WebSocket):
     """
     消息中心WebSocket
     """
+    # 先校验登录态，认证失败必须关闭连接
+    try:
+        user_info = await get_current_user(websocket)
+    except Exception as e:
+        log.warn(f"[WebSocket-消息]认证失败，关闭连接: {e!s}")
+        await websocket.close(code=1008)
+        return
+
     await websocket.accept()
 
-    # 获取当前用户
-    user_id = None
-    try:
-        # 尝试从cookie中获取会话数据
-        user_info = await get_current_user(websocket)
-        if user_info:
-            user_id = user_info.id
-            log.debug(f"[WebSocket-消息]会话用户ID: {user_id}")
-    except Exception as e:
-        log.error("[WebSocket-消息]会话获取失败: ")
+    # 当前用户
+    user_id = user_info.id
+    log.debug(f"[WebSocket-消息]会话用户ID: {user_id}")
 
     try:
         while True:
@@ -95,8 +96,8 @@ async def message_handler(websocket: WebSocket):
                     CommandHandler().handle_message_job(
                         msg=msgbody.get("text"),
                         in_from=SearchType.WEB,
-                        user_id=user_id or "anonymous",
-                        user_name=user_id or "anonymous"
+                        user_id=user_id,
+                        user_name=user_id
                     )
                     try:
                         await websocket.send_text(json.dumps({}))
@@ -150,7 +151,7 @@ async def message_handler(websocket: WebSocket):
 
 
 # 实时日志SSE
-@streaming_router.get("/stream-logging")
+@streaming_router.get("/stream-logging", dependencies=[Depends(get_current_user)])
 async def stream_logging(request: Request, source: str = ""):
     """
     实时日志SSE
@@ -340,10 +341,10 @@ async def stream_update_system(request: Request):
 
 
 # 进度SSE
-@streaming_router.get("/sse-progress")
+@streaming_router.get("/sse-progress", dependencies=[Depends(get_current_user)])
 async def sse_progress(
-    request: Request, 
-    task_id: str = Query(..., min_length=5, title="任务ID")
+    request: Request,
+    task_id: Annotated[str, Query(..., min_length=5, title="任务ID")]
 ):
     """
     进度SSE
