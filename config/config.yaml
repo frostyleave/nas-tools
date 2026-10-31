@@ -21,15 +21,10 @@ app:
   loglevel: info
   # 【WEB管理界面监听地址】：如需支持ipv6需设置为::，如::无法访问可改为0.0.0.0
   web_host: 0.0.0.0
-  # 【WEB管理界面端口】：默认3000
-  web_port: 3000
   # 【WEB管理页面登录用户】，默认admin
   login_user: admin
   # 【WEB管理页面登录密码】：默认password，如果是全数字密码，要用''括起来
   login_password: password
-  # 【WEB管理界面使用的HTTPS的证书和KEY的路径】，留空则不启用HTTPS
-  ssl_cert:
-  ssl_key:
   # 【设置代理】，themoviedb、fanart、telegram等将使用代理访问，http和https均需配置，可以是http也可以是socks5、socks5h(remote DNS) ，但需要带http或socks5前缀，两项可以配置为一样，留空则不启用
   # 示例：'http://127.0.0.1:7890' 'socks5://127.0.0.1:8018' 'socks5h://127.0.0.1:8018'
   proxies:
@@ -52,18 +47,12 @@ app:
   user_agent:
     Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML,
     like Gecko) Chrome/117.0.0.0 Safari/537.36
-  # 是否启用redis缓存
-  redis_enable: true
-  # redis服务的ip和地址
-  redis_addr: ''
   # 自建OCR服务的地址
   ocr_url: ''
   # 【登录界面壁纸】：themoviedb、bing，设置为themoviedb时需要配置TMDB API Key时才生效
   wallpaper: bing
   # Debug mode
   debug: true
-  # 开启后，只有Releases更新，才会有更新提示
-  releases_update_only: false
 
   # 【配置媒体库信息】
   init_files:

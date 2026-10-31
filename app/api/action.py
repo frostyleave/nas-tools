@@ -1,4 +1,5 @@
 import base64
+import copy
 import datetime
 import inspect
 import json
@@ -25,7 +26,7 @@ from app.media.meta import MetaInfo
 from app.mediaserver import MediaServer
 from app.message import MessageService
 from app.middleware.security import CurrentUser, get_current_user
-from app.models.user import User, UserManager
+from app.models.user import LEVEL_SYSADMIN, LEVEL_USER, User, UserManager
 from app.modules.brushtaskv2 import BrushTaskV2 as BrushTask
 from app.modules.filetransfer import FileTransfer
 from app.modules.filter import Filter
@@ -48,7 +49,7 @@ from app.utils import (
     SystemUtils,
 )
 from app.utils.constants import Constants
-from app.utils.password_hash import generate_password_hash
+from app.utils.password_hash import generate_password_hash, normalize_password_hash
 from app.utils.types import (
     EventType,
     MediaType,
@@ -155,6 +156,7 @@ class WebAction:
             "media_info": self.__media_info,
             "test_mediaserver": self.__test_mediaserver,
             "user_manager": self.__user_manager,
+            "change_password": self.__change_password,
             "refresh_rss": self.__refresh_rss,
             "delete_tmdb_cache": self.__delete_tmdb_cache,
             "movie_calendar_data": self.__movie_calendar_data,
@@ -298,13 +300,18 @@ class WebAction:
         """
         根据Key设置配置值
         """
+        # 用户名
+        if cfg_key == "app.login_user":
+            cfg['app']['login_user'] = str(cfg_value).strip() if cfg_value else ''
+            return cfg
         # 密码
         if cfg_key == "app.login_password":
-            if cfg_value and not cfg_value.startswith("[hash]"):
-                password_hash = f"[hash]{generate_password_hash(cfg_value)}"
-                cfg['app']['login_password'] = f"[hash]{password_hash}"
+            if cfg_value and not str(cfg_value).startswith("[hash]"):
+                cfg['app']['login_password'] = f"[hash]{generate_password_hash(str(cfg_value))}"
+            elif cfg_value:
+                cfg['app']['login_password'] = cfg_value
             else:
-                cfg['app']['login_password'] = cfg_value or "password"
+                cfg['app']['login_password'] = f"[hash]{generate_password_hash('password')}"
             return cfg
         # 代理
         if cfg_key == "app.proxies":
@@ -945,23 +952,74 @@ class WebAction:
         """
         更新配置信息
         """
-        cfg = Config().get_config()
-        cfgs = dict(data).items()
+        data = dict(data)
+
+        # 用户名、密码属于系统管理员敏感配置
+        if {"app.login_user", "app.login_password"} & set(data.keys()) \
+                and (not self._current_user or self._current_user.level < LEVEL_SYSADMIN):
+            return {"code": -1, "msg": "权限不足"}
+
+        # 使用副本修改，校验失败时不污染内存中的配置
+        cfg = copy.deepcopy(Config().get_config())
+        old_login_user = str((cfg.get('app') or {}).get('login_user') or '').strip()
+
         # 仅测试不保存
         config_test = False
+        # 是否修改了管理员密码
+        password_changed = False
         # 修改配置
-        for key, value in cfgs:
+        for key, value in data.items():
             if key == "test" and value:
                 config_test = True
                 continue
+            if key == "app.login_password":
+                password_changed = True
             # 生效配置
             cfg = self.set_config_value(cfg, key, value)
 
+        # 管理员用户名变更校验
+        new_login_user = str((cfg.get('app') or {}).get('login_user') or '').strip()
+        if "app.login_user" in data and not new_login_user:
+            return {"code": -1, "msg": "WEB管理用户不能为空"}
+
+        rename_admin = bool(old_login_user and new_login_user
+                            and old_login_user != new_login_user)
+        admin_user = None
+        if rename_admin:
+            if UserManager().get_user_by_name(new_login_user):
+                return {"code": -1, "msg": f"用户 {new_login_user} 已存在"}
+            # 优先匹配原配置名对应的管理员，其次当前管理员，最后取最早创建的管理员
+            admin_user = UserManager().get_user_by_name(old_login_user)
+            if not admin_user or admin_user.level < LEVEL_SYSADMIN:
+                if self._current_user and self._current_user.level >= LEVEL_SYSADMIN:
+                    admin_user = self._current_user
+                else:
+                    admin_user = UserManager().get_admin_user()
+            if not admin_user:
+                # 数据库中没有管理员时仅保存配置，下次启动会自动创建
+                rename_admin = False
+
+        relogin = False
         # 保存配置
         if not config_test:
+            # 用户名以数据库为准，先同步数据库再保存配置
+            if rename_admin:
+                if not UserManager().rename_user(admin_user.username, new_login_user):
+                    return {"code": -1, "msg": "修改管理员用户名失败"}
+                relogin = bool(self._current_user
+                               and self._current_user.username == admin_user.username)
+                log.info(f"系统管理员用户名已修改：{admin_user.username} -> {new_login_user}")
+
             Config().save_config(cfg)
 
-        return {"code": 0}
+            # 管理员账号以数据库为准，同步密码到数据库
+            if password_changed:
+                password_hash = normalize_password_hash(
+                    cfg.get('app', {}).get('login_password'))
+                if not UserManager().update_admin_password(password_hash):
+                    log.warn("【Config】未找到系统管理员账号，密码仅保存到配置文件")
+
+        return {"code": 0, "relogin": relogin}
 
     def __add_or_edit_sync_path(self, data):
         """
@@ -1300,20 +1358,59 @@ class WebAction:
         """
         用户管理
         """
+        if not self._current_user or self._current_user.level < LEVEL_SYSADMIN:
+            return {"code": -1, "success": False, "message": "权限不足"}
+
         oper = data.get("oper")
         name = data.get("name")
+        if not name:
+            return {"code": -1, "success": False, "message": "用户名不能为空"}
+
         if oper == "add":
-            password = generate_password_hash(str(data.get("password")))
+            raw_password = str(data.get("password") or "")
+            if not raw_password:
+                return {"code": -1, "success": False, "message": "密码不能为空"}
+            password = generate_password_hash(raw_password)
             pris = data.get("pris")
             if isinstance(pris, list):
                 pris = ",".join(pris)
-            ret = UserManager().add_user(name, password, pris)
+            ret = UserManager().add_user(name, password, pris, LEVEL_USER)
         else:
+            if self._current_user.username == name:
+                return {"code": -1, "success": False, "message": "不能删除自己"}
+            target = UserManager().get_user_by_name(name)
+            if not target:
+                return {"code": -1, "success": False, "message": "用户不存在"}
+            if target.level >= self._current_user.level:
+                return {"code": -1, "success": False, "message": "无权删除该用户"}
             ret = UserManager().delete_user(name)
 
-        if ret == 1 or ret:
-            return {"code": 0, "success": False}
+        if ret:
+            return {"code": 0, "success": True}
         return {"code": -1, "success": False, 'message': '操作失败'}
+
+    def __change_password(self, data):
+        """
+        修改当前登录用户的密码
+        """
+        if not self._current_user:
+            return {"code": -1, "msg": "未登录"}
+
+        old_password = str(data.get("old_password") or "")
+        new_password = str(data.get("new_password") or "")
+        if not old_password or not new_password:
+            return {"code": -1, "msg": "原密码和新密码不能为空"}
+        if old_password == new_password:
+            return {"code": -1, "msg": "新密码不能与原密码相同"}
+        if not self._current_user.verify_password(old_password):
+            return {"code": -1, "msg": "原密码错误"}
+
+        password_hash = generate_password_hash(new_password)
+        if not UserManager().update_user_password(self._current_user.username, password_hash):
+            return {"code": -1, "msg": "密码修改失败"}
+
+        log.info(f"用户 {self._current_user.username} 修改了登录密码")
+        return {"code": 0, "msg": "密码修改成功"}
 
     def __refresh_rss(self, data):
         """

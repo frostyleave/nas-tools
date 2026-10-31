@@ -1,15 +1,3 @@
-## 特点
-
-- 基于alpine实现，镜像体积小；
-
-- 镜像层数少；
-
-- 支持 amd64/arm64 架构；
-
-- 可以以非root用户执行任务，降低程序权限和潜在风险；
-
-- 可以设置文件掩码权限umask。
-
 ## 创建
 
 **注意**
@@ -18,7 +6,7 @@
 
 - umask含义详见：http://www.01happy.com/linux-umask-analyze 。
 
-- 创建后请根据 [配置说明](https://github.com/frostyleave/nas-tools#%E9%85%8D%E7%BD%AE) 及该文件本身的注释，修改`config/config.yaml`，修改好后再重启容器，最后访问`http://<ip>:<web_port>`。
+- 创建后请根据 [配置说明](https://github.com/frostyleave/nas-tools#%E9%85%8D%E7%BD%AE) 及该文件本身的注释，修改`config/config.yaml`，修改好后再重启容器，最后访问`http://<ip>:3000`。
 
 **docker cli**
 

@@ -6,10 +6,14 @@
 
 import hashlib
 import hmac
+import re
 import secrets
 
 SALT_CHARS = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
 DEFAULT_PBKDF2_ITERATIONS = 1_000_000
+
+# 本模块生成的哈希格式：method$salt$hash
+_HASH_PATTERN = re.compile(r"^(scrypt:\d+:\d+:\d+|pbkdf2:\w+:\d+)\$[^$]+\$[0-9a-f]+$")
 
 
 def gen_salt(length: int) -> str:
@@ -85,6 +89,32 @@ def _hash_internal(method: str, salt: str, password: str) -> tuple[str, str]:
         )
     else:
         raise ValueError(f"Invalid hash method '{method}'.")
+
+def normalize_password_hash(value: str) -> str:
+    """
+    将配置中的密码值归一化为可直接存入数据库的哈希字符串。
+
+    兼容历史格式：[hash] 前缀（可能重复多层）与明文密码。
+    返回值不包含 [hash] 前缀。
+
+    参数:
+        value: 配置中的密码值
+
+    返回:
+        可直接用于 check_password_hash 的哈希字符串
+    """
+    if not value:
+        return generate_password_hash("password")
+
+    value = str(value)
+    while value.startswith("[hash]"):
+        value = value[len("[hash]"):]
+
+    if not _HASH_PATTERN.match(value):
+        value = generate_password_hash(value)
+
+    return value
+
 
 def check_password_hash(pwhash: str, password: str) -> bool:
     """Securely check that the given stored password hash, previously generated using

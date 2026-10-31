@@ -380,6 +380,46 @@ function logout() {
   });
 }
 
+//显示修改密码弹窗
+function show_change_password_modal() {
+  $("#change_old_password, #change_new_password, #change_confirm_password").val("");
+  $("#modal-change-password").modal("show");
+}
+
+//提交修改密码
+function change_password() {
+  const oldPassword = $("#change_old_password").val();
+  const newPassword = $("#change_new_password").val();
+  const confirmPassword = $("#change_confirm_password").val();
+
+  if (!oldPassword || !newPassword) {
+    show_fail_modal("原密码和新密码不能为空");
+    return;
+  }
+  if (newPassword !== confirmPassword) {
+    show_fail_modal("两次输入的新密码不一致");
+    return;
+  }
+  if (oldPassword === newPassword) {
+    show_fail_modal("新密码不能与原密码相同");
+    return;
+  }
+
+  axios_post_do("change_password", {
+    old_password: oldPassword,
+    new_password: newPassword
+  }, function (ret) {
+    if (ret && ret.code === 0) {
+      $("#modal-change-password").modal("hide");
+      show_success_modal("密码修改成功");
+    } else {
+      show_fail_modal((ret && ret.msg) || "密码修改失败");
+    }
+  });
+}
+
+$(document).on("click", "#change_password_btn", change_password);
+
 //重启
 function restart() {
   show_confirm_modal("立即重启系统？", function () {

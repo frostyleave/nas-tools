@@ -146,12 +146,13 @@
 
         // 生成用户列表
         if (data.Users && data.Users.length > 0) {
-          
 
           data.Users.forEach(user => {
-            
-            const isAdmin = user.pris.includes('系统设置');
-            const userType = isAdmin ? '<strong>管理员</strong>' : '普通用户';
+
+            const level = user.level || 1;
+            const userType = level >= 99
+              ? '<strong>系统管理员</strong>'
+              : (level >= 9 ? '<strong>管理员</strong>' : '普通用户');
             const firstLetter = user.name.charAt(0).toUpperCase();
 
             const userCard = `

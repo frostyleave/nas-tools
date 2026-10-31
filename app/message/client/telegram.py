@@ -286,9 +286,8 @@ class Telegram(_IMessageClient):
         offset = 0
         while True:
             _config = Config()
-            web_port = _config.get_config("app").get("web_port")
             sc_url = f"https://api.telegram.org/bot{self._telegram_token}/getUpdates?"
-            ds_url = f"http://127.0.0.1:{web_port}/telegram?apikey={self._api_key}"
+            ds_url = f"http://127.0.0.1:3000/telegram?apikey={self._api_key}"
             if not self._enabled:
                 log.info("Telegram消息接收服务已停止")
                 break

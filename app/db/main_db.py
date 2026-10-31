@@ -47,6 +47,31 @@ class MainDb:
         except Exception as err:
             print(str(err))
 
+    def ensure_config_users_level(self):
+        """
+        兜底升级：确保 CONFIG_USERS 存在 LEVEL 列并回填用户等级。
+
+        create_all 只会创建缺失的表，不会为已有表添加列，因此老版本数据库
+        需要通过 SQL 迁移或此处补齐。放在 SQL 初始化之后执行，作为兜底。
+        """
+        try:
+            columns = {
+                row[1] for row in
+                self.session.execute(text("PRAGMA table_info(CONFIG_USERS)")).fetchall()
+            }
+            if columns and "LEVEL" not in columns:
+                self.excute("ALTER TABLE CONFIG_USERS ADD COLUMN LEVEL INTEGER DEFAULT 1")
+                self.excute("UPDATE CONFIG_USERS SET LEVEL = 1 WHERE LEVEL IS NULL")
+                self.excute("UPDATE CONFIG_USERS SET LEVEL = 9 WHERE LEVEL = 1 AND PRIS LIKE '%系统设置%'")
+                self.commit()
+                log.console('数据库升级完成：CONFIG_USERS 新增 LEVEL 列')
+        except Exception as e:
+            log.error(f'检查 CONFIG_USERS.LEVEL 列失败：{e!s}')
+            try:
+                self.rollback()
+            except Exception as rollback_err:
+                log.debug(f'回滚 CONFIG_USERS 升级失败：{rollback_err!s}')
+
     def init_data(self):
         """
         读取config目录下的sql文件，并初始化到数据库，只处理一次

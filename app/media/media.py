@@ -32,6 +32,8 @@ from app.utils import (
     RequestUtils,
     StringUtils,
     cacheman,
+)
+from app.utils import (
     zhconv_compat as zhconv,
 )
 from app.utils.media_utils import MediaUtils

@@ -85,6 +85,7 @@ class CONFIGUSERS(Base):
     NAME = Column(Text, index=True)
     PASSWORD = Column(Text)
     PRIS = Column(Text)
+    LEVEL = Column(Integer, default=1, server_default='1')
 
 
 class CONFIGREFRESHTOKENS(Base):

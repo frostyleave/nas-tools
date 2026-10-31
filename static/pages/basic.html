@@ -13,23 +13,9 @@
       <div class="row">
         <div class="col-lg">
           <div class="mb-3">
-            <label class="form-label required">WEB服务端口</label>
-            <input type="text" value="" class="form-control" id="app.web_port"
-              placeholder="3000" autocomplete="off">
-          </div>
-        </div>
-        <div class="col-lg">
-          <div class="mb-3">
             <label class="form-label required">WEB管理用户</label>
             <input type="text" value="" class="form-control" id="app.login_user"
               placeholder="admin" autocomplete="off">
-          </div>
-        </div>
-        <div class="col-lg">
-          <div class="mb-3">
-            <label class="form-label required">WEB管理密码</label>
-            <input type="password" value="" class="form-control"
-              id="app.login_password" placeholder="password" autocomplete="off">
           </div>
         </div>
         <div class="col-lg">
@@ -498,8 +484,21 @@
     axios_post_do("update_config", params, function (ret) {
       if (flag) {
         $("#" + type + "_btn").text("保存").attr("disabled", false);
+      }
+      if (ret && ret.relogin) {
+        // 登录用户名已变更，当前会话失效，需要重新登录
+        show_success_modal("WEB管理用户已修改，请使用新用户名重新登录", function () {
+          logout();
+        });
+        return;
+      }
+      if (ret && ret.code === 0) {
         // window_history_refresh();
-        show_success_modal("配置已保存!");
+        if (flag) {
+          show_success_modal("配置已保存!");
+        }
+      } else {
+        show_fail_modal((ret && ret.msg) || "配置保存失败");
       }
     });
   }
@@ -646,9 +645,7 @@
 
         // 填充基础设置数据
         if (data.Config && data.Config.app) {
-          $('#app\\.web_port').val(data.Config.app.web_port || '');
           $('#app\\.login_user').val(data.Config.app.login_user || '');
-          $('#app\\.login_password').val(data.Config.app.login_password || '');
           $('#app\\.wallpaper').val(data.Config.app.wallpaper || 'themoviedb');
           $('#app\\.loglevel').val(data.Config.app.loglevel || 'info');
           $('#app\\.logtype').val(data.Config.app.logtype || 'console');
@@ -664,8 +661,6 @@
           $('#app\\.domain').val(data.Config.app.domain || '');
           $('#app\\.user_agent').val(data.Config.app.user_agent || '');
           $('#app\\.ocr_url').val(data.Config.app.ocr_url || '');
-          $('#app\\.ssl_cert').val(data.Config.app.ssl_cert || '');
-          $('#app\\.ssl_key').val(data.Config.app.ssl_key || '');
         }
 
         // 填充代理设置

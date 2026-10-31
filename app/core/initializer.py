@@ -12,19 +12,20 @@ from app.db.media_db import MediaDb
 from app.media import Category
 from app.utils.cache_manager import CategoryLoadCache, ConfigLoadCache
 from app.utils.commons import INSTANCES
-from app.utils.password_hash import generate_password_hash
+from app.utils.password_hash import generate_password_hash, normalize_password_hash
 from app.utils.string_utils import StringUtils
 from config import Config
 
 _observer = Observer(timeout=10)
 
 def init_data():
-    
+
     log.console('开始初始化数据库...')
     MediaDb().init_db()
     MainDb().init_db()
     log.console('数据库初始化完成, 开始初始化数据...')
     MainDb().init_data()
+    MainDb().ensure_config_users_level()
     log.console('数据初始化完成')
     
     db_location = os.path.normpath(os.path.join(Config().get_config_path(), 'user.db'))
@@ -61,32 +62,62 @@ def check_config():
             else:
                 log.info(f"日志将写入文件：{logpath}")
 
-        # 检查WEB端口
-        web_port = Config().get_config('app').get('web_port')
-        if not web_port:
-            log.warn("【Config】WEB服务端口未设置，将使用默认3000端口")
-
-        # 检查登录用户和密码
-        login_user = Config().get_config('app').get('login_user')
-        login_password = Config().get_config('app').get('login_password')
-        if not login_user or not login_password:
-            log.warn("【Config】WEB管理用户或密码未设置，将使用默认用户：admin，密码：password")
+        # 检查系统管理员账号（以数据库为准）
+        try:
+            from app.models.user import UserManager
+            admin_user = UserManager().get_admin_user()
+        except Exception as e:
+            admin_user = None
+            log.error(f"【Config】查询系统管理员失败：{e!s}")
+        if admin_user:
+            log.info(f"WEB管理页面用户：{admin_user.username}（系统管理员）")
         else:
-            log.info(f"WEB管理页面用户：{login_user!s}")
+            log.warn("【Config】数据库中未找到系统管理员账号，请检查 config.yaml 中的 login_user / login_password")
 
-        # 检查HTTPS
-        ssl_cert = Config().get_config('app').get('ssl_cert')
-        ssl_key = Config().get_config('app').get('ssl_key')
-        if not ssl_cert or not ssl_key:
-            log.info(f"未启用https，请使用 http://IP:{web_port!s} 访问管理页面")
-        else:
-            if not os.path.exists(ssl_cert):
-                log.warn(f"【Config】ssl_cert文件不存在：{ssl_cert}")
-            if not os.path.exists(ssl_key):
-                log.warn(f"【Config】ssl_key文件不存在：{ssl_key}")
-            log.info(f"已启用https，请使用 https://IP:{web_port!s} 访问管理页面")
+        log.info("请使用 http://IP:3000 访问管理页面")
     else:
         log.error("【Config】配置文件格式错误，找不到app配置项！")
+
+
+def init_admin_user():
+    """
+    确保数据库中存在系统管理员账号（LEVEL=99）。
+
+    仅在 CONFIG_USERS 中没有任何系统管理员时，使用 config.yaml 中的
+    login_user / login_password 引导创建；初始化完成后管理员账号以数据库为准，
+    并移除配置文件中的 login_password，后续密码通过“修改密码”功能维护。
+    通过“基础设置”修改用户名会同步到数据库，直接编辑配置文件不会同步。
+    """
+    from app.helper import DbHelper
+    from app.models.user import LEVEL_SYSADMIN
+
+    dbhelper = DbHelper()
+    app_conf = Config().get_config('app') or {}
+
+    if not dbhelper.get_users_by_level(LEVEL_SYSADMIN):
+        if not app_conf.get('login_user') or not app_conf.get('login_password'):
+            log.warn("【Config】WEB管理用户或密码未设置，将使用默认用户：admin，密码：password")
+        login_user = app_conf.get('login_user') or 'admin'
+        password_hash = normalize_password_hash(app_conf.get('login_password'))
+        default_pris = ",".join(
+            menu.get('name') for menu in (Config().menu or []) if menu.get('name')
+        )
+
+        if dbhelper.is_user_exists(login_user):
+            # 同名用户已存在：只提升为系统管理员，不覆盖其密码
+            dbhelper.update_user_level(login_user, LEVEL_SYSADMIN)
+            log.warn(f"【Config】数据库中存在同名用户 {login_user}，已将其提升为系统管理员")
+        else:
+            dbhelper.insert_user(login_user, password_hash, default_pris, LEVEL_SYSADMIN)
+            log.info(f"【Config】已根据配置文件创建系统管理员：{login_user}")
+
+        if not dbhelper.get_users_by_level(LEVEL_SYSADMIN):
+            # 初始化失败时保留配置中的密码，避免丢失引导凭据
+            log.error("【Config】系统管理员初始化失败，保留配置文件中的登录密码")
+            return
+
+    # 移除配置文件中的 login_password
+    app_conf.pop('login_password', None)
 
 
 def update_config():
@@ -96,9 +127,9 @@ def update_config():
     _config = Config().get_config()
     overwrite_cofig = False
 
-    # 密码初始化
-    login_password = _config.get("app", {}).get("login_password") or "password"
-    if login_password and not login_password.startswith("[hash]"):
+    # 密码初始化（仅处理配置文件中的明文密码；初始化完成后该配置会被移除）
+    login_password = _config.get("app", {}).get("login_password")
+    if login_password and not str(login_password).startswith("[hash]"):
         _config['app']['login_password'] = "[hash]{}".format(generate_password_hash(
             login_password))
         overwrite_cofig = True

@@ -1029,7 +1029,31 @@ class DbHelper:
         """
         查询用户列表
         """
-        return self._db.query(CONFIGUSERS).all()
+        return self._db.query(CONFIGUSERS).order_by(CONFIGUSERS.ID).all()
+
+    def get_users_by_level(self, level):
+        """
+        按用户等级查询用户列表
+        """
+        return self._db.query(CONFIGUSERS).filter(
+            CONFIGUSERS.LEVEL == level
+        ).order_by(CONFIGUSERS.ID).all()
+
+    def get_user_by_name(self, name):
+        """
+        根据用户名查询用户
+        """
+        if not name:
+            return None
+        return self._db.query(CONFIGUSERS).filter(CONFIGUSERS.NAME == name).first()
+
+    def get_user_by_id(self, user_id):
+        """
+        根据用户ID查询用户
+        """
+        if user_id is None:
+            return None
+        return self._db.query(CONFIGUSERS).filter(CONFIGUSERS.ID == user_id).first()
 
     def is_user_exists(self, name):
         """
@@ -1041,7 +1065,7 @@ class DbHelper:
         return count > 0
 
     @DbPersist(_db)
-    def insert_user(self, name, password, pris):
+    def insert_user(self, name, password, pris, level=1):
         """
         新增用户
         """
@@ -1053,8 +1077,36 @@ class DbHelper:
             self._db.insert(CONFIGUSERS(
                 NAME=name,
                 PASSWORD=password,
-                PRIS=pris
+                PRIS=pris,
+                LEVEL=level
             ))
+
+    @DbPersist(_db)
+    def update_user_level(self, name, level):
+        """
+        更新用户等级
+        """
+        self._db.query(CONFIGUSERS).filter(
+            CONFIGUSERS.NAME == name
+        ).update({"LEVEL": level})
+
+    @DbPersist(_db)
+    def update_user_password(self, name, password):
+        """
+        更新用户密码
+        """
+        self._db.query(CONFIGUSERS).filter(
+            CONFIGUSERS.NAME == name
+        ).update({"PASSWORD": password})
+
+    @DbPersist(_db)
+    def rename_user(self, old_name, new_name):
+        """
+        修改用户名
+        """
+        return self._db.query(CONFIGUSERS).filter(
+            CONFIGUSERS.NAME == old_name
+        ).update({"NAME": new_name})
 
     @DbPersist(_db)
     def delete_user(self, name):

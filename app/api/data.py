@@ -110,7 +110,7 @@ async def userinfo(current_user: CurrentUser):
 @data_router.post("/sysinfo")
 async def sysinfo(current_user: CurrentUser):
 
-    # 判断当前的运营环境
+    # 判断当前环境
     system_flag = SystemUtils.get_system()
     tmdb_flag = 1 if Config().get_config('app').get('rmt_tmdbkey') else 0
     default_path = Config().get_config('media').get('media_default_path')
@@ -133,6 +133,7 @@ async def sysinfo(current_user: CurrentUser):
         {
             "username" : username,
             "admin" : 1 if current_user.admin else 0,
+            "level" : current_user.level,
             "search" : current_user.search,
             "menus": current_user.get_usermenus(),
             "systemFlag": system_flag.value,
@@ -513,22 +514,23 @@ async def notification():
 @data_router.post("/users")
 @auth_check(99)
 async def users(current_user: CurrentUser):
-
+   
     users = []
-    top_menus = []
-    
-    if current_user.admin:
-        users = []
-        user_list = UserManager().get_users()
-        for user in user_list:
-            pris = str(user.pris).split(",")
-            users.append({"id": user.id, "name": user.username, "pris": pris})
-        top_menus = current_user.get_topmenus()
+    user_list = UserManager().get_users()
+    for user in user_list:
+        if user.level >= current_user.level:
+            continue
+        pris = [item for item in str(user.pris).split(",") if item]
+        users.append({"id": user.id, "name": user.username, "pris": pris, "level": user.level})
+
+    top_menus = current_user.get_topmenus()
 
     return response(data=
         {
             "Users": users,
             "TopMenus": top_menus,
+            "CurrentUser": current_user.username,
+            "CurrentLevel": current_user.level,
         })
 
 
@@ -690,6 +692,8 @@ async def service(current_user: CurrentUser):
             "ruleGroups": rule_groups,
             "syncPaths": sync_paths,
             "schedulerTasks": service_list,
+            "admin": 1 if current_user.admin else 0,
+            "isDocker": SystemUtils.is_docker(),
         }
     )
 

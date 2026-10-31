@@ -47,15 +47,14 @@ signal.signal(signal.SIGTERM, sigal_handler)
 # 生成运行配置
 def get_run_config(app: FastAPI) -> uvicorn.Config:
 
-    _web_host = "0.0.0.0"
+    _web_host = '0.0.0.0'
     _web_port = 3000
     _log_level = 'info'
 
     app_conf = Config().get_config('app')
 
     if app_conf:
-        _web_port_conf = app_conf.get('web_port', '')
-        _web_port = int(_web_port_conf) if str(_web_port_conf).isdigit() else 3000
+        _web_host = app_conf.get('_web_host', '0.0.0.0')
         _log_level = app_conf.get('loglevel', 'info')
 
     # 生成配置
@@ -109,13 +108,20 @@ def set_git_proxy():
 
 
 def init_system():
-    from app.core.initializer import check_config, init_data, update_config
+    from app.core.initializer import (
+        check_config,
+        init_admin_user,
+        init_data,
+        update_config,
+    )
     # 配置
     log.debug(f'NAStool 当前版本号：{APP_VERSION}')
     # 数据初始化
     init_data()
     # 升级配置文件
     update_config()
+    # 初始化系统管理员账号
+    init_admin_user()
     # 检查配置文件
     check_config()
     # 设置git代理
