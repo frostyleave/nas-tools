@@ -1222,36 +1222,47 @@ class FileTransfer:
         """
         if not media:
             return {}
+
+        def _fmt(val):
+            # 空值用制表符占位，便于后续用正则清理多余的分隔符
+            return val if val else '\t'
+
         # 当前语种标题
         episode_title = self.media.get_episode_title(media)
         # 英文标题
         en_title = self.media.get_tmdb_en_title(media)
+
+        # 季集
+        season = int(media.get_season_seq()) if media.get_season_seq() else 0
+        episode = int(media.get_episode_seqs()) if media.get_episode_seqs() else 0
+        if season == 0 and episode == 0:
+            season = '\t'
+            episode = '\t'
+
         media_format_dict = {
-            "title": StringUtils.clear_file_name(media.title),
-            "en_title": StringUtils.clear_file_name(en_title),
-            "original_name": StringUtils.clear_file_name(os.path.splitext(media.org_string or "")[0]),
-            "rev_name": StringUtils.clear_file_name(os.path.splitext(media.rev_string or "")[0]),
-            "original_title": StringUtils.clear_file_name(media.original_title),
-            "name": StringUtils.clear_file_name(media.get_name()),
-            "year": media.year,
-            "edition": media.get_edtion_string() or None,
-            "videoFormat": media.resource_pix,
-            "releaseGroup": media.resource_team,
-            "customization": media.customization,
-            "effect": media.resource_effect,
-            "videoCodec": media.video_encode,
-            "audioCodec": media.audio_encode,
-            "tmdbid": media.tmdb_id,
-            "imdbid": media.imdb_id,
-            "season": int(media.get_season_seq()) if media.get_season_seq() else 0,
-            "episode": int(media.get_episode_seqs()) if media.get_episode_seqs() else 0,
-            "episode_title": StringUtils.clear_file_name(episode_title),
-            "season_episode": f"{media.get_season_item()}{media.get_episode_items()}",
-            "part": media.part
+            "title": _fmt(StringUtils.clear_file_name(media.title)),
+            "en_title": _fmt(StringUtils.clear_file_name(en_title)),
+            "original_name": _fmt(StringUtils.clear_file_name(os.path.splitext(media.org_string or "")[0])),
+            "rev_name": _fmt(StringUtils.clear_file_name(os.path.splitext(media.rev_string or "")[0])),
+            "original_title": _fmt(StringUtils.clear_file_name(media.original_title)),
+            "name": _fmt(StringUtils.clear_file_name(media.get_name())),
+            "year": _fmt(media.year),
+            "edition": _fmt(media.get_edtion_string() or None),
+            "videoFormat": _fmt(media.resource_pix),
+            "releaseGroup": _fmt(media.resource_team),
+            "customization": _fmt(media.customization),
+            "effect": _fmt(media.resource_effect),
+            "videoCodec": _fmt(media.video_encode),
+            "audioCodec": _fmt(media.audio_encode),
+            "tmdbid": _fmt(media.tmdb_id),
+            "imdbid": _fmt(media.imdb_id),
+            "season": season,
+            "episode": episode,
+            "episode_title": _fmt(StringUtils.clear_file_name(episode_title)),
+            "season_episode": _fmt(f"{media.get_season_item()}{media.get_episode_items()}"),
+            "part": _fmt(f"-{media.part}" if media.part else '')
         }
-        for i in media_format_dict.keys():
-            if not media_format_dict[i]:
-                media_format_dict[i] = '\t'
+
         return media_format_dict
 
     def get_moive_dest_path(self, media_info):
