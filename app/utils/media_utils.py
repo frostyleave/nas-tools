@@ -328,6 +328,7 @@ class MediaUtils:
             "restype": media_info.resource_type,
             "effect": media_info.resource_effect,
             "pix": media_info.resource_pix,
+            "resource_frame": media_info.resource_frame,
             "team": media_info.resource_team,
             "customization": media_info.customization,
             "video_codec": media_info.video_encode,

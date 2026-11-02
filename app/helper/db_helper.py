@@ -48,6 +48,7 @@ class DbHelper:
                     OVERVIEW=media_item.overview,
                     RES_TYPE=json.dumps({
                         "respix": media_item.resource_pix,
+                        "resource_frame": media_item.resource_frame,
                         "restype": media_item.resource_type,
                         "reseffect": media_item.resource_effect,
                         "video_encode": media_item.video_encode

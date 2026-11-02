@@ -130,7 +130,7 @@ def is_anime(name):
     pix_re = ModuleConf.TORRENT_SEARCH_PARAMS["pix"]
     if pix_re:
         values = '|'.join(list(pix_re.values()))
-        check_name = re.sub(r'%s' % values, "", name, flags=re.IGNORECASE)
+        check_name = re.sub(rf'{values}', "", name, flags=re.IGNORECASE)
 
     if re.search(r'【[+0-9XVPI-]+】\s*【', check_name, re.IGNORECASE):
         return True

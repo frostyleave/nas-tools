@@ -283,25 +283,28 @@ class SearchProxy:
                     log.exception("【Searcher】解析质量配置异常:")
                     continue
                 respix = res_mix.get("respix") or ""
+                resource_frame = res_mix.get("resource_frame") or ""
                 video_encode = res_mix.get("video_encode") or ""
                 restype = res_mix.get("restype") or ""
                 reseffect = res_mix.get("reseffect") or ""
             else:
                 restype = ""
                 respix = ""
+                resource_frame = ""
                 reseffect = ""
                 video_encode = ""
 
-            # 分组标识 (来源，分辨率)
-            group_key = re.sub(r"[-.\s@|]", "", f"{respix}_{restype}").lower()
+            # 分组标识 (来源，分辨率，帧率)
+            group_key = re.sub(r"[-.\s@|]", "", f"{respix}_{restype}_{resource_frame}").lower()
             # 分组信息
             group_info = {
                 "respix": respix,
+                "resource_frame": resource_frame,
                 "restype": restype,
             }
             # 种子唯一标识 （大小，质量(来源、效果)，制作组组成）
             unique_key = re.sub(r"[-.\s@|]", "",
-                                f"{respix}_{restype}_{video_encode}_{reseffect}_{item.SIZE}_{item.OTHERINFO}").lower()
+                                f"{respix}_{restype}_{resource_frame}_{video_encode}_{reseffect}_{item.SIZE}_{item.OTHERINFO}").lower()
             # 标识信息
             unique_info = {
                 "video_encode": video_encode,
@@ -341,6 +344,7 @@ class SearchProxy:
                 "pubdate": pubdate,
                 "size": item.SIZE,
                 "respix": respix,
+                "resource_frame": resource_frame,
                 "restype": restype,
                 "reseffect": reseffect,
                 "releasegroup": item.OTHERINFO,
@@ -414,6 +418,9 @@ class SearchProxy:
                 if video_encode \
                         and video_encode not in torrent_filter.get("video"):
                     torrent_filter["video"].append(video_encode)
+                if resource_frame \
+                        and resource_frame not in torrent_filter.get("resource_frame"):
+                    torrent_filter["resource_frame"].append(resource_frame)
                 if filter_season \
                         and filter_season not in torrent_filter.get("season"):
                     torrent_filter["season"].append(filter_season)
@@ -451,6 +458,7 @@ class SearchProxy:
                         "free": [free_item],
                         "releasegroup": [releasegroup],
                         "video": [video_encode] if video_encode else [],
+                        "resource_frame": [resource_frame] if resource_frame else [],
                         "season": [filter_season] if filter_season else []
                     }
                 }
@@ -494,6 +502,9 @@ class SearchProxy:
             # 排序筛选器: 制作组/字幕组，未知放最后
             item["filter"]["releasegroup"] = sorted(
                 item["filter"]["releasegroup"], key=lambda x: (x == "未知", x))
+            # 排序筛选器: 帧率倒序
+            item["filter"]["resource_frame"] = sorted(
+                item["filter"]["resource_frame"], key=lambda x: float(x[:-3]), reverse=True)
             # 排序种子列
             item["torrent_dict"] = sorted(
                 item["torrent_dict"].items(), key=se_sort, reverse=True)

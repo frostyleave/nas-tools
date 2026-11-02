@@ -48,6 +48,7 @@ class MetaVideo(MetaBase):
                         r"|CD[\s.]*[1-9]|DVD[\s.]*[1-9]|DISK[\s.]*[1-9]|DISC[\s.]*[1-9]"
     _resources_pix_re = r"^[SBUHD]*(\d{3,4}[PI]+)|\d{3,4}X(\d{3,4})"
     _resources_pix_re2 = r"(^[248]+K)"
+    _resource_frame_re = r"(?<!\d)(\d+(?:\.\d+)?)\s*FPS(?![A-Za-z0-9])"
     _video_encode_re = r"^[HX]26[45]$|^AVC$|^HEVC$|^VC\d?$|^MPEG\d?$|^Xvid$|^DivX$|^HDR\d*$"
     _audio_encode_re = r"^DTS\d?$|^DTSHD$|^DTSHDMA$|^Atmos$|^TrueHD\d?$|^AC3$|^\dAudios?$|^DDP\d?$|^DD\d?$|^LPCM\d?$|^AAC\d?$|^FLAC\d?$|^HD\d?$|^MA\d?$"
 
@@ -57,6 +58,7 @@ class MetaVideo(MetaBase):
             return
         original_title = title
         self._source = ""
+        self.resource_frame = ""
         self._effect = []
         # 判断是否纯数字命名
         if os.path.splitext(title)[-1] in Constants.RMT_MEDIAEXT \
@@ -74,6 +76,12 @@ class MetaVideo(MetaBase):
         title = re.sub(r'[0-9.]+\s*[MGT]i?B(?![A-Z]+)', "", title, flags=re.IGNORECASE)
         # 把年月日去掉
         title = re.sub(r'\d{4}[\s._-]\d{1,2}[\s._-]\d{1,2}', "", title)
+        # 识别帧率，必须是数字+fps（不区分大小写），如 60fps、23.976fps，一般位于分辨率和资源类型之间
+        # 在拆分token前提取并从标题中移除，避免帧率中的小数点被当作分隔符而误识别为季集等信息
+        resource_frame_res = re.search(rf"{self._resource_frame_re}", title, re.IGNORECASE)
+        if resource_frame_res:
+            self.resource_frame = f"{resource_frame_res.group(1)}fps"
+            title = f"{title[:resource_frame_res.start()]} {title[resource_frame_res.end():]}"
         # 拆分tokens
         tokens = Tokens(title)
         self.tokens = tokens
@@ -116,10 +124,8 @@ class MetaVideo(MetaBase):
         if self._source:
             self.resource_type = self._source.strip()
         # 提取原盘DIY
-        if self.resource_type and "BluRay" in self.resource_type:
-            if (self.subtitle and re.findall(r'D[Ii]Y', self.subtitle)) \
-                    or re.findall(r'-D[Ii]Y@', original_title):
-                self.resource_type = f"{self.resource_type} DIY"
+        if self.__is_diy(original_title):
+            self.resource_type = f"{self.resource_type} DIY"
         # 解析副标题，只要季和集
         self.init_subtitle(self.org_string)
         if not self._subtitle_flag and self.subtitle:
@@ -147,6 +153,15 @@ class MetaVideo(MetaBase):
             self.part = None
         # 自定义占位符
         self.customization = CustomizationMatcher().match(title=original_title) or None
+
+    def __is_diy(self, original_title):
+        """
+        是否为原盘DIY
+        """
+        if not self.resource_type or "BluRay" not in self.resource_type:
+            return False
+        return bool((self.subtitle and re.findall(r'D[Ii]Y', self.subtitle))
+                    or re.findall(r'-D[Ii]Y@', original_title))
 
     def __fix_name(self, name):
         if not name:
@@ -449,19 +464,8 @@ class MetaVideo(MetaBase):
                 self._continue_flag = False
                 self.type = MediaType.TV
             elif self.begin_episode is None \
-                    and 1 < len(token) < 4 \
-                    and self._last_token_type != "year" \
-                    and self._last_token_type != "videoencode" \
-                    and token != self._unknown_name_str:
-                self.begin_episode = int(token)
-                self.total_episodes = 1
-                self._last_token_type = "episode"
-                self._continue_flag = False
-                self._stop_name_flag = True
-                self.type = MediaType.TV
-            elif self._last_token_type == "EPISODE" \
-                    and self.begin_episode is None \
-                    and len(token) < 5:
+                    and (self.__is_episode_number(token)
+                         or self.__is_episode_after_keyword(token)):
                 self.begin_episode = int(token)
                 self.total_episodes = 1
                 self._last_token_type = "episode"
@@ -470,6 +474,20 @@ class MetaVideo(MetaBase):
                 self.type = MediaType.TV
         elif token.upper() == "EPISODE":
             self._last_token_type = "EPISODE"
+
+    def __is_episode_number(self, token):
+        """
+        是否为普通数字形式的集数：2~3位，且不是年份、视频编码及待定名称中的数字
+        """
+        return 1 < len(token) < 4 \
+            and self._last_token_type not in ("year", "videoencode") \
+            and token != self._unknown_name_str
+
+    def __is_episode_after_keyword(self, token):
+        """
+        是否为 EPISODE 关键字后的集数：1~4位
+        """
+        return self._last_token_type == "EPISODE" and len(token) < 5
 
     def __init_resource_type(self, token):
         if not self.get_name():
@@ -532,13 +550,8 @@ class MetaVideo(MetaBase):
             self._stop_name_flag = True
             self._last_token_type = "videoencode"
             self._last_token = token.upper() if token.upper() == "H" else token.lower()
-        elif token in ["264", "265"] \
-                and self._last_token_type == "videoencode" \
-                and self._last_token in ['H', 'X']:
-            self.video_encode = f"{self._last_token}{token}"
-        elif token.isdigit() \
-                and self._last_token_type == "videoencode" \
-                and self._last_token in ['VC', 'MPEG']:
+        elif self.__is_video_code_after_hx(token) \
+                or self.__is_video_code_after_vc_mpeg(token):
             self.video_encode = f"{self._last_token}{token}"
         elif token.upper() == "10BIT":
             self._last_token_type = "videoencode"
@@ -546,6 +559,22 @@ class MetaVideo(MetaBase):
                 self.video_encode = "10bit"
             else:
                 self.video_encode = f"{self.video_encode} 10bit"
+
+    def __is_video_code_after_hx(self, token):
+        """
+        是否为 H/X 后的视频编码数字，如 H264、X265
+        """
+        return token in ("264", "265") \
+            and self._last_token_type == "videoencode" \
+            and self._last_token in ("H", "X")
+
+    def __is_video_code_after_vc_mpeg(self, token):
+        """
+        是否为 VC/MPEG 后的视频编码数字，如 VC1、MPEG2
+        """
+        return token.isdigit() \
+            and self._last_token_type == "videoencode" \
+            and self._last_token in ("VC", "MPEG")
 
     def __init_audio_encode(self, token):
         if not self.get_name():

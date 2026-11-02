@@ -53,6 +53,8 @@ class MetaBase:
     resource_effect = None
     # 识别的分辨率
     resource_pix = None
+    # 识别的帧率
+    resource_frame = ""
     # 识别的制作组/字幕组
     resource_team = None
     # 自定义占位符
@@ -892,6 +894,7 @@ class MetaBase:
             "resource_type": self.resource_type,
             "resource_effect": self.resource_effect,
             "resource_pix": self.resource_pix,
+            "resource_frame": self.resource_frame,
             "resource_team": self.resource_team,
             "customization": self.customization,
             "video_encode": self.video_encode,
