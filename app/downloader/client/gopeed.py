@@ -1,10 +1,10 @@
 import os
-import log
 
-from app.utils import StringUtils
-from app.utils.types import DownloaderType
+import log
 from app.downloader.client._base import _IDownloadClient
 from app.downloader.client._pygopeed import PyGopeed
+from app.utils import StringUtils
+from app.utils.types import DownloaderType
 
 
 class Gopeed(_IDownloadClient):
@@ -39,8 +39,7 @@ class Gopeed(_IDownloadClient):
             if self.host:
                 if not self.host.startswith('http'):
                     self.host = "http://" + self.host
-                if self.host.endswith('/'):
-                    self.host = self.host[:-1]
+                self.host = self.host.removesuffix('/')
             self.port = self._client_config.get("port")
             self.secret = self._client_config.get("secret")
             self.download_dir = self._client_config.get('download_dir') or []
@@ -50,13 +49,13 @@ class Gopeed(_IDownloadClient):
 
     @classmethod
     def match(cls, ctype):
-        return True if ctype in [cls.client_id, cls.client_type, cls.client_name] else False
+        return ctype in [cls.client_id, cls.client_type, cls.client_name]
 
     def get_status(self):
         if not self._client:
             return False
         ready_data = self._client.getAllTask('ready')
-        return True if ready_data is not None else False
+        return ready_data is not None
 
     def get_torrents(self, ids=None, status=None, tag=None):
         if not self._client:
@@ -172,7 +171,7 @@ class Gopeed(_IDownloadClient):
         if tr_index > 0:
             left = left[:tr_index]        
         
-        return '{0}-{1}'.format(name, left)
+        return f'{name}-{left}'
 
 
     def start_torrents(self, ids):
@@ -237,12 +236,7 @@ class Gopeed(_IDownloadClient):
                     _upspeed = StringUtils.str_filesize(
                         progress_info.get("uploadSpeed")
                     )
-                    speed = ("%s %sB/s %s %sB/s" % (
-                        chr(8595),
-                        _dlspeed,
-                        chr(8593),
-                        _upspeed,
-                    )).replace('BB', 'B')
+                    speed = (f"{chr(8595)} {_dlspeed}B/s {chr(8593)} {_upspeed}B/s").replace('BB', 'B')
 
                 DispTorrents.append(
                     {
@@ -253,7 +247,7 @@ class Gopeed(_IDownloadClient):
                         'upspeed': _upspeed,
                         "state": state,
                         "progress": progress,
-                        "sizeprogress": ("%sB / %sB" % (StringUtils.str_filesize(downloaded), StringUtils.str_filesize(total_size))).replace('BB', 'B')
+                        "sizeprogress": (f"{StringUtils.str_filesize(downloaded)}B / {StringUtils.str_filesize(total_size)}B").replace('BB', 'B')
                     }
                 )
 

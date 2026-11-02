@@ -1,3 +1,6 @@
+from itertools import chain
+from typing import ClassVar
+
 import regex as re
 
 from app.utils.commons import singleton
@@ -11,7 +14,7 @@ class ReleaseGroupsMatcher:
     __release_groups = None
     custom_release_groups = None
     custom_separator = None
-    RELEASE_GROUPS = {
+    RELEASE_GROUPS: ClassVar[dict[str, list[str]]] = {
         "0ff": ['FF(?:(?:A|WE)B|CD|E(?:DU|B)|TV)'],
         "1pt": ['1PTBA'],
         "52pt": ['52pt'],
@@ -61,11 +64,9 @@ class ReleaseGroupsMatcher:
     }
 
     def __init__(self):
-        release_groups = []
-        for site_groups in self.RELEASE_GROUPS.values():
-            for release_group in site_groups:
-                release_groups.append(release_group)
-        self.__release_groups = '|'.join(release_groups)
+        self.__release_groups = '|'.join(
+            chain.from_iterable(self.RELEASE_GROUPS.values())
+        )
 
     def match(self, title=None, groups=None):
         """

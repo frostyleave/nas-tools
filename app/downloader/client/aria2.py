@@ -1,13 +1,12 @@
+import base64
 import os
 import re
-import base64
 
 import log
-
-from app.utils import RequestUtils, StringUtils
-from app.utils.types import DownloaderType
 from app.downloader.client._base import _IDownloadClient
 from app.downloader.client._pyaria2 import PyAria2
+from app.utils import RequestUtils, StringUtils
+from app.utils.types import DownloaderType
 
 
 class Aria2(_IDownloadClient):
@@ -37,8 +36,7 @@ class Aria2(_IDownloadClient):
             if self.host:
                 if not self.host.startswith('http'):
                     self.host = "http://" + self.host
-                if self.host.endswith('/'):
-                    self.host = self.host[:-1]
+                self.host = self.host.removesuffix('/')
             self.port = self._client_config.get("port")
             self.secret = self._client_config.get("secret")
             self.download_dir = self._client_config.get('download_dir') or []
@@ -48,7 +46,7 @@ class Aria2(_IDownloadClient):
 
     @classmethod
     def match(cls, ctype):
-        return True if ctype in [cls.client_id, cls.client_type, cls.client_name] else False
+        return ctype in [cls.client_id, cls.client_type, cls.client_name]
 
     def connect(self):
         pass
@@ -57,7 +55,7 @@ class Aria2(_IDownloadClient):
         if not self._client:
             return False
         ver = self._client.getVersion()
-        return True if ver else False
+        return bool(ver)
 
     def get_torrents(self, ids=None, status=None, **kwargs):
         if not self._client:
@@ -117,7 +115,7 @@ class Aria2(_IDownloadClient):
                 file = open(content, 'r', encoding='ISO-8859-1')
                 file_content = file.read()
                 torrent_bin = base64.b64encode(file_content.encode()).decode('ascii')
-                return self._client.addTorrentFile(torrent=torrent_bin, options=dict(dir=download_dir))
+                return self._client.addTorrentFile(torrent=torrent_bin, options={"dir": download_dir})
             # 处理重定向
             if re.match("^https*://", content):
                 try:
@@ -129,7 +127,7 @@ class Aria2(_IDownloadClient):
             # 直接添加url
             return self._client.addUri(uris=[content], options=dict(dir=download_dir))
         elif isinstance(content, bytes):
-            return self._client.addTorrentFile(torrent=content, options=dict(dir=download_dir))
+            return self._client.addTorrentFile(torrent=content, options={"dir": download_dir})
         return "无法识别"
 
     def start_torrents(self, ids):
@@ -176,7 +174,7 @@ class Aria2(_IDownloadClient):
                 state = "Downloading"
                 _dlspeed = StringUtils.str_filesize(torrent.get('downloadSpeed'))
                 _upspeed = StringUtils.str_filesize(torrent.get('uploadSpeed'))
-                speed = ("%s%sB/s %s%sB/s" % (chr(8595), _dlspeed, chr(8593), _upspeed)).replace('BB', 'B')
+                speed = (f"{chr(8595)}{_dlspeed}B/s {chr(8593)}{_upspeed}B/s").replace('BB', 'B')
 
             DispTorrents.append({
                 'id': torrent.get('gid'),
@@ -186,7 +184,7 @@ class Aria2(_IDownloadClient):
                 'upspeed': _upspeed,
                 'state': state,
                 'progress': progress,
-                 "sizeprogress": ("%sB / %sB" % (StringUtils.str_filesize(downloaded), StringUtils.str_filesize(total_size))).replace('BB', 'B')
+                 "sizeprogress": (f"{StringUtils.str_filesize(downloaded)}B / {StringUtils.str_filesize(total_size)}B").replace('BB', 'B')
             })
 
         return DispTorrents

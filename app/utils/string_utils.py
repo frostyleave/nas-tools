@@ -18,6 +18,9 @@ from app.utils.types import MediaType
 # 需要忽略的特殊字符
 CONVERT_EMPTY_CHARS = r"[、.。,，・·:：;；!！'’\"“”()（）\[\]【】「」\-——\+\|\\_/&#～~]"
 
+# 标题清理时去除的首尾字符集合（str.strip 的参数是字符集合，不是子串）
+DEFAULT_CHARS_TO_STRIP = r'.-/\\&#_'
+
 # 构建映射表（模块加载时执行一次）
 _FULL_TO_HALF_MAP = {
     ord(chr(c + 0xFEE0)): c        # 全角可见字符 -> 半角
@@ -717,7 +720,7 @@ class StringUtils:
         rev_title = title.translate(trans_table)
         
         # 去除首尾指定字符
-        rev_title = rev_title.strip(r'.-/\\&#_')
+        rev_title = rev_title.strip(DEFAULT_CHARS_TO_STRIP)
         
         # 合并连续的点
         return re.sub(r"\.+", ".", rev_title).strip('.')\
@@ -728,7 +731,7 @@ class StringUtils:
         if symbols_to_dot is None:
             symbols_to_dot = {'[', ']', '「', '』'}
         if chars_to_strip is None:
-            chars_to_strip = r'.-/\\&#_'
+            chars_to_strip = DEFAULT_CHARS_TO_STRIP
         
         trans_table = str.maketrans({char: '.' for char in symbols_to_dot})
         cleaned = title.translate(trans_table).strip(chars_to_strip)

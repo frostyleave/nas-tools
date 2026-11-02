@@ -5,8 +5,9 @@ import time
 from app.utils import RequestUtils
 from app.utils.commons import singleton
 
+
 @singleton
-class IyuuHelper(object):
+class IyuuHelper:
     _version = "2.0.0"
     _api_base = "http://api.bolahg.cn/%s"
     _sites = {}
@@ -52,7 +53,7 @@ class IyuuHelper(object):
         elif ret is not None:
             return None, f"请求IYUU失败，状态码：{ret.status_code}，错误原因：{ret.reason}"
         else:
-            return None, f"请求IYUU失败，未获取到返回信息"
+            return None, "请求IYUU失败，未获取到返回信息"
 
     def __request_iyuu_dev(self, url, method="get", params=None):
         """
@@ -85,7 +86,7 @@ class IyuuHelper(object):
         elif ret is not None:
             return None, f"请求IYUU失败，状态码：{ret.status_code}，错误原因：{ret.reason}"
         else:
-            return None, f"请求IYUU失败，未获取到返回信息"
+            return None, "请求IYUU失败，未获取到返回信息"
 
     def get_torrent_url(self, sid):
         if not sid:
@@ -137,7 +138,7 @@ class IyuuHelper(object):
         if not self._sites:
             self._sites = self.__get_sites()
         sid_list = list(self._sites.keys())
-        result, msg = self.__request_iyuu_dev(url='https://dev.iyuu.cn/reseed/sites/reportExisting',
+        result, _msg = self.__request_iyuu_dev(url='https://dev.iyuu.cn/reseed/sites/reportExisting',
                                           method='post',
                                           params={"sid_list": sid_list})
         if result:

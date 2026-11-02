@@ -28,7 +28,7 @@ from config import Config
 BRUSH_REMOVE_TORRENTS_INTERVAL = 300
 
 @singleton
-class BrushTaskV2(object):
+class BrushTaskV2:
 
     message = None
     sites = None

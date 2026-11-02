@@ -23,7 +23,7 @@ class FileMonitorHandler(FileSystemEventHandler):
     """
 
     def __init__(self, monpath, sync, **kwargs):
-        super(FileMonitorHandler, self).__init__(**kwargs)
+        super().__init__(**kwargs)
         self._watch_path = monpath
         self.sync = sync
 
@@ -40,7 +40,7 @@ class FileMonitorHandler(FileSystemEventHandler):
 
 
 @singleton
-class Sync(object):
+class Sync:
     filetransfer = None
     dbhelper = None
 

@@ -65,7 +65,7 @@ class TorrentUtils:
                 else:
                     file_names.append(torrent.get(b"info", {}).get(b"name").decode('utf-8'))
         except Exception as err:
-            return TorrentDownloadResult(files_folder=file_folder, files=file_names, ret_msg="解析种子文件异常：%s" % str(err))
+            return TorrentDownloadResult(files_folder=file_folder, files=file_names, ret_msg=f"解析种子文件异常：{err!s}")
         return TorrentDownloadResult(files_folder=file_folder, files=file_names)
     
 

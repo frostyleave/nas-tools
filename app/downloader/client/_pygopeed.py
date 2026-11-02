@@ -1,6 +1,5 @@
-# -*- coding: utf-8 -*-
-
 import json
+
 import requests
 
 DEFAULT_HOST = 'http://127.0.0.1'
@@ -8,7 +7,7 @@ DEFAULT_PORT = 9999
 SERVER_URI_FORMAT = '%s:%s/api/v1/tasks'
 
 
-class PyGopeed(object):
+class PyGopeed:
     _secret = None
     _server_uri = None
     _headers = {}
@@ -41,7 +40,7 @@ class PyGopeed(object):
         if "data" not in response_data:
             raise Exception('Gopeed接口返回解析失败')
         
-        code  = response_data["code"] if "code" in response_data else -1
+        code  = response_data.get("code", -1)
         if code != 0:
             if "msg" in response_data:
                 raise Exception(response_data["msg"])
@@ -56,9 +55,9 @@ class PyGopeed(object):
 
         if status:
             if isinstance(status, list):
-                url = '{}?{}'.format(self._server_uri, '&'.join(list(map(lambda x: 'status=' + x, status))))
+                url = '{}?{}'.format(self._server_uri, '&'.join(['status=' + x for x in status]))
             else:
-                url = '{}?status={}'.format(self._server_uri, status)
+                url = f'{self._server_uri}?status={status}'
 
         response = requests.get(
             url,
@@ -92,7 +91,7 @@ class PyGopeed(object):
 
         return: This method returns GID of removed download.
         """
-        url = '{}/{}'.format(self._server_uri, gid)
+        url = f'{self._server_uri}/{gid}'
 
         response = requests.delete(url,headers=self._headers)
 
@@ -106,7 +105,7 @@ class PyGopeed(object):
 
         return: This method returns GID of removed download.
         """
-        url = '{}/{}?force=true'.format(self._server_uri, gid)
+        url = f'{self._server_uri}/{gid}?force=true'
 
         response = requests.delete(url,headers=self._headers)
 
@@ -121,7 +120,7 @@ class PyGopeed(object):
         return: This method returns GID of paused download.
         """
         
-        url = '{}/{}/pause'.format(self._server_uri, gid)
+        url = f'{self._server_uri}/{gid}/pause'
 
         response = requests.put(url,headers=self._headers)
 
@@ -133,7 +132,7 @@ class PyGopeed(object):
 
         return: This method returns OK for success.
         """
-        url = '{}/pause'.format(self._server_uri)
+        url = f'{self._server_uri}/pause'
 
         response = requests.put(url,headers=self._headers)
         
@@ -147,7 +146,7 @@ class PyGopeed(object):
 
         return: This method returns GID of unpaused download.
         """
-        url = '{}/{}/continue'.format(self._server_uri, gid)
+        url = f'{self._server_uri}/{gid}/continue'
 
         response = requests.put(url,headers=self._headers)
         
@@ -159,7 +158,7 @@ class PyGopeed(object):
 
         return: This method returns OK for success.
         """
-        url = '{}/continue'.format(self._server_uri)
+        url = f'{self._server_uri}/continue'
 
         response = requests.put(url,headers=self._headers)
         

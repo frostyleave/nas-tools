@@ -1,16 +1,16 @@
 import os.path
 import re
 import time
+from collections.abc import Iterable
 from datetime import datetime
-from typing import Iterable
+from typing import ClassVar
 
 import transmission_rpc
 
 import log
-
+from app.downloader.client._base import _IDownloadClient
 from app.utils import StringUtils
 from app.utils.types import DownloaderType
-from app.downloader.client._base import _IDownloadClient
 
 
 class Transmission(_IDownloadClient):
@@ -22,10 +22,13 @@ class Transmission(_IDownloadClient):
     client_name = DownloaderType.TR.value
 
     # 参考transmission web，仅查询需要的参数，加速种子搜索
-    _trarg = ["id", "name", "status", "labels", "hashString", "totalSize", "percentDone", "addedDate", "trackerStats",
-              "leftUntilDone", "rateDownload", "rateUpload", "recheckProgress", "rateDownload", "rateUpload",
-              "peersGettingFromUs", "peersSendingToUs", "uploadRatio", "uploadedEver", "downloadedEver", "downloadDir",
-              "error", "errorString", "doneDate", "queuePosition", "activityDate", "trackers"]
+    _trarg: ClassVar[list[str]] = [
+        "id", "name", "status", "labels", "hashString", 
+        "totalSize", "percentDone", "addedDate", "trackerStats",
+        "leftUntilDone", "rateDownload", "rateUpload", "recheckProgress", 
+        "peersGettingFromUs", "peersSendingToUs", "uploadRatio", "uploadedEver",
+        "error", "errorString", "doneDate", "queuePosition", "activityDate", "trackers"
+    ]
 
     # 私有属性
     _client_config = {}
@@ -56,7 +59,7 @@ class Transmission(_IDownloadClient):
 
     @classmethod
     def match(cls, ctype):
-        return True if ctype in [cls.client_id, cls.client_type, cls.client_name] else False
+        return ctype in [cls.client_id, cls.client_type, cls.client_name]
 
     def get_type(self):
         return self.client_type
@@ -83,14 +86,14 @@ class Transmission(_IDownloadClient):
             return None
 
     def get_status(self):
-        return True if self.trc else False
+        return bool(self.trc)
 
     @staticmethod
     def __parse_ids(ids):
         """
         统一处理种子ID
         """
-        if isinstance(ids, list) and any([str(x).isdigit() for x in ids]):
+        if isinstance(ids, list) and any(str(x).isdigit() for x in ids):
             ids = [int(x) for x in ids if str(x).isdigit()]
         elif not isinstance(ids, list) and str(ids).isdigit():
             ids = int(ids)
@@ -344,7 +347,7 @@ class Transmission(_IDownloadClient):
                 continue
             if upload_avs and torrent_upload_avs >= upload_avs * 1024:
                 continue
-            if savepath_key and not re.findall(savepath_key, torrent.download_dir, re.I):
+            if savepath_key and not re.findall(savepath_key, torrent.download_dir, re.IGNORECASE):
                 continue
             if tracker_key:
                 if not torrent.trackers:
@@ -352,12 +355,12 @@ class Transmission(_IDownloadClient):
                 else:
                     tacker_key_flag = False
                     for tracker in torrent.trackers:
-                        if re.findall(tracker_key, tracker.get("announce", ""), re.I):
+                        if re.findall(tracker_key, tracker.get("announce", ""), re.IGNORECASE):
                             tacker_key_flag = True
                             break
                     if not tacker_key_flag:
                         continue
-            if tr_error_key and not re.findall(tr_error_key, torrent.error_string, re.I):
+            if tr_error_key and not re.findall(tr_error_key, torrent.error_string, re.IGNORECASE):
                 continue
             remove_torrents.append({
                 "id": torrent.hashString,
@@ -521,12 +524,12 @@ class Transmission(_IDownloadClient):
                     _upspeed = StringUtils.str_filesize(torrent.rate_upload)
                 else:
                     _upspeed = StringUtils.str_filesize(torrent.rateUpload)
-                speed = ("%s%sB/s %s%sB/s" % (chr(8595), _dlspeed, chr(8593), _upspeed)).replace('BB', 'B')
+                speed = (f"{chr(8595)}{_dlspeed}B/s {chr(8593)}{_upspeed}B/s").replace('BB', 'B')
             # 进度
             progress = torrent.progress
             left_until_done = torrent.left_until_done
             total_size = int(left_until_done / (1 - progress / 100.0))
-            sizeprogress = ("%sB / %sB" % (StringUtils.str_filesize(total_size - left_until_done), StringUtils.str_filesize(total_size))).replace('BB', 'B')
+            sizeprogress = (f"{StringUtils.str_filesize(total_size - left_until_done)}B / {StringUtils.str_filesize(total_size)}B").replace('BB', 'B')
 
             DispTorrents.append({
                 'id': torrent.hashString,
@@ -550,8 +553,8 @@ class Transmission(_IDownloadClient):
             return
         try:
             session = self.trc.get_session()
-            download_limit_enabled = True if download_limit else False
-            upload_limit_enabled = True if upload_limit else False
+            download_limit_enabled = bool(download_limit)
+            upload_limit_enabled = bool(upload_limit)
             if download_limit_enabled == session.speed_limit_down_enabled and \
                     upload_limit_enabled == session.speed_limit_up_enabled and \
                     download_limit == session.speed_limit_down and \

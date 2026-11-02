@@ -231,9 +231,9 @@ class FileTransfer:
                                        re.sub(_zhcn_sub_re,
                                               ".",
                                               os.path.basename(file_item),
-                                              flags=re.I),
-                                       flags=re.I)
-                sub_file_name = re.sub(_eng_sub_re, ".", sub_file_name, flags=re.I)
+                                              flags=re.IGNORECASE),
+                                       flags=re.IGNORECASE)
+                sub_file_name = re.sub(_eng_sub_re, ".", sub_file_name, flags=re.IGNORECASE)
                 sub_metainfo = MetaInfo(title=os.path.basename(file_item))
                 if (os.path.splitext(file_name)[0] == os.path.splitext(sub_file_name)[0]) or \
                         (sub_metainfo.cn_name and sub_metainfo.cn_name == metainfo.cn_name) \
@@ -246,11 +246,11 @@ class FileTransfer:
                         continue
                     new_file_type = ""
                     # 兼容jellyfin字幕识别(多重识别), emby则会识别最后一个后缀
-                    if re.search(_zhcn_sub_re, file_item, re.I):
+                    if re.search(_zhcn_sub_re, file_item, re.IGNORECASE):
                         new_file_type = ".chi.zh-cn"
-                    elif re.search(Constants.ZHTW_SUB_RE, file_item, re.I):
+                    elif re.search(Constants.ZHTW_SUB_RE, file_item, re.IGNORECASE):
                         new_file_type = ".zh-tw"
-                    elif re.search(_eng_sub_re, file_item, re.I):
+                    elif re.search(_eng_sub_re, file_item, re.IGNORECASE):
                         new_file_type = ".eng"
                     # 通过对比字幕文件大小  尽量转移所有存在的字幕
                     file_ext = os.path.splitext(file_item)[-1]

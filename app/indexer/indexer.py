@@ -17,7 +17,7 @@ from app.utils.types import SearchType
 INDEXER_CATEGORY = ['MOVIE', 'TV', 'ANIME']
 
 @singleton
-class Indexer(object):
+class Indexer:
 
     _client = None
     _client_type = None

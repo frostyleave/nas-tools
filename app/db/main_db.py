@@ -147,7 +147,7 @@ class MainDb:
         self.session.rollback()
 
 
-class DbPersist(object):
+class DbPersist:
     """
     数据库持久化装饰器
     """

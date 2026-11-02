@@ -90,7 +90,7 @@ class EventManager:
         return decorator
 
 
-class Event(object):
+class Event:
     """
     事件对象
     """

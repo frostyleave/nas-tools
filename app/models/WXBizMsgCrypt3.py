@@ -145,7 +145,7 @@ class PKCS7Encoder:
         return decrypted[:-pad]
 
 
-class Prpcrypt(object):
+class Prpcrypt:
     """提供接收和推送给企业微信消息的加解密接口"""
 
     def __init__(self, key):

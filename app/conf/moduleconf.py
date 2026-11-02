@@ -1,12 +1,14 @@
+from typing import ClassVar
+
 from app.utils.types import DownloaderType, RmtMode, SearchType
 
 
-class ModuleConf(object):
+class ModuleConf:
     # 菜单对应关系，配置WeChat应用中配置的菜单ID与执行命令的对应关系，需要手工修改
     # 菜单序号在https://work.weixin.qq.com/wework_admin/frame#apps 应用自定义菜单中维护，然后看日志输出的菜单序号是啥（按顺利能猜到的）....
     # 命令对应关系：/ptt 下载文件转移；/ptr 删种；/pts 站点签到；/rst 目录同步；/db 豆瓣同步；/utf 重新识别；
     # /ssa 订阅搜索；/tbl 清理转移缓存；/trh 清理RSS缓存；/rss RSS下载；/udt 系统更新；/sta 数据统计
-    WECHAT_MENU = {
+    WECHAT_MENU: ClassVar[dict[str, str]] = {
         '_0_0': '/ptt',  # 下载->下载文件转移
         '_0_1': '/ptr',  # 下载->删种
         '_0_2': '/rss',  # 下载->RSS下载
@@ -22,7 +24,7 @@ class ModuleConf(object):
     }
 
     # 全量转移模式
-    RMT_MODES = {
+    RMT_MODES: ClassVar[dict[str, RmtMode]] = {
         "copy": RmtMode.COPY,
         "link": RmtMode.LINK,
         "softlink": RmtMode.SOFTLINK,
@@ -34,10 +36,15 @@ class ModuleConf(object):
     }
 
     # 远程转移模式
-    REMOTE_RMT_MODES = [RmtMode.RCLONE, RmtMode.RCLONECOPY, RmtMode.MINIO, RmtMode.MINIOCOPY]
+    REMOTE_RMT_MODES: ClassVar[list[RmtMode]] = [
+        RmtMode.RCLONE, 
+        RmtMode.RCLONECOPY, 
+        RmtMode.MINIO, 
+        RmtMode.MINIOCOPY
+    ]
 
     # 消息通知类型
-    MESSAGE_CONF = {
+    MESSAGE_CONF: ClassVar[dict] = {
         "client": {
             "telegram": {
                 "name": "Telegram",
@@ -473,7 +480,7 @@ class ModuleConf(object):
     }
 
     # 自动删种配置
-    TORRENTREMOVER_DICT = {
+    TORRENTREMOVER_DICT: ClassVar[dict] = {
         "qbittorrent": {
             "name": "Qbittorrent",
             "img_url": "../static/img/downloader/qbittorrent.png",
@@ -517,7 +524,7 @@ class ModuleConf(object):
     }
 
     # 搜索种子过滤属性
-    TORRENT_SEARCH_PARAMS = {
+    TORRENT_SEARCH_PARAMS: ClassVar[dict] = {
         "restype": {
             "BLURAY": r"Blu-?Ray|BD|BDRIP",
             "REMUX": r"REMUX",
@@ -537,7 +544,7 @@ class ModuleConf(object):
     }
 
     # 下载器
-    DOWNLOADER_CONF = {
+    DOWNLOADER_CONF: ClassVar[dict] = {
         "qbittorrent": {
             "name": "Qbittorrent",
             "img_url": "../static/img/downloader/qbittorrent.png",
@@ -694,7 +701,7 @@ class ModuleConf(object):
     }
 
     # 媒体服务器
-    MEDIASERVER_CONF = {
+    MEDIASERVER_CONF: ClassVar[dict] = {
         "emby": {
             "name": "Emby",
             "img_url": "../static/img/mediaserver/emby.png",
@@ -816,7 +823,7 @@ class ModuleConf(object):
     }
 
     # 发现过滤器
-    DISCOVER_FILTER_CONF = {
+    DISCOVER_FILTER_CONF: ClassVar[dict] = {
         "tmdb_movie": {
             "sort_by": {
                 "name": "排序",
