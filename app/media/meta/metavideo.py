@@ -48,7 +48,7 @@ class MetaVideo(MetaBase):
                         r"|CD[\s.]*[1-9]|DVD[\s.]*[1-9]|DISK[\s.]*[1-9]|DISC[\s.]*[1-9]"
     _resources_pix_re = r"^[SBUHD]*(\d{3,4}[PI]+)|\d{3,4}X(\d{3,4})"
     _resources_pix_re2 = r"(^[248]+K)"
-    _resource_frame_re = r"(?<!\d)(\d+(?:\.\d+)?)\s*FPS(?![A-Za-z0-9])"
+    _resource_frame_re = r"(?<!\d)(\d{1,3}(?:\.\d+)?)\s*FPS(?![A-Za-z0-9])"
     _video_encode_re = r"^[HX]26[45]$|^AVC$|^HEVC$|^VC\d?$|^MPEG\d?$|^Xvid$|^DivX$|^HDR\d*$"
     _audio_encode_re = r"^DTS\d?$|^DTSHD$|^DTSHDMA$|^Atmos$|^TrueHD\d?$|^AC3$|^\dAudios?$|^DDP\d?$|^DD\d?$|^LPCM\d?$|^AAC\d?$|^FLAC\d?$|^HD\d?$|^MA\d?$"
 
@@ -68,20 +68,8 @@ class MetaVideo(MetaBase):
             self.type = MediaType.TV
             return
 
-        # 去除网址部分
-        title = re.sub(rf'{self._name_no_url}', "", title, count=1, flags=re.IGNORECASE)
-        # 把xxxx-xxxx年份换成前一个年份，常出现在季集上
-        title = re.sub(r'([\s.]+)(\d{4})-(\d{4})', r'\1\2', title)
-        # 把大小去掉
-        title = re.sub(r'[0-9.]+\s*[MGT]i?B(?![A-Z]+)', "", title, flags=re.IGNORECASE)
-        # 把年月日去掉
-        title = re.sub(r'\d{4}[\s._-]\d{1,2}[\s._-]\d{1,2}', "", title)
-        # 识别帧率，必须是数字+fps（不区分大小写），如 60fps、23.976fps，一般位于分辨率和资源类型之间
-        # 在拆分token前提取并从标题中移除，避免帧率中的小数点被当作分隔符而误识别为季集等信息
-        resource_frame_res = re.search(rf"{self._resource_frame_re}", title, re.IGNORECASE)
-        if resource_frame_res:
-            self.resource_frame = f"{resource_frame_res.group(1)}fps"
-            title = f"{title[:resource_frame_res.start()]} {title[resource_frame_res.end():]}"
+        # 名称预处理
+        title = self.__prepare_title(title)
         # 拆分tokens
         tokens = Tokens(title)
         self.tokens = tokens
@@ -153,6 +141,39 @@ class MetaVideo(MetaBase):
             self.part = None
         # 自定义占位符
         self.customization = CustomizationMatcher().match(title=original_title) or None
+
+    def __prepare_title(self, title):
+        """
+        名称预处理：去除网址、年份区间、文件大小、年月日，并识别帧率
+        :return: 预处理后的名称
+        """
+        # 去除网址部分
+        title = re.sub(rf'{self._name_no_url}', "", title, count=1, flags=re.IGNORECASE)
+        # 把xxxx-xxxx年份换成前一个年份，常出现在季集上
+        title = re.sub(r'([\s.]+)(\d{4})-(\d{4})', r'\1\2', title)
+        # 把大小去掉
+        title = re.sub(r'[0-9.]+\s*[MGT]i?B(?![A-Z]+)', "", title, flags=re.IGNORECASE)
+        # 把年月日去掉
+        title = re.sub(r'\d{4}[\s._-]\d{1,2}[\s._-]\d{1,2}', "", title)
+        # 识别帧率
+        title = self.__init_resource_frame(title)
+        return title
+
+    def __init_resource_frame(self, title):
+        """
+        提取帧率：必须是数字+fps（不区分大小写），如 60fps、23.976fps，一般位于分辨率和资源类型之间
+        优先从名称中提取并从名称中移除，避免帧率中的小数点被当作分隔符而误识别为季集等信息；
+        名称中未识别到帧率时，尝试从副标题中提取
+        :return: 移除帧率后的名称
+        """
+        resource_frame_res = re.search(rf"{self._resource_frame_re}", title, re.IGNORECASE)
+        if resource_frame_res:
+            title = f"{title[:resource_frame_res.start()]} {title[resource_frame_res.end():]}"
+        elif self.subtitle:
+            resource_frame_res = re.search(rf"{self._resource_frame_re}", self.subtitle, re.IGNORECASE)
+        if resource_frame_res:
+            self.resource_frame = f"{resource_frame_res.group(1)}fps"
+        return title
 
     def __is_diy(self, original_title):
         """

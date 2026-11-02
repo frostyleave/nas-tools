@@ -17,6 +17,7 @@
     restype: '质量',
     effect: '特性',
     pix: '分辨率',
+    resource_frame: '帧率',
     video_codec: '视频编码',
     audio_codec: '音频编码',
     team: '制作组/字幕组',
