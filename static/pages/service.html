@@ -18,11 +18,6 @@
       <div class="col">
         <h2 class="page-title">服务</h2>
       </div>
-      <div class="col-auto ms-auto d-print-none">
-        <a href="javascript:update_system()" class="btn btn-primary d-none" id="service-check-update-btn">
-          <i class="ti ti-refresh me-1"></i>检查更新
-        </a>
-      </div>
     </div>
   </div>
 </div>
@@ -331,6 +326,9 @@
         $('#modal-job-list').modal('show');
         draw_cron_job_list();
         break;
+      case "checkupdate":
+        update_system();
+        break;
       default:
         show_ask_modal("是否立即运行 " + name + "？", function () {
           run_scheduler(id, name);
@@ -566,11 +564,6 @@
       if (response.code === 0 && response.data) {
 
         const data = response.data;
-
-        // 仅 Docker 环境的系统管理员显示检查更新入口
-        if (data.admin && data.isDocker) {
-          $("#service-check-update-btn").removeClass("d-none");
-        }
 
         // 填充过滤规则选项
         if (data.ruleGroups) {

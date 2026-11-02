@@ -1,3 +1,4 @@
+import copy
 import os
 import threading
 from functools import wraps
@@ -626,8 +627,8 @@ async def service(current_user: CurrentUser):
     服务页面
     """
 
-    # 获取用户服务
-    service_list = current_user.get_services()
+    # 获取用户服务（复制一份，避免修改共享的 services 配置）
+    service_list = copy.deepcopy(current_user.get_services())
     pt_config = Config().get_config('pt')
 
     # RSS订阅
@@ -682,6 +683,10 @@ async def service(current_user: CurrentUser):
     if "processes" in service_list and (not SystemUtils.is_docker() or not SystemUtils.get_all_processes()):
         service_list.pop('processes')
 
+    # 检查更新（仅 Docker 环境的系统管理员可用）
+    if "checkupdate" in service_list and not (current_user.admin and SystemUtils.is_docker()):
+        service_list.pop('checkupdate')
+
     # 所有规则组
     rule_groups = Filter().get_rule_groups()
     # 所有同步目录
@@ -692,8 +697,6 @@ async def service(current_user: CurrentUser):
             "ruleGroups": rule_groups,
             "syncPaths": sync_paths,
             "schedulerTasks": service_list,
-            "admin": 1 if current_user.admin else 0,
-            "isDocker": SystemUtils.is_docker(),
         }
     )
 
