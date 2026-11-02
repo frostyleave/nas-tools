@@ -1,3 +1,4 @@
+from typing import ClassVar
 import json
 from collections import defaultdict
 from dataclasses import dataclass
@@ -71,7 +72,7 @@ class CookieCloud(_IPluginModule):
     # 退出事件
     _event = Event()
     # 需要忽略的Cookie
-    _ignore_cookies = ['CookieAutoDeleteBrowsingDataCleanup']
+    _ignore_cookies: ClassVar[list[str]] = ['CookieAutoDeleteBrowsingDataCleanup']
 
     # 上次执行同步时CookieCloud数据的更新时间
     _cc_upd_time = None

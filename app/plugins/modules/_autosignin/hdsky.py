@@ -1,3 +1,4 @@
+from typing import ClassVar
 import json
 import time
 
@@ -17,7 +18,7 @@ class HDSky(_ISiteSigninHandler):
     site_url = "hdsky.me"
 
     # 已签到
-    _sign_regex = ['已签到']
+    _sign_regex: ClassVar[list[str]] = ['已签到']
 
     @classmethod
     def match(cls, url):

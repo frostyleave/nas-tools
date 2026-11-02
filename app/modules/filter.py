@@ -15,8 +15,8 @@ class Filter:
 
     rg_matcher = None
     dbhelper = None
-    _groups = []
-    _rules = []
+    _groups: list
+    _rules: list
 
     def __init__(self):
         self.init_config()

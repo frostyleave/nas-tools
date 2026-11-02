@@ -5,16 +5,12 @@ from config import Config
 
 
 class SecurityHelper:
-    media_server_webhook_allow_ip = {}
-    telegram_webhook_allow_ip = {}
-    synology_webhook_allow_ip = {}
 
     def __init__(self):
-        security = Config().get_config('security')
-        if security:
-            self.media_server_webhook_allow_ip = security.get('media_server_webhook_allow_ip') or {}
-            self.telegram_webhook_allow_ip = security.get('telegram_webhook_allow_ip') or {}
-            self.synology_webhook_allow_ip = security.get('synology_webhook_allow_ip') or {}
+        security = Config().get_config('security') or {}
+        self.media_server_webhook_allow_ip = security.get('media_server_webhook_allow_ip') or {}
+        self.telegram_webhook_allow_ip = security.get('telegram_webhook_allow_ip') or {}
+        self.synology_webhook_allow_ip = security.get('synology_webhook_allow_ip') or {}
 
     def check_mediaserver_ip(self, ip):
         return self.allow_access(self.media_server_webhook_allow_ip, ip)

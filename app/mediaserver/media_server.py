@@ -19,7 +19,7 @@ server_lock = threading.Lock()
 
 @singleton
 class MediaServer:
-    _mediaserver_schemas = []
+    _mediaserver_schemas: list
 
     _server_type = None
     _server = None

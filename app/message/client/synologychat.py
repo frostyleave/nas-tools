@@ -10,7 +10,7 @@ from config import Config
 class SynologyChat(_IMessageClient):
     schema = "synologychat"
 
-    _client_config = {}
+    _client_config: dict
     _interactive = False
     _domain = None
     _webhook_url = None

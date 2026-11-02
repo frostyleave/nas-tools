@@ -25,7 +25,7 @@ class SitesDataStatisticsCenter:
     message = None
 
     _last_update_time = None
-    _sites_data = {}
+    _sites_data: dict
 
     _MAX_CONCURRENCY = 10
 

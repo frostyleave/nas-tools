@@ -26,9 +26,9 @@ class SitesManager:
     message = None
     dbhelper = None
 
-    _siteByIds : dict[int, UserSiteConf] = {}
-    _siteByUrls : dict[str, UserSiteConf] = {}
-    _limiters : dict[int, SiteRateLimiter] = {}
+    _siteByIds : dict[int, UserSiteConf]
+    _siteByUrls : dict[str, UserSiteConf]
+    _limiters : dict[int, SiteRateLimiter]
 
     _MAX_CONCURRENCY = 10
 

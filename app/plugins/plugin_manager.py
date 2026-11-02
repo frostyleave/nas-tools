@@ -25,9 +25,9 @@ class PluginManager:
     system_plugin_path = None
 
     # 插件列表
-    _plugins = {}
+    _plugins: dict
     # 运行态插件列表
-    _running_plugins = {}
+    _running_plugins: dict
     # 配置Key
     _config_key = "plugin.%s"
     # 事件处理线程
@@ -47,6 +47,8 @@ class PluginManager:
         if os.path.exists(self.user_plugin_path):
             for plugin_file in PathUtils.get_dir_level1_files(self.user_plugin_path, [".py"]):
                 SystemUtils.copy(plugin_file, self.system_plugin_path)
+        self._plugins = {}
+        self._running_plugins = {}
         self.init_config()
 
     def init_config(self):

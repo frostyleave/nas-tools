@@ -56,9 +56,7 @@ class DoubanSync(_IPluginModule):
     _interval = 0
     _auto_search = False
     _auto_rss = False
-    _users = []
     _days = 0
-    _types = []
     _cookie = None
 
     _hour_job = None
@@ -68,6 +66,8 @@ class DoubanSync(_IPluginModule):
         self.searcher = SearchProxy()
         self.downloader = Downloader()
         self.subscribe = Subscribe()
+        self._users = []
+        self._types = []
         if config:
             self._enable = config.get("enable")
             self._onlyonce = config.get("onlyonce")

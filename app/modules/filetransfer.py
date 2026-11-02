@@ -57,10 +57,10 @@ class FileTransfer:
     _tv_dir_rmt_format = ""
     _tv_season_rmt_format = ""
     _tv_file_rmt_format = ""
-    _ignored_paths = []
     _ignored_files = ''
 
     def __init__(self):
+        self._ignored_paths = []
         self.init_config()
 
     def init_config(self):

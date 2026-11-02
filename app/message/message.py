@@ -21,10 +21,10 @@ class MessageService:
 
     dbhelper = None
     sysMsgCenter = None
-    _message_schemas = []
-    _active_clients = []
-    _active_interactive_clients = {}
-    _client_configs = {}
+    _message_schemas: list
+    _active_clients: list
+    _active_interactive_clients: dict
+    _client_configs: dict
     _domain = None
 
     def __init__(self):
@@ -33,6 +33,7 @@ class MessageService:
             filter_func=lambda _, obj: hasattr(obj, 'schema')
         )
         log.debug(f"【Message】加载消息服务：{self._message_schemas}")
+        self._active_clients = []
         self.init_config()
 
     def init_config(self):

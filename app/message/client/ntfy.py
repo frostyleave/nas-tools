@@ -11,7 +11,7 @@ class Ntfy(_IMessageClient):
     _topic = None
     _priority = None
     _tags = None
-    _client_config = {}
+    _client_config: dict
 
     def __init__(self, config):
         self._client_config = config

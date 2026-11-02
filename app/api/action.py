@@ -119,8 +119,7 @@ def search(background_tasks: BackgroundTasks, data: Annotated[dict, Body(...)]):
 
 class WebAction:
     
-    _actions = {}
-    _commands = {}
+    _actions: dict
     _current_user : User | None = None
     _douBan = DouBan()
     _background_tasks : BackgroundTasks | None = None

@@ -98,13 +98,8 @@ class MetaBase:
     vote_average = 0
     # 描述
     overview = None
-    # TMDB 的其它信息
-    tmdb_info = {}
     # 本地状态 1-已订阅 2-已存在
     fav = "0"
-    # 站点列表
-    rss_sites = []
-    search_sites = []
     # 种子附加信息
     # 站点名称
     site = None
@@ -148,8 +143,6 @@ class MetaBase:
     ignored_words = None
     replaced_words = None
     offset_words = None
-    # 备注字典
-    note = {}
     # 资源发布时间
     pubdate = ''
     # 名称中的罗马字符序号
@@ -169,6 +162,13 @@ class MetaBase:
     _subtitle_episode_range_simple = r"(?:第)?(\d+)\s*-\s*(?:第)?(\d+)"
 
     def __init__(self, title, subtitle=None, fileflag=False):
+        # TMDB 的其它信息
+        self.tmdb_info = {}
+        # 站点列表
+        self.rss_sites = []
+        self.search_sites = []
+        # 备注字典
+        self.note = {}
         if not title:
             return
         self.org_string = title

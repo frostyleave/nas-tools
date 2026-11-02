@@ -1,3 +1,4 @@
+from typing import ClassVar
 import re
 
 import log
@@ -16,7 +17,7 @@ class HDUpt(_ISiteSigninHandler):
     site_url = "pt.hdupt.com"
 
     # 已签到
-    _sign_regex = ['<span id="yiqiandao">']
+    _sign_regex: ClassVar[list[str]] = ['<span id="yiqiandao">']
 
     # 签到成功
     _success_text = '本次签到获得魅力'

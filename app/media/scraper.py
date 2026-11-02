@@ -20,13 +20,13 @@ from config import Config
 class Scraper:
     media = None
     _scraper_flag = False
-    _scraper_nfo = {}
-    _scraper_pic = {}
     _rmt_mode = None
     _temp_path = None
 
     def __init__(self):
         self._scraper_flag = Config().get_config('media').get("nfo_poster")
+        self._scraper_nfo = {}
+        self._scraper_pic = {}
         scraper_conf = SystemConfig().get(SystemConfigKey.UserScraperConf)
         if scraper_conf:
             self._scraper_nfo = scraper_conf.get('scraper_nfo') or {}

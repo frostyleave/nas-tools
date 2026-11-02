@@ -38,8 +38,8 @@ class BrushTaskV2:
     downloader = None
     indexer = None
 
-    _brush_tasks = {}
-    _torrents_cache = []
+    _brush_tasks: dict
+    _torrents_cache: list
     _qb_client = "qbittorrent"
     _tr_client = "transmission"
 

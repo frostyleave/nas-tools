@@ -6,7 +6,7 @@ from app.utils.constants import Constants
 class Tokens:
     _text = ""
     _index = 0
-    _tokens = []
+    _tokens: list
 
     def __init__(self, text):
         self._text = text

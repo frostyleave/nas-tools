@@ -21,10 +21,11 @@ class TorrentRemover:
     downloader = None
     dbhelper = None
 
-    scheduler_jobs : list[Job] = []
-    _remove_tasks = {}
+    scheduler_jobs : list[Job]
+    _remove_tasks: dict
 
     def __init__(self):
+        self.scheduler_jobs = []
         self.init_config()
 
     def init_config(self):

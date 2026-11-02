@@ -9,7 +9,7 @@ class Gotify(_IMessageClient):
     _server = None
     _token = None
     _priority = None
-    _client_config = {}
+    _client_config: dict
 
     def __init__(self, config):
         self._client_config = config

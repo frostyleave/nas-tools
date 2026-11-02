@@ -14,7 +14,7 @@ class EventManager:
     # 事件队列
     _eventQueue = None
     # 事件响应函数字典
-    _handlers = {}
+    _handlers: dict
 
     def __init__(self):
         # 事件队列

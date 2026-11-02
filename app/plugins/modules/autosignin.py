@@ -93,7 +93,6 @@ class AutoSignIn(_IPluginModule):
     # 设置开关
     _enabled = False
     # 任务执行间隔
-    _site_schema = []
     _cron = None
     """
     配置需要签到的站点id
@@ -228,6 +227,7 @@ class AutoSignIn(_IPluginModule):
     def init_config(self, config=None):
         self.siteconf = SiteConf()
         self.sites = SitesManager()
+        self._site_schema = []
 
         # 读取配置
         if config:

@@ -11,7 +11,7 @@ from app.utils.string_utils import StringUtils
 class WordsHelper:
     dbhelper = None
     # 识别词
-    words_info = []
+    words_info: list
 
     def __init__(self):
         self.init_config()

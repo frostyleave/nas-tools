@@ -1,3 +1,4 @@
+from typing import ClassVar
 import os
 import pickle
 import random
@@ -15,7 +16,7 @@ from config import Config
 @singleton
 class SiteConf:
     # 站点签到支持的识别XPATH
-    _SITE_CHECKIN_XPATH = [
+    _SITE_CHECKIN_XPATH: ClassVar[list[str]] = [
         '//a[@id="signed"]',
         '//a[contains(@href, "attendance")]',
         '//a[contains(text(), "签到")]',
@@ -30,12 +31,12 @@ class SiteConf:
     ]
 
     # 站点详情页字幕下载链接识别XPATH
-    _SITE_SUBTITLE_XPATH = [
+    _SITE_SUBTITLE_XPATH: ClassVar[list[str]] = [
         '//td[@class="rowhead"][text()="字幕"]/following-sibling::td//a/@href',
     ]
 
     # 站点登录界面元素XPATH
-    _SITE_LOGIN_XPATH = {
+    _SITE_LOGIN_XPATH: ClassVar[dict] = {
         "username": [
             '//input[@name="username"]',
             '//input[@id="form_item_username"]',
@@ -74,7 +75,7 @@ class SiteConf:
     }
 
     # 促销/HR的匹配XPATH
-    _RSS_SITE_GRAP_CONF = {}
+    _RSS_SITE_GRAP_CONF: ClassVar[dict] = {}
 
     def __init__(self):
         self.init_config()

@@ -1,3 +1,4 @@
+from typing import ClassVar
 import warnings
 
 from app.media.tmdbv3api.as_obj import AsObj
@@ -15,7 +16,7 @@ except ImportError:
 
 
 class Movie(TMDb):
-    _urls = {
+    _urls: ClassVar[dict] = {
         "details": "/movie/%s",
         "alternative_titles": "/movie/%s/alternative_titles",
         "changes": "/movie/%s/changes",

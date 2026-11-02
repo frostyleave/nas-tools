@@ -1,5 +1,6 @@
 import os
 import threading
+from typing import ClassVar
 
 from watchdog.events import FileSystemEventHandler
 from watchdog.observers import Observer
@@ -44,14 +45,15 @@ class Sync:
     filetransfer = None
     dbhelper = None
 
-    _sync_path_confs = {}
-    _monitor_sync_path_ids = []
-    _observer = []
-    _sync_paths = []
-    _synced_files = []
-    _need_sync_paths = {}
+    _sync_path_confs: dict
+    _monitor_sync_path_ids: list
+    _observer: list
+    _sync_paths: ClassVar[list] = []
+    _synced_files: ClassVar[list] = []
+    _need_sync_paths: ClassVar[dict] = {}
 
     def __init__(self):
+        self._observer = []
         self.init_config()
 
     def init_config(self):

@@ -1,3 +1,4 @@
+from typing import ClassVar
 import json
 import os
 import random
@@ -22,10 +23,10 @@ class CHDBits(_ISiteSigninHandler):
     site_url = "chdbits.co"
 
     # 已签到
-    _sign_regex = ['今天已经签过到了']
+    _sign_regex: ClassVar[list[str]] = ['今天已经签过到了']
 
     # 签到成功，待补充
-    _success_regex = ['\\d+点魔力值']
+    _success_regex: ClassVar[list[str]] = ['\\d+点魔力值']
 
     # 存储正确的答案，后续可直接查
     _answer_path = os.path.join(Config().get_temp_path(), "signin")

@@ -23,7 +23,7 @@ class Qbittorrent(_IDownloadClient):
     client_name = DownloaderType.QB.value
 
     # 私有属性
-    _client_config = {}
+    _client_config: dict
     _torrent_management = False
 
     qbc = None
@@ -32,11 +32,11 @@ class Qbittorrent(_IDownloadClient):
     port = None
     username = None
     password = None
-    download_dir = []
     name = "测试"
 
     def __init__(self, config):
         self._client_config = config
+        self.download_dir = []
         self.init_config()
         self.connect()
         # 种子自动管理模式，根据下载路径设置为下载器设置分类

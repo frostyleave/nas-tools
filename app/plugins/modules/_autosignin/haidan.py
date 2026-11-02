@@ -1,3 +1,4 @@
+from typing import ClassVar
 from app.helper.site_signin_helper import SiteSigninHelper, Verdict
 from app.models.model import UserSiteConf
 from app.plugins.modules._autosignin._base import _ISiteSigninHandler
@@ -13,7 +14,7 @@ class HaiDan(_ISiteSigninHandler):
     site_url = "haidan.cc"
 
     # 签到成功
-    _succeed_regex = ['(?<=value=")已经打卡(?=")']
+    _succeed_regex: ClassVar[list[str]] = ['(?<=value=")已经打卡(?=")']
 
     @classmethod
     def match(cls, url):

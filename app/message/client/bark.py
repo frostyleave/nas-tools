@@ -11,7 +11,7 @@ class Bark(_IMessageClient):
     _server = None
     _apikey = None
     _params = None
-    _client_config = {}
+    _client_config: dict
 
     def __init__(self, config):
         self._client_config = config

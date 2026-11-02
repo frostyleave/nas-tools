@@ -29,7 +29,6 @@ def singleconfig(cls):
 @singleconfig
 class Config:
     
-    _config = {}
     _config_path = None
     _user = None
 
@@ -52,6 +51,7 @@ class Config:
             self._config_path = os.path.join(dir_path, "config", "config.yaml")
         if not os.environ.get('TZ'):
             os.environ['TZ'] = 'Asia/Shanghai'
+        self._config = {}
         self.init_config()
 
     def init_config(self):

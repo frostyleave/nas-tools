@@ -1,3 +1,4 @@
+from typing import ClassVar
 import json
 import os
 import random
@@ -23,13 +24,13 @@ class FWpt(_ISiteSigninHandler):
     site_url = "https://52pt.site"
 
     # 已签到
-    _sign_regex = ['今天已经签过到了']
+    _sign_regex: ClassVar[list[str]] = ['今天已经签过到了']
 
     # 签到成功，待补充
-    _success_regex = ['获得 \\d+ 魔力值']
+    _success_regex: ClassVar[list[str]] = ['获得 \\d+ 魔力值']
 
     # 验证码错误
-    _invalid_captcha_code = ['验证码错误，请重新输入']
+    _invalid_captcha_code: ClassVar[list[str]] = ['验证码错误，请重新输入']
 
     # 存储正确的答案，后续可直接查
     _answer_path = os.path.join(Config().get_temp_path(), "signin")

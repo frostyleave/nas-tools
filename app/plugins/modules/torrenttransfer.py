@@ -1,3 +1,4 @@
+from typing import ClassVar
 import json
 import os.path
 from copy import deepcopy
@@ -58,10 +59,10 @@ class TorrentTransfer(_IPluginModule):
     # 退出事件
     _event = Event()
     # 待检查种子清单
-    _recheck_torrents = {}
+    _recheck_torrents: ClassVar[dict] = {}
     _is_recheck_running = False
     # 任务标签
-    _torrent_tags = ["已整理", "转移做种"]
+    _torrent_tags: ClassVar[list[str]] = ["已整理", "转移做种"]
 
     _recheck_job : Job | None = None
 

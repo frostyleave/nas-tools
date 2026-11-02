@@ -1,5 +1,6 @@
 import os
 import re
+from typing import ClassVar
 
 from app.media.meta._base import MetaBase
 from app.media.meta.customization import CustomizationMatcher
@@ -21,7 +22,7 @@ class MetaVideo(MetaBase):
     _continue_flag = True
     _unknown_name_str = ""
     _source = ""
-    _effect = []
+    _effect: list
     # 正则式区
     _season_re = r"S(\d{2})|^S(\d{1,2})$|S(\d{1,2})E"
     _episode_re = r"EP?(\d{2,4})$|^EP?(\d{1,4})$|^S\d{1,2}EP?(\d{1,4})$|S\d{2}EP?(\d{2,4})"
@@ -34,7 +35,7 @@ class MetaVideo(MetaBase):
     _name_no_begin_re = r"^\[.+?]"
     _name_no_url = r"((https?|ftp|file)://)?(www\.)?[-A-Z0-9+&@#/%?=~_|!:,;]*[-A-Z0-9+&@#/%=~_|](\.com|\.cn|\.org|\.net|\.edu|.\tv|.\.info)(?=[^A-Z0-9a-z])"
     _name_no_chinese_re = r".*版|.*字幕"
-    _name_se_words = ['共', '第', '季', '集', '话', '話', '期']
+    _name_se_words : ClassVar[list[str]] = ['共', '第', '季', '集', '话', '話', '期']
     _name_nostring_re = r"^PTS|^JADE|^AOD|^CHC|^[A-Z]{1,4}TV[\-0-9UVHDK]*" \
                         r"|HBO$|\s+HBO|\d{1,2}th|\d{1,2}bit|NETFLIX|AMAZON|IMAX|^3D|\s+3D|^BBC\s+|\s+BBC|BBC$|DISNEY\+?|XXX|\s+DC$" \
                         r"|[第\s共]+[0-9一二三四五六七八九十\-\s]+季" \

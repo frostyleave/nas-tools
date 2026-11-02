@@ -13,7 +13,7 @@ class PushPlus(_IMessageClient):
     _topic = None
     _channel = None
     _webhook = None
-    _client_config = {}
+    _client_config: dict
 
     def __init__(self, config):
         self._client_config = config

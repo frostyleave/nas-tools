@@ -13,7 +13,7 @@ class IndexerManager:
     站点索引配置管理器
     """
 
-    _indexers : list[SiteBaseModel] = []
+    _indexers : list[SiteBaseModel]
 
     def __init__(self):
         self.init_config()

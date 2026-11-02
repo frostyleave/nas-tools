@@ -15,18 +15,15 @@ class Aria2(_IDownloadClient):
     client_id = "aria2"
     client_type = DownloaderType.ARIA2
     client_name = DownloaderType.ARIA2.value
-    _client_config = {}
-
     _client = None
     host = None
     port = None
     secret = None
-    download_dir = []
     name = "aria2"
 
     def __init__(self, config=None):
-        if config:
-            self._client_config = config
+        self._client_config = config or {}
+        self.download_dir = []
         self.init_config()
         self.connect()
 

@@ -1,3 +1,4 @@
+from typing import ClassVar
 import datetime
 import random
 import re
@@ -19,7 +20,7 @@ class U2(_ISiteSigninHandler):
     site_url = "u2.dmhy.org"
 
     # 已签到
-    _sign_regex = ['<a href="showup.php">已签到</a>',
+    _sign_regex: ClassVar[list[str]] = ['<a href="showup.php">已签到</a>',
                    '<a href="showup.php">Show Up</a>',
                    '<a href="showup.php">Показать</a>',
                    '<a href="showup.php">已簽到</a>',

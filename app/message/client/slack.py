@@ -13,7 +13,7 @@ from config import Config
 class Slack(_IMessageClient):
     schema = "slack"
 
-    _client_config = {}
+    _client_config: dict
     _interactive = False
     _ds_url = None
     _service = None

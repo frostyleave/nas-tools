@@ -1,3 +1,4 @@
+from typing import ClassVar
 from app.media.tmdbv3api.as_obj import AsObj
 from app.media.tmdbv3api.tmdb import TMDb
 
@@ -8,7 +9,7 @@ except ImportError:
 
 
 class TV(TMDb):
-    _urls = {
+    _urls: ClassVar[dict] = {
         "details": "/tv/%s",
         "latest": "/tv/latest",
         "search_tv": "/search/tv",

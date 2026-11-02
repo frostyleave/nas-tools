@@ -20,11 +20,9 @@ class Telegram(_IMessageClient):
     _telegram_chat_id = None
     _webhook = None
     _webhook_url = None
-    _telegram_user_ids = []
-    _telegram_admin_ids = []
     _domain = None
     _message_proxy_event = None
-    _client_config = {}
+    _client_config: dict
     _interactive = False
     _enabled = True
     _api_key = None
@@ -37,6 +35,8 @@ class Telegram(_IMessageClient):
         self.init_config()
 
     def init_config(self):
+        self._telegram_user_ids = []
+        self._telegram_admin_ids = []
         if self._client_config:
             self._telegram_token = self._client_config.get('token')
             self._telegram_chat_id = self._client_config.get('chat_id')

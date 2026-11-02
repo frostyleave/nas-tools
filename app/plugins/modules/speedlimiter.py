@@ -1,3 +1,4 @@
+from typing import ClassVar
 import time
 
 import log
@@ -47,14 +48,12 @@ class SpeedLimiter(_IPluginModule):
     _download_unlimit = 0
     _upload_unlimit = 0
     # 不限速地址
-    _unlimited_ips = {"ipv4": "0.0.0.0/0", "ipv6": "::/0"}
+    _unlimited_ips: ClassVar[dict[str, str]] = {"ipv4": "0.0.0.0/0", "ipv6": "::/0"}
     # 智能上传限速标志
     _auto_limit = False
     # 总速宽
     _bandwidth = 0
     _allocation_ratio = 0
-    # 限速下载器
-    _limited_downloader_ids = []
     # 发送消息标志
     _notify = False
 
@@ -192,6 +191,7 @@ class SpeedLimiter(_IPluginModule):
     def init_config(self, config=None):
         self._downloader = Downloader()
         self._mediaserver = MediaServer()
+        self._limited_downloader_ids = []
 
         # 读取配置
         if config:

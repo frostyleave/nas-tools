@@ -1,3 +1,4 @@
+from typing import ClassVar
 import xml.dom.minidom
 from urllib.parse import urljoin
 
@@ -17,7 +18,7 @@ class RssHelper:
       RSS帮助类，解析RSS报文、获取RSS地址等
       """
     # 各站点RSS链接获取配置
-    rss_link_conf = {
+    rss_link_conf: ClassVar[dict] = {
         "default": {
             "xpath": "//a[@class='faqlink']/@href",
             "url": "getrss.php",

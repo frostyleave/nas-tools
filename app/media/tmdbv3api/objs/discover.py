@@ -1,3 +1,4 @@
+from typing import ClassVar
 from app.media.tmdbv3api.tmdb import TMDb
 
 try:
@@ -7,7 +8,7 @@ except ImportError:
 
 
 class Discover(TMDb):
-    _urls = {
+    _urls: ClassVar[dict] = {
         "movies": "/discover/movie",
         "tvs": "/discover/tv"
     }

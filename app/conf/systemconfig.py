@@ -1,3 +1,4 @@
+from typing import ClassVar
 import json
 
 from app.helper import DictHelper
@@ -8,7 +9,7 @@ from app.utils.types import SystemConfigKey
 @singleton
 class SystemConfig:
     # 系统设置
-    systemconfig = {}
+    systemconfig: ClassVar[dict] = {}
 
     def __init__(self):
         self.dicthelper = DictHelper()

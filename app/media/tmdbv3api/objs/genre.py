@@ -1,8 +1,9 @@
+from typing import ClassVar
 from app.media.tmdbv3api.tmdb import TMDb
 
 
 class Genre(TMDb):
-    _urls = {
+    _urls: ClassVar[dict] = {
         "movie_list": "/genre/movie/list",
         "tv_list": "/genre/tv/list"
     }

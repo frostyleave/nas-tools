@@ -1,3 +1,4 @@
+from typing import ClassVar
 import re
 import xml.dom.minidom
 from datetime import datetime
@@ -44,7 +45,7 @@ class DoubanRank(_IPluginModule):
     subscribe = None
     rsshelper = None
     media = None
-    _douban_address = {
+    _douban_address: ClassVar[dict] = {
         'movie-real-time': { 'addr' : 'https://rsshub.app/douban/movie/weekly/subject_real_time_hotest', 'name' : '实时热门书影音' },
         'movie_weekly_best': { 'addr' : 'https://rsshub.app/douban/movie/movie_weekly_best', 'name' : '一周电影口碑榜' },
         'movie-hot-gaia': { 'addr' : 'https://rsshub.app/douban/movie/weekly/movie_hot_gaia', 'name' : '热门电影' },
@@ -56,8 +57,6 @@ class DoubanRank(_IPluginModule):
     _enable = False
     _onlyonce = False
     _cron = ""
-    _rss_addrs = []
-    _ranks = []
     _vote = 0
     _useproxy = False
 
@@ -67,6 +66,8 @@ class DoubanRank(_IPluginModule):
         self.subscribe = Subscribe()
         self.rsshelper = RssHelper()
         self.media = MediaService()
+        self._rss_addrs = []
+        self._ranks = []
         if config:
             self._enable = config.get("enable")
             self._onlyonce = config.get("onlyonce")

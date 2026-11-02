@@ -31,18 +31,18 @@ class Transmission(_IDownloadClient):
     ]
 
     # 私有属性
-    _client_config = {}
+    _client_config: dict
 
     trc = None
     host = None
     port = None
     username = None
     password = None
-    download_dir = []
     name = "测试"
 
     def __init__(self, config):
         self._client_config = config
+        self.download_dir = []
         self.init_config()
         self.connect()
         # 设置未完成种子添加!part后缀

@@ -1,3 +1,4 @@
+from typing import ClassVar
 import logging
 import time
 from operator import attrgetter
@@ -19,7 +20,7 @@ class TMDb:
 
     _session : Session | None = None
 
-    _proxies = {}
+    _proxies: ClassVar[dict] = {}
     _language = 'zh'
     _domain = 'https://api.themoviedb.org/3'
     _api_key = ''

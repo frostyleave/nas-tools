@@ -1,4 +1,5 @@
 # author: https://github.com/jxxghp/MoviePilot/blob/main/app/modules/indexer/mtorrent.py
+from typing import ClassVar
 import re
 
 import log as logger
@@ -27,8 +28,8 @@ class MTorrentSpider:
     _host = None
 
     # 电影分类
-    _movie_category = ['401', '419', '420', '421', '439', '405', '404']
-    _tv_category = ['403', '402', '435', '438', '404', '405']
+    _movie_category: ClassVar[list[str]] = ['401', '419', '420', '421', '439', '405', '404']
+    _tv_category: ClassVar[list[str]] = ['403', '402', '435', '438', '404', '405']
 
     # API KEY
     _apikey = None
@@ -36,7 +37,7 @@ class MTorrentSpider:
     _token = None
 
     # 标签
-    _labels = {
+    _labels: ClassVar[dict] = {
         "0": "",
         "1": "DIY",
         "2": "国配",

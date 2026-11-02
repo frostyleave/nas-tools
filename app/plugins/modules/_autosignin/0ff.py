@@ -1,3 +1,4 @@
+from typing import ClassVar
 import re
 from urllib.parse import urljoin
 
@@ -21,10 +22,10 @@ class FreeFarm(_ISiteSigninHandler):
     _attendance_url = "https://pt.0ff.cc/attendance.php"
 
     # 已签到
-    _sign_regex = ['签到已得']
+    _sign_regex: ClassVar[list[str]] = ['签到已得']
 
     # 签到成功，待补充
-    _success_regex = ['今日签到排名']
+    _success_regex: ClassVar[list[str]] = ['今日签到排名']
 
     @classmethod
     def match(cls, url):

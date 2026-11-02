@@ -1,3 +1,4 @@
+from typing import ClassVar
 from datetime import datetime
 
 import requests
@@ -13,7 +14,7 @@ class Bangumi:
     https://bangumi.github.io/api/
     """
 
-    _urls = {
+    _urls: ClassVar[dict] = {
         "calendar": "calendar",
         "detail": "v0/subjects/%s",
     }

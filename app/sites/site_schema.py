@@ -17,7 +17,7 @@ class SitesschemaCenter:
     站点解析中心单例
     """
 
-    _site_schema : list[_ISiteUserInfo] = []
+    _site_schema : list[_ISiteUserInfo]
 
     def __init__(self):
 

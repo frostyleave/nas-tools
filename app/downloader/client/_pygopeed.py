@@ -10,7 +10,7 @@ SERVER_URI_FORMAT = '%s:%s/api/v1/tasks'
 class PyGopeed:
     _secret = None
     _server_uri = None
-    _headers = {}
+    _headers: dict
 
     def __init__(self, secret=None, host=DEFAULT_HOST, port=DEFAULT_PORT):
         """

@@ -18,19 +18,18 @@ class Emby(_IMediaClient):
     client_name = MediaServerType.EMBY.value
 
     # 私有属性
-    _client_config = {}
     _serverid = None
     _apikey = None
     _host = None
     _play_host = None
     _admin_user = None
-    _folders = []
 
     def __init__(self, config=None):
         if config:
             self._client_config = config
         else:
             self._client_config = Config().get_config('emby')
+        self._folders = []
         self.init_config()
 
     def init_config(self):

@@ -11,11 +11,9 @@ class SysMessageCenter:
     系统消息中心
     """
 
-    _message_queue = deque(maxlen=50)
-    _message_index = 0
-
     def __init__(self):
-        pass
+        self._message_queue = deque(maxlen=50)
+        self._message_index = 0
 
     def insert_system_message(self, title, content=None):
         """

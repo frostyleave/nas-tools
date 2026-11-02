@@ -52,9 +52,9 @@ class _DownloadContentInfo:
 @singleton
 class Downloader:
     # 客户端实例
-    clients = {}
+    clients: dict
 
-    _downloader_schema = []
+    _downloader_schema: list
     _scheduler = None
     _torrent_temp_path = None
 

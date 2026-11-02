@@ -10,12 +10,12 @@ from app.utils.commons import singleton
 class IyuuHelper:
     _version = "2.0.0"
     _api_base = "http://api.bolahg.cn/%s"
-    _sites = {}
     _token = None
     _sid_sha1 = None
 
     def __init__(self, token):
         self._token = token
+        self._sites = {}
         if self._token:
             self.init_config()
 

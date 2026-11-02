@@ -21,7 +21,6 @@ class Plex(_IMediaClient):
     client_name = MediaServerType.PLEX.value
 
     # 私有属性
-    _client_config = {}
     _host = None
     _token = None
     _username = None
@@ -29,13 +28,13 @@ class Plex(_IMediaClient):
     _servername = None
     _plex = None
     _play_host = None
-    _libraries = []
 
     def __init__(self, config=None):
         if config:
             self._client_config = config
         else:
             self._client_config = Config().get_config('plex')
+        self._libraries = []
         self.init_config()
 
     def init_config(self):

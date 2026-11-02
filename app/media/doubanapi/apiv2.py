@@ -1,3 +1,4 @@
+from typing import ClassVar
 import base64
 import hashlib
 import hmac
@@ -17,7 +18,7 @@ from app.utils.commons import singleton
 
 @singleton
 class DoubanApi:
-    _urls = {
+    _urls: ClassVar[dict] = {
         # 搜索类
         # sort=U:近期热门 T:标记最多 S:评分最高 R:最新上映
         # q=search_word&start=0&count=20&sort=U
@@ -147,7 +148,7 @@ class DoubanApi:
 
     }
 
-    _user_agents = [
+    _user_agents: ClassVar[list[str]] = [
         "api-client/1 com.douban.frodo/7.22.0.beta9(231) Android/23 product/Mate 40 vendor/HUAWEI model/Mate 40 brand/HUAWEI  rom/android  network/wifi  platform/AndroidPad"
         "api-client/1 com.douban.frodo/7.18.0(230) Android/22 product/MI 9 vendor/Xiaomi model/MI 9 brand/Android  rom/miui6  network/wifi  platform/mobile nd/1",
         "api-client/1 com.douban.frodo/7.1.0(205) Android/29 product/perseus vendor/Xiaomi model/Mi MIX 3  rom/miui6  network/wifi  platform/mobile nd/1",

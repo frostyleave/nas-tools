@@ -13,13 +13,10 @@ class Gopeed(_IDownloadClient):
     client_id = "gopeed"
     client_type = DownloaderType.Gopeed
     client_name = DownloaderType.Gopeed.value
-    _client_config = {}
-
     _client = None
     host = None
     port = None
     secret = None
-    download_dir = []
     name = "gopeed"
 
     magnet_prefix = 'magnet:?xt=urn:btih:'
@@ -28,8 +25,8 @@ class Gopeed(_IDownloadClient):
     magnet_hash_tr = '&tr='
 
     def __init__(self, config=None):
-        if config:
-            self._client_config = config
+        self._client_config = config or {}
+        self.download_dir = []
         self.init_config()
         self.connect()
 

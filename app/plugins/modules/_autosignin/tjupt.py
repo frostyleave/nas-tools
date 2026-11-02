@@ -1,3 +1,4 @@
+from typing import ClassVar
 import json
 import os
 import time
@@ -24,7 +25,7 @@ class Tjupt(_ISiteSigninHandler):
     _sign_in_url = 'https://www.tjupt.org/attendance.php'
 
     # 已签到
-    _sign_regex = ['<a href="attendance.php">今日已签到</a>']
+    _sign_regex: ClassVar[list[str]] = ['<a href="attendance.php">今日已签到</a>']
 
     # 签到成功
     _succeed_regex = ['这是您的首次签到，本次签到获得\\d+个魔力值。',

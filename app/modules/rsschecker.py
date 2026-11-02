@@ -1,3 +1,4 @@
+from typing import ClassVar
 import json
 import time
 
@@ -35,9 +36,9 @@ class RssChecker:
     dbhelper = None
     rsshelper = None
 
-    _rss_tasks = []
-    _rss_parsers = []
-    _site_users = {
+    _rss_tasks: list
+    _rss_parsers: list
+    _site_users: ClassVar[dict[str, str]] = {
         "D": "下载",
         "R": "订阅",
         "S": "搜索"

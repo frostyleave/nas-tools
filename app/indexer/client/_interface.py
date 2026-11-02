@@ -12,7 +12,7 @@ from config import Config
 
 class InterfaceSpider:
 
-    torrents_info_array = []
+    torrents_info_array: list
     result_num = 100
 
     def __init__(self, indexer:IndexerInfo):

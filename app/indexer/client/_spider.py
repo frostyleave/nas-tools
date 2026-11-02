@@ -32,22 +32,12 @@ class TorrentSpider:
     render = False
     # Referer
     referer = None
-    # 搜索路径、方式配置
-    search_conf = {}
-    # 浏览配置
-    browse = {}
-    # 站点分类配置
-    category = {}
-    # 站点种子列表配置
-    list_conf = {}
-    # 站点种子字段配置
-    fields_conf = {}
     # 页码
     page = 0
     # 搜索条数
     result_num = 100
     # 种子列表
-    torrents_info_array = []
+    torrents_info_array: list
     # 超时时间
     timeout = 20
 
@@ -55,6 +45,11 @@ class TorrentSpider:
 
         self.torrents_info_array = []
         self.result_num = 100
+        self.browse = {}
+        self.search_conf = {}
+        self.category = {}
+        self.list_conf = {}
+        self.fields_conf = {}
         # 索引器
         if indexer:
             self._indexer = indexer

@@ -1,3 +1,4 @@
+from typing import ClassVar
 import json
 import re
 
@@ -16,7 +17,7 @@ class DoubanWebApi:
 
     _person_url = "https://www.douban.com/j"
     
-    _urls = {
+    _urls: ClassVar[dict] = {
 
         "search_subject": "/search/subjects?q=%s",
 

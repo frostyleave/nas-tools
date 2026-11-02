@@ -1,3 +1,4 @@
+from typing import ClassVar
 import re
 import time
 from copy import deepcopy
@@ -51,31 +52,22 @@ class IYUUAutoSeedEnhance(_IPluginModule):
     _cron = None
     _onlyonce = False
     _token = None
-    _downloaders = []
-    _sites = []
     _notify = False
     _nolabels = None
     _clearcache = False
     # 退出事件
     _event = Event()
     # 种子链接xpaths
-    _torrent_xpaths = [
+    _torrent_xpaths: ClassVar[list[str]] = [
         "//form[contains(@action, 'download.php?id=')]/@action",
         "//a[contains(@href, 'download.php?hash=')]/@href",
         "//a[contains(@href, 'download.php?id=')]/@href",
         "//a[@class='index'][contains(@href, '/dl/')]/@href",
     ]
-    _torrent_tags = ["已整理", "辅种"]
+    _torrent_tags: ClassVar[list[str]] = ["已整理", "辅种"]
     # 待校全种子hash清单
-    _recheck_torrents = {}
+    _recheck_torrents: ClassVar[dict] = {}
     _is_recheck_running = False
-    # 辅种缓存，出错的种子不再重复辅种，可清除
-    _error_caches = []
-    # 辅种缓存，辅种成功的种子，可清除
-    _success_caches = []
-    # 辅种缓存，出错的种子不再重复辅种，且无法清除。种子被删除404等情况
-    _permanent_error_caches = []
-    _history_list = []
     # 辅种计数
     total = 0
     realtotal = 0
@@ -215,6 +207,12 @@ class IYUUAutoSeedEnhance(_IPluginModule):
     def init_config(self, config=None):
         self.downloader = Downloader()
         self.sites = Sites()
+        self._downloaders = []
+        self._sites = []
+        self._error_caches = []
+        self._success_caches = []
+        self._permanent_error_caches = []
+        self._history_list = []
         # 读取配置
         if config:
             self._enable = config.get("enable")

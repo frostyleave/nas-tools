@@ -9,7 +9,7 @@ class ServerChan(_IMessageClient):
     schema = "serverchan"
 
     _sckey = None
-    _client_config = {}
+    _client_config: dict
 
     def __init__(self, config):
         self._client_config = config

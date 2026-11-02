@@ -17,7 +17,6 @@ class Jellyfin(_IMediaClient):
     client_name = MediaServerType.JELLYFIN.value
 
     # 私有属性
-    _client_config = {}
     _serverid = None
     _apikey = None
     _host = None

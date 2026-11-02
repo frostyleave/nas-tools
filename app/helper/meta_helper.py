@@ -21,7 +21,7 @@ class MetaHelper:
         "type": MediaType
     }
     """
-    _meta_data = {}
+    _meta_data: dict
 
     _meta_path = None
     _tmdb_cache_expire = False

@@ -1,3 +1,4 @@
+from typing import ClassVar
 import re
 
 from app.helper.site_signin_helper import SiteSigninHelper, Verdict
@@ -15,7 +16,7 @@ class TTG(_ISiteSigninHandler):
     site_url = "totheglory.im"
 
     # 已签到
-    _sign_regex = ['<b style="color:green;">已签到</b>']
+    _sign_regex: ClassVar[list[str]] = ['<b style="color:green;">已签到</b>']
     _sign_text = '亲，您今天已签到过，不要太贪哦'
 
     # 签到成功
