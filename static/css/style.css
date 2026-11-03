@@ -1234,7 +1234,6 @@ h1.login_title>label {
 
 .overview-container {
     background-color: var(--card-transparent-bg);
-    /* border: 1px solid var(--lit-person-card-bg); */
     border-radius: 5px;
     margin-left: calc(var(--tblr-gutter-x) * .5);
 }
@@ -1245,7 +1244,7 @@ h1.login_title>label {
 }
 
 .theme-dark .secondry-text-color {
-    color: #6c7a91 !important;
+    color: #b0bac9 !important;
 }
 
 #main-info-container {

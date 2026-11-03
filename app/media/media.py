@@ -915,10 +915,13 @@ class MediaService:
         """
         if media_info.type == MediaType.MOVIE or not media_info:
             return
-        if not media_info.begin_season:
+        if media_info.begin_season == None \
+            or (media_info.begin_season == 0 and media_info.rev_string.lower().find('s00') < 0):
             media_info.begin_season = 1
+
         if not media_info.begin_episode or not media_info.tmdb_info:
             return
+        
         tmdb_info = media_info.tmdb_info
         season_count = len(tmdb_info.seasons)
         if season_count <= 0:

@@ -1,6 +1,6 @@
 # author: https://github.com/jxxghp/MoviePilot/blob/main/app/modules/indexer/mtorrent.py
-from typing import ClassVar
 import re
+from typing import ClassVar
 
 import log as logger
 from app.models.model import IndexerInfo

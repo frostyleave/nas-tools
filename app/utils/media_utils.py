@@ -174,7 +174,7 @@ class MediaUtils:
         """
         # 正则表达式匹配季和集信息
         season_pattern = r"(S\d{1,2})"
-        episode_pattern = r"(E\d{1,3})"
+        episode_pattern = r"(E\d{1,4})"
 
         if not subtitle:
             subtitle = ''
