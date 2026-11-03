@@ -24,31 +24,6 @@ Date.prototype.format = function (format) {
   return format;
 }
 
-function menuSwithWait() {
-  $("#page-content").hide();
-  $("#loading-tips").show();
-}
-
-function hideLoading() {
-  $("#loading-tips").hide();
-  $("#page-content").show();
-}
-
-
-/**
- * 显示加载动画
- */
-function showLoadingWave() {
-  document.getElementById('loadingOverlay').style.display = 'flex';
-}
-
-/**
- * 隐藏加载动画
- */
-function hideLoadingWave() {
-  document.getElementById('loadingOverlay').style.display = 'none';
-}
-
 // 备份文件下载
 function ajax_backup(handler) {
   const downloadURL = "/backup";

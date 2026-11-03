@@ -134,6 +134,8 @@ router
   // 404处理
   .notFound(() => {
     $("#page-content").html(`<system-error title="404" text='没有找到这个页面，请检查是不是输错地址了...'></system-error>`);
+    // 未经过 loadPage 流程，需手动结束加载状态，否则提示会一直停留
+    hidePageLoading();
   })
   
 ;
@@ -147,12 +149,8 @@ function showLogin() {
   $('#login-container').removeClass('d-none');
   $("body").addClass("no-after");
 
-  if (typeof hideLoading != 'undefined') {
-    // 隐藏等待动画
-    hideLoading();
-    // 关闭加载标记
-    NavPageLoading = false;
-  }
+  // 隐藏等待动画并关闭加载标记
+  hidePageLoading();
 
 }
 
@@ -180,10 +178,8 @@ function loadPage(htmlPath, queryString) {
   // 直接加载HTML文件
   $("#page-content").load(htmlPath, function(_, status, xhr) {
 
-    // 隐藏等待动画
-    hideLoading();
-    // 关闭加载标记
-    NavPageLoading = false;
+    // 隐藏等待动画并关闭加载标记
+    hidePageLoading();
 
     if (status == "error") {
       $("#page-content").html(`<system-error title="${xhr.status}" text="${xhr.statusText || ''}"></system-error>`);
@@ -257,16 +253,28 @@ function navmenu(page) {
     NavPageXhr.abort();
   }
   
-  // 显示等待动画
-  menuSwithWait();
-
-  // 加载新页面
-  NavPageLoading = true;
+  // 显示等待动画并标记加载中
+  showPageLoading();
 
   // 页面切换
   navigateTo(page);
 
 }
+
+// 页面切换：显示加载提示，隐藏页面内容
+function showPageLoading() {
+  $("#page-content").hide();
+  $("#loading-tips").show();
+  NavPageLoading = true;
+}
+
+// 页面切换完成：隐藏加载提示，显示页面内容并重置加载标记
+function hidePageLoading() {
+  $("#loading-tips").hide();
+  $("#page-content").show();
+  NavPageLoading = false;
+}
+
 
 // 页面切换
 function navigateTo(target) {

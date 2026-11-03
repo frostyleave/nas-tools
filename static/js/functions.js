@@ -62,7 +62,7 @@ function media_search(tmdbid, title, type) {
 
       });
 
-  }, show_progress=false);
+  }, false); // 已有进度弹窗，不显示全局加载遮罩
 
 }
 
@@ -806,7 +806,6 @@ function render_progress(ret, callback) {
 // 显示全局进度框
 function show_progress_modal(title) {
   
-  hideLoading();
   if (title) {
     $("#modal_process_title").text(title);
   } else {
