@@ -431,12 +431,14 @@ async def sites_page():
             new_item['download'] = statistic_info.DOWNLOAD
             new_item['seeding'] = statistic_info.SEEDING
             new_item['bonus'] = statistic_info.BONUS
+            new_item['level'] = statistic_info.USER_LEVEL
         else:
             new_item['ratio'] = 0
             new_item['upload'] = 0
             new_item['download'] = 0
             new_item['seeding'] = 0
             new_item['bonus'] = 0
+            new_item['level'] = ''
 
     return response(data=
         {
