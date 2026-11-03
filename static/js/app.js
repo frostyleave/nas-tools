@@ -1,5 +1,7 @@
 // 页面正在加载中的标志
 let NavPageLoading = false;
+// 页面切换占用的加载遮罩令牌
+let PageLoadingToken = null;
 // 加载中页面的字柄
 let NavPageXhr;
 // 是否允许打断弹窗
@@ -163,6 +165,9 @@ function loadPage(htmlPath, queryString) {
   $('#app-layout').removeClass('d-none');
   $("body").removeClass("no-after");
 
+  // 覆盖直接打开/刷新页面的场景；经 navmenu 进入时令牌已存在，不会重复显示
+  showPageLoading();
+
   let params = {};
   // 把htmlPath中的参数把参数挂到容器上
   const [path, paramString] = htmlPath.split("?");
@@ -261,18 +266,25 @@ function navmenu(page) {
 
 }
 
-// 页面切换：显示加载提示，隐藏页面内容
+// 页面切换：显示加载动画，隐藏页面内容
 function showPageLoading() {
   $("#page-content").hide();
-  $("#loading-tips").show();
   NavPageLoading = true;
+  if (PageLoadingToken === null) {
+    PageLoadingToken = LoadingOverlay.show();
+  }
 }
 
-// 页面切换完成：隐藏加载提示，显示页面内容并重置加载标记
+// 页面切换完成：显示页面内容并释放页面加载动画
 function hidePageLoading() {
+  // 清理页面内自行使用的加载提示（如 ranking 页）
   $("#loading-tips").hide();
   $("#page-content").show();
   NavPageLoading = false;
+  if (PageLoadingToken !== null) {
+    LoadingOverlay.hide(PageLoadingToken);
+    PageLoadingToken = null;
+  }
 }
 
 

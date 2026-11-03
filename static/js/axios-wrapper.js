@@ -21,9 +21,10 @@ const apiClient = axios.create({
  * @param {object} config - 请求配置
  */
 function releaseLoadingOverlay(config) {
-    if (config && !config.silent && config._loadingShown) {
-        config._loadingShown = false;
-        LoadingOverlay.hide();
+    // silent 请求不会分配令牌，判断令牌即可
+    if (config && config._loadingToken !== undefined) {
+        LoadingOverlay.hide(config._loadingToken);
+        config._loadingToken = undefined;
     }
 }
 
@@ -33,9 +34,8 @@ function releaseLoadingOverlay(config) {
  */
 apiClient.interceptors.request.use(
     (config) => {
-        if (!config.silent && !config._loadingShown) {
-            config._loadingShown = true;
-            LoadingOverlay.show();
+        if (!config.silent && config._loadingToken === undefined) {
+            config._loadingToken = LoadingOverlay.show();
         }
         return config;
     },
@@ -62,7 +62,7 @@ apiClient.interceptors.response.use(
                 // 尝试刷新Token
                 await window.authManager.handle401Error();
 
-                // 重试原始请求：_loadingShown 仍为 true，不会重复显示加载动画
+                // 重试原始请求：_loadingToken 仍存在，不会重复显示加载动画
                 return apiClient(originalRequest);
             } catch (refreshError) {
                 // 刷新失败，已经在authManager中处理了重定向

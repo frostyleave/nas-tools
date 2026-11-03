@@ -452,14 +452,6 @@ let GitPanelHasUpdate = false;
 let GitPanelIsDocker = false;
 const GIT_PANEL_MAX_ROWS = 5000;
 
-function update_system() {
-  // 打开面板；开始更新必须先检查到新版本
-  GitPanelHasUpdate = false;
-  git_panel_sync_buttons();
-  $("#modal-git-update").modal("show");
-  git_panel_refresh_info();
-}
-
 // 根据状态刷新底部按钮
 function git_panel_sync_buttons() {
   const can_check = !GitPanelRunning && !GitPanelChecking;
@@ -1747,16 +1739,6 @@ function openFileBrowser(el, root, filter, on_folders, on_files, close_on_select
   });
   // Open fileTree
   ft.slideDown('fast');
-}
-
-// 初始化目录选择控件
-function init_filetree_element() {
-  $('.filetree-folders-only').each(function () {
-    $(this).attr("onclick", "openFileBrowser(this,$(this).val(),'',true,false);");
-  });
-  $('.filetree-files-only').each(function () {
-    $(this).attr("onclick", "openFileBrowser(this,$(this).val(),'',false,true);");
-  });
 }
 
 // 名称识别测试

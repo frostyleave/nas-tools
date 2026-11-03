@@ -336,6 +336,14 @@
     }
   }
 
+  // 打开 Git 系统更新面板；开始更新必须先检查到新版本
+  function update_system() {
+    GitPanelHasUpdate = false;
+    git_panel_sync_buttons();
+    $("#modal-git-update").modal("show");
+    git_panel_refresh_info();
+  }
+
   // 运行服务
   function run_scheduler(id, name) {
     const data = {"item": id};

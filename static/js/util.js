@@ -491,6 +491,16 @@ function fresh_tooltip() {
   });
 }
 
+// 初始化目录选择控件
+function init_filetree_element() {
+  $('.filetree-folders-only').each(function () {
+    $(this).attr("onclick", "openFileBrowser(this,$(this).val(),'',true,false);");
+  });
+  $('.filetree-files-only').each(function () {
+    $(this).attr("onclick", "openFileBrowser(this,$(this).val(),'',false,true);");
+  });
+}
+
 // 将弹窗提升到当前已打开弹窗之上，避免被实时日志等弹窗遮挡
 function raise_modal_above_others($modal) {
   let maxZ = 0;
