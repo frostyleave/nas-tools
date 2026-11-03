@@ -36,6 +36,15 @@
 </div>
 <div class="page-body" id="sites-container" style="display: none;">
   <div class="container-xl">
+    <div class="mb-3">
+      <div class="input-icon">
+        <span class="input-icon-addon">
+          <i class="ti ti-search"></i>
+        </span>
+        <input type="text" id="site_search" class="form-control" placeholder="搜索站点名称" autocomplete="off"
+          aria-label="搜索站点">
+      </div>
+    </div>
     <div class="d-grid gap-3 grid-info-card" id="active-list">
     </div>
     <div class="d-grid gap-3 grid-info-card mt-2" id="sites-list">
@@ -43,6 +52,7 @@
   </div>
 </div>
 
+<nodata-found id="no-search-result" title="未找到站点" text="没有名称匹配的站点，请调整搜索关键词。" style="display: none;"></nodata-found>
 <nodata-found id="no-sites" title="没有站点" text='没有添加任何站点，请点击”新增站点“按钮。' style="display: none;"></nodata-found>
 
 <div class="modal modal-blur fade" id="modal-site" tabindex="-1" role="dialog" aria-hidden="true"
@@ -837,6 +847,32 @@
     return parseFloat(value.toFixed(2)) + sizes[i];
   }
 
+  // 搜索站点：按卡片名称过滤
+  function filter_site_cards(keyword) {
+    const kw = (keyword || '').trim().toLowerCase();
+    let visible = 0;
+    $('#active-list, #sites-list').find('.card').each(function () {
+      const name = $(this).find('a.text-reset.card-text').text().trim().toLowerCase();
+      const matched = kw === '' || name.includes(kw);
+      $(this).toggle(matched);
+      if (matched) {
+        visible++;
+      }
+    });
+    // 有关键词但无匹配卡片时显示提示
+    $('#no-search-result').toggle(kw !== '' && visible === 0);
+  }
+
+  // 绑定搜索框事件
+  $('#site_search').off('input').on('input', function () {
+    filter_site_cards(this.value);
+  }).off('keydown').on('keydown', function (event) {
+    if (event.key === 'Escape') {
+      this.value = '';
+      filter_site_cards('');
+    }
+  });
+
 </script>
 
 <script type="text/javascript">
@@ -858,7 +894,7 @@
         </thead>
         <tbody class="fw-bold">
           <tr>
-            <td class="p-0 text-azure">${site.ratio}</td>
+            <td class="p-0 text-azure">${site.ratio == 0.0 || site.ratio > 10000 ? 'Infinity' : site.ratio.toFixed(2)}</td>
             <td class="p-0 text-indigo">${formatFileSize(site.upload)}</td>
             <td class="p-0 text-purple">${formatFileSize(site.download)}</td>
           </tr>
@@ -873,7 +909,7 @@
         <span title="上传量"><i class="ti ti-arrow-up text-indigo"></i> ${formatFileSize(site.upload)}</span>
         <span class="ms-1" title="下载量"><i class="ti ti-arrow-down text-purple"></i> ${formatFileSize(site.download)}</span>
         <span class="ms-1" title="做种数"><i class="ti ti-seedling text-orange"></i> ${site.seeding}</span>
-        <span class="ms-1" title="分享率"><i class="ti ti-share text-azure"></i> ${site.ratio}</span>
+        <span class="ms-1" title="分享率"><i class="ti ti-share text-azure"></i> ${site.ratio == 0.0 || site.ratio > 10000 ? 'Infinity' : site.ratio.toFixed(2)}</span>
         <span class="ms-1" title="魔力值"><i class="ti ti-diamond"></i> ${formatNumber(site.bonus)}</span>
       </div>
     `;
@@ -964,7 +1000,10 @@
                         <div class="form-switch">
                           <input name="indexer_sites" type="checkbox" class="form-check-input" value="${site.indexer_id}" ${data.indexerSites.includes(site.indexer_id) ? 'checked' : ''}>
                         </div>
-                        <span><a class="text-reset card-text" href="${site.strict_url}" target="_blank">${site.name}</a></span>
+                        <span>
+                          <a class="text-reset card-text" href="${site.strict_url}" target="_blank">${site.name}</a>
+                          ${site.level ? `<span class="badge bg-primary-lt text-blue ms-1">${site.level}</span>` : ''}
+                        </span>
                       </div>
                       <div class="col-auto">
                         <a href="javascript:ask_refresh_statistics('${site.name}')" class="btn-icon me-1" title="刷新站点数据" >
@@ -1010,6 +1049,9 @@
             }
 
           });
+
+          // 卡片渲染完成后应用当前搜索关键词
+          filter_site_cards($('#site_search').val());
 
           // 生成站点测试表格行
           const testTableBody = $('#modal-sitetest tbody');
