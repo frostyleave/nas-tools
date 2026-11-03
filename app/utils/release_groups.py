@@ -23,6 +23,7 @@ class ReleaseGroupsMatcher:
         "btschool": ['Bts(?:CHOOL|HD|PAD|TV)', 'Zone'],
         "BeyondHD": ['BYNDR'],
         "carpt": ['CarPT'],
+        "colapt": ['COLAWEB'],
         "cspt": ['CSWEB','CSPT','HSWEB','HSPT'],
         "chdbits": ['CHD(?:|Bits|PAD|(?:|HK)TV|WEB)', 'StBOX', 'OneHD', 'Lee', 'xiaopie'],
         "dstudio": ['DS','DStudio','DepWeb','DSAudio'],
@@ -58,7 +59,8 @@ class ReleaseGroupsMatcher:
         "xingyungept": ['StarfallWeb'],
         "zmpt": ['ZmWeb', 'ZmAudio'],
         "others": ['B(?:MDru|eyondHD|TN)', 'C(?:fandora|trlhd|MRG)', 'DON', 'EVO', 'FLUX', 'HONE(?:|yG)',
-                   'N(?:oGroup|T(?:b|G))', 'PandaMoon', 'SMURF', 'T(?:EPES|aengoo|rollHD )'],
+                   'N(?:oGroup|T(?:b|G))', 'PandaMoon', 'SMURF', 'T(?:EPES|aengoo|rollHD )', 
+                   'Kitsune', 'SPWEB', 'SLOT', 'FLIX', 'KyoGo', 'TeamSyndicate'],
         "anime": ['ANi', 'HYSUB', 'KTXP', 'LoliHouse', 'MCE', 'Nekomoe kissaten', r'(\d|\w|[\u4e00-\u9fa5])+-Raws',
                   '织梦字幕组', '豌豆字幕组&风之圣殿字幕组', '豌豆&风之圣殿字幕组', '风之圣殿字幕组', '豌豆字幕组']
     }

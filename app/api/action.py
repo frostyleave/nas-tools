@@ -3420,7 +3420,9 @@ class WebAction:
 
             if douban_info:
                 # 名称解析
-                title = self.__try_get_ch_title_from_douban(doubanId, douban_info)
+                title = data.get("title")
+                if not title or not StringUtils.is_all_chinese_and_mark(title):
+                    title = self.__try_get_ch_title_from_douban(doubanId, douban_info)
                 # 根据媒体类型赋值
                 if mtype != MediaType.MOVIE:
                     overview = douban_info.get('intro')
@@ -3607,18 +3609,17 @@ class WebAction:
             return title
         
         if douban_info.get('alt_title'):
-            alt_title = douban_info.get('alt_title').split('/')
-            if len(alt_title) == 1:
-                title = alt_title[0]
-                if StringUtils.is_all_chinese_and_mark(title):
-                    return title
-            else:
-                cn_title = next(filter(lambda t: StringUtils.is_all_chinese_and_mark(t), alt_title), None)
+            alt_titles = StringUtils.split_and_strip(douban_info.get('alt_title'))
+            if alt_titles:
+                cn_title = next(filter(StringUtils.is_all_chinese_and_mark, alt_titles), None)
                 if cn_title:
-                    return cn_title.strip()
+                    return cn_title
         
         douban_info = self._douBan.get_douban_detail(douban_id)
-        return douban_info.get("title")
+        if douban_info:
+            return douban_info.get("title")
+        
+        return title
 
     def __media_similar(self, data):
         """

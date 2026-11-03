@@ -794,6 +794,19 @@ class StringUtils:
         return False
     
     @staticmethod
+    def split_and_strip(text: str, delimiter: str = "/") -> list:
+        """
+        将字符串按指定分隔符分割，对每个元素去除首尾空白，并丢弃去除后为空的元素。
+
+        :param text: 要处理的字符串
+        :param delimiter: 用于分割的分隔符
+        :return: 去除首尾空白且非空的列表
+        """
+        if not text:
+            return []
+        return [part for p in text.split(delimiter) if (part := p.strip())]
+
+    @staticmethod
     def split_and_filter(text: str, delimiter: str) -> list:
         """
         将字符串按指定分隔符分割，并移除空字符串。
