@@ -241,7 +241,7 @@ class TorrentSpider:
                 # 解码为字符串
                 return raw_data.decode(encoding)
             except Exception as e:
-                log.debug(f"chardet解码失败: {str(e)}")
+                log.debug(f"chardet解码失败: {e!s}")
                 # 探测utf-8解码
                 if re.search(r"charset=\"?utf-8\"?", ret.text, re.IGNORECASE):
                     ret.encoding = "utf-8"

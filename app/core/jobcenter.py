@@ -12,6 +12,7 @@ from apscheduler.schedulers.base import STATE_STOPPED
 
 import log
 from app.utils.commons import singleton
+from app.utils.scheduler_desc_utils import SchedulerDescUtils
 from config import Config
 
 
@@ -31,6 +32,9 @@ class JobCenter:
     _scheduler_list : ClassVar[list] = (_sys_scheduler, _plg_scheduler)
 
     def __init__(self):
+
+        # 正在执行的任务ID
+        self._running_jobs: set[str] = set()
 
         # BackgroundScheduler init
         for _scheduler in self._scheduler_list:
@@ -77,7 +81,9 @@ class JobCenter:
                 log.debug(f'【System】定时服务({_scheduler.name})不在运行中')
             except Exception as e:
                 log.exception(f'【System】停止定时服务({_scheduler.name})出错: ')
-   
+
+        self._running_jobs.clear()
+
     def get_sys_scheduler(self) -> BackgroundScheduler:
         """获取系统任务管理器"""
         return self._sys_scheduler
@@ -100,13 +106,16 @@ class JobCenter:
         jobs_list = []
 
         for _scheduler in self._scheduler_list:
-        
+
             # 1. 调用底层的 get_jobs()
             all_jobs = _scheduler.get_jobs()
-            
+
             if not all_jobs:
                 continue
-                
+
+            # 是否插件任务
+            from_plugin = _scheduler is self._plg_scheduler
+
             # 2. 遍历 Job 对象，将其转换为字典
             for job in all_jobs:
                 job_data = {
@@ -115,7 +124,10 @@ class JobCenter:
                     "func_ref": str(job.func_ref), # 运行的函数
                     "trigger_type": str(job.trigger.__class__.__name__), # 'IntervalTrigger', 'CronTrigger', 'DateTrigger'
                     "trigger_details": str(job.trigger), # 触发器的详细信息 (例如 "interval[0:00:10]")
+                    "trigger_text": SchedulerDescUtils.describe(job.trigger), # 执行频率的文字描述
                     "pending": job.pending, # 是否待处理
+                    "running": job.id in self._running_jobs, # 是否正在执行
+                    "from_plugin": from_plugin, # 是否来自插件
                 }
                 
                 # 3. 安全地处理 next_run_time (它可能为 None)
@@ -137,6 +149,7 @@ class JobCenter:
 
     def _job_start_listener(self, event):
         """监听 job 开始执行"""
+        self._running_jobs.add(event.job_id)
         job = self.get_job(event.job_id)
         if job:
             job_name = job.name or job.id
@@ -146,6 +159,7 @@ class JobCenter:
 
     def _job_end_listener(self, event):
         """监听 job 执行完毕（无论成功还是失败）"""
+        self._running_jobs.discard(event.job_id)
         job = self.get_job(event.job_id)
         if not job:
             return

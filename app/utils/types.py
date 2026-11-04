@@ -27,7 +27,7 @@ class SearchType(Enum):
     WX = "微信"
     WEB = "WEB"
     DB = "豆瓣"
-    RSS = "电影/电视剧订阅"
+    RSS = "RSS订阅"
     USERRSS = "自定义订阅"
     OT = "手动下载"
     TG = "Telegram"

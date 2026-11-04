@@ -1,13 +1,12 @@
 <style>
-  /* 固定布局，确保 colgroup 生效 */
-  #modal-job-list table {
-      table-layout: fixed;
+  /* 定时任务列表：弱化分割线，悬浮时给出轻微反馈 */
+  #modal-job-list .list-group-item {
+      border-color: var(--tblr-border-color-translucent);
+      transition: background-color .15s ease;
   }
 
-  #modal-job-list table th,
-  #modal-job-list table td {
-      white-space: normal;
-      word-break: break-word;
+  #modal-job-list .list-group-item:hover {
+      background-color: var(--tblr-bg-surface-secondary);
   }
 
 </style>
@@ -253,31 +252,14 @@
   <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable" role="document">
     <div class="modal-content">
       <div class="modal-header">
-        <h5 class="modal-title">定时任务</h5>
+        <div class="d-flex align-items-center flex-wrap gap-2">
+          <h5 class="modal-title">定时任务</h5>
+          <span class="text-muted small" id="job-list-summary">加载中...</span>
+        </div>
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
-      <div class="table-responsive table-modal-body">
-        <table class="table table-vcenter card-table">
-          <colgroup>
-            <col style="width: 20%">
-            <col style="width: 50%">
-            <col style="width: 10%">
-            <col style="width: 20%">
-          </colgroup>
-          <thead>
-            <tr>
-              <th>名称</th>
-              <th>触发器</th>
-              <th>是否待处理</th>
-              <th>下次运行时间</th>
-            </tr>
-          </thead>
-          <tbody id="job-table-body">
-          </tbody>
-        </table>
-      </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-link me-auto" data-bs-dismiss="modal">关闭</button>
+      <div class="modal-body p-0">
+        <div class="list-group list-group-flush" id="job-list-body"></div>
       </div>
     </div>
   </div>
@@ -325,6 +307,7 @@
       case "cron_job_list":
         $('#modal-job-list').modal('show');
         draw_cron_job_list();
+        start_job_list_refresh();
         break;
       case "checkupdate":
         update_system();
@@ -532,32 +515,142 @@
     });
   }
 
-  // 查询定时任务信息
-  function draw_cron_job_list() {
+  // 定时任务列表自动刷新
+  // 页面为 SPA 动态载入，重复进入时先清理上一次的轮询
+  if (window.jobListRefreshTimer) {
+    clearInterval(window.jobListRefreshTimer);
+    window.jobListRefreshTimer = null;
+  }
+  var jobListRefreshTimer = null;
+  var jobListLastSignature = null;
 
-    const jobTableBody = $('#job-table-body');
-    jobTableBody.empty();
+  // 转义任务名称等字段，避免特殊字符破坏页面结构
+  function escape_job_html(value) {
+    return String(value ?? "").replace(/[&<>"']/g, ch => ({
+      "&": "&amp;",
+      "<": "&lt;",
+      ">": "&gt;",
+      '"': "&quot;",
+      "'": "&#39;"
+    })[ch]);
+  }
+
+  var JOB_ICON_CLOCK = `<svg xmlns="http://www.w3.org/2000/svg" class="icon" width="20" height="20"
+    viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none"
+    stroke-linecap="round" stroke-linejoin="round">
+    <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+    <circle cx="12" cy="12" r="9"/>
+    <path d="M12 7v5l3 3"/>
+  </svg>`;
+
+  var JOB_ICON_PLUGIN = `<svg xmlns="http://www.w3.org/2000/svg" class="icon" width="20" height="20"
+    viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none"
+    stroke-linecap="round" stroke-linejoin="round">
+    <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+    <path d="M4 7h3a1 1 0 0 0 1 -1v-1a2 2 0 0 1 4 0v1a1 1 0 0 0 1 1h3a1 1 0 0 1 1 1v3a1 1 0 0 0 1 1h1a2 2 0 0 1 0 4h-1a1 1 0 0 0 -1 1v3a1 1 0 0 1 -1 1h-3a1 1 0 0 1 -1 -1v-1a2 2 0 0 0 -4 0v1a1 1 0 0 1 -1 1h-3a1 1 0 0 1 -1 -1v-3a1 1 0 0 0 -1 -1h-1a2 2 0 0 1 0 -4h1a1 1 0 0 0 1 -1v-3a1 1 0 0 1 1 -1"/>
+  </svg>`;
+
+  // 任务状态：执行中 / 排队中 / 待执行
+  function get_job_status(info) {
+    if (info.running) {
+      return {key: "running", cls: "bg-blue-lt", text: "执行中", dot: true};
+    }
+    if (info.pending) {
+      return {key: "queued", cls: "bg-orange-lt", text: "排队中", dot: false};
+    }
+    return {key: "scheduled", cls: "bg-green-lt", text: "待执行", dot: false};
+  }
+
+  // 查询定时任务信息
+  function draw_cron_job_list(silent = false) {
 
     axios_post_do("get_jobs", {}, function (ret) {
-      if (ret.code == "0") {
-        ret.result.forEach((info, index) => {
-          const row = `
-            <tr>
-              <td>
-                <span>${info.name}</span>
-              </td>
-              <td><span>${info.trigger_details}</span></td>
-              <td><span>${info.pending}</span></td>
-              <td><span>${info.next_run_time}</span></td>
-            </tr>
-          `;
-          jobTableBody.append(row);
-        });
+      if (ret.code != "0") {
+        return;
       }
 
-    });
+      const jobs = ret.result || [];
+
+      // 轮询时数据未变化则不重绘，避免闪烁及滚动位置丢失
+      const signature = JSON.stringify(jobs);
+      if (silent && signature === jobListLastSignature) {
+        return;
+      }
+      jobListLastSignature = signature;
+
+      const runningCount = jobs.filter(job => job.running).length;
+      $("#job-list-summary").text(
+        jobs.length
+          ? `共 ${jobs.length} 个任务${runningCount ? `，${runningCount} 个执行中` : ""}`
+          : "暂无定时任务"
+      );
+
+      const jobListBody = $("#job-list-body").empty();
+      if (!jobs.length) {
+        jobListBody.append('<div class="list-group-item text-center text-muted py-5">暂无定时任务</div>');
+        return;
+      }
+
+      jobs.forEach(info => {
+        const status = get_job_status(info);
+        const isPlugin = !!info.from_plugin;
+        const pluginBadge = isPlugin ? '<span class="badge bg-purple-lt">插件</span>' : "";
+        // 执行频率：优先使用后端转换的文字描述，未识别时回退到原始触发器信息
+        const frequency = escape_job_html(info.trigger_text || info.trigger_details);
+        const scheduleText = status.key === "scheduled"
+          ? `下次执行：<span class="text-body">${escape_job_html(info.next_run_time || "未知")}</span>${frequency ? `(<span class="text-mute">${frequency}</span>)` : ""}`
+          : (frequency ? `执行频率：<span class="text-body">${frequency}</span>` : "");
+        const statusBadge = `
+          <span class="badge ${status.cls}">
+            ${status.dot ? '<span class="status-dot status-dot-animated bg-blue me-1"></span>' : ""}${status.text}
+          </span>`;
+
+        const row = `
+          <div class="list-group-item px-3 px-md-4 py-3">
+            <div class="d-flex align-items-start">
+              <span class="avatar avatar-sm ${isPlugin ? "bg-purple-lt text-purple" : "bg-blue-lt text-blue"} me-3">
+                ${isPlugin ? JOB_ICON_PLUGIN : JOB_ICON_CLOCK}
+              </span>
+              <div class="flex-fill" style="min-width: 0">
+                <div class="d-flex align-items-center flex-wrap gap-2">
+                  <span class="font-weight-medium text-truncate" style="min-width: 0" title="${escape_job_html(info.name)}">${escape_job_html(info.name)}</span>
+                  ${pluginBadge}
+                </div>
+                ${scheduleText ? `<div class="text-muted small mt-1 text-truncate" title="${escape_job_html(info.trigger_details)}">${scheduleText}</div>` : ""}
+              </div>
+              <div class="ms-3 align-self-center">${statusBadge}</div>
+            </div>
+          </div>`;
+        jobListBody.append(row);
+      });
+    }, false);
   }
-  
+
+  // 打开面板期间轮询刷新执行状态
+  function start_job_list_refresh() {
+    stop_job_list_refresh();
+    jobListRefreshTimer = setInterval(() => {
+      // 页面已切换时停止轮询
+      if (!$('#modal-job-list').length) {
+        stop_job_list_refresh();
+        return;
+      }
+      draw_cron_job_list(true);
+    }, 3000);
+  }
+
+  function stop_job_list_refresh() {
+    if (jobListRefreshTimer) {
+      clearInterval(jobListRefreshTimer);
+      jobListRefreshTimer = null;
+    }
+  }
+
+  $("#modal-job-list").on("hidden.bs.modal", function () {
+    stop_job_list_refresh();
+    jobListLastSignature = null;
+  });
+
   // 初始化DropZone
   backup_dropzone = new Dropzone("#back_file");
   backup_dropzone.options.acceptedFiles = ".zip";

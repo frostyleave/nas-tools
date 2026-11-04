@@ -21,7 +21,7 @@ class CommandRegistry:
                 "/ptr": {"func": TorrentRemover().auto_remove_torrents, "desc": "自动删种"},
                 "/ptt": {"func": Downloader().transfer, "desc": "下载文件转移"},
                 "/rst": {"func": Sync().transfer_sync, "desc": "目录同步"},
-                "/rss": {"func": Rss().rssdownload, "desc": "电影/电视剧订阅"},
+                "/rss": {"func": Rss().rssdownload, "desc": "RSS订阅"},
                 "/ssa": {"func": Subscribe().subscribe_search_all, "desc": "订阅搜索"},
                 "/tbl": {"func": FileTransfer().truncate_transfer_blacklist, "desc": "清理转移缓存"},
                 "/trh": {"func": cls.truncate_rsshistory, "desc": "清理RSS缓存"},
