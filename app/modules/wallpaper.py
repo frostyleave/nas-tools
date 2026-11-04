@@ -1,4 +1,3 @@
-import base64
 import datetime
 
 from cachetools import TTLCache, cached
@@ -11,7 +10,7 @@ from config import Config
 
 def get_login_wallpaper(time_now=None):
     """
-    获取Base64编码的壁纸图片
+    获取登录页壁纸信息
     """
     if not time_now:
         time_now = datetime.datetime.now()
@@ -20,28 +19,11 @@ def get_login_wallpaper(time_now=None):
     if (not wallpaper or wallpaper == "themoviedb") and tmdbkey:
         # 每小时更新
         curr_time = datetime.datetime.strftime(time_now, '%Y%m%d%H')
-        img_url, img_title, img_link = __get_themoviedb_wallpaper(curr_time)
+        return __get_themoviedb_wallpaper(curr_time)
     else:
         # 每天更新
         today = datetime.datetime.strftime(time_now, '%Y%m%d')
-        img_url, img_title, img_link = get_bing_wallpaper(today)
-    img_enc = __get_image_b64(img_url)
-    if img_enc:
-        return img_enc, img_title, img_link, img_url
-    return "", img_title, img_link, img_url
-
-
-@cached(cache=TTLCache(maxsize=512, ttl=3600))
-def __get_image_b64(img_url, cache_tag=None):
-    """
-    根据图片URL缓存
-    如果遇到同一地址返回随机图片的情况, 需要视情况传递cache_tag参数
-    """
-    if img_url:
-        res = RequestUtils().get_res(img_url)
-        if res and res.status_code == 200:
-            return base64.b64encode(res.content).decode()
-    return ""
+        return get_bing_wallpaper(today)
 
 
 @cached(cache=TTLCache(maxsize=512, ttl=3600))

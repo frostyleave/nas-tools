@@ -4,7 +4,7 @@
     "time": "",
     "state": "ON'",
     "id": "rssdownload",
-    "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\"width=\"24\"height=\"24\"viewBox=\"0 0 24 24\"fill=\"none\"stroke=\"currentColor\"stroke-width=\"2\"stroke-linecap=\"round\"stroke-linejoin=\"round\"class=\"icon icon-tabler icons-tabler-outline icon-tabler-rss\"><pathstroke=\"none\"d=\"M0 0h24v24H0z\"fill=\"none\"/><pathd=\"M4 19a1 1 0 1 0 2 0a1 1 0 1 0 -2 0\"/><pathd=\"M4 4a16 16 0 0 1 16 16\"/><pathd=\"M4 11a9 9 0 0 1 9 9\"/></svg>",
+    "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" class=\"icon icon-tabler icons-tabler-outline icon-tabler-rss\"><path stroke=\"none\" d=\"M0 0h24v24H0z\" fill=\"none\" /><path d=\"M4 19a1 1 0 1 0 2 0a1 1 0 1 0 -2 0\" /><path d=\"M4 4a16 16 0 0 1 16 16\" /><path d=\"M4 11a9 9 0 0 1 9 9\" /></svg>",
     "color": "blue"
   },
   "subscribe_search_all": {
@@ -12,7 +12,7 @@
     "time": "",
     "state": "OFF",
     "id": "subscribe_search_all",
-    "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" class=\"icon icon-tabler icon-tabler-search\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" stroke-width=\"2\" stroke=\"currentColor\" fill=\"none\" stroke-linecap=\"round\" stroke-linejoin=\"round\"> <path stroke=\"none\" d=\"M0 0h24v24H0z\" fill=\"none\"></path> <circle cx=\"10\" cy=\"10\" r=\"7\"></circle> <line x1=\"21\" y1=\"21\" x2=\"15\" y2=\"15\"></line></svg>",
+    "svg": "<svg viewBox=\"0 0 1024 1024\" version=\"1.1\" xmlns=\"http://www.w3.org/2000/svg\" width=\"200\" height=\"200\" fill=\"currentColor\"><path d=\"M490.666667 277.333333a170.282667 170.282667 0 0 0-128.725334 58.581334l-22.869333-11.392a42.666667 42.666667 0 0 0-38.144 76.288l22.826667 11.434666c-2.474667 11.52-3.754667 23.466667-3.754667 35.754667H298.666667a42.666667 42.666667 0 1 0 0 85.333333h21.333333c0 12.245333 1.28 24.234667 3.754667 35.754667l-22.826667 11.434667a42.666667 42.666667 0 1 0 38.144 76.288l22.869333-11.434667A170.282667 170.282667 0 0 0 490.666667 704a170.282667 170.282667 0 0 0 128.725333-58.581333l22.869333 11.392a42.666667 42.666667 0 1 0 38.144-76.288l-22.826666-11.434667c2.474667-11.52 3.754667-23.466667 3.754666-35.754667h21.333334a42.666667 42.666667 0 1 0 0-85.333333h-21.333334c0-12.245333-1.28-24.234667-3.754666-35.754667l22.826666-11.434666a42.666667 42.666667 0 1 0-38.144-76.288l-22.869333 11.434666A170.24 170.24 0 0 0 490.666667 277.333333z m0 85.333334a85.333333 85.333333 0 0 1 73.898666 42.666666H416.768a85.333333 85.333333 0 0 1 73.941333-42.666666z m-42.666667 244.565333a85.333333 85.333333 0 0 1-42.666667-73.898667v-42.666666h42.666667v116.565333z m85.333333 0V490.666667h42.666667v42.666666a85.333333 85.333333 0 0 1-42.666667 73.898667z\"></path><path d=\"M490.666667 42.666667C243.242667 42.666667 42.666667 243.242667 42.666667 490.666667S243.242667 938.666667 490.666667 938.666667 938.666667 738.090667 938.666667 490.666667 738.090667 42.666667 490.666667 42.666667zM85.333333 490.666667a405.333334 405.333334 0 1 1 810.666667 0 405.333334 405.333334 0 0 1-810.666667 0z\"></path><path d=\"M968.832 908.501333l-85.333333-85.333333a42.666667 42.666667 0 0 0-60.330667 60.330667l85.333333 85.333333a42.666667 42.666667 0 0 0 60.330667-60.330667z\"></path></svg>",
     "color": "blue"
   },
   "pttransfer": {
@@ -59,7 +59,7 @@
     "time": "",
     "state": "OFF",
     "id": "ruletest",
-    "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" class=\"icon icon-tabler icon-tabler-adjustments-horizontal\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" stroke-width=\"2\" stroke=\"currentColor\" fill=\"none\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path stroke=\"none\" d=\"M0 0h24v24H0z\" fill=\"none\"></path><circle cx=\"14\" cy=\"6\" r=\"2\"></circle><line x1=\"4\" y1=\"6\" x2=\"12\" y2=\"6\"></line><line x1=\"16\" y1=\"6\" x2=\"20\" y2=\"6\"></line><circle cx=\"8\" cy=\"12\" r=\"2\"></circle><line x1=\"4\" y1=\"12\" x2=\"6\" y2=\"12\"></line><line x1=\"10\" y1=\"12\" x2=\"20\" y2=\"12\"></line><circle cx=\"17\" cy=\"18\" r=\"2\"></circle><line x1=\"4\" y1=\"18\" x2=\"15\" y2=\"18\"></line><line x1=\"19\" y1=\"18\" x2=\"20\" y2=\"18\"></line>    </svg>",
+    "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" class=\"icon icon-tabler icons-tabler-outline icon-tabler-filter-2-question\"><path stroke=\"none\" d=\"M0 0h24v24H0z\" fill=\"none\" /><path d=\"M4 6h16\" /><path d=\"M6 12h10.5\" /><path d=\"M9 18h5\" /><path d=\"M19 22v.01\" /><path d=\"M19 19c.448 -.001 .883 -.153 1.235 -.431c.352 -.278 .6 -.666 .706 -1.101c.105 -.436 .061 -.894 -.125 -1.302c-.186 -.408 -.504 -.742 -.902 -.948c-.398 -.204 -.853 -.267 -1.291 -.179c-.438 .088 -.834 .321 -1.123 .662\" /></svg>",
     "color": "yellow"
   },
   "cron_job_list": {

@@ -219,7 +219,7 @@ class SchedulerDescUtils:
         """
         为频率描述补充日期前缀，「每天」时省略
         """
-        return text if day_text == "每天" else f"{day_text} {text}"
+        return text if day_text == "每天" else f"{day_text}{text}"
 
     @classmethod
     def _describe_cron_day(cls, month: str, day: str, weekday: str) -> str | None:

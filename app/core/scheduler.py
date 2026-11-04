@@ -1,5 +1,3 @@
-import datetime
-
 from apscheduler.schedulers.background import BackgroundScheduler
 
 import log
@@ -9,8 +7,6 @@ from app.mediaserver import MediaServer
 from app.modules.historycleanup import HistoryCleanup
 from app.modules.rss import Rss
 from app.modules.subscribe import Subscribe
-from app.modules.sync import Sync
-from app.modules.wallpaper import get_login_wallpaper
 from app.sites import SitesDataStatisticsCenter
 from app.utils import SchedulerUtils
 from app.utils.commons import singleton
@@ -18,16 +14,12 @@ from config import Config
 
 # TMDB信息缓存定时保存时间
 METAINFO_SAVE_INTERVAL = 600
-# SYNC目录同步聚合转移时间
-SYNC_TRANSFER_INTERVAL = 60
 # RSS队列中处理时间间隔
 RSS_CHECK_INTERVAL = 300
 # 刷新订阅TMDB数据的时间间隔（小时）
 RSS_REFRESH_TMDB_INTERVAL = 6
 # 定时清除未识别的缓存时间间隔（小时）
 META_DELETE_UNKNOWN_INTERVAL = 12
-# 定时刷新壁纸的间隔（小时）
-REFRESH_WALLPAPER_INTERVAL = 1
 
 @singleton
 class Scheduler:
@@ -129,20 +121,12 @@ class Scheduler:
             name='元数据定时保存'
         )
 
-        # 定时把队列中的监控文件转移走
-        self.get_scheduler().add_job(
-            Sync().transfer_mon_files, 
-            "interval", 
-            seconds=SYNC_TRANSFER_INTERVAL, 
-            name='批量转移文件'
-        )
-
         # RSS队列中搜索
         self.get_scheduler().add_job(
             Subscribe().subscribe_search, 
             "interval", 
             seconds=RSS_CHECK_INTERVAL, 
-            name='RSS订阅队列'
+            name='订阅进度检查'
         )
 
         # 豆瓣RSS转TMDB，定时更新TMDB数据
@@ -150,7 +134,7 @@ class Scheduler:
             Subscribe().refresh_rss_metainfo,
             "interval",
             hours=RSS_REFRESH_TMDB_INTERVAL,
-            name='RSS订阅队列'
+            name='刷新订阅TMDB数据'
         )
 
         # 定时清除未识别的缓存
@@ -167,15 +151,6 @@ class Scheduler:
             func=HistoryCleanup().cleanup_history_tables,
             func_desc="清理历史记录",
             cron='30 1,2 * * *'
-        )
-
-        # 定时刷新壁纸
-        self.get_scheduler().add_job(
-            get_login_wallpaper,
-            "interval",
-            hours=REFRESH_WALLPAPER_INTERVAL,
-            next_run_time=datetime.datetime.now(),
-            name='定时刷新壁纸'
         )
 
     def get_scheduler(self) -> BackgroundScheduler:

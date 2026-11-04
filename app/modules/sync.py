@@ -8,12 +8,18 @@ from watchdog.observers.polling import PollingObserver
 
 import log
 from app.conf import ModuleConf
+from app.core.jobcenter import JobCenter
 from app.helper import DbHelper
 from app.modules.filetransfer import FileTransfer
 from app.utils import PathUtils
 from app.utils.commons import singleton
 from app.utils.constants import Constants
 from app.utils.types import SyncType
+
+# 批量转移文件任务ID
+SYNC_TRANSFER_JOB_ID = "sync_transfer_mon_files"
+# 监控文件聚合转移时间（秒）
+SYNC_TRANSFER_INTERVAL = 60
 
 lock = threading.Lock()
 
@@ -54,9 +60,9 @@ class Sync:
 
     def __init__(self):
         self._observer = []
-        self.init_config()
+        self.init_config(is_init=True)
 
-    def init_config(self):
+    def init_config(self, is_init=False):
         self.dbhelper = DbHelper()
         self.filetransfer = FileTransfer()
         self._sync_path_confs = {}
@@ -120,6 +126,37 @@ class Sync:
                 log.error(f"【Sync】{monpath} 目录不存在！")
         # 启动监控服务
         self.run_service()
+        # 根据监控目录注册或解除批量转移任务
+        self.__init_transfer_job(is_init=is_init)
+
+    def __init_transfer_job(self, is_init=False):
+        """
+        存在启用的监控目录时注册批量转移任务，否则解除注册
+        """
+        scheduler = JobCenter().get_sys_scheduler()
+        job = scheduler.get_job(SYNC_TRANSFER_JOB_ID)
+
+        if self._monitor_sync_path_ids:
+            if job:
+                log.debug("【Sync】批量转移文件定时任务已存在，无需重复注册")
+                return
+            scheduler.add_job(
+                self.transfer_mon_files,
+                "interval",
+                seconds=SYNC_TRANSFER_INTERVAL,
+                id=SYNC_TRANSFER_JOB_ID,
+                name="批量转移文件",
+                replace_existing=True
+            )
+            if is_init:
+                log.info("【Sync】初始化时检测到启用的监控目录，已注册批量转移文件定时任务")
+            else:
+                log.info("【Sync】检测到启用的监控目录，已注册批量转移文件定时任务")
+        elif job:
+            scheduler.remove_job(SYNC_TRANSFER_JOB_ID)
+            log.info("【Sync】未检测到启用的监控目录，已解除批量转移文件定时任务")
+        elif is_init:
+            log.info("【Sync】初始化时未检测到启用的监控目录，不注册批量转移文件定时任务")
 
     @property
     def monitor_sync_path_ids(self):
