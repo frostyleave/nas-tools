@@ -190,7 +190,6 @@ async def index():
     media_server = MediaServer()
 
     media_librarys = media_server.get_libraries()
-    activity_logs = media_server.get_activity_log(30)
     latest_adds = media_server.get_latest()
 
     # 获取媒体数量
@@ -217,7 +216,6 @@ async def index():
                  'songCount': song_count,
                  "episodeCount": episode_count
                 },
-             "activitys": activity_logs,
              "totalSpace": library_spaces.get("TotalSpace"),
              "usedPercent": library_spaces.get("UsedPercent"),
              "mediaServerType": server_type,

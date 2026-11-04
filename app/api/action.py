@@ -179,6 +179,7 @@ class WebAction:
             "del_filterrule": self.__del_filterrule,
             "filterrule_detail": self.__filterrule_detail,
             "get_site_activity": self.__get_site_activity,
+            "get_activity_log": self.__get_activity_log,
             "get_site_history": self.__get_site_history,
             "get_recommend": self.__get_recommend,
             "batch_get_media_exists_info": self.__batch_get_media_exists_info,
@@ -1774,6 +1775,15 @@ class WebAction:
             return {"res": True, "time": f"{seconds} 毫秒"}
         else:
             return {"res": False, "time": f"{seconds} 毫秒"}
+
+    def __get_activity_log(self):
+        """
+        查询首页播放记录
+        """
+        return {
+            "code": 0,
+            "activitys": MediaServer().get_activity_log(30)
+        }
 
     def __get_site_activity(self, data):
         """

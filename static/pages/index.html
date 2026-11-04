@@ -1,8 +1,114 @@
+<style>
+  /* 首页统计数据：无论手机端还是电脑端，都保持一行三列（flex 兼容性优于 grid） */
+  .index-stat-row {
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 0.75rem;
+  }
+
+  .index-stat-card {
+    flex: 1 1 0;
+    min-width: 0;
+    position: relative;
+    overflow: hidden;
+    margin-bottom: 0;
+  }
+
+  .index-stat-card .card-body {
+    padding: 1rem 1rem 1.25rem;
+  }
+
+  /* 图标在左，文字在右 */
+  .index-stat-content {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    min-width: 0;
+  }
+
+  .index-stat-icon {
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: flex-end;
+    justify-content: center;
+    align-self: stretch;
+    font-size: 2.5rem;
+    line-height: 1;
+  }
+
+  .index-stat-text {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  .index-stat-value {
+    font-size: clamp(0.75rem, 3.6vw, 1.75rem);
+    font-weight: 600;
+    line-height: 1.2;
+    margin-top: 0.25rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  /* 集数：跟在剧集数后面，弱化显示 */
+  .index-stat-sub {
+    font-size: 0.72em;
+    font-weight: 400;
+    opacity: 0.75;
+  }
+
+  @media (max-width: 575.98px) {
+    .index-stat-row {
+      gap: 0.375rem;
+    }
+
+    .index-stat-card .card-body {
+      padding: 0.375rem 0.375rem 0.75rem;
+    }
+
+    .index-stat-content {
+      gap: 0.25rem;
+    }
+
+    .index-stat-icon {
+      font-size: 1.75rem;
+    }
+
+    .index-stat-card .subheader {
+      font-size: 0.625rem;
+    }
+
+    .index-stat-value {
+      margin-top: 0.125rem;
+    }
+  }
+
+  @media (max-width: 359.98px) {
+    .index-stat-card .card-body {
+      padding-left: 0.25rem;
+      padding-right: 0.25rem;
+    }
+
+    .index-stat-content {
+      gap: 0;
+    }
+
+    .index-stat-card .subheader {
+      font-size: 0.5625rem;
+    }
+
+    .index-stat-value {
+      font-size: 0.72rem;
+    }
+  }
+</style>
+
 <div class="container-xl">
   <!-- Page title -->
-  <div class="page-header top-header d-print-none mt-2">
+  <div class="page-header d-print-none mt-2">
     <div class="row align-items-center">
-      <div class="col d-none d-md-block">
+      <div class="col">
         <h2 class="page-title">
           我的媒体库
         </h2>
@@ -31,6 +137,48 @@
             <i class="ti ti-history fs-3"></i>
           </button>
         </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 统计数据 -->
+<div class="container-xl mt-3">
+  <div class="index-stat-row">
+    <div class="card index-stat-card">
+      <div class="card-body">
+        <div class="index-stat-content">
+          <i class="ti ti-film index-stat-icon text-green mx-1"></i>
+          <div class="index-stat-text">
+            <div class="subheader text-truncate">电影</div>
+            <div class="index-stat-value" id="movie-count">0</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card index-stat-card">
+      <div class="card-body">
+        <div class="index-stat-content">
+          <i class="ti ti-tv index-stat-icon text-blue mx-1"></i>
+          <div class="index-stat-text">
+            <div class="subheader text-truncate">剧集</div>
+            <div class="index-stat-value"><span id="series-count">0</span><span class="index-stat-sub">(<span id="episode-count">0</span>)</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card index-stat-card">
+      <div class="card-body">
+        <div class="index-stat-content">
+          <i class="ti ti-disk index-stat-icon text-cyan mx-1"></i>
+          <div class="index-stat-text">
+            <div class="subheader text-truncate">存储空间</div>
+            <div class="index-stat-value" id="total-space">0</div>
+          </div>
+        </div>
+      </div>
+      <div class="card-progress" style="overflow: hidden">
+        <div class="progress-bar bg-green" id="used-space-bar" style="width:0%" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
       </div>
     </div>
   </div>
@@ -109,56 +257,6 @@
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
       <div class="modal-body py-0">
-        <div class="row">
-          <div class="col-lg-4 mt-3">
-            <div class="card">
-              <div class="card-body">
-                <div class="d-flex align-items-center">
-                  <div class="subheader">电影</div>
-                </div>
-                <div class="d-flex align-items-baseline">
-                  <div class="h1 mb-0 me-2" id="movie-count">0</div>
-                </div>
-              </div>
-              <div class="card-progress" style="overflow: hidden">
-                <div class="progress-bar bg-green" style="width:0%" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
-              </div>
-            </div>
-          </div>
-          <div class="col-lg-4 mt-3">
-            <div class="card">
-              <div class="card-body">
-                <div class="d-flex align-items-center">
-                  <div class="subheader">电视剧/动漫</div>
-                </div>
-                <div class="d-flex align-items-baseline">
-                  <div class="h1 mb-0 me-2" id="series-count">0</div>
-                  <div class="me-auto">
-                  <span class="text-green d-inline-flex align-items-center lh-1" id="episode-count">0</span>
-                  </div>
-                </div>
-              </div>
-              <div class="card-progress" style="overflow: hidden">
-                <div class="progress-bar bg-green" style="width:0%" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
-              </div>
-            </div>
-          </div>
-          <div class="col-lg-4 mt-3">
-            <div class="card">
-              <div class="card-body">
-                <div class="d-flex align-items-center">
-                  <div class="subheader">存储空间</div>
-                </div>
-                <div class="d-flex align-items-baseline">
-                  <div class="h1 mb-0 me-2" id="total-space">0</div>
-                </div>
-              </div>
-              <div class="card-progress" style="overflow: hidden">
-                <div class="progress-bar bg-green" id="used-space-bar" style="width:0%" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
-              </div>
-            </div>
-          </div>
-        </div>
         <div class="row mt-3">
           <div id="index_statistics_chart" style="height: 20rem"></div>
         </div>
@@ -222,7 +320,21 @@
       return;
     }
 
+    // 媒体服务器类型首字母大写
+    const serverTypeName = pageData.mediaServerType
+      ? pageData.mediaServerType.charAt(0).toUpperCase() + pageData.mediaServerType.slice(1)
+      : '';
+
     let html = `
+      <div class="container-xl">
+        <div class="page-header d-print-none mt-2">
+          <div class="row align-items-center">
+            <div class="col">
+              <h2 class="page-title">${serverTypeName}</h2>
+            </div>
+          </div>
+        </div>
+      </div>
       <div class="container-xl page-body">
         <div class="container-xl">
           <div class="d-grid gap-3 grid-normal-card">
@@ -436,47 +548,74 @@
       $("#sync-library-list").html(syncLibraryHtml);
     }
 
-    // 更新播放记录
-    if (pageData.activitys) {
-      let activityHtml = '';
-      pageData.activitys.forEach(activity => {
-        activityHtml += `
-          <div>
-            <div class="row">
-              <div class="col-auto">
-                <span class="avatar">
-                  ${activity.type === "LG" ? '<i class="ti ti-user fs-2"></i>' : '<i class="ti ti-player-play fs-2"></i>'}
-                </span>
-              </div>
-              <div class="col">
-                <div class="text-truncate">${activity.event}</div>
-                <div class="text-muted">${activity.date}</div>
-              </div>
-              <div class="col-auto align-self-center">
-                <div class="bg-primary"></div>
-              </div>
-            </div>
-          </div>
-        `;
-      });
-      $("#activity-list").html(activityHtml);
-    }
-
     // 更新统计数据
     if (pageData.mediaCount) {
       $("#movie-count").text(pageData.mediaCount.movieCount || 0);
       $("#series-count").text(pageData.mediaCount.seriesCount || 0);
-      $("#episode-count").text(pageData.mediaCount.episodeCount || 0);
+      // 集数不显示千分位逗号
+      $("#episode-count").text((pageData.mediaCount.episodeCount || 0).toString().replace(/,/g, ''));
     }
 
     if (pageData.totalSpace) {
-      $("#total-space").text(pageData.totalSpace);
+      // 去掉单位尾缀 B，如 "12.5 TB" -> "12.5 T"
+      $("#total-space").text(String(pageData.totalSpace).replace(/B$/, ''));
     }
 
     if (pageData.usedPercent) {
       $("#used-space-bar").attr("style", `width:${pageData.usedPercent}%`)
                           .attr("aria-valuenow", pageData.usedPercent);
     }
+  }
+
+  // 打开播放记录弹窗时请求后端数据
+  $('#modal-index-playhistory').off('shown.bs.modal').on('shown.bs.modal', function () {
+    loadActivityList();
+  });
+
+  // 加载播放记录
+  function loadActivityList() {
+    const container = $("#activity-list");
+    container.html('<div class="text-center text-muted py-3">加载中...</div>');
+
+    axios_post_do("get_activity_log", {}, function (ret) {
+      if (ret.code !== 0) {
+        container.html(`<div class="text-center text-muted py-3">加载失败：${ret.msg || '未知错误'}</div>`);
+        return;
+      }
+      renderActivityList(ret.activitys || []);
+    }, false);
+  }
+
+  // 渲染播放记录
+  function renderActivityList(activitys) {
+    const container = $("#activity-list");
+    if (!activitys || activitys.length === 0) {
+      container.html('<div class="text-center text-muted py-3">暂无播放记录</div>');
+      return;
+    }
+
+    let activityHtml = '';
+    activitys.forEach(activity => {
+      activityHtml += `
+        <div>
+          <div class="row">
+            <div class="col-auto">
+              <span class="avatar">
+                ${activity.type === "LG" ? '<i class="ti ti-user fs-2"></i>' : '<i class="ti ti-player-play fs-2"></i>'}
+              </span>
+            </div>
+            <div class="col">
+              <div class="text-truncate">${activity.event}</div>
+              <div class="text-muted">${activity.date}</div>
+            </div>
+            <div class="col-auto align-self-center">
+              <div class="bg-primary"></div>
+            </div>
+          </div>
+        </div>
+      `;
+    });
+    container.html(activityHtml);
   }
 
   // 显示错误信息
