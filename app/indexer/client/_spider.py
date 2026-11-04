@@ -1,9 +1,10 @@
 import datetime
 import re
+from functools import lru_cache
 from urllib.parse import quote, urlencode
 
 import chardet
-from jinja2 import Template
+from jinja2 import Environment, Template
 from pyquery import PyQuery
 
 import log
@@ -12,6 +13,47 @@ from app.sites.siteconf import SiteConf
 from app.utils import RequestUtils, StringUtils
 from app.utils.types import MediaType
 from config import Config
+
+# 索引器配置中的模板字符串数量内容缓存
+_TEMPLATE_ENV = Environment()
+
+
+@lru_cache(maxsize=64)
+def _compile_template(text: str) -> Template:
+    return _TEMPLATE_ENV.from_string(text)
+
+
+# 站点搜索路径类型 -> 媒体类型匹配规则
+_PATH_TYPE_MATCHERS = {
+    "all": lambda mtype: not mtype,
+    "movie": lambda mtype: mtype == MediaType.MOVIE,
+    "tv": lambda mtype: mtype == MediaType.TV,
+    "anime": lambda mtype: mtype == MediaType.ANIME,
+}
+
+
+def _is_path_type_matched(path_type, mtype) -> bool:
+    """
+    判断站点搜索路径的类型是否匹配当前媒体类型
+    """
+    matcher = _PATH_TYPE_MATCHERS.get(path_type)
+    return bool(matcher and matcher(mtype))
+
+
+def _select_torrents_path(paths: list, mtype) -> str:
+    """
+    根据媒体类型从站点配置中选择种子搜索路径
+    """
+    if not paths:
+        return ""
+    # 只有一个路径时直接使用
+    if len(paths) == 1:
+        return paths[0].get("path", "")
+    # 多个路径时按类型匹配
+    for path in paths:
+        if _is_path_type_matched(path.get("type"), mtype):
+            return path.get("path")
+    return ""
 
 
 class TorrentSpider:
@@ -103,24 +145,7 @@ class TorrentSpider:
         构建请求地址
         """
         # 种子搜索相对路径
-        paths = self.search_conf.get("paths", [])
-        torrentspath = ""
-        if len(paths) == 1:
-            torrentspath = paths[0].get("path", "")
-        else:
-            for path in paths:
-                if path.get("type") == "all" and not mtype:
-                    torrentspath = path.get("path")
-                    break
-                elif path.get("type") == "movie" and mtype == MediaType.MOVIE:
-                    torrentspath = path.get("path")
-                    break
-                elif path.get("type") == "tv" and mtype == MediaType.TV:
-                    torrentspath = path.get("path")
-                    break
-                elif path.get("type") == "anime" and mtype == MediaType.ANIME:
-                    torrentspath = path.get("path")
-                    break
+        torrentspath = _select_torrents_path(self.search_conf.get("paths"), mtype)
         
         searchurl = ''
 
@@ -260,7 +285,7 @@ class TorrentSpider:
                 )
                 title_optional = self.__index(items, title_optional_selector)
                 render_dict.update({"title_optional": title_optional})
-            torrents_title = Template(selector.get("text")).render(
+            torrents_title = _compile_template(selector.get("text")).render(
                 fields=render_dict
             )
         return self.__filter_text(torrents_title, selector.get("filters"))
@@ -326,7 +351,7 @@ class TorrentSpider:
                 )
                 description_normal = self.__index(items, description_normal_selector)
                 render_dict.update({"description_normal": description_normal})
-            torrent_description = Template(selector.get("text")).render(
+            torrent_description = _compile_template(selector.get("text")).render(
                 fields=render_dict
             )
 
