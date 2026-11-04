@@ -79,6 +79,12 @@
     color: var(--lit-navbar-active-color);
 }
 
+.lit-navbar-accordion-item,
+.lit-navbar-accordion-item-active {
+    font-size: 1.1rem;
+    border-radius: 0.2rem;
+}
+
 html {
     --safe-area-inset-top: 0px;
     min-height: calc(100% + env(safe-area-inset-top) + var(--safe-area-inset-top))
@@ -111,10 +117,6 @@ body.theme-dark::after {
     background: linear-gradient(135deg, var(--tblr-body-bg) 25%,rgba(0, 0, 0, 0.35) 100%);
     backdrop-filter: blur(20px);
 }
-
-/* .layout-fluid .page {
-    background-color: var(--tblr-body-bg);
-} */
 
 .tooltip-inner {
     text-align: left;
@@ -251,10 +253,6 @@ body.theme-dark::after {
         border: none;
     }
 
-    /* #litLayoutNavbar {
-        padding-bottom: calc(env(safe-area-inset-bottom) + 61px);
-    } */
-
     #page-content {
         padding-bottom: calc(env(safe-area-inset-bottom) + 61px);
     }
@@ -272,7 +270,6 @@ body.theme-dark::after {
     --tblr-aspect-ratio: 150%;
     border: 1px solid var(--lit-person-card-bg);
     background: transparent;
-    /* background-image: linear-gradient(45deg, var(--lit-person-card-bg), var(--lit-person-card-bg) 60%); */
 }
 
 .lit-person-card:hover {
@@ -433,14 +430,6 @@ body.theme-dark::after {
     width: calc(var(--tblr-offcanvas-width) - 120px) !important;
 }
 
-/* .theme-light .lit-navbar-canvas {
-    background-color: rgb(231, 235, 239);
-} */
-
-/* .theme-light .lit-navbar {
-    background-color: rgb(231, 235, 239, 0.5);
-} */
-
 .lit-navar-close {
     position: fixed;
     top: 0;
@@ -470,11 +459,6 @@ body.theme-dark::after {
 
 .theme-dark .lit-navbar-logo {
     filter: invert(1) grayscale(100%) brightness(200%);
-}
-
-.lit-navbar-accordion-item,
-.lit-navbar-accordion-item-active {
-    border-radius: 0.2rem;
 }
 
 .lit-custom-img-carousel {
@@ -1260,7 +1244,7 @@ div#main-info-container > * {
 
 .bg-mask-layer {
     position: absolute !important;
-    inset: 0 0 auto 0;   /* top:0; right:0; left:0; bottom:auto */
+    inset: 0 0 auto 0;
     height: 100dvh;      /* 固定首屏高度 */
     container-type: size;
     z-index: 0 !important;

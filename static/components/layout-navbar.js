@@ -180,7 +180,6 @@
       link.setAttribute('data-lit-page', item.page);
       link.setAttribute('data-bs-dismiss', 'offcanvas');
       link.setAttribute('aria-label', 'Close');
-      link.style.fontSize = '1.1rem';
 
       const icon = document.createElement('span');
       icon.className = 'nav-item-icon';

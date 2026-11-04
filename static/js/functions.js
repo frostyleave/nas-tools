@@ -450,35 +450,93 @@ let GitPanelRunning = false;
 let GitPanelChecking = false;
 let GitPanelHasUpdate = false;
 let GitPanelIsDocker = false;
+// 更新完成、等待重启生效
+let GitPanelNeedsRestart = false;
 const GIT_PANEL_MAX_ROWS = 5000;
 
-// 根据状态刷新底部按钮
+// 根据状态刷新底部唯一的动作按钮
 function git_panel_sync_buttons() {
-  const can_check = !GitPanelRunning && !GitPanelChecking;
-  const can_update = can_check && GitPanelHasUpdate && GitPanelIsDocker;
-  $("#git_panel_check_btn").toggleClass("disabled", !can_check);
-  $("#git_panel_update_btn").toggleClass("disabled", !can_update);
+  const btn = $("#git_panel_action_btn");
+  if (!btn.length) {
+    return;
+  }
+  btn.removeClass("btn-link btn-primary btn-warning disabled");
+  if (GitPanelRunning) {
+    btn.addClass("btn-primary disabled").text("更新中...");
+    return;
+  }
+  if (GitPanelChecking) {
+    btn.addClass("btn-link disabled").text("检测中...");
+    return;
+  }
+  if (GitPanelNeedsRestart) {
+    btn.addClass("btn-warning").text("立即重启生效");
+    return;
+  }
+  if (GitPanelHasUpdate) {
+    btn.addClass("btn-primary");
+    if (!GitPanelIsDocker) {
+      btn.addClass("disabled");
+    }
+    btn.text("开始更新");
+    return;
+  }
+  btn.addClass("btn-link").text("检测更新");
+}
+
+// 底部唯一按钮的点击入口
+function git_panel_action() {
+  if (GitPanelRunning || GitPanelChecking) {
+    return;
+  }
+  if (GitPanelNeedsRestart) {
+    git_panel_restart();
+    return;
+  }
+  if (GitPanelHasUpdate) {
+    git_panel_start_update();
+    return;
+  }
+  git_panel_check_update();
+}
+
+// 状态栏统一入口：状态与结果共用一处，通过文字颜色区分
+function git_panel_set_status(text, type) {
+  const el = $("#git_panel_status");
+  if (!el.length) {
+    return;
+  }
+  const colors = {
+    info: "text-info",
+    success: "text-success",
+    warning: "text-warning",
+    danger: "text-danger"
+  };
+  el.removeClass("text-muted text-info text-success text-warning text-danger")
+    .addClass(colors[type] || "text-muted")
+    .text(text || "")
+    .attr("title", text || "");
 }
 
 // 刷新仓库信息
 function git_panel_refresh_info() {
   axios_post("/sys/git_info", {}, function (ret) {
     if (!ret || ret.code !== 0) {
-      $("#git_panel_branch").text("-");
-      $("#git_panel_commit").text("-");
+      $("#git_panel_branch").text("-").removeAttr("title");
+      $("#git_panel_commit").text("-").removeAttr("title");
       $("#git_panel_commit_msg").text("-").removeAttr("title");
       GitPanelIsDocker = false;
       git_panel_sync_buttons();
       return;
     }
     GitPanelIsDocker = !!ret.is_docker;
-    $("#git_panel_branch").text(ret.branch || "-");
-    $("#git_panel_commit").text(ret.short_commit || "-");
+    $("#git_panel_branch").text(ret.branch || "-").attr("title", ret.branch || "");
+    $("#git_panel_commit").text(ret.short_commit || "-").attr("title", ret.short_commit || "");
     $("#git_panel_commit_msg")
       .text(ret.commit_msg || "-")
       .attr("title", ret.commit_msg || "");
     if (!ret.is_docker) {
-      $("#git_panel_status").text("当前环境不支持在线更新（仅 Docker）");
+      git_panel_set_status("当前环境不支持在线更新（仅 Docker）", "warning");
     }
     git_panel_sync_buttons();
   }, false);
@@ -498,10 +556,9 @@ function git_panel_check_update() {
     cancelAnimationFrame(GitPanelFlushTimer);
     GitPanelFlushTimer = null;
   }
-  $("#git_panel_status").text("正在检查更新...");
+  git_panel_set_status("正在检测更新...");
   $("#git_panel_progress").removeClass("progress-bar-animated").css("width", "0%").attr("aria-valuenow", 0);
-  $("#git_panel_result").empty();
-  $("#git_panel_log_content").html('<tr><td colspan="3" class="text-center text-muted py-4">正在检查更新...</td></tr>');
+  $("#git_panel_log_content").html('<tr><td colspan="2" class="text-center text-muted py-4">正在检测更新...</td></tr>');
 
   axios_post("/sys/git_check", {}, function (ret) {
     GitPanelChecking = false;
@@ -513,19 +570,16 @@ function git_panel_check_update() {
 
     if (!ret || ret.code !== 0) {
       GitPanelHasUpdate = false;
-      $("#git_panel_status").text("检查失败");
-      $("#git_panel_result").html(`<div class="alert alert-danger mb-3">${git_panel_escape((ret && ret.msg) || "检查更新失败")}</div>`);
+      git_panel_set_status(`检测失败：${(ret && ret.msg) || "未知错误"}`, "danger");
       git_panel_sync_buttons();
       return;
     }
 
     GitPanelHasUpdate = !!ret.has_update;
     if (GitPanelHasUpdate) {
-      $("#git_panel_status").text(`发现 ${ret.behind} 个新提交`);
-      $("#git_panel_result").html(`<div class="alert alert-info mb-0">发现 ${ret.behind} 个新提交，可以点击“开始更新”。</div>`);
+      git_panel_set_status(`发现 ${ret.behind} 个新提交，可以点击“开始更新”`, "info");
     } else {
-      $("#git_panel_status").text("当前已是最新版本");
-      $("#git_panel_result").html('<div class="alert alert-success mb-0">没有更新内容，当前已是最新版本。</div>');
+      git_panel_set_status("没有更新内容，当前已是最新版本", "success");
     }
     git_panel_sync_buttons();
     git_panel_refresh_info();
@@ -556,10 +610,9 @@ function git_panel_start_update() {
     GitPanelFlushTimer = null;
   }
 
-  $("#git_panel_log_content").html('<tr><td colspan="3" class="text-center text-muted py-4">正在启动更新...</td></tr>');
+  $("#git_panel_log_content").html('<tr><td colspan="2" class="text-center text-muted py-4">正在启动更新...</td></tr>');
   $("#git_panel_progress").addClass("progress-bar-animated").css("width", "0%").attr("aria-valuenow", 0);
-  $("#git_panel_status").text("进行中");
-  $("#git_panel_result").empty();
+  git_panel_set_status("进行中");
 
   GitPanelAbort = new AbortController();
   fetch("stream-update-system", {
@@ -629,7 +682,7 @@ function git_panel_handle_event(event) {
     const value = Number(event.value) || 0;
     $("#git_panel_progress").css("width", value + "%").attr("aria-valuenow", value);
     if (event.text) {
-      $("#git_panel_status").text(event.text);
+      git_panel_set_status(event.text);
     }
   } else if (event.type === "done") {
     git_panel_finish(event.result || { code: -1, msg: "更新未返回结果" });
@@ -694,7 +747,6 @@ function git_panel_build_row(record) {
   }
   return `<tr>
             <td class="text-muted text-nowrap">${git_panel_escape(record.time || "")}</td>
-            <td class="text-nowrap ${cls}">${git_panel_escape(level)}</td>
             <td class="${cls}"><span style="white-space: pre-wrap; word-break: break-all;">${git_panel_escape(record.text || "")}</span></td>
           </tr>`;
 }
@@ -714,11 +766,12 @@ function git_panel_finish(result) {
   GitPanelChecking = false;
   GitPanelHasUpdate = false;
   GitPanelAbort = null;
+  // 更新成功且有实际变更时，切换为“立即重启生效”
+  GitPanelNeedsRestart = ret.code === 0 && !!ret.updated;
   git_panel_sync_buttons();
 
   $("#git_panel_progress").removeClass("progress-bar-animated")
     .css("width", "100%").attr("aria-valuenow", 100);
-  $("#git_panel_status").text(ret.code === 0 ? "已完成" : "失败");
 
   // 先把还在缓冲的日志写完，再展示结果
   if (GitPanelFlushTimer) {
@@ -727,14 +780,15 @@ function git_panel_finish(result) {
   }
   git_panel_flush_logs();
 
-  const msg = git_panel_escape(ret.msg || (ret.code === 0 ? "更新完成" : "更新失败，请查看日志"));
+  const msg = ret.msg || (ret.code === 0
+    ? (ret.updated ? "更新完成" : "没有更新内容")
+    : "更新失败，请查看日志");
   if (ret.code !== 0) {
-    $("#git_panel_result").html(`<div class="alert alert-danger mb-0">${msg}</div>`);
+    git_panel_set_status(msg, "danger");
   } else if (ret.updated) {
-    $("#git_panel_result").html(`<div class="alert alert-success mb-0">${msg}
-      <a href="javascript:git_panel_restart()" class="btn btn-sm btn-warning ms-2">立即重启生效</a></div>`);
+    git_panel_set_status(msg, "success");
   } else {
-    $("#git_panel_result").html(`<div class="alert alert-info mb-0">${msg}</div>`);
+    git_panel_set_status(msg, "info");
   }
 
   git_panel_refresh_info();

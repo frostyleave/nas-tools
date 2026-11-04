@@ -115,7 +115,7 @@
       {
         "name": "自动删种",
         "page": "torrent_remove",
-        "icon": "<i class=\"ti ti-http-delete fs-2 \"></i>",
+        "icon": "<i class=\"ti ti-stack-x fs-2 \"></i>",
         "html": "/static/pages/torrent_remove.html"
       },
       {
@@ -125,7 +125,7 @@
         "html": "/static/pages/history.html"
       },
       {
-        "name": "缓存",
+        "name": "TMDB缓存",
         "page": "tmdbcache",
         "icon": "<i class=\"ti ti-keyframes fs-2 \"></i>",
         "html": "/static/pages/tmdbcache.html"
@@ -150,7 +150,7 @@
         "name": "站点管理",
         "page": "site",
         "level": 99,
-        "icon": "<i class=\"ti ti-settings-search fs-2 \"></i>",
+        "icon": "<i class=\"ti ti-sitemap fs-2 \"></i>",
         "html": "/static/pages/site.html"
       },
       {

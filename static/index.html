@@ -494,46 +494,37 @@
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
         <div class="modal-body">
-          <div class="row mb-3">
-            <div class="col-md-3">
-              <div class="text-muted small">当前分支</div>
-              <div id="git_panel_branch">-</div>
+          <div class="d-flex align-items-baseline gap-3 mb-2">
+            <div class="d-flex align-items-baseline flex-fill" style="min-width: 0;">
+              <span class="text-muted small text-nowrap me-2">当前分支</span>
+              <span id="git_panel_branch" class="text-truncate" style="min-width: 0;">-</span>
             </div>
-            <div class="col-md-3">
-              <div class="text-muted small">当前提交</div>
-              <div id="git_panel_commit">-</div>
+            <div class="d-flex align-items-baseline flex-fill" style="min-width: 0;">
+              <span class="text-muted small text-nowrap me-2">当前提交</span>
+              <span id="git_panel_commit" class="text-truncate" style="min-width: 0;">-</span>
             </div>
-            <div class="col-md-6">
-              <div class="text-muted small">提交说明</div>
-              <div id="git_panel_commit_msg" class="text-truncate">-</div>
-            </div>
+          </div>
+          <div class="d-flex align-items-baseline mb-3" style="min-width: 0;">
+            <span class="text-muted small text-nowrap me-2">提交说明</span>
+            <span id="git_panel_commit_msg" class="text-truncate" style="min-width: 0;">-</span>
           </div>
           <div class="progress progress-sm mb-2">
             <div class="progress-bar progress-bar-striped progress-bar-animated" id="git_panel_progress"
               style="width:0%" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
           </div>
-          <div class="table-responsive border" id="git_panel_log_scroll" style="max-height: 50vh; overflow-y: auto;">
+          <div class="table-responsive border" id="git_panel_log_scroll" style="height: 50vh; overflow-y: auto;">
             <table class="table table-vcenter card-table table-striped">
-              <thead class="sticky-top">
-                <tr>
-                  <th class="w-1">时间</th>
-                  <th class="w-1">级别</th>
-                  <th>内容</th>
-                </tr>
-              </thead>
               <tbody id="git_panel_log_content">
                 <tr>
-                  <td colspan="3" class="text-center text-muted py-4">尚未开始</td>
+                  <td colspan="2" class="text-center text-muted py-4">尚未开始</td>
                 </tr>
               </tbody>
             </table>
           </div>
-          <div class="my-1" id="git_panel_result"></div>
         </div>
         <div class="modal-footer">
-          <span class="text-muted me-auto" id="git_panel_status"></span>
-          <a href="javascript:git_panel_check_update()" class="btn btn-link" id="git_panel_check_btn">检查更新</a>
-          <a href="javascript:git_panel_start_update()" class="btn btn-primary disabled" id="git_panel_update_btn">开始更新</a>
+          <span class="text-muted me-auto text-truncate" id="git_panel_status" style="min-width: 0;"></span>
+          <a href="javascript:git_panel_action()" class="btn btn-link" id="git_panel_action_btn">检测更新</a>
         </div>
       </div>
     </div>

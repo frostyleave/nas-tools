@@ -64,7 +64,6 @@ def run_system_update(
     code, stdout, _ = run_git("rev-parse", "--abbrev-ref", "HEAD")
     branch = stdout if code == 0 and stdout else os.getenv("NASTOOL_VERSION", "master")
     log.info(f'【UpdateSystem】当前分支：{branch}')
-    report(15, f"当前分支：{branch}")
 
     # 更新前的提交
     code, old_commit, _ = run_git("rev-parse", "HEAD")
