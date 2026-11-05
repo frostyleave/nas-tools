@@ -15,6 +15,9 @@ DEFAULT_PBKDF2_ITERATIONS = 1_000_000
 # 本模块生成的哈希格式：method$salt$hash
 _HASH_PATTERN = re.compile(r"^(scrypt:\d+:\d+:\d+|pbkdf2:\w+:\d+)\$[^$]+\$[0-9a-f]+$")
 
+# 允许校验的哈希方法前缀，其它历史/异常格式一律视为校验失败
+_ALLOWED_METHODS = ("scrypt", "pbkdf2")
+
 
 def gen_salt(length: int) -> str:
     """Generate a random string of SALT_CHARS with specified ``length``."""
@@ -130,10 +133,33 @@ def check_password_hash(pwhash: str, password: str) -> bool:
     .. versionchanged:: 2.3
         All plain hashes are deprecated and will not be supported in Werkzeug 3.0.
     """
+    # 空哈希、非法类型直接判定失败，避免登录接口抛异常
+    if not pwhash or not isinstance(pwhash, (str, bytes)):
+        return False
+    if isinstance(pwhash, bytes):
+        try:
+            pwhash = pwhash.decode()
+        except UnicodeDecodeError:
+            return False
+    if not password:
+        return False
+
     try:
         method, salt, hashval = pwhash.split("$", 2)
     except ValueError:
         return False
 
-    return hmac.compare_digest(_hash_internal(method, salt, password)[0], hashval)
+    # 只支持本模块及 werkzeug 生成过的 scrypt/pbkdf2 格式
+    if method.split(":", 1)[0].lower() not in _ALLOWED_METHODS:
+        return False
+    if not salt or not hashval:
+        return False
+
+    try:
+        expected = _hash_internal(method, salt, password)[0]
+    except (ValueError, TypeError, OverflowError):
+        # 非法迭代次数、未摘要方法等历史格式：按密码错误处理
+        return False
+
+    return hmac.compare_digest(expected, hashval)
 

@@ -5,7 +5,6 @@ from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.responses import JSONResponse
 from fastapi.security import OAuth2PasswordRequestForm
 
-import log
 from app.middleware.security import (
     ACCESS_TOKEN_EXPIRE_MINUTES,
     COOKIE_MAX_AGE,
@@ -61,10 +60,7 @@ async def refresh_token(request: Request):
     """
     刷新access_token
     """
-    ip = get_real_ip(request)
     refresh_token = request.cookies.get("refresh_token")
-
-    log.debug(f'[刷新授权]请求ip={ip}, refresh_token={refresh_token}')
 
     if not refresh_token:
         raise HTTPException(status_code=401, detail="缺少 refresh_token")

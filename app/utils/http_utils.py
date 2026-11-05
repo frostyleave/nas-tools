@@ -8,6 +8,7 @@ from requests import Response, Session
 from urllib3.exceptions import InsecureRequestWarning
 
 import log
+from app.utils.commons import mask_url
 from config import Config
 
 urllib3.disable_warnings(InsecureRequestWarning)
@@ -90,7 +91,7 @@ class RequestUtils:
         try:
             return req_method(method, url, **kwargs)
         except requests.exceptions.RequestException as e:
-            log.exception(f"【Http】请求{url},method={method}  异常:")
+            log.exception(f"【Http】请求{mask_url(url)},method={method}  异常:")
             if raise_exception:
                 raise
             return None

@@ -60,7 +60,6 @@ class Subscribe:
                           channel=None,
                           keyword=None,
                           season=None,
-                          fuzzy_match=False,
                           mediaid=None,
                           media_info=None,
                           rss_sites=None,
@@ -88,7 +87,6 @@ class Subscribe:
         :param channel: 自动或手动
         :param keyword: 自定义搜索词
         :param season: 第几季，数字
-        :param fuzzy_match: 是否模糊匹配
         :param mediaid: 媒体ID，DB:/BG:/TMDBID
         :param rss_sites: 订阅站点列表，为空则表示全部站点
         :param search_sites: 搜索站点列表，为空则表示全部站点
@@ -123,7 +121,6 @@ class Subscribe:
         total_ep = int(total_ep) if str(total_ep).isdigit() else None
         current_ep = int(current_ep) if str(current_ep).isdigit() else None
         download_setting = int(download_setting) if str(download_setting).replace("-", "").isdigit() else ""
-        fuzzy_match = bool(fuzzy_match)
         if channel == RssType.Auto:
             default_rss_setting = self.default_rss_setting_tv if mtype == MediaType.TV else self.default_rss_setting_mov
             if default_rss_setting:
@@ -159,149 +156,101 @@ class Subscribe:
                 if not search_sites and default_search_sites:
                     search_sites = default_search_sites
         # 搜索媒体信息
-        if not fuzzy_match:
-            if not media_info or hasattr(media_info, 'tmdb_info') == False or not media_info.tmdb_info:
-                # 根据TMDBID查询，从推荐加订阅的情况
-                if mediaid:
-                    # 根据ID查询
-                    media_info = MediaService().get_mediainfo_from_id(mediaid=mediaid, mtype=mtype)
-                    if not season:
-                        season = media_info.begin_season
-                else:
-                    # 根据名称和年份查询
-                    if season:
-                        title = "%s %s 第%s季".strip() % (name, year, season)
-                    else:
-                        title = "%s %s".strip() % (name, year)
-                    media_info = self.media.get_media_info(title=title,
-                                                        mtype=mtype,
-                                                        strict=bool(year),
-                                                        cache=False)
-            # 检查TMDB信息
-            if not media_info or not media_info.tmdb_info:
-                return 1, "无法TMDB查询到媒体信息", None
-            # 添加订阅
-            if media_info.type != MediaType.MOVIE:
-                # 电视剧
-                # 豆瓣来的电视剧且没有季数时，设为第一季
-                if not season and str(mediaid).startswith("DB:"):
-                    season = 1
+        if not media_info or hasattr(media_info, 'tmdb_info') == False or not media_info.tmdb_info:
+            # 根据TMDBID查询，从推荐加订阅的情况
+            if mediaid:
+                # 根据ID查询
+                media_info = MediaService().get_mediainfo_from_id(mediaid=mediaid, mtype=mtype)
+                if not season:
+                    season = media_info.begin_season
+            else:
+                # 根据名称和年份查询
                 if season:
-                    total_episode = self.media.get_tmdb_season_episodes_num(tv_info=media_info.tmdb_info,
-                                                                            season=int(season))
+                    title = "%s %s 第%s季".strip() % (name, year, season)
                 else:
-                    # 查询季及集信息
-                    total_seasoninfo = self.media.get_tmdb_tv_seasons(tv_info=media_info.tmdb_info)
-                    if not total_seasoninfo:
-                        return 2, "获取剧集信息失败", media_info
-                    # 按季号降序排序
-                    total_seasoninfo = sorted(total_seasoninfo,
-                                              key=lambda x: x.get("season_number"),
-                                              reverse=True)
-                    # 取最新季
-                    season = total_seasoninfo[0].get("season_number")
-                    total_episode = total_seasoninfo[0].get("episode_count")
-                if not total_episode:
-                    return 3, f"第{season}季获取剧集数失败，请确认该季是否存在", media_info
-                media_info.begin_season = int(season)
-                media_info.total_episodes = total_episode
-                if total_ep:
-                    total = total_ep
-                else:
-                    total = media_info.total_episodes
-                if current_ep:
-                    lack = total - current_ep - 1
-                else:
-                    lack = total
-                if rssid:
-                    self.delete_subscribe(mtype=MediaType.TV, rssid=rssid)
-                code = self.dbhelper.insert_rss_tv(media_info=media_info,
-                                                   total=total,
-                                                   lack=lack,
-                                                   state=state,
-                                                   rss_sites=rss_sites,
-                                                   search_sites=search_sites,
-                                                   over_edition=over_edition,
-                                                   filter_restype=filter_restype,
-                                                   filter_pix=filter_pix,
-                                                   filter_team=filter_team,
-                                                   filter_rule=filter_rule,
-                                                   filter_include=filter_include,
-                                                   filter_exclude=filter_exclude,
-                                                   save_path=save_path,
-                                                   download_setting=download_setting,
-                                                   total_ep=total_ep,
-                                                   current_ep=current_ep,
-                                                   fuzzy_match=0,
-                                                   desc=media_info.overview,
-                                                   note=self.gen_rss_note(media_info),
-                                                   keyword=keyword)
-            else:
-                # 电影
-                if rssid:
-                    self.delete_subscribe(mtype=MediaType.MOVIE, rssid=rssid)
-                code = self.dbhelper.insert_rss_movie(media_info=media_info,
-                                                      state=state,
-                                                      rss_sites=rss_sites,
-                                                      search_sites=search_sites,
-                                                      over_edition=over_edition,
-                                                      filter_restype=filter_restype,
-                                                      filter_pix=filter_pix,
-                                                      filter_team=filter_team,
-                                                      filter_rule=filter_rule,
-                                                      filter_include=filter_include,
-                                                      filter_exclude=filter_exclude,
-                                                      save_path=save_path,
-                                                      download_setting=download_setting,
-                                                      fuzzy_match=0,
-                                                      desc=media_info.overview,
-                                                      note=self.gen_rss_note(media_info),
-                                                      keyword=keyword)
-        else:
-            # 模糊匹配
-            media_info = MetaInfo(title=name, mtype=mtype)
-            media_info.title = name
-            media_info.type = mtype
+                    title = "%s %s".strip() % (name, year)
+                media_info = self.media.get_media_info(title=title,
+                                                    mtype=mtype,
+                                                    strict=bool(year),
+                                                    cache=False)
+        # 检查TMDB信息
+        if not media_info or not media_info.tmdb_info:
+            return 1, "无法TMDB查询到媒体信息", None
+        # 添加订阅
+        if media_info.type != MediaType.MOVIE:
+            # 电视剧
+            # 豆瓣来的电视剧且没有季数时，设为第一季
+            if not season and str(mediaid).startswith("DB:"):
+                season = 1
             if season:
-                media_info.begin_season = int(season)
-            if mtype == MediaType.MOVIE:
-                if rssid:
-                    self.delete_subscribe(mtype=MediaType.MOVIE, rssid=rssid)
-                code = self.dbhelper.insert_rss_movie(media_info=media_info,
-                                                      state="R",
-                                                      rss_sites=rss_sites,
-                                                      search_sites=search_sites,
-                                                      over_edition=over_edition,
-                                                      filter_restype=filter_restype,
-                                                      filter_pix=filter_pix,
-                                                      filter_team=filter_team,
-                                                      filter_rule=filter_rule,
-                                                      filter_include=filter_include,
-                                                      filter_exclude=filter_exclude,
-                                                      save_path=save_path,
-                                                      download_setting=download_setting,
-                                                      fuzzy_match=1,
-                                                      keyword=keyword)
+                total_episode = self.media.get_tmdb_season_episodes_num(tv_info=media_info.tmdb_info,
+                                                                        season=int(season))
             else:
-                if rssid:
-                    self.delete_subscribe(mtype=MediaType.TV, rssid=rssid)
-                code = self.dbhelper.insert_rss_tv(media_info=media_info,
-                                                   total=0,
-                                                   lack=0,
-                                                   state="R",
-                                                   rss_sites=rss_sites,
-                                                   search_sites=search_sites,
-                                                   over_edition=over_edition,
-                                                   filter_restype=filter_restype,
-                                                   filter_pix=filter_pix,
-                                                   filter_team=filter_team,
-                                                   filter_rule=filter_rule,
-                                                   filter_include=filter_include,
-                                                   filter_exclude=filter_exclude,
-                                                   save_path=save_path,
-                                                   download_setting=download_setting,
-                                                   fuzzy_match=1,
-                                                   keyword=keyword)
+                # 查询季及集信息
+                total_seasoninfo = self.media.get_tmdb_tv_seasons(tv_info=media_info.tmdb_info)
+                if not total_seasoninfo:
+                    return 2, "获取剧集信息失败", media_info
+                # 按季号降序排序
+                total_seasoninfo = sorted(total_seasoninfo,
+                                          key=lambda x: x.get("season_number"),
+                                          reverse=True)
+                # 取最新季
+                season = total_seasoninfo[0].get("season_number")
+                total_episode = total_seasoninfo[0].get("episode_count")
+            if not total_episode:
+                return 3, f"第{season}季获取剧集数失败，请确认该季是否存在", media_info
+            media_info.begin_season = int(season)
+            media_info.total_episodes = total_episode
+            if total_ep:
+                total = total_ep
+            else:
+                total = media_info.total_episodes
+            if current_ep:
+                lack = total - current_ep - 1
+            else:
+                lack = total
+            if rssid:
+                self.delete_subscribe(mtype=MediaType.TV, rssid=rssid)
+            code = self.dbhelper.insert_rss_tv(media_info=media_info,
+                                               total=total,
+                                               lack=lack,
+                                               state=state,
+                                               rss_sites=rss_sites,
+                                               search_sites=search_sites,
+                                               over_edition=over_edition,
+                                               filter_restype=filter_restype,
+                                               filter_pix=filter_pix,
+                                               filter_team=filter_team,
+                                               filter_rule=filter_rule,
+                                               filter_include=filter_include,
+                                               filter_exclude=filter_exclude,
+                                               save_path=save_path,
+                                               download_setting=download_setting,
+                                               total_ep=total_ep,
+                                               current_ep=current_ep,
+                                               desc=media_info.overview,
+                                               note=self.gen_rss_note(media_info),
+                                               keyword=keyword)
+        else:
+            # 电影
+            if rssid:
+                self.delete_subscribe(mtype=MediaType.MOVIE, rssid=rssid)
+            code = self.dbhelper.insert_rss_movie(media_info=media_info,
+                                                  state=state,
+                                                  rss_sites=rss_sites,
+                                                  search_sites=search_sites,
+                                                  over_edition=over_edition,
+                                                  filter_restype=filter_restype,
+                                                  filter_pix=filter_pix,
+                                                  filter_team=filter_team,
+                                                  filter_rule=filter_rule,
+                                                  filter_include=filter_include,
+                                                  filter_exclude=filter_exclude,
+                                                  save_path=save_path,
+                                                  download_setting=download_setting,
+                                                  desc=media_info.overview,
+                                                  note=self.gen_rss_note(media_info),
+                                                  keyword=keyword)
 
         if code == 0:
             # 解发事件
@@ -319,7 +268,6 @@ class Subscribe:
                 "download_setting": download_setting,
                 "total_ep": total_ep,
                 "current_ep": current_ep,
-                "fuzzy_match": fuzzy_match,
                 "keyword": keyword
             })
             # 发送订阅成功消息
@@ -413,7 +361,6 @@ class Subscribe:
             filter_exclude = rss_movie.FILTER_EXCLUDE
             download_setting = rss_movie.DOWNLOAD_SETTING
             save_path = rss_movie.SAVE_PATH
-            fuzzy_match = rss_movie.FUZZY_MATCH == 1
             keyword = rss_movie.KEYWORD
             # 兼容旧配置
             if desc and desc.find('{') != -1:
@@ -427,7 +374,6 @@ class Subscribe:
                 filter_rule = desc.get("rule")
                 download_setting = ""
                 save_path = ""
-                fuzzy_match = not tmdbid
             if note:
                 note_info = self.__parse_rss_desc(note)
             else:
@@ -452,7 +398,6 @@ class Subscribe:
                 "filter_exclude": filter_exclude,
                 "save_path": save_path,
                 "download_setting": download_setting,
-                "fuzzy_match": fuzzy_match,
                 "state": rss_movie.STATE,
                 "poster": note_info.get("poster"),
                 "release_date": note_info.get("release_date"),
@@ -484,7 +429,6 @@ class Subscribe:
             save_path = rss_tv.SAVE_PATH
             total_ep = rss_tv.TOTAL_EP
             current_ep = rss_tv.CURRENT_EP
-            fuzzy_match = rss_tv.FUZZY_MATCH == 1
             keyword = rss_tv.KEYWORD
             # 兼容旧配置
             if desc and desc.find('{') != -1:
@@ -502,7 +446,6 @@ class Subscribe:
                 download_setting = ""
                 total_ep = desc.get("total")
                 current_ep = desc.get("current")
-                fuzzy_match = not tmdbid
             if note:
                 note_info = self.__parse_rss_desc(note)
             else:
@@ -532,7 +475,6 @@ class Subscribe:
                 "lack": rss_tv.LACK,
                 "total_ep": total_ep,
                 "current_ep": current_ep,
-                "fuzzy_match": fuzzy_match,
                 "state": rss_tv.STATE,
                 "poster": note_info.get("poster"),
                 "release_date": note_info.get("release_date"),
@@ -574,9 +516,6 @@ class Subscribe:
         log.info("【Subscribe】开始刷新订阅TMDB信息...")
         rss_movies = self.get_subscribe_movies(state='R')
         for rss_info in rss_movies.values():
-            # 跳过模糊匹配的
-            if rss_info.get("fuzzy_match"):
-                continue
             rssid = rss_info.get("id")
             name = rss_info.get("name")
             year = rss_info.get("year") or ""
@@ -603,9 +542,6 @@ class Subscribe:
         # 更新电视剧
         rss_tvs = self.get_subscribe_tvs(state='R')
         for rss_info in rss_tvs.values():
-            # 跳过模糊匹配的
-            if rss_info.get("fuzzy_match"):
-                continue
             rssid = rss_info.get("id")
             name = rss_info.get("name")
             year = rss_info.get("year") or ""
@@ -695,9 +631,6 @@ class Subscribe:
         if rss_movies:
             log.info(f"【Subscribe】共有 {len(rss_movies)} 个电影订阅需要搜索")
         for rss_info in rss_movies.values():
-            # 跳过模糊匹配的
-            if rss_info.get("fuzzy_match"):
-                continue
             # 搜索站点范围
             rssid = rss_info.get("id")
             name = rss_info.get("name")
@@ -782,9 +715,6 @@ class Subscribe:
             log.info(f"【Subscribe】共有 {len(rss_tvs)} 个电视剧订阅需要检索")
         rss_no_exists = {}
         for rss_info in rss_tvs.values():
-            # 跳过模糊匹配的
-            if rss_info.get("fuzzy_match"):
-                continue
             rssid = rss_info.get("id")
             name = rss_info.get("name")
             year = rss_info.get("year") or ""
@@ -820,32 +750,16 @@ class Subscribe:
                 media_info.keyword = keyword
                 # 表中记录的剩余订阅集数
                 episodes = self.get_subscribe_tv_episodes(rss_info.get("id"))
-                
                 if episodes is None:
                     episodes = []
                     if current_ep:
-                        episodes = list(range(current_ep, total_ep + 1))
-                    rss_no_exists[media_info.tmdb_id] = [
-                        {
-                            "season": season,
-                            "episodes": episodes,
-                            "total_episodes": total_ep
-                        }
-                    ]
-                else:
-                    rss_no_exists[media_info.tmdb_id] = [
-                        {
-                            "season": season,
-                            "episodes": episodes,
-                            "total_episodes": total_ep
-                        }
-                    ]
+                        episodes = list(range(int(current_ep), int(total_ep) + 1))
                 # 非洗版时检查本地媒体库情况
                 if not over_edition:
                     exist_flag, library_no_exists, _ = self.downloader.check_exists_medias(
                         meta_info=media_info,
                         total_ep={season: total_ep})
-                    # 当前剧集已存在，跳过
+                    # 当前剧集已存在，跳过（不登记缺失季集）
                     if exist_flag:
                         # 已全部存在
                         if not library_no_exists or not library_no_exists.get(media_info.tmdb_id):
@@ -853,6 +767,12 @@ class Subscribe:
                             # 完成订阅
                             self.finish_rss_subscribe(rssid=rss_info.get("id"), media=media_info)
                         continue
+                    # 同一 tmdb_id 存在多季订阅时按季合并，避免后一季覆盖前一季
+                    TorrentUtils.add_no_exists(target=rss_no_exists,
+                                               tmdb_id=media_info.tmdb_id,
+                                               season=season,
+                                               episodes=episodes,
+                                               total_episodes=total_ep)
                     # 取交集做为缺失集
                     rss_no_exists = TorrentUtils.get_intersection_episodes(target=rss_no_exists,
                                                                            source=library_no_exists,
@@ -860,6 +780,12 @@ class Subscribe:
                     if rss_no_exists.get(media_info.tmdb_id):
                         log.info(f"【Subscribe】{media_info.get_title_string()} 订阅缺失季集：{rss_no_exists.get(media_info.tmdb_id)}")
                 else:
+                    # 洗版时同样登记缺失季集，否则 batch 无法匹配到该季
+                    TorrentUtils.add_no_exists(target=rss_no_exists,
+                                               tmdb_id=media_info.tmdb_id,
+                                               season=season,
+                                               episodes=episodes,
+                                               total_episodes=total_ep)
                     # 把洗版标志加入检索
                     media_info.over_edition = over_edition
                     # 将当前的优先级传入检索
@@ -880,9 +806,11 @@ class Subscribe:
                                                                                   no_exists=rss_no_exists,
                                                                                   sites=rss_info.get("search_sites"),
                                                                                   filters=filter_dict)
-                if search_result \
-                        or not no_exists \
-                        or not no_exists.get(media_info.tmdb_id):
+                # 只关注当前订阅季的剩余缺失，其他季订阅不影响本订阅的完成判断
+                left_season = TorrentUtils.get_no_exists_season(no_exists,
+                                                                media_info.tmdb_id,
+                                                                season)
+                if search_result or not left_season:
                     # 洗版
                     if over_edition:
                         self.update_subscribe_over_edition(rtype=media_info.type,
@@ -895,7 +823,7 @@ class Subscribe:
                     # 更新状态
                     self.update_subscribe_tv_lack(rssid=rssid,
                                                   media_info=media_info,
-                                                  seasoninfo=no_exists.get(media_info.tmdb_id))
+                                                  seasoninfo=[left_season])
             except Exception as err:
                 log.error(f"【Subscribe】电视剧 {name} 订阅搜索失败：{err!s}")
                 self.dbhelper.update_rss_tv_state(rssid=rssid, state='R')

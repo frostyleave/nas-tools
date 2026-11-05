@@ -5,7 +5,7 @@ from app.helper import SubmoduleHelper
 from app.models.model import UserSiteConf
 from app.sites.siteuserinfo._base import _ISiteUserInfo
 from app.sites.siteuserinfo.mTorrent import MTorrentUserInfo
-from app.utils.commons import singleton
+from app.utils.commons import mask_value, singleton
 from app.utils.http_utils import RequestUtils
 from app.utils.types import Spider
 from config import Config
@@ -48,7 +48,8 @@ class SitesschemaCenter:
         if not site_cookie:
             return None
         
-        log.debug(f"【Sites】站点 {site_name} url={site_url} site_cookie={site_cookie} ua={ua}")
+        # Cookie 属于站点凭证，日志中不输出原文
+        log.debug(f"【Sites】站点 {site_name} url={site_url} cookie={mask_value(site_cookie)} ua={ua}")
 
         # 站点流控
         # site_id = site_info.id
@@ -57,16 +58,28 @@ class SitesschemaCenter:
 
         # 请求网页
         session = requests.Session()
-        html_text = self.__request_site_page(url=site_url, session=session, site_cookie=site_cookie, ua=ua, emulate=emulate, proxy=use_proxy)
-        if not html_text:
-            return None
+        success = False
+        try:
+            html_text = self.__request_site_page(url=site_url, session=session, site_cookie=site_cookie, ua=ua, emulate=emulate, proxy=use_proxy)
+            if not html_text:
+                return None
 
-        # 解析站点类型
-        site_schema = self.__build_class(html_text)
-        if not site_schema:
-            log.error(f"【Sites】站点 {site_name} 无法识别站点类型")
-            return None
-        return site_schema(site_name, site_url, site_cookie, html_text, session=session, ua=ua, emulate=emulate, proxy=use_proxy)
+            # 解析站点类型
+            site_schema = self.__build_class(html_text)
+            if not site_schema:
+                log.error(f"【Sites】站点 {site_name} 无法识别站点类型")
+                return None
+            builder = site_schema(site_name, site_url, site_cookie, html_text,
+                                  session=session, ua=ua, emulate=emulate, proxy=use_proxy)
+            success = True
+            return builder
+        finally:
+            # 失败路径不能把 Session 泄漏出去；成功时 Session 归解析器持有
+            if not success:
+                try:
+                    session.close()
+                except Exception:
+                    pass
 
 
     def __build_class(self, html_text):

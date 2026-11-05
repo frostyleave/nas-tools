@@ -133,6 +133,62 @@ class TorrentUtils:
         return magnet_link
 
     @staticmethod
+    def add_no_exists(target, tmdb_id, season, episodes, total_episodes):
+        """
+        将某一季的缺失信息合并进缺失季集字典
+        同一 tmdb_id 下的多个季（如 S01、S02 订阅）合并保存，不会互相覆盖；
+        同一季重复命中时以最新的缺失集为准
+        :param target: 缺失季集字典 {tmdb_id: [{"season":..,"episodes":..,"total_episodes":..}]}
+        :param tmdb_id: TMDB ID
+        :param season: 季数
+        :param episodes: 缺失集数列表
+        :param total_episodes: 该季总集数
+        :return: 合并后的字典
+        """
+        if not tmdb_id:
+            return target
+        try:
+            season = int(season) if season else 1
+        except (TypeError, ValueError):
+            season = 1
+        season_list = target.setdefault(tmdb_id, [])
+        for no_item in season_list:
+            try:
+                item_season = int(no_item.get("season") or 1)
+            except (TypeError, ValueError):
+                item_season = 1
+            if item_season == season:
+                no_item["episodes"] = episodes
+                no_item["total_episodes"] = total_episodes
+                return target
+        season_list.append({
+            "season": season,
+            "episodes": episodes,
+            "total_episodes": total_episodes
+        })
+        return target
+
+    @staticmethod
+    def get_no_exists_season(no_exists, tmdb_id, season):
+        """
+        从缺失季集字典中取出指定季的记录，不存在时返回 None
+        """
+        if not no_exists or not tmdb_id:
+            return None
+        try:
+            season = int(season)
+        except (TypeError, ValueError):
+            season = 1
+        for no_item in no_exists.get(tmdb_id) or []:
+            try:
+                item_season = int(no_item.get("season") or 1)
+            except (TypeError, ValueError):
+                item_season = 1
+            if item_season == season:
+                return no_item
+        return None
+
+    @staticmethod
     def get_intersection_episodes(target, source, title):
         """
         对两个季集字典进行判重，有相同项目的取集的交集

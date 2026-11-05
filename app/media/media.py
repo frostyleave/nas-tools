@@ -2056,12 +2056,14 @@ class MediaService:
         """
         获取TMDB的英文名称
         """
-        en_info = self.get_tmdb_info(mtype=media_info.type,
-                                     tmdbid=media_info.tmdb_id,
-                                     language="en",
-                                     to_chinese=False)
-        if en_info:
-            return en_info.get("title") if media_info.type == MediaType.MOVIE else en_info.get("name")
+        tmdb_info = media_info.tmdb_info
+        if not tmdb_info:
+            tmdb_info = self.get_tmdb_info(mtype=media_info.type,
+                                        tmdbid=media_info.tmdb_id,
+                                        language="en",
+                                        to_chinese=False)
+        if tmdb_info:
+            return tmdb_info.get("title") if media_info.type == MediaType.MOVIE else tmdb_info.get("name")
         return None
 
     def get_episode_title(self, media_info):

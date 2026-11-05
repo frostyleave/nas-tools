@@ -1038,7 +1038,6 @@ function add_rss_manual() {
   const year = $("#rss_year").val();
   const keyword = $("#rss_keyword").val();
   const season = $("#rss_season").val();
-  const fuzzy_match = $("#fuzzy_match").prop("checked");
   const mediaid = $("#rss_tmdbid").val();
   const over_edition = $("#over_edition").prop("checked");
   const filter_restype = $("#rss_restype").val();
@@ -1064,7 +1063,7 @@ function add_rss_manual() {
   } else {
     $("#rss_year").removeClass("is-invalid");
   }
-  if (!fuzzy_match && !season && (mtype == "TV" || mtype == "电视剧")) {
+  if (!season && (mtype == "TV" || mtype == "电视剧")) {
     $("#rss_season").addClass("is-invalid");
     return;
   } else {
@@ -1089,12 +1088,9 @@ function add_rss_manual() {
     rss_sites = [];
   }
   // 搜索站点
-  let search_sites = [];
-  if (!fuzzy_match) {
-    search_sites = select_GetSelectedVAL("search_sites");
-    if (search_sites.length === SearchSitesLength) {
-      search_sites = [];
-    }
+  let search_sites = select_GetSelectedVAL("search_sites");
+  if (search_sites.length === SearchSitesLength) {
+    search_sites = [];
   }
   // 储存订阅设置
   const rss_setting = {
@@ -1120,7 +1116,6 @@ function add_rss_manual() {
       "name": name,
       "year": year,
       "season": season,
-      "fuzzy_match": fuzzy_match,
       "mediaid": mediaid,
       "over_edition": over_edition,
       "total_ep": total_ep,
@@ -1155,24 +1150,6 @@ function add_rss_manual() {
       }
     }
   });
-}
-
-// 选择模糊匹配
-function change_match_check(obj) {
-  if ($(obj).prop("checked")) {
-    $("#rss_search_sites_div").hide();
-    $("#over_edition").prop("checked", false);
-  } else {
-    $("#rss_search_sites_div").show();
-  }
-}
-
-// 选择洗版
-function change_over_edition_check(obj) {
-  if ($(obj).prop("checked")) {
-    $("#fuzzy_match").prop("checked", false);
-    $("#rss_search_sites_div").show();
-  }
 }
 
 function convert_mediaid(tmdbid) {
@@ -1252,7 +1229,6 @@ function show_add_rss_media_modal(mtype, tmdbid, rss_name, rss_year, rss_season=
   $("#rss_year").val(rss_year || '').attr("readonly", false);
   $("#rss_keyword").val("");
   $("#rss_tmdbid").val(tmdbid || '');
-  $("#fuzzy_match").prop("checked", false);
   $("#over_edition").prop("checked", false);
   $("#rss_season").val("");
   $("#rss_total_ep").val("");
@@ -1359,13 +1335,6 @@ function show_edit_rss_media_modal(rssid, type) {
         } else {
           $("#rss_current_ep").val("");
         }
-      }
-      if (!ret.detail.fuzzy_match) {
-        $("#fuzz_match").prop("checked", false);
-        $("#rss_search_sites_div").show();
-      } else {
-        $("#fuzzy_match").prop("checked", true);
-        $("#rss_search_sites_div").hide();
       }
       if (ret.detail.over_edition) {
         $("#over_edition").prop("checked", true);

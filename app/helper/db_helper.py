@@ -647,7 +647,6 @@ class DbHelper:
                          filter_exclude=None,
                          save_path=None,
                          download_setting=-1,
-                         fuzzy_match=0,
                          desc=None,
                          note=None,
                          keyword=None):
@@ -681,7 +680,6 @@ class DbHelper:
             FILTER_EXCLUDE=filter_exclude,
             SAVE_PATH=save_path,
             DOWNLOAD_SETTING=download_setting,
-            FUZZY_MATCH=fuzzy_match,
             STATE=state,
             DESC=desc,
             NOTE=note,
@@ -834,7 +832,6 @@ class DbHelper:
                       download_setting=-1,
                       total_ep=None,
                       current_ep=None,
-                      fuzzy_match=0,
                       desc=None,
                       note=None,
                       keyword=None):
@@ -849,10 +846,7 @@ class DbHelper:
             return -1
         if not media_info.title:
             return -1
-        if fuzzy_match and media_info.begin_season is None:
-            season_str = ""
-        else:
-            season_str = media_info.get_season_string()
+        season_str = media_info.get_season_string()
 
         if self.is_exists_rss_tv(media_info.tmdb_id, season_str):
             return 9
@@ -874,7 +868,6 @@ class DbHelper:
             FILTER_EXCLUDE=filter_exclude,
             SAVE_PATH=save_path,
             DOWNLOAD_SETTING=download_setting,
-            FUZZY_MATCH=fuzzy_match,
             TOTAL_EP=total_ep,
             CURRENT_EP=current_ep,
             TOTAL=total,

@@ -1,8 +1,11 @@
-from queue import Empty, Queue
+from queue import Empty, Full, Queue
 
 import log
-from app.utils.commons import singleton
+from app.utils.commons import mask_sensitive, singleton
 from app.utils.types import EventType
+
+# 事件队列上限：处理不过来时丢弃新事件并告警，避免内存无限增长
+EVENT_QUEUE_MAXSIZE = 500
 
 
 @singleton
@@ -15,12 +18,15 @@ class EventManager:
     _eventQueue = None
     # 事件响应函数字典
     _handlers: dict
+    # 因队列满而被丢弃的事件数
+    _dropped_count = 0
 
     def __init__(self):
-        # 事件队列
-        self._eventQueue = Queue()
+        # 事件队列（有界）
+        self._eventQueue = Queue(maxsize=EVENT_QUEUE_MAXSIZE)
         # 事件响应函数字典
         self._handlers = {}
+        self._dropped_count = 0
 
     def get_event(self):
         """
@@ -28,8 +34,9 @@ class EventManager:
         """
         try:
             event = self._eventQueue.get(block=True, timeout=1)
+            # 拷贝一份，避免消费过程中注册/注销监听器导致遍历异常
             handlerList = self._handlers.get(event.event_type)
-            return event, handlerList or []
+            return event, list(handlerList) if handlerList else []
         except Empty:
             return None, []
 
@@ -67,8 +74,14 @@ class EventManager:
             return
         event = Event(etype.value)
         event.event_data = data or {}
-        log.debug(f"发送事件：{etype.value} - {event.event_data}")
-        self._eventQueue.put(event)
+        log.debug(f"发送事件：{etype.value} - {mask_sensitive(event.event_data)}")
+        try:
+            self._eventQueue.put_nowait(event)
+        except Full:
+            # 事件处理跟不上（如 Webhook 超时、Plex 限速 sleep），丢弃新事件而不是无限堆积
+            self._dropped_count += 1
+            log.warn(f"事件队列已满（上限 {EVENT_QUEUE_MAXSIZE}），丢弃事件：{etype.value}，"
+                     f"累计丢弃 {self._dropped_count} 次")
 
     def register(self, etype: [EventType, list]):
         """

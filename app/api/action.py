@@ -46,6 +46,7 @@ from app.utils import (
     StringUtils,
     SystemUtils,
 )
+from app.utils.commons import mask_sensitive
 from app.utils.constants import Constants
 from app.utils.password_hash import generate_password_hash
 from app.utils.types import (
@@ -69,7 +70,8 @@ def do(background_tasks: BackgroundTasks, content: Annotated[dict, Body(...)], c
     try:
         cmd = content.get("cmd")
         data = content.get("data") or {}
-        log.debug("处理/do请求: cmd={%s}, data={%s}", cmd, data)
+        # 请求体可能包含密码/token/Cookie 等敏感信息，日志中统一脱敏
+        log.debug("处理/do请求: cmd={%s}, data={%s}", cmd, mask_sensitive(data))
         return WebAction(current_user, background_tasks).action(cmd, data)
     except Exception as e:
         log.exception("处理/do请求出错, cmd=" + content.get("cmd"))
@@ -77,7 +79,8 @@ def do(background_tasks: BackgroundTasks, content: Annotated[dict, Body(...)], c
     finally:
         cost_time = time.time()
         process_time = (cost_time - start_time) * 1000  # 转换为毫秒
-        log.debug("[%s] %s, 耗时: %s ms", str(threading.get_ident()), json.dumps(content), format(process_time, ".2f"))
+        log.debug("[%s] %s, 耗时: %s ms", str(threading.get_ident()),
+                  json.dumps(mask_sensitive(content), ensure_ascii=False), format(process_time, ".2f"))
 
 # search
 @action_router.post("/search")
@@ -1023,7 +1026,6 @@ class WebAction:
         year = data.get("year")
         keyword = data.get("keyword")
         season = data.get("season")
-        fuzzy_match = data.get("fuzzy_match")
         mediaid = data.get("mediaid")
         rss_sites = data.get("rss_sites")
         search_sites = data.get("search_sites")
@@ -1054,7 +1056,6 @@ class WebAction:
                                                                      channel=channel,
                                                                      keyword=keyword,
                                                                      season=sea,
-                                                                     fuzzy_match=fuzzy_match,
                                                                      mediaid=mediaid,
                                                                      rss_sites=rss_sites,
                                                                      search_sites=search_sites,
@@ -1077,7 +1078,6 @@ class WebAction:
                                                                  channel=channel,
                                                                  keyword=keyword,
                                                                  season=season,
-                                                                 fuzzy_match=fuzzy_match,
                                                                  mediaid=mediaid,
                                                                  rss_sites=rss_sites,
                                                                  search_sites=search_sites,

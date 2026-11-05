@@ -153,7 +153,8 @@ async def message_handler(websocket: WebSocket):
 
 
 # 实时日志SSE
-@streaming_router.get("/stream-logging", dependencies=[Depends(get_current_user)])
+@streaming_router.get("/stream-logging")
+@auth_check(LEVEL_OPERATOR)
 async def stream_logging(request: Request, source: str = ""):
     """
     实时日志SSE

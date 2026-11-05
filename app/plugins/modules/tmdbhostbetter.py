@@ -277,17 +277,43 @@ class TmdbHostBetter(_IPluginModule):
             self.error("TMDB IP优选完成，未获取到任何可用IP")
             return
 
-        # 写入系统hosts
-        changed = False
-        if self._sync_hosts:
-            changed = self.__update_system_hosts(results)
+        # 与上次优选结果比对，最优IP无变化时不更新hosts、不发送通知
+        best_ips = {domain: ip for domain, ip, _ in results}
+        changed = best_ips != self.__get_last_best_ips()
+        if changed:
+            self.info(f"TMDB IP优选结果有变化：{best_ips}")
+        else:
+            self.info("TMDB IP优选结果与上次一致，不更新hosts、不发送通知")
 
-        # 发送通知
-        if self._notify and (changed or not self._sync_hosts):
+        # 写入系统hosts（结果无变化时内部同样不会重复写入）
+        if self._sync_hosts:
+            self.__update_system_hosts(results)
+
+        # 记录本次结果
+        self.__save_best_ips(best_ips)
+
+        # 仅最优IP发生变化时发送通知
+        if self._notify and changed:
             self.send_message(
                 title="【TMDB IP优选任务完成】",
                 text="\n".join(f"{domain} -> {ip}（{latency:.0f}ms）" for domain, ip, latency in results)
             )
+
+    def __get_last_best_ips(self):
+        """
+        获取上次优选的最优IP
+        """
+        last_ips = self.get_history("best_ips")
+        return last_ips if isinstance(last_ips, dict) else {}
+
+    def __save_best_ips(self, best_ips):
+        """
+        保存本次优选的最优IP，用于下次运行判断结果是否变化
+        """
+        if self.get_history("best_ips") is None:
+            self.history("best_ips", best_ips)
+        else:
+            self.update_history("best_ips", best_ips)
 
     def __query_dns(self, domain, record_type, server_ids=None, session=None):
         """

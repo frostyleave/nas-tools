@@ -64,8 +64,8 @@ class FileTransfer:
         self.init_config()
 
     def init_config(self):
-        self.media = MediaService()
-        self.message = MessageService()
+        self.mediaService = MediaService()
+        self.messageService = MessageService()
         self.category = Category()
         self.scraper = Scraper()
         self.dbhelper = DbHelper()
@@ -548,7 +548,7 @@ class FileTransfer:
                          f"标题：{download_info.TITLE}，"
                          f"类型：{download_info.TYPE}")
                 media_type = MediaType.MOVIE if download_info.TYPE in Constants.MOVIE_TYPES else MediaType.TV
-                tmdb_info = self.media.get_tmdb_info(mtype=media_type, tmdbid=download_info.TMDBID)
+                tmdb_info = self.mediaService.get_tmdb_info(mtype=media_type, tmdbid=download_info.TMDBID)
 
         # 成功标识
         success_flag = True
@@ -615,13 +615,13 @@ class FileTransfer:
                 return __finish_transfer(True, "没有新文件需要处理")
 
         # API搜索出媒体信息，传入一个文件列表，得出每一个文件的名称，这里是当前目录下所有的文件了
-        Medias = self.media.get_media_info_on_files(file_list, tmdb_info, media_type, season, episode[0])
-        if not Medias:
+        media_files = self.mediaService.get_media_info_on_files(file_list, tmdb_info, media_type, season, episode[0])
+        if not media_files:
             log.error("【Rmt】搜索媒体信息出错！")
             return __finish_transfer(False, "搜索媒体信息出错")
 
         # 更新进度
-        __update_progress(message=f"共 {len(Medias)} 个文件需要处理...")
+        __update_progress(message=f"共 {len(media_files)} 个文件需要处理...")
 
         # 统计总的文件数、失败文件数、需要提醒的失败数
         failed_count = 0
@@ -634,7 +634,7 @@ class FileTransfer:
         message_medias = {}
 
         # 处理识别后的每一个文件或单个文件夹
-        for file_item, media in Medias.items():
+        for file_item, media in media_files.items():
             try:
                 # 总数量
                 total_count = total_count + 1
@@ -646,7 +646,7 @@ class FileTransfer:
                 # 文件名
                 file_name = os.path.basename(file_item)
                 # 更新进度
-                __update_progress(progress=round(total_count / len(Medias) * 100) - (0.5 / len(Medias) * 100),
+                __update_progress(progress=round(total_count / len(media_files) * 100) - (0.5 / len(media_files) * 100),
                                   message=f"正在处理：{file_name} ...")
 
                 # 数据库记录的路径
@@ -839,9 +839,9 @@ class FileTransfer:
                                 alert_messages.append(error_message)
                             continue
                 # 查询TMDB详情，需要全部数据
-                media.set_tmdb_info(self.media.get_tmdb_info(mtype=media.type,
-                                                             tmdbid=media.tmdb_id,
-                                                             append_to_response="all"))
+                media.set_tmdb_info(self.mediaService.get_tmdb_info(mtype=media.type,
+                                                                    tmdbid=media.tmdb_id,
+                                                                    append_to_response="all"))
                 # 输出路径
                 out_path = new_file if not bluray_disk_dir else ret_dir_path
                 # 转移历史记录
@@ -858,7 +858,7 @@ class FileTransfer:
                     self.update_transfer_unknown_state(file_item)
                 # 电影立即发送消息
                 if media.type == MediaType.MOVIE:
-                    self.message.send_transfer_movie_message(in_from,
+                    self.messageService.send_transfer_movie_message(in_from,
                                                              media,
                                                              exist_filenum,
                                                              self._movie_category_flag)
@@ -887,7 +887,7 @@ class FileTransfer:
                                                    file_ext=file_ext,
                                                    rmt_mode=rmt_mode)
                 # 更新进度
-                __update_progress(progress=round(total_count / len(Medias) * 100),
+                __update_progress(progress=round(total_count / len(media_files) * 100),
                                   message=f"{file_name} 转移完成")
 
                 # 移动模式随机休眠（兼容一些网盘挂载目录）
@@ -923,7 +923,7 @@ class FileTransfer:
         # 循环结束
         # 统计完成情况，发送通知
         if message_medias:
-            self.message.send_transfer_tv_message(message_medias, in_from)
+            self.messageService.send_transfer_tv_message(message_medias, in_from)
         # 总结
         log.info(f"【Rmt】{in_path} 处理完成，总数：{total_count}，失败：{failed_count}")
 
@@ -940,7 +940,7 @@ class FileTransfer:
                 "reason": reason
             })
             # 发送消息
-            self.message.send_transfer_fail_message(in_path, alert_count, reason)
+            self.messageService.send_transfer_fail_message(in_path, alert_count, reason)
         elif failed_count == 0:
             # 删除空目录
             if rmt_mode == RmtMode.MOVE \
@@ -1235,10 +1235,8 @@ class FileTransfer:
             # 空值用制表符占位，便于后续用正则清理多余的分隔符
             return val if val else '\t'
 
-        # 当前语种标题
-        episode_title = self.media.get_episode_title(media)
         # 英文标题
-        en_title = self.media.get_tmdb_en_title(media)
+        en_title = self.mediaService.get_tmdb_en_title(media)
 
         # 季集
         season = int(media.get_season_seq()) if media.get_season_seq() else 0
@@ -1266,7 +1264,6 @@ class FileTransfer:
             "imdbid": _fmt(media.imdb_id),
             "season": season,
             "episode": episode,
-            "episode_title": _fmt(StringUtils.clear_file_name(episode_title)),
             "season_episode": _fmt(f"{media.get_season_item()}{media.get_episode_items()}"),
             "part": _fmt(f"-{media.part}" if media.part else '')
         }
