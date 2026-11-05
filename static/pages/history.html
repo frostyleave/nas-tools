@@ -213,6 +213,18 @@
             const sourcePathEncoded = history.SOURCE_PATH ? history.SOURCE_PATH.replace(/\\/g, '/') : '';
             const destPathEncoded = history.DEST_PATH ? history.DEST_PATH.replace(/\\/g, '/') : '';
 
+            // 类别、转移方式、来自合并为一行展示
+            const metaParts = [];
+            if (history.CATEGORY) {
+              metaParts.push(`类别：${history.CATEGORY}`);
+            }
+            if (history.SYNC_MODE) {
+              metaParts.push(`转移方式：${history.SYNC_MODE}`);
+            }
+            if (history.SOURCE) {
+              metaParts.push(`来自：${history.SOURCE}`);
+            }
+
             const row = `
               <tr>
                 <td class="w-1">
@@ -227,7 +239,7 @@
                       <div class="font-weight-medium text-nowrap">
                         ${titleHtml}
                       </div>
-                      ${history.CATEGORY ? `<div class="text-muted">类别：${history.CATEGORY}</div>` : ''}
+                      ${metaParts.length > 0 ? `<div class="text-muted">${metaParts.join(' · ')}</div>` : ''}
                     </div>
                   </div>
                 </td>
@@ -250,8 +262,6 @@
                 <td>
                   <div class="text-nowrap">
                     <small>${history.DATE}</small>
-                    <div class="text-muted"><small>来自：${history.SOURCE || ''}</small></div>
-                    <div class="text-muted"><small>转移方式：${history.SYNC_MODE}</small></div>
                   </div>
                 </td>
                 <td>

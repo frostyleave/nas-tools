@@ -2,10 +2,6 @@
  * 公共变量区
  */
 
-// 刷新订阅站点列表
-let RssSitesLength = 0;
-// 刷新搜索站点列表
-let SearchSitesLength = 0;
 // 种子上传控件
 let TorrentDropZone;
 
@@ -1082,15 +1078,12 @@ function add_rss_manual() {
   } else {
     $("#rss_current_ep").removeClass("is-invalid");
   }
-  // 订阅站点
-  let rss_sites = select_GetSelectedVAL("rss_sites");
-  if (rss_sites.length === RssSitesLength) {
-    rss_sites = [];
-  }
-  // 搜索站点
-  let search_sites = select_GetSelectedVAL("search_sites");
-  if (search_sites.length === SearchSitesLength) {
-    search_sites = [];
+  // 订阅站点、搜索站点：允许任意一个为空，但不能同时为空
+  const rss_sites = select_GetSelectedVAL("rss_sites");
+  const search_sites = select_GetSelectedVAL("search_sites");
+  if (rss_sites.length === 0 && search_sites.length === 0) {
+    show_fail_modal("订阅站点和搜索站点不能同时为空，请至少选择一项！");
+    return;
   }
   // 储存订阅设置
   const rss_setting = {
@@ -1166,7 +1159,7 @@ function rss_love_click(event, title, year, media_type, tmdb_id, fav, remove_fun
   var trigger_card_id = '';
   if (event) {
     event.stopPropagation();
-    trigger_card_id = event.currentTarget.closest('normal-card')?.id
+    trigger_card_id = event.currentTarget.closest('normal-card, poster-card')?.id
   }
 
   // 取消订阅
@@ -1219,8 +1212,8 @@ function show_add_rss_media_modal(mtype, tmdbid, rss_name, rss_year, rss_season=
   // 绑定触发卡片id
   $("#trigger_card_id").val(trigger_card_id || '');
 
-  // 刷新下拉框
-  refresh_rss_download_setting_dirs();
+  // 刷新下拉框，站点列表渲染完成后才能回显选中的站点
+  const sites_ready = refresh_rss_download_setting_dirs();
 
   // 界面初始化
   $("#rss_id").val("");
@@ -1264,16 +1257,11 @@ function show_add_rss_media_modal(mtype, tmdbid, rss_name, rss_year, rss_season=
     $("#rss_download_setting").val(rss_setting.download_setting);
     refresh_savepath_select('rss_save_path', false, rss_setting.download_setting);
     check_manual_input_path("rss_save_path", "rss_save_path_manual", rss_setting.save_path);
-    if (rss_setting.search_sites.length === 0) {
-      select_SelectALL(true, 'search_sites');
-    } else {
-      select_SelectPart(rss_setting.search_sites, 'search_sites');
-    }
-    if (rss_setting.rss_sites.length === 0) {
-      select_SelectALL(true, 'rss_sites');
-    } else {
-      select_SelectPart(rss_setting.rss_sites, 'rss_sites');
-    }
+    // 空列表表示不启用该渠道，按实际选中的站点回显
+    sites_ready.then(function () {
+      select_SelectPart(rss_setting.search_sites || [], 'search_sites');
+      select_SelectPart(rss_setting.rss_sites || [], 'rss_sites');
+    });
   } else {
     $("#rss_restype").val('');
     $("#rss_pix").val('');
@@ -1303,8 +1291,8 @@ function show_edit_rss_media_modal(rssid, type) {
   $("#rss_type").val(type);
   $("#rss_modal_title").text("编辑订阅");
 
-  // 刷新下拉框
-  refresh_rss_download_setting_dirs();
+  // 刷新下拉框，站点列表渲染完成后才能回显选中的站点
+  const sites_ready = refresh_rss_download_setting_dirs();
 
   // 获取订阅信息
   axios_post_do("rss_detail", { "rssid": rssid, "rsstype": type }, function (ret) {
@@ -1350,16 +1338,11 @@ function show_edit_rss_media_modal(rssid, type) {
       $("#rss_download_setting").val(ret.detail.download_setting);
       refresh_savepath_select('rss_save_path', false, ret.detail.download_setting);
       check_manual_input_path("rss_save_path", "rss_save_path_manual", ret.detail.save_path);
-      if (ret.detail.rss_sites.length === 0) {
-        select_SelectALL(true, 'rss_sites');
-      } else {
-        select_SelectPart(ret.detail.rss_sites, 'rss_sites')
-      }
-      if (ret.detail.search_sites.length === 0) {
-        select_SelectALL(true, 'search_sites');
-      } else {
-        select_SelectPart(ret.detail.search_sites, 'search_sites')
-      }
+      // 空列表表示不启用该渠道，按实际选中的站点回显
+      sites_ready.then(function () {
+        select_SelectPart(ret.detail.rss_sites || [], 'rss_sites');
+        select_SelectPart(ret.detail.search_sites || [], 'search_sites');
+      });
       $("[name='rss_add_btn']").hide();
       $("[name='rss_edit_btn']").show();
       $("#rss_delete_btn").attr("href",
@@ -1393,11 +1376,10 @@ function refresh_filter_select(obj_id, aync = true) {
 
 // 刷新RSS站点下拉框
 function refresh_rsssites_select(obj_id, item_name, aync = true) {
-  axios_post_do("get_sites", { rss: true, basic: true }, function (ret) {
+  return axios_post_do("get_sites", { rss: true, basic: true }, function (ret) {
     if (ret.code === 0) {
       let rsssites_select = $(`#${obj_id}`);
       let rsssites_select_content = "";
-      RssSitesLength = ret.sites.length;
       if (ret.sites.length > 0) {
         rsssites_select.parent().parent().show();
       } else {
@@ -1417,11 +1399,10 @@ function refresh_rsssites_select(obj_id, item_name, aync = true) {
 
 // 刷新搜索站点列表
 function refresh_searchsites_select(obj_id, item_name, aync = true) {
-  axios_post_do("get_indexers", { check: true, basic: true }, function (ret) {
+  return axios_post_do("get_indexers", { check: true, basic: true }, function (ret) {
     if (ret.code === 0) {
       let searchsites_select = $(`#${obj_id}`);
       let searchsites_select_content = "";
-      SearchSitesLength = ret.indexers.length;
       if (ret.indexers.length > 0) {
         searchsites_select.parent().parent().show();
       } else {
@@ -1528,11 +1509,17 @@ function refresh_downloadsetting_select(obj_id, aync = true, is_default = false)
 
 // 刷新订阅框的下载设置及目录等选项
 function refresh_rss_download_setting_dirs() {
-  refresh_rsssites_select("rss_sites_group", "rss_sites", false);
-  refresh_searchsites_select("rss_search_sites_group", "search_sites", false);
+  // 返回站点列表渲染完成的 Promise，供弹窗回显已选站点
+  const sites_ready = Promise.all([
+    refresh_rsssites_select("rss_sites_group", "rss_sites", false),
+    refresh_searchsites_select("rss_search_sites_group", "search_sites", false)
+  ]).catch(function () {
+    // 站点列表加载失败时不影响弹窗使用
+  });
   refresh_filter_select("rss_rule", false);
   refresh_downloadsetting_select("rss_download_setting", false);
   refresh_savepath_select("rss_save_path", false, $("#rss_download_setting").val());
+  return sites_ready;
 }
 
 // 刷新下载框的下载设置及目录选项

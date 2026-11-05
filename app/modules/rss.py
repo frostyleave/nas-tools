@@ -75,6 +75,9 @@ class Rss:
 
             # 获取有订阅的站点范围
             check_sites = self._get_rss_check_sites(rss_movies, rss_tvs)
+            if not check_sites:
+                log.info("【Rss】所有订阅均未配置订阅站点，跳过RSS匹配")
+                return
 
             # 匹配到的资源列表
             rss_download_torrents = []
@@ -88,7 +91,7 @@ class Rss:
                 # 站点名称
                 site_name = site_info.name
                 # 没有订阅的站点中的不搜索
-                if check_sites and site_name not in check_sites:
+                if site_name not in check_sites:
                     continue
                 # 站点rss链接
                 rss_url = site_info.rssurl
@@ -331,28 +334,13 @@ class Rss:
         return exist_flag, rss_no_exists
 
     def _get_rss_check_sites(self, rss_movies, rss_tvs):
+        """
+        获取需要监控RSS的站点清单，未配置订阅站点的订阅不参与RSS匹配
+        """
         check_sites = []
-        check_all = False
-        for rinfo in rss_movies.values():
-            rss_sites = rinfo.get("rss_sites")
-            if not rss_sites:
-                check_all = True
-                break
-            else:
-                check_sites += rss_sites
-        if not check_all:
-            for rinfo in rss_tvs.values():
-                rss_sites = rinfo.get("rss_sites")
-                if not rss_sites:
-                    check_all = True
-                    break
-                else:
-                    check_sites += rss_sites
-        if check_all:
-            check_sites = []
-        else:
-            check_sites = list(set(check_sites))
-        return check_sites
+        for rinfo in list(rss_movies.values()) + list(rss_tvs.values()):
+            check_sites += rinfo.get("rss_sites") or []
+        return list(set(check_sites))
 
     def _check_torrent_rss(self,
                           media_info,
@@ -391,8 +379,8 @@ class Rss:
         if media_info.type == MediaType.MOVIE and rss_movies:
             for rss_info in rss_movies.values():
                 rss_sites = rss_info.get('rss_sites')
-                # 过滤订阅站点
-                if rss_sites and media_info.site not in rss_sites:
+                # 未配置订阅站点时不参与RSS匹配，配置了则过滤站点
+                if not rss_sites or media_info.site not in rss_sites:
                     continue
                 # tmdbid或名称年份匹配
                 name = rss_info.get('name')
@@ -420,8 +408,8 @@ class Rss:
             # 匹配种子标题
             for rss_info in rss_tvs.values():
                 rss_sites = rss_info.get('rss_sites')
-                # 过滤订阅站点
-                if rss_sites and media_info.site not in rss_sites:
+                # 未配置订阅站点时不参与RSS匹配，配置了则过滤站点
+                if not rss_sites or media_info.site not in rss_sites:
                     continue
                 # 有tmdbid时精确匹配
                 name = rss_info.get('name')

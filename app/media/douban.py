@@ -581,7 +581,11 @@ class DouBan:
             # 简介
             overview = info.get("card_subtitle") or ""
             if not year and overview and overview.split("/")[0].strip().isdigit():
-                    year = overview.split("/")[0].strip()
+                year = overview.split("/")[0].strip()
+
+            # 简介以年份开头时去掉年份，并清理开头残留的空格和分隔符
+            # if year and overview and overview.startswith(str(year)):
+            #     overview = overview[len(str(year)):].lstrip(" /")
 
             # 高清海报
             if poster_path:

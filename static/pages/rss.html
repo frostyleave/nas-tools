@@ -154,7 +154,7 @@
                     ${badges}
                   </small>
                 </div>
-                <div class="text-muted">
+                <div class="text-muted site-badge-list">
                   <small>
                     ${siteBadges}
                   </small>
@@ -287,8 +287,13 @@
 
   // 显示默认订阅设置页面
   function show_default_rss_setting_modal(mtype) {
-    refresh_rsssites_select("default_rss_setting_rss_sites_group", "default_rss_sites", false);
-    refresh_searchsites_select("default_rss_setting_search_sites_group", "default_search_sites", false);
+    // 站点列表渲染完成后才能回显已保存的配置
+    const sites_ready = Promise.all([
+      refresh_rsssites_select("default_rss_setting_rss_sites_group", "default_rss_sites", false),
+      refresh_searchsites_select("default_rss_setting_search_sites_group", "default_search_sites", false)
+    ]).catch(function () {
+      // 站点列表加载失败时不影响弹窗使用
+    });
     refresh_filter_select("default_rss_setting_rule", false);
     refresh_downloadsetting_select("default_rss_setting_download_setting", false)
 
@@ -303,16 +308,11 @@
         $("#default_rss_setting_exclude").val(ret.data.exclude);
         $("#default_rss_setting_download_setting").val(ret.data.download_setting);
         $("#default_rss_setting_over_edition").val(ret.data.over_edition);
-        if (ret.data.rss_sites.length === 0) {
-          select_SelectALL(false, 'default_rss_sites');
-        } else {
-          select_SelectPart(ret.data.rss_sites, 'default_rss_sites')
-        }
-        if (ret.data.search_sites.length === 0) {
-          select_SelectALL(false, 'default_search_sites');
-        } else {
-          select_SelectPart(ret.data.search_sites, 'default_search_sites')
-        }
+        // 空列表表示不启用该渠道
+        sites_ready.then(function () {
+          select_SelectPart(ret.data.rss_sites || [], 'default_rss_sites');
+          select_SelectPart(ret.data.search_sites || [], 'default_search_sites');
+        });
       } else {
         $("#default_rss_setting_restype").val('');
         $("#default_rss_setting_pix").val('');
@@ -334,9 +334,14 @@
   function save_default_rss_setting() {
     const rss_sites = select_GetSelectedVAL("default_rss_sites");
     const search_sites = select_GetSelectedVAL("default_search_sites");
+    // 订阅站点、搜索站点：允许任意一个为空，但不能同时为空
+    if (rss_sites.length === 0 && search_sites.length === 0) {
+      show_fail_modal("订阅站点和搜索站点不能同时为空，请至少选择一项！");
+      return;
+    }
     const sites = {
-      rss_sites: (rss_sites.length === RssSitesLength) ? [] : rss_sites,
-      search_sites: (search_sites.length === SearchSitesLength) ? [] : search_sites
+      rss_sites: rss_sites,
+      search_sites: search_sites
     };
     const common = input_select_GetVal("modal-default-rss-setting", "default_rss_setting_");
     const key = common.mtype === "MOV" ? "DefaultRssSettingMOV" : "DefaultRssSettingTV";

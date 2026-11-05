@@ -2086,9 +2086,12 @@ class WebAction:
                 "recognization": data.get("recognization")
             })
         elif uses == "R":
+            sites = data.get("sites") or {}
+            if not sites.get("rss_sites") and not sites.get("search_sites"):
+                return {"code": 1, "msg": "订阅站点和搜索站点不能同时为空，请至少选择一项"}
             params.update({
                 "over_edition": data.get("over_edition"),
-                "sites": data.get("sites"),
+                "sites": sites,
                 "filter_args": {
                     "restype": data.get("restype"),
                     "pix": data.get("pix"),

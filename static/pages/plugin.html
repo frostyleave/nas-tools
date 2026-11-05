@@ -23,7 +23,7 @@
 <div class="page-body" id="plugins-container" style="display: none;">
   <!-- 组件展示 -->
   <div class="container-xl">
-    <div class="d-grid gap-3 grid-normal-card" id="plugins-list">
+    <div class="d-grid gap-3 grid-plugin-card" id="plugins-list">
     </div>
   </div>
 </div>
@@ -45,7 +45,7 @@
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
         <div class="modal-body" style="min-height:800px;">
-          <div class="d-grid gap-3 grid-normal-card align-items-start" id="plugin_apps_content" style="display:none;"></div>
+          <div class="d-grid gap-3 grid-plugin-card align-items-start" id="plugin_apps_content" style="display:none;"></div>
         </div>
       </div>
     </div>
@@ -111,20 +111,25 @@
     for (let pid in plugin_query_result.result) {
       let plugin = plugin_query_result.result[pid];
 
+      // 插件主题色：十六进制直接使用，bg-* 映射为对应的 Tabler 颜色变量
+      let pluginColor = '';
+      if (plugin.color && plugin.color.startsWith('#')) {
+        pluginColor = plugin.color;
+      } else if (plugin.color && plugin.color.startsWith('bg-')) {
+        pluginColor = `var(--tblr-${plugin.color.slice(3)})`;
+      }
+
       let plugin_html = `
-        <div class="card card-link-pop card-borderless p-0 shadow-sm rounded-3 overflow-hidden" href="javascript:void(0)">
-          <div class="card-cover card-cover-blurred text-center ${plugin.color.startsWith('bg-') ? plugin.color : ''}"
-            ${plugin.color.startsWith('#') ? `style="background-color: ${plugin.color}"` : ''}
-          >
-            <span class="avatar avatar-xl avatar-thumb avatar-rounded" style="background-image: url('../static/img/plugins/${plugin.icon.split('/').pop()}')">
-            </span>
-          </div>
-          <div class="card-body text-start">
-            <div class="card-title mb-1">${plugin.name}</div>
-            <div class="text-muted">${plugin.desc}</div>
-            <div class="text-muted mt-1">
-              <strong>作者：</strong>
-              ${plugin.author_url ? `<a href="${plugin.author_url}" target="_blank">${plugin.author}</a>` : `<span class="text-muted">${plugin.author}</span>`}
+        <div class="card card-link-pop card-borderless p-0 shadow-sm rounded-3 overflow-hidden plugin-card-tinted" ${pluginColor ? `style="--plugin-color: ${pluginColor}"` : ''} href="javascript:void(0)">
+          <div class="d-flex align-items-center gap-3 p-3 plugin-card-main">
+            <span class="avatar avatar-md avatar-rounded flex-shrink-0" style="background-image: url('../static/img/plugins/${plugin.icon.split('/').pop()}')"></span>
+            <div class="flex-fill text-start overflow-hidden">
+              <div class="card-title mb-1">${plugin.name}</div>
+              <div class="text-muted plugin-card-desc secondry-text-color">${plugin.desc}</div>
+              <div class="text-muted mt-1">
+                <strong>作者：</strong>
+                ${plugin.author_url ? `<a href="${plugin.author_url}" target="_blank">${plugin.author}</a>` : `<span class="text-muted">${plugin.author}</span>`}
+              </div>
             </div>
           </div>
           <div class="d-flex">
@@ -133,7 +138,7 @@
       plugin_html += `
           ${plugin.installed ? `
             <a href="javascript:uninstall_plugin('${pid}', '${plugin.name}')" class="card-btn text-danger">
-              <i class="ti ti-trash fs-2 me-1"></i>
+              <i class="ti ti-x fs-2 me-1"></i>
                卸载
             </a>
             ` : `
@@ -239,9 +244,7 @@
 
     $.each(pluginList, function (pluginId, pluginAttr) {
 
-      var cardBgcolor = pluginAttr.color.startsWith('#') ? `style="background-color: ${pluginAttr.color}"` : '';
-      var colorClass = pluginAttr.color.startsWith('bg-') ? pluginAttr.color : '';
-      var icon = ''
+      var icon = '';
       if (pluginAttr.icon) {
         if (!pluginAttr.icon.startsWith('http')) {
           icon = `style="background-image: url('../static/img/plugins/${pluginAttr.icon}')"`;
@@ -250,24 +253,32 @@
         }
       }
 
+      // 插件主题色：十六进制直接使用，bg-* 映射为对应的 Tabler 颜色变量
+      var pluginColor = '';
+      if (pluginAttr.color.startsWith('#')) {
+        pluginColor = pluginAttr.color;
+      } else if (pluginAttr.color.startsWith('bg-')) {
+        pluginColor = `var(--tblr-${pluginAttr.color.slice(3)})`;
+      }
+
       var stateBadge = pluginAttr.state ? '<div class="card-left-top-triangle bg-green"><span>启用</span></div>' : '<div class="card-left-top-triangle bg-red"><span>停用</span></div>';
-      // card
+      // card：左侧图标，右侧名称和简介
       var html = `
-      <div class="card card-link-pop p-0 rounded-3 overflow-hidden">
+      <div class="card card-link-pop p-0 rounded-3 overflow-hidden plugin-card-tinted" ${pluginColor ? `style="--plugin-color: ${pluginColor}"` : ''}>
         ${stateBadge}
         <div class="right-top-box">
           <a href="javascript:uninstall_plugin_click('${pluginId}', '${pluginAttr.name}')" title="卸载" class="text-danger">
-            <i class="ti ti-trash fs-2"></i>
+            <i class="ti ti-x fs-2"></i>
           </a>
         </div>
-        <div class="card-cover card-cover-blurred text-center ${colorClass}" ${cardBgcolor} data-bs-toggle="modal" data-bs-target="#modal-plugin-${pluginId}">
-          <span class="avatar avatar-xl avatar-thumb avatar-rounded" ${icon}>
-             ${!pluginAttr.icon ? pluginAttr.name : ''}
+        <div class="d-flex align-items-center gap-3 p-3 pe-5 plugin-card-main" data-bs-toggle="modal" data-bs-target="#modal-plugin-${pluginId}">
+          <span class="avatar avatar-md avatar-rounded flex-shrink-0" ${icon}>
+            ${!pluginAttr.icon ? pluginAttr.name.substring(0, 2) : ''}
           </span>
-        </div>
-        <div class="card-body text-center" data-bs-toggle="modal" data-bs-target="#modal-plugin-${pluginId}">
-          <div class="card-title mb-1">${pluginAttr.name}</div>
-          <div class="text-muted">${pluginAttr.desc}</div>
+          <div class="flex-fill text-start overflow-hidden">
+            <div class="card-title mb-1">${pluginAttr.name}</div>
+            <div class="text-muted plugin-card-desc secondry-text-color">${pluginAttr.desc}</div>
+          </div>
         </div>
       </div>
       `;

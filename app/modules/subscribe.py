@@ -20,6 +20,17 @@ from app.utils.types import EventType, MediaType, RssType, SearchType, SystemCon
 lock = Lock()
 
 
+def normalize_sites(sites):
+    """
+    规整站点列表：支持逗号分隔字符串并去除空项
+    """
+    if not sites:
+        return []
+    if isinstance(sites, str):
+        sites = sites.split(",")
+    return [str(site).strip() for site in sites if str(site).strip()]
+
+
 @singleton
 class Subscribe:
     dbhelper = None
@@ -88,8 +99,8 @@ class Subscribe:
         :param keyword: 自定义搜索词
         :param season: 第几季，数字
         :param mediaid: 媒体ID，DB:/BG:/TMDBID
-        :param rss_sites: 订阅站点列表，为空则表示全部站点
-        :param search_sites: 搜索站点列表，为空则表示全部站点
+        :param rss_sites: 订阅站点列表，为空表示不监控RSS（订阅站点、搜索站点不能同时为空）
+        :param search_sites: 搜索站点列表，为空表示不搜索站点（订阅站点、搜索站点不能同时为空）
         :param over_edition: 是否选版
         :param filter_restype: 质量过滤
         :param filter_pix: 分辨率过滤
@@ -110,17 +121,14 @@ class Subscribe:
         if not name:
             return -1, "标题或类型有误", None
         year = int(year) if str(year).isdigit() else ""
-        rss_sites = rss_sites or []
-        if isinstance(rss_sites, str):
-            rss_sites = rss_sites.split(",")
-        search_sites = search_sites or []
-        if isinstance(search_sites, str):
-            search_sites = search_sites.split(",")
+        rss_sites = normalize_sites(rss_sites)
+        search_sites = normalize_sites(search_sites)
         over_edition = 1 if over_edition else 0
         filter_rule = int(filter_rule) if str(filter_rule).isdigit() else None
         total_ep = int(total_ep) if str(total_ep).isdigit() else None
         current_ep = int(current_ep) if str(current_ep).isdigit() else None
         download_setting = int(download_setting) if str(download_setting).replace("-", "").isdigit() else ""
+        default_rss_setting = {}
         if channel == RssType.Auto:
             default_rss_setting = self.default_rss_setting_tv if mtype == MediaType.TV else self.default_rss_setting_mov
             if default_rss_setting:
@@ -155,6 +163,19 @@ class Subscribe:
                     rss_sites = default_rss_sites
                 if not search_sites and default_search_sites:
                     search_sites = default_search_sites
+        # 默认设置中的站点可能为旧版本的逗号分隔字符串，统一规整
+        rss_sites = normalize_sites(rss_sites)
+        search_sites = normalize_sites(search_sites)
+        # 自动订阅（插件、消息、同步等）且没有默认设置时沿用原逻辑，按全部站点处理
+        if channel == RssType.Auto and not default_rss_setting \
+                and not rss_sites and not search_sites:
+            rss_sites = self.sites.get_site_names(rss=True)
+            search_sites = self.indexer.get_user_indexer_names()
+            log.info("【Subscribe】自动订阅未配置站点，使用全部站点（RSS %s 个，搜索 %s 个）",
+                     len(rss_sites), len(search_sites))
+        # 订阅站点和搜索站点允许任意一个为空，但不能同时为空，否则订阅没有任何来源
+        if not rss_sites and not search_sites:
+            return -1, "订阅站点和搜索站点不能同时为空，请至少选择一项", None
         # 搜索媒体信息
         if not media_info or hasattr(media_info, 'tmdb_info') == False or not media_info.tmdb_info:
             # 根据TMDBID查询，从推荐加订阅的情况
@@ -633,6 +654,11 @@ class Subscribe:
         for rss_info in rss_movies.values():
             # 搜索站点范围
             rssid = rss_info.get("id")
+            # 未配置搜索站点时不做站点搜索，队列中的订阅直接转入订阅状态
+            if not rss_info.get("search_sites"):
+                if rss_info.get("state") == 'D':
+                    self.dbhelper.update_rss_movie_state(rssid=rssid, state='R')
+                continue
             name = rss_info.get("name")
             year = rss_info.get("year") or ""
             tmdbid = rss_info.get("tmdbid")
@@ -716,6 +742,11 @@ class Subscribe:
         rss_no_exists = {}
         for rss_info in rss_tvs.values():
             rssid = rss_info.get("id")
+            # 未配置搜索站点时不做站点搜索，队列中的订阅直接转入订阅状态
+            if not rss_info.get("search_sites"):
+                if rss_info.get("state") == 'D':
+                    self.dbhelper.update_rss_tv_state(rssid=rssid, state='R')
+                continue
             name = rss_info.get("name")
             year = rss_info.get("year") or ""
             tmdbid = rss_info.get("tmdbid")
