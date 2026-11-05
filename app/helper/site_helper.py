@@ -4,7 +4,7 @@ from datetime import datetime
 
 from lxml import etree
 
-from app.utils import SystemUtils
+from app.utils import PathUtils, SystemUtils
 from app.utils.constants import Constants
 
 
@@ -49,7 +49,8 @@ class SiteHelper:
             fname = url.split("/")[-1]
         else:
             fname = str(datetime.now())
-        return fname
+        # 站点返回的文件名不可信，只保留文件名，防止路径穿越
+        return PathUtils.safe_filename(fname)
 
     @staticmethod
     def transfer_subtitle(source_sub_file, media_file):

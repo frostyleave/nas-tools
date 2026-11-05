@@ -107,6 +107,9 @@ def run_system_update(
                 "output": "\n".join([x for x in outputs if x])}
 
     updated = old_commit != new_commit
+    if updated:
+        # 版本号可能已变化，清掉缓存以便下次请求重新读取
+        SystemUtils.refresh_cache()
 
     if updated:
         if mode == "force-reset":
@@ -219,7 +222,6 @@ def check_system_update() -> dict[str, Any]:
 
         if branch == "HEAD":
             branch = os.getenv("NASTOOL_VERSION", "master")
-        add(f"当前分支：{branch}")
 
         # 上游分支（未配置时回退到 origin/<branch>）
         up_code, upstream, _ = run_git(

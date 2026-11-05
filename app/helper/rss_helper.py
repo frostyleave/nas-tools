@@ -1,5 +1,6 @@
-from typing import ClassVar
 import xml.dom.minidom
+from datetime import UTC
+from typing import ClassVar
 from urllib.parse import urljoin
 
 from lxml import etree
@@ -336,8 +337,12 @@ class RssHelper:
                         # 发布日期
                         pubdate = DomUtils.tag_value(item, "pubDate", default="")
                         if pubdate:
-                            # 转换为时间
+                            # 转换为时间；无时区的按本地时区补齐后统一转 UTC
                             pubdate = StringUtils.get_time_stamp(pubdate)
+                            if pubdate:
+                                if pubdate.tzinfo is None:
+                                    pubdate = pubdate.astimezone()
+                                pubdate = pubdate.astimezone(UTC)
                         # 返回对象
                         tmp_dict = {'title': title,
                                     'enclosure': enclosure,

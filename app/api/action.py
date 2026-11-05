@@ -1,11 +1,9 @@
 import base64
-import copy
 import datetime
 import inspect
 import json
 import os.path
 import re
-import shutil
 import threading
 import time
 from typing import Annotated
@@ -26,7 +24,7 @@ from app.media.meta import MetaInfo
 from app.mediaserver import MediaServer
 from app.message import MessageService
 from app.middleware.security import CurrentUser, get_current_user
-from app.models.user import LEVEL_SYSADMIN, LEVEL_USER, User, UserManager
+from app.models.user import User, UserManager
 from app.modules.brushtaskv2 import BrushTaskV2 as BrushTask
 from app.modules.filetransfer import FileTransfer
 from app.modules.filter import Filter
@@ -49,7 +47,7 @@ from app.utils import (
     SystemUtils,
 )
 from app.utils.constants import Constants
-from app.utils.password_hash import generate_password_hash, normalize_password_hash
+from app.utils.password_hash import generate_password_hash
 from app.utils.types import (
     EventType,
     MediaType,
@@ -143,7 +141,6 @@ class WebAction:
             "get_site": self.__get_site,
             "del_site": self.__del_site,
             "logout": self.__logout,
-            "update_config": self.__update_config,
             "update_directory": self.__update_directory,
             "add_or_edit_sync_path": self.__add_or_edit_sync_path,
             "get_sync_path": self.__get_sync_path,
@@ -154,7 +151,6 @@ class WebAction:
             "re_identification": self.__re_identification,
             "media_info": self.__media_info,
             "test_mediaserver": self.__test_mediaserver,
-            "user_manager": self.__user_manager,
             "change_password": self.__change_password,
             "refresh_rss": self.__refresh_rss,
             "delete_tmdb_cache": self.__delete_tmdb_cache,
@@ -186,7 +182,6 @@ class WebAction:
             "get_site_seeding_info": self.__get_site_seeding_info,
             "clear_tmdb_cache": self.__clear_tmdb_cache,
             "check_site_attr": self.__check_site_attr,
-            "restory_backup": self.__restory_backup,
             "start_mediasync": self.__start_mediasync,
             "mediasync_state": self.__mediasync_state,
             "get_tvseason_list": self.__get_tvseason_list,
@@ -224,8 +219,6 @@ class WebAction:
             "get_downloading": self.__get_downloading,
             "test_site": self.__test_site,
             "get_sub_path": self.__get_sub_path,
-            "rename_file": self.__rename_file,
-            "delete_files": self.__delete_files,
             "download_subtitle": self.__download_subtitle,
             "get_download_setting": self.__get_download_setting,
             "update_download_setting": self.__update_download_setting,
@@ -255,7 +248,6 @@ class WebAction:
             "media_person": self.__media_person,
             "person_medias": self.__person_medias,
             "run_directory_sync": self.__run_directory_sync,
-            "update_plugin_config": self.__update_plugin_config,
             "get_season_episodes": self.__get_season_episodes,
             "update_downloader": self.__update_downloader,
             "del_downloader": self.__del_downloader,
@@ -268,14 +260,11 @@ class WebAction:
             "delete_indexer": self.__delete_indexer,
             "media_path_scrap": self.__media_path_scrap,
             "get_default_rss_setting": self.__get_default_rss_setting,
-            "install_plugin": self.__install_plugin,
-            "uninstall_plugin": self.__uninstall_plugin,
             "get_plugin_apps": self.__get_plugin_apps,
             "get_plugin_page": self.__get_plugin_page,
             "update_category_config": self.__update_category_config,
             "get_category_config": self.__get_category_config,
             "get_system_processes": self.__get_system_processes,
-            "run_plugin_method": self.__run_plugin_method,
             "refresh_pt_statistics": self.__refresh_pt_statistics,
             "get_jobs": self.__get_jobs
         }
@@ -295,55 +284,6 @@ class WebAction:
             return func(data)
         else:
             return func()
-
-    def set_config_value(self, cfg, cfg_key, cfg_value):
-        """
-        根据Key设置配置值
-        """
-        # 用户名
-        if cfg_key == "app.login_user":
-            cfg['app']['login_user'] = str(cfg_value).strip() if cfg_value else ''
-            return cfg
-        # 密码
-        if cfg_key == "app.login_password":
-            if cfg_value and not str(cfg_value).startswith("[hash]"):
-                cfg['app']['login_password'] = f"[hash]{generate_password_hash(str(cfg_value))}"
-            elif cfg_value:
-                cfg['app']['login_password'] = cfg_value
-            else:
-                cfg['app']['login_password'] = f"[hash]{generate_password_hash('password')}"
-            return cfg
-        # 代理
-        if cfg_key == "app.proxies":
-            if cfg_value:
-                if not cfg_value.startswith("http") and not cfg_value.startswith("sock"):
-                    cfg['app']['proxies'] = {
-                        "https": f"http://{cfg_value}", "http": f"http://{cfg_value}"}
-                else:
-                    cfg['app']['proxies'] = {"https": f"{cfg_value}", "http": f"{cfg_value}"}
-            else:
-                cfg['app']['proxies'] = {"https": None, "http": None}
-            return cfg
-        # 最大支持三层赋值
-        keys = cfg_key.split(".")
-        if keys:
-            if len(keys) == 1:
-                cfg[keys[0]] = cfg_value
-            elif len(keys) == 2:
-                if not cfg.get(keys[0]):
-                    cfg[keys[0]] = {}
-                cfg[keys[0]][keys[1]] = cfg_value
-            elif len(keys) == 3:
-                if cfg.get(keys[0]):
-                    if not cfg[keys[0]].get(keys[1]) or isinstance(cfg[keys[0]][keys[1]], str):
-                        cfg[keys[0]][keys[1]] = {}
-                    cfg[keys[0]][keys[1]][keys[2]] = cfg_value
-                else:
-                    cfg[keys[0]] = {}
-                    cfg[keys[0]][keys[1]] = {}
-                    cfg[keys[0]][keys[1]][keys[2]] = cfg_value
-
-        return cfg
 
     def set_config_directory(self, cfg, oper, cfg_key, cfg_value, update_value=None):
         """
@@ -948,79 +888,6 @@ class WebAction:
         """
         return {"code": 0}
 
-    def __update_config(self, data):
-        """
-        更新配置信息
-        """
-        data = dict(data)
-
-        # 用户名、密码属于系统管理员敏感配置
-        if {"app.login_user", "app.login_password"} & set(data.keys()) \
-                and (not self._current_user or self._current_user.level < LEVEL_SYSADMIN):
-            return {"code": -1, "msg": "权限不足"}
-
-        # 使用副本修改，校验失败时不污染内存中的配置
-        cfg = copy.deepcopy(Config().get_config())
-        old_login_user = str((cfg.get('app') or {}).get('login_user') or '').strip()
-
-        # 仅测试不保存
-        config_test = False
-        # 是否修改了管理员密码
-        password_changed = False
-        # 修改配置
-        for key, value in data.items():
-            if key == "test" and value:
-                config_test = True
-                continue
-            if key == "app.login_password":
-                password_changed = True
-            # 生效配置
-            cfg = self.set_config_value(cfg, key, value)
-
-        # 管理员用户名变更校验
-        new_login_user = str((cfg.get('app') or {}).get('login_user') or '').strip()
-        if "app.login_user" in data and not new_login_user:
-            return {"code": -1, "msg": "WEB管理用户不能为空"}
-
-        rename_admin = bool(old_login_user and new_login_user
-                            and old_login_user != new_login_user)
-        admin_user = None
-        if rename_admin:
-            if UserManager().get_user_by_name(new_login_user):
-                return {"code": -1, "msg": f"用户 {new_login_user} 已存在"}
-            # 优先匹配原配置名对应的管理员，其次当前管理员，最后取最早创建的管理员
-            admin_user = UserManager().get_user_by_name(old_login_user)
-            if not admin_user or admin_user.level < LEVEL_SYSADMIN:
-                if self._current_user and self._current_user.level >= LEVEL_SYSADMIN:
-                    admin_user = self._current_user
-                else:
-                    admin_user = UserManager().get_admin_user()
-            if not admin_user:
-                # 数据库中没有管理员时仅保存配置，下次启动会自动创建
-                rename_admin = False
-
-        relogin = False
-        # 保存配置
-        if not config_test:
-            # 用户名以数据库为准，先同步数据库再保存配置
-            if rename_admin:
-                if not UserManager().rename_user(admin_user.username, new_login_user):
-                    return {"code": -1, "msg": "修改管理员用户名失败"}
-                relogin = bool(self._current_user
-                               and self._current_user.username == admin_user.username)
-                log.info(f"系统管理员用户名已修改：{admin_user.username} -> {new_login_user}")
-
-            Config().save_config(cfg)
-
-            # 管理员账号以数据库为准，同步密码到数据库
-            if password_changed:
-                password_hash = normalize_password_hash(
-                    cfg.get('app', {}).get('login_password'))
-                if not UserManager().update_admin_password(password_hash):
-                    log.warn("【Config】未找到系统管理员账号，密码仅保存到配置文件")
-
-        return {"code": 0, "relogin": relogin}
-
     def __add_or_edit_sync_path(self, data):
         """
         维护同步目录
@@ -1353,41 +1220,6 @@ class WebAction:
 
         ret = MediaServer().test_connection(server_type)
         return {"code": 0 if ret else 1}
-
-    def __user_manager(self, data):
-        """
-        用户管理
-        """
-        if not self._current_user or self._current_user.level < LEVEL_SYSADMIN:
-            return {"code": -1, "success": False, "message": "权限不足"}
-
-        oper = data.get("oper")
-        name = data.get("name")
-        if not name:
-            return {"code": -1, "success": False, "message": "用户名不能为空"}
-
-        if oper == "add":
-            raw_password = str(data.get("password") or "")
-            if not raw_password:
-                return {"code": -1, "success": False, "message": "密码不能为空"}
-            password = generate_password_hash(raw_password)
-            pris = data.get("pris")
-            if isinstance(pris, list):
-                pris = ",".join(pris)
-            ret = UserManager().add_user(name, password, pris, LEVEL_USER)
-        else:
-            if self._current_user.username == name:
-                return {"code": -1, "success": False, "message": "不能删除自己"}
-            target = UserManager().get_user_by_name(name)
-            if not target:
-                return {"code": -1, "success": False, "message": "用户不存在"}
-            if target.level >= self._current_user.level:
-                return {"code": -1, "success": False, "message": "无权删除该用户"}
-            ret = UserManager().delete_user(name)
-
-        if ret:
-            return {"code": 0, "success": True}
-        return {"code": -1, "success": False, 'message': '操作失败'}
 
     def __change_password(self, data):
         """
@@ -2135,27 +1967,6 @@ class WebAction:
             site_hr = True
         return {"code": 0, "site_free": site_free, "site_2xfree": site_2xfree, "site_hr": site_hr}
        
-    def __restory_backup(self, data):
-        """
-        解压恢复备份文件
-        """
-        filename = data.get("file_name")
-        if filename:
-            config_path = Config().get_config_path()
-            temp_path = Config().get_temp_path()
-            file_path = os.path.join(temp_path, filename)
-            try:
-                shutil.unpack_archive(file_path, config_path, format='zip')
-                return {"code": 0, "msg": ""}
-            except Exception as e:
-                log.exception("[act]解压恢复备份文件出错:")
-                return {"code": 1, "msg": str(e)}
-            finally:
-                if os.path.exists(file_path):
-                    os.remove(file_path)
-
-        return {"code": 1, "msg": "文件不存在"}
-
     def __start_mediasync(self, data):
         """
         开始媒体库同步
@@ -3012,36 +2823,6 @@ class WebAction:
             "data": r
         }
 
-    def __rename_file(self, data):
-        """
-        文件重命名
-        """
-        path = data.get("path")
-        name = data.get("name")
-        if path and name:
-            try:
-                shutil.move(path, os.path.join(os.path.dirname(path), name))
-            except Exception as e:
-                log.exception("[act]文件重命名 异常:")
-                return {"code": -1, "msg": str(e)}
-        return {"code": 0}
-
-    def __delete_files(self, data):
-        """
-        删除文件
-        """
-        files = data.get("files")
-        if files:
-            # 删除文件
-            for file in files:
-                del_flag, del_msg = FileHelper.delete_media_file(filedir=os.path.dirname(file),
-                                                           filename=os.path.basename(file))
-                if not del_flag:
-                    log.error(del_msg)
-                else:
-                    log.info(del_msg)
-        return {"code": 0}
-
     def __download_subtitle(self, data):
         """
         从配置的字幕服务下载单个文件的字幕
@@ -3703,18 +3484,6 @@ class WebAction:
         ThreadHelper().start_thread(Sync().transfer_sync, (data.get("sid"),))
         return {"code": 0, "msg": "执行成功"}
 
-    def __update_plugin_config(self, data):
-        """
-        保存插件配置
-        """
-        plugin_id = data.get("plugin")
-        config = data.get("config")
-        if not plugin_id:
-            return {"code": 1, "msg": "数据错误"}
-        PluginManager().save_plugin_config(pid=plugin_id, conf=config)
-        PluginManager().reload_plugin(plugin_id)
-        return {"code": 0, "msg": "保存成功"}
-
     def __get_season_episodes(self, data=None):
         """
         查询TMDB剧集情况
@@ -3898,41 +3667,6 @@ class WebAction:
             return {"code": 0, "data": default_rss_setting}
         return {"code": 1}
 
-    def __install_plugin(self, data, reload=True):
-        """
-        安装插件
-        """
-        module_id = data.get("id")
-        if not module_id:
-            return {"code": -1, "msg": "参数错误"}
-        # 用户已安装插件列表
-        user_plugins = SystemConfig().get(SystemConfigKey.UserInstalledPlugins) or []
-        if module_id not in user_plugins:
-            user_plugins.append(module_id)
-        # 保存配置
-        SystemConfig().set(SystemConfigKey.UserInstalledPlugins, user_plugins)
-        # 重新加载插件
-        if reload:
-            PluginManager().init_config()
-        return {"code": 0, "msg": "插件安装成功"}
-
-    def __uninstall_plugin(self, data):
-        """
-        卸载插件
-        """
-        module_id = data.get("id")
-        if not module_id:
-            return {"code": -1, "msg": "参数错误"}
-        # 用户已安装插件列表
-        user_plugins = SystemConfig().get(SystemConfigKey.UserInstalledPlugins) or []
-        if module_id in user_plugins:
-            user_plugins.remove(module_id)
-        # 保存配置
-        SystemConfig().set(SystemConfigKey.UserInstalledPlugins, user_plugins)
-        # 重新加载插件
-        PluginManager().init_config()
-        return {"code": 0, "msg": "插件卸载功"}
-
     def __get_plugin_apps(self, data=None):
         """
         获取插件列表
@@ -3985,19 +3719,6 @@ class WebAction:
         获取系统进程
         """
         return {"code": 0, "data": SystemUtils.get_all_processes()}
-
-    def __run_plugin_method(self, data):
-        """
-        运行插件方法
-        """
-        plugin_id = data.get("plugin_id")
-        method = data.get("method")
-        if not plugin_id or not method:
-            return {"code": 1, "msg": "参数错误"}
-        data.pop("plugin_id")
-        data.pop("method")
-        result = PluginManager().run_plugin_method(pid=plugin_id, method=method, **data)
-        return {"code": 0, "result": result}
 
     def __get_jobs(self):
         """

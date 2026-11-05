@@ -144,6 +144,8 @@ class AutoBackup(_IPluginModule):
 
         # 停止现有任务
         self.stop_service()
+        # 重新开始，清除退出事件
+        self.reset_stop_event()
 
         # 启动服务
         if self._enabled or self._onlyonce:
@@ -170,6 +172,11 @@ class AutoBackup(_IPluginModule):
         """
         自动备份、删除备份
         """
+        # 捕获本次运行的事件对象，插件重载后旧线程仍能被旧的置位事件终止
+        event = self._event
+        if event.is_set():
+            self.info("备份服务已停止")
+            return
         self.info(f"当前时间 {time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time()))} 开始备份")
 
         # docker用默认路径
@@ -221,6 +228,8 @@ class AutoBackup(_IPluginModule):
         """
         退出插件
         """
+        # 通知备份线程退出，避免重载后旧线程继续备份
+        self.set_stop_event()
         try:
             self.remove_job(self._cron_job)
         except Exception as e:

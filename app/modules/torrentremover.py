@@ -2,6 +2,7 @@ import json
 from threading import Lock
 
 from apscheduler.job import Job
+from apscheduler.jobstores.base import JobLookupError
 from apscheduler.schedulers.background import BackgroundScheduler
 
 import log
@@ -321,11 +322,14 @@ class TorrentRemover:
         """
         停止服务
         """
-        try:
-            if not self.scheduler_jobs:
-                return
-            for job_item in self.scheduler_jobs:
+        if not self.scheduler_jobs:
+            return
+        for job_item in self.scheduler_jobs:
+            try:
                 self.get_scheduler().remove_job(job_item.id)
-            self.scheduler_jobs = []
-        except Exception as e:
-            print(str(e))
+            except JobLookupError:
+                # 任务已随配置重载被统一清理
+                pass
+            except Exception as e:
+                print(str(e))
+        self.scheduler_jobs = []

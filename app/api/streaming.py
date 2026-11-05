@@ -14,7 +14,8 @@ from app.core.cmd_handler import CommandHandler
 from app.core.system_update import run_system_update
 from app.core.task_manager import TaskStore
 from app.message.message_center import SysMessageCenter
-from app.middleware.security import get_current_user
+from app.middleware.security import auth_check, get_current_user
+from app.models.user import LEVEL_OPERATOR, LEVEL_SYSADMIN
 from app.utils.types import SearchType
 from log import active_sse_queues, log_buffer
 
@@ -50,6 +51,7 @@ _update_lock = threading.Lock()
 
 # WebSocket连接 - 消息中心
 @streaming_router.websocket("/message")
+@auth_check(LEVEL_OPERATOR)
 async def message_handler(websocket: WebSocket):
     """
     消息中心WebSocket
@@ -229,6 +231,7 @@ async def stream_logging(request: Request, source: str = ""):
 
 # 系统更新：以 SSE 流式返回本次更新的日志和最终结果
 @streaming_router.post("/stream-update-system", dependencies=[Depends(get_current_user)])
+@auth_check(LEVEL_SYSADMIN)
 async def stream_update_system(request: Request):
     """
     执行一次系统更新，并把日志和结果以 SSE 的形式流式返回给前端。
@@ -294,15 +297,8 @@ async def stream_update_system(request: Request):
             return _sse_json_event(event)
 
         def new_records() -> list[dict[str, Any]]:
-            # 按 seq 增量获取，避免日志超出缓存上限后按索引取错
-            records = log.get_task_logs(update_id)
-            pending = []
-            for record in reversed(records):
-                if record.get("seq", 0) <= last_seq:
-                    break
-                pending.append(record)
-            pending.reverse()
-            return pending
+            # 只读取序号大于 last_seq 的增量日志，避免每 50ms 全量复制任务日志
+            return log.get_task_logs(update_id, after_seq=last_seq)
 
         try:
             while True:

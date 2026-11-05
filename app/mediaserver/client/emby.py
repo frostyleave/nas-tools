@@ -147,9 +147,7 @@ class Emby(_IMediaClient):
             host = self._play_host or self._host
             image_url = f"{host}Items/{item_id}/"\
                         f"Images/Backdrop?tag={image_tag}&fillWidth=666&api_key={self._apikey}"
-            if IpUtils.is_internal(host):
-                return self.get_nt_image_url(url=image_url, remote=True)
-            return image_url
+            return self.get_nt_image_url(url=image_url, remote=True)
 
     def get_server_id(self):
         """
@@ -434,9 +432,7 @@ class Emby(_IMediaClient):
         else:
             host = self._play_host or self._host
             image_url = f"{host}Items/{item_id}/Images/Primary"
-            if IpUtils.is_internal(host):
-                return self.get_nt_image_url(url=image_url, remote=True)
-            return image_url
+            return self.get_nt_image_url(url=image_url, remote=True)
 
     def __refresh_emby_library_by_id(self, item_id):
         """
@@ -595,37 +591,44 @@ class Emby(_IMediaClient):
         """
         return f"{self._play_host or self._host}web/index.html#!/item?id={item_id}&context=home&serverId={self._serverid}"
 
-    def get_items(self, parent):
+    def get_items(self, parent, depth=0):
         """
         获取媒体服务器所有媒体库列表
+        :param parent: 父级ID
+        :param depth: 当前递归深度，防止异常数据导致无限递归
         """
-        if not parent:
+        if not parent or not self._host or not self._apikey:
             yield {}
-        if not self._host or not self._apikey:
-            yield {}
-        req_url = f"{self._host}emby/Items?ParentId={parent}"
+            return
+        if depth > 10:
+            log.warn(f"【{self.client_name}】媒体库目录层级超过 10 层，停止递归：{parent}")
+            return
+
+        # 一次请求带回需要的字段，避免逐条调用 get_iteminfo（N+1）
+        req_url = (f"{self._host}emby/Items?ParentId={parent}"
+                   f"&Fields=ParentId,Path,ProviderIds,OriginalTitle,ProductionYear")
         try:
-            headers = {'X-Emby-Token':self._apikey}
+            headers = {'X-Emby-Token': self._apikey}
             res = RequestUtils(headers=headers).get_res(req_url)
             if res and res.status_code == 200:
                 results = res.json().get("Items") or []
                 for result in results:
                     if not result:
                         continue
-                    if result.get("Type") in ["Movie", "Series"]:
-                        item_info = self.get_iteminfo(result.get("Id"))
+                    item_type = result.get("Type") or ""
+                    if item_type in ["Movie", "Series"]:
                         yield {"id": result.get("Id"),
-                               "library": item_info.get("ParentId"),
-                               "type": item_info.get("Type"),
-                               "title": item_info.get("Name"),
-                               "originalTitle": item_info.get("OriginalTitle"),
-                               "year": item_info.get("ProductionYear"),
-                               "tmdbid": item_info.get("ProviderIds", {}).get("Tmdb"),
-                               "imdbid": item_info.get("ProviderIds", {}).get("Imdb"),
-                               "path": item_info.get("Path"),
-                               "json": str(item_info)}
-                    elif "Folder" in result.get("Type"):
-                        yield from self.get_items(parent=result.get('Id'))
+                               "library": result.get("ParentId"),
+                               "type": item_type,
+                               "title": result.get("Name"),
+                               "originalTitle": result.get("OriginalTitle"),
+                               "year": result.get("ProductionYear"),
+                               "tmdbid": (result.get("ProviderIds") or {}).get("Tmdb"),
+                               "imdbid": (result.get("ProviderIds") or {}).get("Imdb"),
+                               "path": result.get("Path"),
+                               "json": str(result)}
+                    elif "Folder" in item_type:
+                        yield from self.get_items(parent=result.get('Id'), depth=depth + 1)
         except Exception as e:
             log.exception(f"【{self.client_name}】连接Users/Items出错: ")
         yield {}

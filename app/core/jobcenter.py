@@ -45,24 +45,42 @@ class JobCenter:
         self.init_config()
 
     def init_config(self):
-        self.stop_service()
+        """
+        配置变更后重建定时任务
+
+        注意：APScheduler 的 executor 在 shutdown() 后不可复用，再次 start() 后提交任务会报
+        “cannot schedule new futures after shutdown”。因此重载配置时只清空任务，不关闭调度器。
+        """
+        self._clear_jobs()
         self.run_service()
 
     def run_service(self):
         """
-        读取配置，启动定时服务
+        启动定时服务（已在运行则跳过）
         """
         if not self._scheduler_list:
             return
-        
+
         for _scheduler in self._scheduler_list:
+            if _scheduler.state != STATE_STOPPED:
+                log.debug(f'【System】定时服务({_scheduler.name})已在运行中')
+                continue
             try:
                 _scheduler.start()
                 log.info(f'【System】定时服务({_scheduler.name})已启动')
-            except SchedulerAlreadyRunningError as ex:
+            except SchedulerAlreadyRunningError:
                 log.info(f'【System】定时服务({_scheduler.name})已在运行中..')
             except Exception as e:
-                log.exception(f'【System】启动定时服务({_scheduler.name})出错: ')    
+                log.exception(f'【System】启动定时服务({_scheduler.name})出错: ')
+
+    def _clear_jobs(self):
+        """清空所有已注册任务，但保持调度器及其 executor 可用"""
+        for _scheduler in self._scheduler_list:
+            try:
+                _scheduler.remove_all_jobs()
+            except Exception as e:
+                log.exception(f'【System】清理定时任务({_scheduler.name})出错: ')
+        self._running_jobs.clear()
 
     def stop_service(self):
         """

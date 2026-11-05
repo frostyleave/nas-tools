@@ -4,6 +4,49 @@ import os
 class PathUtils:
 
     @staticmethod
+    def is_within_dir(path, root) -> bool:
+        """
+        判断 path 的真实路径是否位于 root 目录内（跟随符号链接）
+        """
+        try:
+            real_path = os.path.realpath(str(path))
+            real_root = os.path.realpath(str(root))
+            return os.path.commonpath([real_path, real_root]) == real_root
+        except (ValueError, OSError):
+            return False
+
+    @staticmethod
+    def safe_filename(name, default="", max_len=200):
+        """
+        从外部输入（HTTP 头、URL、站点返回值）提取安全的文件名
+
+        - 兼容 Windows / Linux 分隔符，只保留最后一段
+        - 去掉盘符、引号、结尾的点和空格
+        - 拒绝空名、`.`、`..` 和包含 NUL 的名字
+        - 超长时保留扩展名并截断主体
+        """
+        if not name:
+            return default
+        name = str(name).replace("\\", "/")
+        name = name.split("/")[-1].strip().strip('"').strip()
+        # 去掉 Windows 盘符残留（如 C:foo）
+        if len(name) >= 2 and name[1] == ":":
+            name = name[2:].strip()
+        if not name or name in (".", "..") or "\x00" in name:
+            return default
+        # Windows 文件名不允许以点或空格结尾
+        name = name.rstrip(" .")
+        if not name:
+            return default
+        if len(name) > max_len:
+            root, ext = os.path.splitext(name)
+            keep = max_len - len(ext)
+            if keep <= 0:
+                return default
+            name = root[:keep] + ext
+        return name
+
+    @staticmethod
     def get_dir_files(in_path, exts="", filesize=0, episode_format=None):
         """
         获得目录下的媒体文件列表List ，按后缀、大小、格式过滤
@@ -13,6 +56,8 @@ class PathUtils:
         if not os.path.exists(in_path):
             return []
         ret_list = []
+        # 用 set 判重，避免逐个 in list 比较造成 O(n²)
+        seen = set()
         if os.path.isdir(in_path):
             for root, dirs, files in os.walk(in_path):
                 for file in files:
@@ -30,7 +75,8 @@ class PathUtils:
                     if filesize and os.path.getsize(cur_path) < filesize:
                         continue
                     # 命中
-                    if cur_path not in ret_list:
+                    if cur_path not in seen:
+                        seen.add(cur_path)
                         ret_list.append(cur_path)
         else:
             # 检查路径是否合法

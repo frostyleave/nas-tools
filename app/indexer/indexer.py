@@ -202,7 +202,14 @@ def exec_search_by_threads(client_instance: BuiltinIndexer,
             return media_info.original_title
         return MediaService().get_tmdb_en_title(media_info)
     
-    thread_count = min(len(search_indexers), 20)        
+    if not search_indexers:
+        return []
+
+    # 配置的线程数可能为 0，ThreadPoolExecutor 不接受 0
+    thread_count = max(1, min(len(search_indexers), 20))
+    en_name_loaded = False
+    en_name = None
+
     with ThreadPoolExecutor(max_workers=thread_count) as executor:
         # 提交所有线程任务
         for indexer in search_indexers:
@@ -227,9 +234,11 @@ def exec_search_by_threads(client_instance: BuiltinIndexer,
                 task = executor.submit(client_instance.search, order_seq, indexer, match_media.imdb_id, copy.deepcopy(filter_args), match_media, in_from, task_id)
                 all_tasks.append(task)
                 
-            # 英文名检索
+            # 英文名检索（所有索引器共用一次解析结果）
             if 'en' == indexer.search_param or indexer.en_expand:
-                en_name = get_media_en_name(match_media)
+                if not en_name_loaded:
+                    en_name = get_media_en_name(match_media)
+                    en_name_loaded = True
                 if en_name:
                     task = executor.submit(client_instance.search, order_seq, indexer, en_name, copy.deepcopy(filter_args), match_media, in_from, task_id)
                     all_tasks.append(task)

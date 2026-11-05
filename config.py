@@ -144,7 +144,18 @@ class Config:
             RMT_FAVTYPE = favtype
 
     def get_tmdbapi_url(self):
-        return f"https://{self.get_config('app').get('tmdb_domain') or self.tmdb_api_domain}/3"
+        """
+        获取 TMDB API 地址
+
+        支持内置域名，也支持用户填写的自定义代理地址
+        """
+        domain = (self.get_config('app').get('tmdb_domain') or '').strip() or self.tmdb_api_domain
+        if "://" not in domain:
+            domain = f"https://{domain}"
+        domain = domain.rstrip("/")
+        if domain.endswith("/3"):
+            return domain
+        return f"{domain}/3"
 
     def get_tmdbimage_url(self, path, prefix="w500"):
         if not path:

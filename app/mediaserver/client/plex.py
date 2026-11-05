@@ -401,9 +401,19 @@ class Plex(_IMediaClient):
                 break
             container_start += total_size
         image_list_str = ", ".join(
-            [f"{self.get_nt_image_url(self._host.rstrip('/') + url)}?X-Plex-Token={self._token}" for url in
-             list(poster_urls.keys())[:total_size]])
+            [self._get_image_url(url) for url in list(poster_urls.keys())[:total_size]])
         return image_list_str
+
+    def _get_image_url(self, path):
+        """
+        拼接 Plex 图片完整地址；只有内网地址才走 NT 中转
+        """
+        if not path:
+            return ""
+        url = path if str(path).startswith("http") else f"{self._host.rstrip('/')}{path}"
+        if "X-Plex-Token" not in url:
+            url = f"{url}{'&' if '?' in url else '?'}X-Plex-Token={self._token}"
+        return self.get_nt_image_url(url)
 
     def get_iteminfo(self, itemid):
         """
@@ -566,7 +576,7 @@ class Plex(_IMediaClient):
                 else:
                     name = f"{item.grandparentTitle} 第{item.parentIndex}季第{item.index}集"
             link = self.get_play_url(item.key)
-            image = self.get_nt_image_url(item.artUrl)
+            image = self._get_image_url(item.artUrl)
             ret_resume.append({
                 "id": item.key,
                 "name": name,
@@ -590,7 +600,7 @@ class Plex(_IMediaClient):
             link = self.get_play_url(item.key)
             title = item.title if item_type == MediaType.MOVIE.value else \
                 f"{item.parentTitle} 第{item.index}季"
-            image = self.get_nt_image_url(item.posterUrl)
+            image = self._get_image_url(item.posterUrl)
             ret_resume.append({
                 "id": item.key,
                 "name": title,

@@ -15,7 +15,7 @@ import log
 from app.indexer.client import InterfaceSpider, MTorrentSpider
 from app.indexer.manager import IndexerManager
 from app.models.model import IndexerInfo, UserSiteConf
-from app.utils import RequestUtils, SiteUtils, TorrentUtils
+from app.utils import PathUtils, RequestUtils, SiteUtils, TorrentUtils
 from app.utils.torrent import TorrentDownloadResult
 from config import Config
 
@@ -294,15 +294,16 @@ class TorrentDownloader:
 
     @staticmethod
     def _get_url_torrent_filename(req, url) -> str:
-        """从下载请求中获取种子文件名"""
+        """从下载请求中获取种子文件名（已去除路径，只保留文件名）"""
         if not req:
             return ""
+        file_name = ""
         disposition = req.headers.get('content-disposition') or ""
-        file_name = re.findall(r"filename=\"?(.+)\"?", disposition)
-        if file_name:
-            file_name = unquote(str(file_name[0].encode('ISO-8859-1').decode()).split(";")[0].strip())
+        file_name_match = re.findall(r"filename=\"?(.+)\"?", disposition)
+        if file_name_match:
+            file_name = unquote(str(file_name_match[0].encode('ISO-8859-1').decode()).split(";")[0].strip())
             file_name = file_name.removesuffix('"')
         elif url and url.endswith(".torrent"):
             file_name = unquote(url.split("/")[-1])
 
-        return file_name
+        return PathUtils.safe_filename(file_name)

@@ -92,11 +92,13 @@ class PluginManager:
         """
         # 将事件管理器设为停止
         self._active = False
-        # 等待事件处理线程退出
-        if self._thread:
-            self._thread.join()
-        # 停止所有插件
+        # 先通知插件停止其后台任务（设置退出事件、移除定时任务）
         self.__stop_plugins()
+        # 等待事件处理线程退出（get_event 有 1s 超时，这里再兜底限制等待时间）
+        if self._thread and self._thread.is_alive():
+            self._thread.join(timeout=5)
+            if self._thread.is_alive():
+                log.warn("【Plugin】事件处理线程未在 5 秒内退出，继续后续关闭流程")
 
     def __load_plugins(self):
         """
@@ -141,6 +143,7 @@ class PluginManager:
     def reload_plugin(self, pid):
         """
         生效插件配置
+        :return: 初始化失败返回 False；未运行或成功返回 None
         """
         if not pid:
             return
@@ -152,6 +155,7 @@ class PluginManager:
                 log.debug(f"生效插件配置：{pid}")
             except Exception as err:
                 log.exception(f"‼️ 初始化插件{pid}配置出错: ")
+                return False
 
     def __stop_plugins(self):
         """
@@ -249,10 +253,9 @@ class PluginManager:
             # ID前缀
             if hasattr(plugin, "module_config_prefix"):
                 conf.update({"prefix": plugin.module_config_prefix})
-            # 插件额外的页面
+            # 插件额外的页面（只取标题，避免加载页面数据造成阻塞）
             if hasattr(plugin, "get_page"):
-                title, _, _ = plugin.get_page()
-                conf.update({"page": title})
+                conf.update({"page": plugin.get_page_title()})
             # 插件额外的脚本
             if hasattr(plugin, "get_script"):
                 conf.update({"script": plugin.get_script()})

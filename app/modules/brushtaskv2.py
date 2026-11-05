@@ -39,7 +39,6 @@ class BrushTaskV2:
     indexer = None
 
     _brush_tasks: dict
-    _torrents_cache: list
     _qb_client = "qbittorrent"
     _tr_client = "transmission"
 
@@ -60,9 +59,7 @@ class BrushTaskV2:
         self.stop_service()
         # 读取刷流任务列表
         self.load_brushtasks()
-        # 清理缓存
-        self._torrents_cache = []
-        
+
         if not self._brush_tasks:
             log.info("[刷流]暂未配置刷流任务")
             return
@@ -209,9 +206,19 @@ class BrushTaskV2:
             return
 
         rss_rule = taskinfo.get("rss_rule")
+        max_dlcount = rss_rule.get("dlcount")
+        # 本轮只查询一次下载数、总体积，后续在内存中累加，避免每个候选种子都查一遍
+        downloading_count = self.__get_downloading_count(downloader_id) if max_dlcount else None
+        if max_dlcount and downloading_count is None:
+            log.error(f"【Brush】任务 {task_name} 下载器 {taskinfo.get('downloader_name')} 无法连接")
+            return
+        total_size = self.dbhelper.get_brushtask_totalsize(taskid) or 0
+
         # 检查是否达到保种体积
         if not self.__is_allow_new_torrent(taskinfo=taskinfo,
-                                           dlcount=rss_rule.get("dlcount")):
+                                           dlcount=max_dlcount,
+                                           total_size=total_size,
+                                           downloading_count=downloading_count):
             return
 
         site_indexer = IndexerManager().build_indexer_conf(url=site_info.strict_url, site_conf=site_info)
@@ -232,12 +239,13 @@ class BrushTaskV2:
             log.info(f"【Brush】{site_name} 本次查询到的站点资源数: {len(result_aaray)}")
 
         # 同时下载数
-        max_dlcount = rss_rule.get("dlcount")
         success_count = 0
         new_torrent_count = 0
-        if max_dlcount:
-            downloading_count = self.__get_downloading_count(downloader_id) or 0
+        if max_dlcount and downloading_count is not None:
             new_torrent_count = int(max_dlcount) - int(downloading_count)
+
+        # 本轮已见过的种子链接，避免同一次查询结果重复处理
+        seen_enclosures = set()
 
         for item in result_aaray:
             try:
@@ -248,11 +256,10 @@ class BrushTaskV2:
                 # 种子大小
                 size = item.get('size')
 
-                if enclosure not in self._torrents_cache:
-                    self._torrents_cache.append(enclosure)
-                else:
+                if enclosure in seen_enclosures:
                     log.debug(f"【Brush】{torrent_name} 已处理过")
                     continue
+                seen_enclosures.add(enclosure)
 
                 # 检查种子是否符合选种规则
                 if not self.__check_rss_rule(rss_rule=rss_rule,
@@ -264,7 +271,9 @@ class BrushTaskV2:
                 # 检查能否添加当前种子, 判断是否超过保种体积大小
                 if not self.__is_allow_new_torrent(taskinfo=taskinfo,
                                                    dlcount=max_dlcount,
-                                                   torrent_size=size):
+                                                   torrent_size=size,
+                                                   total_size=total_size,
+                                                   downloading_count=downloading_count):
                     continue
                 # 检查是否已处理过
                 if self.is_torrent_handled(enclosure=enclosure):
@@ -280,13 +289,23 @@ class BrushTaskV2:
                                            size=size):
                     # 计数
                     success_count += 1
+                    # 本地累计下载数与保种体积，后续判断直接使用
+                    if downloading_count is not None:
+                        downloading_count += 1
+                    if size:
+                        try:
+                            total_size += int(float(size))
+                        except (TypeError, ValueError):
+                            pass
                     # 添加种子后不能超过最大下载数量
                     if max_dlcount and success_count >= new_torrent_count:
                         break
 
                     # 再判断一次
                     if not self.__is_allow_new_torrent(taskinfo=taskinfo,
-                                                       dlcount=max_dlcount):
+                                                       dlcount=max_dlcount,
+                                                       total_size=total_size,
+                                                       downloading_count=downloading_count):
                         break
             except Exception as err:
                 log.exception('【Brush】刷流种子过滤出错: ')
@@ -540,18 +559,22 @@ class BrushTaskV2:
             except Exception as e:
                 log.exception('【Brush】按条件删除种子出错: ')
 
-    def __is_allow_new_torrent(self, taskinfo, dlcount, torrent_size=None):
+    def __is_allow_new_torrent(self, taskinfo, dlcount, torrent_size=None,
+                               total_size=None, downloading_count=None):
         """
         检查是否还能添加新的下载
+
+        :param total_size: 当前保种体积，传入时不再查询数据库
+        :param downloading_count: 当前下载数，传入时不再查询下载器
         """
         if not taskinfo:
             return False
         # 判断大小
         seed_size = taskinfo.get("seed_size") or None
         task_name = taskinfo.get("name")
-        downloader_id = taskinfo.get("downloader")
         downloader_name = taskinfo.get("downloader_name")
-        total_size = self.dbhelper.get_brushtask_totalsize(taskinfo.get("id"))
+        if total_size is None:
+            total_size = self.dbhelper.get_brushtask_totalsize(taskinfo.get("id"))
         if torrent_size and seed_size and float(torrent_size) + int(total_size) >= (float(seed_size) + 5) * 1024 ** 3:
             log.warn(f"【Brush】刷流任务 {task_name} 当前保种体积 {round(int(total_size) / (1024 ** 3), 1)}GB, 种子大小 {round(int(torrent_size) / (1024 ** 3), 1)}GB, 不添加刷流任务")
             return False
@@ -560,7 +583,6 @@ class BrushTaskV2:
             return False
         # 检查正在下载的任务数
         if dlcount:
-            downloading_count = self.__get_downloading_count(downloader_id)
             if downloading_count is None:
                 log.error(f"【Brush】任务 {task_name} 下载器 {downloader_name} 无法连接")
                 return False
@@ -571,9 +593,11 @@ class BrushTaskV2:
 
     def __get_downloading_count(self, downloader_id):
         """
-        查询当前正在下载的任务数
+        查询当前正在下载的任务数，下载器不可用时返回 None
         """
-        torrents = self.downloader.get_downloading_torrents(downloader_id=downloader_id) or []
+        torrents = self.downloader.get_downloading_torrents(downloader_id=downloader_id)
+        if torrents is None:
+            return None
         return len(torrents)
 
     def __download_torrent(self,

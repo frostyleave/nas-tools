@@ -30,9 +30,36 @@ class AsyncRequestUtils:
             cls.http_session = aiohttp.ClientSession(connector=connector)
             
         if cls.http_client is None:
-            # 限制最大连接数，防止并发过高
-            limits = httpx.Limits(max_keepalive_connections=20, max_connections=100)
-            cls.http_client = httpx.AsyncClient(follow_redirects=True, timeout=httpx.Timeout(10.0), limits=limits)
+            cls.http_client = cls._build_client()
+
+    @classmethod
+    def _build_client(cls, proxy: str | None = None) -> AsyncClient:
+        """
+        创建 AsyncClient
+
+        httpx 0.28 起请求级 proxies/verify 参数已被移除，代理与证书校验只能配置在 client 上。
+        """
+        # 限制最大连接数，防止并发过高
+        limits = httpx.Limits(max_keepalive_connections=20, max_connections=100)
+        client_kwargs = {
+            "follow_redirects": True,
+            "timeout": httpx.Timeout(10.0),
+            "limits": limits,
+            # 与原 request() 中的 verify=False 保持一致
+            "verify": False,
+        }
+        if proxy:
+            client_kwargs["proxy"] = proxy
+        return httpx.AsyncClient(**client_kwargs)
+
+    @classmethod
+    def get_http_client(cls) -> AsyncClient:
+        """
+        获取共享 AsyncClient；lifespan 未初始化时兜底创建
+        """
+        if cls.http_client is None:
+            cls.init_client()
+        return cls.http_client
 
     @classmethod
     async def close_client(cls):
@@ -69,6 +96,8 @@ class AsyncRequestUtils:
                 "Accept": accept_type,
                 "referer": referer
             }
+        # httpx 不接受 None 作为请求头的值
+        self._headers = {key: value for key, value in self._headers.items() if value is not None}
 
         if cookies:
             if isinstance(cookies, str):
@@ -113,22 +142,31 @@ class AsyncRequestUtils:
 
         kwargs.setdefault("headers", self._headers)
         kwargs.setdefault("cookies", self._cookies)
-        kwargs.setdefault("proxies", self._proxies) # 这里会使用已转换的代理
         kwargs.setdefault("timeout", self._timeout)
-        kwargs.setdefault("verify", False)  
 
         try:
             if self._session:
                 return await self._session.request(method, url, **kwargs)
-            else:
-                async with httpx.AsyncClient() as client:
+            proxy = self._get_proxy()
+            if proxy:
+                # 单请求代理：httpx 0.28 只能在 client 上配置 proxy
+                async with self._build_client(proxy) as client:
                     return await client.request(method, url, **kwargs)
+            return await self.get_http_client().request(method, url, **kwargs)
 
         except httpx.RequestError as e:
             log.exception(f"【Http】请求{url},method={method}  异常:")
             if raise_exception:
                 raise
             return None
+
+    def _get_proxy(self) -> str | None:
+        """
+        从已转换的代理配置中取出一个可用的代理地址
+        """
+        if not self._proxies:
+            return None
+        return next((value for value in self._proxies.values() if value), None)
 
     async def post(self, url: str, data: Any = None, json: dict | None = None, **kwargs) -> Response | None:
         """

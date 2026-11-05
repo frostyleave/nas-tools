@@ -568,7 +568,7 @@
     if (flag) {
       $("#" + type + "_btn").text("保存中...").attr("disabled", true);
     }
-    axios_post_do("update_config", params, function (ret) {
+    axios_post("/sys/update_config", params, function (ret) {
       if (flag) {
         $("#" + type + "_btn").text("保存").attr("disabled", false);
         // window_history_refresh();

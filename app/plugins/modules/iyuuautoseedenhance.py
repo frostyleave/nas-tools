@@ -1,8 +1,8 @@
-from typing import ClassVar
 import re
 import time
 from copy import deepcopy
 from threading import Event
+from typing import ClassVar
 
 from apscheduler.job import Job
 from jinja2 import Template
@@ -39,6 +39,8 @@ class IYUUAutoSeedEnhance(_IPluginModule):
     module_config_prefix = "iyuuautoseedenhance_"
     # 加载顺序
     module_order = 21
+    # 插件额外页面标题
+    module_page_title = "配置插件"
     # 可使用的用户级别
     user_level = 2
 
@@ -231,6 +233,8 @@ class IYUUAutoSeedEnhance(_IPluginModule):
         self._history_list = self.get_history() or []
         # 停止现有任务
         self.stop_service()
+        # 重新开始，清除退出事件
+        self.reset_stop_event()
 
         # 启动定时任务 & 立即运行一次
         if self.get_state() or self._onlyonce:
@@ -253,7 +257,7 @@ class IYUUAutoSeedEnhance(_IPluginModule):
             # 定时任务
             if self._cron:
                 # 注册定时任务(不立即启动)
-                self._cron_job = self.add_cron_job(self.auto_seed, self._cron, 'IYUU自动辅种', False)
+                self._cron_job = self.add_cron_job(self.auto_seed, self._cron, 'IYUU自动辅种')
                 if self._cron_job:
                     self._check_job = self.get_scheduler().add_job(self.check_recheck, 'interval', minutes=3, name='IYUU自动辅种校验')
 
@@ -395,7 +399,7 @@ class IYUUAutoSeedEnhance(_IPluginModule):
             let site = $("#iyuu_enhance_site").val();
             let image = $("#iyuu_enhance_image").val();
 
-            axios_post_do("run_plugin_method", {"plugin_id": 'IYUUAutoSeedEnhance', 'method': 'add_image_site', "site": site, "image": image}, function (ret) {
+            axios_post("/sys/run_plugin_method", {"plugin_id": 'IYUUAutoSeedEnhance', 'method': 'add_image_site', "site": site, "image": image}, function (ret) {
                 $("#modal-plugin-page").modal('hide');
                 if (ret.result.code === 0) {
                     show_success_modal("添加成功！", function () {
@@ -411,7 +415,7 @@ class IYUUAutoSeedEnhance(_IPluginModule):
 
           // 删除镜像站
           function IYUUEnhance_delete_history(id, site) {
-            axios_post_do("run_plugin_method", {"plugin_id": 'IYUUAutoSeedEnhance', 'method': 'delete_iyuu_enhance_history', 'site': site}, function (ret) {
+            axios_post("/sys/run_plugin_method", {"plugin_id": 'IYUUAutoSeedEnhance', 'method': 'delete_iyuu_enhance_history', 'site': site}, function (ret) {
               $("#movie_iyuu_history_" + id).remove();
             });
           }
@@ -435,7 +439,7 @@ class IYUUAutoSeedEnhance(_IPluginModule):
                 $("#iyuuautoseedenhance_passkey").removeClass("is-invalid");
             }
             // 认证
-            axios_post_do("run_plugin_method", {"plugin_id": 'IYUUAutoSeedEnhance', 'method': 'iyuu_bind_site', "site": site, "uid": uid, "passkey": passkey}, function (ret) {
+            axios_post("/sys/run_plugin_method", {"plugin_id": 'IYUUAutoSeedEnhance', 'method': 'iyuu_bind_site', "site": site, "uid": uid, "passkey": passkey}, function (ret) {
                 $("#modal-plugin-page").modal('hide');
                 if (ret.result.code === 0) {
                     show_success_modal("IYUU用户认证成功！", function () {
@@ -533,6 +537,8 @@ class IYUUAutoSeedEnhance(_IPluginModule):
         if not self.iyuuhelper:
             return
         self.info("开始辅种任务 ...")
+        # 捕获本次运行的事件对象，插件重载后旧线程仍能被旧的置位事件终止
+        event = self._event
         # 计数器初始化
         self.total = 0
         self.realtotal = 0
@@ -554,7 +560,7 @@ class IYUUAutoSeedEnhance(_IPluginModule):
                 continue
             hash_strs = []
             for torrent in torrents:
-                if self._event.is_set():
+                if event.is_set():
                     self.info("辅种服务停止")
                     return
                 # 获取种子hash
@@ -1007,6 +1013,8 @@ class IYUUAutoSeedEnhance(_IPluginModule):
         """
         退出插件
         """
+        # 通知辅种线程退出，避免重载后旧线程继续运行
+        self.set_stop_event()
         try:
             self.remove_job(self._cron_job)
             self.remove_job(self._check_job)

@@ -14,6 +14,10 @@ from version import APP_VERSION
 
 class SystemUtils:
 
+    # 操作系统类型与版本号缓存，避免每次请求都 spawn 子进程
+    _system_type = None
+    _current_version = None
+
     @staticmethod
     def __get_hidden_shell():
         if os.name == "nt":
@@ -27,18 +31,30 @@ class SystemUtils:
     @staticmethod
     def get_system():
         """
-        获取操作系统类型
+        获取操作系统类型（结果缓存，首次调用后不再执行 uname 等命令）
         """
+        if SystemUtils._system_type is not None:
+            return SystemUtils._system_type
         if SystemUtils.is_windows():
-            return OsType.WINDOWS
+            system_type = OsType.WINDOWS
         elif SystemUtils.is_synology():
-            return OsType.SYNOLOGY
+            system_type = OsType.SYNOLOGY
         elif SystemUtils.is_docker():
-            return OsType.DOCKER
+            system_type = OsType.DOCKER
         elif SystemUtils.is_macos():
-            return OsType.MACOS
+            system_type = OsType.MACOS
         else:
-            return OsType.LINUX
+            system_type = OsType.LINUX
+        SystemUtils._system_type = system_type
+        return system_type
+
+    @staticmethod
+    def refresh_cache():
+        """
+        清除操作系统类型与版本号缓存（系统更新后调用）
+        """
+        SystemUtils._system_type = None
+        SystemUtils._current_version = None
 
     @staticmethod
     def get_local_time(utc_time_str):
@@ -368,9 +384,12 @@ class SystemUtils:
     @staticmethod
     def get_current_version():
         """
-        获取当前版本号
+        获取当前版本号（结果缓存，避免每次请求都执行 git 命令）
         """
+        if SystemUtils._current_version is not None:
+            return SystemUtils._current_version
         commit_id = SystemUtils.execute('git rev-parse HEAD')
         if commit_id and len(commit_id) > 7:
             commit_id = commit_id[:7]
-        return f"{APP_VERSION} {commit_id}"
+        SystemUtils._current_version = f"{APP_VERSION} {commit_id}"
+        return SystemUtils._current_version

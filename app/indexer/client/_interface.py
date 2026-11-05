@@ -61,6 +61,8 @@ class InterfaceSpider:
 
         response = self.request(search_url)
 
+        if not response:
+            return True, []
         if response.status_code != 200:
             log.warn(f"【InterfaceSpider】请求{search_url} 失败: {response.status_code!s}")
             return True, []
@@ -70,11 +72,15 @@ class InterfaceSpider:
         if not html_text:
             log.warn(f"【InterfaceSpider】session请求{search_url} 失败: 返回结果为空")
             return True, []
-        
+
         # 解析文本
-        json_obj = json.loads(html_text)
+        try:
+            json_obj = json.loads(html_text)
+        except (json.JSONDecodeError, TypeError):
+            log.warn(f"【InterfaceSpider】json解析失败: {html_text[:500]}")
+            return True, []
         if not json_obj:
-            log.warn(f"【InterfaceSpider】json解析失败: {html_text}")
+            log.warn(f"【InterfaceSpider】json解析失败: {html_text[:500]}")
             return False, []
         
         data_root = self.list_selector.get('root')
@@ -159,31 +165,38 @@ class InterfaceSpider:
         
         # 是否需要验证cookie
         check_cookie = self.search_config.get('cookie', False) or False
-        
-        # 创建一个会话对象
+
+        # 单个索引器的两次请求需要共享 cookie，因此使用临时会话；不跨线程复用，避免串站点 cookie
         session = requests.Session()
+        try:
+            # 发送请求（连接 5s、读取 20s，避免站点无响应时线程被长期占用）
+            log.info(f"【InterfaceSpider】开始请求: {search_url}")
+            response = session.get(search_url, headers=headers, allow_redirects=True,
+                                   proxies=proxies, timeout=(5, 20))
 
-        # 发送请求
-        log.info(f"【InterfaceSpider】开始请求: {search_url}")
-        response = session.get(search_url, headers=headers, allow_redirects=True,  proxies=proxies)
+            if response.status_code != 200:
+                log.warn(f"【InterfaceSpider】请求{search_url} 失败: {response.status_code!s}")
+                return response
 
-        if response.status_code != 200:
-            log.warn(f"【InterfaceSpider】请求{search_url} 失败: {response.status_code!s}")
+            if check_cookie:
+                # 使用正则表达式从响应内容中提取 cookie 值
+                match = re.search(r'document.cookie = "([^=]+)=([^;]+);', response.text)
+                if match:
+                    cookie_name = match.group(1)
+                    cookie_value = match.group(2)
+                    # 设置 cookie
+                    session.cookies.set(cookie_name, cookie_value)
+
+                # 重新发送请求
+                response = session.get(search_url, headers=headers, allow_redirects=True,
+                                       proxies=proxies, timeout=(5, 20))
+
             return response
-
-        if check_cookie:
-            # 使用正则表达式从响应内容中提取 cookie 值
-            match = re.search(r'document.cookie = "([^=]+)=([^;]+);', response.text)
-            if match:
-                cookie_name = match.group(1)
-                cookie_value = match.group(2)
-                # 设置 cookie
-                session.cookies.set(cookie_name, cookie_value)
-
-            # 重新发送请求
-            response = session.get(search_url, headers=headers, allow_redirects=True,  proxies=proxies)
-
-        return response
+        except requests.exceptions.RequestException as e:
+            log.warn(f"【InterfaceSpider】请求{search_url} 异常: {e!s}")
+            return None
+        finally:
+            session.close()
 
     def get_dic_val(self, dict_obj, key_name):
         if not key_name:

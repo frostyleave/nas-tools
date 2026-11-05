@@ -33,6 +33,8 @@ class MovieRandom(_IPluginModule):
     module_config_prefix = "movierandom_"
     # 加载顺序
     module_order = 18
+    # 插件额外页面标题
+    module_page_title = "随机历史"
     # 可使用的用户级别
     auth_level = 2
 
@@ -246,7 +248,7 @@ class MovieRandom(_IPluginModule):
         return """
           // 删除随机电影历史记录
           function MovieRandom_delete_history(id){
-            axios_post_do("run_plugin_method", {"plugin_id": 'MovieRandom', 'method': 'delete_random_history', 'tmdb_id': id}, function (ret) {
+            axios_post("/sys/run_plugin_method", {"plugin_id": 'MovieRandom', 'method': 'delete_random_history', 'tmdb_id': id}, function (ret) {
               $("#movie_random_history_" + id).remove();
             });
 
@@ -268,6 +270,8 @@ class MovieRandom(_IPluginModule):
 
         # 停止现有任务
         self.stop_service()
+        # 重新开始，清除退出事件
+        self.reset_stop_event()
 
         # 启动定时任务 & 立即运行一次
         if self.get_state() or self._onlyonce:
@@ -295,6 +299,11 @@ class MovieRandom(_IPluginModule):
         """
         随机获取一部tmdb电影下载
         """
+        # 捕获本次运行的事件对象，插件重载后旧线程仍能被旧的置位事件终止
+        event = self._event
+        if event.is_set():
+            self.info("电影随机服务已停止")
+            return
         params = {}
         if self._date:
             params['primary_release_date.gte'] = f"{self._date}-01-01"
@@ -465,6 +474,8 @@ class MovieRandom(_IPluginModule):
         """
         停止服务
         """
+        # 通知随机任务退出，避免重载后旧线程继续处理
+        self.set_stop_event()
         try:
             self.remove_job(self._cron_job)
         except Exception as e:

@@ -234,7 +234,7 @@ class AutoSignIn(_IPluginModule):
             self._enabled = config.get("enabled")
             self._cron = config.get("cron")
             self._retry_keyword = config.get("retry_keyword")
-            self._config_sites = config.get("sign_sites")
+            self._config_sites = config.get("sign_sites") or []
             self._special_sites = config.get("special_sites") or []
             self._notify = config.get("notify")
             self._queue_cnt = config.get("queue_cnt")
@@ -243,6 +243,8 @@ class AutoSignIn(_IPluginModule):
 
         # 停止现有任务
         self.stop_service()
+        # 重新开始，清除退出事件
+        self.reset_stop_event()
 
         # 启动服务
         if self._enabled or self._onlyonce:
@@ -302,6 +304,8 @@ class AutoSignIn(_IPluginModule):
         自动签到
         """
         self.info("自动签到任务开始")
+        # 捕获本次运行的事件对象，插件重载后旧线程仍能被旧的置位事件终止
+        event = self._event
         try:
             # 1. 准备工作：获取日期并清理昨日历史
             today_str, yesterday_str = self._setup_dates()
@@ -322,7 +326,7 @@ class AutoSignIn(_IPluginModule):
             # 4. 执行签到：遍历并处理每个站点
             self.info("开始执行签到任务")
             # 传入已签到列表，以便追加本次成功的站点
-            results = self._batch_sign_in(site_list, already_signed_ids)
+            results = self._batch_sign_in(site_list, already_signed_ids, event)
             
             # 5. 将本次结果更新到历史记录
             self._save_sign_in_history(
@@ -354,20 +358,21 @@ class AutoSignIn(_IPluginModule):
             (待签到站点ID列表, 已签到站点ID列表, 今日历史是否存在)
         """
         today_history = self.get_history(key=today_str)
-        
+        # 未配置站点时按全部站点签到
+        all_site_ids = [str(site.id) for site in self.sites.get_sites()]
+        config_sites = [str(site_id) for site_id in (self._config_sites or all_site_ids)]
+
         if not today_history:
             self.info(f"今日 {today_str} 未签到，开始签到已选站点")
-            wait_sign_sites = self._config_sites
+            wait_sign_sites = config_sites
             already_sign_sites = []
             history_exists = False
         else:
             self.info(f"今日 {today_str} 已有签到记录，检查重试/未签站点")
-            # 使用 .get 增加代码健壮性，防止 'sign' 或 'retry' 键不存在
             already_sign_sites = today_history.get('sign', [])
             wait_retry_sites = today_history.get('retry', [])
-            
-            # 使用集合(set)可以更高效、更清晰地处理列表逻辑
-            config_set = set(self._config_sites)
+
+            config_set = set(config_sites)
             already_set = set(already_sign_sites)
             special_set = set(self._special_sites)
             retry_set = set(wait_retry_sites)
@@ -386,7 +391,8 @@ class AutoSignIn(_IPluginModule):
 
         return wait_sign_sites, already_sign_sites, history_exists
 
-    def _batch_sign_in(self, sites_to_sign_info: list[UserSiteConf], already_signed_sites: list[str]) -> SignInResults:
+    def _batch_sign_in(self, sites_to_sign_info: list[UserSiteConf], already_signed_sites: list[str],
+                       event: Event) -> SignInResults:
         """
         遍历站点执行签到，并收集结果
         """
@@ -394,6 +400,9 @@ class AutoSignIn(_IPluginModule):
         results = SignInResults(all_signed_site_ids=list(already_signed_sites))
 
         for site_info in sites_to_sign_info:
+            if event.is_set():
+                self.info("签到任务已停止")
+                break
             site_name = site_info.name
             site_id = str(site_info.id)
             
@@ -600,6 +609,8 @@ class AutoSignIn(_IPluginModule):
         """
         退出插件
         """
+        # 通知签到线程退出，避免重载后旧线程继续签到
+        self.set_stop_event()
         try:
             self.remove_job(self._cron_job)
         except Exception as e:

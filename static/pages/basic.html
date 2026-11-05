@@ -90,15 +90,6 @@
         </div>
         <div class="col-12 col-xl-3">
           <div class="mb-3">
-            <label class="form-label required">TMDB API Url <span class="form-help"
-                title="选择访问TMDB API时使用的地址，api.themoviedb.org、api.tmdb.org为官方地址，其余为使用代理中转，如无法连接TMDB匹配媒体信息时可偿试更换"
-                data-bs-toggle="tooltip">?</span></label>
-            <select class="form-select" id="app.tmdb_domain">
-            </select>
-          </div>
-        </div>
-        <div class="col-12 col-xl-1">
-          <div class="mb-3">
             <label class="form-label">TMDB语言 <span class="form-help"
                 title="选择TMDB语言，将会影响媒体信息展示、文件整理及刮削等所有涉及使用TMDB数据的内容语言" data-bs-toggle="tooltip">?</span></label>
             <select class="form-select" id="media.tmdb_language">
@@ -107,16 +98,14 @@
             </select>
           </div>
         </div>
-        <div class="col-12 col-xl-2">
+        <div class="col-12 col-xl-3">
           <div class="mb-3">
             <label class="form-label required">TMDB匹配模式 <span class="form-help"
                 title="正常模式下会提升识别成功率，但也可能会导致误识别率增加；严格模式可以降低误识别率，但可能导致很多文件名/种子名中年份不正确的无法被识别（特别是剧集，需要是首播年份）"
                 data-bs-toggle="tooltip">?</span></label>
             <select class="form-select" id="app.rmt_match_mode">
-              <option value="normal">正常模式
-              </option>
-              <option value="strict">严格模式
-              </option>
+              <option value="normal">正常模式</option>
+              <option value="strict">严格模式</option>
             </select>
           </div>
         </div>
@@ -128,6 +117,33 @@
           </div>
         </div>
       </div>
+      <div class="row">
+        <div class="col-12">
+          <div class="mb-3">
+            <label class="form-label required">TMDB API Url <span class="form-help"
+                title="选择访问TMDB API时使用的地址，api.themoviedb.org、api.tmdb.org为官方地址，其余为第三方中转地址；选择「自定义代理」可填写自建的反代地址（可带 http/https 前缀及端口），如无法连接TMDB匹配媒体信息时可尝试更换"
+                data-bs-toggle="tooltip">?</span></label>
+            <div class="row g-2 align-items-center">
+              <div class="col-12 col-xl-3">
+                <select class="form-select" id="app.tmdb_domain">
+                </select>
+              </div>
+              <div class="col-12 col-xl-3" id="tmdb_domain_custom_wrap" style="display: none;">
+                <input type="text" value="" class="form-control" id="app.tmdb_domain_custom"
+                  placeholder="https://tmdb.example.com" autocomplete="off">
+              </div>
+              <div class="col-12 col-xl-auto">
+                <label class="form-check form-switch mb-0">
+                  <input class="form-check-input" type="checkbox" id="app.tmdb_use_proxy">
+                  <span class="form-check-label">使用代理 <span class="form-help"
+                      title="开启后将使用「其他」分区中配置的代理服务器访问TMDB API" data-bs-toggle="tooltip">?</span></span>
+                </label>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <!-- 其他 -->
       <div class="row">
         <div class="col-12 col-xl-3">
           <div class="mb-3">
@@ -186,7 +202,7 @@
         </div>
       </div>
       <div class="row">
-        <div class="col-12 col-xl-3">
+        <div class="col-lg">
           <div class="mb-3">
             <label class="form-label">媒体服务器同步周期(小时) <span class="form-help" title="定时同步媒体服务器数据到本地，用于展示媒体是否存在，留空则不启用同步服务"
                 data-bs-toggle="tooltip">?</span></label>
@@ -194,9 +210,6 @@
               id="media.mediasync_interval" placeholder="留空关闭媒体服务器同步" autocomplete="off">
           </div>
         </div>
-      </div>
-      <hr class="mt-1 mb-3">
-      <div class="row">
         <div class="col-lg">
           <div class="mb-3">
             <label class="form-label required">下载优先规则 <span class="form-help"
@@ -240,21 +253,21 @@
       </div>
       <div class="row">
         <div class="col-12 col-xl-3">
-          <div class="mb-3">
-            <label class="form-check form-switch">
-              <input class="form-check-input" type="checkbox" id="pt.search_auto">
-              <span class="form-check-label">远程搜索自动择优下载 <span class="form-help"
-                  title="启用后在微信、Telegram等发送名称后会按配置的下载优先规则及过滤规则自动择优下载，否则需要点击链接跳转后手工选择；注意关闭后需要先维护好 '外网访问地址'，否则无法点击跳转。"
-                  data-bs-toggle="tooltip">?</span></span>
+          <div class="mb-3 d-flex align-items-center gap-2">
+            <label class="form-label mb-0 text-nowrap" for="pt.search_auto">远程搜索自动择优下载 <span class="form-help"
+                title="启用后在微信、Telegram等发送名称后会按配置的下载优先规则及过滤规则自动择优下载，否则需要点击链接跳转后手工选择；注意关闭后需要先维护好 '外网访问地址'，否则无法点击跳转。"
+                data-bs-toggle="tooltip">?</span></label>
+            <label class="form-check form-switch p-0 m-0">
+              <input class="form-check-input float-none m-0" type="checkbox" id="pt.search_auto">
             </label>
           </div>
         </div>
         <div class="col-12 col-xl-3">
-          <div class="mb-3">
-            <label class="form-check form-switch">
-              <input class="form-check-input" type="checkbox" id="pt.search_no_result_rss">
-              <span class="form-check-label">远程下载不完整自动订阅 <span class="form-help"
-                  title="启用后在微信、Telegram发送名称搜索下载不完整时将自动添加订阅" data-bs-toggle="tooltip">?</span></span>
+          <div class="mb-3 d-flex align-items-center gap-2">
+            <label class="form-label mb-0 text-nowrap" for="pt.search_no_result_rss">远程下载不完整自动订阅 <span class="form-help"
+                title="启用后在微信、Telegram发送名称搜索下载不完整时将自动添加订阅" data-bs-toggle="tooltip">?</span></label>
+            <label class="form-check form-switch p-0 m-0">
+              <input class="form-check-input float-none m-0" type="checkbox" id="pt.search_no_result_rss">
             </label>
           </div>
         </div>
@@ -271,73 +284,68 @@
       </div>
     </div>
     <div class="card-body border-bottom" id="security" style="display: none;">
-      <div class="row">
-        <div class="form-group">
-          <label class="control-label">API密钥 <span class="form-help"
-              title="使用Jellyseerr、Overseerr等调用本程序订阅接口时，需要在Authorization中填入该密钥" data-bs-toggle="tooltip">?</span>
-          </label>
-          <div class="col-sm-11">
-            <input type="text" id="security.api_key" class="form-control"
-              value="">
-          </div>
+      <div class="row align-items-center mb-3">
+        <div class="col-12 col-xl-2">
+          <label class="form-label mb-0 text-nowrap">API密钥 <span class="form-help"
+              title="使用Jellyseerr、Overseerr等调用本程序订阅接口时，需要在Authorization中填入该密钥" data-bs-toggle="tooltip">?</span></label>
         </div>
-        <div class="form-group">
-          <label class="control-label">Webhook白名单 <span class="form-help"
-              title="仅允许配置的地址范围内地址调用Webhook，多个地址段用,号分隔，默认为0.0.0.0/0,::/0即不做限制" data-bs-toggle="tooltip">?</span>
-          </label>
-          <div class="col-sm-11">
-            <input type="text" value=""
-              class="form-control" id="security.media_server_webhook_allow_ip.ipv4" placeholder="允许的IPv4 CIDR"
-              autocomplete="off">
-            <input type="text" value=""
-              class="form-control" id="security.media_server_webhook_allow_ip.ipv6" placeholder="允许的IPv6 CIDR"
-              autocomplete="off">
-          </div>
-        </div>
-        <div class="form-group">
-          <label class="control-label">Telegram白名单 <span class="form-help"
-              title="仅接收配置的地址范围内发送的Telegram消息，多个地址段用,号分隔，配置为0.0.0.0/0,::/0则不做限制；使用Telegram WebHook且未做代理转发时推荐IPv4地址设置为：149.154.160.0/20,91.108.4.0/22，关闭Telegram WebHook时推荐IPv4地址设置为：127.0.0.1"
-              data-bs-toggle="tooltip">?</span>
-          </label>
-          <div class="col-sm-11">
-            <input type="text"
-              value=""
-              class="form-control" id="security.telegram_webhook_allow_ip.ipv4" placeholder="允许的IPv4 CIDR"
-              autocomplete="off">
-            <input type="text"
-              value=""
-              class="form-control" id="security.telegram_webhook_allow_ip.ipv6" placeholder="允许的IPv6 CIDR"
-              autocomplete="off">
-          </div>
-        </div>
-        <div class="form-group">
-          <label class="control-label">Synology Chat白名单 <span class="form-help"
-              title="仅接收配置的地址范围内发送的Synology Chat消息，多个地址段用,号分隔，配置为0.0.0.0/0,::/0则不做限制，为了安全建议按实际情况设置"
-              data-bs-toggle="tooltip">?</span>
-          </label>
-          <div class="col-sm-11">
-            <input type="text"
-              value=""
-              class="form-control" id="security.synology_webhook_allow_ip.ipv4" placeholder="允许的IPv4 CIDR"
-              autocomplete="off">
-            <input type="text"
-              value=""
-              class="form-control" id="security.synology_webhook_allow_ip.ipv6" placeholder="允许的IPv6 CIDR"
-              autocomplete="off">
+        <div class="col-12 col-xl-10">
+          <div class="d-flex align-items-center gap-3 flex-wrap">
+            <input type="text" id="security.api_key" class="form-control flex-fill"
+              style="max-width: calc(50% - 0.25rem);" value="">
+            <div class="d-flex align-items-center gap-2 flex-shrink-0 me-auto">
+              <label class="form-label mb-0 text-nowrap" for="security.check_apikey">验证外部请求的API密钥
+                <span class="form-help"
+                  title="启用后，需要在原来的NAStool API地址后面拼接 ?apikey=xxx ，xxx 为API密钥；例如Emby回调接口由原来的 http://nastool:3000/emby 改为 http://nastool:3000/emby?apikey=xxx。受影响的接口有：plex、jellyfin、emby、telegram、synology、slack、ical"
+                  data-bs-toggle="tooltip">?</span></label>
+              <label class="form-check form-switch p-0 m-0">
+                <input class="form-check-input float-none m-0" type="checkbox" id="security.check_apikey">
+              </label>
+            </div>
           </div>
         </div>
       </div>
-      <div class="row">
-        <div class="col-xl">
-          <div class="mb-3">
-            <label class="form-check form-switch" style="margin-top: 0.75em;">
-              <input class="form-check-input" type="checkbox" id="security.check_apikey">
-              <span class="form-check-label">验证外部请求的API密钥
-                <span class="form-help"
-                  title="启用后，需要在原来的NAStool API地址后面拼接 ?apikey=xxx ，xxx 为API密钥；例如Emby回调接口由原来的 http://nastool:3000/emby 改为 http://nastool:3000/emby?apikey=xxx。受影响的接口有：plex、jellyfin、emby、telegram、synology、slack、ical"
-                  data-bs-toggle="tooltip">?</span>
-              </span>
-            </label>
+      <div class="row align-items-center mb-3">
+        <div class="col-12 col-xl-2">
+          <label class="form-label mb-0 text-nowrap">Webhook白名单 <span class="form-help"
+              title="仅允许配置的地址范围内地址调用Webhook，多个地址段用,号分隔，默认为0.0.0.0/0,::/0即不做限制" data-bs-toggle="tooltip">?</span></label>
+        </div>
+        <div class="col-12 col-xl-10">
+          <div class="d-flex gap-2">
+            <input type="text" value="" class="form-control" id="security.media_server_webhook_allow_ip.ipv4"
+              placeholder="允许的IPv4 CIDR" autocomplete="off">
+            <input type="text" value="" class="form-control" id="security.media_server_webhook_allow_ip.ipv6"
+              placeholder="允许的IPv6 CIDR" autocomplete="off">
+          </div>
+        </div>
+      </div>
+      <div class="row align-items-center mb-3">
+        <div class="col-12 col-xl-2">
+          <label class="form-label mb-0 text-nowrap">Telegram白名单 <span class="form-help"
+              title="仅接收配置的地址范围内发送的Telegram消息，多个地址段用,号分隔，配置为0.0.0.0/0,::/0则不做限制；使用Telegram WebHook且未做代理转发时推荐IPv4地址设置为：149.154.160.0/20,91.108.4.0/22，关闭Telegram WebHook时推荐IPv4地址设置为：127.0.0.1"
+              data-bs-toggle="tooltip">?</span></label>
+        </div>
+        <div class="col-12 col-xl-10">
+          <div class="d-flex gap-2">
+            <input type="text" value="" class="form-control" id="security.telegram_webhook_allow_ip.ipv4"
+              placeholder="允许的IPv4 CIDR" autocomplete="off">
+            <input type="text" value="" class="form-control" id="security.telegram_webhook_allow_ip.ipv6"
+              placeholder="允许的IPv6 CIDR" autocomplete="off">
+          </div>
+        </div>
+      </div>
+      <div class="row align-items-center mb-3">
+        <div class="col-12 col-xl-2">
+          <label class="form-label mb-0 text-nowrap">Synology Chat白名单 <span class="form-help"
+              title="仅接收配置的地址范围内发送的Synology Chat消息，多个地址段用,号分隔，配置为0.0.0.0/0,::/0则不做限制，为了安全建议按实际情况设置"
+              data-bs-toggle="tooltip">?</span></label>
+        </div>
+        <div class="col-12 col-xl-10">
+          <div class="d-flex gap-2">
+            <input type="text" value="" class="form-control" id="security.synology_webhook_allow_ip.ipv4"
+              placeholder="允许的IPv4 CIDR" autocomplete="off">
+            <input type="text" value="" class="form-control" id="security.synology_webhook_allow_ip.ipv6"
+              placeholder="允许的IPv6 CIDR" autocomplete="off">
           </div>
         </div>
       </div>
@@ -355,55 +363,51 @@
     <div class="card-body border-bottom" id="laboratory" style="display: none;">
       <div class="row">
         <div class="col-12 col-xl-3">
-          <div class="mb-3">
-            <label class="form-check form-switch">
-              <input class="form-check-input" type="checkbox" id="laboratory.use_douban_titles">
-              <span class="form-check-label">默认搜索豆瓣资源 <span class="form-help"
-                  title="开启将使用豆瓣进行电影电视剧的名称搜索，允许中文名不完整时自动联想，但如豆瓣数据与TMDB不一致时可能会无法搜索；关闭后使用TMDB的数据，对中文支持不友好，但不会有无法搜索的问题"
-                  data-bs-toggle="tooltip">?</span></span>
+          <div class="mb-3 d-flex align-items-center gap-2">
+            <label class="form-label mb-0 text-nowrap" for="laboratory.use_douban_titles">默认搜索豆瓣资源 <span class="form-help"
+                title="开启将使用豆瓣进行电影电视剧的名称搜索，允许中文名不完整时自动联想，但如豆瓣数据与TMDB不一致时可能会无法搜索；关闭后使用TMDB的数据，对中文支持不友好，但不会有无法搜索的问题"
+                data-bs-toggle="tooltip">?</span></label>
+            <label class="form-check form-switch p-0 m-0">
+              <input class="form-check-input float-none m-0" type="checkbox" id="laboratory.use_douban_titles">
             </label>
           </div>
         </div>
         <div class="col-12 col-xl-3">
-          <div class="mb-3">
-            <label class="form-check form-switch">
-              <input class="form-check-input" type="checkbox" id="laboratory.search_adult">
-              <span class="form-check-label">TMDB搜索成人资源 <span class="form-help"
-                  title="TMDB默认不返回成人内容" data-bs-toggle="tooltip">?</span>
-              </span>
+          <div class="mb-3 d-flex align-items-center gap-2">
+            <label class="form-label mb-0 text-nowrap" for="laboratory.search_adult">TMDB搜索成人资源 <span class="form-help"
+                title="TMDB默认不返回成人内容" data-bs-toggle="tooltip">?</span></label>
+            <label class="form-check form-switch p-0 m-0">
+              <input class="form-check-input float-none m-0" type="checkbox" id="laboratory.search_adult">
             </label>
           </div>
         </div>
       </div>
       <div class="row">
         <div class="col-12 col-xl-3">
-          <div class="mb-3">
-            <label class="form-check form-switch">
-              <input class="form-check-input" type="checkbox" id="laboratory.tmdb_cache_expire">
-              <span class="form-check-label">TMDB缓存过期策略 <span class="form-help"
-                  title="开启TMDB缓存过期策略后，默认7天过期，过期缓存将被删除,  7天内访问过期时间可以被刷新，建议开启" data-bs-toggle="tooltip">?</span>
-              </span>
+          <div class="mb-3 d-flex align-items-center gap-2">
+            <label class="form-label mb-0 text-nowrap" for="laboratory.tmdb_cache_expire">TMDB缓存过期策略 <span class="form-help"
+                title="开启TMDB缓存过期策略后，默认7天过期，过期缓存将被删除,  7天内访问过期时间可以被刷新，建议开启" data-bs-toggle="tooltip">?</span></label>
+            <label class="form-check form-switch p-0 m-0">
+              <input class="form-check-input float-none m-0" type="checkbox" id="laboratory.tmdb_cache_expire">
             </label>
           </div>
         </div>
         <div class="col-12 col-xl-3">
-          <div class="mb-3">
-            <label class="form-check form-switch">
-              <input class="form-check-input" type="checkbox" id="laboratory.search_keyword">
-              <span class="form-check-label">辅助识别 <span class="form-help"
-                  title="开启后，无法识别到媒体信息时会尝试猜测和纠正关键词并再次匹配，会大大增加识别耗时，一般情况下不建议开启" data-bs-toggle="tooltip">?</span>
-              </span>
+          <div class="mb-3 d-flex align-items-center gap-2">
+            <label class="form-label mb-0 text-nowrap" for="laboratory.search_keyword">辅助识别 <span class="form-help"
+                title="开启后，无法识别到媒体信息时会尝试猜测和纠正关键词并再次匹配，会大大增加识别耗时，一般情况下不建议开启" data-bs-toggle="tooltip">?</span></label>
+            <label class="form-check form-switch p-0 m-0">
+              <input class="form-check-input float-none m-0" type="checkbox" id="laboratory.search_keyword">
             </label>
           </div>
         </div>
         <div class="col-12 col-xl-3">
-          <div class="mb-3">
-            <label class="form-check form-switch">
-              <input class="form-check-input" type="checkbox" id="laboratory.search_tmdbweb">
-              <span class="form-check-label">WEB增强识别 <span class="form-help"
-                  title="开启后，通过TMDB的API无法识别到媒体信息时，会尝试通过themoviedb.org网站再次搜索匹配，仅个别极端情况下有效，会大大增加识别耗时，一般情况下不建议开启"
-                  data-bs-toggle="tooltip">?</span>
-              </span>
+          <div class="mb-3 d-flex align-items-center gap-2">
+            <label class="form-label mb-0 text-nowrap" for="laboratory.search_tmdbweb">WEB增强识别 <span class="form-help"
+                title="开启后，通过TMDB的API无法识别到媒体信息时，会尝试通过themoviedb.org网站再次搜索匹配，仅个别极端情况下有效，会大大增加识别耗时，一般情况下不建议开启"
+                data-bs-toggle="tooltip">?</span></label>
+            <label class="form-check form-switch p-0 m-0">
+              <input class="form-check-input float-none m-0" type="checkbox" id="laboratory.search_tmdbweb">
             </label>
           </div>
         </div>
@@ -471,9 +475,20 @@
 
   }
 
+  // TMDB API Url 选择「自定义代理」时显示自定义输入框
+  function toggle_tmdb_domain_custom() {
+    const isCustom = $('#app\\.tmdb_domain').val() === '__custom__';
+    $('#tmdb_domain_custom_wrap').toggle(isCustom);
+  }
+
   // 保存基础设置
   function save_basic_config(type, flag = true) {
     let params = input_select_GetVal(type);
+    // 选择了「自定义代理」时，用输入框中的地址替换选项值
+    if (params["app.tmdb_domain"] === "__custom__") {
+      params["app.tmdb_domain"] = (params["app.tmdb_domain_custom"] || "").trim();
+    }
+    delete params["app.tmdb_domain_custom"];
     if (params["media.category"] === "config") {
       show_warning_modal("非法二级分类策略名称");
       return;
@@ -481,7 +496,7 @@
     if (flag) {
       $("#" + type + "_btn").text("保存中...").attr("disabled", true);
     }
-    axios_post_do("update_config", params, function (ret) {
+    axios_post("/sys/update_config", params, function (ret) {
       if (flag) {
         $("#" + type + "_btn").text("保存").attr("disabled", false);
       }
@@ -514,7 +529,7 @@
     const params = input_select_GetVal(`modal-${type}`);
     params['test'] = false;
     params['media.media_server'] = type;
-    axios_post_do("update_config", params, function (ret) {
+    axios_post("/sys/update_config", params, function (ret) {
       window_history_refresh();
     });
 
@@ -655,7 +670,8 @@
           if (!data.Config.app.rmt_tmdbkey) {
             $('#app\\.rmt_tmdbkey').addClass('is-invalid');
           }
-          $('#app\\.tmdb_domain').val(data.Config.app.tmdb_domain || '');
+          // 旧配置中没有该项时默认开启
+          $('#app\\.tmdb_use_proxy').prop('checked', data.Config.app.tmdb_use_proxy !== false);
           $('#app\\.rmt_match_mode').val(data.Config.app.rmt_match_mode || 'normal');
           $('#app\\.tmdb_image_url').val(data.Config.app.tmdb_image_url || '');
           $('#app\\.domain').val(data.Config.app.domain || '');
@@ -671,11 +687,20 @@
         // 填充TMDB域名选项
         if (data.TmdbDomains) {
           const tmdbDomainSelect = $('#app\\.tmdb_domain');
+          const savedDomain = (data.Config && data.Config.app && data.Config.app.tmdb_domain) || '';
+          // 已保存的地址不在内置列表中，说明用的是自定义代理
+          const isCustom = !!savedDomain && data.TmdbDomains.indexOf(savedDomain) < 0;
           tmdbDomainSelect.empty();
           data.TmdbDomains.forEach(function(domain) {
-            const selected = data.Config && data.Config.app && data.Config.app.tmdb_domain === domain ? 'selected' : '';
+            const selected = savedDomain === domain ? 'selected' : '';
             tmdbDomainSelect.append(`<option value="${domain}" ${selected}>${domain}</option>`);
           });
+          tmdbDomainSelect.append(`<option value="__custom__" ${isCustom ? 'selected' : ''}>自定义代理</option>`);
+          if (isCustom) {
+            $('#app\\.tmdb_domain_custom').val(savedDomain);
+          }
+          toggle_tmdb_domain_custom();
+          tmdbDomainSelect.on('change', toggle_tmdb_domain_custom);
         }
 
         // 填充媒体设置数据

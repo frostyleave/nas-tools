@@ -2,8 +2,24 @@ import ipaddress
 import socket
 from urllib.parse import urlparse
 
+from cachetools import TTLCache, cached
+
 import log
 from app.utils.http_utils import RequestUtils
+
+# 域名解析结果缓存，避免媒体库列表逐条判断时重复做 DNS 查询
+_INTERNAL_DOMAIN_CACHE = TTLCache(maxsize=256, ttl=300)
+
+
+@cached(cache=_INTERNAL_DOMAIN_CACHE)
+def _is_internal_domain(domain: str) -> bool:
+    try:
+        infos = socket.getaddrinfo(domain, None)
+    except socket.error:
+        return False
+
+    addresses = [str(info[4][0]).split("%", 1)[0] for info in infos]
+    return bool(addresses) and all(IpUtils.is_private_ip(ip) for ip in addresses)
 
 
 class IpUtils:
@@ -40,12 +56,17 @@ class IpUtils:
     def is_internal(hostname):
         """
         判断一个host是内网还是外网
+
+        支持带协议/端口/路径的 URL，也支持直接的 IP 或域名；
+        IPv4、IPv6 字面量都按 IP 判断，其余按域名解析。
         """
-        hostname = urlparse(hostname).hostname
-        if IpUtils.is_ip(hostname):
-            return IpUtils.is_private_ip(hostname)
-        else:
-            return IpUtils.is_internal_domain(hostname)
+        host = urlparse(hostname).hostname
+        if not host:
+            return False
+        try:
+            return ipaddress.ip_address(host).is_private
+        except ValueError:
+            return IpUtils.is_internal_domain(host)
 
     @staticmethod
     def is_ip(addr):
@@ -61,16 +82,11 @@ class IpUtils:
     @staticmethod
     def is_internal_domain(domain):
         """
-        判断域名是否为内部域名
+        判断域名是否为内部域名（解析结果必须全部是内网地址，结果缓存 5 分钟）
         """
-        # 获取域名对应的 IP 地址
-        try:
-            ip = socket.gethostbyname(domain)
-        except socket.error:
+        if not domain:
             return False
-
-        # 判断 IP 地址是否属于内网 IP 地址范围
-        return IpUtils.is_private_ip(ip)
+        return _is_internal_domain(domain)
 
     @staticmethod
     def is_private_ip(ip_str):

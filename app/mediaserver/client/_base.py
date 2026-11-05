@@ -1,6 +1,7 @@
 from abc import ABCMeta, abstractmethod
 from urllib.parse import quote
 
+from app.utils import IpUtils
 from config import Config
 
 
@@ -165,16 +166,18 @@ class _IMediaClient(metaclass=ABCMeta):
     def get_nt_image_url(url, remote=False):
         """
         获取NT中转内网图片的地址
+
+        只有内网地址才需要中转；公网地址直接返回，避免多一次代理转发。
         :param: url: 图片的URL
         :param: remote: 是否需要返回完整的URL
         """
         if not url:
             return ""
+        if not IpUtils.is_internal(url):
+            return url
         if remote:
             domain = Config().get_domain()
-            if domain:
-                return f"{domain}/img?url={quote(url)}"
-            else:
+            if not domain:
                 return ""
-        else:
-            return f"img?url={quote(url)}"
+            return f"{domain}/img?url={quote(url)}"
+        return f"img?url={quote(url)}"

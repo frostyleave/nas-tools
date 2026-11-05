@@ -31,6 +31,8 @@ class TmdbHotMovieRank(_IPluginModule):
     module_config_prefix = "tmdb_hot_movie_"
     # 加载顺序
     module_order = 18
+    # 插件额外页面标题
+    module_page_title = "订阅历史"
     # 可使用的用户级别
     auth_level = 2
 
@@ -60,6 +62,8 @@ class TmdbHotMovieRank(_IPluginModule):
 
         # 停止现有任务
         self.stop_service()
+        # 重新开始，清除退出事件
+        self.reset_stop_event()
 
         # 启动服务
         if self.get_state() or self._onlyonce:
@@ -232,7 +236,7 @@ class TmdbHotMovieRank(_IPluginModule):
         return """
           // 删除榜单订阅历史记录
           function TmdbHotMovie_delete_history(id){
-            axios_post_do("run_plugin_method", {"plugin_id": 'TmdbHotMovie', 'method': 'delete_rank_history', 'tmdb_id': id}, function (ret) {
+            axios_post("/sys/run_plugin_method", {"plugin_id": 'TmdbHotMovie', 'method': 'delete_rank_history', 'tmdb_id': id}, function (ret) {
               $("#movie_rank_history_" + id).remove();
             });
 
@@ -270,6 +274,8 @@ class TmdbHotMovieRank(_IPluginModule):
         """
         停止服务
         """
+        # 通知刷新线程退出，避免重载后旧线程继续运行
+        self.set_stop_event()
         try:
             self.remove_job(self._cron_job)
         except Exception as e:
@@ -279,6 +285,8 @@ class TmdbHotMovieRank(_IPluginModule):
         """
         刷新榜单
         """
+        # 捕获本次运行的事件对象，插件重载后旧线程仍能被旧的置位事件终止
+        event = self._event
         try:
             rank_list = self.movie.popular()
             if not rank_list:
@@ -287,7 +295,7 @@ class TmdbHotMovieRank(_IPluginModule):
             else:
                 self.info(f"TMDB热门电影 共 {len(rank_list)} 条数据")
             for tmdb_info in rank_list:
-                if self._event.is_set():
+                if event.is_set():
                     self.info("订阅服务已停止")
                     return
 

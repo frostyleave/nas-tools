@@ -2636,6 +2636,9 @@ class DbHelper:
         """
         新增或更新站点订阅推进数据
         """
+        # 统一按 UTC 持久化（读取时也按 UTC 解析），避免带时区的 pubDate 丢失偏移
+        if last_pub_time.tzinfo is not None:
+            last_pub_time = last_pub_time.astimezone(datetime.timezone.utc)
         time_str = last_pub_time.strftime('%Y-%m-%d %H:%M:%S')
         # 尝试更新
         if self._db.query(SITERSSFORWARD).filter(SITERSSFORWARD.SITE_ID == site_id).update({"LAST_PUB_TIME": time_str}) > 0:

@@ -84,7 +84,7 @@
       }
     })
     params = { ...params, ...selectgroup_config }
-    axios_post_do("update_plugin_config", { plugin: id, config: params }, func);
+    axios_post("/sys/update_plugin_config", { plugin: id, config: params }, func);
   }
 
   //保存配置、关闭和刷新页面
@@ -188,7 +188,7 @@
 
   // 安装插件
   function install_plugin(id, name) {
-    axios_post_do("install_plugin", { id: id }, function (ret) {
+    axios_post("/sys/install_plugin", { id: id }, function (ret) {
       $("#modal-plugin-apps").modal('hide');
       if (ret.code === 0) {
         show_success_modal(name + " 插件安装成功！", () => window_history_refresh());
@@ -202,7 +202,7 @@
 
   // 卸载插件
   function uninstall_plugin(id, name) {
-    axios_post_do("uninstall_plugin", { id: id }, function (ret) {
+    axios_post("/sys/uninstall_plugin", { id: id }, function (ret) {
       $("#modal-plugin-apps").modal('hide');
       if (ret.code === 0) {
         show_warning_modal(name + " 插件已卸载！", function () {

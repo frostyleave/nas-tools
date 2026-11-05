@@ -47,7 +47,7 @@ class FileHelper:
             return True, f"{file} 删除成功"
         except Exception as e:
             log.exception(f"[act]{file} 删除失败:")
-            return True, f"{file} 删除失败"
+            return False, f"{file} 删除失败：{e!s}"
 
     @staticmethod
     def get_sub_path(path_filter, path_dir):

@@ -35,6 +35,8 @@ class DoubanRank(_IPluginModule):
     module_config_prefix = "doubanrank_"
     # 加载顺序
     module_order = 16
+    # 插件额外页面标题
+    module_page_title = "订阅历史"
     # 可使用的用户级别
     auth_level = 2
 
@@ -86,6 +88,8 @@ class DoubanRank(_IPluginModule):
 
         # 停止现有任务
         self.stop_service()
+        # 重新开始，清除退出事件
+        self.reset_stop_event()
 
         # 启动服务
         if self.get_state() or self._onlyonce:
@@ -330,7 +334,7 @@ class DoubanRank(_IPluginModule):
         return """
           // 删除榜单订阅历史记录
           function DoubanRank_delete_history(id){
-            axios_post_do("run_plugin_method", {"plugin_id": 'DoubanRank', 'method': 'delete_rank_history', 'tmdb_id': id}, function (ret) {
+            axios_post("/sys/run_plugin_method", {"plugin_id": 'DoubanRank', 'method': 'delete_rank_history', 'tmdb_id': id}, function (ret) {
               $("#movie_rank_history_" + id).remove();
             });
 
@@ -368,6 +372,8 @@ class DoubanRank(_IPluginModule):
         """
         停止服务
         """
+        # 通知刷新线程退出，避免重载后旧线程继续运行
+        self.set_stop_event()
         try:
             self.remove_job(self._cron_job)
         except Exception as e:
@@ -378,22 +384,25 @@ class DoubanRank(_IPluginModule):
         刷新RSS
         """
         self.info("开始刷新RSS ...")
+        # 捕获本次运行的事件对象，插件重载后旧线程仍能被旧的置位事件终止
+        event = self._event
 
         for rank_id in self._ranks:
             addr_info = self._douban_address.get(rank_id, {})
             if not addr_info or not addr_info.get('addr'):
                 continue
-            self.__try_do_rss_subscribe(addr_info.get('addr'), addr_info.get('name'))
+            self.__try_do_rss_subscribe(addr_info.get('addr'), addr_info.get('name'), event)
 
         if self._rss_addrs:
             for addr in self._rss_addrs:
                 if not addr:
                     continue
-                self.__try_do_rss_subscribe(addr, '榜单(自定义)')
+                self.__try_do_rss_subscribe(addr, '榜单(自定义)', event)
 
         self.info("所有RSS刷新完成")
 
-    def __try_do_rss_subscribe(self, addr, rss_name=''):
+    def __try_do_rss_subscribe(self, addr, rss_name='', event=None):
+        event = event or self._event
         try:
             self.info(f"获取RSS: {addr} ...")
             rss_infos = self.__get_rss_info(addr)
@@ -403,7 +412,7 @@ class DoubanRank(_IPluginModule):
             else:
                 self.info(f"RSS地址: {addr} ，共 {len(rss_infos)} 条数据")
             for rss_info in rss_infos:
-                if self._event.is_set():
+                if event.is_set():
                     self.info("订阅服务停止")
                     return
 

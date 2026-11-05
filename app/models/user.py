@@ -58,19 +58,22 @@ class User:
             return Config().menu
         menu_lst = self.get_topmenus()
         if menu_lst:
-            menuGroup = list(filter(lambda x: x.get("name") in menu_lst, Config().menu))
+            menuGroup = [item for item in Config().menu if item.get("name") in menu_lst]
         else:
-            menuGroup = list(filter(lambda x: x.get("level", 0) <= self.level, Config().menu))
+            menuGroup = [item for item in Config().menu if item.get("level", 0) <= self.level]
 
-        if menuGroup:
-            for groupItem in menuGroup:
-                navList = groupItem.get('nav')
-                if not navList:
-                    continue
-                navList = list(filter(lambda x: x.get("level", groupItem.get('level'), 1) <= self.level, navList))
-                groupItem['nav'] = navList
-
-        return menuGroup
+        # 复制菜单项后再裁剪二级菜单，避免修改 Config().menu 影响其他用户
+        result = []
+        for groupItem in menuGroup:
+            groupItem = dict(groupItem)
+            navList = groupItem.get('nav')
+            if navList:
+                groupItem['nav'] = [
+                    item for item in navList
+                    if item.get("level", groupItem.get("level", 1)) <= self.level
+                ]
+            result.append(groupItem)
+        return result
 
     # 查询服务
     def get_services(self):

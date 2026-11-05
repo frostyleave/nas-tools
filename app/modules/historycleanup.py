@@ -9,6 +9,9 @@ from config import Config
 # 单次最大删除数据量
 BATCH_SIZE = 500
 
+# 单表单次清理的最大批次数，避免删除失败时无限循环
+MAX_CLEANUP_BATCHES = 1000
+
 # 临时种子文件保留天数
 TORRENT_RETENTION_DAYS = 3
 
@@ -54,15 +57,21 @@ class HistoryCleanup:
         for query_func, name in tables:
             table_deleted = 0
             try:
-                while True:
+                for _ in range(MAX_CLEANUP_BATCHES):
                     ids = query_func(cutoff_full if name != 'SITE_STATISTICS_HISTORY' else cutoff_date,
                                      BATCH_SIZE)
                     if not ids:
                         break
                     deleted = self.dbhelper.delete_history_by_ids(name, ids)
-                    if deleted:
-                        table_deleted += deleted
-                        total_deleted += deleted
+                    if not deleted:
+                        # 删除失败（DbPersist 返回 False）或无记录被删除时必须跳出，否则会无限重查
+                        log.error(f"【HistoryCleanup】{name} 删除失败，停止本轮清理，下次任务重试")
+                        break
+                    table_deleted += deleted
+                    total_deleted += deleted
+                else:
+                    log.warn(f"【HistoryCleanup】{name} 达到单次清理批次上限 "
+                             f"({MAX_CLEANUP_BATCHES} × {BATCH_SIZE})，剩余记录留待下次任务")
 
                 if table_deleted:
                     log.info(f"【HistoryCleanup】{name} 清理完成，删除 {table_deleted} 条记录")

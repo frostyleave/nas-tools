@@ -199,6 +199,8 @@ class CookieCloud(_IPluginModule):
 
         # 停止现有任务
         self.stop_service()
+        # 重新开始，清除退出事件
+        self.reset_stop_event()
 
         # 启动服务
         if self._enabled:
@@ -287,6 +289,8 @@ class CookieCloud(_IPluginModule):
         """
         同步站点Cookie
         """
+        # 捕获本次运行的事件对象，插件重载后旧线程仍能被旧的置位事件终止
+        event = self._event
         # 同步数据
         self.info("同步服务开始 ...")
         cloud_data = self.__download_data()
@@ -316,7 +320,7 @@ class CookieCloud(_IPluginModule):
         domain_groups = self.__sort_domain_cookies(contents)
         for domain, content_list in domain_groups.items():
 
-            if self._event.is_set():
+            if event.is_set():
                 self.info(f"同步服务停止")
                 return
             
@@ -415,6 +419,8 @@ class CookieCloud(_IPluginModule):
         """
         退出插件
         """
+        # 通知同步线程退出，避免重载后旧线程继续写配置
+        self.set_stop_event()
         try:
             self.remove_job(self._cron_job)
         except Exception as e:

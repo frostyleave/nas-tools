@@ -786,9 +786,9 @@ class FileTransfer:
                             alert_messages.append(error_message)
                         continue
                     elif rmt_mode not in ModuleConf.REMOTE_RMT_MODES:
-                        # 创建目录
+                        # 创建目录（并发转移时目录可能已由其它任务创建）
                         log.debug(f"【Rmt】正在创建目录：{ret_dir_path}")
-                        os.makedirs(ret_dir_path)
+                        os.makedirs(ret_dir_path, exist_ok=True)
                 # 转移蓝光原盘
                 if bluray_disk_dir:
                     ret = self.__transfer_bluray_dir(file_item, ret_dir_path, rmt_mode)
@@ -912,6 +912,14 @@ class FileTransfer:
 
             except Exception as err:
                 log.exception("【Rmt】文件转移时发生错误: ")
+                # 单个文件异常不能当成成功，否则同步队列已 pop、不会重试也不会告警
+                success_flag = False
+                failed_count += 1
+                alert_count += 1
+                error_message = f"文件转移异常：{err!s}"
+                __update_progress(message=error_message)
+                if error_message not in alert_messages:
+                    alert_messages.append(error_message)
         # 循环结束
         # 统计完成情况，发送通知
         if message_medias:

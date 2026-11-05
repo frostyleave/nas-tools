@@ -66,7 +66,8 @@ class Aria2(_IDownloadClient):
                 ret_torrents = [self._client.tellStatus(gid=ids)]
         elif status:
             if status == "downloading":
-                ret_torrents = self._client.tellActive() or [] + self._client.tellWaiting(offset=-1, num=100) or []
+                ret_torrents = (self._client.tellActive() or []) \
+                    + (self._client.tellWaiting(offset=-1, num=100) or [])
             else:
                 ret_torrents = self._client.tellStopped(offset=-1, num=1000)
         return ret_torrents
@@ -107,11 +108,11 @@ class Aria2(_IDownloadClient):
         if not self._client:
             return None
         if isinstance(content, str):
-            # 已读取的磁力文件内容
+            # 种子文件路径：按二进制读取，避免文本模式改写字节破坏种子
             if content.endswith('.torrent'):
-                file = open(content, 'r', encoding='ISO-8859-1')
-                file_content = file.read()
-                torrent_bin = base64.b64encode(file_content.encode()).decode('ascii')
+                with open(content, 'rb') as file:
+                    file_content = file.read()
+                torrent_bin = base64.b64encode(file_content).decode('ascii')
                 return self._client.addTorrentFile(torrent=torrent_bin, options={"dir": download_dir})
             # 处理重定向
             if re.match("^https*://", content):
@@ -125,7 +126,8 @@ class Aria2(_IDownloadClient):
             return self._client.addUri(uris=[content], options=dict(dir=download_dir))
         elif isinstance(content, bytes):
             return self._client.addTorrentFile(torrent=content, options={"dir": download_dir})
-        return "无法识别"
+        log.warn(f"【{self.client_name}】{self.name} 无法识别的下载内容类型: {type(content)!r}")
+        return None
 
     def start_torrents(self, ids):
         if not self._client:

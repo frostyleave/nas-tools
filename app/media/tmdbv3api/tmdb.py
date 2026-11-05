@@ -1,5 +1,5 @@
-from typing import ClassVar
 import logging
+import threading
 import time
 from operator import attrgetter
 
@@ -15,12 +15,26 @@ from .exceptions import TMDbException
 
 logger = logging.getLogger(__name__)
 
+# 全局共享 Session：复用连接，避免每次创建客户端都重新握手
+_shared_session: Session | None = None
+_shared_session_lock = threading.Lock()
+
+
+def _get_shared_session() -> Session:
+    """获取全局共享 Session（首次调用时创建）"""
+    global _shared_session
+    if _shared_session is None:
+        with _shared_session_lock:
+            if _shared_session is None:
+                _shared_session = TMDb._create_session()
+    return _shared_session
+
 
 class TMDb:
 
     _session : Session | None = None
 
-    _proxies: ClassVar[dict] = {}
+    _proxies: dict | None = None
     _language = 'zh'
     _domain = 'https://api.themoviedb.org/3'
     _api_key = ''
@@ -35,7 +49,7 @@ class TMDb:
                  cache_size: int = 512,
         ):
 
-        self._session = self._create_session() if session is None else session
+        self._session = session if session is not None else _get_shared_session()
 
         self._cache = TTLCache(maxsize=cache_size, ttl=cache_ttl)
         self._remaining = 40
@@ -53,19 +67,22 @@ class TMDb:
     
     def _build_proxies(self):
         """
-        从 Config 中构建 requests 可用的 proxies dict
+        构建 TMDB 请求使用的代理
+
+        仅在开启「使用代理」(app.tmdb_use_proxy) 时使用全局代理配置；
+        直接给实例属性赋值，避免修改 ClassVar 导致多个实例互相污染。
         """
+        self._proxies = None
+        if not Config().get_config('app').get("tmdb_use_proxy", True):
+            return
         proxy_conf = Config().get_proxies()
         if not proxy_conf:
             return
-        
-        for key, value in proxy_conf.items():
-            if not value:
-                continue
-            self._proxies[key] = value
+        self._proxies = {key: value for key, value in proxy_conf.items() if value}
 
 
-    def _create_session(self) -> Session:
+    @staticmethod
+    def _create_session() -> Session:
 
         s = Session()
         s.trust_env = False
@@ -80,7 +97,7 @@ class TMDb:
             raise_on_status=False,
         )
 
-        adapter = SSLAdapter(pool_connections=1, pool_maxsize=1, max_retries=retry_strategy)
+        adapter = SSLAdapter(pool_connections=10, pool_maxsize=10, max_retries=retry_strategy)
 
         s.mount("https://", adapter)
         s.mount("http://", adapter)
@@ -103,8 +120,6 @@ class TMDb:
         实际请求方法
         """
         headers = {}
-        if method.upper() == "GET":
-            headers["Connection"] = "close"
         resp = self._session.request(
             method,
             url,

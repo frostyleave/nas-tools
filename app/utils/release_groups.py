@@ -65,10 +65,19 @@ class ReleaseGroupsMatcher:
                   '织梦字幕组', '豌豆字幕组&风之圣殿字幕组', '豌豆&风之圣殿字幕组', '风之圣殿字幕组', '豌豆字幕组']
     }
 
+    _GROUP_PATTERN = r"(?<=[-@\[￡【&])(?:{})(?=[@.\s\]\[】&])"
+
     def __init__(self):
         self.__release_groups = '|'.join(
             chain.from_iterable(self.RELEASE_GROUPS.values())
         )
+        # 预编译正则，避免每次匹配都重新编译
+        self.__release_groups_re = self.__compile_groups(self.__release_groups)
+        self.__custom_groups_re = None
+
+    @classmethod
+    def __compile_groups(cls, groups):
+        return re.compile(cls._GROUP_PATTERN.format(groups), re.I)
 
     def match(self, title=None, groups=None):
         """
@@ -90,13 +99,14 @@ class ReleaseGroupsMatcher:
         """
         if not title:
             return ""
-        if not groups:
-            if self.custom_release_groups:
-                groups = f"{self.__release_groups}|{self.custom_release_groups}"
-            else:
-                groups = self.__release_groups
+        if groups:
+            # 调用方显式传入制作组列表，只能临时编译
+            groups_re = self.__compile_groups(groups)
+        elif self.__custom_groups_re is not None:
+            groups_re = self.__custom_groups_re
+        else:
+            groups_re = self.__release_groups_re
         title = f"{title} "
-        groups_re = re.compile(rf"(?<=[-@\[￡【&])(?:{groups})(?=[@.\s\]\[】&])", re.I)
         # 处理一个制作组识别多次的情况，保留顺序
         unique_groups = []
         for match in re.finditer(groups_re, title):
@@ -112,3 +122,8 @@ class ReleaseGroupsMatcher:
         """
         self.custom_release_groups = release_groups
         self.custom_separator = separator
+        if release_groups:
+            self.__custom_groups_re = self.__compile_groups(
+                f"{self.__release_groups}|{release_groups}")
+        else:
+            self.__custom_groups_re = None

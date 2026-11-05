@@ -254,7 +254,7 @@
   function modify_media_file() {
     let path = $("#mediafile_modify_path").val();
     let name = $("#mediafile_modify_name").val();
-    axios_post_do("rename_file", {path: path, name: name}, function (ret) {
+    axios_post("/sys/rename_file", {path: path, name: name}, function (ret) {
       $("#modal-mediafile-modify").modal('hide');
       refresh_files();
     });
@@ -262,7 +262,7 @@
 
   // 文件删除
   function delete_files(files) {
-    axios_post_do("delete_files", {files: files}, function (ret) {
+    axios_post("/sys/delete_files", {files: files}, function (ret) {
       refresh_files();
     });
   }

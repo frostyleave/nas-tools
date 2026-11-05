@@ -1,6 +1,6 @@
 from datetime import UTC, datetime, timedelta
 from functools import partial, wraps
-from inspect import Parameter, isawaitable, signature
+from inspect import Parameter, isawaitable, iscoroutinefunction, signature
 from typing import Annotated
 
 import jwt
@@ -9,7 +9,7 @@ from fastapi.requests import HTTPConnection
 from jwt.exceptions import InvalidTokenError
 
 import log
-from app.models.user import User, UserManager
+from app.models.user import LEVEL_USER, User, UserManager
 from config import Config
 
 
@@ -99,6 +99,16 @@ async def get_current_user(request: HTTPConnection) -> User | None:
 CurrentUser = Annotated[User, Depends(get_current_user)]
 
 
+async def _call_endpoint(func, *args, **kwargs):
+    """
+    调用被装饰的接口：同时兼容同步函数与异步函数
+    """
+    result = func(*args, **kwargs)
+    if isawaitable(result):
+        return await result
+    return result
+
+
 def auth_required(func=None):
     """
     API安全认证
@@ -111,10 +121,10 @@ def auth_required(func=None):
 
         check_apikey = Config().get_config("security").get("check_apikey")
         if not check_apikey:
-            return func(*args, **kwargs)
-        
+            return await _call_endpoint(func, *args, **kwargs)
+
         log.debug(f"【Security】{func.__name__} 认证检查")
-        
+
         setting_api_key = Config().get_config("security").get("api_key")
         request: Request = kwargs.get("request") or args[0]
 
@@ -123,31 +133,29 @@ def auth_required(func=None):
         if auth:
             auth = str(auth).split()[-1]
             if auth == setting_api_key:
-                return await func(*args, **kwargs)
-            
+                return await _call_endpoint(func, *args, **kwargs)
+
         # 允许使用在api后面拼接 ?apikey=xxx 的方式进行验证
         auth = request.query_params.get("apikey")
         if auth and auth == setting_api_key:
-            return await func(*args, **kwargs)
-            
+            return await _call_endpoint(func, *args, **kwargs)
+
         log.warn(f"【Security】{func.__name__} 认证未通过, 请检查API Key")
         raise HTTPException(status_code=401, detail="安全认证未通过, 请检查ApiKey")
 
     return wrapper
 
 
-def auth_check(min_level: int = 1):
+def auth_check(min_level: int = LEVEL_USER):
     """
     接口权限校验装饰器：仅允许 level >= min_level 的用户访问
 
     用法：
         @data_router.post("/users")
-        @auth_check(99)
+        @auth_check(LEVEL_SYSADMIN)
         async def users():
             ...
 
-    说明：装饰器会把一个带权限校验的依赖注入到接口签名中，接口本身无需声明当前用户；
-         未登录由 get_current_user 返回 401，level 不足返回 403。
     """
     def decorator(func):
         async def checker(current_user: CurrentUser) -> User:
@@ -165,14 +173,17 @@ def auth_check(min_level: int = 1):
         params.append(Parameter("_auth_user", Parameter.KEYWORD_ONLY,
                                 annotation=Annotated[User, Depends(checker)]))
 
-        @wraps(func)
-        async def wrapper(*args, **kwargs):
-            # 依赖已在 FastAPI 解析阶段执行并校验，这里只需丢弃注入参数
-            kwargs.pop("_auth_user", None)
-            result = func(*args, **kwargs)
-            if isawaitable(result):
-                return await result
-            return result
+        if iscoroutinefunction(func):
+            @wraps(func)
+            async def wrapper(*args, **kwargs):
+                # 依赖已在 FastAPI 解析阶段执行并校验，这里只需丢弃注入参数
+                kwargs.pop("_auth_user", None)
+                return await func(*args, **kwargs)
+        else:
+            @wraps(func)
+            def wrapper(*args, **kwargs):
+                kwargs.pop("_auth_user", None)
+                return func(*args, **kwargs)
 
         wrapper.__signature__ = sig.replace(parameters=params)
         return wrapper

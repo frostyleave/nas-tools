@@ -4,6 +4,7 @@ import logging
 import os
 import re
 import sys
+import threading
 import time
 from collections import deque
 from contextvars import ContextVar
@@ -65,9 +66,21 @@ def unbind_task_log(token):
     _current_task_id.reset(token)
 
 
-def get_task_logs(task_id: str) -> list[dict[str, Any]]:
-    """获取某个任务已经产生的全部日志"""
-    return list(_task_logs.get(task_id, []))
+def get_task_logs(task_id: str, after_seq: int = 0) -> list[dict[str, Any]]:
+    """
+    获取某个任务产生的日志
+
+    :param task_id: 任务ID
+    :param after_seq: 只返回序号大于该值的日志（增量读取，避免每次全量复制）
+    """
+    task_logs = _task_logs.get(task_id, [])
+    if after_seq <= 0:
+        return list(task_logs)
+    # 日志按序号递增排列，从尾部回退定位即可，通常只需复制少量新日志
+    index = len(task_logs)
+    while index > 0 and task_logs[index - 1].get("seq", 0) > after_seq:
+        index -= 1
+    return list(task_logs[index:])
 
 
 def get_last_task_seq(task_id: str) -> int:
@@ -82,17 +95,64 @@ def broadcast_log(log_data: dict[str, Any]):
     将日志数据放入所有活跃的 SSE 队列中。
     此函数必须在主事件循环中被调用。
     """
+    broadcast_logs([log_data])
+
+
+def broadcast_logs(records: list[dict[str, Any]]):
+    """
+    将一批日志按顺序放入所有活跃的 SSE 队列中。
+    此函数必须在主事件循环中被调用。
+    """
+    if not records:
+        return
     # 遍历列表的副本, 以防止在迭代时列表被修改
-    for q in active_sse_queues:
-        try:
-            q.put_nowait(log_data)
-        except asyncio.QueueFull:
-            # 客户端的队列满了 (例如客户端处理缓慢或断开)
-            # 我们可以选择在这里移除该队列, 但目前先忽略
-            pass
-        except Exception:
-            # 其他异常, 例如队列已关闭
-            pass
+    for q in list(active_sse_queues):
+        for log_data in records:
+            try:
+                q.put_nowait(log_data)
+            except asyncio.QueueFull:
+                # 客户端的队列满了 (例如客户端处理缓慢或断开)
+                # 我们可以选择在这里移除该队列, 但目前先忽略
+                break
+            except Exception:
+                # 其他异常, 例如队列已关闭
+                break
+
+
+# 日志广播缓冲：同一轮事件循环内的多条日志合并为一次回调
+_pending_broadcast: list[dict[str, Any]] = []
+_pending_lock = threading.Lock()
+_flush_scheduled = False
+
+
+def _flush_pending_broadcast():
+    """事件循环中执行：取出缓冲的日志并批量广播"""
+    global _pending_broadcast, _flush_scheduled
+    with _pending_lock:
+        records = _pending_broadcast
+        _pending_broadcast = []
+        _flush_scheduled = False
+    broadcast_logs(records)
+
+
+def _schedule_broadcast(log_data: dict[str, Any]):
+    """
+    把日志放入待广播缓冲，并保证同一轮事件循环只调度一次回调
+    （emit 可能来自任意线程，因此用锁保护）
+    """
+    global _flush_scheduled
+    with _pending_lock:
+        _pending_broadcast.append(log_data)
+        if _flush_scheduled:
+            return
+        _flush_scheduled = True
+    try:
+        _event_loop.call_soon_threadsafe(_flush_pending_broadcast)
+    except RuntimeError:
+        # 事件循环已关闭，清掉缓冲并允许下次重新调度
+        with _pending_lock:
+            _pending_broadcast.clear()
+            _flush_scheduled = False
 
 # SSE 日志处理器
 class SSEHandler(logging.Handler):
@@ -136,9 +196,9 @@ class SSEHandler(logging.Handler):
             # 2. 存入全局缓冲区
             log_buffer.append(log_data)
 
-            # 3. 触发广播 (线程安全地调用事件循环)
+            # 3. 触发广播 (线程安全地调用事件循环，同一轮日志合并成一批)
             if _event_loop:
-                _event_loop.call_soon_threadsafe(broadcast_log, log_data)
+                _schedule_broadcast(log_data)
 
         except asyncio.QueueFull:
             # 如果队列满了，丢弃这条日志

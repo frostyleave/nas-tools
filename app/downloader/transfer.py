@@ -10,6 +10,7 @@ from threading import Lock
 from typing import TYPE_CHECKING
 
 from apscheduler.job import Job
+from apscheduler.jobstores.base import JobLookupError
 from apscheduler.schedulers.background import BackgroundScheduler
 
 import log
@@ -58,8 +59,13 @@ class TransferManager:
         if self._transfer_job:
             try:
                 self._get_scheduler().remove_job(self._transfer_job.id)
+            except JobLookupError:
+                # 任务已随配置重载被统一清理
+                pass
             except Exception:
                 log.exception('【Downloader】定时转移任务移除失败: ')
+            finally:
+                self._transfer_job = None
 
     def transfer(self, downloader_id=None):
         """
@@ -109,8 +115,8 @@ class TransferManager:
                         season=season)
 
                     if not done_flag:
+                        # 转移失败时不打「已整理」标签，下一轮仍会重试
                         log.warn(f"【Downloader】下载器 {downloader_name} 任务%s 转移失败: %s" % (task.get("path"), done_msg))
-                        download_client.set_torrents_status(ids=task.get("id"), tags=task.get("tags"))
                     else:
                         if rmt_mode in [RmtMode.MOVE, RmtMode.RCLONE, RmtMode.MINIO]:
                             log.warn(f"【Downloader】下载器 {downloader_name} 移动模式下删除种子文件: %s" % task.get("id"))

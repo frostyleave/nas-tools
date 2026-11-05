@@ -302,6 +302,8 @@ class TorrentTransfer(_IPluginModule):
 
         # 停止现有任务
         self.stop_service()
+        # 重新开始，清除退出事件
+        self.reset_stop_event()
 
         # 启动定时任务 & 立即运行一次
         if self.get_state() or self._onlyonce:
@@ -352,6 +354,8 @@ class TorrentTransfer(_IPluginModule):
         """
         开始移转做种
         """
+        # 捕获本次运行的事件对象，插件重载后旧线程仍能被旧的置位事件终止
+        event = self._event
         if not self._enable \
                 or not self._fromdownloader \
                 or not self._todownloader \
@@ -377,7 +381,7 @@ class TorrentTransfer(_IPluginModule):
         # 过滤种子，记录保存目录
         hash_strs = []
         for torrent in torrents:
-            if self._event.is_set():
+            if event.is_set():
                 self.info("移转服务停止")
                 return
             # 获取种子hash
@@ -738,6 +742,8 @@ class TorrentTransfer(_IPluginModule):
         """
         退出插件
         """
+        # 通知转移线程退出，避免重载后旧线程继续运行
+        self.set_stop_event()
         try:
             self.remove_job(self._cron_job)
             # 校验任务可能在执行后已被调度器移除，按ID判断后再移除

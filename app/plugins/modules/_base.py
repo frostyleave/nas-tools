@@ -1,8 +1,10 @@
 import json
 import os
 from abc import ABCMeta, abstractmethod
+from threading import Event
 
 from apscheduler.job import Job
+from apscheduler.jobstores.base import JobLookupError
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
 
@@ -63,8 +65,23 @@ class _IPluginModule(metaclass=ABCMeta):
     module_order = 0
     # 可使用的用户级别
     auth_level = 1
+    # 插件额外页面的标题（列表展示用，避免为了取标题而加载整个页面）
+    module_page_title = ""
+    # 后台任务退出事件
+    _event = Event()
     # 定时任务
     _cron_job : Job | None = None
+
+    def set_stop_event(self):
+        """通知插件后台任务退出"""
+        self._event.set()
+
+    def reset_stop_event(self):
+        """
+        启动新的后台任务前换用新的退出事件
+        旧线程启动时捕获的是旧事件对象，仍保持置位状态，不会被重新清除
+        """
+        self._event = Event()
 
     @staticmethod
     @abstractmethod
@@ -247,6 +264,14 @@ class _IPluginModule(metaclass=ABCMeta):
         # 移除最左边的“秒”部分
         return ' '.join(values[1:]).replace('?', '*')
     
+    def get_page_title(self) -> str:
+        """
+        获取插件额外页面的标题
+
+        用于插件列表展示；不要在列表接口中调用 get_page()，否则会触发页面数据加载（可能包含网络请求）。
+        """
+        return self.module_page_title
+
     def get_scheduler(self) -> BackgroundScheduler:
         """获取任务管理器"""
         return JobCenter().get_plugin_scheduler()
@@ -269,7 +294,26 @@ class _IPluginModule(metaclass=ABCMeta):
             except Exception as err:
                 log.exception(f'【Plugin】定时任务{func_name}注册失败: ')
         return None
-    
+
+    def add_interval_job(self, func, func_name: str, **interval) -> Job | None:
+        """
+        向任务管理器添加 interval 定时任务
+        :param func: 任务函数
+        :param func_name: 任务名称
+        :param interval: interval 参数，如 hours=1、seconds=30
+        """
+        if not interval:
+            return None
+        try:
+            job = self.get_scheduler().add_job(func, 'interval', name=func_name, **interval)
+            if job:
+                self.info(f"{func_name}服务启动，周期: {job.trigger}, "
+                          f"下次执行时间: {job.next_run_time.strftime('%Y-%m-%d %H:%M:%S')}")
+            return job
+        except Exception as err:
+            log.exception(f'【Plugin】定时任务{func_name}注册失败: ')
+        return None
+
     def remove_job(self, job_info:Job | None):
         """
         移除任务管理器中的定时任务
@@ -277,5 +321,8 @@ class _IPluginModule(metaclass=ABCMeta):
         if job_info:
             try:
                 self.get_scheduler().remove_job(job_info.id)
+            except JobLookupError:
+                # 任务已随配置重载被统一清理
+                pass
             except Exception as err:
                 log.exception(f'【Plugin】定时任务{job_info.id}移除失败: ')

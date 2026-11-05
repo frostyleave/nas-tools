@@ -55,14 +55,14 @@ class Searcher:
 
         torrent_list = self.indexer.search_by_keyword(key_word, filter_args, match_media, in_from, task_id)
 
-        # 清空上次结果
-        self.delete_all_search_torrents()
-        # 排序, 入库
-        if torrent_list and (in_from == SearchType.WEB or in_from in self.message.get_search_types()):
-            # 排序
-            torrent_list = sorted(torrent_list, key=lambda x: x.get_sort_str(), reverse=True)
-            # 插入数据库
-            self.insert_search_results(media_items=torrent_list, ident_flag=ident_flag, title=search_theme)
+        # 只有网页/消息类搜索才维护搜索结果表，订阅定时搜索不能清空用户正在浏览的结果
+        if in_from == SearchType.WEB or in_from in self.message.get_search_types():
+            # 清空上次结果
+            self.delete_all_search_torrents()
+            # 排序, 入库
+            if torrent_list:
+                torrent_list = sorted(torrent_list, key=lambda x: x.get_sort_str(), reverse=True)
+                self.insert_search_results(media_items=torrent_list, ident_flag=ident_flag, title=search_theme)
 
         # 结束进度
         if task_id:

@@ -1,3 +1,4 @@
+import threading
 from functools import lru_cache
 from typing import Any
 
@@ -10,6 +11,19 @@ import log
 from config import Config
 
 urllib3.disable_warnings(InsecureRequestWarning)
+
+# 模块级共享 Session：默认复用连接（keep-alive），避免每次请求都重新握手
+_shared_session: Session | None = None
+_shared_session_lock = threading.Lock()
+
+
+def _get_shared_session() -> Session:
+    global _shared_session
+    if _shared_session is None:
+        with _shared_session_lock:
+            if _shared_session is None:
+                _shared_session = requests.Session()
+    return _shared_session
 
 
 class RequestUtils:
@@ -64,10 +78,8 @@ class RequestUtils:
         :return: HTTP响应对象
         :raises: requests.exceptions.RequestException 仅raise_exception为True时会抛出
         """
-        if self._session is None:
-            req_method = requests.request
-        else:
-            req_method = self._session.request
+        # 未指定 Session 时复用模块级 Session，保持连接池与 keep-alive
+        req_method = (self._session or _get_shared_session()).request
 
         kwargs.setdefault("headers", self._headers)
         kwargs.setdefault("cookies", self._cookies)

@@ -40,6 +40,8 @@ class DoubanSync(_IPluginModule):
     module_config_prefix = "doubansync_"
     # 加载顺序
     module_order = 17
+    # 插件额外页面标题
+    module_page_title = "同步历史"
     # 可使用的用户级别
     auth_level = 2
 
@@ -104,14 +106,16 @@ class DoubanSync(_IPluginModule):
 
         # 停止现有任务
         self.stop_service()
+        # 重新开始，清除退出事件
+        self.reset_stop_event()
 
         # 启动服务
         if self.get_state() or self._onlyonce:
             if self._interval:
-                self._hour_job = self.add_cron_job(self.sync, 'interval', hours=self._interval, func_name='豆瓣同步(小时)')
+                self._hour_job = self.add_interval_job(self.sync, func_name='豆瓣同步(小时)', hours=self._interval)
 
             if self._rss_interval:
-                self._seconds_job = self.add_cron_job(self.sync, 'interval', seconds=self._rss_interval, func_name='豆瓣同步(秒)')
+                self._seconds_job = self.add_interval_job(self.sync, func_name='豆瓣同步(秒)', seconds=self._rss_interval)
 
 
             if self._onlyonce:
@@ -378,7 +382,7 @@ class DoubanSync(_IPluginModule):
         return """
           // 删除豆瓣历史记录
           function DoubanSync_delete_douban_history(id){
-            axios_post_do("run_plugin_method", {"plugin_id": 'DoubanSync', 'method': 'delete_sync_history', 'douban_id': id}, function (ret) {
+            axios_post("/sys/run_plugin_method", {"plugin_id": 'DoubanSync', 'method': 'delete_sync_history', 'douban_id': id}, function (ret) {
               $("#douban_history_" + id).remove();
             });
           }
@@ -419,6 +423,8 @@ class DoubanSync(_IPluginModule):
         """
         停止服务
         """
+        # 通知同步线程退出，避免重载后旧线程继续同步
+        self.set_stop_event()
         try:
             self.remove_job(self._hour_job)
             self.remove_job(self._seconds_job)
@@ -439,11 +445,16 @@ class DoubanSync(_IPluginModule):
         if not self._interval and not self._rss_interval:
             self.info("豆瓣配置：同步间隔未配置或配置不正确")
             return
+        # 捕获本次运行的事件对象，插件重载后旧线程仍能被旧的置位事件终止
+        event = self._event
         with lock:
             # 拉取豆瓣数据
             medias = self.__get_all_douban_movies()
             # 开始搜索
             for media in medias:
+                if event.is_set():
+                    self.info("豆瓣同步服务已停止")
+                    return
                 if not media or not media.get_name():
                     continue
                 try:

@@ -111,7 +111,7 @@
     const id = content.id;
     const rows = Number(content.rows) || 5;
     const label = field.title
-      ? `<label class="form-label${required}">${esc(field.title)} ${renderNote(field.tooltip)}</label>`
+      ? `<label class="form-label${required}">${esc(field.title)}${renderInlineTip(field)} ${renderNote(field.tooltip)}</label>`
       : '';
     const readonly = field.readonly ? ' readonly' : '';
 
@@ -122,6 +122,10 @@
           placeholder="${esc(content.placeholder || '')}"${readonly}>${esc(config[id] || '')}</textarea>
       </div>
     </div>`;
+  }
+
+  function renderInlineTip(field) {
+    return field.tip ? ` <span class="text-muted small">${esc(field.tip)}</span>` : '';
   }
 
   function renderFormSelectgroup(field, config, prefix) {

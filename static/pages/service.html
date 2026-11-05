@@ -384,7 +384,7 @@
       return;
     }
     $(this).text("恢复中...").attr("disabled", true);
-    axios_post_do("restory_backup", { file_name: backup_dropzone.files[backup_dropzone.files.length - 1].name }, function (ret) {
+    axios_post("/sys/restory_backup", { file_name: backup_dropzone.files[backup_dropzone.files.length - 1].name }, function (ret) {
       $(this).attr("disabled", false).text("恢复配置");
       $("#modal-backup").modal('hide');
       if (ret.code === 0) {
