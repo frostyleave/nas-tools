@@ -40,6 +40,11 @@
       : '';
   }
 
+  // 字段列宽，默认自适应等分；插件可通过 col 指定固定的栅格类（如 col-12 col-md-6 col-lg-4）
+  function colClass(field) {
+    return field.col || 'col-12 col-lg';
+  }
+
   function renderText(field, config, prefix) {
     const required = field.required ? ' ' + esc(field.required) : '';
     const note = renderNote(field.tooltip);
@@ -61,7 +66,7 @@
       return `<div class="mb-3">${input}</div>`;
     }).join('');
 
-    return `<div class="col-12 col-lg" style="display:${hidden}">${body}</div>`;
+    return `<div class="${esc(colClass(field))}" style="display:${hidden}">${body}</div>`;
   }
 
   function renderSwitch(field, config, prefix) {
@@ -70,7 +75,7 @@
       (config[field.id] === undefined && field.default);
     const onclick = field.onclick ? ` onclick="${esc(field.onclick)}"` : '';
 
-    return `<div class="col-12 col-lg" style="display:${field.hidden ? 'none' : 'block'}">
+    return `<div class="${esc(colClass(field))}" style="display:${field.hidden ? 'none' : 'block'}">
       <div class="mb-1">
         <label class="form-check form-switch${required}">
           <input class="form-check-input" type="checkbox"
@@ -102,7 +107,7 @@
       </div>`;
     }).join('');
 
-    return `<div class="col-12 col-lg" style="display:${field.hidden ? 'none' : 'block'}">${body}</div>`;
+    return `<div class="${esc(colClass(field))}" style="display:${field.hidden ? 'none' : 'block'}">${body}</div>`;
   }
 
   function renderTextarea(field, config, prefix) {
@@ -115,7 +120,7 @@
       : '';
     const readonly = field.readonly ? ' readonly' : '';
 
-    return `<div class="col-12 col-lg" style="display:${field.hidden ? 'none' : 'block'}">
+    return `<div class="${esc(colClass(field))}" style="display:${field.hidden ? 'none' : 'block'}">
       <div class="mb-1">
         ${label}
         <textarea class="form-control" id="${esc(prefix + id)}" rows="${rows}"
@@ -148,7 +153,7 @@
       </label>`;
     }).join('');
 
-    return `<div class="col-12 col-lg">
+    return `<div class="${esc(colClass(field))}">
       <div class="mb-1">
         <div class="form-selectgroup" id="${esc(prefix + field.id)}" data-type="${inputType}">
           ${body}

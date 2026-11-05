@@ -1,10 +1,11 @@
-import random
+import json
 import re
 import socket
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import ClassVar
 
+import requests
 from python_hosts import Hosts, HostsEntry
 
 from app.helper import ThreadHelper
@@ -39,13 +40,16 @@ class TmdbHostBetter(_IPluginModule):
         "api.tmdb.org",
     ]
 
-    # dnschecker.org 接口地址，参考 CheckTMDB 的 dnschecker 方案
+    # dnschecker.org 站点地址
     _dnschecker_url = "https://dnschecker.org"
+    # 单次最多查询的DNS服务器数量
+    _max_dns_servers = 10
 
-    # dnschecker.org 查询失败时的备用 DoH 接口（国内可访问）
+    # dnschecker.org 查询失败时的备用 DoH 接口（均为国内可直连的解析器，可拿到不同的CDN节点IP）
     _backup_dns_servers: ClassVar[list[str]] = [
         "https://dns.alidns.com/resolve",
-        "https://doh.pub/dns-query"
+        "https://doh.pub/dns-query",
+        "https://doh.360.cn/query"
     ]
 
     # 记录类型与DNS Answer中的type对应关系
@@ -82,6 +86,7 @@ class TmdbHostBetter(_IPluginModule):
                             'tooltip': '打开后立即运行一次（点击此对话框的确定按钮后即会运行，周期未设置也会运行），关闭后将仅按照优选周期运行',
                             'type': 'switch',
                             'id': 'onlyonce',
+                            'col': 'col-12 col-md-6 col-lg-4',
                         },
                         {
                             'title': '运行时通知',
@@ -89,6 +94,15 @@ class TmdbHostBetter(_IPluginModule):
                             'tooltip': '运行任务后发送通知（需要打开插件消息通知）',
                             'type': 'switch',
                             'id': 'notify',
+                            'col': 'col-12 col-md-6 col-lg-4',
+                        },
+                        {
+                            'title': '写入系统Hosts',
+                            'required': "",
+                            'tooltip': '将优选结果写入系统hosts文件并立即生效，如因权限问题无法写入将记录错误日志',
+                            'type': 'switch',
+                            'id': 'sync_hosts',
+                            'col': 'col-12 col-md-6 col-lg-4',
                         },
                     ],
                     [
@@ -98,6 +112,7 @@ class TmdbHostBetter(_IPluginModule):
                             'tooltip': '优选IPv4地址；v4和v6必须其一，都不选择则默认IPv4',
                             'type': 'switch',
                             'id': 'ipv4',
+                            'col': 'col-12 col-md-6 col-lg-4',
                         },
                         {
                             'title': 'IPv6',
@@ -105,13 +120,7 @@ class TmdbHostBetter(_IPluginModule):
                             'tooltip': '优选IPv6地址；v4和v6必须其一，都不选择则默认IPv4',
                             'type': 'switch',
                             'id': 'ipv6',
-                        },
-                        {
-                            'title': '写入系统Hosts',
-                            'required': "",
-                            'tooltip': '将优选结果写入系统hosts文件并立即生效，如因权限问题无法写入将记录错误日志',
-                            'type': 'switch',
-                            'id': 'sync_hosts',
+                            'col': 'col-12 col-md-6 col-lg-4',
                         },
                     ],
                     [
@@ -120,6 +129,7 @@ class TmdbHostBetter(_IPluginModule):
                             'required': "",
                             'tooltip': '通过TCP连接检测IP延迟的端口，默认443',
                             'type': 'text',
+                            'col': 'col-12 col-md-6 col-lg-4',
                             'content': [
                                 {
                                     'id': 'port',
@@ -132,6 +142,7 @@ class TmdbHostBetter(_IPluginModule):
                             'required': "",
                             'tooltip': 'dnschecker.org 的DNS查询节点国家代码，默认jp，可填us、sg、hk、de等',
                             'type': 'text',
+                            'col': 'col-12 col-md-6 col-lg-4',
                             'content': [
                                 {
                                     'id': 'country',
@@ -144,6 +155,7 @@ class TmdbHostBetter(_IPluginModule):
                             'required': "",
                             'tooltip': 'TMDB IP优选周期，支持5位cron表达式',
                             'type': 'text',
+                            'col': 'col-12 col-md-6 col-lg-4',
                             'content': [
                                 {
                                     'id': 'cron',
@@ -158,6 +170,7 @@ class TmdbHostBetter(_IPluginModule):
                             'required': "",
                             'tip': f"默认域名：{'、'.join(cls._default_domains)}",
                             'type': 'textarea',
+                            'col': 'col-12',
                             'content':
                                 {
                                     'id': 'domains',
@@ -227,13 +240,15 @@ class TmdbHostBetter(_IPluginModule):
         if Config().get_proxies():
             self.info("已配置代理，但IP延迟测试为直连测试（hosts优选生效同样依赖直连，不经过代理）")
 
-        # 获取dnschecker.org的CSRF Token，失败则改用备用DNS接口
-        udp = random.random() * 1000 + (int(time.time() * 1000) % 1000)
-        csrf_token = self.__get_dnschecker_csrf(udp)
-        if csrf_token:
-            self.info(f"使用dnschecker.org查询候选IP，节点：{self._country}")
+        # 获取dnschecker.org指定节点的DNS服务器，失败则改用备用DNS接口
+        session = requests.Session()
+        server_ids, dnschecker_error = self.__get_dnschecker_server_ids(session)
+        if server_ids:
+            self.info(f"使用dnschecker.org查询候选IP，节点：{self._country}，"
+                      f"服务器数：{len(server_ids)}")
         else:
-            self.warn("dnschecker.org访问失败，将使用备用DNS接口查询")
+            reason = f"（{dnschecker_error}）" if dnschecker_error else ""
+            self.warn(f"dnschecker.org访问失败{reason}，将使用备用DNS接口查询")
 
         results = []
         for domain in domains:
@@ -242,7 +257,7 @@ class TmdbHostBetter(_IPluginModule):
                     continue
 
                 # 查询候选IP
-                ips = self.__query_dns(domain, record_type, csrf_token, udp)
+                ips = self.__query_dns(domain, record_type, server_ids, session)
                 if not ips:
                     self.warn(f"{domain} 未查询到 {record_type} 记录")
                     continue
@@ -274,60 +289,79 @@ class TmdbHostBetter(_IPluginModule):
                 text="\n".join(f"{domain} -> {ip}（{latency:.0f}ms）" for domain, ip, latency in results)
             )
 
-    def __query_dns(self, domain, record_type, csrf_token=None, udp=None):
+    def __query_dns(self, domain, record_type, server_ids=None, session=None):
         """
         优先通过dnschecker.org查询候选IP，失败时使用备用DNS接口
         """
-        if csrf_token:
-            ips = self.__query_dnschecker(domain, record_type, csrf_token, udp)
+        if server_ids:
+            ips = self.__query_dnschecker(domain, record_type, server_ids, session)
             if ips:
                 return ips
             self.debug(f"dnschecker.org未查询到{domain}的{record_type}记录，改用备用DNS接口")
         return self.__query_backup_dns(domain, record_type)
 
-    def __get_dnschecker_csrf(self, udp):
+    def __get_dnschecker_server_ids(self, session=None):
         """
-        获取dnschecker.org的CSRF Token
+        获取dnschecker.org指定节点的DNS服务器ID列表，返回(服务器ID列表, 失败原因)
         """
-        url = f"{self._dnschecker_url}/ajax_files/gen_csrf.php?udp={udp}"
         headers = self.__dnschecker_headers()
-        for _ in range(3):
-            res = self.__dnschecker_request(url, headers)
-            if res:
-                try:
-                    csrf_token = (res.json() or {}).get("csrf")
-                    if csrf_token:
-                        return csrf_token
-                except Exception as err:
-                    self.warn(f"解析dnschecker CSRF失败：{err}")
-            else:
-                self.warn("解析dnschecker CSRF失败")
-            time.sleep(1)
-        return None
-
-    def __query_dnschecker(self, domain, record_type, csrf_token, udp):
-        """
-        通过dnschecker.org查询域名某一记录类型的候选IP
-        """
-        url = f"{self._dnschecker_url}/ajax_files/api/220/{record_type}/{domain}"
-        params = {
-            "dns_key": "country",
-            "dns_value": self._country,
-            "v": "0.36",
-            "cd_flag": 1,
-            "upd": udp
-        }
-        headers = self.__dnschecker_headers()
-        headers["csrftoken"] = csrf_token
-        for _ in range(3):
-            res = self.__dnschecker_request(url, headers, params)
+        headers["accept"] = "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"
+        servers = []
+        error = ""
+        for page_url in (f"{self._dnschecker_url}/country/{self._country}", self._dnschecker_url):
+            res, reason = self.__dnschecker_request(page_url, headers, session=session)
             if not res:
+                error = error or reason or "请求失败"
                 continue
+            servers = self.__parse_dns_servers(res.text)
+            if servers:
+                break
+            error = "页面中未找到DNS服务器列表"
+            self.debug(f"dnschecker页面（{page_url}）未解析到DNS服务器列表，"
+                       f"HTTP {res.status_code}，{res.headers.get('content-type', '')}")
+
+        server_ids = [str(server.get("id")) for server in servers
+                      if str(server.get("country", "")).lower() == self._country]
+        # 页面未按节点返回服务器时，退化为使用页面中的全部服务器
+        if not server_ids:
+            server_ids = [str(server.get("id")) for server in servers if server.get("id")]
+        if not server_ids:
+            error = error or "未获取到可用的DNS服务器"
+        else:
+            error = ""
+        return server_ids[:self._max_dns_servers], error
+
+    def __parse_dns_servers(self, html):
+        """
+        解析页面中预置的DNS服务器列表dns_json_array
+        """
+        try:
+            match = re.search(r"var dns_json_array = JSON\.parse\('(.*?)'\);", html or "", re.DOTALL)
+            if not match:
+                return []
+            literal = match.group(1).replace("\\'", "'")
+            servers = json.loads(json.loads('"' + literal + '"'))
+            return servers if isinstance(servers, list) else []
+        except Exception as err:
+            self.debug(f"解析dnschecker服务器列表失败：{err}")
+            return []
+
+    def __query_dnschecker(self, domain, record_type, server_ids, session=None):
+        """
+        通过dnschecker.org各节点的DNS服务器查询域名某一记录类型的候选IP
+        """
+        headers = self.__dnschecker_headers()
+
+        def query(server_id):
+            url = f"{self._dnschecker_url}/ajax/dns-lookup/{server_id}/{record_type}/{domain}"
+            res, _ = self.__dnschecker_request(url, headers, {"cd_flag": 1}, session)
+            if not res:
+                return set()
             try:
                 ips_str = ((res.json() or {}).get("result") or {}).get("ips")
             except Exception as err:
-                self.debug(f"dnschecker返回解析失败：{err}")
-                continue
+                self.debug(f"dnschecker返回解析失败（服务器{server_id}）：{err}")
+                return set()
 
             # 接口返回的多个IP使用<br />分隔
             if isinstance(ips_str, list):
@@ -341,41 +375,70 @@ class TmdbHostBetter(_IPluginModule):
                 if (record_type == "A" and IpUtils.is_ipv4(ip)) \
                         or (record_type == "AAAA" and IpUtils.is_ipv6(ip)):
                     ips.add(ip)
-            if ips:
-                return ips
-            time.sleep(1)
-        return set()
+            return ips
 
-    def __dnschecker_request(self, url, headers, params=None):
+        ips = set()
+        with ThreadPoolExecutor(max_workers=min(8, len(server_ids))) as executor:
+            futures = [executor.submit(query, server_id) for server_id in server_ids]
+            for future in as_completed(futures):
+                try:
+                    ips.update(future.result())
+                except Exception as err:
+                    self.debug(f"查询dnschecker服务器失败：{err}")
+        return ips
+
+    def __dnschecker_request(self, url, headers, params=None, session=None):
         """
-        请求dnschecker.org，直连失败时尝试使用代理
+        请求dnschecker.org，直连失败时尝试使用代理，返回(响应, 失败原因)
         """
+        error = ""
         try:
-            res = RequestUtils(headers=headers, timeout=10).get_res(url, params=params)
+            res = RequestUtils(headers=headers, session=session, timeout=10).get_res(url, params=params)
             if res and res.ok:
-                return res
+                return res, ""
+            if res is not None:
+                error = self.__describe_dnschecker_error(res)
+                self.debug(f"dnschecker请求失败：{error}，{res.text[:120]}")
         except Exception as err:
+            error = f"请求异常：{err}"
             self.warn(f"dnschecker请求异常：{err}")
 
         proxies = Config().get_proxies()
         if proxies:
             try:
-                res = RequestUtils(headers=headers, proxies=proxies, timeout=15).get_res(url, params=params)
+                res = RequestUtils(headers=headers, proxies=proxies, session=session, timeout=15).get_res(
+                    url, params=params)
                 if res and res.ok:
-                    return res
+                    return res, ""
+                if res is not None:
+                    error = self.__describe_dnschecker_error(res)
             except Exception as err:
+                error = f"代理请求异常：{err}"
                 self.warn(f"dnschecker代理请求异常：{err}")
-        return None
+        return None, error
+
+    @staticmethod
+    def __describe_dnschecker_error(res):
+        """
+        描述dnschecker.org请求失败的原因
+        """
+        text = res.text or ""
+        if res.status_code == 403 and ("Just a moment" in text or "cf-chl" in text):
+            return "Cloudflare 人机验证，HTTP 403"
+        content_type = res.headers.get("content-type", "")
+        return f"HTTP {res.status_code}" + (f"，{content_type}" if content_type else "")
 
     def __dnschecker_headers(self):
         """
         dnschecker.org请求头
         """
         return {
-            "referer": f"{self._dnschecker_url}/country/{self._country}/",
+            "referer": f"{self._dnschecker_url}/country/{self._country}",
+            "origin": self._dnschecker_url,
             "User-Agent": Config().get_ua(),
             "accept": "application/json, text/javascript, */*; q=0.01",
-            "accept-language": "zh-CN,zh;q=0.9,en;q=0.8"
+            "accept-language": "zh-CN,zh;q=0.9,en;q=0.8",
+            "x-requested-with": "XMLHttpRequest"
         }
 
     def __query_backup_dns(self, domain, record_type):
