@@ -60,7 +60,7 @@
 
     _build() {
       this.innerHTML = `
-        <div class="card card-sm lit-poster-card rounded-3 cursor-pointer shadow-sm overflow-hidden">
+        <div class="card card-sm lit-poster-card cursor-pointer overflow-hidden" tabindex="0" role="link">
           <div class="poster-card-poster ratio overflow-hidden">
             <div class="placeholder-glow">
               <div class="ratio placeholder" style="--tblr-aspect-ratio:150%;"></div>
@@ -68,23 +68,24 @@
             <div class="poster-card-content" hidden>
               <img class="card-img" alt=""
                    style="display: block; min-width: 100%; max-width: 100%; min-height: 100%; max-height: 100%; object-fit: cover;">
-              <div class="card-right-bottom-ribbon poster-card-fav-ribbon" hidden>
+              <div class="poster-card-fav-ribbon" hidden>
                 <i class="ti ti-check"></i>
               </div>
-              <span class="badge badge-pill poster-card-left-badge"
-                    style="position: absolute; top: 10px; left: 10px; z-index: 9;" hidden></span>
-              <div class="badge badge-pill poster-card-right-badge"
-                   style="position: absolute; top: 10px; right: 10px; z-index: 9;" hidden></div>
+              <span class="poster-card-badge poster-card-left-badge" hidden></span>
+              <div class="poster-card-badge poster-card-right-badge" hidden></div>
             </div>
-            <div class="card-img-overlay ms-auto" style="background-color: rgba(0, 0, 0, 0.2);">
+            <div class="card-img-overlay poster-card-overlay">
               <div class="poster-card-info">
-                <p class="lh-sm text-white card-overview-text poster-card-overview" hidden></p>
-                <p class="lh-sm text-white card-secondary-text poster-card-date" style="margin-bottom: 5px;" hidden><small></small></p>
+                <p class="poster-card-overview" hidden></p>
+                <p class="poster-card-date" hidden><small></small></p>
               </div>
               <div class="poster-card-bottom"></div>
             </div>
           </div>
-          <div class="poster-card-title-bar text-center text-truncate px-2 py-1" hidden></div>
+          <div class="poster-card-title-bar" hidden>
+            <span class="poster-card-title"></span>
+            <span class="poster-card-year"></span>
+          </div>
         </div>`;
 
       this._placeholderEl = this.querySelector('.placeholder-glow');
@@ -98,11 +99,19 @@
       this._dateTextEl = this._dateLineEl.querySelector('small');
       this._bottomEl = this.querySelector('.poster-card-bottom');
       this._titleBarEl = this.querySelector('.poster-card-title-bar');
+      this._titleTextEl = this.querySelector('.poster-card-title');
+      this._yearTextEl = this.querySelector('.poster-card-year');
       this._cardEl = this.querySelector('.lit-poster-card');
 
       this._imgEl.addEventListener('load', () => this._onImageLoad());
       this._imgEl.addEventListener('error', () => this._onImageError());
       this._cardEl.addEventListener('click', () => this._navigate());
+      this._cardEl.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && e.target === this._cardEl) {
+          e.preventDefault();
+          this._navigate();
+        }
+      });
     }
 
     _update() {
@@ -143,33 +152,39 @@
       // Fav ribbon
       this._favRibbonEl.hidden = fav !== '2';
 
-      // 左上角显示年份，颜色沿用原类型标识逻辑
-      this._leftBadgeEl.hidden = !year;
-      if (year) {
-        this._leftBadgeEl.className = 'badge badge-pill ' +
-          (resType === '电影' ? 'bg-lime' : 'bg-blue') +
-          ' poster-card-left-badge';
-        this._leftBadgeEl.textContent = year;
+      // 左上角显示媒体类型（电影 / 剧集 / 动漫）
+      var typeLabel = resType === '电视剧' ? '剧集' : resType;
+      this._leftBadgeEl.hidden = !typeLabel;
+      if (typeLabel) {
+        this._leftBadgeEl.className = 'poster-card-badge poster-card-left-badge';
+        this._leftBadgeEl.textContent = typeLabel;
       }
 
-      // Right top vote badge
+      // 右上角评分：琥珀色星标 + 数字，作为卡片唯一的强调色
       const hasVote = !!vote && vote !== '0.0' && vote !== '0';
       if (hasVote) {
-        this._rightBadgeEl.className = 'badge badge-pill ' +
-          (tmdbId.startsWith('DB:') ? 'bg-green' : 'bg-purple') +
-          ' poster-card-right-badge';
-        this._rightBadgeEl.textContent = vote;
+        const isDouban = tmdbId.startsWith('DB:');
+        this._rightBadgeEl.className = 'poster-card-badge poster-card-right-badge' +
+          (isDouban ? '' : ' poster-card-badge-tmdb');
+        const star = document.createElement('i');
+        star.className = 'ti ti-star-filled';
+        const value = document.createElement('span');
+        value.textContent = vote;
+        this._rightBadgeEl.replaceChildren(star, value);
         this._rightBadgeEl.hidden = false;
       } else {
         this._rightBadgeEl.hidden = true;
       }
 
-      // 底部名称栏（暂不设置背景色）
+      // 底部名称栏：标题 + 年份
       this._titleBarEl.hidden = !title;
       if (title) {
-        this._titleBarEl.className = 'poster-card-title-bar text-center text-truncate px-2 py-1';
-        this._titleBarEl.textContent = title;
+        this._titleTextEl.textContent = title;
         this._titleBarEl.title = title;
+      }
+      this._yearTextEl.hidden = !year;
+      if (year) {
+        this._yearTextEl.textContent = year;
       }
 
       // Overlay text（名称不再显示在信息层中）
@@ -192,8 +207,8 @@
       // Fav heart（必须放在 bottom 渲染之后，首次创建时才能拿到引用）
       if (this._heartIcon) {
         this._heartIcon.className = fav === '1'
-          ? 'ti ti-heart-filled fs-2 text-red'
-          : 'ti ti-heart fs-2 text-white';
+          ? 'ti ti-heart-filled poster-card-action-fav'
+          : 'ti ti-heart';
       }
     }
 
@@ -208,39 +223,31 @@
       }
 
       const row = document.createElement('div');
-      row.className = 'd-flex justify-content-between';
+      row.className = 'd-flex justify-content-between align-items-center';
 
       const searchLink = document.createElement('a');
-      searchLink.className = 'text-muted';
+      searchLink.className = 'poster-card-action';
       searchLink.title = '搜索资源';
+      searchLink.setAttribute('aria-label', '搜索资源');
       searchLink.addEventListener('click', (e) => e.stopPropagation());
 
-      const searchSpan = document.createElement('span');
-      searchSpan.className = 'icon-pulse text-white';
       const searchIcon = document.createElement('i');
-      searchIcon.className = 'ti ti-search fs-2';
-      searchSpan.appendChild(searchIcon);
-      searchLink.appendChild(searchSpan);
+      searchIcon.className = 'ti ti-search';
+      searchLink.appendChild(searchIcon);
       row.appendChild(searchLink);
       this._searchLink = searchLink;
 
-      const heartWrap = document.createElement('div');
-      heartWrap.className = 'ms-auto';
-
-      const heart = document.createElement('div');
-      heart.className = 'text-muted';
+      const heart = document.createElement('button');
+      heart.type = 'button';
+      heart.className = 'poster-card-action';
       heart.title = '加入/取消订阅';
-      heart.style.cursor = 'pointer';
+      heart.setAttribute('aria-label', '加入或取消订阅');
       heart.addEventListener('click', (e) => this._loveClick(e));
 
-      const heartSpan = document.createElement('span');
-      heartSpan.className = 'icon-pulse text-white';
       const heartIcon = document.createElement('i');
-      heartIcon.className = 'ti ti-heart fs-2 text-white';
-      heartSpan.appendChild(heartIcon);
-      heart.appendChild(heartSpan);
-      heartWrap.appendChild(heart);
-      row.appendChild(heartWrap);
+      heartIcon.className = 'ti ti-heart';
+      heart.appendChild(heartIcon);
+      row.appendChild(heart);
       this._heartIcon = heartIcon;
 
       this._bottomEl.appendChild(row);

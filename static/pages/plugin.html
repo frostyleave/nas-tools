@@ -71,6 +71,31 @@
 
 <!-- 插件业务函数 -->
 <script type="text/javascript">
+  // 插件卡片文本清理
+  function escape_plugin_text(value) {
+    return String(value == null ? '' : value)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
+  function strip_plugin_emoji(value) {
+    return String(value == null ? '' : value)
+      .replace(/[\u{1F000}-\u{1FAFF}\u{2600}-\u{27BF}\u{FE0F}]/gu, '')
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
+
+  function escape_plugin_js_arg(value) {
+    return String(value == null ? '' : value)
+      .replace(/\\/g, '\\\\')
+      .replace(/'/g, "\\'")
+      .replace(/\r?\n/g, ' ')
+      .replace(/&/g, '&amp;')
+      .replace(/"/g, '&quot;');
+  }
+
   // 保存配置
   function save_config_plugin(id, prefix, func) {
     let params = input_select_GetVal(`modal-plugin-${id}`, prefix);
@@ -231,7 +256,7 @@
   // 绘制已安装插件列表
   function drawPluginList(pluginList) {
 
-    if (!pluginList) {
+    if (!pluginList || !Object.keys(pluginList).length) {
       $('#plugins-container').hide();
       $('#no-plugins').show();
       return;
@@ -261,24 +286,27 @@
         pluginColor = `var(--tblr-${pluginAttr.color.slice(3)})`;
       }
 
-      var stateBadge = pluginAttr.state ? '<div class="card-left-top-triangle bg-green"><span>启用</span></div>' : '<div class="card-left-top-triangle bg-red"><span>停用</span></div>';
-      // card：左侧图标，右侧名称和简介
+      var isOn = !!pluginAttr.state;
+      var pluginName = escape_plugin_text(pluginAttr.name);
+      var pluginDesc = escape_plugin_text(strip_plugin_emoji(pluginAttr.desc));
+      var pluginInitials = escape_plugin_text((pluginAttr.name || '').substring(0, 2));
+      // card：图标 + 名称/简介，底部为状态与卸载操作
       var html = `
-      <div class="card card-link-pop p-0 rounded-3 overflow-hidden plugin-card-tinted" ${pluginColor ? `style="--plugin-color: ${pluginColor}"` : ''}>
-        ${stateBadge}
-        <div class="right-top-box">
-          <a href="javascript:uninstall_plugin_click('${pluginId}', '${pluginAttr.name}')" title="卸载" class="text-danger">
-            <i class="ti ti-x fs-2"></i>
-          </a>
-        </div>
-        <div class="d-flex align-items-center gap-3 p-3 pe-5 plugin-card-main" data-bs-toggle="modal" data-bs-target="#modal-plugin-${pluginId}">
-          <span class="avatar avatar-md avatar-rounded flex-shrink-0" ${icon}>
-            ${!pluginAttr.icon ? pluginAttr.name.substring(0, 2) : ''}
-          </span>
-          <div class="flex-fill text-start overflow-hidden">
-            <div class="card-title mb-1">${pluginAttr.name}</div>
-            <div class="text-muted plugin-card-desc secondry-text-color">${pluginAttr.desc}</div>
+      <div class="plugin-card" ${pluginColor ? `style="--plugin-color: ${pluginColor}"` : ''}>
+        <div class="plugin-card-body" role="button" tabindex="0"
+             data-bs-toggle="modal" data-bs-target="#modal-plugin-${pluginId}"
+             onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click();}">
+          <span class="plugin-icon" ${icon}>${!pluginAttr.icon ? pluginInitials : ''}</span>
+          <div class="plugin-copy">
+            <div class="plugin-name">${pluginName}</div>
+            <div class="plugin-desc">${pluginDesc}</div>
           </div>
+        </div>
+        <div class="plugin-card-footer">
+          <span class="plugin-state${isOn ? '' : ' is-off'}"><span class="plugin-state-dot"></span>${isOn ? '运行中' : '已停用'}</span>
+          <a href="javascript:uninstall_plugin_click('${pluginId}', '${escape_plugin_js_arg(pluginAttr.name)}')" class="plugin-remove" title="卸载">
+            <i class="ti ti-trash"></i><span>卸载</span>
+          </a>
         </div>
       </div>
       `;
