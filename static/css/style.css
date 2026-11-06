@@ -15,7 +15,7 @@
 
     --tblr-navbar-border-color: var(--tblr-body-bg);
 
-    --lit-person-card-bg: var(--tblr-body-bg);
+    --lit-person-card-bg: #f5f5f9ad;
     --lit-menu-color: var(--tblr-body-color);
 
     --tblr-card-border-color:initial;
@@ -251,6 +251,7 @@ body.theme-dark::after {
 
 .poster-card-poster .card-img {
     transition: transform 400ms cubic-bezier(0.22, 1, 0.36, 1);
+    border-radius: 0;
 }
 
 .lit-poster-card:hover .poster-card-poster .card-img,
@@ -361,8 +362,8 @@ body.theme-dark::after {
     display: inline-flex;
     align-items: center;
     gap: 4px;
-    height: 24px;
-    padding: 0 8px;
+    height: 22px;
+    padding: 0 5px;
     border-radius: 6px;
     background-color: rgba(9, 12, 18, 0.68);
     -webkit-backdrop-filter: blur(6px);
@@ -385,11 +386,15 @@ body.theme-dark::after {
 
 .poster-card-right-badge .ti {
     font-size: 12px;
-    color: #fbbf24;
+}
+
+.poster-card-right-badge.poster-card-badge-douban .ti {
+    font-size: 13px;
+    color: #2fb344;
 }
 
 .poster-card-right-badge.poster-card-badge-tmdb .ti {
-    color: #ef11ef;
+    color: #2abad2;
 }
 
 .poster-card-fav-ribbon {
@@ -397,16 +402,19 @@ body.theme-dark::after {
     right: 8px;
     bottom: 8px;
     z-index: 9;
-    display: flex;
+    display: inline-flex;
     align-items: center;
-    justify-content: center;
-    width: 24px;
-    height: 24px;
-    border-radius: 8px;
-    background-color: rgba(9, 12, 18, 0.68);
+    height: 16px;
+    /* padding: 0 2px; */
+    border-radius: 20px;
+    border: 2px solid #c52fc5;
+    background-color: rgba(9, 12, 18, 0.15);
     -webkit-backdrop-filter: blur(6px);
     backdrop-filter: blur(6px);
-    color: #4cc38a;
+    color: #c52fc5;
+    font-size: 12px;
+    font-weight: 500;
+    line-height: 1;
     transition: opacity 150ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
@@ -415,16 +423,13 @@ body.theme-dark::after {
     opacity: 0;
 }
 
-.poster-card-fav-ribbon .ti {
-    font-size: 14px;
-}
-
 .poster-card-title-bar {
     display: flex;
     align-items: baseline;
     gap: 8px;
     padding: 8px 12px;
     line-height: 1.45;
+    border-top: 2px var(--tblr-border-style) rgb(4 86 247 / 90%);
 }
 
 .poster-card-title {
@@ -1450,6 +1455,10 @@ a:hover {
     border-color: var(--tblr-border-color-translucent);
 }
 
+.active-grid .glass-card {
+    border-color: var(--tblr-primary);
+}
+
 /* 分区切换样式 */
 .category-tabs {
     display: flex;
@@ -1671,6 +1680,7 @@ h1.login_title>label {
     background-color: var(--card-transparent-bg);
     border-radius: 5px;
     margin-left: calc(var(--tblr-gutter-x) * .5);
+    border: 1px solid var(--lit-person-card-bg);
 }
 
 .secondry-text-color {
@@ -1694,14 +1704,20 @@ div#main-info-container > * {
 }
 
 .bg-mask-layer {
-    position: absolute !important;
+    position: fixed !important;  /* 固定在视口，不随页面滚动 */
     inset: 0 0 auto 0;
     height: 100dvh;      /* 固定首屏高度 */
     container-type: size;
     z-index: 0 !important;
     overflow: hidden;            /* 裁掉轮播组件可能的溢出，不影响页面滚动 */
     pointer-events: none;
-    container-type: size;
+}
+
+/* 桌面端内容区左侧有 15rem 侧边栏，背景层与之对齐 */
+@media (min-width: 992px) {
+    .bg-mask-layer {
+        left: 15rem;
+    }
 }
 
 /* ========== 背景图：径向遮罩 ========== */

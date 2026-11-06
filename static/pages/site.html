@@ -45,7 +45,7 @@
           aria-label="搜索站点">
       </div>
     </div>
-    <div class="d-grid gap-3 grid-info-card" id="active-list">
+    <div class="d-grid gap-3 grid-info-card active-grid" id="active-list">
     </div>
     <div class="d-grid gap-3 grid-info-card mt-2" id="sites-list">
     </div>
@@ -991,6 +991,9 @@
 
           data.Sites.forEach(site => {
 
+            // 站点等级去掉括号及其中的内容，如“Power User（xxx）”
+            const siteLevel = String(site.level || '').replace(/[（(][^（）()]*[）)]/g, '').trim();
+
             const site_card = `
               <div class="card glass-card" id='${site.indexer_id}-pop-card'>
                 <div class="card-body p-3" >
@@ -1002,7 +1005,7 @@
                         </div>
                         <span>
                           <a class="text-reset card-text" href="${site.strict_url}" target="_blank">${site.name}</a>
-                          ${site.level ? `<span class="badge bg-primary-lt text-blue ms-1">${site.level}</span>` : ''}
+                          ${siteLevel ? `<span class="badge bg-primary-lt text-blue ms-1">${siteLevel}</span>` : ''}
                         </span>
                       </div>
                       <div class="col-auto">

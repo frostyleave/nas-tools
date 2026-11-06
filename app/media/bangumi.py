@@ -1,5 +1,5 @@
-from typing import ClassVar
 from datetime import datetime
+from typing import ClassVar
 
 import requests
 from cachetools import TTLCache, cached

@@ -153,24 +153,38 @@
       this._favRibbonEl.hidden = fav !== '2';
 
       // 左上角显示媒体类型（电影 / 剧集 / 动漫）
-      var typeLabel = resType === '电视剧' ? '剧集' : resType;
+      var typeLabel = resType;
       this._leftBadgeEl.hidden = !typeLabel;
       if (typeLabel) {
-        this._leftBadgeEl.className = 'poster-card-badge poster-card-left-badge';
         this._leftBadgeEl.textContent = typeLabel;
+        this._leftBadgeEl.className = 'poster-card-badge poster-card-left-badge';
+        if (resType == '电影') {
+          this._leftBadgeEl.className += ' bg-green';
+        } else if (resType == '动漫') {
+          this._leftBadgeEl.className += ' bg-orange';
+        } else {
+          this._leftBadgeEl.className += ' bg-flickr';
+        }
       }
 
-      // 右上角评分：琥珀色星标 + 数字，作为卡片唯一的强调色
-      const hasVote = !!vote && vote !== '0.0' && vote !== '0';
-      if (hasVote) {
-        const isDouban = tmdbId.startsWith('DB:');
+      // 右上角评分：来源图标 + 数字（豆瓣用豆瓣图标，TMDB 用星标）
+      // 豆瓣来源即使评分为 0 或缺失也显示图标，仅省略数字
+      const isDouban = tmdbId.startsWith('DB:');
+      const hasVote = !!vote && vote !== '0.0' && vote !== '0' && vote !== '10';
+      if (hasVote || isDouban) {
         this._rightBadgeEl.className = 'poster-card-badge poster-card-right-badge' +
-          (isDouban ? '' : ' poster-card-badge-tmdb');
-        const star = document.createElement('i');
-        star.className = 'ti ti-star-filled';
-        const value = document.createElement('span');
-        value.textContent = vote;
-        this._rightBadgeEl.replaceChildren(star, value);
+          (isDouban ? ' poster-card-badge-douban' : ' poster-card-badge-tmdb');
+        const sourceIcon = document.createElement('i');
+        sourceIcon.className = isDouban ? 'ti ti-brand-douban' : 'ti ti-star-filled';
+        if (hasVote) {
+          const value = document.createElement('span');
+          const score = parseFloat(vote);
+          // 评分固定显示 1 位小数
+          value.textContent = isNaN(score) ? vote : score.toFixed(1);
+          this._rightBadgeEl.replaceChildren(sourceIcon, value);
+        } else {
+          this._rightBadgeEl.replaceChildren(sourceIcon);
+        }
         this._rightBadgeEl.hidden = false;
       } else {
         this._rightBadgeEl.hidden = true;
@@ -181,7 +195,16 @@
       if (title) {
         this._titleTextEl.textContent = title;
         this._titleBarEl.title = title;
+
+        if (resType == '电影') {
+          this._titleBarEl.className += ' border-green';
+        } else if (resType == '动漫') {
+          this._titleBarEl.className += ' border-orange';
+        } else {
+          this._titleBarEl.className += ' border-flickr';
+        }
       }
+      
       this._yearTextEl.hidden = !year;
       if (year) {
         this._yearTextEl.textContent = year;
