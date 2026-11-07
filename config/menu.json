@@ -52,27 +52,20 @@
   {
     "name": "订阅",
     "level": 1,
-    "page": "tv_rss",
+    "page": "rss",
     "group": "任务",
     "icon": "<i class=\"ti ti-rss fs-2 \"></i>",
     "html": "/static/pages/rss.html?t=TV",
     "nav": [
       {
-        "name": "剧集订阅",
-        "page": "tv_rss",
-        "icon": "<i class=\"ti ti-device-tv fs-2 \"></i>",
-        "html": "/static/pages/rss.html?t=TV"
-      },
-      {
-        "name": "电影订阅",
-        "page": "movie_rss",
-        "icon": "<i class=\"ti ti-movie fs-2 \"></i>",
-        "html": "/static/pages/rss.html?t=MOV"
+        "name": "订阅",
+        "page": "rss",
+        "icon": "<i class=\"ti ti-rss fs-2 \"></i>",
+        "html": "/static/pages/rss.html"
       },
       {
         "name": "自定义订阅",
         "page": "user_rss",
-        "level": 9,
         "icon": "<i class=\"ti ti-file-rss fs-2 \"></i>",
         "html": "/static/pages/user_rss.html"
       },

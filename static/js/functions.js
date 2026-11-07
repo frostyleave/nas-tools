@@ -1250,7 +1250,7 @@ function show_add_rss_media_modal(mtype, tmdbid, rss_name, rss_year, rss_season=
 
   // 界面初始化
   $("#rss_id").val("");
-  $("#rss_modal_title").text("新增订阅");
+  $("#rss_modal_title").text("新增订阅-" + (mtype === "TV" ? "电视剧" : "电影"));
   $("#rss_name").val(rss_name || '').attr("readonly", false);
   $("#rss_year").val(rss_year || '').attr("readonly", false);
   $("#rss_keyword").val("");
@@ -1322,7 +1322,8 @@ function show_edit_rss_media_modal(rssid, type) {
   $("#system-media-modal").modal('hide');
   $("#rss_id").val(rssid);
   $("#rss_type").val(type);
-  $("#rss_modal_title").text("编辑订阅");
+  const is_tv = type === "TV" || type === "电视剧";
+  $("#rss_modal_title").text("编辑订阅-" + (is_tv ? "电视剧" : "电影"));
 
   // 刷新下拉框，站点列表渲染完成后才能回显选中的站点
   const sites_ready = refresh_rss_download_setting_dirs();

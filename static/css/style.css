@@ -589,7 +589,7 @@ body.theme-dark::after {
     }
 }
 
-@media (min-width: 992px) {
+@media (min-width: 1025px) {
     #plugins-list {
         grid-template-columns: repeat(3, minmax(0, 1fr));
     }
@@ -597,7 +597,7 @@ body.theme-dark::after {
 
 @media (min-width: 1400px) {
     #plugins-list {
-        grid-template-columns: repeat(4, minmax(0, 1fr));
+        grid-template-columns: repeat(5, minmax(0, 1fr));
     }
 }
 
@@ -1185,6 +1185,55 @@ body.theme-dark::after {
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
     overflow: hidden;
+}
+
+/* 订阅列表：卡片与各网格行等高，状态工具栏统一贴底对齐 */
+#rss-list {
+    grid-auto-rows: 1fr;
+}
+
+#rss-list > .card > .card-body.media-box {
+    display: flex;
+    flex-direction: column;
+}
+
+#rss-list > .card > .card-body.media-box > .media-content {
+    flex: 1 1 auto;
+}
+
+/* 订阅卡片标题固定高度，超长标题省略显示，保证卡片内容对齐 */
+.rss-card-title {
+    height: 1.75rem;
+    line-height: 1.75rem;
+    overflow: hidden;
+}
+
+.rss-card-title a {
+    display: block;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+.card-body.media-box {
+    padding-bottom: 10px;
+    padding-top: 10px;
+}
+
+/* 订阅卡片状态工具栏固定高度，避免状态文字换行导致卡片错位 */
+.rss-card-toolbar {
+    align-items: center;
+    overflow: hidden;
+    white-space: nowrap;
+}
+
+.rss-card-toolbar > div:first-child {
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.rss-card-toolbar > div:last-child {
+    flex-shrink: 0;
 }
 
 /* 插件卡片简介最多显示两行 */

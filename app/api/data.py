@@ -246,24 +246,15 @@ def rss(t: str = "MOV"):
     rule_groups = {str(group["id"]): group["name"] for group in Filter().get_rule_groups()}
     download_settings = Downloader().get_download_setting()
 
-    rss_items = []
-    rss_type = 'MOV'
-    type_name = '电影'
-
-    if t == 'TV':
-        rss_items = Subscribe().get_subscribe_tvs()
-        rss_type = 'TV'
-        type_name = '电视剧'
-    else:
-        rss_items = Subscribe().get_subscribe_movies()
+    rss_tvs = Subscribe().get_subscribe_tvs()
+    rss_movies = Subscribe().get_subscribe_movies()
 
     return response(data=
         {
             "RuleGroups": rule_groups,
             "DownloadSettings": dict(download_settings) if download_settings else {},
-            "Items": rss_items,
-            "Type": rss_type,
-            "TypeName": type_name,
+            "Movies": rss_movies,
+            "Tvs": rss_tvs,
         })
 
 

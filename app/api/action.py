@@ -2618,28 +2618,32 @@ class WebAction:
 
     def __re_rss_history(self, data):
         rssid = data.get("rssid")
-        rtype = data.get("type")
-        rssinfo = Rss().get_rss_history(rtype=rtype, rid=rssid)
-        if rssinfo:
-            if rtype == "MOV":
-                mtype = MediaType.MOVIE
-            else:
-                mtype = MediaType.TV
-            if rssinfo[0].SEASON:
-                season = int(str(rssinfo[0].SEASON).replace("S", ""))
-            else:
-                season = None
-            code, msg, _ = Subscribe().add_rss_subscribe(mtype=mtype,
-                                                         name=rssinfo[0].NAME,
-                                                         year=rssinfo[0].YEAR,
-                                                         channel=RssType.Auto,
-                                                         season=season,
-                                                         mediaid=rssinfo[0].TMDBID,
-                                                         total_ep=rssinfo[0].TOTAL,
-                                                         current_ep=rssinfo[0].START)
-            return {"code": code, "msg": msg}
-        else:
+        if not rssid:
+            return {"code": 1, "msg": "订阅历史id不能为空"}
+        
+        rssinfo_lst = Rss().get_rss_history(rid=rssid)
+        if not rssinfo_lst:
             return {"code": 1, "msg": "订阅历史记录不存在"}
+
+        rssinfo = rssinfo_lst[0]
+        if rssinfo.TYPE == "MOV":
+            mtype = MediaType.MOVIE
+        else:
+            mtype = MediaType.TV
+        if rssinfo.SEASON:
+            season = int(str(rssinfo.SEASON).replace("S", ""))
+        else:
+            season = None
+        code, msg, _ = Subscribe().add_rss_subscribe(mtype=mtype,
+                                                     name=rssinfo.NAME,
+                                                     year=rssinfo.YEAR,
+                                                     channel=RssType.Auto,
+                                                     season=season,
+                                                     mediaid=rssinfo.TMDBID,
+                                                     total_ep=rssinfo.TOTAL,
+                                                     current_ep=rssinfo.START)
+        return {"code": code, "msg": msg}
+
 
     def __share_filtergroup(self, data):
         gid = data.get("id")

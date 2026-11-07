@@ -6,13 +6,11 @@
         <h2 class="page-title">订阅历史</h2>
       </div>
       <div class="col-auto ms-auto d-print-none">
-        <a href="javascript:void(0)" id="back-btn"
-           class="btn d-none d-sm-inline-block" title="返回">
+        <a href="javascript:navmenu('rss')" id="back-btn" class="btn d-none d-sm-inline-block" title="返回">
           <i class="ti ti-arrow-back-up fs-3"></i>
           返回
         </a>
-        <a href="javascript:void(0)" id="back-btn-mobile"
-           class="btn d-sm-none mbtn-action" title="返回">
+        <a href="javascript:navmenu('rss')" id="back-btn-mobile" class="btn d-sm-none mbtn-action" title="返回">
           <i class="ti ti-arrow-back-up fs-3"></i>
         </a>
       </div>
@@ -61,9 +59,8 @@
 <script type="text/javascript">
   //重新订阅
   function re_rss_history(rssid) {
-    const pageData = $("#rss-history-container").data('pageData');
-    const currentType = pageData ? pageData.currentType : 'TV';
-    axios_post_do("re_rss_history", {"rssid": rssid, "type": currentType}, function (ret) {
+
+    axios_post_do("re_rss_history", {"rssid": rssid}, function (ret) {
       if (ret.code == 0) {
         show_success_modal("重新订阅成功！");
       } else {
@@ -84,24 +81,16 @@
 <script type="text/javascript">
 
   $(document).ready(function() {
+    
     // 获取URL参数中的类型
     const [path, queryString] = window.location.hash.split("?");
     const urlParams = new URLSearchParams(queryString);
-    const type = urlParams.get('t') || urlParams.get('type') || 'TV';
-
-    // 设置页面数据，避免污染window对象
-    const pageData = {
-      currentType: type,
-      currentTypeName: type === 'TV' ? '电视剧' : '电影'
-    };
-
-    // 将数据存储在页面容器中
-    $("#rss-history-container").data('pageData', pageData);
+    const type = urlParams.get('t') || urlParams.get('type') || '';
 
     // 设置返回按钮链接
-    const backUrl = type === 'MOV' ? 'movie_rss' : 'tv_rss';
-    $('#back-btn').attr('href', `javascript:navmenu('${backUrl}')`);
-    $('#back-btn-mobile').attr('href', `javascript:navmenu('${backUrl}')`);
+    // const backUrl = type === 'MOV' ? 'movie_rss' : 'tv_rss';
+    // $('#back-btn').attr('href', `javascript:navmenu('${backUrl}')`);
+    // $('#back-btn-mobile').attr('href', `javascript:navmenu('${backUrl}')`);
 
     axios_post('/data/rss_history', {type: type}, function(response) {
 
