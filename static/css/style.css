@@ -545,102 +545,97 @@ body.theme-dark::after {
     grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr));
 }
 
-/* 插件卡片：宽度约为原卡片的两倍，按可用宽度自动排列，手机端一行一个 */
-.grid-plugin-card {
-    grid-template-columns: repeat(auto-fill, minmax(30rem, 1fr));
+/* 插件卡片固定宽度，已安装列表与插件市场宽度完全一致，列数随容器自适应 */
+.plugin-grid {
+    --plugin-state-on: #16a34a;
+    --plugin-muted: color-mix(in srgb, var(--tblr-body-color) 70%, transparent);
+    grid-template-columns: repeat(auto-fill, 22rem);
+    justify-content: center;
+    gap: 1rem;
 }
 
+.theme-dark .plugin-grid {
+    --plugin-state-on: #4cc38a;
+}
+
+/* 手机端容器放不下固定宽度卡片时改为整行 */
 @media (max-width: 575.98px) {
-    .grid-plugin-card {
+    .plugin-grid {
         grid-template-columns: 1fr;
     }
 }
 
-.plugin-card-main {
-    min-height: 7rem;
-}
-
-/* 插件卡片：整卡使用插件主题色渐变，靠近图标处更明显，文字区域逐渐过渡到卡片底色 */
-.plugin-card-tinted {
-    background-color: var(--tblr-card-bg);
-    background-image: linear-gradient(
-        135deg,
-        color-mix(in srgb, var(--plugin-color, transparent) 45%, transparent) 0%,
-        color-mix(in srgb, var(--plugin-color, transparent) 10%, transparent) 55%,
-        transparent 100%
-    );
-}
-
-/* 已安装插件卡片：极淡插件色底 + 细边框，状态与操作收在底部栏 */
-#plugins-list {
-    --plugin-state-on: #16a34a;
-    --plugin-muted: color-mix(in srgb, var(--tblr-body-color) 70%, transparent);
-    grid-template-columns: 1fr;
-    gap: 1rem;
-}
-
-.theme-dark #plugins-list {
-    --plugin-state-on: #4cc38a;
-}
-
-@media (min-width: 576px) {
-    #plugins-list {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
+/* 加宽插件市场弹窗，为竖向滚动条预留空间，保证竖屏滚动时也能排下 3 张卡片 */
+@media (min-width: 1200px) {
+    #modal-plugin-apps .modal-dialog {
+        max-width: 1170px;
     }
 }
 
-@media (min-width: 1025px) {
-    #plugins-list {
-        grid-template-columns: repeat(3, minmax(0, 1fr));
-    }
+/* 插件市场：未安装与已安装之间的分界线，横跨整行，中间标注分组 */
+.plugin-grid .plugin-divider {
+    display: flex;
+    grid-column: 1 / -1;
+    align-items: center;
+    gap: 0.75rem;
+    margin: 0.25rem 0;
+    color: var(--plugin-muted);
+    font-size: 0.75rem;
+    line-height: 1rem;
+    white-space: nowrap;
 }
 
-@media (min-width: 1400px) {
-    #plugins-list {
-        grid-template-columns: repeat(5, minmax(0, 1fr));
-    }
+.plugin-grid .plugin-divider::before,
+.plugin-grid .plugin-divider::after {
+    content: "";
+    flex: 1 1 0;
+    height: 1px;
+    background-color: color-mix(in srgb, var(--tblr-body-color) 14%, transparent);
 }
 
-#plugins-list .plugin-card {
+.plugin-grid .plugin-card {
     display: flex;
     flex-direction: column;
     min-width: 0;
     overflow: hidden;
     background-color: color-mix(in srgb, var(--plugin-color, var(--tblr-bg-surface)) 7%, var(--tblr-bg-surface));
     border: 1px solid color-mix(in srgb, var(--tblr-body-color) 9%, transparent);
-    border-radius: 14px;
+    border-radius: 8px;
     box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
     transition: border-color 160ms cubic-bezier(0.22, 1, 0.36, 1), box-shadow 160ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-#plugins-list .plugin-card:hover {
+.plugin-grid .plugin-card:hover {
     border-color: color-mix(in srgb, var(--plugin-color, var(--tblr-body-color)) 38%, transparent);
     box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
 }
 
-.theme-dark #plugins-list .plugin-card {
+.theme-dark .plugin-grid .plugin-card {
     box-shadow: none;
 }
 
-.theme-dark #plugins-list .plugin-card:hover {
+.theme-dark .plugin-grid .plugin-card:hover {
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.22);
 }
 
-#plugins-list .plugin-card-body {
+.plugin-grid .plugin-card-body {
     display: flex;
     align-items: flex-start;
     gap: 1rem;
     padding: 1.25rem 1.25rem 1rem;
+}
+
+.plugin-grid .plugin-card-body.is-clickable {
     cursor: pointer;
 }
 
-#plugins-list .plugin-card-body:focus-visible {
+.plugin-grid .plugin-card-body:focus-visible {
     outline: 2px solid var(--tblr-primary);
     outline-offset: -2px;
     border-radius: 14px 14px 0 0;
 }
 
-#plugins-list .plugin-icon {
+.plugin-grid .plugin-icon {
     display: flex;
     align-items: center;
     justify-content: center;
@@ -660,12 +655,12 @@ body.theme-dark::after {
     line-height: 1;
 }
 
-#plugins-list .plugin-copy {
+.plugin-grid .plugin-copy {
     flex: 1 1 auto;
     min-width: 0;
 }
 
-#plugins-list .plugin-name {
+.plugin-grid .plugin-name {
     overflow: hidden;
     color: var(--tblr-body-color);
     font-size: 0.9375rem;
@@ -675,7 +670,7 @@ body.theme-dark::after {
     white-space: nowrap;
 }
 
-#plugins-list .plugin-desc {
+.plugin-grid .plugin-desc {
     display: -webkit-box;
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
@@ -686,7 +681,7 @@ body.theme-dark::after {
     line-height: 1.5;
 }
 
-#plugins-list .plugin-card-footer {
+.plugin-grid .plugin-card-footer {
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -698,27 +693,28 @@ body.theme-dark::after {
     line-height: 1rem;
 }
 
-#plugins-list .plugin-state {
+.plugin-grid .plugin-state {
     display: inline-flex;
     align-items: center;
     gap: 0.5rem;
     color: var(--plugin-muted);
 }
 
-#plugins-list .plugin-state-dot {
+.plugin-grid .plugin-state-dot {
     width: 8px;
     height: 8px;
     border-radius: 50%;
     background-color: var(--plugin-state-on);
 }
 
-#plugins-list .plugin-state.is-off .plugin-state-dot {
+.plugin-grid .plugin-state.is-off .plugin-state-dot {
     background-color: red;
     border: 1.5px solid color-mix(in srgb, var(--tblr-body-color) 32%, transparent);
 }
 
-#plugins-list .plugin-remove {
+.plugin-grid .plugin-action {
     display: inline-flex;
+    flex: 0 0 auto;
     align-items: center;
     gap: 0.5rem;
     margin: -4px -8px -4px 0;
@@ -729,14 +725,44 @@ body.theme-dark::after {
     transition: color 150ms cubic-bezier(0.22, 1, 0.36, 1), background-color 150ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-#plugins-list .plugin-remove .ti {
+.plugin-grid .plugin-action .ti {
     font-size: 1rem;
 }
 
-#plugins-list .plugin-remove:hover,
-#plugins-list .plugin-remove:focus-visible {
+.plugin-grid .plugin-action.is-danger {
     color: var(--tblr-danger);
-    background-color: color-mix(in srgb, var(--tblr-danger) 8%, transparent);
+}
+
+.plugin-grid .plugin-action.is-primary {
+    color: var(--tblr-primary);
+}
+
+.plugin-grid .plugin-action.is-danger:hover,
+.plugin-grid .plugin-action.is-danger:focus-visible {
+    background-color: color-mix(in srgb, var(--tblr-danger) 10%, transparent);
+}
+
+.plugin-grid .plugin-action.is-primary:hover,
+.plugin-grid .plugin-action.is-primary:focus-visible {
+    background-color: color-mix(in srgb, var(--tblr-primary) 10%, transparent);
+}
+
+.plugin-grid .plugin-author {
+    min-width: 0;
+    overflow: hidden;
+    color: var(--plugin-muted);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.plugin-grid .plugin-author a {
+    color: inherit;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+}
+
+.plugin-grid .plugin-author a:hover {
+    color: var(--tblr-primary);
 }
 
 .grid-media-card {
@@ -1259,14 +1285,6 @@ body.theme-dark::after {
 .rss-card-toolbar > div:first-child {
     overflow: hidden;
     text-overflow: ellipsis;
-}
-
-/* 插件卡片简介最多显示两行 */
-.plugin-card-desc {
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
 }
 
 .card-text {

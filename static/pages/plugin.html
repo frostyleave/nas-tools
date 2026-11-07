@@ -23,7 +23,7 @@
 <div class="page-body" id="plugins-container" style="display: none;">
   <!-- 组件展示 -->
   <div class="container-xl">
-    <div class="d-grid gap-3 grid-plugin-card" id="plugins-list">
+    <div class="d-grid gap-3 grid-info-card plugin-grid" id="plugins-list">
     </div>
   </div>
 </div>
@@ -45,7 +45,7 @@
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
         <div class="modal-body" style="min-height:800px;">
-          <div class="d-grid gap-3 grid-plugin-card align-items-start" id="plugin_apps_content" style="display:none;"></div>
+          <div class="d-grid gap-3 plugin-grid" id="plugin_apps_content" style="display:none;"></div>
         </div>
       </div>
     </div>
@@ -96,6 +96,21 @@
       .replace(/"/g, '&quot;');
   }
 
+  // 插件主题色：十六进制直接使用，bg-* 映射为对应的 Tabler 颜色变量
+  function get_plugin_color(color) {
+    if (!color) return '';
+    if (color.startsWith('#')) return color;
+    if (color.startsWith('bg-')) return `var(--tblr-${color.slice(3)})`;
+    return '';
+  }
+
+  // 插件图标背景样式（支持网络地址与内置图标名）
+  function get_plugin_icon_style(icon) {
+    if (!icon) return '';
+    let url = icon.startsWith('http') ? icon : `../static/img/plugins/${icon.split('/').pop()}`;
+    return `style="background-image: url('${escape_plugin_text(url)}')"`;
+  }
+
   // 保存配置
   function save_config_plugin(id, prefix, func) {
     let params = input_select_GetVal(`modal-plugin-${id}`, prefix);
@@ -126,64 +141,67 @@
     load_plugin_apps_modal();
   }
 
-  // 绘制插件表格
+  // 生成插件市场单个卡片
+  function build_plugin_app_card(pid, plugin) {
+    var pluginColor = get_plugin_color(plugin.color);
+    var iconStyle = get_plugin_icon_style(plugin.icon);
+    var pluginName = escape_plugin_text(plugin.name);
+    var pluginDesc = escape_plugin_text(strip_plugin_emoji(plugin.desc));
+    var pluginInitials = escape_plugin_text((plugin.name || '').substring(0, 2));
+    var author = escape_plugin_text(plugin.author);
+    var authorHtml = plugin.author_url
+      ? `<a href="${escape_plugin_text(plugin.author_url)}" target="_blank" rel="noopener">${author}</a>`
+      : `<span>${author}</span>`;
+    var actionHtml = plugin.installed
+      ? `<a href="javascript:uninstall_plugin('${pid}', '${escape_plugin_js_arg(plugin.name)}')" class="plugin-action is-danger" title="卸载">
+           <i class="ti ti-trash"></i><span>卸载</span>
+         </a>`
+      : `<a href="javascript:install_plugin('${pid}', '${escape_plugin_js_arg(plugin.name)}')" class="plugin-action is-primary" title="安装">
+           <i class="ti ti-cloud-download"></i><span>安装</span>
+         </a>`;
+
+    return `
+      <div class="plugin-card" ${pluginColor ? `style="--plugin-color: ${pluginColor}"` : ''}>
+        <div class="plugin-card-body">
+          <span class="plugin-icon" ${iconStyle}>${!plugin.icon ? pluginInitials : ''}</span>
+          <div class="plugin-copy">
+            <div class="plugin-name">${pluginName}</div>
+            <div class="plugin-desc">${pluginDesc}</div>
+          </div>
+        </div>
+        <div class="plugin-card-footer">
+          <span class="plugin-author">作者：${authorHtml}</span>
+          ${actionHtml}
+        </div>
+      </div>
+      `;
+  }
+
+  // 绘制插件市场列表（未安装在上、已安装在下，中间用分界线隔开）
   function draw_plugin_table(plugin_query_result, is_external) {
 
     if (!plugin_query_result.result) {
       return;
     }
 
+    var uninstalledHtml = '';
+    var installedHtml = '';
     for (let pid in plugin_query_result.result) {
       let plugin = plugin_query_result.result[pid];
-
-      // 插件主题色：十六进制直接使用，bg-* 映射为对应的 Tabler 颜色变量
-      let pluginColor = '';
-      if (plugin.color && plugin.color.startsWith('#')) {
-        pluginColor = plugin.color;
-      } else if (plugin.color && plugin.color.startsWith('bg-')) {
-        pluginColor = `var(--tblr-${plugin.color.slice(3)})`;
+      if (plugin.installed) {
+        installedHtml += build_plugin_app_card(pid, plugin);
+      } else {
+        uninstalledHtml += build_plugin_app_card(pid, plugin);
       }
-
-      let plugin_html = `
-        <div class="card card-link-pop card-borderless p-0 shadow-sm rounded-3 overflow-hidden plugin-card-tinted" ${pluginColor ? `style="--plugin-color: ${pluginColor}"` : ''} href="javascript:void(0)">
-          <div class="d-flex align-items-center gap-3 p-3 plugin-card-main">
-            <span class="avatar avatar-md avatar-rounded flex-shrink-0" style="background-image: url('../static/img/plugins/${plugin.icon.split('/').pop()}')"></span>
-            <div class="flex-fill text-start overflow-hidden">
-              <div class="card-title mb-1">${plugin.name}</div>
-              <div class="text-muted plugin-card-desc secondry-text-color">${plugin.desc}</div>
-              <div class="text-muted mt-1">
-                <strong>作者：</strong>
-                ${plugin.author_url ? `<a href="${plugin.author_url}" target="_blank">${plugin.author}</a>` : `<span class="text-muted">${plugin.author}</span>`}
-              </div>
-            </div>
-          </div>
-          <div class="d-flex">
-      `;
-
-      plugin_html += `
-          ${plugin.installed ? `
-            <a href="javascript:uninstall_plugin('${pid}', '${plugin.name}')" class="card-btn text-danger">
-              <i class="ti ti-x fs-2 me-1"></i>
-               卸载
-            </a>
-            ` : `
-            <a href="javascript:install_plugin('${pid}', '${plugin.name}')" class="card-btn">
-              <i class="ti ti-cloud-download fs-2 me-1"></i>
-               安装
-            </a>
-          `}
-      `;
-
-      plugin_html += `
-          </div>
-        </div>
-      `;
-
-      $("#plugin_apps_content").append(plugin_html);
-
     }
 
-    $("#plugin_apps_content").show();
+    var content = uninstalledHtml;
+    if (uninstalledHtml && installedHtml) {
+      content += `<div class="plugin-divider" role="separator">已安装</div>`;
+    }
+    content += installedHtml;
+
+    $("#plugin_apps_content").html(content).show();
   }
 
   // 加载官方插件
@@ -269,23 +287,8 @@
 
     $.each(pluginList, function (pluginId, pluginAttr) {
 
-      var icon = '';
-      if (pluginAttr.icon) {
-        if (!pluginAttr.icon.startsWith('http')) {
-          icon = `style="background-image: url('../static/img/plugins/${pluginAttr.icon}')"`;
-        } else {
-          icon = `style="background-image: url('${pluginAttr.icon}')"`;
-        }
-      }
-
-      // 插件主题色：十六进制直接使用，bg-* 映射为对应的 Tabler 颜色变量
-      var pluginColor = '';
-      if (pluginAttr.color.startsWith('#')) {
-        pluginColor = pluginAttr.color;
-      } else if (pluginAttr.color.startsWith('bg-')) {
-        pluginColor = `var(--tblr-${pluginAttr.color.slice(3)})`;
-      }
-
+      var icon = get_plugin_icon_style(pluginAttr.icon);
+      var pluginColor = get_plugin_color(pluginAttr.color);
       var isOn = !!pluginAttr.state;
       var pluginName = escape_plugin_text(pluginAttr.name);
       var pluginDesc = escape_plugin_text(strip_plugin_emoji(pluginAttr.desc));
@@ -293,7 +296,7 @@
       // card：图标 + 名称/简介，底部为状态与卸载操作
       var html = `
       <div class="plugin-card" ${pluginColor ? `style="--plugin-color: ${pluginColor}"` : ''}>
-        <div class="plugin-card-body" role="button" tabindex="0"
+        <div class="plugin-card-body is-clickable" role="button" tabindex="0"
              data-bs-toggle="modal" data-bs-target="#modal-plugin-${pluginId}"
              onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click();}">
           <span class="plugin-icon" ${icon}>${!pluginAttr.icon ? pluginInitials : ''}</span>
@@ -304,7 +307,7 @@
         </div>
         <div class="plugin-card-footer">
           <span class="plugin-state${isOn ? '' : ' is-off'}"><span class="plugin-state-dot"></span>${isOn ? '运行中' : '已停用'}</span>
-          <a href="javascript:uninstall_plugin_click('${pluginId}', '${escape_plugin_js_arg(pluginAttr.name)}')" class="plugin-remove" title="卸载">
+          <a href="javascript:uninstall_plugin_click('${pluginId}', '${escape_plugin_js_arg(pluginAttr.name)}')" class="plugin-action is-danger" title="卸载">
             <i class="ti ti-trash"></i><span>卸载</span>
           </a>
         </div>

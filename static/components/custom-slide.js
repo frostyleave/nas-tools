@@ -33,6 +33,8 @@
       this._renderPending = false;
       this._resizeObserver = null;
       this._measureRetryTimer = null;
+      this._scrollRaf = null;       // 翻页动画句柄，null 表示未在动画中
+      this._scrollTarget = 0;       // 动画目标位置（动画中有效）
       this._onResize = () => this._countMaxNumber();
       this._onScroll = () => this._countDisabled();
     }
@@ -77,6 +79,8 @@
 
     disconnectedCallback() {
       window.removeEventListener('resize', this._onResize);
+
+      this._cancelScrollAnimation();
 
       if (this._resizeObserver) {
         this._resizeObserver.disconnect();
@@ -176,6 +180,7 @@
     _renderCards() {
       if (!this._cardNumber) return;
 
+      this._cancelScrollAnimation();
       this._cardNumber.replaceChildren();
 
       if (this._slideCard === null) {
@@ -243,16 +248,21 @@
       const scroll = this._scrollbar;
       const width = this._cardWidth;
       const count = this._cardNumber.children.length;
+      const maxScroll = Math.max(0, scroll.scrollWidth - scroll.clientWidth);
 
-      this._cardCurrent = scroll.scrollLeft === 0
+      // 动画过程中按目标位置计算当前页，滚动事件才触发时不会因为中间位置
+      // 让箭头状态与懒加载来回跳变
+      const position = this._scrollRaf ? this._scrollTarget : scroll.scrollLeft;
+
+      this._cardCurrent = position <= 0
         ? 0
-        : Math.trunc((scroll.scrollLeft + width / 2) / width);
+        : Math.trunc((position + width / 2) / width);
 
-      if (count * width <= scroll.clientWidth) {
+      if (count * width <= scroll.clientWidth || maxScroll <= 0) {
         this._setDisabled(3);
-      } else if (scroll.scrollLeft === 0) {
+      } else if (position <= 0) {
         this._setDisabled(0);
-      } else if (scroll.scrollLeft >= scroll.scrollWidth - scroll.clientWidth - 2) {
+      } else if (position >= maxScroll - 2) {
         this._setDisabled(2);
       } else {
         this._setDisabled(1);
@@ -299,26 +309,74 @@
     _slideNext(next) {
       if (!this._scrollbar || !this._cardWidth) return;
 
+      const scroll = this._scrollbar;
+      const width = this._cardWidth;
+
+      // 动画进行中以目标位置为基准，连续点击才能顺滑接着翻页，
+      // 否则会从半路的位置重新计算，产生一顿一顿的感觉
+      const baseLeft = this._scrollRaf ? this._scrollTarget : scroll.scrollLeft;
+      const baseIndex = baseLeft <= 0
+        ? 0
+        : Math.trunc((baseLeft + width / 2) / width);
+
       const cardIndex = next
-        ? this._cardCurrent + this._cardMax
-        : this._cardCurrent - this._cardMax;
+        ? baseIndex + this._cardMax
+        : baseIndex - this._cardMax;
 
-      let left = cardIndex * this._cardWidth;
-      if (next) {
-        left = Math.min(left, this._scrollbar.scrollWidth - this._scrollbar.clientWidth);
-      } else {
-        left = Math.max(left, 0);
+      const maxScroll = Math.max(0, scroll.scrollWidth - scroll.clientWidth);
+      const left = Math.max(0, Math.min(cardIndex * width, maxScroll));
+
+      this._animateScroll(left);
+    }
+
+    _cancelScrollAnimation() {
+      if (this._scrollRaf) {
+        (window.cancelAnimationFrame || clearTimeout)(this._scrollRaf);
+        this._scrollRaf = null;
+      }
+    }
+
+    _animateScroll(target) {
+      const scroll = this._scrollbar;
+      if (!scroll) return;
+
+      this._cancelScrollAnimation();
+
+      const start = scroll.scrollLeft;
+      const distance = target - start;
+
+      // 目标位置与当前位置几乎一致时不启动动画，避免无意义的抖动
+      if (Math.abs(distance) < 1) {
+        scroll.scrollLeft = target;
+        return;
       }
 
-      if (typeof this._scrollbar.scrollTo === 'function') {
-        try {
-          this._scrollbar.scrollTo({ left: left, behavior: 'smooth' });
-        } catch (e) {
-          this._scrollbar.scrollLeft = left;
+      const raf = window.requestAnimationFrame || ((cb) => setTimeout(() => cb(Date.now()), 16));
+
+      // 距离越长时长略增加，但控制在 320~520ms，保证快慢一致的手感
+      const duration = Math.min(520, 320 + Math.abs(distance) * 0.06);
+      const startTime = (window.performance && performance.now) ? performance.now() : Date.now();
+
+      this._scrollTarget = target;
+
+      const step = (now) => {
+        const progress = Math.min(1, (now - startTime) / duration);
+        // easeInOutCubic：起步和收尾都柔和
+        const eased = progress < 0.5
+          ? 4 * progress * progress * progress
+          : 1 - Math.pow(-2 * progress + 2, 3) / 2;
+
+        scroll.scrollLeft = start + distance * eased;
+
+        if (progress < 1) {
+          this._scrollRaf = raf(step);
+        } else {
+          this._scrollRaf = null;
+          scroll.scrollLeft = target;
         }
-      } else {
-        this._scrollbar.scrollLeft = left;
-      }
+      };
+
+      this._scrollRaf = raf(step);
     }
   }
 
