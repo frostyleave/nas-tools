@@ -1,15 +1,17 @@
 import time
 
-from cacheout import Cache, CacheManager, LRUCache
+from cachetools import LRUCache, TTLCache
 
-CACHES = {
-    "tmdb_supply": {'maxsize': 200}
+# TMDB 搜索结果缓存：按名称缓存搜索结果，LRU 淘汰
+cacheman = {
+    "tmdb_supply": LRUCache(maxsize=200)
 }
 
-cacheman = CacheManager(CACHES, cache_class=LRUCache)
+# config.yaml 10 秒内只加载一次
+ConfigLoadCache = TTLCache(maxsize=1, ttl=10, timer=time.time)
 
-TokenCache = Cache(maxsize=256, ttl=4*3600, timer=time.time, default=None)
+# config.yaml 重新加载后 10 秒内不再加载二级分类策略文件
+ConfigLoadBlockCache = TTLCache(maxsize=1, ttl=10, timer=time.time)
 
-ConfigLoadCache = Cache(maxsize=1, ttl=10, timer=time.time, default=None)
-
-CategoryLoadCache = Cache(maxsize=2, ttl=3, timer=time.time, default=None)
+# 正在使用的二级分类策略文件 3 秒内只加载一次
+CategoryLoadCache = TTLCache(maxsize=2, ttl=3, timer=time.time)

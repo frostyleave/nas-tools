@@ -10,7 +10,7 @@ import log
 from app.db.main_db import MainDb
 from app.db.media_db import MediaDb
 from app.media import Category
-from app.utils.cache_manager import CategoryLoadCache, ConfigLoadCache
+from app.utils.cache_manager import CategoryLoadCache, ConfigLoadBlockCache, ConfigLoadCache
 from app.utils.commons import INSTANCES
 from app.utils.password_hash import generate_password_hash, normalize_password_hash
 from app.utils.string_utils import StringUtils
@@ -178,8 +178,8 @@ class ConfigMonitor(FileSystemEventHandler):
             return
         # 配置文件10秒内只能加载一次
         if file_name == "config.yaml" and not ConfigLoadCache.get(src_path):
-            ConfigLoadCache.set(src_path, True)
-            CategoryLoadCache.set("ConfigLoadBlock", True, ConfigLoadCache.ttl)
+            ConfigLoadCache[src_path] = True
+            ConfigLoadBlockCache["ConfigLoadBlock"] = True
             log.warn(f"【System】进程 {os.getpid()} 检测到系统配置文件已修改，正在重新加载...")
             time.sleep(1)
             # 重新加载配置
@@ -191,8 +191,8 @@ class ConfigMonitor(FileSystemEventHandler):
         # 正在使用的二级分类策略文件3秒内只能加载一次，配置文件加载时，二级分类策略文件不加载
         elif file_name == os.path.basename(Config().category_path) \
                 and not CategoryLoadCache.get(src_path) \
-                and not CategoryLoadCache.get("ConfigLoadBlock"):
-            CategoryLoadCache.set(src_path, True)
+                and not ConfigLoadBlockCache.get("ConfigLoadBlock"):
+            CategoryLoadCache[src_path] = True
             log.warn(f"【System】进程 {os.getpid()} 检测到二级分类策略 {file_head} 配置文件已修改，正在重新加载...")
             time.sleep(1)
             # 重新加载二级分类策略

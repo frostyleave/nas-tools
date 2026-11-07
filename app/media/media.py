@@ -851,7 +851,7 @@ class MediaService:
             is_movie = False
             if not cache_name:
                 cache_name, is_movie = self.__search_engine(name)
-                cacheman["tmdb_supply"].set(name, cache_name)
+                cacheman["tmdb_supply"][name] = cache_name
             if cache_name:
                 log.info(f"【Meta】开始辅助查询：{cache_name} ...")
                 if is_movie:
@@ -1173,7 +1173,7 @@ class MediaService:
                             is_movie = False
                             if not cache_name:
                                 cache_name, is_movie = self.__search_engine(meta_info.get_name())
-                                cacheman["tmdb_supply"].set(meta_info.get_name(), cache_name)
+                                cacheman["tmdb_supply"][meta_info.get_name()] = cache_name
                             if cache_name:
                                 log.info(f"【Meta】开始辅助查询：{cache_name} ...")
                                 if is_movie:

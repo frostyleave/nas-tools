@@ -2,8 +2,8 @@ import re
 import sys
 import time
 from datetime import datetime
+from zoneinfo import ZoneInfo
 
-import pytz
 from apscheduler.executors.pool import ThreadPoolExecutor
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.schedulers.base import STATE_STOPPED
@@ -793,7 +793,7 @@ class BrushTaskV2:
                     min_pubdate = min_max_pubdates[0]
                     max_pubdate = min_max_pubdates[1] if len(min_max_pubdates) > 1 else None
 
-                    localtz = pytz.timezone(Config().get_timezone())
+                    localtz = ZoneInfo(Config().get_timezone())
                     file_pubdate = pubdate.astimezone(localtz)
 
                     localnowtime = datetime.now().astimezone(localtz)

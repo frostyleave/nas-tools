@@ -3,7 +3,7 @@ import re
 from functools import lru_cache
 from urllib.parse import quote, urlencode
 
-import chardet
+from charset_normalizer import from_bytes
 from jinja2 import Environment, Template
 from pyquery import PyQuery
 
@@ -232,16 +232,17 @@ class TorrentSpider:
             log.warn(f"【Spider】[{self.indexername}] 请求失败: {searchurl}")
             return ''
         
-        # 使用chardet检测字符编码
+        # 使用 charset_normalizer 检测字符编码
         raw_data = ret.content
         if raw_data:
             try:
-                result = chardet.detect(raw_data)
-                encoding = result['encoding']
+                match = from_bytes(raw_data).best()
+                if not match:
+                    raise ValueError("未检测到字符编码")
                 # 解码为字符串
-                return raw_data.decode(encoding)
+                return raw_data.decode(match.encoding)
             except Exception as e:
-                log.debug(f"chardet解码失败: {e!s}")
+                log.debug(f"charset_normalizer解码失败: {e!s}")
                 # 探测utf-8解码
                 if re.search(r"charset=\"?utf-8\"?", ret.text, re.IGNORECASE):
                     ret.encoding = "utf-8"

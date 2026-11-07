@@ -9,12 +9,24 @@ import cn2an
 import dateparser
 from dateutil.parser import isoparse
 from dateutil.parser import parse as parse_date
-from zhon.hanzi import punctuation as zh_punc
 
 import log
 from app.utils import zhconv_compat as zhconv
 from app.utils.time_utils import TimeUtils
 from app.utils.types import MediaType
+
+# 中文标点符号（内联自 zhon.hanzi.punctuation，避免额外依赖）
+ZH_PUNC = (
+    "＂＃＄％＆＇（）＊＋"
+    "，－／：；＜＝＞＠［"
+    "＼］＾＿｀｛｜｝～｟"
+    "｠｢｣､　、〃〈〉《"
+    "》「」『』【】〔〕〖"
+    "〗〘〙〚〛〜〝〞〟〰"
+    "〾〿–—‘’‛“”„"
+    "‟…‧﹏﹑﹔·．！？"
+    "｡。"
+)
 
 # 需要忽略的特殊字符
 CONVERT_EMPTY_CHARS = r"[、.。,，・·:：;；!！'’\"“”()（）\[\]【】「」\-——\+\|\\_/&#～~]"
@@ -198,8 +210,8 @@ class StringUtils:
         if not text:
             return False
 
-        # 英文标点（string.punctuation）+ 中文标点（zhon.hanzi.punctuation）
-        allowed_punct = re.escape(zh_punc + string.punctuation)
+        # 英文标点（string.punctuation）+ 中文标点（ZH_PUNC）
+        allowed_punct = re.escape(ZH_PUNC + string.punctuation)
 
         # 匹配规则：
         # \u4e00-\u9fff 是中文基本区（汉字）
