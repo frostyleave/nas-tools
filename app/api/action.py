@@ -156,6 +156,7 @@ class WebAction:
             "test_mediaserver": self.__test_mediaserver,
             "change_password": self.__change_password,
             "refresh_rss": self.__refresh_rss,
+            "set_rss_state": self.__set_rss_state,
             "delete_tmdb_cache": self.__delete_tmdb_cache,
             "movie_calendar_data": self.__movie_calendar_data,
             "tv_calendar_data": self.__tv_calendar_data,
@@ -1044,6 +1045,13 @@ class WebAction:
         page = data.get("page")
         mtype = MediaType.MOVIE if data.get(
             "type") in Constants.MOVIE_TYPES else MediaType.TV
+        # 编辑订阅时保持原有的暂停状态
+        state = "D"
+        if rssid:
+            rssinfo = _subscribe.get_subscribe_movies(rid=rssid) if mtype == MediaType.MOVIE \
+                else _subscribe.get_subscribe_tvs(rid=rssid)
+            if rssinfo and next(iter(rssinfo.values())).get("state") == 'P':
+                state = "P"
 
         media_info = None
         if isinstance(season, list):
@@ -1068,6 +1076,7 @@ class WebAction:
                                                                      filter_exclude=filter_exclude,
                                                                      save_path=save_path,
                                                                      download_setting=download_setting,
+                                                                     state=state,
                                                                      rssid=rssid)
                 if code != 0:
                     break
@@ -1092,6 +1101,7 @@ class WebAction:
                                                                  download_setting=download_setting,
                                                                  total_ep=total_ep,
                                                                  current_ep=current_ep,
+                                                                 state=state,
                                                                  rssid=rssid)
         if not rssid and media_info:
             rssid = _subscribe.get_subscribe_id(mtype=mtype,
@@ -1251,11 +1261,34 @@ class WebAction:
         mtype = data.get("type")
         rssid = data.get("rssid")
         page = data.get("page")
-        if mtype == "MOV":
-            ThreadHelper().start_thread(Subscribe().subscribe_search_movie, (rssid,))
+        # 暂停的订阅不进行搜索
+        _subscribe = Subscribe()
+        if mtype in Constants.MOVIE_TYPES:
+            rssinfo = _subscribe.get_subscribe_movies(rid=rssid)
+            search_func = _subscribe.subscribe_search_movie
         else:
-            ThreadHelper().start_thread(Subscribe().subscribe_search_tv, (rssid,))
+            rssinfo = _subscribe.get_subscribe_tvs(rid=rssid)
+            search_func = _subscribe.subscribe_search_tv
+        if rssinfo and next(iter(rssinfo.values())).get("state") == 'P':
+            return {"code": 1, "msg": "订阅已暂停，请先恢复订阅"}
+        ThreadHelper().start_thread(search_func, (rssid,))
         return {"code": 0, "page": page}
+
+    def __set_rss_state(self, data):
+        """
+        暂停/恢复订阅
+        """
+        rssid = data.get("rssid")
+        state = data.get("state")
+        if not rssid or state not in ("R", "P"):
+            return {"code": 1, "msg": "参数错误"}
+        mtype = MediaType.MOVIE if data.get("type") in Constants.MOVIE_TYPES else MediaType.TV
+        Subscribe().update_rss_state(rtype=mtype, rssid=rssid, state=state)
+        if state == "P":
+            log.info(f"【Subscribe】暂停订阅：{mtype.value} {rssid}")
+            return {"code": 0, "msg": "订阅已暂停"}
+        log.info(f"【Subscribe】恢复订阅：{mtype.value} {rssid}")
+        return {"code": 0, "msg": "订阅已恢复"}
 
     def __delete_tmdb_cache(self, data):
         """

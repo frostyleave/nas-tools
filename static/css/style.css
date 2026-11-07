@@ -1201,11 +1201,38 @@ body.theme-dark::after {
     flex: 1 1 auto;
 }
 
+/* 订阅卡片：点击状态工具栏上方的区域可编辑订阅 */
+.rss-card-clickable {
+    cursor: pointer;
+}
+
+/* 订阅卡片操作按钮：右上角（暂停/删除）与右下角（搜索/刷新）共用同一套间距，保证上下对齐 */
+.rss-card-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.rss-card-actions a {
+    display: inline-flex;
+    line-height: 1;
+}
+
+.rss-card-actions-bottom {
+    position: absolute;
+    /* 与卡片底部的状态文字行对齐（card-body 底部内边距 10px + 工具栏外边距 4px） */
+    right: 1rem;
+    bottom: 0.875rem;
+    z-index: 99;
+}
+
 /* 订阅卡片标题固定高度，超长标题省略显示，保证卡片内容对齐 */
 .rss-card-title {
     height: 1.75rem;
     line-height: 1.75rem;
     overflow: hidden;
+    /* 右侧留出暂停/删除按钮的空间，避免标题与按钮重叠 */
+    padding-right: 3rem;
 }
 
 .rss-card-title a {
@@ -1225,15 +1252,13 @@ body.theme-dark::after {
     align-items: center;
     overflow: hidden;
     white-space: nowrap;
+    /* 右侧留出右下角搜索/刷新按钮的空间 */
+    padding-right: 3.5rem;
 }
 
 .rss-card-toolbar > div:first-child {
     overflow: hidden;
     text-overflow: ellipsis;
-}
-
-.rss-card-toolbar > div:last-child {
-    flex-shrink: 0;
 }
 
 /* 插件卡片简介最多显示两行 */
@@ -1747,6 +1772,13 @@ h1.login_title>label {
     border-radius: 5px;
     margin-left: calc(var(--tblr-gutter-x) * .5);
     border: 1px solid var(--lit-person-card-bg);
+}
+
+.liquid-glass-panel {
+    backdrop-filter: blur(28px) saturate(170%) !important;
+    background: rgb(255 255 255 / 10%) !important;
+    box-shadow: inset 1px 1px #fff8 !important;
+    border: none !important;
 }
 
 .secondry-text-color {

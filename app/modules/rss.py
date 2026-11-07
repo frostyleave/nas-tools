@@ -57,14 +57,14 @@ class Rss:
         with lock:
             log.info("【Rss】开始RSS订阅...")
 
-            # 读取电影订阅
-            rss_movies = self.subscribe.get_subscribe_movies(state='R')
+            # 读取电影订阅（暂停的订阅不主动搜索，但仍参与 RSS 匹配）
+            rss_movies = self.subscribe.get_subscribe_movies(state=['R', 'P'])
             if not rss_movies:
                 log.info("【Rss】没有正在订阅的电影")
             else:
                 log.info("【Rss】电影订阅清单：%s", " ".join('{}'.format(info.get("name")) for _, info in rss_movies.items()))
-            # 读取电视剧订阅
-            rss_tvs = self.subscribe.get_subscribe_tvs(state='R')
+            # 读取电视剧订阅（暂停的订阅不主动搜索，但仍参与 RSS 匹配）
+            rss_tvs = self.subscribe.get_subscribe_tvs(state=['R', 'P'])
             if not rss_tvs:
                 log.info("【Rss】没有正在订阅的电视剧")
             else:

@@ -533,9 +533,9 @@ class Subscribe:
         """
         定时将豆瓣订阅转换为TMDB的订阅，并更新订阅的TMDB信息
         """
-        # 更新电影
+        # 更新电影（包含已暂停的订阅）
         log.info("【Subscribe】开始刷新订阅TMDB信息...")
-        rss_movies = self.get_subscribe_movies(state='R')
+        rss_movies = self.get_subscribe_movies(state=['R', 'P'])
         for rss_info in rss_movies.values():
             rssid = rss_info.get("id")
             name = rss_info.get("name")
@@ -560,8 +560,8 @@ class Subscribe:
                 # 清除TMDB缓存
                 self.metahelper.delete_meta_data_by_tmdbid(media_info.tmdb_id)
 
-        # 更新电视剧
-        rss_tvs = self.get_subscribe_tvs(state='R')
+        # 更新电视剧（包含已暂停的订阅）
+        rss_tvs = self.get_subscribe_tvs(state=['R', 'P'])
         for rss_info in rss_tvs.values():
             rssid = rss_info.get("id")
             name = rss_info.get("name")
@@ -642,7 +642,7 @@ class Subscribe:
     def subscribe_search_movie(self, rssid=None, state='D'):
         """
         搜索电影RSS
-        :param rssid: 订阅ID，未输入时搜索所有状态为D的，输入时搜索该ID任何状态的
+        :param rssid: 订阅ID，未输入时搜索所有状态为D的，输入时搜索该ID任何状态的（已暂停的除外）
         :param state: 搜索的状态，默认为队列中才搜索
         """
         if rssid:
@@ -652,12 +652,16 @@ class Subscribe:
         if rss_movies:
             log.info(f"【Subscribe】共有 {len(rss_movies)} 个电影订阅需要搜索")
         for rss_info in rss_movies.values():
+            # 已暂停的订阅不进行站点搜索
+            if rss_info.get("state") == 'P':
+                log.info(f"【Subscribe】电影 {rss_info.get('name')} 订阅已暂停，跳过搜索")
+                continue
             # 搜索站点范围
             rssid = rss_info.get("id")
             # 未配置搜索站点时不做站点搜索，队列中的订阅直接转入订阅状态
             if not rss_info.get("search_sites"):
                 if rss_info.get("state") == 'D':
-                    self.dbhelper.update_rss_movie_state(rssid=rssid, state='R')
+                    self._restore_rss_state_after_search(MediaType.MOVIE, rssid)
                 continue
             name = rss_info.get("name")
             year = rss_info.get("year") or ""
@@ -665,15 +669,17 @@ class Subscribe:
             over_edition = rss_info.get("over_edition")
             keyword = rss_info.get("keyword")
 
-            # 开始搜索
-            self.dbhelper.update_rss_movie_state(rssid=rssid, state='S')
+            # 开始搜索（搜索期间被暂停的订阅跳过）
+            if not self._mark_rss_searching(MediaType.MOVIE, rssid):
+                log.info(f"【Subscribe】电影 {name} 订阅已暂停，跳过搜索")
+                continue
 
             try:
                 # 识别
                 media_info = self.__get_media_info(tmdbid, name, year, MediaType.MOVIE)
                 # 未识别到媒体信息
                 if not media_info or not media_info.tmdb_info:
-                    self.dbhelper.update_rss_movie_state(rssid=rssid, state='R')
+                    self._restore_rss_state_after_search(MediaType.MOVIE, rssid)
                     continue
                 media_info.set_download_info(download_setting=rss_info.get("download_setting"),
                                              save_path=rss_info.get("save_path"))
@@ -721,16 +727,16 @@ class Subscribe:
                     else:
                         self.finish_rss_subscribe(rssid=rssid, media=media_info)
                 else:
-                    self.dbhelper.update_rss_movie_state(rssid=rssid, state='R')
+                    self._restore_rss_state_after_search(MediaType.MOVIE, rssid)
             except Exception as err:
-                self.dbhelper.update_rss_movie_state(rssid=rssid, state='R')
+                self._restore_rss_state_after_search(MediaType.MOVIE, rssid)
                 log.error(f"【Subscribe】电影 {name} 订阅搜索失败：{err!s}")
                 continue
 
     def subscribe_search_tv(self, rssid=None, state="D"):
         """
         搜索电视剧RSS
-        :param rssid: 订阅ID，未输入时搜索所有状态为D的，输入时检索该ID任何状态的
+        :param rssid: 订阅ID，未输入时搜索所有状态为D的，输入时检索该ID任何状态的（已暂停的除外）
         :param state: 检索的状态，默认为队列中才检索
         """
         if rssid:
@@ -741,11 +747,15 @@ class Subscribe:
             log.info(f"【Subscribe】共有 {len(rss_tvs)} 个电视剧订阅需要检索")
         rss_no_exists = {}
         for rss_info in rss_tvs.values():
+            # 已暂停的订阅不进行站点检索
+            if rss_info.get("state") == 'P':
+                log.info(f"【Subscribe】电视剧 {rss_info.get('name')} 订阅已暂停，跳过检索")
+                continue
             rssid = rss_info.get("id")
             # 未配置搜索站点时不做站点搜索，队列中的订阅直接转入订阅状态
             if not rss_info.get("search_sites"):
                 if rss_info.get("state") == 'D':
-                    self.dbhelper.update_rss_tv_state(rssid=rssid, state='R')
+                    self._restore_rss_state_after_search(MediaType.TV, rssid)
                 continue
             name = rss_info.get("name")
             year = rss_info.get("year") or ""
@@ -753,15 +763,17 @@ class Subscribe:
             over_edition = rss_info.get("over_edition")
             keyword = rss_info.get("keyword")
 
-            # 开始搜索
-            self.dbhelper.update_rss_tv_state(rssid=rssid, state='S')
+            # 开始搜索（搜索期间被暂停的订阅跳过）
+            if not self._mark_rss_searching(MediaType.TV, rssid):
+                log.info(f"【Subscribe】电视剧 {name} 订阅已暂停，跳过检索")
+                continue
 
             try:
                 # 识别
                 media_info = self.__get_media_info(tmdbid, name, year, MediaType.TV)
                 # 未识别到媒体信息
                 if not media_info or not media_info.tmdb_info:
-                    self.dbhelper.update_rss_tv_state(rssid=rssid, state='R')
+                    self._restore_rss_state_after_search(MediaType.TV, rssid)
                     continue
                 # 取下载设置
                 media_info.set_download_info(download_setting=rss_info.get("download_setting"),
@@ -857,8 +869,29 @@ class Subscribe:
                                                   seasoninfo=[left_season])
             except Exception as err:
                 log.error(f"【Subscribe】电视剧 {name} 订阅搜索失败：{err!s}")
-                self.dbhelper.update_rss_tv_state(rssid=rssid, state='R')
+                self._restore_rss_state_after_search(MediaType.TV, rssid)
                 continue
+
+    def _mark_rss_searching(self, rtype, rssid):
+        """
+        将订阅标记为搜索中，已暂停的订阅保持不变并返回False
+        """
+        rss = self.dbhelper.get_rss_movies(rssid=rssid) if rtype == MediaType.MOVIE \
+            else self.dbhelper.get_rss_tvs(rssid=rssid)
+        if rss and rss[0].STATE == 'P':
+            return False
+        self.update_rss_state(rtype=rtype, rssid=rssid, state='S')
+        return True
+
+    def _restore_rss_state_after_search(self, rtype, rssid):
+        """
+        搜索流程结束后恢复为订阅状态，已暂停的订阅保持暂停
+        """
+        rss = self.dbhelper.get_rss_movies(rssid=rssid) if rtype == MediaType.MOVIE \
+            else self.dbhelper.get_rss_tvs(rssid=rssid)
+        if rss and rss[0].STATE == 'P':
+            return
+        self.update_rss_state(rtype=rtype, rssid=rssid, state='R')
 
     def update_rss_state(self, rtype, rssid, state):
         """
@@ -896,6 +929,11 @@ class Subscribe:
             self.finish_rss_subscribe(rssid=rssid, media=media)
             return True
         else:
+            # 暂停的订阅保持暂停状态
+            rss = self.dbhelper.get_rss_movies(rssid=rssid) if rtype == MediaType.MOVIE \
+                else self.dbhelper.get_rss_tvs(rssid=rssid)
+            if rss and rss[0].STATE == 'P':
+                return False
             self.update_rss_state(rtype=rtype, rssid=rssid, state='R')
         return False
 
@@ -918,7 +956,12 @@ class Subscribe:
         """
         if not seasoninfo:
             return
-        self.dbhelper.update_rss_tv_state(rssid=rssid, state='R')
+        # 暂停的订阅仍会因 RSS 匹配而推进集数，但保持暂停状态
+        rss = self.dbhelper.get_rss_tvs(rssid=rssid)
+        if not rss:
+            return
+        if rss[0].STATE != 'P':
+            self.dbhelper.update_rss_tv_state(rssid=rssid, state='R')
         for info in seasoninfo:
             if str(info.get("season")) == media_info.get_season_seq():
                 if info.get("episodes"):

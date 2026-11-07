@@ -532,6 +532,8 @@ class DbHelper:
         else:
             if not state:
                 return self._db.query(RSSMOVIES).all()
+            elif isinstance(state, (list, tuple, set)):
+                return self._db.query(RSSMOVIES).filter(RSSMOVIES.STATE.in_(list(state))).all()
             else:
                 return self._db.query(RSSMOVIES).filter(RSSMOVIES.STATE == state).all()
 
@@ -729,6 +731,8 @@ class DbHelper:
         else:
             if not state:
                 return self._db.query(RSSTVS).all()
+            elif isinstance(state, (list, tuple, set)):
+                return self._db.query(RSSTVS).filter(RSSTVS.STATE.in_(list(state))).all()
             else:
                 return self._db.query(RSSTVS).filter(RSSTVS.STATE == state).all()
 

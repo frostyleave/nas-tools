@@ -1024,10 +1024,10 @@ function remove_rss_media(name, year, type, rssid, page, tmdbid, func) {
 function refresh_rss_media(type, rssid, page) {
   hide_mediainfo_modal();
   axios_post_do("refresh_rss", { "type": type, "rssid": rssid, "page": page }, function (ret) {
-    if (ret.page) {
+    if (ret.code !== 0) {
+      show_fail_modal(ret.msg || "刷新订阅失败");
+    } else if (ret.page) {
       window_history_refresh();
-    } else {
-
     }
   });
 }
