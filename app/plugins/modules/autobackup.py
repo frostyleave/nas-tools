@@ -1,12 +1,11 @@
 import glob
 import os
-import time
 from threading import Event
 
 from app.helper import ThreadHelper
 from app.modules.system.backup import Backup
 from app.plugins.modules._base import _IPluginModule
-from app.utils import SystemUtils
+from app.utils import SystemUtils, TimeUtils
 from config import Config
 
 
@@ -177,7 +176,7 @@ class AutoBackup(_IPluginModule):
         if event.is_set():
             self.info("备份服务已停止")
             return
-        self.info(f"当前时间 {time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time()))} 开始备份")
+        self.info(f"当前时间 {TimeUtils.now_str()} 开始备份")
 
         # docker用默认路径
         if SystemUtils.is_docker():

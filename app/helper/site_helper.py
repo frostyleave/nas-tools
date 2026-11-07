@@ -1,11 +1,11 @@
 import os
 import re
-from datetime import datetime
 
 from lxml import etree
 
 from app.utils import PathUtils, SystemUtils
 from app.utils.constants import Constants
+from app.utils.time_utils import TimeUtils
 
 
 class SiteHelper:
@@ -48,7 +48,7 @@ class SiteHelper:
         elif url and os.path.splitext(url)[-1] in (Constants.RMT_SUBEXT + ['.zip']):
             fname = url.split("/")[-1]
         else:
-            fname = str(datetime.now())
+            fname = str(TimeUtils.now())
         # 站点返回的文件名不可信，只保留文件名，防止路径穿越
         return PathUtils.safe_filename(fname)
 

@@ -415,23 +415,25 @@ class Emby(_IMediaClient):
             return None
         return None
 
-    def get_local_image_by_id(self, item_id, remote=True, inner=False):
+    def get_local_image_by_id(self, item_id, remote=True, inner=False, max_width=None):
         """
         根据ItemId从媒体服务器查询本地图片地址
         :param: item_id: 在Emby中的ID
         :param: remote 是否远程使用，TG微信等客户端调用应为True
         :param: inner 是否NT内部调用，为True是会使用NT中转
+        :param: max_width 限制图片最大宽度，列表缩略图场景传 400，避免返回原始大图
         """
         if not self._host or not self._apikey:
             return None
+        query = f"?maxWidth={max_width}&quality=90" if max_width else ""
         if not remote:
-            image_url = f"{self._host}Items/{item_id}/Images/Primary"
+            image_url = f"{self._host}Items/{item_id}/Images/Primary{query}"
             if inner:
                 return self.get_nt_image_url(image_url)
             return image_url
         else:
             host = self._play_host or self._host
-            image_url = f"{host}Items/{item_id}/Images/Primary"
+            image_url = f"{host}Items/{item_id}/Images/Primary{query}"
             return self.get_nt_image_url(url=image_url, remote=True)
 
     def __refresh_emby_library_by_id(self, item_id):
@@ -555,7 +557,7 @@ class Emby(_IMediaClient):
                 library_type = MediaType.MOVIE.value
             else:
                 library_type = MediaType.TV.value
-            image = self.get_local_image_by_id(library.get("Id"), remote=False, inner=True)
+            image = self.get_local_image_by_id(library.get("Id"), remote=False, inner=True, max_width=400)
             libraries.append({
                 "id": library.get("Id"),
                 "name": library.get("Name"),
@@ -625,6 +627,7 @@ class Emby(_IMediaClient):
                                "year": result.get("ProductionYear"),
                                "tmdbid": (result.get("ProviderIds") or {}).get("Tmdb"),
                                "imdbid": (result.get("ProviderIds") or {}).get("Imdb"),
+                               "doubanid": (result.get("ProviderIds") or {}).get("DoubanID"),
                                "path": result.get("Path"),
                                "json": str(result)}
                     elif "Folder" in item_type:
@@ -774,7 +777,7 @@ class Emby(_IMediaClient):
                         continue
                     item_type = MediaType.MOVIE.value if item.get("Type") == "Movie" else MediaType.TV.value
                     link = self.get_play_url(item.get("Id"))
-                    image = self.get_local_image_by_id(item_id=item.get("Id"), remote=False, inner=True)
+                    image = self.get_local_image_by_id(item_id=item.get("Id"), remote=False, inner=True, max_width=400)
                     ret_latest.append({
                         "id": item.get("Id"),
                         "name": item.get("Name"),

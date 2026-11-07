@@ -101,6 +101,15 @@ class CONFIGREFRESHTOKENS(Base):
     LAST_USED = Column(Text)  # 最后使用时间
 
 
+class CONFIGAPIKEY(Base):
+    __tablename__ = 'CONFIG_API_KEY'
+
+    ID = Column(Integer, Sequence('ID'), primary_key=True)
+    NAME = Column(Text)  # 密钥名称
+    API_KEY = Column(Text, unique=True)  # 密钥内容
+    CREATE_TIME = Column(Text)  # 创建时间
+
+
 class CONFIGUSERRSS(Base):
     __tablename__ = 'CONFIG_USER_RSS'
 
@@ -595,6 +604,7 @@ class MEDIASYNCITEMS(BaseMedia):
     YEAR = Column(Text)
     TMDBID = Column(Text, index=True)
     IMDBID = Column(Text)
+    DOUBANID = Column(Text, index=True)
     PATH = Column(Text)
     NOTE = Column(Text)
     JSON = Column(Text)

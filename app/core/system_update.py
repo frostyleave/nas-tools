@@ -1,11 +1,11 @@
 import os
 import subprocess
-import time
 from collections.abc import Callable
 from typing import Any
 
 import log
 from app.utils.system_utils import SystemUtils
+from app.utils.time_utils import TimeUtils
 from config import Config
 
 
@@ -192,7 +192,7 @@ def check_system_update() -> dict[str, Any]:
 
     def add(text: str, level: str = "INFO") -> None:
         logs.append({
-            "time": time.strftime("%H:%M:%S"),
+            "time": TimeUtils.now_str("%H:%M:%S"),
             "level": level,
             "text": text,
         })

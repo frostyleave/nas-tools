@@ -17,7 +17,7 @@
     <div class="d-grid gap-3" id="media_cards"></div>
   </div>
 </div>
-<empty-content id="no-data-card" title="没有搜索结果" text="输入想看的电影、电视剧名称，点击搜索试试看吧。" style="display: none;" ></empty-content>
+<empty-content id="no-data-card" title="没有搜索结果" text="输入想看的电影、电视剧名称，点击搜索试试看吧"></empty-content>
 
 <!-- 搜索结果过滤弹窗 -->
 <div id="modal-box"></div>
@@ -229,14 +229,6 @@
               ${checkTagLfet}
               <span style="position: absolute; top: 10px; left: 10px; z-index: 9;" class="badge badge-pill bg-lime">${mediaItem.type}</span>
               <div class="badge badge-pill bg-purple" style="position: absolute; top: 10px; right: 10px; z-index: 9;">${mediaItem.vote}</div>
-              <div class="d-flex justify-content-between align-items-center position-absolute bottom-0 start-0 end-0 p-3">
-                <a class="text-muted zoom-link" title="搜索资源" href='javascript:media_search("${mediaItem.tmdbid}", "${mediaItem.title}", "${mediaItem.type_key}")'>
-                  <i class="ti ti-search fs-2 text-white"></i>
-                </a>
-                <a class="text-muted zoom-link" title="加入/取消订阅" href='javascript:void(0)' onclick='rss_love_click(event, "${mediaItem.title}", "${mediaItem.year}", "${mediaItem.type_key}", "${mediaItem.tmdbid}", "${mediaItem.fav}")'>
-                  ${mediaItem.fav == "1" ? `<i class="ti ti-heart-filled fs-2 text-purple"></i>` : `<i class="ti ti-heart fs-2 text-white"></i>`}
-                </a>
-              </div>
             </div>
           </div>
       `;
@@ -576,8 +568,11 @@
                         <h2 class="mb-0">
                           <strong>${title}</strong>
                           ${isSpecificMedia ? `
-                          <a class="cursor-pointer" href='javascript:navmenu("media_detail?type=${item.type_key}&id=${item.tmdbid}")'>
-                            <i class="ti ti-chevrons-right fs-2 text-blue"></i>
+                          <a class="cursor-pointer" title="重新搜索" href='javascript:media_search("${item.tmdbid}", "${title}", "${item.type_key}")'>
+                            <i class="ti ti-search fs-2 text-blue"></i>
+                          </a>
+                          <a class="cursor-pointer" title="查看详情" href='javascript:navmenu("media_detail?type=${item.type_key}&id=${item.tmdbid}")'>
+                            <i class="ti ti-info-circle fs-2 text-blue"></i>
                           </a>
                           ` : ''}
                         </h2>

@@ -15,7 +15,7 @@ from app.models.model import UserSiteConf
 from app.plugins.modules._base import _IPluginModule
 from app.plugins.modules.iyuu.iyuu_helper import IyuuHelper
 from app.sites import Sites
-from app.utils import RequestUtils
+from app.utils import RequestUtils, TimeUtils
 from app.utils.types import DownloaderType
 from config import Config
 
@@ -475,7 +475,7 @@ class IYUUAutoSeedEnhance(_IPluginModule):
         if history:
             history["site"] = site
             history["image"] = image
-            history["time"] = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time()))
+            history["time"] = TimeUtils.now_str()
             self.update_history(site, history)
         else:
             history_list = self.get_history()
@@ -487,7 +487,7 @@ class IYUUAutoSeedEnhance(_IPluginModule):
                 "id": id,
                 "site": site,
                 "image": image,
-                "time": time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time()))
+                "time": TimeUtils.now_str()
             }
             self.history(site, data)
 

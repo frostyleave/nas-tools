@@ -1,8 +1,8 @@
 import datetime
-import time
 from collections import deque
 
 from app.utils.commons import singleton
+from app.utils.time_utils import TimeUtils
 
 
 @singleton
@@ -31,7 +31,7 @@ class SysMessageCenter:
         """
         self._message_queue.appendleft({"title": title,
                                         "content": content,
-                                        "time": time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time()))})
+                                        "time": TimeUtils.now_str()})
 
     def get_system_messages(self, num=20, lst_time=None):
         """

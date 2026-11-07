@@ -1,10 +1,10 @@
 import os
-import time
 
 from app.media import MediaService
 from app.modules.filetransfer import FileTransfer
 from app.plugins import EventHandler
 from app.plugins.modules._base import _IPluginModule
+from app.utils.time_utils import TimeUtils
 from app.utils.types import EventType, MediaType
 
 
@@ -228,7 +228,7 @@ class MediaSyncDel(_IPluginModule):
                 image=image_url or 'https://emby.media/notificationicon.png',
                 text=f"{msg}\n"
                      f"数量 {len(logids)}\n"
-                     f"时间 {time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time()))}"
+                     f"时间 {TimeUtils.now_str()}"
             )
 
         self.info(f"同步删除 {msg} 完成！")

@@ -1,5 +1,4 @@
 import random
-from datetime import datetime
 from threading import Event
 
 from jinja2 import Template
@@ -11,6 +10,7 @@ from app.media import MediaService
 from app.mediaserver import MediaServer
 from app.modules.subscribe import Subscribe
 from app.plugins.modules._base import _IPluginModule
+from app.utils.time_utils import TimeUtils
 from app.utils.types import MediaType, RssType, SearchType
 
 
@@ -453,7 +453,7 @@ class MovieRandom(_IPluginModule):
             "rating": media.get('vote')[0] if media.get('vote') else None,
             "image": media.get('image'),
             "state": state,
-            "add_time": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            "add_time": TimeUtils.now_str()
         }
         if self.get_history(key=media.get('tmdbid')):
             self.update_history(key=media.get('tmdbid'), value=value)

@@ -141,8 +141,13 @@
             
             // 请求接口, 查询相应榜单数据
             var rankParams = { "type": rankItem.type, "subtype": rankItem.subtype, "page": 1, "week": rankItem.week, "fav": 0 };
-            axios_post_do("get_recommend", rankParams, 
+            axios_post_do("get_recommend", rankParams,
             (ret) => {
+
+                // 页面已切走时不再渲染，也不再发起后续流式请求
+                if (!document.getElementById("discovery-container")) {
+                    return;
+                }
 
                 if (!ret.Items || ret.Items.length == 0) {
                     return;
@@ -187,21 +192,112 @@
                 rankSlide.slide_card = slide_cards;
 
                 // 请求并更新在库状态
-                axios_post_do("batch_get_media_exists_info", { "list": data_list }, 
-                (sub_ret) => {
-                    sub_ret.items.map((info_item) => {
+                if (data_list.length > 0) {
+                    ranking_streamMediaExistsInfo(data_list, (info_item) => {
                         // 订阅标记渲染
                         const card = document.getElementById(info_item.id);
                         if (card) {
                             card.setAttribute('card-fav', info_item.fav);
                         }
                     });
-                }, false);
+                }
                 
             }, false);
 
         });
 
+    }
+
+    // 读取 SSE：每收到一条 item 调用 onItem，收到 done 或流结束时调用 onDone
+    function ranking_streamSSE(url, list, onItem, onDone) {
+        let finished = false;
+        // 注册到页面级管理器，路由切换时会被统一 abort
+        const manager = window.PageStreamManager;
+        const controller = manager ? manager.register() : new AbortController();
+        const finish = () => {
+            if (finished) {
+                return;
+            }
+            finished = true;
+            if (onDone) {
+                onDone();
+            }
+        };
+
+        const send = (retried) => {
+            return fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'same-origin',
+                signal: controller.signal,
+                body: JSON.stringify({ list: list })
+            }).then(async (resp) => {
+                // Access Token 过期时刷新后重试一次
+                if (resp.status === 401 && !retried && window.authManager) {
+                    await window.authManager.handle401Error();
+                    return send(true);
+                }
+                if (!resp.ok || !resp.body) {
+                    throw new Error('HTTP ' + resp.status);
+                }
+
+                const reader = resp.body.getReader();
+                const decoder = new TextDecoder();
+                let buffer = '';
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) {
+                        break;
+                    }
+                    buffer += decoder.decode(value, { stream: true });
+                    let pos;
+                    while ((pos = buffer.indexOf('\n\n')) >= 0) {
+                        const chunk = buffer.slice(0, pos);
+                        buffer = buffer.slice(pos + 2);
+                        chunk.split('\n').forEach((line) => {
+                            if (!line.startsWith('data:')) {
+                                return;
+                            }
+                            try {
+                                const payload = JSON.parse(line.slice(5).trim());
+                                if (payload.item) {
+                                    onItem(payload.item);
+                                } else if (payload.type === 'done') {
+                                    finish();
+                                }
+                            } catch (e) {
+                                console.warn('解析流式数据失败:', e);
+                            }
+                        });
+                    }
+                }
+                finish();
+            });
+        };
+
+        send(false).catch((err) => {
+            // 页面切换主动中止：不再触发 onDone，避免切页后继续发起后续请求
+            if (controller.signal.aborted || (err && err.name === 'AbortError')) {
+                finished = true;
+                return;
+            }
+            console.warn('获取流式数据失败[' + url + ']:', err);
+            finish();
+        }).finally(() => {
+            if (manager) {
+                manager.release(controller);
+            }
+        });
+    }
+
+    // 第一阶段：Bangumi 卡片的 TMDB ID 与 R18 标记
+    function ranking_streamBangumiTmdbInfo(list, onItem, onDone) {
+        ranking_streamSSE('/stream-bangumi-tmdb', list, onItem, onDone);
+    }
+
+    // 第二阶段：订阅/在库状态（Bangumi 与普通榜单共用）
+    function ranking_streamMediaExistsInfo(list, onItem) {
+        ranking_streamSSE('/stream-media-exists', list, onItem);
     }
 
     function drawBangumiSlides() {
@@ -213,15 +309,28 @@
         (ret) => {
 
             $("#loading-tips").hide();
-            
+
+            // 页面已切走时不再渲染，也不再发起后续流式请求
+            if (!document.getElementById("discovery-container")) {
+                return;
+            }
+
             if (!ret.Items || ret.Items.length == 0) {
                 return;
             }
 
             var data_list = []
 
+            // 轮转列表，从当前星期开始绘制（后端 weekday.id：1=周一 … 7=周日）
+            const todayWeekday = new Date().getDay() || 7;
+            const orderedItems = ret.Items.slice().sort((a, b) => {
+                const weekA = Number(a.weekday && a.weekday.id) || 0;
+                const weekB = Number(b.weekday && b.weekday.id) || 0;
+                return ((weekA - todayWeekday + 7) % 7) - ((weekB - todayWeekday + 7) % 7);
+            });
+
             // 为每个 item 创建一个 custom-slide 并先填充占位符
-            ret.Items.map((weekInfo, index) => {
+            orderedItems.map((weekInfo, index) => {
 
                 if (!weekInfo.items || weekInfo.items.length == 0 || !weekInfo.weekday) {
                     return;
@@ -244,7 +353,7 @@
                     nc.setAttribute('lazy', '1');
                     nc.setAttribute('card-showsub', '2');
                     nc.setAttribute('card-tmdbid', card.id);
-                    nc.setAttribute('card-mediatype', card.type);
+                    nc.setAttribute('card-mediatype', 'ANI');
                     nc.setAttribute('card-image', card.image);
                     nc.setAttribute('card-fav', card.fav);
                     nc.setAttribute('card-vote', card.vote);
@@ -261,8 +370,7 @@
 
                     data_list.push({
                         'id': card_id,
-                        'tmdbid': card.id,
-                        'type': card.type,
+                        'bgmid': card.orgid,
                         'title': card.title,
                         'year': card.year,
                     });
@@ -275,17 +383,41 @@
                 return;
             }
 
-            // 请求并更新在库状态
-            axios_post_do("batch_get_media_exists_info", { "list": data_list },
-            (sub_ret) => {
-                sub_ret.items.map((info_item, index) => {
-                    // 订阅/在库标记渲染
+            // 第一阶段：逐个获取 TMDB ID 与 R18 标记
+            const tmdbInfos = {};
+            ranking_streamBangumiTmdbInfo(data_list, (info_item) => {
+                tmdbInfos[info_item.id] = info_item;
+                const card = document.getElementById(info_item.id);
+                if (!card) {
+                    return;
+                }
+                // 匹配到 TMDB 时替换卡片 ID，详情、搜索、订阅均使用真实 TMDB ID
+                if (info_item.tmdbid) {
+                    card.setAttribute('card-tmdbid', info_item.tmdbid);
+                }
+                // R18 角标
+                if (info_item.r18) {
+                    card.setAttribute('card-r18', '1');
+                }
+            }, () => {
+                // 第一阶段全部返回后，再统一查询在库/订阅状态
+                const exists_list = data_list.map((item) => {
+                    const tmdbInfo = tmdbInfos[item.id] || {};
+                    return {
+                        'id': item.id,
+                        'tmdbid': tmdbInfo.tmdbid || (item.bgmid ? ('BG:' + item.bgmid) : null),
+                        'type': 'ANI',
+                        'title': item.title,
+                        'year': item.year,
+                    };
+                });
+                ranking_streamMediaExistsInfo(exists_list, (info_item) => {
                     const card = document.getElementById(info_item.id);
                     if (card) {
                         card.setAttribute('card-fav', info_item.fav);
                     }
                 });
-            }, false);
+            });
             
         });
 

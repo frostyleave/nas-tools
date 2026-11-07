@@ -592,6 +592,60 @@ class MediaService:
                 results = self.__search_tv_tmdbinfos(title, year)
         return results[(page - 1) * 20:page * 20]
 
+    def match_tmdb_tv_by_title(self, title, year=None):
+        """
+        轻量匹配：按名称在 TMDB 中查找一部剧集
+        仅用于 Bangumi 每日放送等只需要 TMDB 基础信息（ID/成人标记）的场景
+        :param title: 剧集名称
+        :param year: 首播年份
+        :return: TMDB 搜索结果（dict）或 None
+        """
+        if not title:
+            return None
+
+        def __norm_name(name):
+            name = zhconv.convert(str(name or ""), "zh-hans")
+            return re.sub(r"[\s:：·・!！?？,，.。~～\-—_（）()【】\[\]《》<>]+", "", name).lower()
+
+        search_api = Search()
+        try:
+            results = search_api.tv_shows({"query": title, "first_air_date_year": year}) if year else []
+            if not results:
+                results = search_api.tv_shows({"query": title}) or []
+        except Exception as err:
+            log.error(f"【Meta】查询TMDB剧集[{title}]失败：{err!s}")
+            return None
+
+        if not results:
+            return None
+
+        norm_title = __norm_name(title)
+        if not norm_title:
+            return None
+
+        # 名称完全一致优先
+        exact = [tv for tv in results
+                 if __norm_name(tv.get("name")) == norm_title
+                 or __norm_name(tv.get("original_name")) == norm_title]
+        # 名称互相包含，兼容“第N季”等后缀差异
+        fuzzy = [tv for tv in results
+                 if norm_title in __norm_name(tv.get("name"))
+                 or __norm_name(tv.get("name")) in norm_title]
+
+        candidates = exact or fuzzy
+        if not candidates:
+            return None
+
+        # 多个候选优先取首播年份一致的；模糊匹配仍无法唯一确定时放弃，避免匹配错误
+        if year:
+            same_year = [tv for tv in candidates
+                         if str(tv.get("first_air_date") or "")[:4] == str(year)]
+            if len(same_year) == 1 or (same_year and not exact):
+                return same_year[0]
+        if len(candidates) == 1 or exact:
+            return candidates[0]
+        return None
+
     def __search_multi_tmdbinfos(self, title):
         """
         同时查询模糊匹配的电影、电视剧TMDB信息

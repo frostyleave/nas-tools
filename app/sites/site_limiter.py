@@ -1,5 +1,7 @@
 import time
 
+from app.utils.time_utils import TimeUtils
+
 
 class SiteRateLimiter:
     def __init__(self, limit_interval: int, limit_count: int, limit_seconds: int):
@@ -24,7 +26,7 @@ class SiteRateLimiter:
         # 防问间隔时间
         if self.limit_seconds and current_time - self.last_visit_time < self.limit_seconds:
             return True, (f"触发流控规则，访问间隔不得小于 {self.limit_seconds} 秒，" \
-                         f"上次访问时间：{time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(self.last_visit_time))}")
+                         f"上次访问时间：{TimeUtils.timestamp_to_str(self.last_visit_time)}")
         # 单位时间内访问次数
         if self.limit_interval and self.limit_count:
             if current_time - self.last_visit_time > self.limit_interval:
@@ -32,7 +34,7 @@ class SiteRateLimiter:
                 self.count = 0
             if self.count >= self.limit_count:
                 return True, (f"触发流控规则，{self.limit_interval} 秒内访问次数不得超过 {self.limit_count} 次，" \
-                             f"上次访问时间：{time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(self.last_visit_time))}")
+                             f"上次访问时间：{TimeUtils.timestamp_to_str(self.last_visit_time)}")
             # 访问计数
             self.count += 1
         # 更新最后访问时间

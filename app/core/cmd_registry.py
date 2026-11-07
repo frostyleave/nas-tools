@@ -17,16 +17,18 @@ class CommandRegistry:
     @classmethod
     def get_commands(cls):
         if cls._commands is None:
+            # 用 lambda 延迟实例化业务服务：list_commands 只取命令名称，
+            # 不应为了拼菜单而在首页初始化 Rss/Subscribe 等重量级单例
             cls._commands = {
-                "/ptr": {"func": TorrentRemover().auto_remove_torrents, "desc": "自动删种"},
-                "/ptt": {"func": Downloader().transfer, "desc": "下载文件转移"},
-                "/rst": {"func": Sync().transfer_sync, "desc": "目录同步"},
-                "/rss": {"func": Rss().rssdownload, "desc": "RSS订阅"},
-                "/ssa": {"func": Subscribe().subscribe_search_all, "desc": "订阅搜索"},
-                "/tbl": {"func": FileTransfer().truncate_transfer_blacklist, "desc": "清理转移缓存"},
-                "/trh": {"func": cls.truncate_rsshistory, "desc": "清理RSS缓存"},
-                "/utf": {"func": FileTransfer().re_identification_all, "desc": "重新识别"},
-                "/sta": {"func": SitesDataStatisticsCenter().refresh_site_data_now, "desc": "站点数据统计"}
+                "/ptr": {"func": lambda: TorrentRemover().auto_remove_torrents(), "desc": "自动删种"},
+                "/ptt": {"func": lambda: Downloader().transfer(), "desc": "下载文件转移"},
+                "/rst": {"func": lambda: Sync().transfer_sync(), "desc": "目录同步"},
+                "/rss": {"func": lambda: Rss().rssdownload(), "desc": "RSS订阅"},
+                "/ssa": {"func": lambda: Subscribe().subscribe_search_all(), "desc": "订阅搜索"},
+                "/tbl": {"func": lambda: FileTransfer().truncate_transfer_blacklist(), "desc": "清理转移缓存"},
+                "/trh": {"func": lambda: cls().truncate_rsshistory(), "desc": "清理RSS缓存"},
+                "/utf": {"func": lambda: FileTransfer().re_identification_all(), "desc": "重新识别"},
+                "/sta": {"func": lambda: SitesDataStatisticsCenter().refresh_site_data_now(), "desc": "站点数据统计"}
             }
         return cls._commands
 

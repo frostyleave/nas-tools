@@ -1,14 +1,13 @@
 import datetime
 import json
 import os.path
-import time
 from enum import Enum
 
 from sqlalchemy import cast, func
 
 from app.db.main_db import DbPersist, MainDb
 from app.db.models import *
-from app.utils import StringUtils
+from app.utils import StringUtils, TimeUtils
 from app.utils.types import MediaType, RmtMode
 
 
@@ -147,7 +146,7 @@ class DbHelper:
             dest_filename = ""
             season_episode = media_info.get_season_string()
         title = media_info.title
-        timestr = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time()))
+        timestr = TimeUtils.now_str()
         if self.is_transfer_history_exists(source_path, source_filename, dest_path, dest_filename):
             # 更新历史转移记录的时间
             self.update_transfer_history_date(source_path, source_filename, dest_path, dest_filename, timestr)
@@ -1016,7 +1015,7 @@ class DbHelper:
                 PATH=os.path.normpath(path),
                 SRC=os.path.normpath(src),
                 DEST=os.path.normpath(dest),
-                DATE=time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time())),
+                DATE=TimeUtils.now_str(),
             ))
 
     def get_users(self):
@@ -1109,6 +1108,51 @@ class DbHelper:
         """
         self._db.query(CONFIGUSERS).filter(CONFIGUSERS.NAME == name).delete()
 
+    def get_api_keys(self):
+        """
+        查询API密钥列表
+        """
+        return self._db.query(CONFIGAPIKEY).order_by(CONFIGAPIKEY.ID).all()
+
+    @DbPersist(_db)
+    def insert_api_key(self, name, api_key, create_time):
+        """
+        新增API密钥
+        """
+        if not name or not api_key:
+            return
+        self._db.insert(CONFIGAPIKEY(
+            NAME=name,
+            API_KEY=api_key,
+            CREATE_TIME=create_time
+        ))
+
+    @DbPersist(_db)
+    def update_api_key(self, key_id, api_key=None, name=None, create_time=None):
+        """
+        更新API密钥内容、名称或创建时间
+        """
+        if key_id is None:
+            return
+        values = {}
+        if api_key is not None:
+            values["API_KEY"] = api_key
+        if name is not None:
+            values["NAME"] = name
+        if create_time is not None:
+            values["CREATE_TIME"] = create_time
+        if not values:
+            return
+        self._db.query(CONFIGAPIKEY).filter(CONFIGAPIKEY.ID == int(key_id)).update(values)
+
+    @DbPersist(_db)
+    def delete_api_key(self, key_id):
+        """
+        删除API密钥
+        """
+        if key_id is None:
+            return
+        self._db.query(CONFIGAPIKEY).filter(CONFIGAPIKEY.ID == int(key_id)).delete()
 
     def get_refresh_tokens(self, user_id=None, token_hash=None, active_only=True):
         """
@@ -1173,7 +1217,7 @@ class DbHelper:
         """
         查询历史记录统计
         """
-        begin_date = (datetime.datetime.now() - datetime.timedelta(days=days)).strftime("%Y-%m-%d %H:%M:%S")
+        begin_date = (TimeUtils.now() - datetime.timedelta(days=days)).strftime("%Y-%m-%d %H:%M:%S")
         return self._db.query(TRANSFERHISTORY.TYPE,
                               func.substr(TRANSFERHISTORY.DATE, 1, 10),
                               func.count('*')
@@ -1199,7 +1243,7 @@ class DbHelper:
         """
         if not site_user_infos:
             return
-        update_at = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time()))
+        update_at = TimeUtils.now_str()
         for site_user_info in site_user_infos:
             site = site_user_info.site_name
             username = site_user_info.username
@@ -1292,7 +1336,7 @@ class DbHelper:
         """
         if not site_user_infos:
             return
-        update_at = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time()))
+        update_at = TimeUtils.now_str()
         for site_user_info in site_user_infos:
             if not self.is_site_seeding_info_exist(url=site_user_info.site_url):
                 self._db.insert(SITEUSERSEEDINGINFO(
@@ -1363,7 +1407,7 @@ class DbHelper:
         """
         if not site_user_infos:
             return
-        date_now = time.strftime('%Y-%m-%d', time.localtime(time.time()))
+        date_now = TimeUtils.now_str('%Y-%m-%d')
         for site_user_info in site_user_infos:
             site = site_user_info.site_name
             upload = site_user_info.upload
@@ -1440,7 +1484,7 @@ class DbHelper:
         # 查询最大最小日期
         if strict_urls is None:
             strict_urls = []
-        end = datetime.datetime.now()
+        end = TimeUtils.now()
         if end_day:
             try:
                 end = datetime.datetime.strptime(end_day, "%Y-%m-%d")
@@ -1548,7 +1592,7 @@ class DbHelper:
                     "DOWNLOAD_ID": download_id,
                     "SAVE_PATH": save_dir,
                     "SE": media_info.get_season_episode_string(),
-                    "DATE": time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time())),
+                    "DATE": TimeUtils.now_str(),
                     "PAGE_URL": media_info.page_url,
                 }
             )
@@ -1563,7 +1607,7 @@ class DbHelper:
                 BACKDROP=media_info.get_backdrop_image(default=False, original=True),
                 ENCLOSURE=media_info.enclosure,
                 DESC=media_info.description,
-                DATE=time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time())),
+                DATE=TimeUtils.now_str(),
                 SITE=media_info.site,
                 DOWNLOADER=downloader,
                 DOWNLOAD_ID=download_id,
@@ -1619,7 +1663,7 @@ class DbHelper:
                 DOWNLOAD_SIZE=0,
                 UPLOAD_SIZE=0,
                 STATE=item.get('state'),
-                LST_MOD_DATE=time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time())),
+                LST_MOD_DATE=TimeUtils.now_str(),
                 SENDMESSAGE=item.get('sendmessage')
             ))
         else:
@@ -1638,7 +1682,7 @@ class DbHelper:
                     "SAVEPATH": item.get('savepath'),
                     "TRANSFER": item.get('transfer'),
                     "STATE": item.get('state'),
-                    "LST_MOD_DATE": time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time())),
+                    "LST_MOD_DATE": TimeUtils.now_str(),
                     "SENDMESSAGE": item.get('sendmessage')
                 }
             )
@@ -1701,7 +1745,7 @@ class DbHelper:
         self._db.query(SITEBRUSHTASK).filter(SITEBRUSHTASK.ID == int(brush_id)).update(
             {
                 "DOWNLOAD_COUNT": SITEBRUSHTASK.DOWNLOAD_COUNT + 1,
-                "LST_MOD_DATE": time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time()))
+                "LST_MOD_DATE": TimeUtils.now_str()
             }
         )
 
@@ -1756,7 +1800,7 @@ class DbHelper:
             ENCLOSURE=enclosure,
             DOWNLOADER=downloader,
             DOWNLOAD_ID=download_id,
-            LST_MOD_DATE=time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time()))
+            LST_MOD_DATE=TimeUtils.now_str()
         ))
 
     def get_brushtask_torrents(self, brush_id, active=True):
@@ -1917,8 +1961,7 @@ class DbHelper:
         self._db.query(CONFIGUSERRSS).filter(CONFIGUSERRSS.ID == int(tid)).update(
             {
                 "PROCESS_COUNT": CONFIGUSERRSS.PROCESS_COUNT + count,
-                "UPDATE_TIME": time.strftime('%Y-%m-%d %H:%M:%S',
-                                             time.localtime(time.time()))
+                "UPDATE_TIME": TimeUtils.now_str()
             }
         )
 
@@ -1935,7 +1978,7 @@ class DbHelper:
                     "INCLUDE": item.get("include"),
                     "EXCLUDE": item.get("exclude"),
                     "FILTER": item.get("filter_rule"),
-                    "UPDATE_TIME": time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time())),
+                    "UPDATE_TIME": TimeUtils.now_str(),
                     "STATE": item.get("state"),
                     "SAVE_PATH": item.get("save_path"),
                     "DOWNLOAD_SETTING": item.get("download_setting"),
@@ -1956,7 +1999,7 @@ class DbHelper:
                 INCLUDE=item.get("include"),
                 EXCLUDE=item.get("exclude"),
                 FILTER=item.get("filter_rule"),
-                UPDATE_TIME=time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time())),
+                UPDATE_TIME=TimeUtils.now_str(),
                 STATE=item.get("state"),
                 SAVE_PATH=item.get("save_path"),
                 DOWNLOAD_SETTING=item.get("download_setting"),
@@ -2052,7 +2095,7 @@ class DbHelper:
             TASK_ID=task_id,
             TITLE=title,
             DOWNLOADER=downloader,
-            DATE=time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time()))
+            DATE=TimeUtils.now_str()
         ))
 
     def get_userrss_task_history(self, task_id):
@@ -2111,8 +2154,7 @@ class DbHelper:
                 DESC=desc,
                 TOTAL=total,
                 START=start,
-                FINISH_TIME=time.strftime('%Y-%m-%d %H:%M:%S',
-                                          time.localtime(time.time()))
+                FINISH_TIME=TimeUtils.now_str()
             ))
 
     @DbPersist(_db)
@@ -2658,7 +2700,7 @@ class DbHelper:
             PLUGIN_ID=plugin_id,
             KEY=key,
             VALUE=value,
-            DATE=time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time()))
+            DATE=TimeUtils.now_str()
         ))
 
     def get_plugin_history(self, plugin_id, key):

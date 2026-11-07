@@ -7,7 +7,8 @@ from fastapi import APIRouter, Request, Response
 import log
 from app.conf.moduleconf import ModuleConf
 from app.core.cmd_handler import CommandHandler
-from app.helper import SecurityHelper, ThreadHelper
+from app.core.security_center import SecurityCenter
+from app.helper import ThreadHelper
 from app.media.meta.metainfo import MetaInfo
 from app.mediaserver.media_server import MediaServer
 from app.message import MessageService
@@ -163,7 +164,7 @@ async def wechat_post(request: Request):
 @auth_required
 async def sendwechat(request: Request, appid: str | None = None):
     
-    if not SecurityHelper().check_mediaserver_ip(request.client.host):
+    if not SecurityCenter().check_mediaserver_ip(request.client.host):
         log.warn(f"非法IP地址的媒体服务器消息通知: {request.client.host}")
         return Response(content="不允许的IP地址请求", status_code=403)
 
@@ -200,7 +201,7 @@ async def sendwechat(request: Request, appid: str | None = None):
 @open_router.post("/plex")
 @auth_required
 async def plex_webhook(request: Request):
-    if not SecurityHelper().check_mediaserver_ip(request.client.host):
+    if not SecurityCenter().check_mediaserver_ip(request.client.host):
         log.warn(f"非法IP地址的媒体服务器消息通知: {request.client.host}")
         return Response(content="不允许的IP地址请求", status_code=403)
 
@@ -223,7 +224,7 @@ async def plex_webhook(request: Request):
 @open_router.post("/jellyfin")
 @auth_required
 async def jellyfin_webhook(request: Request):
-    if not SecurityHelper().check_mediaserver_ip(request.client.host):
+    if not SecurityCenter().check_mediaserver_ip(request.client.host):
         log.warn(f"非法IP地址的媒体服务器消息通知: {request.client.host}")
         return Response(content="不允许的IP地址请求", status_code=403)
 
@@ -240,7 +241,7 @@ async def jellyfin_webhook(request: Request):
 @open_router.api_route("/emby", methods=["GET", "POST"])
 @auth_required
 async def emby_webhook(request: Request):
-    if not SecurityHelper().check_mediaserver_ip(request.client.host):
+    if not SecurityCenter().check_mediaserver_ip(request.client.host):
         log.warn(f"非法IP地址的媒体服务器消息通知: {request.client.host}")
         return Response(content="不允许的IP地址请求", status_code=403)
 
@@ -271,7 +272,7 @@ async def telegram(request: Request):
     interactive_client = interactive_clients[0]
 
     msg_json = await request.json()
-    if not SecurityHelper().check_telegram_ip(request.client.host):
+    if not SecurityCenter().check_telegram_ip(request.client.host):
         log.error("收到来自 %s 的非法Telegram消息: %s", request.client.host, msg_json)
         return Response(content="不允许的IP地址请求", status_code=403)
 
@@ -314,7 +315,7 @@ async def synology(request: Request):
     interactive_client = interactive_clients[0]
 
     form = await request.form()
-    if not SecurityHelper().check_synology_ip(request.client.host):
+    if not SecurityCenter().check_synology_ip(request.client.host):
         log.error("收到来自 %s 的非法Synology Chat消息: %s", request.client.host, form)
         return Response(content="不允许的IP地址请求", status_code=403)
 
@@ -341,7 +342,7 @@ async def synology(request: Request):
 @open_router.post("/slack")
 @auth_required
 async def slack(request: Request):
-    if not SecurityHelper().check_slack_ip(request.client.host):
+    if not SecurityCenter().check_slack_ip(request.client.host):
         log.warn(f"非法IP地址的Slack消息通知: {request.client.host}")
         return Response(content="不允许的IP地址请求", status_code=403)
 

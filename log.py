@@ -8,10 +8,42 @@ import threading
 import time
 from collections import deque
 from contextvars import ContextVar
+from datetime import datetime
 from logging.config import dictConfig
 from typing import Any
+from zoneinfo import ZoneInfo
 
 from config import Config
+
+DEFAULT_TIMEZONE = "Asia/Shanghai"
+
+
+def _get_log_timezone():
+    try:
+        return ZoneInfo(Config().get_timezone() or DEFAULT_TIMEZONE)
+    except Exception:
+        return None
+
+
+def _format_timestamp(timestamp: float, date_format: str) -> str:
+    """
+    按应用配置的时区格式化时间，避免进程时区与预期不一致
+    """
+    timezone = _get_log_timezone()
+    if timezone is None:
+        return time.strftime(date_format, time.localtime(timestamp))
+    return datetime.fromtimestamp(timestamp, timezone).strftime(date_format)
+
+
+def _tz_converter(timestamp: float):
+    timezone = _get_log_timezone()
+    if timezone is None:
+        return time.localtime(timestamp)
+    return datetime.fromtimestamp(timestamp, timezone).timetuple()
+
+
+# 所有 logging 格式化器（含 uvicorn）统一使用应用时区
+logging.Formatter.converter = staticmethod(_tz_converter)
 
 LOG_MAX_BYTES = 10 * 1024 * 1024
 LOG_BACKUP_COUNT = 5
@@ -180,7 +212,7 @@ class SSEHandler(logging.Handler):
                 "seq": seq,
                 "text": text,
                 "source": source,
-                "time": time.strftime('%H:%M:%S', time.localtime(record.created)),
+                "time": _format_timestamp(record.created, '%H:%M:%S'),
                 "level": record.levelname,
             }
 

@@ -1,7 +1,7 @@
 import json
 import os.path
 from copy import deepcopy
-from datetime import datetime, timedelta
+from datetime import timedelta
 from threading import Event, Lock
 from typing import ClassVar
 
@@ -12,7 +12,7 @@ from app.downloader import Downloader
 from app.helper import ThreadHelper
 from app.media.meta import MetaInfo
 from app.plugins.modules._base import _IPluginModule
-from app.utils import TorrentUtils
+from app.utils import TimeUtils, TorrentUtils
 from app.utils.types import DownloaderType
 from config import Config
 
@@ -576,7 +576,7 @@ class TorrentTransfer(_IPluginModule):
             scheduler.add_job(
                 self.__run_recheck,
                 'date',
-                run_date=datetime.now() + timedelta(seconds=RECHECK_DELAY_SECONDS),
+                run_date=TimeUtils.now() + timedelta(seconds=RECHECK_DELAY_SECONDS),
                 id=RECHECK_JOB_ID,
                 name='自动移转做种校验',
                 replace_existing=True

@@ -96,7 +96,7 @@ async def home_page():
 
 # bing
 @app.post("/data/bing")
-async def bing():
+def bing():
     img_url, img_title, img_link = get_login_wallpaper()
     data = {
         "imgTitle" : img_title,

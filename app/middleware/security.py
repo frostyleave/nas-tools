@@ -9,6 +9,7 @@ from fastapi.requests import HTTPConnection
 from jwt.exceptions import InvalidTokenError
 
 import log
+from app.core.security_center import SecurityCenter
 from app.models.user import LEVEL_USER, User, UserManager
 from config import Config
 
@@ -125,19 +126,18 @@ def auth_required(func=None):
 
         log.debug(f"【Security】{func.__name__} 认证检查")
 
-        setting_api_key = Config().get_config("security").get("api_key")
         request: Request = kwargs.get("request") or args[0]
 
         # 允许在请求头Authorization中添加apikey
         auth = request.headers.get("Authorization")
         if auth:
             auth = str(auth).split()[-1]
-            if auth == setting_api_key:
+            if SecurityCenter().verify_api_key(auth):
                 return await _call_endpoint(func, *args, **kwargs)
 
         # 允许使用在api后面拼接 ?apikey=xxx 的方式进行验证
         auth = request.query_params.get("apikey")
-        if auth and auth == setting_api_key:
+        if auth and SecurityCenter().verify_api_key(auth):
             return await _call_endpoint(func, *args, **kwargs)
 
         log.warn(f"【Security】{func.__name__} 认证未通过, 请检查API Key")

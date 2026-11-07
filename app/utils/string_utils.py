@@ -13,6 +13,7 @@ from zhon.hanzi import punctuation as zh_punc
 
 import log
 from app.utils import zhconv_compat as zhconv
+from app.utils.time_utils import TimeUtils
 from app.utils.types import MediaType
 
 # 需要忽略的特殊字符
@@ -414,7 +415,7 @@ class StringUtils:
         if isinstance(timestamp, str) and not timestamp.isdigit():
             return timestamp
         try:
-            return datetime.fromtimestamp(int(timestamp)).strftime(date_format)
+            return TimeUtils.timestamp_to_datetime(int(timestamp)).strftime(date_format)
         except Exception as e:
             log.exception('timestamp_to_date error:')
             return timestamp
@@ -491,7 +492,7 @@ class StringUtils:
         if not time_str:
             return ''
 
-        now = datetime.now()
+        now = TimeUtils.now()
 
         # 优先处理相对时间格式
         relative_time = StringUtils.parse_relative_time(now, time_str)
@@ -695,7 +696,7 @@ class StringUtils:
         # 将日期字符串解析为日期对象
         date_obj = datetime.strptime(date_str, '%Y-%m-%d')
         # 计算当前日期和一个月前的日期
-        today = datetime.today()
+        today = TimeUtils.now()
         one_month_ago = today - timedelta(days=30)
         # 比较日期对象，判断是否早于一个月前
         return date_obj < one_month_ago

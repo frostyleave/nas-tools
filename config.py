@@ -2,6 +2,7 @@ import json
 import os
 import shutil
 import sys
+import time
 from threading import Lock
 
 import ruamel.yaml
@@ -51,6 +52,12 @@ class Config:
             self._config_path = os.path.join(dir_path, "config", "config.yaml")
         if not os.environ.get('TZ'):
             os.environ['TZ'] = 'Asia/Shanghai'
+        # 重新应用时区，确保 time.localtime / logging 等使用配置的时区（Windows 无 tzset）
+        if hasattr(time, "tzset"):
+            try:
+                time.tzset()
+            except Exception:
+                pass
         self._config = {}
         self.init_config()
 

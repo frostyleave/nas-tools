@@ -3276,6 +3276,9 @@ class WebAction:
             
             if not media_info or not media_info.tmdb_info:
                 return { "code": 1, "msg": "无法查询到Bangumi资源的TMDB信息" }
+
+            tmdb_info = media_info.tmdb_info
+            tmdb_info.seasons = media_handler.get_tmdb_tv_seasons(tmdb_info)
             
         else:
             info = media_handler.get_tmdb_info(tmdbid=tmdbid, mtype=mtype, append_to_response="all")

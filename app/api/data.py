@@ -10,6 +10,7 @@ import log
 from app.conf.moduleconf import ModuleConf
 from app.conf.systemconfig import SystemConfig
 from app.core.cmd_registry import CommandRegistry
+from app.core.security_center import SecurityCenter
 from app.downloader.config import PT_TRANSFER_INTERVAL, DownloaderConfItem
 from app.downloader.downloader import Downloader
 from app.helper.meta_helper import MetaHelper
@@ -529,6 +530,13 @@ def users(current_user: CurrentUser):
             "CurrentUser": current_user.username,
             "CurrentLevel": current_user.level,
         })
+
+
+# API密钥管理
+@data_router.post("/apikey")
+@auth_check(LEVEL_SYSADMIN)
+def apikey():
+    return response(data={"Keys": SecurityCenter().get_api_keys()})
 
 
 # 过滤规则设置页面

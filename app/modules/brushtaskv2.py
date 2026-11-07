@@ -19,7 +19,7 @@ from app.message import MessageService
 from app.models.model import BrushedTorrentUpdate, UserSiteConf
 from app.modules.filter import Filter
 from app.sites import SiteConf, SitesManager
-from app.utils import StringUtils
+from app.utils import StringUtils, TimeUtils
 from app.utils.commons import singleton
 from app.utils.types import BrushDeleteType
 from config import Config
@@ -331,7 +331,7 @@ class BrushTaskV2:
                         f"已上传量：{_upload_size}\n" \
                         f"分享比率：{_ratio}\n" \
                         f"添加时间：{_add_time}\n" \
-                        f"删除时间：{time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time()))}\n" \
+                        f"删除时间：{TimeUtils.now_str()}\n" \
                         f"删除规则：{_delete_type.value}"
             self.message.send_brushtask_remove_message(title=_msg_title, text=_msg_text)
 
@@ -669,7 +669,7 @@ class BrushTaskV2:
                 msg_text = f"下载器名：{downlaod_name}\n" \
                            f"种子名称：{title}\n" \
                            f"种子大小：{StringUtils.str_filesize(size)}\n" \
-                           f"添加时间：{time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time()))}"
+                           f"添加时间：{TimeUtils.now_str()}"
                 self.message.send_brushtask_added_message(title=msg_title, text=msg_text)
 
         # 插入种子数据
@@ -894,7 +894,7 @@ class BrushTaskV2:
             # 种子大小
             total_size = torrent.get("total_size")
             # 添加时间
-            add_time = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(torrent.get("added_on") or 0))
+            add_time = TimeUtils.timestamp_to_str(torrent.get("added_on") or 0)
 
         else:
 
@@ -929,8 +929,7 @@ class BrushTaskV2:
             # 种子大小
             total_size = torrent.total_size
             # 添加时间
-            add_time = time.strftime('%Y-%m-%d %H:%M:%S',
-                                     time.localtime(torrent.date_added.timestamp() if torrent.date_added else 0))
+            add_time = TimeUtils.timestamp_to_str(torrent.date_added.timestamp() if torrent.date_added else 0)
 
         return {
             "id": torrent_id,

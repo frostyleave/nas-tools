@@ -77,14 +77,50 @@ function startPolling(key, fn, interval) {
   PollingManager.start(key, fn, interval);
 }
 
+// 页面级流式请求管理器：页面切换时中止未完成的 fetch 流
+const PageStreamManager = {
+  _controllers: new Set(),
+
+  // 注册一个流式请求，返回 AbortController
+  register() {
+    const controller = new AbortController();
+    this._controllers.add(controller);
+    return controller;
+  },
+
+  // 请求结束（正常/异常）时释放
+  release(controller) {
+    this._controllers.delete(controller);
+  },
+
+  // 中止全部流式请求（用于路由切换）
+  abortAll() {
+    for (const controller of this._controllers) {
+      controller.abort();
+    }
+    this._controllers.clear();
+  }
+};
+window.PageStreamManager = PageStreamManager;
+
 // 初始化路由
 const router = new Navigo("/", { hash: true });
+
+// 已在下方以固定路由注册过的页面
+// registerRouter 按菜单再次注册同一路径时，Navigo 会保留两个 handler，
+// 导致同一次路由解析触发两次 loadPage（页面片段和接口都会重复请求）
+const FixedRoutePages = new Set([
+  "login", "index", "media_detail", "recommend", "discovery_person",
+  "rss_history", "rss_parser", "downloaders", "download_setting",
+  "download_history", "open"
+]);
 
 router
   // 切换页面，停掉所有轮询
   .hooks({
     before(done) {
       PollingManager.stopAll();
+      PageStreamManager.abortAll();
       done();
     }
   })
@@ -570,6 +606,10 @@ function registerRouter(user_menus) {
     // 有二级菜单
     if (route.nav && route.nav.length > 0) {
       route.nav.forEach(nav => {
+        // 固定路由已注册的页面不再重复注册
+        if (FixedRoutePages.has(nav.page)) {
+          return;
+        }
         router.on(nav.page, (match) => {
           loadPage(nav.html, match.queryString);
         });
@@ -577,6 +617,9 @@ function registerRouter(user_menus) {
       return;
     }
     // 一级菜单
+    if (FixedRoutePages.has(route.page)) {
+      return;
+    }
     router.on(route.page, (match) => {
       loadPage(route.html, match.queryString);
     });

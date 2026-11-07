@@ -4,6 +4,7 @@ from urllib.parse import urlencode
 import requests
 
 import log
+from app.core.security_center import SecurityCenter
 from app.helper import ThreadHelper
 from app.message.client._base import _IMessageClient
 from app.utils import RequestUtils
@@ -31,10 +32,10 @@ class Telegram(_IMessageClient):
         self._client_config = config
         self._interactive = config.get("interactive")
         self._domain = Config().get_domain()
-        self._api_key = Config().get_config("security").get("api_key")
         self.init_config()
 
     def init_config(self):
+        self._api_key = SecurityCenter().get_default_api_key()
         self._telegram_user_ids = []
         self._telegram_admin_ids = []
         if self._client_config:

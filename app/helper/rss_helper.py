@@ -8,7 +8,14 @@ from lxml import etree
 import log
 from app.db.main_db import DbPersist, MainDb
 from app.db.models import RSSTORRENTS
-from app.utils import DomUtils, RequestUtils, RssTitleUtils, SiteUtils, StringUtils
+from app.utils import (
+    DomUtils,
+    RequestUtils,
+    RssTitleUtils,
+    SiteUtils,
+    StringUtils,
+    TimeUtils,
+)
 from config import Config
 
 
@@ -341,7 +348,8 @@ class RssHelper:
                             pubdate = StringUtils.get_time_stamp(pubdate)
                             if pubdate:
                                 if pubdate.tzinfo is None:
-                                    pubdate = pubdate.astimezone()
+                                    timezone = TimeUtils.get_timezone()
+                                    pubdate = pubdate.replace(tzinfo=timezone) if timezone else pubdate.astimezone()
                                 pubdate = pubdate.astimezone(UTC)
                         # 返回对象
                         tmp_dict = {'title': title,

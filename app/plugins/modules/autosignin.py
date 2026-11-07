@@ -1,7 +1,7 @@
 import base64
 import re
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta
+from datetime import timedelta
 from threading import Event
 from urllib.parse import urljoin
 
@@ -17,7 +17,7 @@ from app.plugins import EventHandler
 from app.plugins.modules._base import _IPluginModule
 from app.sites.site_manager import SitesManager
 from app.sites.siteconf import SiteConf
-from app.utils import RequestUtils, SchedulerUtils, SiteUtils
+from app.utils import RequestUtils, SchedulerUtils, SiteUtils, TimeUtils
 from app.utils.types import EventType
 from config import Config
 
@@ -255,7 +255,7 @@ class AutoSignIn(_IPluginModule):
 
             # 清理缓存即今日历史
             if self._clean:
-                self.delete_history(key=datetime.today().strftime('%Y-%m-%d'))
+                self.delete_history(key=TimeUtils.now_str('%Y-%m-%d'))
 
             # 运行一次
             if self._onlyonce:
@@ -346,7 +346,7 @@ class AutoSignIn(_IPluginModule):
 
     def _setup_dates(self) -> tuple[str, str]:
         """获取今天和昨天的日期字符串"""
-        today_dt = datetime.today()
+        today_dt = TimeUtils.now()
         yesterday_dt = today_dt - timedelta(days=1)
         return today_dt.strftime('%Y-%m-%d'), yesterday_dt.strftime('%Y-%m-%d')
 

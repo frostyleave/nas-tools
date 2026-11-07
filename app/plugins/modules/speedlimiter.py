@@ -3,7 +3,7 @@ import time
 
 import log
 from app.downloader import Downloader
-from app.helper.security_helper import SecurityHelper
+from app.core.security_center import SecurityCenter
 from app.mediaserver import MediaServer
 from app.plugins import EventHandler
 from app.plugins.modules._base import _IPluginModule
@@ -373,19 +373,19 @@ class SpeedLimiter(_IPluginModule):
         total_bit_rate = 0
         if _mediaserver_type == MediaServerType.EMBY:
             for session in playing_sessions:
-                if not SecurityHelper.allow_access(self._unlimited_ips, session.get("RemoteEndPoint")) \
+                if not SecurityCenter().allow_access(self._unlimited_ips, session.get("RemoteEndPoint")) \
                         and session.get("NowPlayingItem", {}).get("MediaType") == "Video":
                     total_bit_rate += int(session.get("NowPlayingItem", {}).get("Bitrate") or 0)
         elif _mediaserver_type == MediaServerType.JELLYFIN:
             for session in playing_sessions:
-                if not SecurityHelper.allow_access(self._unlimited_ips, session.get("RemoteEndPoint")) \
+                if not SecurityCenter().allow_access(self._unlimited_ips, session.get("RemoteEndPoint")) \
                         and session.get("NowPlayingItem", {}).get("MediaType") == "Video":
                     media_streams = session.get("NowPlayingItem", {}).get("MediaStreams") or []
                     for media_stream in media_streams:
                         total_bit_rate += int(media_stream.get("BitRate") or 0)
         elif _mediaserver_type == MediaServerType.PLEX:
             for session in playing_sessions:
-                if not SecurityHelper.allow_access(self._unlimited_ips, session.get("address")) \
+                if not SecurityCenter().allow_access(self._unlimited_ips, session.get("address")) \
                         and session.get("type") == "Video":
                     total_bit_rate += int(session.get("bitrate") or 0)
         else:

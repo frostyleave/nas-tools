@@ -1,10 +1,9 @@
-import datetime
 import hashlib
 import json
 import os
 
 from app.plugins.modules._base import _IPluginModule
-from app.utils import SystemUtils
+from app.utils import SystemUtils, TimeUtils
 
 
 class DiskSpaceSaver(_IPluginModule):
@@ -226,7 +225,7 @@ class DiskSpaceSaver(_IPluginModule):
 
                 if os.path.getsize(file_path) < _file_size * 1024 * 1024:
                     continue
-                file_mtime = datetime.datetime.fromtimestamp(os.path.getmtime(file_path))
+                file_mtime = TimeUtils.timestamp_to_datetime(os.path.getmtime(file_path))
                 if file_group_by_size.get(file_size) is None:
                     file_group_by_size[file_size] = []
 
@@ -243,7 +242,7 @@ class DiskSpaceSaver(_IPluginModule):
                 continue
             for file_info in file_list:
                 file_path = file_info['filePath']
-                file_mtime = datetime.datetime.fromtimestamp(os.path.getmtime(file_path))
+                file_mtime = TimeUtils.timestamp_to_datetime(os.path.getmtime(file_path))
                 file_size = os.path.getsize(file_path)
                 sha1 = None
 

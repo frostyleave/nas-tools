@@ -2,11 +2,18 @@ import asyncio
 import json
 import re
 import threading
-import time
 import uuid
 from typing import Annotated, Any
 
-from fastapi import APIRouter, Depends, Query, Request, WebSocket, WebSocketDisconnect
+from fastapi import (
+    APIRouter,
+    Body,
+    Depends,
+    Query,
+    Request,
+    WebSocket,
+    WebSocketDisconnect,
+)
 from fastapi.responses import StreamingResponse
 
 import log
@@ -16,6 +23,8 @@ from app.core.task_manager import TaskStore
 from app.message.message_center import SysMessageCenter
 from app.middleware.security import auth_check, get_current_user
 from app.models.user import LEVEL_OPERATOR, LEVEL_SYSADMIN
+from app.modules.media_status import MediaStatusChecker
+from app.utils.time_utils import TimeUtils
 from app.utils.types import SearchType
 from log import active_sse_queues, log_buffer
 
@@ -217,7 +226,7 @@ async def stream_logging(request: Request, source: str = ""):
                 "seq": 0,
                 "source": "System",
                 "level": "ERROR",
-                "time": time.strftime("%H:%M:%S"),
+                "time": TimeUtils.now_str("%H:%M:%S"),
                 "text": f"实时日志连接异常: {e!s}",
             }])
         finally:
@@ -333,6 +342,56 @@ async def stream_update_system(request: Request):
         except Exception as e:
             log.error(f"[SSE-更新] 连接异常: {e!s}")
             yield dump({"type": "done", "result": {"code": -1, "msg": f"更新连接异常：{e!s}"}})
+
+    return StreamingResponse(event_generator(), media_type="text/event-stream", headers=SSE_HEADERS)
+
+
+# 第一阶段：Bangumi 条目 TMDB 匹配与 R18 标记
+@streaming_router.post("/stream-bangumi-tmdb", dependencies=[Depends(get_current_user)])
+def stream_bangumi_tmdb(data: Annotated[dict, Body(...)]):
+    """
+    Bangumi 条目 TMDB 信息 SSE
+
+    data: {"list": [{"id", "bgmid", "title", "year"}]}
+    每完成一条立即返回：
+      {"item": {"id", "tmdbid", "r18"}}
+    结束时返回：
+      {"type": "done"}
+    """
+    media_list = (data or {}).get("list") or []
+
+    def event_generator():
+        if not media_list:
+            yield _sse_json_event({"type": "done"})
+            return
+        for item in MediaStatusChecker().iter_bangumi_tmdb_info(media_list):
+            yield _sse_json_event({"item": item})
+        yield _sse_json_event({"type": "done"})
+
+    return StreamingResponse(event_generator(), media_type="text/event-stream", headers=SSE_HEADERS)
+
+
+# 第二阶段：批量查询订阅/在库状态
+@streaming_router.post("/stream-media-exists", dependencies=[Depends(get_current_user)])
+def stream_media_exists(data: Annotated[dict, Body(...)]):
+    """
+    订阅/在库状态 SSE
+
+    data: {"list": [{"id", "tmdbid", "type", "title", "year"}]}
+    每完成一条立即返回：
+      {"item": {"id", "fav", "rssid", "item_url"}}
+    结束时返回：
+      {"type": "done"}
+    """
+    media_list = (data or {}).get("list") or []
+
+    def event_generator():
+        if not media_list:
+            yield _sse_json_event({"type": "done"})
+            return
+        for item in MediaStatusChecker().iter_media_exists_info(media_list):
+            yield _sse_json_event({"item": item})
+        yield _sse_json_event({"type": "done"})
 
     return StreamingResponse(event_generator(), media_type="text/event-stream", headers=SSE_HEADERS)
 

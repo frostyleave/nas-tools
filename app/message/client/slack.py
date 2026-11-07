@@ -6,6 +6,7 @@ from slack_bolt.adapter.socket_mode import SocketModeHandler
 from slack_sdk.errors import SlackApiError
 
 import log
+from app.core.security_center import SecurityCenter
 from app.message.client._base import _IMessageClient
 from config import Config
 
@@ -28,7 +29,7 @@ class Slack(_IMessageClient):
         self.init_config()
 
     def init_config(self):
-        _api_key = self._config.get_config("security").get("api_key")
+        _api_key = SecurityCenter().get_default_api_key()
         self._ds_url = f"http://127.0.0.1:3000/slack?apikey={_api_key}"
         if self._client_config:
             try:

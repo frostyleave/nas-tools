@@ -940,6 +940,39 @@ function show_warning_modal(title, func) {
   $modal.modal("show");
 }
 
+// 显示轻提示（Tabler Toast），不阻塞操作
+function show_toast(message, type = "success") {
+  let $container = $("#toast-container");
+  if ($container.length === 0) {
+    $container = $('<div id="toast-container" class="toast-container position-fixed top-50 start-50 translate-middle p-3"></div>');
+    $("body").append($container);
+  }
+
+  const icons = {
+    success: "ti-circle-check text-success",
+    error: "ti-alert-circle text-danger",
+    warning: "ti-alert-triangle text-warning",
+    info: "ti-info-circle text-blue"
+  };
+
+  const $toast = $('<div class="toast" role="alert" aria-live="assertive" aria-atomic="true"></div>');
+  const $body = $('<div class="toast-body d-flex align-items-center gap-2"></div>');
+  $body.append($('<i class="ti fs-2"></i>').addClass(icons[type] || icons.info));
+  $body.append($('<span class="flex-fill"></span>').text(message || ""));
+  $body.append('<button type="button" class="btn-close ms-2" data-bs-dismiss="toast" aria-label="关闭"></button>');
+  $toast.append($body);
+  $container.append($toast);
+
+  $toast.on("hidden.bs.toast", function () {
+    $toast.remove();
+    if ($container.children().length === 0) {
+      $container.remove();
+    }
+  });
+  $toast.toast({ delay: 2500 });
+  $toast.toast("show");
+}
+
 //隐藏媒体详情
 function hide_mediainfo_modal() {
   $("#system-media-modal").modal("hide");

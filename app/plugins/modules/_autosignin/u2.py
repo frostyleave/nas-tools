@@ -1,14 +1,13 @@
-from typing import ClassVar
-import datetime
 import random
 import re
+from typing import ClassVar
 
 from lxml import etree
 
 from app.helper.site_signin_helper import SiteSigninHelper, Verdict
 from app.models.model import UserSiteConf
 from app.plugins.modules._autosignin._base import _ISiteSigninHandler
-from app.utils import RequestUtils, SiteUtils
+from app.utils import RequestUtils, SiteUtils, TimeUtils
 from config import Config
 
 
@@ -49,7 +48,7 @@ class U2(_ISiteSigninHandler):
         ua = site_info.ua
         proxy = Config().get_proxies() if site_info.proxy else None
 
-        now = datetime.datetime.now()
+        now = TimeUtils.now()
         # 判断当前时间是否小于9点
         if now.hour < 9:
             self.error("签到失败，9点前不签到")

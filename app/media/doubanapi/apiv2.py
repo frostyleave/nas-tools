@@ -1,11 +1,10 @@
-from typing import ClassVar
 import base64
 import hashlib
 import hmac
 import json
 import re
-from datetime import datetime
 from random import choice
+from typing import ClassVar
 from urllib import parse
 
 import requests
@@ -14,6 +13,7 @@ from cachetools import TTLCache, cached
 import log
 from app.utils import RequestUtils
 from app.utils.commons import singleton
+from app.utils.time_utils import TimeUtils
 
 
 @singleton
@@ -195,7 +195,7 @@ class DoubanApi:
 
         ts = params.pop(
             '_ts',
-            datetime.strftime(datetime.now(), '%Y%m%d')
+            TimeUtils.now_str('%Y%m%d')
         )
         params.update({
             'os_rom': 'android', 
@@ -259,58 +259,58 @@ class DoubanApi:
             return resp.json()
         return resp.json() if resp else {}
 
-    def imdbid(self, imdbid: str, ts=datetime.strftime(datetime.now(), '%Y%m%d')):
+    def imdbid(self, imdbid: str, ts=TimeUtils.now_str('%Y%m%d')):
         """
         IMDBID搜索
         """
         return self.__post(self._urls["imdbid"] % imdbid, _ts=ts)
 
-    def search(self, keyword, start=0, count=20, ts=datetime.strftime(datetime.now(), '%Y%m%d')):
+    def search(self, keyword, start=0, count=20, ts=TimeUtils.now_str('%Y%m%d')):
         """
         关键字搜索
         """
         return self.__invoke(self._urls["search"], q=keyword, start=start, count=count, _ts=ts)
 
-    def movie_search(self, keyword, start=0, count=20, ts=datetime.strftime(datetime.now(), '%Y%m%d')):
+    def movie_search(self, keyword, start=0, count=20, ts=TimeUtils.now_str('%Y%m%d')):
         """
         电影搜索
         """
         return self.__post(self._urls["movie_search"], q=keyword, start=start, count=count, _ts=ts, apikey='0ab215a8b1977939201640fa14c66bab')
 
-    def tv_search(self, keyword, start=0, count=20, ts=datetime.strftime(datetime.now(), '%Y%m%d')):
+    def tv_search(self, keyword, start=0, count=20, ts=TimeUtils.now_str('%Y%m%d')):
         """
         剧集搜索
         """
         return self.__invoke(self._urls["search_subject"], q=keyword, start=start, count=count, _ts=ts)
 
-    def book_search(self, keyword, start=0, count=20, ts=datetime.strftime(datetime.now(), '%Y%m%d')):
+    def book_search(self, keyword, start=0, count=20, ts=TimeUtils.now_str('%Y%m%d')):
         return self.__invoke(self._urls["book_search"], q=keyword, start=start, count=count, _ts=ts)
 
-    def group_search(self, keyword, start=0, count=20, ts=datetime.strftime(datetime.now(), '%Y%m%d')):
+    def group_search(self, keyword, start=0, count=20, ts=TimeUtils.now_str('%Y%m%d')):
         return self.__invoke(self._urls["group_search"], q=keyword, start=start, count=count, _ts=ts)
 
-    def movie_showing(self, start=0, count=20, ts=datetime.strftime(datetime.now(), '%Y%m%d')):
+    def movie_showing(self, start=0, count=20, ts=TimeUtils.now_str('%Y%m%d')):
         return self.__invoke(self._urls["movie_showing"], start=start, count=count, _ts=ts)
 
-    def movie_soon(self, start=0, count=20, ts=datetime.strftime(datetime.now(), '%Y%m%d')):
+    def movie_soon(self, start=0, count=20, ts=TimeUtils.now_str('%Y%m%d')):
         return self.__invoke(self._urls["movie_soon"], start=start, count=count, _ts=ts)
 
-    def movie_hot_gaia(self, start=0, count=20, ts=datetime.strftime(datetime.now(), '%Y%m%d')):
+    def movie_hot_gaia(self, start=0, count=20, ts=TimeUtils.now_str('%Y%m%d')):
         return self.__invoke(self._urls["movie_hot_gaia"], start=start, count=count, _ts=ts)
 
-    def tv_hot(self, start=0, count=20, ts=datetime.strftime(datetime.now(), '%Y%m%d')):
+    def tv_hot(self, start=0, count=20, ts=TimeUtils.now_str('%Y%m%d')):
         return self.__invoke(self._urls["tv_hot"], start=start, count=count, _ts=ts)
 
-    def tv_animation(self, start=0, count=20, ts=datetime.strftime(datetime.now(), '%Y%m%d')):
+    def tv_animation(self, start=0, count=20, ts=TimeUtils.now_str('%Y%m%d')):
         return self.__invoke(self._urls["tv_animation"], start=start, count=count, _ts=ts)
 
-    def tv_variety_show(self, start=0, count=20, ts=datetime.strftime(datetime.now(), '%Y%m%d')):
+    def tv_variety_show(self, start=0, count=20, ts=TimeUtils.now_str('%Y%m%d')):
         return self.__invoke(self._urls["tv_variety_show"], start=start, count=count, _ts=ts)
 
-    def tv_rank_list(self, start=0, count=20, ts=datetime.strftime(datetime.now(), '%Y%m%d')):
+    def tv_rank_list(self, start=0, count=20, ts=TimeUtils.now_str('%Y%m%d')):
         return self.__invoke(self._urls["tv_rank_list"], start=start, count=count, _ts=ts)
 
-    def show_hot(self, start=0, count=20, ts=datetime.strftime(datetime.now(), '%Y%m%d')):
+    def show_hot(self, start=0, count=20, ts=TimeUtils.now_str('%Y%m%d')):
         return self.__invoke(self._urls["show_hot"], start=start, count=count, _ts=ts)
 
     def movie_info(self, subject_id):
@@ -349,19 +349,19 @@ class DoubanApi:
     def book_detail(self, subject_id):
         return self.__invoke(self._urls["book_detail"] + subject_id)
 
-    def movie_top250(self, start=0, count=20, ts=datetime.strftime(datetime.now(), '%Y%m%d')):
+    def movie_top250(self, start=0, count=20, ts=TimeUtils.now_str('%Y%m%d')):
         return self.__invoke(self._urls["movie_top250"], start=start, count=count, _ts=ts)
 
-    def movie_recommend(self, tags='', sort='R', start=0, count=20, ts=datetime.strftime(datetime.now(), '%Y%m%d')):
+    def movie_recommend(self, tags='', sort='R', start=0, count=20, ts=TimeUtils.now_str('%Y%m%d')):
         return self.__invoke(self._urls["movie_recommend"], tags=tags, sort=sort, start=start, count=count, _ts=ts)
 
-    def tv_recommend(self, tags='', sort='R', start=0, count=20, ts=datetime.strftime(datetime.now(), '%Y%m%d')):
+    def tv_recommend(self, tags='', sort='R', start=0, count=20, ts=TimeUtils.now_str('%Y%m%d')):
         return self.__invoke(self._urls["tv_recommend"], tags=tags, sort=sort, start=start, count=count, _ts=ts)
 
-    def tv_chinese_best_weekly(self, start=0, count=20, ts=datetime.strftime(datetime.now(), '%Y%m%d')):
+    def tv_chinese_best_weekly(self, start=0, count=20, ts=TimeUtils.now_str('%Y%m%d')):
         return self.__invoke(self._urls["tv_chinese_best_weekly"], start=start, count=count, _ts=ts)
 
-    def tv_global_best_weekly(self, start=0, count=20, ts=datetime.strftime(datetime.now(), '%Y%m%d')):
+    def tv_global_best_weekly(self, start=0, count=20, ts=TimeUtils.now_str('%Y%m%d')):
         return self.__invoke(self._urls["tv_global_best_weekly"], start=start, count=count, _ts=ts)
 
     def doulist_detail(self, subject_id):
@@ -415,7 +415,7 @@ class DoubanApi:
         """
         return self.__invoke(self._urls["doulist"] + subject_id)
 
-    def doulist_items(self, subject_id, start=0, count=20, ts=datetime.strftime(datetime.now(), '%Y%m%d')):
+    def doulist_items(self, subject_id, start=0, count=20, ts=TimeUtils.now_str('%Y%m%d')):
         """
         豆列列表
         :param subject_id: 豆列id

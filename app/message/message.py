@@ -1,13 +1,12 @@
 import json
 import re
-import time
 from enum import Enum
 
 import log
 from app.conf import ModuleConf
 from app.helper import DbHelper, SubmoduleHelper
 from app.message.message_center import SysMessageCenter
-from app.utils import IpUtils, StringUtils
+from app.utils import IpUtils, StringUtils, TimeUtils
 from app.utils.commons import singleton
 from app.utils.types import MediaType, SearchType
 from config import Config
@@ -726,7 +725,7 @@ class MessageService:
             message_texts.append(f"进度：{percentage}%")
         if event_info.get('overview'):
             message_texts.append(f"剧情：{event_info.get('overview')}")
-        message_texts.append(f"时间：{time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time()))}")
+        message_texts.append(f"时间：{TimeUtils.now_str()}")
 
         # 消息图片
         if not image_url:

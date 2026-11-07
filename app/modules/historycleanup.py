@@ -4,6 +4,7 @@ import os
 import log
 from app.helper import DbHelper
 from app.utils.commons import singleton
+from app.utils.time_utils import TimeUtils
 from config import Config
 
 # 单次最大删除数据量
@@ -37,7 +38,7 @@ class HistoryCleanup:
         分批清理所有历史表中的过期记录
         """
 
-        cutoff_datetime = datetime.datetime.now() - datetime.timedelta(days=retention_days)
+        cutoff_datetime = TimeUtils.now() - datetime.timedelta(days=retention_days)
         cutoff_full = cutoff_datetime.strftime('%Y-%m-%d %H:%M:%S')
         cutoff_date = cutoff_datetime.strftime('%Y-%m-%d')
 
@@ -96,7 +97,7 @@ class HistoryCleanup:
             log.info(f"【HistoryCleanup】临时目录不存在，跳过种子文件清理: {temp_path}")
             return 0
 
-        cutoff_time = datetime.datetime.now() - datetime.timedelta(days=retention_days)
+        cutoff_time = TimeUtils.now() - datetime.timedelta(days=retention_days)
         deleted_count = 0
         try:
             for entry in os.scandir(temp_path):
@@ -104,7 +105,7 @@ class HistoryCleanup:
                 if not entry.is_file() or not entry.name.endswith('.torrent'):
                     continue
                 try:
-                    file_mtime = datetime.datetime.fromtimestamp(entry.stat().st_mtime)
+                    file_mtime = TimeUtils.timestamp_to_datetime(entry.stat().st_mtime)
                     if file_mtime < cutoff_time:
                         os.remove(entry.path)
                         deleted_count += 1

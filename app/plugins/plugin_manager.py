@@ -174,7 +174,7 @@ class PluginManager:
             self._running_plugins[module_id] = plugin()
             # 初始化配置
             self.reload_plugin(module_id)
-            log.info(f"✔️  已加载插件：{plugin}")
+            log.info(f"✔️  已加载插件：{plugin.__name__}")
 
     def run_plugin(self, pid, method, *args, **kwargs):
         """

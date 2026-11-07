@@ -8,6 +8,7 @@ import psutil
 
 import log
 from app.utils.path_utils import PathUtils
+from app.utils.time_utils import TimeUtils
 from app.utils.types import OsType
 from version import APP_VERSION
 
@@ -62,8 +63,11 @@ class SystemUtils:
         通过UTC的时间字符串获取时间
         """
         try:
-            utc_date = datetime.datetime.strptime(utc_time_str.replace('0000', ''), '%Y-%m-%dT%H:%M:%S.%fZ')
-            local_date = utc_date + datetime.timedelta(hours=8)
+            utc_date = datetime.datetime.strptime(
+                utc_time_str.replace('0000', ''), '%Y-%m-%dT%H:%M:%S.%fZ'
+            ).replace(tzinfo=datetime.UTC)
+            timezone = TimeUtils.get_timezone()
+            local_date = utc_date.astimezone(timezone) if timezone else utc_date.astimezone()
             local_date_str = datetime.datetime.strftime(local_date, '%Y-%m-%d %H:%M:%S')
         except Exception as e:
             log.exception("[SYS]get_local_time error:")

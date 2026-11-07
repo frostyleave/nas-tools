@@ -8,6 +8,7 @@ from fastapi import APIRouter, BackgroundTasks, Body, Depends
 
 import log
 from app.conf import SystemConfig
+from app.core.security_center import SecurityCenter
 from app.core.services import ServiceManager
 from app.core.system_update import check_system_update, get_git_info, run_system_update
 from app.core.task_manager import TaskStore
@@ -248,6 +249,30 @@ def user_manager(current_user: CurrentUser, data: Annotated[dict, Body(...)]):
     if ret:
         return {"code": 0, "success": True}
     return {"code": -1, "success": False, 'message': '操作失败'}
+
+
+@sys_router.post("/sys/apikey_manager")
+@auth_check(LEVEL_SYSADMIN)
+def apikey_manager(data: Annotated[dict, Body(...)]):
+    """
+    API密钥管理：新增、删除、重新生成
+    """
+    oper = data.get("oper")
+    if oper == "add":
+        ok, msg, api_key = SecurityCenter().add_api_key(data.get("name"))
+        if not ok:
+            return {"code": -1, "msg": msg}
+        return {"code": 0, "msg": msg, "data": {"api_key": api_key}}
+    if oper == "del":
+        if not SecurityCenter().delete_api_key(data.get("id")):
+            return {"code": -1, "msg": "删除失败：密钥不存在或系统默认密钥不可删除"}
+        return {"code": 0, "msg": "删除成功"}
+    if oper == "regen":
+        ok, msg, api_key = SecurityCenter().regenerate_api_key(data.get("id"))
+        if not ok:
+            return {"code": -1, "msg": msg}
+        return {"code": 0, "msg": msg, "data": {"api_key": api_key}}
+    return {"code": -1, "msg": "不支持的操作"}
 
 
 @sys_router.post("/sys/restory_backup")

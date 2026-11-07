@@ -1,9 +1,10 @@
-from datetime import datetime, timedelta
+from datetime import timedelta
 
 import log
 from app.mediaserver import MediaServer
 from app.plugins import EventHandler
 from app.plugins.modules._base import _IPluginModule
+from app.utils.time_utils import TimeUtils
 from app.utils.types import EventType
 
 
@@ -140,7 +141,7 @@ class LibraryRefresh(_IPluginModule):
 
         if self._refresh_delay > 0:
             # 计算延迟时间
-            run_date = datetime.now() + timedelta(seconds=self._refresh_delay)
+            run_date = TimeUtils.now() + timedelta(seconds=self._refresh_delay)
 
             # 使用 date 触发器添加任务到调度器
             formatted_run_date = run_date.strftime("%Y-%m-%d %H:%M:%S")

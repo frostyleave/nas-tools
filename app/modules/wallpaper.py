@@ -4,7 +4,7 @@ from cachetools import TTLCache, cached
 
 import log
 from app.media import MediaService
-from app.utils import RequestUtils
+from app.utils import RequestUtils, TimeUtils
 from config import Config
 
 
@@ -13,7 +13,7 @@ def get_login_wallpaper(time_now=None):
     获取登录页壁纸信息
     """
     if not time_now:
-        time_now = datetime.datetime.now()
+        time_now = TimeUtils.now()
     wallpaper = Config().get_config('app').get('wallpaper')
     tmdbkey = Config().get_config('app').get('rmt_tmdbkey')
     if (not wallpaper or wallpaper == "themoviedb") and tmdbkey:

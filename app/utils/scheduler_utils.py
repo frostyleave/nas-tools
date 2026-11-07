@@ -8,6 +8,7 @@ from apscheduler.triggers.cron import CronTrigger
 from apscheduler.util import undefined
 
 import log
+from app.utils.time_utils import TimeUtils
 
 
 class SchedulerUtils:
@@ -103,9 +104,10 @@ class SchedulerUtils:
 
     @staticmethod
     def start_range_job(scheduler:BackgroundScheduler, func, func_desc, hour, minute, next_run_time=None) -> Job | None:
-        year = datetime.datetime.now().year
-        month = datetime.datetime.now().month
-        day = datetime.datetime.now().day
+        now = TimeUtils.now()
+        year = now.year
+        month = now.month
+        day = now.day
         # 随机数从1秒开始, 不在整点签到
         second = random.randint(1, 59)
         log.info(f"{func_desc}到时间 即将在{year!s}-{month!s}-{day!s},{hour!s}:{minute!s}:{second!s}签到")

@@ -6,6 +6,7 @@ from .json_utils import JsonUtils
 from .number_utils import NumberUtils
 from .path_utils import PathUtils
 from .string_utils import StringUtils
+from .time_utils import TimeUtils
 from .system_utils import SystemUtils
 from .tokens import Tokens
 from .torrent import TorrentUtils

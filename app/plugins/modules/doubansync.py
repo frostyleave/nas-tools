@@ -16,6 +16,7 @@ from app.modules.search import SearchProxy
 from app.modules.subscribe import Subscribe
 from app.plugins import EventHandler
 from app.plugins.modules._base import _IPluginModule
+from app.utils.time_utils import TimeUtils
 from app.utils.types import EventType, MediaType, RssType, SearchType
 
 lock = Lock()
@@ -547,7 +548,7 @@ class DoubanSync(_IPluginModule):
             "rating": media.vote_average,
             "image": media.get_poster_image(),
             "state": state,
-            "add_time": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            "add_time": TimeUtils.now_str()
         }
         if self.get_history(key=media.douban_id):
             self.update_history(key=media.douban_id, value=value)
@@ -614,7 +615,7 @@ class DoubanSync(_IPluginModule):
                                     break
                                 else:
                                     mark_date = datetime.strptime(date, '%Y-%m-%d')
-                                    if self._days and not (datetime.now() - mark_date).days < int(self._days):
+                                    if self._days and not (TimeUtils.now() - mark_date).days < int(self._days):
                                         continue_next_page = False
                                         break
                                 doubanid = item.get("id")
@@ -657,7 +658,7 @@ class DoubanSync(_IPluginModule):
                             continue
                         else:
                             mark_date = datetime.strptime(date, '%Y-%m-%d')
-                            if self._days and not (datetime.now() - mark_date).days < int(self._days):
+                            if self._days and not (TimeUtils.now() - mark_date).days < int(self._days):
                                 continue
                         doubanid = item.get("id")
                         if str(doubanid).isdigit():

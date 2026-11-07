@@ -1,5 +1,4 @@
 import os.path
-import time
 from xml.dom import minidom
 
 from requests.exceptions import RequestException
@@ -10,7 +9,7 @@ from app.helper import FfmpegHelper
 from app.media import MediaService
 from app.media.douban import DouBan
 from app.media.meta import MetaInfo
-from app.utils import DomUtils, NfoReader, RequestUtils, SystemUtils
+from app.utils import DomUtils, NfoReader, RequestUtils, SystemUtils, TimeUtils
 from app.utils.commons import retry
 from app.utils.constants import Constants
 from app.utils.types import MediaType, RmtMode, SystemConfigKey
@@ -149,7 +148,7 @@ class Scraper:
                          scraper_nfo: dict):
         if scraper_nfo.get("basic"):
             # 添加时间
-            DomUtils.add_node(doc, root, "dateadded", time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time())))
+            DomUtils.add_node(doc, root, "dateadded", TimeUtils.now_str())
             # TMDB
             DomUtils.add_node(doc, root, "tmdbid", tmdbinfo.get("id") or "")
             uniqueid_tmdb = DomUtils.add_node(doc, root, "uniqueid", tmdbinfo.get("id") or "")
@@ -286,7 +285,7 @@ class Scraper:
         doc = minidom.Document()
         root = DomUtils.add_node(doc, doc, "season")
         # 添加时间
-        DomUtils.add_node(doc, root, "dateadded", time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time())))
+        DomUtils.add_node(doc, root, "dateadded", TimeUtils.now_str())
         # 简介
         xplot = DomUtils.add_node(doc, root, "plot")
         xplot.appendChild(doc.createCDATASection(seasoninfo.get("overview") or ""))
@@ -333,7 +332,7 @@ class Scraper:
         root = DomUtils.add_node(doc, doc, "episodedetails")
         if scraper_tv_nfo.get("episode_basic"):
             # 添加时间
-            DomUtils.add_node(doc, root, "dateadded", time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time())))
+            DomUtils.add_node(doc, root, "dateadded", TimeUtils.now_str())
             # TMDBID
             uniqueid = DomUtils.add_node(doc, root, "uniqueid", episode_detail.get("id") or "")
             uniqueid.setAttribute("type", "tmdb")

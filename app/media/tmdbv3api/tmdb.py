@@ -97,7 +97,10 @@ class TMDb:
             raise_on_status=False,
         )
 
-        adapter = SSLAdapter(pool_connections=10, pool_maxsize=10, max_retries=retry_strategy)
+        # 连接池容量需覆盖并发线程数（索引器检索线程池上限 20，还有订阅/插件等并发），
+        # 超出 pool_maxsize 的空闲连接会被直接丢弃并打印
+        # "Connection pool is full, discarding connection" 警告，且下次请求要重新握手
+        adapter = SSLAdapter(pool_connections=10, pool_maxsize=50, max_retries=retry_strategy)
 
         s.mount("https://", adapter)
         s.mount("http://", adapter)

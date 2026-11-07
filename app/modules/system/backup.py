@@ -1,9 +1,9 @@
 import shutil
 import sqlite3
-import time
 from pathlib import Path
 
 import log
+from app.utils.time_utils import TimeUtils
 from config import Config
 
 
@@ -38,7 +38,7 @@ class Backup:
         try:
             # 创建备份文件夹
             config_path = Path(Config().get_config_path())
-            backup_file = f"bk_{time.strftime('%Y%m%d%H%M%S')}"
+            backup_file = f"bk_{TimeUtils.now_str('%Y%m%d%H%M%S')}"
             if bk_path:
                 backup_path = Path(bk_path) / backup_file
             else:

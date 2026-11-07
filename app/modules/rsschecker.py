@@ -1,6 +1,5 @@
-from typing import ClassVar
 import json
-import time
+from typing import ClassVar
 
 import jsonpath
 from apscheduler.executors.pool import ThreadPoolExecutor
@@ -18,7 +17,7 @@ from app.message import MessageService
 from app.modules.filter import Filter
 from app.modules.searcher import Searcher
 from app.modules.subscribe import Subscribe
-from app.utils import RequestUtils, StringUtils
+from app.utils import RequestUtils, StringUtils, TimeUtils
 from app.utils.commons import singleton
 from app.utils.types import MediaType, RssType, SearchType
 from config import Config
@@ -395,7 +394,7 @@ class RssChecker:
             self.dbhelper.update_userrss_task_info(taskid, counter)
             taskinfo["counter"] = int(taskinfo.get("counter")) + counter \
                 if str(taskinfo.get("counter")).isdigit() else counter
-            taskinfo["update_time"] = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time()))
+            taskinfo["update_time"] = TimeUtils.now_str()
 
     def __parse_userrss_result(self, taskinfo):
         """

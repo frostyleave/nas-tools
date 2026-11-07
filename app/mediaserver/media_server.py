@@ -300,7 +300,8 @@ class MediaServer:
                           year=None,
                           tmdbid=None,
                           season=None,
-                          episode=None):
+                          episode=None,
+                          doubanid=None):
         """
         检查媒体库是否已存在某项目，非实时同步数据，仅用于展示
         :param mtype: 媒体类型
@@ -309,12 +310,14 @@ class MediaServer:
         :param tmdbid: TMDB ID
         :param season: 季号
         :param episode: 集号
+        :param doubanid: 豆瓣 ID
         :return: 媒体服务器中的ITEMID
         """
         media = self.mediadb.query(server_type=self._server_type,
                                    title=title,
                                    year=year,
-                                   tmdbid=tmdbid)
+                                   tmdbid=tmdbid,
+                                   doubanid=doubanid)
         if not media:
             return None
 

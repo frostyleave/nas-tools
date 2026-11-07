@@ -134,10 +134,13 @@ def update_config():
             login_password))
         overwrite_cofig = True
 
-    # API密钥初始化
-    if not _config.get("security", {}).get("api_key"):
-        _config['security']['api_key'] = StringUtils.generate_random_str(32)
-        overwrite_cofig = True
+    # API密钥迁移：确保系统默认密钥 SYS_DEFAULT 存在，配置文件不再保存密钥
+    try:
+        from app.core.security_center import SecurityCenter
+        if SecurityCenter().ensure_default_api_key(_config):
+            overwrite_cofig = True
+    except Exception as e:
+        log.exception(f"【Config】API密钥初始化失败：{e!s}")
 
     # jwt_secret
     if not _config.get("security", {}).get("jwt_secret"):

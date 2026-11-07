@@ -3,7 +3,6 @@ import json
 import os
 import re
 import time
-from datetime import datetime
 
 import fastbencode
 import qbittorrentapi
@@ -321,7 +320,7 @@ class Qbittorrent(_IDownloadClient):
         qb_category = config.get("qb_category")
         for torrent in torrents:
             date_done = torrent.completion_on if torrent.completion_on > 0 else torrent.added_on
-            date_now = int(time.mktime(datetime.now().timetuple()))
+            date_now = int(time.time())
             torrent_seeding_time = date_now - date_done if date_done else 0
             torrent_upload_avs = torrent.uploaded / torrent_seeding_time if torrent_seeding_time else 0
             if ratio and torrent.ratio <= ratio:

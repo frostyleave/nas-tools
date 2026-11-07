@@ -383,22 +383,24 @@ class Jellyfin(_IMediaClient):
             return None
         return None
 
-    def get_local_image_by_id(self, item_id, remote=True, inner=False):
+    def get_local_image_by_id(self, item_id, remote=True, inner=False, max_width=None):
         """
         根据ItemId从媒体服务器查询有声书图片地址
         :param: item_id: 在Emby中的ID
         :param: remote 是否远程使用，TG微信等客户端调用应为True
         :param: inner 是否NT内部调用，为True是会使用NT中转
+        :param: max_width 限制图片最大宽度，列表缩略图场景传 400，避免返回原始大图
         """
         if not self._host or not self._apikey:
             return None
+        query = f"?maxWidth={max_width}&quality=90" if max_width else ""
         if not remote:
-            image_url = f"{self._host}Items/{item_id}/Images/Primary"
+            image_url = f"{self._host}Items/{item_id}/Images/Primary{query}"
             if inner:
                 return self.get_nt_image_url(image_url)
             return image_url
         else:
-            image_url = f"{self._play_host or self._host}Items/{item_id}/Images/Primary"
+            image_url = f"{self._play_host or self._host}Items/{item_id}/Images/Primary{query}"
             return self.get_nt_image_url(url=image_url, remote=True)
 
     def refresh_root_library(self):
@@ -448,7 +450,7 @@ class Jellyfin(_IMediaClient):
             else:
                 library_type = MediaType.TV.value
 
-            image = self.get_local_image_by_id(library.get("Id"), remote=False, inner=True)
+            image = self.get_local_image_by_id(library.get("Id"), remote=False, inner=True, max_width=400)
             link = f"{self._play_host or self._host}web/index.html#!" \
                    f"/movies.html?topParentId={library.get('Id')}" \
                 if library_type == MediaType.MOVIE.value \
@@ -539,6 +541,7 @@ class Jellyfin(_IMediaClient):
                                "year": result.get("ProductionYear"),
                                "tmdbid": (result.get("ProviderIds") or {}).get("Tmdb"),
                                "imdbid": (result.get("ProviderIds") or {}).get("Imdb"),
+                               "doubanid": (result.get("ProviderIds") or {}).get("DoubanID"),
                                "path": result.get("Path"),
                                "json": str(result)}
                     elif "Folder" in item_type:
@@ -577,12 +580,81 @@ class Jellyfin(_IMediaClient):
     def get_webhook_message(self, message):
         """
         解析Jellyfin报文
+
+        Jellyfin Webhook 插件默认模板为扁平JSON，主要字段：
+        NotificationType、ItemId、ItemType、Name、Year、Overview、
+        SeriesName、SeasonNumber、EpisodeNumber、NotificationUsername
         """
-        eventItem = {'event': message.get('NotificationType', ''),
-                     'item_name': message.get('Name'),
-                     'user_name': message.get('NotificationUsername'),
-                     'play_url': f"/open?url={quote(self.get_play_url(message.get('Id')))}&type=jellyfin"
-                     }
+        notification_type = message.get('NotificationType', '')
+        # 事件名归一化为NAStool通用事件名
+        event = {
+            'PlaybackStart': 'playback.start',
+            'PlaybackStop': 'playback.stop',
+            'ItemAdded': 'library.new'
+        }.get(notification_type, notification_type)
+
+        item_id = message.get('ItemId') or message.get('Id')
+        item_type = message.get('ItemType') or message.get('Type')
+
+        eventItem = {
+            'event': event,
+            'item_name': message.get('Name'),
+            'user_name': message.get('NotificationUsername')
+        }
+        if item_id:
+            eventItem['play_url'] = f"/open?url={quote(self.get_play_url(item_id))}&type=jellyfin"
+
+        # 剧情简介，与Emby保持一致：超过100字截断
+        overview = message.get('Overview')
+        if overview and len(overview) > 100:
+            overview = str(overview)[:100] + "..."
+        eventItem['overview'] = overview
+
+        if item_type == 'Episode':
+            # 集：ItemId指向当前集，查询图片需要所属剧集的ID
+            try:
+                season_id = int(message.get('SeasonNumber'))
+            except (TypeError, ValueError):
+                season_id = None
+            try:
+                episode_id = int(message.get('EpisodeNumber'))
+            except (TypeError, ValueError):
+                episode_id = None
+            series_id = message.get('SeriesId')
+            if not series_id and notification_type == 'ItemAdded' and item_id:
+                # 默认模板不包含SeriesId，按集反查所属剧集，用于获取图片
+                series_id = (self.get_iteminfo(item_id) or {}).get('SeriesId')
+            eventItem.update({
+                'item_type': 'TV',
+                'item_name': "{} S{}E{} {}".format(
+                    message.get('SeriesName') or '',
+                    season_id if season_id is not None else '',
+                    episode_id if episode_id is not None else '',
+                    message.get('Name') or ''
+                ).strip(),
+                'item_id': series_id or item_id,
+                'season_id': season_id,
+                'episode_id': episode_id
+            })
+        elif item_type in ['Movie', 'Series']:
+            year = message.get('Year')
+            eventItem.update({
+                'item_type': 'MOV' if item_type == 'Movie' else 'SHOW',
+                'item_name': "{} {}".format(
+                    message.get('Name') or '',
+                    "(" + str(year) + ")" if year else ''
+                ).strip()
+            })
+        elif item_type in ['Audio', 'MusicAlbum']:
+            eventItem.update({
+                'item_type': 'AUD',
+                'item_name': message.get('Album') or message.get('Name'),
+                'overview': message.get('FileName') or overview
+            })
+        elif notification_type == 'ItemAdded':
+            # Season/BoxSet等非媒体条目会被剧集、分集的入库事件重复触发，忽略
+            return {}
+
         return eventItem
 
     def get_resume(self, user_name, num=12):
@@ -648,7 +720,7 @@ class Jellyfin(_IMediaClient):
                         continue
                     item_type = MediaType.MOVIE.value if item.get("Type") == "Movie" else '剧集'
                     link = self.get_play_url(item.get("Id"))
-                    image = self.get_local_image_by_id(item_id=item.get("Id"), remote=False, inner=True)
+                    image = self.get_local_image_by_id(item_id=item.get("Id"), remote=False, inner=True, max_width=400)
                     ret_latest.append({
                         "id": item.get("Id"),
                         "name": item.get("Name"),

@@ -1,4 +1,3 @@
-from datetime import datetime
 from threading import Event
 
 from jinja2 import Template
@@ -9,6 +8,7 @@ from app.media.tmdbv3api.objs.movie import Movie
 from app.mediaserver import MediaServer
 from app.modules.subscribe import Subscribe
 from app.plugins.modules._base import _IPluginModule
+from app.utils.time_utils import TimeUtils
 from app.utils.types import MediaType, RssType
 
 
@@ -263,7 +263,7 @@ class TmdbHotMovieRank(_IPluginModule):
             "rating": media.vote_average or 0,
             "image": media.get_poster_image(),
             "state": state,
-            "add_time": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            "add_time": TimeUtils.now_str()
         }
         if self.get_history(key=media.tmdb_id):
             self.update_history(key=media.tmdb_id, value=value)

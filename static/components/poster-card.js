@@ -27,6 +27,7 @@
         'card-showsub',
         'card-title',
         'card-fav',
+        'card-r18',
         'card-date',
         'card-vote',
         'card-image',
@@ -68,11 +69,9 @@
             <div class="poster-card-content" hidden>
               <img class="card-img" alt=""
                    style="display: block; min-width: 100%; max-width: 100%; min-height: 100%; max-height: 100%; object-fit: cover;">
-              <div class="poster-card-fav-ribbon" hidden>
-                <i class="ti ti-check"></i>
-              </div>
               <span class="poster-card-badge poster-card-left-badge" hidden></span>
               <div class="poster-card-badge poster-card-right-badge" hidden></div>
+              <span class="poster-card-badge poster-card-r18-badge poster-card-bottom-ribbon" hidden>R18</span>
             </div>
             <div class="card-img-overlay poster-card-overlay">
               <div class="poster-card-info">
@@ -81,6 +80,9 @@
               </div>
               <div class="poster-card-bottom"></div>
             </div>
+          </div>
+          <div class="poster-card-fav-ribbon poster-card-bottom-ribbon" hidden>
+            <i class="ti ti-check"></i>
           </div>
           <div class="poster-card-title-bar" hidden>
             <span class="poster-card-title"></span>
@@ -94,6 +96,7 @@
       this._favRibbonEl = this.querySelector('.poster-card-fav-ribbon');
       this._leftBadgeEl = this.querySelector('.poster-card-left-badge');
       this._rightBadgeEl = this.querySelector('.poster-card-right-badge');
+      this._r18BadgeEl = this.querySelector('.poster-card-r18-badge');
       this._overviewLineEl = this.querySelector('.poster-card-overview');
       this._dateLineEl = this.querySelector('.poster-card-date');
       this._dateTextEl = this._dateLineEl.querySelector('small');
@@ -126,6 +129,7 @@
       const date = fixedText(this.getAttribute('card-date'));
       const vote = fixedText(this.getAttribute('card-vote'));
       const resType = fixedText(this.getAttribute('card-restype'));
+      const r18 = fixedText(this.getAttribute('card-r18'));
       const tmdbId = fixedText(this.getAttribute('card-tmdbid'));
       const mediaType = fixedText(this.getAttribute('card-mediatype'));
       const showSub = fixedText(this.getAttribute('card-showsub'));
@@ -189,6 +193,9 @@
       } else {
         this._rightBadgeEl.hidden = true;
       }
+
+      // R18 角标
+      this._r18BadgeEl.hidden = r18 !== '1';
 
       // 底部名称栏：标题 + 年份
       this._titleBarEl.hidden = !title;
