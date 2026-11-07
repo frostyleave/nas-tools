@@ -2,9 +2,8 @@ import re
 from decimal import Decimal
 from typing import ClassVar
 
-import anitopy
-
 import log
+from app.media.meta import aniparse_utils
 from app.media.meta._base import MetaBase
 from app.media.meta.customization import CustomizationMatcher
 from app.utils import StringUtils
@@ -29,28 +28,27 @@ class MetaAnime(MetaBase):
         try:
             original_title = title
             # 字幕组预识别
-            anitopy_info_origin = anitopy.parse(original_title)
-            release_group = anitopy_info_origin.get("release_group") if anitopy_info_origin.get('release_group') else ''
+            aniparse_info_origin = aniparse_utils.parse(original_title)
+            release_group = aniparse_utils.get_release_group(aniparse_info_origin) or ''
             # 标题信息预处理
             title = self.__prepare_title(title)
-            anitopy_info = anitopy.parse(title)
-            if anitopy_info:
+            aniparse_info = aniparse_utils.parse(title)
+            if aniparse_info:
                 # 字幕组
-                release_group = anitopy_info.get('release_group') if anitopy_info.get('release_group') else release_group
+                release_group = aniparse_utils.get_release_group(aniparse_info) or release_group
                 # 名称
-                name = anitopy_info.get("anime_title")
+                name = aniparse_utils.get_title(aniparse_info)
                 if not name:
-                    anitopy_info = anitopy.parse(StringUtils.remve_redundant_symbol(title.replace(release_group, '')))
-                    if anitopy_info:
-                        name = anitopy_info.get("anime_title")
+                    aniparse_info = aniparse_utils.parse(
+                        StringUtils.remve_redundant_symbol(title.replace(release_group, '')))
+                    name = aniparse_utils.get_title(aniparse_info)
                 if name and name.find("/") != -1:
                     name_arr = name.split("/")
                     name = next(filter(lambda x: StringUtils.contain_chinese(x), name_arr), name_arr[-1].strip())
 
                 if not name or name in self._anime_no_words or (len(name) < 5 and not StringUtils.contain_chinese(name)):
-                    anitopy_info = anitopy.parse("[ANIME]" + title)
-                    if anitopy_info:
-                        name = anitopy_info.get("anime_title")
+                    aniparse_info = aniparse_utils.parse("[ANIME]" + title)
+                    name = aniparse_utils.get_title(aniparse_info)
                 if not name or name in self._anime_no_words or (len(name) < 5 and not StringUtils.contain_chinese(name)):
                     name_match = re.search(r'\[(.+?)]', title.replace(release_group, ''))
                     if name_match and name_match.group(1):
@@ -85,24 +83,11 @@ class MetaAnime(MetaBase):
                                           flags=re.IGNORECASE).strip().title()
                     self._name = StringUtils.str_title(self.en_name)
                 # 年份
-                year = anitopy_info.get("anime_year")
+                year = aniparse_utils.get_year(aniparse_info)
                 if str(year).isdigit():
                     self.year = str(year)
                 # 季号
-                anime_season = anitopy_info.get("anime_season")
-                if isinstance(anime_season, list):
-                    if len(anime_season) == 1:
-                        begin_season = anime_season[0]
-                        end_season = None
-                    else:
-                        begin_season = anime_season[0]
-                        end_season = anime_season[-1]
-                elif anime_season:
-                    begin_season = anime_season
-                    end_season = None
-                else:
-                    begin_season = None
-                    end_season = None
+                begin_season, end_season = aniparse_utils.get_season_range(aniparse_info)
                 if begin_season:
                     self.begin_season = int(begin_season)
                     if end_season and int(end_season) != self.begin_season:
@@ -112,24 +97,11 @@ class MetaAnime(MetaBase):
                         self.total_seasons = 1
                     self.type = MediaType.TV
                 # 集号
-                episode_number = anitopy_info.get("episode_number")
-                if isinstance(episode_number, list):
-                    if len(episode_number) == 1:
-                        begin_episode = episode_number[0]
-                        end_episode = None
-                    else:
-                        begin_episode = episode_number[0]
-                        end_episode = episode_number[-1]
-                elif episode_number:
-                    begin_episode = episode_number
-                    end_episode = None
-                else:
-                    begin_episode = None
-                    end_episode = None
+                begin_episode, end_episode = aniparse_utils.get_episode_range(aniparse_info)
                 if begin_episode:
                     try:
-                        self.begin_episode = int(Decimal(begin_episode))
-                        if end_episode and (end_episode_int := int(Decimal(end_episode))) != self.begin_episode:
+                        self.begin_episode = int(Decimal(str(begin_episode)))
+                        if end_episode and (end_episode_int := int(Decimal(str(end_episode)))) != self.begin_episode:
                             self.end_episode = end_episode_int
                             self.total_episodes = (self.end_episode - self.begin_episode) + 1
                         else:
@@ -142,36 +114,21 @@ class MetaAnime(MetaBase):
                     self.type = MediaType.TV
                 # 类型
                 if not self.type:
-                    anime_type = anitopy_info.get('anime_type')
-                    if isinstance(anime_type, list):
-                        anime_type = anime_type[0]
-                    if anime_type and anime_type.upper() == "TV":
+                    anime_type = aniparse_utils.get_type(aniparse_info)
+                    if anime_type and str(anime_type).upper() == "TV":
                         self.type = MediaType.TV
                     else:
                         self.type = MediaType.MOVIE
                 # 分辨率
-                self.resource_pix = anitopy_info.get("video_resolution")
-                if isinstance(self.resource_pix, list):
-                    self.resource_pix = self.resource_pix[0]
-                if self.resource_pix:
-                    if re.search(r'x', self.resource_pix, re.IGNORECASE):
-                        self.resource_pix = re.split(r'[Xx]', self.resource_pix)[-1] + "p"
-                    else:
-                        self.resource_pix = self.resource_pix.lower()
-                    if str(self.resource_pix).isdigit():
-                        self.resource_pix = str(self.resource_pix) + "p"
+                self.resource_pix = aniparse_utils.get_resolution(aniparse_info)
                 # 制作组/字幕组
                 self.resource_team = ReleaseGroupsMatcher().match(title=original_title) or release_group
                 # 自定义占位符
                 self.customization = CustomizationMatcher().match(title=original_title) or None
                 # 视频编码
-                self.video_encode = anitopy_info.get("video_term")
-                if isinstance(self.video_encode, list):
-                    self.video_encode = self.video_encode[0]
+                self.video_encode = aniparse_utils.get_video_term(aniparse_info)
                 # 音频编码
-                self.audio_encode = anitopy_info.get("audio_term")
-                if isinstance(self.audio_encode, list):
-                    self.audio_encode = self.audio_encode[0]
+                self.audio_encode = aniparse_utils.get_audio_term(aniparse_info)
                 # 解析副标题，只要季和集
                 self.init_subtitle(self.org_string)
                 if not self._subtitle_flag and self.subtitle:

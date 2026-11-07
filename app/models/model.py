@@ -123,7 +123,7 @@ class IndexerInfo(BaseModel):
     apikey: str | None= None
     ua: str | None= None
     rule: str | None= None
-    pri: int | None = None
+    pri: int = 0
     proxy: bool = False
     render: bool = False
     timeout : int = 15

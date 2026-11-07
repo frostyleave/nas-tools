@@ -1,10 +1,10 @@
 import os.path
 
-import anitopy
 import regex as re
 
 from app.conf import ModuleConf
 from app.helper import WordsHelper
+from app.media.meta import aniparse_utils
 from app.media.meta.metaanime import MetaAnime
 from app.media.meta.metavideo import MetaVideo
 from app.utils import MediaUtils, ReleaseGroupsMatcher, StringUtils
@@ -183,8 +183,8 @@ def complete_anime_file_ep(meta_info: MetaAnime, file_flag: bool):
     if meta_info.begin_episode or not file_flag:
         return
     
-    anitopy_info = anitopy.parse(meta_info.org_string)
-    if anitopy_info and anitopy_info.get("episode_number"):
-        episode_number = anitopy_info.get("episode_number")
-        meta_info.begin_episode = episode_number if isinstance(episode_number, int) else int(episode_number)
+    aniparse_info = aniparse_utils.parse(meta_info.org_string)
+    episode_number, _ = aniparse_utils.get_episode_range(aniparse_info)
+    if episode_number is not None:
+        meta_info.begin_episode = int(episode_number)
 

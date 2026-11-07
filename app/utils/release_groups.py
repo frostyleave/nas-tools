@@ -62,7 +62,7 @@ class ReleaseGroupsMatcher:
                    'N(?:oGroup|T(?:b|G))', 'PandaMoon', 'SMURF', 'T(?:EPES|aengoo|rollHD )', 
                    'Kitsune', 'SPWEB', 'SLOT', 'FLIX', 'KyoGo', 'TeamSyndicate'],
         "anime": ['ANi', 'HYSUB', 'KTXP', 'LoliHouse', 'MCE', 'Nekomoe kissaten', r'(\d|\w|[\u4e00-\u9fa5])+-Raws',
-                  '织梦字幕组', '豌豆字幕组&风之圣殿字幕组', '豌豆&风之圣殿字幕组', '风之圣殿字幕组', '豌豆字幕组']
+                  '织梦字幕组', '豌豆字幕组&风之圣殿字幕组', '豌豆&风之圣殿字幕组', '风之圣殿字幕组', '豌豆字幕组', '今晚月色真美']
     }
 
     _GROUP_PATTERN = r"(?<=[-@\[￡【&])(?:{})(?=[@.\s\]\[】&])"

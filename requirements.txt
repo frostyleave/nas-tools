@@ -20,7 +20,7 @@ urllib3==2.8.0
 uvicorn[standard]==0.54.0
 
 # P1
-anitopy==2.1.1
+aniparse==2.0.0
 APScheduler==3.11.3
 cacheout==0.17.0
 cachetools==7.2.7
