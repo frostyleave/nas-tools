@@ -60,12 +60,12 @@ class TmdbHostBetter(_IPluginModule):
     _hosts_block_end = "# TmdbHostBetter End"
 
     # 私有属性
+    _enabled = True
     _cron = None
     _onlyonce = False
     _notify = False
     _ipv4 = True
     _ipv6 = False
-    _sync_hosts = True
     _domains = None
     _port = 443
     _timeout = 3
@@ -81,31 +81,15 @@ class TmdbHostBetter(_IPluginModule):
                     # 同一行
                     [
                         {
-                            'title': '立即运行一次',
+                            'title': '启用TMDB API IP优选',
                             'required': "",
-                            'tooltip': '打开后立即运行一次（点击此对话框的确定按钮后即会运行，周期未设置也会运行），关闭后将仅按照优选周期运行',
+                            'tooltip': '关闭后将停止优选任务，并移除本插件写入系统hosts的记录',
                             'type': 'switch',
-                            'id': 'onlyonce',
+                            'id': 'enabled',
+                            # 老版本配置无该项时默认启用
+                            'default': True,
                             'col': 'col-12 col-md-6 col-lg-4',
                         },
-                        {
-                            'title': '运行时通知',
-                            'required': "",
-                            'tooltip': '运行任务后发送通知（需要打开插件消息通知）',
-                            'type': 'switch',
-                            'id': 'notify',
-                            'col': 'col-12 col-md-6 col-lg-4',
-                        },
-                        {
-                            'title': '写入系统Hosts',
-                            'required': "",
-                            'tooltip': '将优选结果写入系统hosts文件并立即生效，如因权限问题无法写入将记录错误日志',
-                            'type': 'switch',
-                            'id': 'sync_hosts',
-                            'col': 'col-12 col-md-6 col-lg-4',
-                        },
-                    ],
-                    [
                         {
                             'title': 'IPv4',
                             'required': "",
@@ -178,7 +162,25 @@ class TmdbHostBetter(_IPluginModule):
                                     'rows': 6,
                                 }
                         }
-                    ]
+                    ],
+                    [
+                        {
+                            'title': '运行时通知',
+                            'required': "",
+                            'tooltip': '运行任务后发送通知（需要打开插件消息通知）',
+                            'type': 'switch',
+                            'id': 'notify',
+                            'col': 'col-12 col-md-6 col-lg-4',
+                        },
+                        {
+                            'title': '立即运行一次',
+                            'required': "",
+                            'tooltip': '打开后立即运行一次（点击此对话框的确定按钮后即会运行，周期未设置也会运行），关闭后将仅按照优选周期运行',
+                            'type': 'switch',
+                            'id': 'onlyonce',
+                            'col': 'col-12 col-md-6 col-lg-4',
+                        },
+                    ],
                 ]
             }
         ]
@@ -186,12 +188,13 @@ class TmdbHostBetter(_IPluginModule):
     def init_config(self, config=None):
         # 读取配置
         if config:
+            # 老版本配置中没有enabled项，默认启用
+            self._enabled = config.get("enabled", True)
             self._onlyonce = config.get("onlyonce")
             self._cron = self.quartz_cron_compatible(config.get("cron"))
             self._notify = config.get("notify")
             self._ipv4 = config.get("ipv4")
             self._ipv6 = config.get("ipv6")
-            self._sync_hosts = config.get("sync_hosts", True)
             self._domains = config.get("domains")
             self._port = self.__parse_port(config.get("port"))
             self._country = self.__parse_country(config.get("country"))
@@ -200,12 +203,12 @@ class TmdbHostBetter(_IPluginModule):
         if not self._ipv4 and not self._ipv6:
             self._ipv4 = True
             self.update_config({
+                "enabled": self._enabled,
                 "onlyonce": False,
                 "cron": self._cron,
                 "notify": self._notify,
                 "ipv4": self._ipv4,
                 "ipv6": self._ipv6,
-                "sync_hosts": self._sync_hosts,
                 "domains": self._domains,
                 "port": self._port,
                 "country": self._country
@@ -214,6 +217,16 @@ class TmdbHostBetter(_IPluginModule):
 
         # 停止现有任务
         self.stop_service()
+
+        # 未启用时停止优选，并清理已写入的hosts记录
+        if not self._enabled:
+            self.info("TMDB API IP优选未启用，不做IP优选")
+            if self._onlyonce:
+                self._onlyonce = False
+                self.warn("TMDB API IP优选未启用，忽略立即运行一次")
+                self.__update_config()
+            self.__remove_system_hosts()
+            return
 
         # 启动定时任务 & 立即运行一次
         if self.get_state() or self._onlyonce:
@@ -231,6 +244,11 @@ class TmdbHostBetter(_IPluginModule):
         """
         TMDB IP优选
         """
+        # 运行过程中被关闭时不再继续
+        if not self._enabled:
+            self.info("TMDB API IP优选未启用，跳过运行")
+            return
+
         domains = self.__get_domains()
         if not domains:
             self.error("未配置有效的优选域名，停止运行")
@@ -286,8 +304,7 @@ class TmdbHostBetter(_IPluginModule):
             self.info("TMDB IP优选结果与上次一致，不更新hosts、不发送通知")
 
         # 写入系统hosts（结果无变化时内部同样不会重复写入）
-        if self._sync_hosts:
-            self.__update_system_hosts(results)
+        self.__update_system_hosts(results)
 
         # 记录本次结果
         self.__save_best_ips(best_ips)
@@ -650,6 +667,48 @@ class TmdbHostBetter(_IPluginModule):
         self.info(f"TMDB IP优选结果已写入系统hosts文件：{hosts_path}")
         return True
 
+    def __remove_system_hosts(self):
+        """
+        从系统hosts文件中移除本插件写入的优选区块
+        """
+        hosts_path = self.__get_hosts_path()
+        try:
+            system_hosts = Hosts(path=hosts_path)
+        except Exception as err:
+            self.error(f"读取系统hosts文件失败：{err}")
+            return False
+
+        # 区块标记不完整时不处理，避免误删hosts内容
+        comments = [(entry.comment or "").strip()
+                    for entry in system_hosts.entries if entry.entry_type == "comment"]
+        if self._hosts_block_start not in comments or self._hosts_block_end not in comments:
+            return False
+
+        entries = []
+        in_block = False
+        for entry in system_hosts.entries:
+            if entry.entry_type == "comment":
+                comment = (entry.comment or "").strip()
+                if comment == self._hosts_block_start:
+                    in_block = True
+                    continue
+                if comment == self._hosts_block_end:
+                    in_block = False
+                    continue
+            if in_block:
+                continue
+            entries.append(entry)
+
+        try:
+            system_hosts.entries = entries
+            system_hosts.write()
+        except Exception as err:
+            self.error(f"清理系统hosts文件失败：{str(err) or '请检查权限'}")
+            return False
+
+        self.info(f"已从系统hosts文件移除TMDB IP优选记录：{hosts_path}")
+        return True
+
     @staticmethod
     def __get_hosts_path():
         """
@@ -710,19 +769,19 @@ class TmdbHostBetter(_IPluginModule):
         更新插件配置
         """
         self.update_config({
+            "enabled": self._enabled,
             "onlyonce": False,
             "cron": self._cron,
             "notify": self._notify,
             "ipv4": self._ipv4,
             "ipv6": self._ipv6,
-            "sync_hosts": self._sync_hosts,
             "domains": self._domains,
             "port": self._port,
             "country": self._country
         })
 
     def get_state(self):
-        return True if self._cron else False
+        return bool(self._enabled and self._cron)
 
     def stop_service(self):
         """
