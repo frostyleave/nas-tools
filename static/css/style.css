@@ -23,6 +23,12 @@
     --card-transparent-bg: #e5dede1f;
 }
 
+.modal.fade .modal-dialog {
+    transition: none !important;
+    will-change: transform, opacity;
+    backface-visibility: hidden;
+}
+
 .theme-dark {
     --lit-navbar-hover: #2a3551ca;
     --lit-navbar-active: #414d6dca;

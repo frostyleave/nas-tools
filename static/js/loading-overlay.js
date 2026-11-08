@@ -5,7 +5,7 @@
  */
 const LoadingOverlay = (() => {
     // 隐藏延迟：两段加载的间隔小于该值时，动画保持连续不闪烁
-    const HIDE_DELAY_MS = 250;
+    const HIDE_DELAY_MS = 10;
 
     // 在途请求的令牌集合
     const tokens = new Set();

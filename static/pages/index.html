@@ -145,7 +145,7 @@
 <!-- 统计数据 -->
 <div class="container-xl mt-3">
   <div class="index-stat-row">
-    <div class="card index-stat-card">
+    <div class="card index-stat-card liquid-glass-panel">
       <div class="card-body">
         <div class="index-stat-content">
           <i class="ti ti-film index-stat-icon text-green mx-1"></i>
@@ -156,7 +156,7 @@
         </div>
       </div>
     </div>
-    <div class="card index-stat-card">
+    <div class="card index-stat-card liquid-glass-panel">
       <div class="card-body">
         <div class="index-stat-content">
           <i class="ti ti-tv index-stat-icon text-blue mx-1"></i>
@@ -167,7 +167,7 @@
         </div>
       </div>
     </div>
-    <div class="card index-stat-card">
+    <div class="card index-stat-card liquid-glass-panel">
       <div class="card-body">
         <div class="index-stat-content">
           <i class="ti ti-disk index-stat-icon text-cyan mx-1"></i>
@@ -351,7 +351,7 @@
         }
 
         html += `
-          <a class="card card-link-pop rounded-3 overflow-hidden library-${library.id}" href="${theLibLink}" target="_blank">
+          <a class="card card-link-pop liquid-glass-panel rounded-3 overflow-hidden library-${library.id}" href="${theLibLink}" target="_blank">
         `;
 
         if (library.image) {
@@ -417,7 +417,7 @@
       }
 
       html += `
-        <a class="card card-link-pop rounded-3 overflow-hidden resume-${resume.id}" href="${theLibLink}" target="_blank">
+        <a class="card card-link-pop liquid-glass-panel rounded-3 overflow-hidden resume-${resume.id}" href="${theLibLink}" target="_blank">
           <custom-img img-class="w-100"
                       img-src="${resume.image}"
                       img-ratio="50%"
@@ -500,7 +500,7 @@
       }
 
       html += `
-        <a class="card card-link-pop overflow-hidden rounded-3 latest-${latest.id}" href="${theLibLink}" target="_blank">
+        <a class="card card-link-pop liquid-glass-panel overflow-hidden rounded-3 latest-${latest.id}" href="${theLibLink}" target="_blank">
           <custom-img img-class="w-100"
                       img-src="${latest.image}"
                       img-ratio="150%"

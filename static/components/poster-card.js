@@ -72,7 +72,7 @@
 
     _build() {
       this.innerHTML = `
-        <div class="card card-sm lit-poster-card cursor-pointer overflow-hidden" tabindex="0" role="link">
+        <div class="card card-sm lit-poster-card cursor-pointer overflow-hidden liquid-glass-panel" tabindex="0" role="link">
           <div class="poster-card-poster ratio overflow-hidden">
             <div class="placeholder-glow">
               <div class="ratio placeholder" style="--tblr-aspect-ratio:150%;"></div>

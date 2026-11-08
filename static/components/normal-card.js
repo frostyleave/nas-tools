@@ -62,7 +62,7 @@
 
     _build() {
       this.innerHTML = `
-        <div class="card card-sm lit-normal-card rounded-3 cursor-pointer ratio shadow-sm">
+        <div class="card card-sm lit-normal-card rounded-3 cursor-pointer ratio shadow-sm liquid-glass-panel">
           <div class="placeholder-glow">
             <div class="ratio placeholder rounded-3" style="--tblr-aspect-ratio:150%;"></div>
           </div>
