@@ -1118,7 +1118,7 @@ function add_rss_manual() {
     show_fail_modal("订阅站点和搜索站点不能同时为空，请至少选择一项！");
     return;
   }
-  // 储存订阅设置
+  // 本次订阅设置（仅随新增请求提交，不再写入localStorage）
   const rss_setting = {
     "filter_restype": filter_restype,
     "filter_pix": filter_pix,
@@ -1131,11 +1131,6 @@ function add_rss_manual() {
     "rss_sites": rss_sites,
     "search_sites": search_sites
   };
-  if (mtype === "TV") {
-    localStorage.setItem("RssSettingTV", JSON.stringify(rss_setting));
-  } else if (mtype === "MOV") {
-    localStorage.setItem("RssSettingMOV", JSON.stringify(rss_setting));
-  }
   const data = {
     ...{
       "type": mtype,
@@ -1260,7 +1255,6 @@ function show_add_rss_media_modal(mtype, tmdbid, rss_name, rss_year, rss_season=
   $("#rss_total_ep").val("");
   $("#rss_current_ep").val("");
 
-  let rss_setting;
   if (mtype === "TV") {
     $("#rss_type").val("TV");
     $("#rss_tv_season_div").show();
@@ -1272,42 +1266,49 @@ function show_add_rss_media_modal(mtype, tmdbid, rss_name, rss_year, rss_season=
         $("#rss_season").val(parseInt(rss_season.replace("S", "")));
       }
     }
-    rss_setting = localStorage.getItem("RssSettingTV");
   } else if (mtype === "MOV") {
     $("#rss_type").val("MOV");
     $("#rss_tv_season_div").hide();
-    rss_setting = localStorage.getItem("RssSettingMOV");
   }
 
-  if (rss_setting) {
-    rss_setting = JSON.parse(rss_setting);
-    $("#rss_restype").val(rss_setting.filter_restype);
-    $("#rss_pix").val(rss_setting.filter_pix);
-    $("#rss_team").val(rss_setting.filter_team);
-    $("#rss_rule").val(rss_setting.filter_rule);
-    $("#rss_include").val(rss_setting.filter_include);
-    $("#rss_exclude").val(rss_setting.filter_exclude);
-    $("#rss_download_setting").val(rss_setting.download_setting);
-    refresh_savepath_select('rss_save_path', false, rss_setting.download_setting);
-    check_manual_input_path("rss_save_path", "rss_save_path_manual", rss_setting.save_path);
-    // 空列表表示不启用该渠道，按实际选中的站点回显
-    sites_ready.then(function () {
-      select_SelectPart(rss_setting.search_sites || [], 'search_sites');
-      select_SelectPart(rss_setting.rss_sites || [], 'rss_sites');
-    });
-  } else {
-    $("#rss_restype").val('');
-    $("#rss_pix").val('');
-    $("#rss_team").val('');
-    $("#rss_rule").val('');
-    $("#rss_include").val('');
-    $("#rss_exclude").val('');
-    $("#rss_save_path").val('');
-    $("#rss_save_path_manual").val('');
-    $("#rss_download_setting").val('');
-    select_SelectALL(false, "rss_sites");
-    select_SelectALL(false, "search_sites");
-  }
+  // 从后端读取默认订阅设置并回显
+  axios_post_do("get_default_rss_setting", { mtype: mtype }, function (ret) {
+    // 请求返回前用户可能已打开其他类型的新增弹窗，避免错填
+    if ($("#rss_type").val() !== mtype) {
+      return;
+    }
+    const rss_setting = (ret.code === 0 && ret.data) ? ret.data : null;
+    if (rss_setting) {
+      $("#rss_restype").val(rss_setting.restype || '');
+      $("#rss_pix").val(rss_setting.pix || '');
+      $("#rss_team").val(rss_setting.team || '');
+      $("#rss_rule").val(rss_setting.rule || '');
+      $("#rss_include").val(rss_setting.include || '');
+      $("#rss_exclude").val(rss_setting.exclude || '');
+      $("#rss_download_setting").val(rss_setting.download_setting || '');
+      $("#over_edition").prop("checked", String(rss_setting.over_edition) === "1");
+      refresh_savepath_select('rss_save_path', false, rss_setting.download_setting || '');
+      check_manual_input_path("rss_save_path", "rss_save_path_manual", "");
+      // 空列表表示不启用该渠道，按实际选中的站点回显
+      sites_ready.then(function () {
+        select_SelectPart(rss_setting.search_sites || [], 'search_sites');
+        select_SelectPart(rss_setting.rss_sites || [], 'rss_sites');
+      });
+    } else {
+      $("#rss_restype").val('');
+      $("#rss_pix").val('');
+      $("#rss_team").val('');
+      $("#rss_rule").val('');
+      $("#rss_include").val('');
+      $("#rss_exclude").val('');
+      $("#rss_save_path").val('');
+      $("#rss_save_path_manual").val('');
+      $("#rss_download_setting").val('');
+      $("#over_edition").prop("checked", false);
+      select_SelectALL(false, "rss_sites");
+      select_SelectALL(false, "search_sites");
+    }
+  });
 
   $("#rss_delete_btn").hide();
   $("[name='rss_edit_btn']").hide();
