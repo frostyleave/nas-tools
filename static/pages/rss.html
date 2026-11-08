@@ -93,9 +93,9 @@
   function generateRssItemHtml(item, id, data, type) {
 
     const dataAttr = item;
-    const typeName = type === 'TV' ? '电视剧' : '电影';
+    const typeName = type === 'MOV' ? '电影' : '电视剧';
     // 评分角标：电影紫色、电视剧蓝色；评分统一保留一位小数
-    const voteBg = type === 'TV' ? 'bg-blue' : 'bg-purple';
+    const voteBg = type === 'MOV' ? 'bg-purple' : 'bg-blue';
     const voteValue = parseFloat(dataAttr.vote);
     const voteText = isNaN(voteValue) ? '' : voteValue.toFixed(1);
 
@@ -273,7 +273,7 @@
     const percentage = (completed * 100) / (attr.total || -1);
 
     return `
-      <div class="card-progress" style="overflow: hidden">
+      <div class="media-box-progress card-progress" style="overflow: hidden">
         <div class="progress-bar bg-green"
           style="width:${percentage}%"
           role="progressbar"
