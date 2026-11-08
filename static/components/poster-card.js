@@ -30,6 +30,7 @@
         'card-r18',
         'card-date',
         'card-vote',
+        'card-vote-source',
         'card-image',
         'card-overview',
         'card-year',
@@ -72,7 +73,7 @@
 
     _build() {
       this.innerHTML = `
-        <div class="card card-sm lit-poster-card cursor-pointer overflow-hidden liquid-glass-panel" tabindex="0" role="link">
+        <div class="card card-sm lit-poster-card overflow-hidden liquid-glass-panel" tabindex="0" role="link">
           <div class="poster-card-poster ratio overflow-hidden">
             <div class="placeholder-glow">
               <div class="ratio placeholder" style="--tblr-aspect-ratio:150%;"></div>
@@ -116,10 +117,12 @@
       this._titleTextEl = this.querySelector('.poster-card-title');
       this._yearTextEl = this.querySelector('.poster-card-year');
       this._cardEl = this.querySelector('.lit-poster-card');
+      this._posterEl = this.querySelector('.poster-card-poster');
 
       this._imgEl.addEventListener('load', () => this._onImageLoad());
       this._imgEl.addEventListener('error', () => this._onImageError());
-      this._cardEl.addEventListener('click', () => this._navigate());
+      // 仅海报区域点击跳转详情，下方名称栏不响应
+      this._posterEl.addEventListener('click', () => this._navigate());
       this._cardEl.addEventListener('keydown', (e) => {
         if (e.key === 'Enter' && e.target === this._cardEl) {
           e.preventDefault();
@@ -182,13 +185,19 @@
         }
       }
 
-      // 右上角评分：来源图标 + 数字（豆瓣用豆瓣图标，TMDB 用星标）
+      // 右上角评分：来源图标 + 数字（豆瓣用豆瓣图标，TMDB 用青色星标，Bangumi 用黄色星标）
       // 豆瓣来源即使评分为 0 或缺失也显示图标，仅省略数字
       const isDouban = tmdbId.startsWith('DB:');
+      const isBangumi = !isDouban && fixedText(this.getAttribute('card-vote-source')) === 'bangumi';
       const hasVote = !!vote && vote !== '0.0' && vote !== '0' && vote !== '10';
       if (hasVote || isDouban) {
-        this._rightBadgeEl.className = 'poster-card-badge poster-card-right-badge' +
-          (isDouban ? ' poster-card-badge-douban' : ' poster-card-badge-tmdb');
+        let sourceClass = ' poster-card-badge-tmdb';
+        if (isDouban) {
+          sourceClass = ' poster-card-badge-douban';
+        } else if (isBangumi) {
+          sourceClass = ' poster-card-badge-bangumi';
+        }
+        this._rightBadgeEl.className = 'poster-card-badge poster-card-right-badge' + sourceClass;
         const sourceIcon = document.createElement('i');
         sourceIcon.className = isDouban ? 'ti ti-brand-douban' : 'ti ti-star-filled';
         if (hasVote) {

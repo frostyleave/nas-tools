@@ -87,11 +87,12 @@ class MediaStatusChecker:
             r18 = Bangumi.is_r18(bgmid)
             tmdb_info = MediaService().match_tmdb_tv_by_title(title, year) if title else None
             if not tmdb_info:
-                return None, r18, ""
-            # 一并返回 TMDB 封面，前端用它替换 Bangumi 图床（部分网络下直连不可用）
+                return None, r18, "", 0
+            # 一并返回 TMDB 封面和评分，前端用它们替换 Bangumi 原图与评分
             image = Config().get_tmdbimage_url(tmdb_info.get("poster_path")) \
                 if tmdb_info.get("poster_path") else ""
-            return tmdb_info.get("id"), r18 or bool(tmdb_info.get("adult")), image
+            vote = tmdb_info.get("vote_average") or 0
+            return tmdb_info.get("id"), r18 or bool(tmdb_info.get("adult")), image, vote
 
         executor = ThreadPoolExecutor(max_workers=8)
         try:
@@ -99,15 +100,16 @@ class MediaStatusChecker:
             for future in as_completed(futures):
                 item = futures[future]
                 try:
-                    tmdbid, r18, image = future.result()
+                    tmdbid, r18, image, vote = future.result()
                 except Exception as err:
                     log.error(f"【Bangumi】查询[{item.get('title')}]TMDB信息失败：{err!s}")
-                    tmdbid, r18, image = None, False, ""
+                    tmdbid, r18, image, vote = None, False, "", 0
                 yield {
                     "id": item.get("id"),
                     "tmdbid": tmdbid,
                     "r18": bool(r18),
-                    "image": image
+                    "image": image,
+                    "vote": vote
                 }
         finally:
             # 客户端提前断开时取消尚未完成的任务

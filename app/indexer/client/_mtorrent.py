@@ -20,8 +20,10 @@ class MTorrentSpider:
     _proxy = None
     _ua = None
     _size = 100
-    _searchurl = "https://api.%s/api/torrent/search"
-    _downloadurl = "https://api.%s/api/torrent/genDlToken"
+    _search_url = "https://api.%s/api/torrent/search"
+    _download_url = "https://api.%s/api/torrent/genDlToken"
+    _subtitle_url = "https://api.%s/api/subtitle/list"
+    _subtitle_link = "https://api.%s/api/subtitle/genlink"
     _pageurl = "%sdetail/%s"
     _timeout = 15
 
@@ -54,7 +56,8 @@ class MTorrentSpider:
             self._url = indexer.domain
             self._domain = SiteUtils.get_url_domain(self._url)
             self._host = SiteUtils.get_url_netloc(self._url)
-            self._searchurl = self._searchurl % self._domain
+            self._search_url = self._search_url % self._domain
+            self._subtitle_url = self._subtitle_url % self._domain
             self._name = indexer.name
             if indexer.proxy:
                 self._proxy = Config().get_proxies()
@@ -93,7 +96,7 @@ class MTorrentSpider:
             },
             proxies=self._proxy,
             timeout=self._timeout
-        ).post_res(url=self._searchurl, json=params)
+        ).post_res(url=self._search_url, json=params)
 
         torrents = []
 
@@ -190,7 +193,7 @@ class MTorrentSpider:
         """
         获取下载链接，返回base64编码的json字符串及URL
         """
-        url = self._downloadurl % self._domain
+        url = self._download_url % self._domain
         return f'{url}?id={torrent_id}'
 
     def get_torrent(self, url: str) -> str:
@@ -198,7 +201,6 @@ class MTorrentSpider:
         获取下载链接
         """
         headers={
-            # "Content-Type": "application/json",
             "Accept": "application/json, text/plain, */*",
             "User-Agent": f"{self._ua}",
             "x-api-key": self._apikey
@@ -219,3 +221,85 @@ class MTorrentSpider:
 
         return res
         
+    def get_subtitle_list(self, torrent_id: str) -> str:
+        """
+        获取字幕列表
+        [
+            {
+                "anonymous": false,
+                "author": "314055",
+                "createdDate": "2026-11-08 00:40:21",
+                "ext": "zip",
+                "filename": "The.Odyssey.2026.2160p.USA.UHD.Blu-ray.HDR.HEVC.DTS-HD.MA.5.1-TMT.简&英.zip",
+                "hits": "1028",
+                "id": "69193",
+                "lang": "25",
+                "lastModifiedDate": "2026-11-08 19:35:26",
+                "name": "The.Odyssey.2026.2160p.USA.UHD.Blu-ray.HDR.HEVC.DTS-HD.MA.5.1-TMT.简&英",
+                "savePath": "subtitle/2026/1108/01a1b6e1-ec11-7262-8c98-3cba9af3c1df.zip",
+                "size": "2316102",
+                "torrent": "1286839"
+            },
+            {
+                "anonymous": true,
+                "author": null,
+                "createdDate": "2026-11-07 18:28:55",
+                "ext": "ass",
+                "filename": "奥德赛 The Odyssey (2026) 简体中文.zh-CN.ass",
+                "hits": "1315",
+                "id": "69186",
+                "lang": "25",
+                "lastModifiedDate": "2026-11-08 19:36:28",
+                "name": "奥德赛 The Odyssey (2026) 简体中文.zh-CN",
+                "savePath": "subtitle/2026/1107/01a1b58d-dbba-71bc-b15c-77dafe95e3e0.ass",
+                "size": "624492",
+                "torrent": "1286839"
+            }
+        ]
+        """
+        if not torrent_id:
+            return None
+
+        headers = {
+            "Accept": "application/json, text/plain, */*",
+            "User-Agent": f"{self._ua}",
+            "x-api-key": self._apikey
+        }
+        params = { "id": torrent_id }
+
+        res = RequestUtils(headers=headers, 
+                           proxies=self._proxy,
+                           timeout=self._timeout
+                           ).post_res(url=self._subtitle_url, json=params)
+        
+        if not res:
+            return None
+
+        if res.status_code == 200:
+            return res.json().get('data', [])
+
+        return None
+
+    def __get_subtitle_url(self, subtitle_id: str) -> str:
+        """
+        获取字幕下载链接
+        """
+        headers = {
+            "Accept": "application/json, text/plain, */*",
+            "User-Agent": f"{self._ua}",
+            "x-api-key": self._apikey
+        }
+        params = { "id": subtitle_id }
+        url = self._subtitle_link % self._domain
+        res = RequestUtils(headers=headers, 
+                           proxies=self._proxy,
+                           timeout=self._timeout
+                           ).post_res(url=url, json=params)
+        if not res:
+            return None
+
+        data = res.json().get('data')
+        if not data:
+            return None
+
+        return f'https://api.m-team.io/api/subtitle/dlV2?credential={data}'

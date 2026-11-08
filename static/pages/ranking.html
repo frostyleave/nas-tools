@@ -357,6 +357,8 @@
                     nc.setAttribute('card-image', card.image);
                     nc.setAttribute('card-fav', card.fav);
                     nc.setAttribute('card-vote', card.vote);
+                    // 初始评分为 Bangumi 评分，星标显示为黄色
+                    nc.setAttribute('card-vote-source', 'bangumi');
                     nc.setAttribute('card-year', card.year);
                     nc.setAttribute('card-title', card.title);
                     nc.setAttribute('card-overview', card.overview);
@@ -398,6 +400,11 @@
                 // 原图已成功加载时保留原图，仅在未加载/加载失败时替换
                 if (info_item.image && !card.image_loaded) {
                     card.setAttribute('card-image', info_item.image);
+                }
+                // 有 TMDB 评分时替换 Bangumi 评分，星标切换为 TMDB 配色
+                if (info_item.vote) {
+                    card.setAttribute('card-vote', info_item.vote);
+                    card.setAttribute('card-vote-source', 'tmdb');
                 }
                 // R18 角标
                 if (info_item.r18) {

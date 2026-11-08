@@ -71,10 +71,13 @@
 
 .lit-navbar-accordion-item:hover {
     background-color: var(--lit-navbar-hover) !important;
+    transform: scale(1.01);
+    box-shadow: 0 12px 20px 0 rgba(var(--tblr-primary-rgb), 0.4);
 }
 
 .lit-navbar-accordion-item-active {
     background-color: var(--lit-navbar-active) !important;
+    transform: scale(1.02);
 }
 
 .lit-navbar-accordion-item-active .nav-item-icon {
@@ -88,7 +91,7 @@
 .lit-navbar-accordion-item,
 .lit-navbar-accordion-item-active {
     font-size: 1.1rem;
-    border-radius: 0.2rem;
+    border-radius: 28px;
 }
 
 html {
@@ -250,6 +253,7 @@ body.theme-dark::after {
 
 .poster-card-poster {
     --tblr-aspect-ratio: 150%;
+    cursor: pointer;
 }
 
 .poster-card-poster .card-img {
@@ -398,6 +402,10 @@ body.theme-dark::after {
 
 .poster-card-right-badge.poster-card-badge-tmdb .ti {
     color: #2abad2;
+}
+
+.poster-card-right-badge.poster-card-badge-bangumi .ti {
+    color: #f59f00;
 }
 
 .poster-card-r18-badge {

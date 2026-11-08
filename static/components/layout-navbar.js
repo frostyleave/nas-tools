@@ -173,7 +173,7 @@
 
       const active = this._activeName === item.page;
       const link = document.createElement('a');
-      link.className = 'd-flex align-items-center p-2 nav-link '
+      link.className = 'd-flex align-items-center p-2 my-1 nav-link '
         + (active ? 'lit-navbar-accordion-item-active' : 'lit-navbar-accordion-item')
         + ' lit-navbar-accordion-button';
       link.href = '#' + item.page;

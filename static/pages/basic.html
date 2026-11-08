@@ -251,7 +251,7 @@
           <label class="form-label mb-0 text-nowrap" for="pt.search_auto">远程搜索自动择优下载 <span class="form-help"
               title="启用后在微信、Telegram等发送名称后会按配置的下载优先规则及过滤规则自动择优下载，否则需要点击链接跳转后手工选择；注意关闭后需要先维护好 '外网访问地址'，否则无法点击跳转。"
               data-bs-toggle="tooltip">?</span></label>
-          <label class="form-check form-switch p-0 m-0">
+          <label class="form-check form-switch p-0 m-0 d-flex align-items-center">
             <input class="form-check-input float-none m-0" type="checkbox" id="pt.search_auto">
           </label>
         </div>
@@ -260,7 +260,7 @@
         <div class="mb-3 d-flex align-items-center gap-2">
           <label class="form-label mb-0 text-nowrap" for="pt.search_no_result_rss">远程下载不完整自动订阅 <span class="form-help"
               title="启用后在微信、Telegram发送名称搜索下载不完整时将自动添加订阅" data-bs-toggle="tooltip">?</span></label>
-          <label class="form-check form-switch p-0 m-0">
+          <label class="form-check form-switch p-0 m-0 d-flex align-items-center">
             <input class="form-check-input float-none m-0" type="checkbox" id="pt.search_no_result_rss">
           </label>
         </div>
@@ -283,7 +283,7 @@
             <span class="form-help"
               title="启用后，需要在原来的NAStool API地址后面拼接 ?apikey=xxx ，xxx 为API密钥；例如Emby回调接口由原来的 http://nastool:3000/emby 改为 http://nastool:3000/emby?apikey=xxx。受影响的接口有：plex、jellyfin、emby、telegram、synology、slack、ical"
               data-bs-toggle="tooltip">?</span></label>
-          <label class="form-check form-switch p-0 m-0">
+          <label class="form-check form-switch p-0 m-0 d-flex align-items-center">
             <input class="form-check-input float-none m-0" type="checkbox" id="security.check_apikey">
           </label>
         </div>
@@ -346,7 +346,7 @@
           <label class="form-label mb-0 text-nowrap" for="laboratory.use_douban_titles">默认搜索豆瓣资源 <span class="form-help"
               title="开启将使用豆瓣进行电影电视剧的名称搜索，允许中文名不完整时自动联想，但如豆瓣数据与TMDB不一致时可能会无法搜索；关闭后使用TMDB的数据，对中文支持不友好，但不会有无法搜索的问题"
               data-bs-toggle="tooltip">?</span></label>
-          <label class="form-check form-switch p-0 m-0">
+          <label class="form-check form-switch p-0 m-0 d-flex align-items-center">
             <input class="form-check-input float-none m-0" type="checkbox" id="laboratory.use_douban_titles">
           </label>
         </div>
@@ -355,7 +355,7 @@
         <div class="mb-3 d-flex align-items-center gap-2">
           <label class="form-label mb-0 text-nowrap" for="laboratory.search_adult">TMDB搜索成人资源 <span class="form-help"
               title="TMDB默认不返回成人内容" data-bs-toggle="tooltip">?</span></label>
-          <label class="form-check form-switch p-0 m-0">
+          <label class="form-check form-switch p-0 m-0 d-flex align-items-center">
             <input class="form-check-input float-none m-0" type="checkbox" id="laboratory.search_adult">
           </label>
         </div>
@@ -366,7 +366,7 @@
         <div class="mb-3 d-flex align-items-center gap-2">
           <label class="form-label mb-0 text-nowrap" for="laboratory.tmdb_cache_expire">TMDB缓存过期策略 <span class="form-help"
               title="开启TMDB缓存过期策略后，默认7天过期，过期缓存将被删除,  7天内访问过期时间可以被刷新，建议开启" data-bs-toggle="tooltip">?</span></label>
-          <label class="form-check form-switch p-0 m-0">
+          <label class="form-check form-switch p-0 m-0 d-flex align-items-center">
             <input class="form-check-input float-none m-0" type="checkbox" id="laboratory.tmdb_cache_expire">
           </label>
         </div>
@@ -375,7 +375,7 @@
         <div class="mb-3 d-flex align-items-center gap-2">
           <label class="form-label mb-0 text-nowrap" for="laboratory.search_keyword">辅助识别 <span class="form-help"
               title="开启后，无法识别到媒体信息时会尝试猜测和纠正关键词并再次匹配，会大大增加识别耗时，一般情况下不建议开启" data-bs-toggle="tooltip">?</span></label>
-          <label class="form-check form-switch p-0 m-0">
+          <label class="form-check form-switch p-0 m-0 d-flex align-items-center">
             <input class="form-check-input float-none m-0" type="checkbox" id="laboratory.search_keyword">
           </label>
         </div>
@@ -385,7 +385,7 @@
           <label class="form-label mb-0 text-nowrap" for="laboratory.search_tmdbweb">WEB增强识别 <span class="form-help"
               title="开启后，通过TMDB的API无法识别到媒体信息时，会尝试通过themoviedb.org网站再次搜索匹配，仅个别极端情况下有效，会大大增加识别耗时，一般情况下不建议开启"
               data-bs-toggle="tooltip">?</span></label>
-          <label class="form-check form-switch p-0 m-0">
+          <label class="form-check form-switch p-0 m-0 d-flex align-items-center">
             <input class="form-check-input float-none m-0" type="checkbox" id="laboratory.search_tmdbweb">
           </label>
         </div>

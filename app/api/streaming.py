@@ -353,7 +353,8 @@ def stream_bangumi_tmdb(data: Annotated[dict, Body(...)]):
     Bangumi 条目 TMDB 信息 SSE
 
     data: {"list": [{"id", "bgmid", "title", "year"}]}
-    每完成一条立即返回：{"item": {"id", "tmdbid", "r18", "image"}}
+    每完成一条立即返回：{"item": {"id", "tmdbid", "r18", "image", "vote"}}
+    image 为 TMDB 封面地址，vote 为 TMDB 评分，前端用它们替换 Bangumi 原图与评分
     结束时返回：{"type": "done"}
     """
     media_list = (data or {}).get("list") or []
