@@ -380,7 +380,10 @@ class MediaServer:
 
         if event_info:
             # 获取消息图片
-            if event_info.get("item_type") == "TV":
+            if event_info.get("event") == "library.deleted":
+                # 删除事件对应的媒体已不存在，无需再查询图片
+                image_url = None
+            elif event_info.get("item_type") == "TV":
                 # 根据返回的item_id、season_id、episode_id去调用媒体服务器获取
                 image_url = self.get_episode_image_by_id(item_id=event_info.get('item_id'),
                                                          season_id=event_info.get('season_id'),

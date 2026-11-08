@@ -1,3 +1,4 @@
+import html
 import re
 from urllib.parse import quote
 
@@ -585,12 +586,21 @@ class Jellyfin(_IMediaClient):
         NotificationType、ItemId、ItemType、Name、Year、Overview、
         SeriesName、SeasonNumber、EpisodeNumber、NotificationUsername
         """
+        # 插件模板使用 {{xxx}}（双花括号）时会做 HTML 转义，中文等非 ASCII 字符
+        # 会被转成 &#29616; 这类实体，这里统一还原；复制一份避免改动同时传给
+        # 插件事件管理器的原始报文
+        message = {
+            key: html.unescape(value) if isinstance(value, str) else value
+            for key, value in message.items()
+        }
+
         notification_type = message.get('NotificationType', '')
         # 事件名归一化为NAStool通用事件名
         event = {
             'PlaybackStart': 'playback.start',
             'PlaybackStop': 'playback.stop',
-            'ItemAdded': 'library.new'
+            'ItemAdded': 'library.new',
+            'ItemDeleted': 'library.deleted'
         }.get(notification_type, notification_type)
 
         item_id = message.get('ItemId') or message.get('Id')
@@ -601,7 +611,8 @@ class Jellyfin(_IMediaClient):
             'item_name': message.get('Name'),
             'user_name': message.get('NotificationUsername')
         }
-        if item_id:
+        # 删除事件对应的媒体已不存在，不再生成失效的播放链接
+        if item_id and event != 'library.deleted':
             eventItem['play_url'] = f"/open?url={quote(self.get_play_url(item_id))}&type=jellyfin"
 
         # 剧情简介，与Emby保持一致：超过100字截断
@@ -651,8 +662,8 @@ class Jellyfin(_IMediaClient):
                 'item_name': message.get('Album') or message.get('Name'),
                 'overview': message.get('FileName') or overview
             })
-        elif notification_type == 'ItemAdded':
-            # Season/BoxSet等非媒体条目会被剧集、分集的入库事件重复触发，忽略
+        elif notification_type in ('ItemAdded', 'ItemDeleted'):
+            # Season/BoxSet等非媒体条目会被剧集、分集的入库/删除事件重复触发，忽略
             return {}
 
         return eventItem

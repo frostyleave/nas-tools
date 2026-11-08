@@ -469,7 +469,7 @@ class ModuleConf:
                 "fuc_name": "ptrefresh_date_message"
             },
             "mediaserver_message": {
-                "name": "媒体服务",
+                "name": "媒体库消息",
                 "fuc_name": "mediaserver_message"
             },
             "custom_message": {

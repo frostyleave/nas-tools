@@ -682,6 +682,7 @@ class MessageService:
         # 拼装消息内容
         _webhook_actions = {
             "library.new": "新入库",
+            "library.deleted": "已删除",
             "system.webhooktest": "测试",
             "playback.start": "开始播放",
             "playback.stop": "停止播放",
