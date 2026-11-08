@@ -189,11 +189,19 @@
           }
 
           data.Historys.forEach(history => {
-            const mediaIcon = history.TYPE === '电影' ? 'ti-movie' : 'ti-device-tv';
-            const mediaType = history.TYPE === '电影' ? 'movie' : 'tv';
+            
+            // 按媒体类型区分头像底色
+            const mediaTypeColor = {
+              '电影': 'bg-green',
+              '电视剧': 'bg-blue',
+              '动漫': 'bg-orange'
+            }[history.TYPE] || 'bg-secondary';
+            // 取分类名称的前两个字作为头像内容
+            const categoryText = Array.from((history.CATEGORY || history.TYPE || '?').trim()).slice(0, 2).join('') || '?';
 
             let titleHtml = '';
             if (history.TMDBID) {
+              const mediaType = history.TYPE === '电影' ? 'movie' : 'tv';
               titleHtml = `<a href="https://www.themoviedb.org/${mediaType}/${history.TMDBID}" target="_blank">
                 ${history.TITLE} (${history.YEAR})
               </a>`;
@@ -216,13 +224,13 @@
             // 类别、转移方式、来自合并为一行展示
             const metaParts = [];
             if (history.CATEGORY) {
-              metaParts.push(`类别：${history.CATEGORY}`);
+              metaParts.push(`${history.CATEGORY}`);
             }
             if (history.SYNC_MODE) {
-              metaParts.push(`转移方式：${history.SYNC_MODE}`);
+              metaParts.push(`${history.SYNC_MODE}`);
             }
             if (history.SOURCE) {
-              metaParts.push(`来自：${history.SOURCE}`);
+              metaParts.push(`${history.SOURCE}`);
             }
 
             const row = `
@@ -232,8 +240,8 @@
                 </td>
                 <td>
                   <div class="d-flex py-1 align-items-center">
-                    <span class="avatar me-2 text-nowrap">
-                      <i class="ti ${mediaIcon} fs-2"></i>
+                    <span class="avatar avatar-md me-2 text-nowrap text-white ${mediaTypeColor}">
+                      ${categoryText}
                     </span>
                     <div class="flex-fill">
                       <div class="font-weight-medium text-nowrap">

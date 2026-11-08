@@ -28,13 +28,6 @@
           <div class="d-flex">
             <div class="text-muted">
               <div class="d-flex align-items-center gap-2">
-                <a href="javascript:search_download_history()" class="btn btn-primary btn-sm d-none d-sm-inline-flex">
-                  <i class="ti ti-search fs-3"></i>
-                  查询
-                </a>
-                <a href="javascript:search_download_history()" class="btn btn-primary btn-sm d-sm-none">
-                  <i class="ti ti-search fs-3"></i>
-                </a>
                 <span class="d-none d-md-inline-block">类型:</span>
                 <select id="filter-type" class="form-select form-select-sm" style="width: auto;">
                   <option value="">全部</option>
@@ -46,6 +39,9 @@
                 <input id="filter-tmdbid" type="text" class="form-control form-control-sm" placeholder="TMDBID" style="width: 90px;">
                 <span class="d-none d-md-inline-block">站点:</span>
                 <input id="filter-site" type="text" class="form-control form-control-sm" placeholder="站点" style="width: 120px;">
+                <a href="javascript:search_download_history()" class="btn btn-primary btn-sm d-sm-inline-flex px-2">
+                  <i class="ti ti-search fs-3"></i>
+                </a>
               </div>
             </div>
           </div>
@@ -54,12 +50,10 @@
           <table class="table table-vcenter card-table table-hover table-striped">
             <thead>
               <tr>
-                <th>站点</th>
-                <th>TMDBID</th>
                 <th>名称</th>
-                <th>年份</th>
-                <th>类型</th>
+                <th>TMDBID</th>
                 <th>季集</th>
+                <th>站点</th>
                 <th>源网页</th>
                 <th>时间</th>
               </tr>
@@ -120,7 +114,7 @@
 
     // 显示加载状态
     const tableBody = $('#download-history-table-body');
-    tableBody.html('<tr><td colspan="7" align="center">加载中...</td></tr>');
+    tableBody.html('<tr><td colspan="6" align="center">加载中...</td></tr>');
 
     axios_post('/data/download_history', requestData, function (response) {
 
@@ -139,25 +133,41 @@
           $('#table-container').addClass('table-page-mini-body');
 
           data.Items.forEach(item => {
+            // 类型以 badge 显示在名称前：电影绿、剧集蓝、动漫橙；年份以（年份）形式拼接在名称后
+            const type = item.TYPE || '';
+            let typeClass = 'secondary';
+            if (type === '电影') {
+              typeClass = 'green';
+            } else if (type === '电视剧') {
+              typeClass = 'blue';
+            } else if (type === '动漫') {
+              typeClass = 'orange';
+            }
+            const typeBadge = type
+              ? `<span class="badge bg-primary-lt text-${typeClass} text-white me-1">${type}</span>`
+              : '';
+            const yearText = item.YEAR ? `（${item.YEAR}）` : '';
+            const name = `${typeBadge}${item.TITLE || ''}${yearText}`;
+            // TMDB 直达链接：动漫在 TMDB 中归为剧集
+            const tmdbType = type === '电影' ? 'movie' : 'tv';
+            const tmdbLink = item.TMDBID
+              ? `<a class="lh-1 d-inline-flex align-items-center" href="https://www.themoviedb.org/${tmdbType}/${item.TMDBID}" target="_blank" title="在 TMDB 中打开">
+                   <i class="ti ti-link fs-2"></i>
+                 </a>`
+              : '';
             const row = `
               <tr>
                 <td>
-                  <span>${item.SITE || ''}</span>
+                  <span>${name}</span>
                 </td>
                 <td>
-                  <span>${item.TMDBID || ''}</span>
-                </td>
-                <td>
-                  <div>${item.TITLE || ''}</div>
-                </td>
-                <td>
-                  <span>${item.YEAR || ''}</span>
-                </td>
-                <td>
-                  <span>${item.TYPE || ''}</span>
+                  <div class="text-muted text-nowrap d-flex align-items-center gap-1">${tmdbLink}<span>${item.TMDBID || ''}</span></div>
                 </td>
                 <td>
                   <span>${item.SE || ''}</span>
+                </td>
+                <td>
+                  <span>${item.SITE || ''}</span>
                 </td>
                 <td>
                   <span>${item.PAGE_URL || ''}</span>
@@ -212,7 +222,7 @@
           paginationContainer.show();
         } else {
           $('#table-container').removeClass('table-page-mini-body');
-          tableBody.html('<tr><td colspan="7" align="center">没有数据</td></tr>');
+          tableBody.html('<tr><td colspan="6" align="center">没有数据</td></tr>');
           $('#pagination-container').hide();
         }
       }
@@ -223,6 +233,9 @@
   $(document).ready(function () {
     // 计算适应视口的每页条数
     calcPageSize();
+
+    // 进入页面默认执行一次查询
+    search_download_history();
 
     $('#filter-tmdbid, #filter-site').bind('keypress', function (event) {
       if (event.keyCode == "13") {

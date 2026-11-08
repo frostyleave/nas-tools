@@ -46,6 +46,17 @@
       this._searchLink = null;
     }
 
+    /**
+     * 当前图片是否已成功加载
+     * 懒加载尚未触发、图片加载失败（含无图兜底）时返回 false
+     */
+    get image_loaded() {
+      const img = this._imgEl;
+      if (!img) return false;
+      const src = img.getAttribute('src');
+      return !!src && src !== NO_IMAGE && img.complete && img.naturalWidth > 0;
+    }
+
     connectedCallback() {
       if (!this._rendered) {
         this._build();

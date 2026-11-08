@@ -9,6 +9,7 @@ from app.modules.subscribe import Subscribe
 from app.utils.commons import singleton
 from app.utils.constants import Constants
 from app.utils.types import MediaType
+from config import Config
 
 
 @singleton
@@ -86,8 +87,11 @@ class MediaStatusChecker:
             r18 = Bangumi.is_r18(bgmid)
             tmdb_info = MediaService().match_tmdb_tv_by_title(title, year) if title else None
             if not tmdb_info:
-                return None, r18
-            return tmdb_info.get("id"), r18 or bool(tmdb_info.get("adult"))
+                return None, r18, ""
+            # 一并返回 TMDB 封面，前端用它替换 Bangumi 图床（部分网络下直连不可用）
+            image = Config().get_tmdbimage_url(tmdb_info.get("poster_path")) \
+                if tmdb_info.get("poster_path") else ""
+            return tmdb_info.get("id"), r18 or bool(tmdb_info.get("adult")), image
 
         executor = ThreadPoolExecutor(max_workers=8)
         try:
@@ -95,14 +99,15 @@ class MediaStatusChecker:
             for future in as_completed(futures):
                 item = futures[future]
                 try:
-                    tmdbid, r18 = future.result()
+                    tmdbid, r18, image = future.result()
                 except Exception as err:
                     log.error(f"【Bangumi】查询[{item.get('title')}]TMDB信息失败：{err!s}")
-                    tmdbid, r18 = None, False
+                    tmdbid, r18, image = None, False, ""
                 yield {
                     "id": item.get("id"),
                     "tmdbid": tmdbid,
-                    "r18": bool(r18)
+                    "r18": bool(r18),
+                    "image": image
                 }
         finally:
             # 客户端提前断开时取消尚未完成的任务

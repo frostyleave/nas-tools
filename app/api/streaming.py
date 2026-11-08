@@ -353,10 +353,8 @@ def stream_bangumi_tmdb(data: Annotated[dict, Body(...)]):
     Bangumi 条目 TMDB 信息 SSE
 
     data: {"list": [{"id", "bgmid", "title", "year"}]}
-    每完成一条立即返回：
-      {"item": {"id", "tmdbid", "r18"}}
-    结束时返回：
-      {"type": "done"}
+    每完成一条立即返回：{"item": {"id", "tmdbid", "r18", "image"}}
+    结束时返回：{"type": "done"}
     """
     media_list = (data or {}).get("list") or []
 
@@ -378,10 +376,8 @@ def stream_media_exists(data: Annotated[dict, Body(...)]):
     订阅/在库状态 SSE
 
     data: {"list": [{"id", "tmdbid", "type", "title", "year"}]}
-    每完成一条立即返回：
-      {"item": {"id", "fav", "rssid", "item_url"}}
-    结束时返回：
-      {"type": "done"}
+    每完成一条立即返回：{"item": {"id", "fav", "rssid", "item_url"}}
+    结束时返回：{"type": "done"}
     """
     media_list = (data or {}).get("list") or []
 

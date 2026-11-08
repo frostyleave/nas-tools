@@ -395,6 +395,10 @@
                 if (info_item.tmdbid) {
                     card.setAttribute('card-tmdbid', info_item.tmdbid);
                 }
+                // 原图已成功加载时保留原图，仅在未加载/加载失败时替换
+                if (info_item.image && !card.image_loaded) {
+                    card.setAttribute('card-image', info_item.image);
+                }
                 // R18 角标
                 if (info_item.r18) {
                     card.setAttribute('card-r18', '1');

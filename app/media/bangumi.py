@@ -84,6 +84,21 @@ class Bangumi:
         return urlunsplit((parts.scheme, parts.netloc, path, parts.query, parts.fragment))
 
     @staticmethod
+    def __to_https(url):
+        """
+        Bangumi 接口返回的图片地址是 http://lain.bgm.tv/...
+        HTTPS 页面下 iOS Safari 会按混合内容直接拦截（Chrome 会自动升级），
+        这里统一升级为 https，避免苹果设备上封面不显示
+        :param url: 图片地址
+        """
+        if not url:
+            return ""
+        parts = urlsplit(url)
+        if parts.scheme == "http":
+            return urlunsplit(("https", parts.netloc, parts.path, parts.query, parts.fragment))
+        return url
+
+    @staticmethod
     def __dict_item(item, weekday, media_type=MediaType.ANIME):
         """
         转换为字典
@@ -104,6 +119,8 @@ class Bangumi:
             image = Bangumi.__resize_image(large_image)
         else:
             image = images.get("common", "")
+        # 统一升级为 https，避免 iOS Safari 拦截 http 混合内容
+        image = Bangumi.__to_https(image)
         summary = item.get("summary")
         return {
             'id': f"BG:{bid}",

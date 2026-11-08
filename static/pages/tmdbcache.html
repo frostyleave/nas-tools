@@ -22,51 +22,36 @@
 <!-- 业务页面代码 -->
 <div class="page-body">
   <div class="container-xl">
-    <div class="row row-cards">
-      <div class="col-12">
-        <div class="card">
-          <div class="card-body border-bottom py-3">
-            <div class="d-flex">
-              <div class="text-muted">
-                共 <span id="total-count">0</span> 条记录
-              </div>
-              <div class="ms-auto text-muted">
-                搜索:
-                <div class="ms-2 d-inline-block">
-                  <input id="search_word" value="" type="text"
-                         class="form-control form-control-sm" aria-label="搜索">
-                </div>
-              </div>
+    <!-- 工具栏 -->
+    <div class="card mb-3">
+      <div class="card-body py-2">
+        <div class="d-flex align-items-center">
+          <div class="text-muted">
+            共 <span id="total-count">0</span> 条记录
+          </div>
+          <div class="ms-auto text-muted">
+            搜索:
+            <div class="ms-2 d-inline-block">
+              <input id="search_word" value="" type="text"
+                     class="form-control form-control-sm" aria-label="搜索">
             </div>
-          </div>
-          <div class="table-responsive" id="table-container">
-            <table class="table table-vcenter card-table table-hover table-striped">
-              <thead>
-              <tr>
-                <th>索引</th>
-                <th>标题</th>
-                <th>TMDB</th>
-                <th></th>
-                <th></th>
-              </tr>
-              </thead>
-              <tbody id="tmdb-cache-table-body">
-                <tr>
-                  <td colspan="5" align="center">加载中...</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-          <div class="card-footer d-flex align-items-center" id="pagination-container" style="display: none;">
-            <p class="m-0 text-muted">当前页 <span id="current-count">0</span> 条</p>
-            <ul class="pagination m-0 ms-auto" id="pagination-list">
-            </ul>
           </div>
         </div>
       </div>
     </div>
+    <!-- 缓存卡片列表 -->
+    <div class="d-grid gap-3 tmdbcache-grid" id="tmdb-cache-list">
+      <div class="text-center text-muted py-4">加载中...</div>
+    </div>
+    <!-- 分页 -->
+    <div class="d-flex align-items-center mt-3" id="pagination-container" style="display: none;">
+      <p class="m-0 text-muted">当前页 <span id="current-count">0</span> 条</p>
+      <ul class="pagination m-0 ms-auto" id="pagination-list">
+      </ul>
+    </div>
   </div>
 </div>
+<nodata-found id="no-data" title="没有缓存记录" text="当前没有匹配的 TMDB 缓存条目。" style="display: none;"></nodata-found>
 <div class="modal modal-blur fade" id="tmdb_cache_detail" tabindex="-1" role="dialog" aria-hidden="true"
      data-bs-backdrop="static" data-bs-keyboard="false">
   <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable" role="document">
@@ -188,6 +173,16 @@
     const currentPage = urlParams.get('page') || 1;
     const pageNum = 20;
 
+    // HTML 转义，避免标题中的引号/尖括号破坏结构
+    function escapeHtml(value) {
+      return String(value === undefined || value === null ? '' : value)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
     // 设置搜索框的值
     $('#search_word').val(searchKeyword);
 
@@ -202,12 +197,12 @@
         
         const data = response.data;
 
-        // 生成TMDB缓存表格
-        const tableBody = $('#tmdb-cache-table-body');
-        const tableContainer = $('#table-container');
+        // 生成TMDB缓存卡片列表
+        const cacheList = $('#tmdb-cache-list');
         const paginationContainer = $('#pagination-container');
+        const noData = $('#no-data');
 
-        tableBody.empty();
+        cacheList.empty();
 
         $('#total-count').text(data.TotalCount || 0);
 
@@ -215,69 +210,106 @@
 
           $('#current-count').text(data.TmdbCaches.length);
 
-          // 添加表格样式
-          if (data.TotalCount > 0) {
-            tableContainer.addClass('table-page-mini-body');
-          }
-
           data.TmdbCaches.forEach(tmdbCache => {
 
             var cacheKey = tmdbCache.key;
             var cacheData = tmdbCache.meta;
-            var indexKey = tmdbCache.key.replace("[电影]", "").replace("[电视剧]", "").replace("[未知]", "").replace("-None", "");
-            var mediaIcon = cacheData.media_type === '电影' ? 'ti-movie' : 'ti-device-tv';
+            var indexKey = tmdbCache.key.replace("[电影]", "").replace("[电视剧]", "").replace("[动漫]", "").replace("[未知]", "").replace("-None", "");
             var mediaType = cacheData.media_type === '电影' ? 'movie' : 'tv';
 
-            var posterImg = cacheData.poster_path ?
-              `<img class="rounded shadow-sm w-5"
-                   src="https://image.tmdb.org/t/p/w500${cacheData.poster_path}"
-                   onerror="this.src='../static/img/no-image.svg'" alt=""
-                   style="min-width: 50px"/>` : '';
+            // 类型角标：风格、内容与 normal-card 左上角角标一致
+            var mediaTypeLabel = cacheData.media_type || '未知';
+            var badgeClass = mediaTypeLabel === '电影' ? 'green'
+              : mediaTypeLabel === '动漫' ? 'orange'
+              : 'flickr';
 
-            var row = `
-              <tr>
-                <td>
-                  <div class="d-flex py-1 align-items-center">
-                    <span class="avatar me-2 text-nowrap">
-                      <i class="ti ${mediaIcon} fs-2"></i>
-                    </span>
-                    <div class="flex-fill">
-                      <div class="font-weight-medium">${indexKey}</div>
+            var posterSrc = cacheData.poster_path ?
+              `https://image.tmdb.org/t/p/w185${cacheData.poster_path}` : '../static/img/no-image.svg';
+
+            var card = `
+              <div class="card tmdbcache-card glass-card">
+                <div class="card-body d-flex align-items-start gap-3">
+                  <img class="tmdbcache-poster shadow-sm" loading="lazy"
+                       src="${posterSrc}"
+                       onerror="this.src='../static/img/no-image.svg'" alt="">
+                  <div class="tmdbcache-main flex-fill">
+                    <div class="d-flex align-items-center gap-1">
+                      <span class="tmdbcache-key text-truncate" title="${escapeHtml(indexKey)}">${escapeHtml(indexKey)}</span>
+                    </div>
+                    <div class="d-flex align-items-center gap-1 mt-1">
+                      <span class="badge bg-primary-lt text-${badgeClass}">${mediaTypeLabel}</span>
+                      <span class="tmdbcache-title text-truncate" title="${escapeHtml(cacheData.title)}">${escapeHtml(cacheData.title)}</span>
+                    </div>
+                    <div class="tmdbcache-meta text-muted mt-1 d-flex align-items-center gap-1">
+                      <a class="lh-1 d-inline-flex align-items-center" href="https://www.themoviedb.org/${mediaType}/${cacheData.id}" target="_blank" title="在 TMDB 中打开">
+                        <i class="ti ti-link fs-2"></i>
+                      </a>
+                      <span>${cacheData.id}</span>
                     </div>
                   </div>
-                </td>
-                <td>
-                  <div>${cacheData.title}</div>
-                </td>
-                <td>
-                  <div class="text-muted text-nowrap">${cacheData.id}
-                    <a class="ms-1" href="https://www.themoviedb.org/${mediaType}/${cacheData.id}" target="_blank">
-                      <i class="ti ti-link fs-2"></i>
-                    </a>
-                  </div>
-                </td>
-                <td>
-                  ${posterImg}
-                </td>
-                <td>
-                  <div class="dropdown">
+                  <div class="dropdown flex-shrink-0">
                     <a href="#" class="btn-action" data-bs-toggle="dropdown" aria-expanded="false">
                       <i class="ti ti-dots-vertical fs-2"></i>
                     </a>
                     <div class="dropdown-menu dropdown-menu-end">
-                      <a class="dropdown-item" href='javascript:show_modify("${indexKey}", "${cacheData.title}")'>
+                      <a class="dropdown-item tmdbcache-edit" href="javascript:void(0)"
+                         data-key="${escapeHtml(cacheKey)}" data-title="${escapeHtml(cacheData.title)}">
                         修改
                       </a>
-                      <a class="dropdown-item text-danger" href='javascript:manual_delete("${cacheKey}")'>
+                      <a class="dropdown-item text-danger tmdbcache-delete" href="javascript:void(0)"
+                         data-key="${escapeHtml(cacheKey)}">
                         删除
                       </a>
                     </div>
                   </div>
-                </td>
-              </tr>
+                </div>
+              </div>
             `;
-            tableBody.append(row);
+            cacheList.append(card);
           });
+
+          // 修改/删除（事件委托，避免标题中的引号破坏内联脚本）
+          cacheList.off('click.tmdbcache')
+            .off('show.bs.dropdown.tmdbcache shown.bs.dropdown.tmdbcache hidden.bs.dropdown.tmdbcache')
+            .on('click.tmdbcache', '.tmdbcache-edit', function () {
+              show_modify($(this).attr('data-key'), $(this).attr('data-title'));
+            })
+            .on('click.tmdbcache', '.tmdbcache-delete', function () {
+              manual_delete($(this).attr('data-key'));
+            })
+            // 弹出菜单时将所在卡片提到最上层，避免被下方卡片遮挡
+            .on('show.bs.dropdown.tmdbcache', '.dropdown', function () {
+              $(this).closest('.tmdbcache-card').addClass('is-dropdown-open');
+            })
+            .on('hidden.bs.dropdown.tmdbcache', '.dropdown', function () {
+              $(this).closest('.tmdbcache-card').removeClass('is-dropdown-open');
+            })
+            // 弹出过渡动画：用 Web Animations API 驱动，不依赖样式表是否已刷新
+            .on('shown.bs.dropdown.tmdbcache', '.dropdown', function () {
+              const menu = this.querySelector('.dropdown-menu');
+              if (!menu || typeof menu.animate !== 'function') {
+                return;
+              }
+
+              const easing = 'cubic-bezier(0.22, 1, 0.36, 1)';
+
+              // 菜单整体：淡入 + 自上而下展开（clip-path 不改变定位，也不受 Popper 的 transform 影响）
+              menu.animate([
+                {opacity: 0, clipPath: 'inset(0 0 100% 0 round 4px)'},
+                {opacity: 1, clipPath: 'inset(0 0 0 0 round 4px)'}
+              ], {duration: 180, easing: easing});
+
+              // 菜单项：随展开过程依次浮现
+              menu.querySelectorAll('.dropdown-item').forEach(function (item, index) {
+                item.animate([
+                  {opacity: 0},
+                  {opacity: 1}
+                ], {duration: 150, delay: index * 30, easing: 'ease-out', fill: 'backwards'});
+              });
+            });
+
+          noData.hide();
+          cacheList.show();
 
           // 生成分页
           if (data.TotalCount > 0) {
@@ -323,11 +355,9 @@
           }
         } else {
           // 没有数据
-          tableBody.append(`
-            <tr>
-              <td colspan="5" align="center">没有数据</td>
-            </tr>
-          `);
+          cacheList.hide();
+          paginationContainer.hide();
+          noData.show();
         }
       }
     });

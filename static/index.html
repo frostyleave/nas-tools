@@ -1277,6 +1277,74 @@
 
   <script type="text/javascript">
 
+    const clickPositions = new WeakMap();
+
+    // 记录鼠标点击位置
+    document.addEventListener('pointerdown', (e) => {
+        const trigger = e.target.closest(
+            '[data-bs-toggle="modal"], [data-modal-origin]'
+        );
+
+        if (trigger) {
+            clickPositions.set(trigger, {
+                x: e.clientX,
+                y: e.clientY
+            });
+        }
+    }, true);
+
+    // 在 Modal 开始显示时注册监听
+    document.addEventListener('show.bs.modal', (e) => {
+        const modal = e.target;
+        const dialog = modal.querySelector('.modal-dialog');
+
+        if (!dialog) return;
+
+        const trigger = e.relatedTarget;
+        const point = trigger && clickPositions.get(trigger);
+
+        if (trigger) {
+            clickPositions.delete(trigger);
+        }
+
+        // 监听 Bootstrap 添加 show 类
+        const observer = new MutationObserver(() => {
+            if (!modal.classList.contains('show')) return;
+
+            observer.disconnect();
+
+            // 此时 Modal 已经完成布局，但尚未绘制
+            const rect = dialog.getBoundingClientRect();
+
+            const x = point ? point.x - rect.left : rect.width / 2;
+            const y = point ? point.y - rect.top : rect.height / 2;
+
+            dialog.style.transformOrigin = `${x}px ${y}px`;
+            dialog.animate(
+                [
+                  {
+                    transform: 'scale(0.06)',
+                    opacity: 0
+                  },
+                  {
+                    transform: 'scale(1)',
+                    opacity: 1
+                  }
+                ],
+                {
+                  duration: 420,
+                  easing: 'cubic-bezier(0.2, 0.8, 0.2, 1)'
+                }
+            );
+        });
+
+        observer.observe(modal, {
+            attributes: true,
+            attributeFilter: ['class']
+        });
+        
+    });
+
     // 初始化DropZone
     function initDropzone() {
       TorrentDropZone = new Dropzone("#torrent_files");
