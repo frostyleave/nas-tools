@@ -8,7 +8,20 @@ from app.core.initializer import start_config_monitor, stop_config_monitor
 from app.core.services import ServiceManager
 from app.core.task_manager import task_processor_start, task_processor_stop
 from app.utils.async_request import AsyncRequestUtils
+from app.utils.asyncio_utils import install_connection_reset_filter
 from log import set_event_loop_for_logging
+
+
+def _inject_event_loop() -> None:
+    """
+    注入当前运行的事件循环
+    """
+    try:
+        loop = asyncio.get_running_loop()
+        set_event_loop_for_logging(loop)
+        install_connection_reset_filter(loop)
+    except RuntimeError as e:
+        log.error(f"Could not capture event loop: {e}")
 
 
 @contextlib.asynccontextmanager
@@ -24,12 +37,7 @@ async def lifespan(app: FastAPI):
         start_config_monitor()
 
         # 注入事件循环
-        try:
-            loop = asyncio.get_running_loop()
-            set_event_loop_for_logging(loop)
-            
-        except RuntimeError as e:
-            log.error(f"Could not capture event loop for SSE logging: {e}")
+        _inject_event_loop()
 
         # 启动任务管理器
         task_processor_start()

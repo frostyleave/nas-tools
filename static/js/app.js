@@ -17,6 +17,9 @@ let InitialPageLoadStarted = false;
 // 页面在菜单创建前已加载时，等待菜单就绪后再补执行菜单激活和页面后处理
 let PendingPageState = false;
 
+// 菜单切换序号：每次点击菜单自增，页面加载完成时仅最新一次切换播液态过渡
+let PageLiquidSeq = 0;
+
 // 轮询管理器：收集所有需要停止的函数
 const PollingManager = {
   // key -> stopFunction
@@ -204,6 +207,9 @@ function loadPage(htmlPath, queryString) {
   // 覆盖直接打开/刷新页面的场景；经 navmenu 进入时令牌已存在，不会重复显示
   showPageLoading();
 
+  // 记录本次加载所属的菜单切换序号（0 表示首次加载/刷新等非菜单切换）
+  const liquidSeq = PageLiquidSeq;
+
   let params = {};
   // 把htmlPath中的参数把参数挂到容器上
   const [path, paramString] = htmlPath.split("?");
@@ -219,8 +225,8 @@ function loadPage(htmlPath, queryString) {
   // 直接加载HTML文件
   $("#page-content").load(htmlPath, function(_, status, xhr) {
 
-    // 隐藏等待动画并关闭加载标记
-    hidePageLoading();
+    // 隐藏等待动画并关闭加载标记（菜单切换时顺带播放液态展开）
+    hidePageLoading(liquidSeq);
 
     if (status == "error") {
       $("#page-content").html(`<system-error title="${xhr.status}" text="${xhr.statusText || ''}"></system-error>`);
@@ -282,9 +288,12 @@ window.initPendingPageState = initPendingPageState;
 
 // 导航菜单点击
 function navmenu(page) {
- 
+
   // 修复空格问题
   page = page.replaceAll(" ", "%20");
+
+  // 标记本次为菜单切换，加载完成后播放页面液态展开
+  PageLiquidSeq++;
 
   // 解除滚动事件
   $(window).unbind('scroll');
@@ -312,15 +321,36 @@ function showPageLoading() {
 }
 
 // 页面切换完成：显示页面内容并释放页面加载动画
-function hidePageLoading() {
+// liquidSeq 为触发本次加载的菜单切换序号，仅最新一次菜单切换才播放液态展开
+function hidePageLoading(liquidSeq) {
   // 清理页面内自行使用的加载提示（如 ranking 页）
   $("#loading-tips").hide();
   $("#page-content").show();
+
+  if (liquidSeq && liquidSeq === PageLiquidSeq) {
+    playPageLiquidReveal(document.getElementById("page-content"));
+  }
+
   NavPageLoading = false;
   if (PageLoadingToken !== null) {
     LoadingOverlay.hide(PageLoadingToken);
     PageLoadingToken = null;
   }
+}
+
+// 页面液态展开：重挂 class 触发 CSS 动画，支持连续切换时反复播放
+function playPageLiquidReveal(el) {
+  if (!el) return;
+  el.classList.remove("page-liquid-reveal");
+  void el.offsetWidth; // 强制回流，保证动画重新开始
+  el.classList.add("page-liquid-reveal");
+
+  // 用定时器（略长于动画时长）清理，连续切换时重置，不依赖 animationend
+  if (el._liquidRevealTimer) clearTimeout(el._liquidRevealTimer);
+  el._liquidRevealTimer = setTimeout(() => {
+    el.classList.remove("page-liquid-reveal");
+    el._liquidRevealTimer = null;
+  }, 700);
 }
 
 

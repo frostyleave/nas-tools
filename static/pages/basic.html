@@ -293,9 +293,10 @@
       </div>
     </div>
     <div class="row align-items-center mb-3">
-      <div class="col-12 col-xl-2">
+      <div class="col-12 col-xl-2 d-flex align-items-center gap-2 flex-wrap">
         <label class="form-label mb-0 text-nowrap">Webhook白名单 <span class="form-help"
             title="仅允许配置的地址范围内地址调用Webhook，多个地址段用,号分隔，默认为0.0.0.0/0,::/0即不做限制" data-bs-toggle="tooltip">?</span></label>
+        <a href="javascript:show_webhook_guide_modal()" class="btn btn-sm btn-outline-primary text-nowrap">设置说明</a>
       </div>
       <div class="col-12 col-xl-10 d-flex gap-2">
         <input type="text" value="" class="form-control" id="security.media_server_webhook_allow_ip.ipv4"
@@ -439,7 +440,69 @@
   </div>
 </div>
 
+<div class="modal modal-blur fade" id="modal-webhook-guide" tabindex="-1" role="dialog" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Webhook 设置说明</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <h6 class="mb-2">通用</h6>
+        <ul class="mb-3 ps-3">
+          <li>回调地址为 <code>http(s)://NAStool地址:3000/类型</code>，类型为 <code>plex</code>、<code>emby</code> 或 <code>jellyfin</code>。</li>
+          <li>开启「验证外部请求的API密钥」后，必须在地址后拼接 <code>?apikey=xxx</code>，密钥在「API密钥管理」中创建。</li>
+          <li>「Webhook白名单」填写调用方（媒体服务器或反向代理）的出口 IP，<code>0.0.0.0/0</code> 表示不限制。</li>
+          <li>NAStool 在 Docker 中运行时不要使用 <code>127.0.0.1</code>，应使用局域网或宿主机 IP。</li>
+        </ul>
+
+        <h6 class="mb-2">Jellyfin</h6>
+        <ol class="mb-2 ps-3">
+          <li>安装 Webhook 插件，添加 Generic Destination。</li>
+          <li>Webhook Url 填 <code>http://NAStool地址:3000/jellyfin?apikey=xxx</code>。</li>
+          <li>Notification Type 勾选 Item Added（入库）、Item Deleted（删除）；如需在消息中心查看播放记录，可再勾选 Playback Start/Stop（播放事件不会推送到消息渠道）。</li>
+          <li>Item Type 勾选 Movies、Episodes、Series。</li>
+          <li>Template 粘贴以下内容，不要勾选 Send All Properties：</li>
+        </ol>
+        <pre class="p-2 rounded border" style="font-size: 12px; white-space: pre-wrap; color: var(--tblr-body-color); background-color: var(--tblr-bg-surface-secondary);">{
+  "NotificationType": "{{NotificationType}}",
+  "NotificationUsername": "{{NotificationUsername}}",
+  "ItemId": "{{ItemId}}",
+  "ItemType": "{{ItemType}}",
+  "Name": "{{Name}}",
+  "Year": "{{Year}}",
+  "SeriesName": "{{SeriesName}}",
+  "SeriesId": "{{SeriesId}}",
+  "SeasonNumber": "{{SeasonNumber}}",
+  "EpisodeNumber": "{{EpisodeNumber}}"
+}</pre>
+
+        <h6 class="mb-2 mt-3">Emby</h6>
+        <ul class="mb-3 ps-3">
+          <li>安装 Webhook 插件，Webhook Url 填 <code>http://NAStool地址:3000/emby?apikey=xxx</code>。</li>
+          <li>勾选 Item Added（入库）；如需在消息中心查看播放记录，可再勾选 Playback Start/Stop（播放事件不会推送到消息渠道）。</li>
+        </ul>
+
+        <h6 class="mb-2">Plex</h6>
+        <ul class="mb-3 ps-3">
+          <li>设置 → Webhooks → 添加 Webhook，地址填 <code>http://NAStool地址:3000/plex?apikey=xxx</code>。</li>
+        </ul>
+
+        <p class="text-muted mb-0">配置完成后在媒体服务器触发一次入库/播放，NAStool 日志出现「收到…Webhook报文」即表示连通。</p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-link ms-auto" data-bs-dismiss="modal">关闭</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script type="text/javascript">
+
+  // 显示Webhook设置说明窗口
+  function show_webhook_guide_modal() {
+    $("#modal-webhook-guide").modal('show');
+  }
 
   // 显示API密钥管理窗口
   function show_apikey_modal() {

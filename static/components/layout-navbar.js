@@ -19,6 +19,9 @@
       this._navbarList = [];
       this._activeName = '';
       this._pageInitialized = false;
+      // 激活项液态胶囊
+      this._liquid = null;
+      this._liquidObserver = null;
       this.classList.add(
         'navbar', 'navbar-vertical', 'navbar-expand-lg',
         'lit-navbar-fixed', 'lit-navbar', 'lit-navbar-hide-scrollbar'
@@ -49,6 +52,13 @@
       this._ensureVisible();
       this._render();
       this._initPageOnce();
+    }
+
+    disconnectedCallback() {
+      if (this._liquidObserver) {
+        this._liquidObserver.disconnect();
+        this._liquidObserver = null;
+      }
     }
 
     attributeChangedCallback(name, oldValue, newValue) {
@@ -87,6 +97,11 @@
       if (name && name.startsWith('/')) {
         name = name.replace(/^\/+/, '');
       }
+
+      this._setActive(name, true);
+    }
+
+    _setActive(name, animate) {
       this._activeName = name || '';
 
       this.querySelectorAll('a[data-lit-page]').forEach((a) => {
@@ -96,6 +111,67 @@
       });
 
       this.show_collapse(this._activeName);
+      this._syncLiquid(animate);
+    }
+
+    // 把激活胶囊定位到当前菜单项；animate 为 true 时胶囊会滑动并拉伸回弹
+    _syncLiquid(animate) {
+      const liquid = this._liquid;
+      if (!liquid) return;
+
+      const active = this.querySelector('a[data-lit-page].lit-navbar-accordion-item-active');
+      // 菜单隐藏或尚未布局时无法测量，先收起胶囊，等可见后由 ResizeObserver 补正
+      if (!active || !active.offsetHeight) {
+        liquid.style.opacity = '0';
+        delete liquid.dataset.top;
+        return;
+      }
+
+      const top = active.offsetTop;
+      const height = active.offsetHeight;
+      const prevTop = Number.parseFloat(liquid.dataset.top);
+      const hasPrev = Number.isFinite(prevTop);
+
+      // 首次定位或非动画场景：先禁用过渡，避免胶囊从旧位置滑入
+      if (!animate || !hasPrev) {
+        liquid.style.transition = 'none';
+      }
+
+      liquid.style.top = `${top}px`;
+      liquid.style.height = `${height}px`;
+      liquid.style.opacity = '1';
+      liquid.dataset.top = String(top);
+
+      if (!animate || !hasPrev) {
+        void liquid.offsetHeight; // 强制回流后再恢复过渡
+        liquid.style.transition = '';
+        return;
+      }
+
+      if (Math.abs(top - prevTop) > 0.5) {
+        this._playLiquidMove();
+      }
+    }
+
+    // 滑动时叠加一次性拉伸动画，制造液态被“拽”过去的感觉
+    _playLiquidMove() {
+      const liquid = this._liquid;
+      if (!liquid) return;
+      liquid.classList.remove('is-moving');
+      void liquid.offsetWidth;
+      liquid.classList.add('is-moving');
+    }
+
+    _observeLiquid() {
+      if (typeof ResizeObserver === 'undefined') return;
+      if (!this._liquidObserver) {
+        this._liquidObserver = new ResizeObserver(() => this._syncLiquid(false));
+        this._liquidObserver.observe(this);
+      }
+      const accordion = this.querySelector('.accordion');
+      if (accordion) {
+        this._liquidObserver.observe(accordion);
+      }
     }
 
     // 兼容旧 API；当前菜单是扁平结构，没有折叠容器
@@ -143,6 +219,13 @@
       root.querySelector('.lit-navbar-version').textContent = this.layout_appversion;
 
       const accordion = root.querySelector('.accordion');
+
+      // 激活项液态胶囊：绝对定位在 .accordion 内，菜单项通过 z-index 浮在其上
+      const liquid = document.createElement('div');
+      liquid.className = 'lit-navbar-liquid';
+      liquid.setAttribute('aria-hidden', 'true');
+      accordion.appendChild(liquid);
+
       groups.forEach((items, group) => {
         if (group) {
           const title = document.createElement('div');
@@ -166,6 +249,9 @@
       });
 
       this.replaceChildren(root);
+      this._liquid = liquid;
+      this._syncLiquid(false);
+      this._observeLiquid();
     }
 
     _renderItem(item) {
@@ -190,7 +276,11 @@
       title.textContent = item.also != null ? item.also : item.name;
 
       link.append(icon, title);
-      link.addEventListener('click', () => navmenu(item.page));
+      link.addEventListener('click', () => {
+        // 点击即高亮，让胶囊立刻滑向目标项，不用等页面加载完成
+        this._setActive(item.page, true);
+        navmenu(item.page);
+      });
       return link;
     }
   }

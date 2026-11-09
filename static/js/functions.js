@@ -2415,9 +2415,12 @@ function do_update_indexer() {
 };
 
 // 按需加载 Ace 编辑器（仅在打开相关编辑弹窗时加载）
+// libs 目录 URL 带内容版本，版本号由后端注入到 index.html 的 meta 中
+const LIBS_VERSION = (document.querySelector('meta[name="libs-version"]') || {}).content || '';
+const LIBS_VERSION_PATH = LIBS_VERSION ? LIBS_VERSION + '/' : '';
 const ACE_SCRIPT_URL = document.currentScript
-  ? new URL('../libs/ace/ace.js', document.currentScript.src).href
-  : '../static/libs/ace/ace.js';
+  ? new URL(`../libs/${LIBS_VERSION_PATH}ace/ace.js`, document.currentScript.src).href
+  : `../static/libs/${LIBS_VERSION_PATH}ace/ace.js`;
 
 let aceLoading = null;
 
