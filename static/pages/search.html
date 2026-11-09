@@ -507,7 +507,7 @@
 
     axios_post("/data/search", {}, function (response) {
 
-      if (response.code === 0 && response.data) {
+      if (response.code === 0 && response.data && response.data.Count > 0) {
 
         $("#no-data-card").hide();
         $('#page-body-div').show();

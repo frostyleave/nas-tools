@@ -1591,6 +1591,11 @@ a:hover {
                 0 10px 30px -8px rgb(15 23 42 / 22%) !important;
 }
 
+.liquid-glass-panel .secondry-text-color {
+    color: inherit !important;
+    text-shadow: none;
+} 
+
 .theme-dark .liquid-glass-panel:hover {
     background: rgb(255 255 255 / 13%) !important;
     box-shadow: inset 1px 1px 0 rgb(255 255 255 / 55%),

@@ -3381,6 +3381,7 @@ class WebAction:
             "background": media_handler.get_tmdb_backdrops(tmdbinfo=media_info.tmdb_info),
             "crews": crews,
             "link": media_info.get_detail_url(),
+            "overview" : media_info.overview
         }
 
         # 解析季信息

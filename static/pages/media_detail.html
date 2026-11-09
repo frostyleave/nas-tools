@@ -45,7 +45,7 @@
             $('#main-info-container').append(`<div id="season-pannel" class="container-fluid overflow-hidden px-0"></div>`);
 
             // 季容器
-            renderSeasonContainer(media_info.tmdb_info);
+            renderSeasonInfo(media_info.tmdb_info);
             
             // 演职人员、季集信息
             asyncRenderExtraDataCard(tmdbid, media_type, media_info);
@@ -201,7 +201,7 @@
         return matched.length > 0 ? matched[0] : seasons[seasons.length - 1];
       }
 
-      function renderSeasonContainer(tmdb_info) {
+      function renderSeasonInfo(tmdb_info) {
 
         // 没有季信息 不展示
         if (!tmdb_info || !tmdb_info.seasons || tmdb_info.seasons.length == 0) {
@@ -257,7 +257,7 @@
             }
           }
           innerHtml +=`
-            <div class="d-flex align-items-stretch mx-1 p-3 rounded-3" style="max-width: 43rem; border: 1px solid var(--lit-person-card-bg); background-color: var(--card-transparent-bg);">
+            <div class="d-flex align-items-stretch mx-1 p-3 rounded-3 liquid-glass-panel" style="max-width: 43rem; border: 1px solid var(--lit-person-card-bg); background-color: var(--card-transparent-bg);">
               <div class="col-auto d-flex align-items-center border border-1">
                 <img alt="海报" class="rounded" style="display: block;min-width: 100%;max-width: 140px;object-fit: cover;" src="${posterPath}">
               </div>
@@ -290,6 +290,9 @@
 
               // 重绘标签
               renderTagsContainer(extra_data);
+
+              // 简介为空的补全
+              fillOverviewIfEmpty(extra_data.overview);
               
               // 背景轮播
               buildBackgroundCarousel(extra_data.background);
@@ -298,7 +301,7 @@
               buildCrewsSlideCards(extra_data.crews)
 
               // 生成季集信息
-              renderSeasonContainer(extra_data);
+              renderSeasonInfo(extra_data);
               
               if (!document.getElementById('sim-slide')) {
                 asyncRenderSimCard(media_info.tmdbid, media_type, media_info.title);
@@ -306,6 +309,25 @@
 
             }
           }, false);
+      }
+
+      function fillOverviewIfEmpty(overview) {
+
+        // 接口无简介时不处理
+        if (!overview) {
+          return;
+        }
+
+        // 主数据已渲染过简介 无需重复填充
+        var container = document.querySelector('#overview-container .overview-container small');
+        if (!container) {
+          return;
+        }
+
+        if (container.innerHTML.trim() === '') {
+          container.innerHTML = overview;
+        }
+
       }
 
       function renderTagsContainer(info) {
