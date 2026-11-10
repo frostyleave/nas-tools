@@ -85,6 +85,12 @@
               <div class="poster-card-badge poster-card-right-badge" hidden></div>
               <span class="poster-card-badge poster-card-r18-badge poster-card-bottom-ribbon" hidden>R18</span>
             </div>
+            <div class="poster-card-bottom-right">
+              <span class="poster-card-year" hidden></span>
+              <div class="poster-card-fav-ribbon poster-card-bottom-ribbon" hidden>
+                <i class="ti ti-check"></i>
+              </div>
+            </div>
             <div class="card-img-overlay poster-card-overlay">
               <div class="poster-card-info">
                 <p class="poster-card-overview" hidden></p>
@@ -93,12 +99,8 @@
               <div class="poster-card-bottom"></div>
             </div>
           </div>
-          <div class="poster-card-fav-ribbon poster-card-bottom-ribbon" hidden>
-            <i class="ti ti-check"></i>
-          </div>
           <div class="poster-card-title-bar" hidden>
             <span class="poster-card-title"></span>
-            <span class="poster-card-year"></span>
           </div>
         </div>`;
 
