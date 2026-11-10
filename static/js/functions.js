@@ -1033,7 +1033,7 @@ function refresh_rss_media(type, rssid, page) {
 }
 
 // 显示订阅季选择框
-function show_rss_seasons_modal(name, year, mediaid, seasons, trigger_card_id) {
+function show_rss_seasons_modal(name, year, mediaid, seasons, trigger_card_id, default_setting) {
   let system_rss_seasons_content = "";
   for (let season of seasons) {
     system_rss_seasons_content += `<label class="form-selectgroup-item">
@@ -1046,7 +1046,7 @@ function show_rss_seasons_modal(name, year, mediaid, seasons, trigger_card_id) {
     $("#system-rss-seasons").modal('hide');
     let rss_seasons = select_GetSelectedVAL("system_rss_season");
     if (rss_seasons.length > 0) {
-      show_add_rss_media_modal('TV', mediaid, name, year, rss_seasons, trigger_card_id);
+      show_add_rss_media_modal('TV', mediaid, name, year, rss_seasons, trigger_card_id, default_setting);
     }
   });
   $("#system-rss-seasons").modal('show');
@@ -1201,17 +1201,25 @@ function rss_love_click(event, title, year, media_type, tmdb_id, fav, remove_fun
   // 添加订阅
   show_ask_modal("是否确定订阅： " + title + "？", function () {
     const mediaid = convert_mediaid(tmdb_id); // 转字符串
-    // 电影订阅
+    // 电影订阅：先取电影默认设置，弹窗打开时直接回填
     if (media_type == "MOV" || media_type == "电影") {
-      show_add_rss_media_modal('MOV', mediaid, title, year, '', trigger_card_id);
+      axios_post_do("get_default_rss_setting", { mtype: "MOV" }, function (ret) {
+        show_add_rss_media_modal('MOV', mediaid, title, year, '', trigger_card_id,
+          (ret && ret.code === 0 && ret.data) ? ret.data : null);
+      }).catch(function () {
+        // 默认设置获取失败时仍然打开弹窗，由弹窗自行请求
+        show_add_rss_media_modal('MOV', mediaid, title, year, '', trigger_card_id);
+      });
       return;
-    } 
-    // 剧集订阅：查询季
+    }
+    // 剧集订阅：查询季，接口同时返回电视剧默认设置
     axios_post_do("get_tvseason_list", {tmdbid: mediaid, title: title}, function (ret) {
+      const default_setting = ret.default_setting;
       if (ret.seasons.length === 1) {
-        show_add_rss_media_modal('TV', mediaid, title, year, ret.seasons[0].num, trigger_card_id);
+        show_add_rss_media_modal('TV', mediaid, title, year, ret.seasons[0].num, trigger_card_id,
+          default_setting);
       } else if (ret.seasons.length > 1) {
-        show_rss_seasons_modal(title, year, mediaid, ret.seasons, trigger_card_id);
+        show_rss_seasons_modal(title, year, mediaid, ret.seasons, trigger_card_id, default_setting);
       } else {
         show_fail_modal(title + " 添加RSS订阅失败：未查询到季信息！");
       }
@@ -1235,7 +1243,7 @@ function remove_rss_manual(type, name, year, rssid) {
 }
 
 // 新增订阅
-function show_add_rss_media_modal(mtype, tmdbid, rss_name, rss_year, rss_season='', trigger_card_id='') {
+function show_add_rss_media_modal(mtype, tmdbid, rss_name, rss_year, rss_season='', trigger_card_id='', default_setting) {
 
   // 绑定触发卡片id
   $("#trigger_card_id").val(trigger_card_id || '');
@@ -1271,13 +1279,12 @@ function show_add_rss_media_modal(mtype, tmdbid, rss_name, rss_year, rss_season=
     $("#rss_tv_season_div").hide();
   }
 
-  // 从后端读取默认订阅设置并回显
-  axios_post_do("get_default_rss_setting", { mtype: mtype }, function (ret) {
+  // 回填默认订阅设置
+  const apply_default_setting = function (rss_setting) {
     // 请求返回前用户可能已打开其他类型的新增弹窗，避免错填
     if ($("#rss_type").val() !== mtype) {
       return;
     }
-    const rss_setting = (ret.code === 0 && ret.data) ? ret.data : null;
     if (rss_setting) {
       $("#rss_restype").val(rss_setting.restype || '');
       $("#rss_pix").val(rss_setting.pix || '');
@@ -1308,7 +1315,16 @@ function show_add_rss_media_modal(mtype, tmdbid, rss_name, rss_year, rss_season=
       select_SelectALL(false, "rss_sites");
       select_SelectALL(false, "search_sites");
     }
-  });
+  };
+
+  // 订阅按钮点击流程已随接口带回默认设置，直接回填；其他入口打开弹窗时再单独请求
+  if (default_setting !== undefined) {
+    apply_default_setting(default_setting || null);
+  } else {
+    axios_post_do("get_default_rss_setting", { mtype: mtype }, function (ret) {
+      apply_default_setting((ret.code === 0 && ret.data) ? ret.data : null);
+    });
+  }
 
   $("#rss_delete_btn").hide();
   $("[name='rss_edit_btn']").hide();

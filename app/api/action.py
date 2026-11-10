@@ -2065,7 +2065,9 @@ class WebAction:
             ]
         else:
             seasons = MediaUtils.batch_convert_ch_season_info(season_infos)
-        return {"code": 0, "seasons": seasons}
+        # 同时返回电视剧的默认订阅设置，前端新增订阅弹窗可直接回填
+        return {"code": 0, "seasons": seasons,
+                "default_setting": Subscribe().default_rss_setting_tv or {}}
 
     def __get_userrss_task(self, data):
         """

@@ -284,17 +284,41 @@ body.theme-dark::after {
 }
 
 .poster-card-overlay {
-    padding: 12px;
     border-radius: 0;
-    background: linear-gradient(180deg,
-        rgba(9, 12, 18, 0) 40%,
-        rgba(9, 12, 18, 0.1) 58%,
-        rgba(9, 12, 18, 0.82) 100%);
+    background: linear-gradient(to top,
+        rgba(9, 12, 18, 0.88) 0,
+        rgba(9, 12, 18, 0.82) 40px,
+        rgba(9, 12, 18, 0.58) 80px,
+        rgba(9, 12, 18, 0.24) 104px,
+        rgba(9, 12, 18, 0) 124px);
     visibility: hidden;
     opacity: 0;
     pointer-events: none;
     transition: opacity 180ms cubic-bezier(0.22, 1, 0.36, 1),
                 visibility 0s linear 180ms;
+}
+
+.poster-card-content::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    -webkit-backdrop-filter: blur(8px);
+    backdrop-filter: blur(8px);
+    -webkit-mask-image: linear-gradient(to top, #000 0, #000 34%, transparent 54%);
+    mask-image: linear-gradient(to top, #000 0, #000 34%, transparent 54%);
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 180ms cubic-bezier(0.22, 1, 0.36, 1),
+                visibility 0s linear 180ms;
+}
+
+.lit-poster-card:hover .poster-card-content::after,
+.lit-poster-card:focus-within .poster-card-content::after {
+    opacity: 1;
+    visibility: visible;
+    transition: opacity 180ms cubic-bezier(0.22, 1, 0.36, 1),
+                visibility 0s;
 }
 
 .lit-poster-card:hover .poster-card-overlay,
@@ -323,40 +347,22 @@ body.theme-dark::after {
     text-shadow: none;
 }
 
-.lit-poster-card .poster-card-date {
-    overflow: hidden;
-    margin-bottom: 0;
-    color: rgba(255, 255, 255, 0.64);
-    font-size: 12px;
-    line-height: 1.4;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    text-shadow: none;
-}
-
-.poster-card-bottom {
-    margin-top: 8px;
-}
-
 .poster-card-action {
     display: inline-flex;
     align-items: center;
     justify-content: center;
     width: 32px;
-    height: 32px;
+    /* height: 32px; */
     padding: 0;
     border: 0;
-    border-radius: 8px;
-    background-color: rgba(255, 255, 255, 0.1);
+    background: none;
     color: rgba(255, 255, 255, 0.88);
     cursor: pointer;
-    transition: background-color 150ms cubic-bezier(0.22, 1, 0.36, 1),
-                color 150ms cubic-bezier(0.22, 1, 0.36, 1);
+    transition: color 150ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .poster-card-action:hover,
 .poster-card-action:focus-visible {
-    background-color: rgba(255, 255, 255, 0.2);
     color: #fff;
 }
 
@@ -412,7 +418,7 @@ body.theme-dark::after {
 }
 
 .poster-card-right-badge.poster-card-badge-tmdb .ti {
-    color: #2abad2;
+    color: #ef2fef;
 }
 
 .poster-card-right-badge.poster-card-badge-bangumi .ti {
@@ -445,10 +451,12 @@ body.theme-dark::after {
     align-items: center;
     gap: 6px;
     pointer-events: none;
-    transition: opacity 150ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .poster-card-fav-ribbon {
+    position: relative;
+    z-index: 10;
+    pointer-events: auto;
     display: inline-flex;
     align-items: center;
     height: 16px;
@@ -459,13 +467,12 @@ body.theme-dark::after {
     font-size: 12px;
     font-weight: 500;
     line-height: 1;
-    transition: opacity 150ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-.lit-poster-card:hover .poster-card-bottom-ribbon,
-.lit-poster-card:focus-within .poster-card-bottom-ribbon,
-.lit-poster-card:hover .poster-card-bottom-right,
-.lit-poster-card:focus-within .poster-card-bottom-right {
+.lit-poster-card:hover .poster-card-year,
+.lit-poster-card:focus-within .poster-card-year,
+.lit-poster-card:hover .poster-card-r18-badge,
+.lit-poster-card:focus-within .poster-card-r18-badge {
     opacity: 0;
 }
 
@@ -497,6 +504,7 @@ body.theme-dark::after {
     font-variant-numeric: tabular-nums;
     white-space: nowrap;
     text-shadow: 0 1px 3px rgba(0, 0, 0, 0.85), 0 0 2px rgba(0, 0, 0, 0.6);
+    transition: opacity 150ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .theme-dark .poster-card-title {

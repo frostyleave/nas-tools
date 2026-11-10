@@ -28,7 +28,6 @@
         'card-title',
         'card-fav',
         'card-r18',
-        'card-date',
         'card-vote',
         'card-vote-source',
         'card-image',
@@ -83,18 +82,17 @@
                    style="display: block; min-width: 100%; max-width: 100%; min-height: 100%; max-height: 100%; object-fit: cover;">
               <span class="poster-card-badge poster-card-left-badge" hidden></span>
               <div class="poster-card-badge poster-card-right-badge" hidden></div>
-              <span class="poster-card-badge poster-card-r18-badge poster-card-bottom-ribbon" hidden>R18</span>
+              <span class="poster-card-badge poster-card-r18-badge" hidden>R18</span>
             </div>
             <div class="poster-card-bottom-right">
               <span class="poster-card-year" hidden></span>
-              <div class="poster-card-fav-ribbon poster-card-bottom-ribbon" hidden>
+              <div class="poster-card-fav-ribbon" title="已入库" hidden>
                 <i class="ti ti-check"></i>
               </div>
             </div>
             <div class="card-img-overlay poster-card-overlay">
-              <div class="poster-card-info">
+              <div class="poster-card-info mb-1">
                 <p class="poster-card-overview" hidden></p>
-                <p class="poster-card-date" hidden><small></small></p>
               </div>
               <div class="poster-card-bottom"></div>
             </div>
@@ -112,8 +110,6 @@
       this._rightBadgeEl = this.querySelector('.poster-card-right-badge');
       this._r18BadgeEl = this.querySelector('.poster-card-r18-badge');
       this._overviewLineEl = this.querySelector('.poster-card-overview');
-      this._dateLineEl = this.querySelector('.poster-card-date');
-      this._dateTextEl = this._dateLineEl.querySelector('small');
       this._bottomEl = this.querySelector('.poster-card-bottom');
       this._titleBarEl = this.querySelector('.poster-card-title-bar');
       this._titleTextEl = this.querySelector('.poster-card-title');
@@ -142,7 +138,6 @@
       const title = fixedText(this.getAttribute('card-title'));
       const overview = fixedText(this.getAttribute('card-overview'));
       const year = fixedText(this.getAttribute('card-year'));
-      const date = fixedText(this.getAttribute('card-date'));
       const vote = fixedText(this.getAttribute('card-vote'));
       const resType = fixedText(this.getAttribute('card-restype'));
       const r18 = fixedText(this.getAttribute('card-r18'));
@@ -243,11 +238,6 @@
       this._overviewLineEl.hidden = !overview;
       if (overview) {
         this._overviewLineEl.textContent = overview;
-      }
-
-      this._dateLineEl.hidden = !date;
-      if (date) {
-        this._dateTextEl.textContent = date;
       }
 
       // Bottom actions
