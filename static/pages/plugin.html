@@ -50,6 +50,20 @@
       </div>
     </div>
   </div>
+  <!-- 插件运行历史 -->
+  <div class="modal modal-blur fade" id="modal-plugin-history" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable" role="document">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="plugin_history_title">运行历史</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <div id="plugin_history_content"></div>
+        </div>
+      </div>
+    </div>
+  </div>
   <!-- 插件详情页 -->
   <div class="modal modal-blur fade" id="modal-plugin-page" tabindex="-1" role="dialog" aria-hidden="true">
     <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable" role="document">
@@ -271,6 +285,77 @@
     });
   }
 
+  // 绘制插件运行历史
+  function render_plugin_history(history, pageData, pluginId, pluginName) {
+    if (!history.length) {
+      $("#plugin_history_content").html(`
+        <div class="empty">
+          <p class="empty-title">暂无运行记录</p>
+          <p class="empty-subtitle text-muted">该插件还没有写入过运行历史数据。</p>
+        </div>`);
+      return;
+    }
+
+    var html = '<div class="plugin-history-list">';
+    history.forEach(function (item) {
+      var key = escape_plugin_text(item.Key);
+      var text = escape_plugin_text(item.Text || '');
+      html += `
+        <div class="plugin-history-item">
+          <div class="plugin-history-head">
+            <span class="plugin-history-date">${escape_plugin_text(item.Date)}</span>
+            <span class="plugin-history-key" title="${key}">${key}</span>
+          </div>
+          <pre class="plugin-history-value">${text}</pre>
+        </div>`;
+    });
+    html += '</div>';
+
+    var totalCount = pageData.TotalCount || 0;
+    var currentPage = pageData.CurrentPage || 1;
+    var totalPage = pageData.TotalPage || 1;
+    var jsPluginId = escape_plugin_js_arg(pluginId);
+    var jsPluginName = escape_plugin_js_arg(pluginName);
+    if (totalPage > 1) {
+      html += `
+        <div class="plugin-history-pager">
+          <button type="button" class="btn btn-sm btn-outline-secondary"${currentPage <= 1 ? ' disabled' : ''}
+                  onclick="load_plugin_history('${jsPluginId}', '${jsPluginName}', ${currentPage - 1})">上一页</button>
+          <span>第 ${currentPage} / ${totalPage} 页 · 共 ${totalCount} 条</span>
+          <button type="button" class="btn btn-sm btn-outline-secondary"${currentPage >= totalPage ? ' disabled' : ''}
+                  onclick="load_plugin_history('${jsPluginId}', '${jsPluginName}', ${currentPage + 1})">下一页</button>
+        </div>`;
+    } else if (totalCount) {
+      html += `<div class="plugin-history-pager"><span>共 ${totalCount} 条</span></div>`;
+    }
+
+    $("#plugin_history_content").html(html);
+  }
+
+  // 分页加载插件运行历史
+  function load_plugin_history(pluginId, pluginName, page) {
+    page = page || 1;
+    $("#plugin_history_content").html('<div class="text-muted">加载中...</div>');
+    axios_post('/data/plugin_history', { plugin_id: pluginId, page: page }, function (ret) {
+      if (ret.code !== 0) {
+        $("#plugin_history_content").html(
+          `<div class="text-danger">${escape_plugin_text(ret.msg || '获取运行历史失败')}</div>`
+        );
+        return;
+      }
+      var history = (ret.data && ret.data.History) || [];
+      render_plugin_history(history, ret.data || {}, pluginId, pluginName);
+      $("#modal-plugin-history .modal-body").scrollTop(0);
+    }, false);
+  }
+
+  // 显示插件运行历史
+  function show_plugin_history(pluginId, pluginName) {
+    $("#plugin_history_title").text((pluginName || '插件') + ' · 运行历史');
+    $("#modal-plugin-history").modal('show');
+    load_plugin_history(pluginId, pluginName, 1);
+  }
+
   // 绘制已安装插件列表
   function drawPluginList(pluginList) {
 
@@ -307,9 +392,14 @@
         </div>
         <div class="plugin-card-footer">
           <span class="plugin-state${isOn ? '' : ' is-off'}"><span class="plugin-state-dot"></span>${isOn ? '运行中' : '已停用'}</span>
-          <a href="javascript:uninstall_plugin_click('${pluginId}', '${escape_plugin_js_arg(pluginAttr.name)}')" class="plugin-action is-danger" title="卸载">
-            <i class="ti ti-trash"></i><span>卸载</span>
-          </a>
+          <div class="plugin-actions">
+            <a href="javascript:show_plugin_history('${pluginId}', '${escape_plugin_js_arg(pluginAttr.name)}')" class="plugin-action" title="运行历史">
+              <i class="ti ti-history"></i>
+            </a>
+            <a href="javascript:uninstall_plugin_click('${pluginId}', '${escape_plugin_js_arg(pluginAttr.name)}')" class="plugin-action is-danger" title="卸载">
+              <i class="ti ti-trash"></i>
+            </a>
+          </div>
         </div>
       </div>
       `;

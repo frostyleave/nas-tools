@@ -81,16 +81,6 @@
   </div>
 </div>
 <script type="text/javascript">
-  // 上一页
-  function go_pre_page(search, page) {
-    navmenu("history", { s: search, page: page - 1 })
-  }
-
-  // 下一页
-  function go_next_page(search, page) {
-    navmenu("history", { s: search, page: page + 1 })
-  }
-
   //手动重新识别
   function rename_history(type, path, id, rmt_mode) {
     show_manual_transfer_modal(2, path, rmt_mode, type, '', id);
@@ -118,7 +108,7 @@
   $('#search_word').bind('keypress', function (event) {
     if (event.keyCode == "13") {
       const keyword = $("#search_word").val();
-      navmenu("history", { s: keyword });
+      history_goto_page(keyword, 1);
     }
   });
 
@@ -141,21 +131,22 @@
     delete_history(flag, logids, name);
   }
 
-  // 页面加载完成后，使用axios_post请求/data/history接口获取数据并填充页面
-  $(document).ready(function() {
+  // 当前搜索条件与页码，供页面内局部刷新使用
+  var history_search = '';
+  var history_page = 1;
 
-    // 获取页面参数
-    const urlParams = getPageParams();
-    const searchKeyword = urlParams.s || '';
-    const currentPage = urlParams.page || 1;
-    const pageNum = urlParams.pagenum || 20;
+  // 加载表格数据：只刷新表格内容，不触达路由
+  function history_load_data(keyword, page) {
+    history_search = keyword || '';
+    history_page = parseInt(page) || 1;
+    const pageNum = 20;
 
     // 设置搜索框的值
-    $('#search_word').val(searchKeyword);
+    $('#search_word').val(history_search);
 
     const requestData = {};
-    requestData.s = searchKeyword;
-    requestData.page = currentPage;
+    requestData.s = history_search;
+    requestData.page = history_page;
     requestData.pagenum = pageNum;
 
     axios_post('/data/history', requestData, function(response) {
@@ -174,12 +165,14 @@
         const paginationContainer = $('#pagination-container');
 
         tableBody.empty();
+        // 局部刷新时先移除上一次插入的复选框列，避免重复
+        tableHeader.find('th.table-checkbox-col').remove();
 
         if (data.Historys && data.Historys.length > 0) {
           // 添加复选框列头
           if (data.TotalCount > 0) {
             tableHeader.prepend(`
-              <th class="w-1">
+              <th class="w-1 table-checkbox-col">
                 <input class="form-check-input m-0 align-middle" type="checkbox" aria-label="全选"
                        onclick="select_SelectALL($(this).prop('checked'), 'transfer_history')">
               </th>
@@ -309,7 +302,7 @@
             const prevDisabled = data.CurrentPage == 1 ? 'disabled' : '';
             paginationList.append(`
               <li class="page-item ${prevDisabled}">
-                <a class="page-link" href="javascript:go_pre_page('${data.Search || ''}', ${data.CurrentPage})" tabindex="-1" aria-disabled="true">
+                <a class="page-link" href="javascript:history_goto_page(history_search, ${Math.max(1, data.CurrentPage - 1)})" tabindex="-1" aria-disabled="true">
                   <i class="ti ti-chevron-left fs-2"></i>
                 </a>
               </li>
@@ -322,7 +315,7 @@
               const active = page == data.CurrentPage ? 'active' : '';
               paginationList.append(`
                 <li class="page-item ${active}">
-                  <a class="page-link" href="javascript:navmenu('history?s=${data.Search || ''}&page=${page}')">${page}</a>
+                  <a class="page-link" href="javascript:history_goto_page(history_search, ${page})">${page}</a>
                 </li>
               `);
             });
@@ -330,7 +323,7 @@
             // 下一页
             const nextDisabled = data.CurrentPage >= data.TotalPage ? 'disabled' : '';
             const nextHref = data.CurrentPage < data.TotalPage ?
-              `javascript:go_next_page('${data.Search || ''}', ${data.CurrentPage})` :
+              `javascript:history_goto_page(history_search, ${(parseInt(data.CurrentPage) || 1) + 1})` :
               'javascript:void(0)';
             paginationList.append(`
               <li class="page-item ${nextDisabled}">
@@ -344,6 +337,7 @@
           }
         } else {
           // 没有数据
+          paginationContainer.hide();
           tableBody.append(`
             <tr>
               <td colspan="4" align="center">没有数据</td>
@@ -352,6 +346,23 @@
         }
       }
     });
+  }
+
+  // 搜索/翻页：更新页面参数并局部刷新表格
+  function history_goto_page(keyword, page) {
+    const targetPage = parseInt(page) || 1;
+    setPageParams({ s: keyword || '', page: targetPage });
+    history_load_data(keyword, targetPage);
+  }
+
+  // 删除等操作完成后刷新当前视图
+  setPageRefreshHandler(function () {
+    history_load_data(history_search, history_page);
+  });
+
+  // 页面加载完成后，按页面参数加载表格数据
+  $(document).ready(function () {
+    history_load_data('', 1);
   });
 
 </script>

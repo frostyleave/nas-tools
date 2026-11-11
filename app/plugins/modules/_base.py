@@ -15,6 +15,107 @@ from app.helper import DbHelper
 from app.message import MessageService
 from config import Config
 
+# 插件运行历史中媒体状态/类型的中文说明
+_HISTORY_MEDIA_STATES = {
+    "NEW": "已加入同步列表",
+    "RSS": "已添加订阅",
+    "DOWNLOADED": "已下载",
+}
+_HISTORY_MEDIA_TYPES = {
+    "MOV": "电影",
+    "TV": "剧集",
+    "ANIME": "动漫",
+}
+
+
+def _history_value_text(value) -> str:
+    """嵌套的字典/列表压缩成单行 JSON，避免直接显示 Python repr"""
+    if isinstance(value, (dict, list)):
+        return json.dumps(value, ensure_ascii=False)
+    return str(value)
+
+
+def _history_text_of_media(value: dict) -> str:
+    """把媒体类历史记录（豆瓣/TMDB 同步、榜单、随机订阅等）转换为友好文案"""
+    name = value.get("name") or value.get("title") or "未知媒体"
+    year = value.get("year")
+    parts = [f"{name}（{year}）" if year else str(name)]
+    media_type = value.get("type") or value.get("media_type")
+    if media_type:
+        parts.append(_HISTORY_MEDIA_TYPES.get(str(media_type).upper(), str(media_type)))
+    state = value.get("state")
+    if state:
+        parts.append(_HISTORY_MEDIA_STATES.get(str(state).upper(), str(state)))
+    rating = value.get("rating")
+    if rating:
+        try:
+            parts.append(f"评分 {float(rating):.1f}")
+        except (TypeError, ValueError):
+            pass
+    return " · ".join(parts)
+
+
+def format_history_text(key, value) -> str:
+    """
+    把插件 history() 写入的值转换为用户友好的文本。
+
+    子类如有特殊数据结构，可重写 _IPluginModule.format_history() 自行处理，
+    其余情况统一走这里的通用转换。
+    """
+    if value is None or value == "":
+        return "无数据"
+
+    if isinstance(value, dict):
+        # 媒体类：{name, year, type, state, rating, add_time}
+        if "state" in value and ("name" in value or "title" in value):
+            return _history_text_of_media(value)
+        # 签到历史：{"sign": [...], "retry": [...]}
+        if "sign" in value or "retry" in value:
+            signed = value.get("sign") or []
+            retry = value.get("retry") or []
+            text = f"已签到 {len(signed)} 个站点"
+            if signed:
+                text += "：" + "、".join(str(item) for item in signed)
+            if retry:
+                text += f"\n待重试 {len(retry)} 个站点：" + "、".join(str(item) for item in retry)
+            return text
+        # 转种记录：{to_download, to_download_id, delete_source}
+        if "to_download" in value:
+            source = "已删除源任务" if value.get("delete_source") else "保留源任务"
+            return (f"已转移至下载器 {value.get('to_download')}，"
+                    f"任务ID：{value.get('to_download_id')}（{source}）")
+        # IYUU 镜像站：{site, image, time}
+        if "site" in value and "image" in value:
+            return f"镜像站：{value.get('site')} → {value.get('image')}"
+        # IYUU 绑定结果：{success, ...}
+        if "success" in value:
+            return "绑定成功" if value.get("success") else "绑定失败"
+        # 域名 -> IP（TMDB IP 优选）
+        if value and all(isinstance(item, str) for item in value.values()):
+            return "\n".join(f"{domain} → {ip}" for domain, ip in value.items())
+        # 其它键值对逐行展示
+        return "\n".join(f"{k}：{_history_value_text(v)}"
+                         for k, v in value.items()
+                         if v not in (None, "", [], {}))
+
+    if isinstance(value, list):
+        if not value:
+            return "无数据"
+        # IYUU 辅种历史：[{downloader, torrents: [...]}]
+        if all(isinstance(item, dict) and "downloader" in item for item in value):
+            lines = []
+            for item in value:
+                torrents = item.get("torrents") or []
+                if not isinstance(torrents, list):
+                    torrents = [torrents]
+                lines.append(f"下载器 {item.get('downloader')}：{len(torrents)} 个辅种")
+            return "\n".join(lines)
+        if all(isinstance(item, str) for item in value):
+            return "、".join(value)
+        return json.dumps(value, ensure_ascii=False, indent=2)
+
+    return str(value)
+
 
 class _IPluginModule(metaclass=ABCMeta):
     """
@@ -38,6 +139,7 @@ class _IPluginModule(metaclass=ABCMeta):
     - get_history() 获取插件运行数据
     - update_history() 更新插件运行数据
     - delete_history() 删除插件运行数据
+    - format_history() 把运行历史转换为用户友好的展示文本，可重写
     - get_command() 获取插件命令，使用消息机制通过远程控制
 
     """
@@ -212,6 +314,14 @@ class _IPluginModule(metaclass=ABCMeta):
         if not plugin_id:
             plugin_id = self.__class__.__name__
         return DbHelper().delete_plugin_history(plugin_id=plugin_id, key=key)
+
+    def format_history(self, key, value):
+        """
+        将单条运行历史转换为用户友好的文本，插件可重写以提供更贴切的展示
+        :param key: 历史记录键
+        :param value: 历史记录值（已自动解析 JSON）
+        """
+        return format_history_text(key, value)
 
     @staticmethod
     def send_message(title, text=None, image=None):

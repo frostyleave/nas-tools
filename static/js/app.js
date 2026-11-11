@@ -160,6 +160,36 @@ function getPageParams() {
 }
 window.getPageParams = getPageParams;
 
+// 更新当前页面参数（页面内局部刷新时使用）
+// 不触达路由、不新增历史条目，只替换当前历史条目，保证刷新/前进后退能恢复最新状态
+function setPageParams(params) {
+  const path = getMenuId(window.location.hash);
+  const next = Object.assign({}, $("#page-content").data("params") || {}, params || {});
+
+  NavParams.set(path, next);
+  $("#page-content").data("params", next);
+
+  try {
+    const state = Object.assign({}, history.state);
+    if (Object.keys(next).length > 0) {
+      state.navParams = next;
+    } else {
+      delete state.navParams;
+    }
+    history.replaceState(state, "");
+  } catch (e) {
+    // 部分环境禁止 replaceState，忽略即可
+  }
+}
+window.setPageParams = setPageParams;
+
+// 页面注册"局部刷新"函数：window_history_refresh() 会优先调用它，
+// 避免为了刷新表格而整页重新注入（会闪烁、丢滚动位置、重新请求页面片段）
+function setPageRefreshHandler(handler) {
+  window.pageRefreshHandler = typeof handler === "function" ? handler : null;
+}
+window.setPageRefreshHandler = setPageRefreshHandler;
+
 // 刷新后 history.state 仍会保留，先把参数同步到内存，供首次页面加载使用
 (function () {
   if (history.state && history.state.navParams) {
@@ -282,6 +312,9 @@ function showLogin() {
 function loadPage(htmlPath, queryString, navPath) {
 
   InitialPageLoadStarted = true;
+
+  // 上一页注册的局部刷新函数已失效，进入新页面时清掉
+  window.pageRefreshHandler = null;
 
   $('#login-container').addClass('d-none');
   $('#app-layout').removeClass('d-none');

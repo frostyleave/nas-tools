@@ -443,6 +443,33 @@ class AutoSignIn(_IPluginModule):
             self.update_history(key=today_str, value=history)
         self.info(f"今日 {today_str} 签到历史已更新")
 
+    def format_history(self, key, value):
+        """
+        签到历史中的站点ID转换为站点名称，便于用户阅读
+        """
+        if isinstance(value, dict) and ("sign" in value or "retry" in value):
+            signed = value.get("sign") or []
+            retry = value.get("retry") or []
+            text = f"已签到 {len(signed)} 个站点"
+            if signed:
+                text += "：" + self.__history_site_names(signed)
+            if retry:
+                text += f"\n待重试 {len(retry)} 个站点：" + self.__history_site_names(retry)
+            return text
+        return super().format_history(key, value)
+
+    def __history_site_names(self, site_ids):
+        """把站点ID列表转换为站点名称列表，查询失败时回退为ID"""
+        try:
+            sites = getattr(self, "sites", None)
+            names = []
+            for site_id in site_ids:
+                site = sites.get_site(siteid=site_id) if sites else None
+                names.append(site.name if site else str(site_id))
+            return "、".join(names)
+        except Exception:
+            return "、".join(str(site_id) for site_id in site_ids)
+
     def _send_notification(self, today_str: str, results: SignInResults):
 
         if not self._notify:

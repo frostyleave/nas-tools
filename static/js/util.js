@@ -371,7 +371,12 @@ function set_user_agent(id) {
 
 
 // 页面刷新
+// 页面注册了局部刷新函数时优先调用，避免整页重新注入
 function window_history_refresh() {
+  if (typeof window.pageRefreshHandler === "function") {
+    window.pageRefreshHandler();
+    return;
+  }
   var hash = window.location.hash;
   var page = hash.replace(/^#\//, "");
   if (page) {

@@ -2719,6 +2719,19 @@ class DbHelper:
         else:
             return self._db.query(PLUGINHISTORY).filter(PLUGINHISTORY.PLUGIN_ID == plugin_id).all()
 
+    def get_plugin_history_records(self, plugin_id, page=1, page_size=10):
+        """
+        按记录ID倒序分页查询插件运行记录（最新的在前）
+        :return: (总记录数, 记录列表)
+        """
+        if not plugin_id:
+            return 0, []
+        query = self._db.query(PLUGINHISTORY).filter(PLUGINHISTORY.PLUGIN_ID == plugin_id)
+        total_count = query.count()
+        offset = max(page - 1, 0) * page_size
+        records = query.order_by(PLUGINHISTORY.ID.desc()).limit(page_size).offset(offset).all()
+        return total_count, records
+
     @DbPersist(_db)
     def update_plugin_history(self, plugin_id, key, value):
         """

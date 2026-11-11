@@ -350,6 +350,19 @@ class TorrentTransfer(_IPluginModule):
     def get_state(self):
         return bool(self._enable and self._cron and self._fromdownloader and self._todownloader and self._fromtorrentpath)
 
+    def format_history(self, key, value):
+        """
+        转种历史中的下载器ID转换为下载器名称，便于用户阅读
+        """
+        if isinstance(value, dict) and "to_download" in value:
+            downloader_id = str(value.get("to_download"))
+            downloaders = Downloader().get_downloader_conf_simple()
+            downloader_name = (downloaders.get(downloader_id) or {}).get("name") or downloader_id
+            source = "已删除源任务" if value.get("delete_source") else "保留源任务"
+            return (f"已转移至下载器 {downloader_name}，"
+                    f"任务ID：{value.get('to_download_id')}（{source}）")
+        return super().format_history(key, value)
+
     def transfer(self):
         """
         开始移转做种

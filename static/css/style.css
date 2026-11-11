@@ -768,6 +768,23 @@ body.theme-dark::after {
     background-color: color-mix(in srgb, var(--tblr-primary) 10%, transparent);
 }
 
+.plugin-grid .plugin-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    margin: -4px -8px -4px 0;
+}
+
+.plugin-grid .plugin-actions .plugin-action {
+    margin: 0;
+}
+
+.plugin-grid .plugin-actions .plugin-action:hover,
+.plugin-grid .plugin-actions .plugin-action:focus-visible {
+    background-color: color-mix(in srgb, var(--tblr-body-color) 8%, transparent);
+    color: var(--tblr-body-color);
+}
+
 .plugin-grid .plugin-author {
     min-width: 0;
     overflow: hidden;
@@ -784,6 +801,67 @@ body.theme-dark::after {
 
 .plugin-grid .plugin-author a:hover {
     color: var(--tblr-primary);
+}
+
+.plugin-history-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.plugin-history-item {
+    padding: 0.75rem 0.875rem;
+    border: 1px solid color-mix(in srgb, var(--tblr-body-color) 10%, transparent);
+    border-radius: 8px;
+    background-color: color-mix(in srgb, var(--tblr-body-color) 2%, transparent);
+}
+
+.plugin-history-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    margin-bottom: 0.5rem;
+    font-size: 0.75rem;
+    line-height: 1rem;
+}
+
+.plugin-history-date {
+    flex: 0 0 auto;
+    color: color-mix(in srgb, var(--tblr-body-color) 65%, transparent);
+}
+
+.plugin-history-key {
+    min-width: 0;
+    overflow: hidden;
+    color: color-mix(in srgb, var(--tblr-body-color) 55%, transparent);
+    font-family: SFMono-Regular, Consolas, "Liberation Mono", Menlo, monospace;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.plugin-history-value {
+    max-height: 18rem;
+    margin: 0;
+    padding: 0.5rem 0.625rem;
+    overflow: auto;
+    background-color: var(--tblr-bg-surface-secondary);
+    border-radius: 6px;
+    color: var(--tblr-body-color);
+    font-size: 0.8125rem;
+    line-height: 1.5;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+.plugin-history-pager {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    margin-top: 0.75rem;
+    color: color-mix(in srgb, var(--tblr-body-color) 55%, transparent);
+    font-size: 0.75rem;
 }
 
 .grid-media-card {

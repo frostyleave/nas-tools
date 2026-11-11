@@ -465,6 +465,24 @@ class IYUUAutoSeedEnhance(_IPluginModule):
         self._history_list = self.get_history() or []
         return {"code": 0, "msg": "删除成功"}
 
+    def format_history(self, key, value):
+        """
+        辅种历史中的下载器ID转换为下载器名称，便于用户阅读
+        """
+        if isinstance(value, list) and value \
+                and all(isinstance(item, dict) and "downloader" in item for item in value):
+            downloaders = Downloader().get_downloader_conf_simple()
+            lines = []
+            for item in value:
+                downloader_id = str(item.get("downloader"))
+                downloader_name = (downloaders.get(downloader_id) or {}).get("name") or downloader_id
+                torrents = item.get("torrents") or []
+                if not isinstance(torrents, list):
+                    torrents = [torrents]
+                lines.append(f"下载器 {downloader_name}：{len(torrents)} 个辅种")
+            return "\n".join(lines)
+        return super().format_history(key, value)
+
     def add_image_site(self, site, image):
         if not site:
             return {"code": 1, "msg": "站点不能为空"}

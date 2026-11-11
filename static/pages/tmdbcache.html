@@ -96,16 +96,6 @@
 
 <script type="text/javascript">
 
-  // 上一页
-  function go_pre_page(search, page) {
-    navmenu("tmdbcache", { s: search, page: page - 1 })
-  }
-
-  // 下一页
-  function go_next_page(search, page) {
-    navmenu("tmdbcache", { s: search, page: page + 1 })
-  }
-
   // 显示修改
   function show_modify(key, title) {
     $("#tmdbcache_key").val(key);
@@ -155,7 +145,7 @@
   $('#search_word').bind('keypress', function (event) {
     if (event.keyCode == "13") {
       let keyword = $("#search_word").val();
-      navmenu("tmdbcache", { s: keyword });
+      tmdbcache_goto_page(keyword, 1);
     }
   });
 
@@ -163,13 +153,14 @@
 
 <script type="text/javascript">
 
-  // 页面加载完成后，使用axios_post请求/data/tmdbcache接口获取数据并填充页面
-  $(document).ready(function() {
+  // 当前搜索条件与页码，供页面内局部刷新使用
+  var tmdbcache_search = '';
+  var tmdbcache_page = 1;
 
-    // 获取页面参数
-    const urlParams = getPageParams();
-    const searchKeyword = urlParams.s || '';
-    const currentPage = urlParams.page || 1;
+  // 加载缓存列表：只刷新列表内容，不触达路由
+  function tmdbcache_load_data(keyword, page) {
+    tmdbcache_search = keyword || '';
+    tmdbcache_page = parseInt(page) || 1;
     const pageNum = 20;
 
     // HTML 转义，避免标题中的引号/尖括号破坏结构
@@ -183,12 +174,12 @@
     }
 
     // 设置搜索框的值
-    $('#search_word').val(searchKeyword);
+    $('#search_word').val(tmdbcache_search);
 
     const requestData = {};
     requestData.pagenum = pageNum;
-    requestData.s = searchKeyword;
-    requestData.page = currentPage;
+    requestData.s = tmdbcache_search;
+    requestData.page = tmdbcache_page;
 
     axios_post('/data/tmdbcache', requestData, function(response) {
 
@@ -319,7 +310,7 @@
             const prevDisabled = data.CurrentPage == 1 ? 'disabled' : '';
             paginationList.append(`
               <li class="page-item ${prevDisabled}">
-                <a class="page-link" href="javascript:go_pre_page('${data.Search || ''}', ${data.CurrentPage})" tabindex="-1" aria-disabled="true">
+                <a class="page-link" href="javascript:tmdbcache_goto_page(tmdbcache_search, ${Math.max(1, data.CurrentPage - 1)})" tabindex="-1" aria-disabled="true">
                   <i class="ti ti-chevron-left fs-2"></i>
                 </a>
               </li>
@@ -332,7 +323,7 @@
               const active = page == data.CurrentPage ? 'active' : '';
               paginationList.append(`
                 <li class="page-item ${active}">
-                  <a class="page-link" href="javascript:navmenu('tmdbcache?s=${data.Search || ''}&page=${page}')">${page}</a>
+                  <a class="page-link" href="javascript:tmdbcache_goto_page(tmdbcache_search, ${page})">${page}</a>
                 </li>
               `);
             });
@@ -340,7 +331,7 @@
             // 下一页
             const nextDisabled = data.CurrentPage >= total_page ? 'disabled' : '';
             const nextHref = data.CurrentPage < total_page ?
-              `javascript:go_next_page('${data.Search || ''}', ${data.CurrentPage})` :
+              `javascript:tmdbcache_goto_page(tmdbcache_search, ${(parseInt(data.CurrentPage) || 1) + 1})` :
               'javascript:void(0)';
             paginationList.append(`
               <li class="page-item ${nextDisabled}">
@@ -360,6 +351,23 @@
         }
       }
     });
+  }
+
+  // 搜索/翻页：更新页面参数并局部刷新列表
+  function tmdbcache_goto_page(keyword, page) {
+    const targetPage = parseInt(page) || 1;
+    setPageParams({ s: keyword || '', page: targetPage });
+    tmdbcache_load_data(keyword, targetPage);
+  }
+
+  // 修改/删除等操作完成后刷新当前视图
+  setPageRefreshHandler(function () {
+    tmdbcache_load_data(tmdbcache_search, tmdbcache_page);
+  });
+
+  // 页面加载完成后，按页面参数加载缓存列表
+  $(document).ready(function () {
+    tmdbcache_load_data('', 1);
   });
 
 </script>

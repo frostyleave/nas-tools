@@ -1,3 +1,4 @@
+import json
 import os.path
 from concurrent.futures import ThreadPoolExecutor
 from threading import RLock, Semaphore, Thread
@@ -256,6 +257,28 @@ class PluginManager:
         if not hasattr(self._running_plugins[pid], "get_state"):
             return None
         return self._running_plugins[pid].get_state()
+
+    def format_plugin_history(self, pid, key, value):
+        """
+        调用插件把运行历史值转换为用户友好的文本
+        :param pid: 插件ID
+        :param key: 历史记录键
+        :param value: 历史记录原始值（JSON 字符串会自动解析）
+        """
+        if isinstance(value, str) and value[:1] in ("{", "["):
+            try:
+                value = json.loads(value)
+            except (TypeError, ValueError):
+                pass
+        plugin = self._running_plugins.get(pid)
+        if plugin and hasattr(plugin, "format_history"):
+            try:
+                return plugin.format_history(key, value)
+            except Exception:
+                log.exception(f"‼️ 格式化插件 {pid} 运行历史出错: ")
+        # 插件未运行或格式化失败时，使用通用格式化
+        from app.plugins.modules._base import format_history_text
+        return format_history_text(key, value)
 
     def save_plugin_config(self, pid, conf):
         """

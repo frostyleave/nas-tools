@@ -13,6 +13,7 @@ from app.core.cmd_registry import CommandRegistry
 from app.core.security_center import SecurityCenter
 from app.downloader.config import PT_TRANSFER_INTERVAL, DownloaderConfItem
 from app.downloader.downloader import Downloader
+from app.helper.db_helper import DbHelper
 from app.helper.meta_helper import MetaHelper
 from app.helper.words_helper import WordsHelper
 from app.indexer.indexer import Indexer
@@ -585,6 +586,45 @@ def plugin(current_user: CurrentUser):
         })
 
 
+# 插件运行历史（插件通过 history() 写入 PLUGIN_HISTORY 的记录）
+@data_router.post("/plugin_history")
+@auth_check(LEVEL_OPERATOR)
+async def plugin_history(request: Request):
+    """
+    获取已安装插件的运行历史，按记录ID倒序返回
+    """
+    data = await request.json()
+    plugin_id = data.get("plugin_id") or ""
+    if not plugin_id:
+        return response(code=1, msg="参数错误")
+    # 单页固定 10 条，避免历史数据过多导致弹窗卡顿
+    page_size = 10
+    current_page = _to_positive_int(data.get("page"), 1)
+    total_count, records = DbHelper().get_plugin_history_records(
+        plugin_id, page=current_page, page_size=page_size)
+    total_page = _total_pages(total_count, page_size)
+    # 数据变少导致页码越界时回退到最后一页
+    if total_page and current_page > total_page:
+        current_page = total_page
+        _, records = DbHelper().get_plugin_history_records(
+            plugin_id, page=current_page, page_size=page_size)
+    plugin_manager = PluginManager()
+    return response(data={
+        "TotalCount": total_count,
+        "CurrentPage": current_page,
+        "TotalPage": total_page,
+        "History": [
+            {
+                "Date": record.DATE,
+                "Key": record.KEY,
+                # 调用插件把原始值转换为用户友好的说明
+                "Text": plugin_manager.format_plugin_history(plugin_id, record.KEY, record.VALUE),
+            }
+            for record in records
+        ],
+    })
+
+
 # 用户RSS页面
 @data_router.post("/user_rss")
 @auth_check(LEVEL_OPERATOR)
@@ -1142,7 +1182,6 @@ async def download_history(request: Request):
     current_page, page_size, _ = _parse_page_params(data, default_size=30)
 
     from app.db.models import DOWNLOADHISTORY
-    from app.helper.db_helper import DbHelper
 
     db = DbHelper()
     query = db._db.query(DOWNLOADHISTORY)
