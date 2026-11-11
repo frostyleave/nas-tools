@@ -435,6 +435,23 @@
       `;
   }
 
+  // 仅刷新指定识别词组
+  function refresh_custom_word_group(gid) {
+    axios_post("/data/customwords", {}, function (ret) {
+      if (ret.code === 0) {
+        const group = ret.data.Groups.find(item => String(item.id) === String(gid));
+        if (!group) {
+          show_fail_modal("未找到对应的识别词组");
+          return;
+        }
+        $(`#div_group${gid}`).html(generateWordsTableHtml(group));
+        fresh_tooltip();
+      } else {
+        show_fail_modal("加载自定义识别词失败");
+      }
+    });
+  }
+
   // 生成词汇表格HTML
   function generateWordsTableHtml(group) {
     const hasWords = group.words && group.words.length > 0;
@@ -518,6 +535,13 @@
               <a href="javascript:show_edit_custom_word_modal('${word.id}', '${group.id}', ${group.type}, ${group.seasons})"
                 title="编辑" class='ms-1'>
                 <i class="ti ti-edit fs-2"></i>
+              </a>
+              <a href="javascript:show_copy_custom_word_modal('${word.id}', '${group.id}', ${group.type}, ${group.seasons})"
+                title="复制" class='ms-1'>
+                <i class="ti ti-copy-plus fs-2"></i>
+              </a>
+              <a href="javascript:delete_custom_word('${group.id}', '${word.id}')" title="删除" class='ms-1'>
+                <i class="ti ti-x fs-2 text-danger"></i>
               </a>
             </div>
           </td>
@@ -721,6 +745,19 @@
     });
   }
 
+  // 删除单个识别词
+  function delete_custom_word(gid, wid) {
+    show_confirm_modal("确定要删除该识别词吗？", function () {
+      axios_post_do("delete_custom_words", { ids_info: [`${gid}_${wid}`] }, function (ret) {
+        if (ret.code == 0) {
+          refresh_custom_word_group(gid);
+        } else {
+          show_fail_modal(ret.msg);
+        }
+      });
+    });
+  }
+
   // 显示新增识别词框
   function show_add_custom_word_modal(gid, group_type, seasons) {
     $("#customd_word_modal_title").text("新增识别词");
@@ -746,32 +783,47 @@
   function show_edit_custom_word_modal(wid, gid, group_type, seasons) {
     axios_post_do("get_custom_word", { wid: wid }, function (ret) {
       if (ret.code == 0) {
-        let word = ret.data;
-        $("#customd_word_modal_title").text("编辑识别词");
-        $("#custom_word_id").val(wid);
-        $("#group_id").val(gid);
-        $("#group_type").val(group_type);
-        $("#new_replaced").val(word.replaced);
-        $("#new_replace").val(word.replace);
-        $("#new_front").val(word.front);
-        $("#new_back").val(word.back);
-        $("#new_offset").val(word.offset);
-        $("#new_help").val(word.help);
-        show_custom_word_group_type(group_type, seasons);
-        if (group_type == '1') {
-          $("#custom_word_season").val(-1);
-        } else if (group_type == '2') {
-          $("#custom_word_season").val(word.season);
-        }
-        $("#custom_word_regex").val(word.regex);
-        $("#custom_word_enabled_1").val(word.enabled);
-        $("#custom_word_enabled_2").val(word.enabled);
-        show_custom_word_type(word.type);
-        $("#modal-set-custom-word").modal('show');
+        fill_custom_word_modal(ret.data, wid, gid, group_type, seasons, "编辑识别词");
       } else {
         show_fail_modal(ret.msg);
       }
     });
+  }
+
+  // 显示复制识别词框（查询原识别词并填充到新增框）
+  function show_copy_custom_word_modal(wid, gid, group_type, seasons) {
+    axios_post_do("get_custom_word", { wid: wid }, function (ret) {
+      if (ret.code == 0) {
+        fill_custom_word_modal(ret.data, '', gid, group_type, seasons, "新增识别词");
+      } else {
+        show_fail_modal(ret.msg);
+      }
+    });
+  }
+
+  // 用识别词数据填充新增/编辑框，wid 为空表示新增
+  function fill_custom_word_modal(word, wid, gid, group_type, seasons, title) {
+    $("#customd_word_modal_title").text(title);
+    $("#custom_word_id").val(wid);
+    $("#group_id").val(gid);
+    $("#group_type").val(group_type);
+    $("#new_replaced").val(word.replaced);
+    $("#new_replace").val(word.replace);
+    $("#new_front").val(word.front);
+    $("#new_back").val(word.back);
+    $("#new_offset").val(word.offset);
+    $("#new_help").val(word.help);
+    show_custom_word_group_type(group_type, seasons);
+    if (group_type == '1') {
+      $("#custom_word_season").val(-1);
+    } else if (group_type == '2') {
+      $("#custom_word_season").val(word.season);
+    }
+    $("#custom_word_regex").val(word.regex);
+    $("#custom_word_enabled_1").val(word.enabled);
+    $("#custom_word_enabled_2").val(word.enabled);
+    show_custom_word_type(word.type);
+    $("#modal-set-custom-word").modal('show');
   }
 
   // 新增/编辑自屏蔽词
@@ -887,7 +939,7 @@
     $("#modal-set-custom-word").modal('hide');
     axios_post_do("add_or_edit_custom_word", custom_word, function (ret) {
       if (ret.code == 0) {
-        window_history_refresh();
+        refresh_custom_word_group(gid);
       } else {
         show_fail_modal(ret.msg, function () {
           $("#modal-set-custom-word").modal('show');
