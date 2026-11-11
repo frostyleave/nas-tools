@@ -1,4 +1,3 @@
-
 <div id="main-info-container" class="container-xl placeholder-glow page-wrapper-top-off" >
 </div>
 
@@ -6,13 +5,12 @@
   
   $(document).ready(function() {
 
-      // 获取URL参数
-      const [path, queryString] = window.location.hash.split("?");
-      const urlParams = new URLSearchParams(queryString);
-      const media_type = urlParams.get('type') || '';
-      const tmdbid = urlParams.get('id') || '';
-      const year = urlParams.get('year') || '';
-      const title = urlParams.get('title') || '';      
+      // 获取页面参数
+      const urlParams = getPageParams();
+      const media_type = urlParams.type || '';
+      const tmdbid = urlParams.id || '';
+      const year = urlParams.year || '';
+      const title = urlParams.title || '';
 
       if (!media_type || !tmdbid) {
           show_fail_modal("页面参数(type/tmdbid)缺失！");
@@ -136,7 +134,7 @@
             <h1 class="ms-2">
               <strong>简介</strong>
             </h1>
-            <div class="col-lg-9 py-2 row-cards overview-container liquid-glass-panel">
+            <div class="col-lg-9 py-2 row-cards overview-container">
               <h2 class="ms-3 me-2 secondry-text-color">
                 <small>${info.overview ?? ''}</small>
               </h2>
@@ -257,7 +255,7 @@
             }
           }
           innerHtml +=`
-            <div class="d-flex align-items-stretch mx-1 p-3 rounded-3 liquid-glass-panel" style="max-width: 43rem; border: 1px solid var(--lit-person-card-bg); background-color: var(--card-transparent-bg);">
+            <div class="d-flex align-items-stretch mx-1 p-3 rounded-3" style="max-width: 43rem; border: 1px solid var(--lit-person-card-bg); background-color: var(--card-transparent-bg);">
               <div class="col-auto d-flex align-items-center border border-1">
                 <img alt="海报" class="rounded" style="display: block;min-width: 100%;max-width: 140px;object-fit: cover;" src="${posterPath}">
               </div>
@@ -390,7 +388,13 @@
           nc.setAttribute('person-name', card.original_name);
           nc.setAttribute('person-role', card.role);
           nc.onclick = () => {
-            navmenu('recommend?type='+media_type+'&subtype=person&personid='+card.id+'&title=参与作品&subtitle='+card.original_name);
+            navmenu('recommend', {
+              type: media_type,
+              subtype: 'person',
+              personid: card.id,
+              title: '参与作品',
+              subtitle: card.original_name
+            });
           };
 
           slide_cards.push(nc);
@@ -425,9 +429,15 @@
           similarSlide.id = 'sim-slide';
           similarSlide.setAttribute('slide-title', '类似');
           similarSlide.setAttribute('lazy', 'normal-card');
-          similarSlide.setAttribute('slide-click',
-              `javascript:navmenu('recommend?type=${media_type}&subtype=sim&tmdbid=${tmdbid}&title=类似&subtitle=${media_title}')`
-              );
+          similarSlide.slideClickHandler = () => {
+            navmenu('recommend', {
+              type: media_type,
+              subtype: 'sim',
+              tmdbid: tmdbid,
+              title: '类似',
+              subtitle: media_title
+            });
+          };
           
           $('#main-info-container').append(similarSlide);
 
@@ -465,9 +475,15 @@
           const customSlide = document.createElement('custom-slide');                  
           customSlide.setAttribute('slide-title', '推荐');
           customSlide.setAttribute('lazy', 'normal-card');
-          customSlide.setAttribute('slide-click',
-              `javascript:navmenu('recommend?type=${media_type}&subtype=more&tmdbid=${tmdbid}&title=推荐&subtitle=${media_title}')`
-              );
+          customSlide.slideClickHandler = () => {
+            navmenu('recommend', {
+              type: media_type,
+              subtype: 'more',
+              tmdbid: tmdbid,
+              title: '推荐',
+              subtitle: media_title
+            });
+          };
 
           var slide_cards = [];                      
           // 生成 normal-card 集合

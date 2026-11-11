@@ -82,10 +82,9 @@
 
   $(document).ready(function() {
     
-    // 获取URL参数中的类型
-    const [path, queryString] = window.location.hash.split("?");
-    const urlParams = new URLSearchParams(queryString);
-    const type = urlParams.get('t') || urlParams.get('type') || '';
+    // 获取页面参数中的类型
+    const urlParams = getPageParams();
+    const type = urlParams.t || urlParams.type || '';
 
     // 设置返回按钮链接
     // const backUrl = type === 'MOV' ? 'movie_rss' : 'tv_rss';

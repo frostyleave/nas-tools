@@ -358,12 +358,12 @@
     }
 
     _navigate() {
-      navmenu(
-        'media_detail?type=' + fixedText(this.getAttribute('card-mediatype')) +
-        '&id=' + fixedText(this.getAttribute('card-tmdbid')) +
-        '&title=' + fixedText(this.getAttribute('card-title')) +
-        '&year=' + fixedText(this.getAttribute('card-year'))
-      );
+      navmenu('media_detail', {
+        type: fixedText(this.getAttribute('card-mediatype')),
+        id: fixedText(this.getAttribute('card-tmdbid')),
+        title: fixedText(this.getAttribute('card-title')),
+        year: fixedText(this.getAttribute('card-year'))
+      });
     }
   }
 

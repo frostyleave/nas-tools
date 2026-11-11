@@ -132,9 +132,14 @@
 
             // 可查看更多
             if (!rankItem.noMore) {
-                 rankSlide.setAttribute('slide-click',
-                `javascript:navmenu('recommend?type=${rankItem.type}&subtype=${rankItem.subtype}&week=${rankItem.week ?? ""}&title=${encodeURIComponent(rankItem.title)}')`
-                );
+                 rankSlide.slideClickHandler = () => {
+                     navmenu('recommend', {
+                         type: rankItem.type,
+                         subtype: rankItem.subtype,
+                         week: rankItem.week ?? "",
+                         title: rankItem.title
+                     });
+                 };
             }
 
             $('#discovery-container').append(rankSlide);

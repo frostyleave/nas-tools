@@ -279,7 +279,8 @@
       link.addEventListener('click', () => {
         // 点击即高亮，让胶囊立刻滑向目标项，不用等页面加载完成
         this._setActive(item.page, true);
-        navmenu(item.page);
+        // 菜单点击视为一次全新进入，传 null 清掉该页面残留的导航参数
+        navmenu(item.page, null);
       });
       return link;
     }

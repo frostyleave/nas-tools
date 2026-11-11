@@ -54,7 +54,7 @@ function media_search(tmdbid, title, type) {
           show_fail_modal('未搜索到任何资源');
           return;
         }
-        navmenu('search?s=' + title);
+        navmenu('search', { s: title });
 
       });
 
@@ -1662,9 +1662,20 @@ function quickSearchMedia() {
 
   var search_source = $('#icon-source-trigger').attr('data-id');
   if (search_source === "person") {
-    navmenu("discovery_person?title=演员搜索&subtitle=" + search_keyword + "&keyword=" + search_keyword);
+    navmenu("discovery_person", {
+      title: "演员搜索",
+      subtitle: search_keyword,
+      keyword: search_keyword
+    });
   } else {
-    navmenu("recommend?type=SEARCH&title=搜索结果&subtitle=" + search_keyword + "&keyword=" + search_keyword + "&source=" + search_source+ "&subtype=" + search_type);
+    navmenu("recommend", {
+      type: "SEARCH",
+      title: "搜索结果",
+      subtitle: search_keyword,
+      keyword: search_keyword,
+      source: search_source,
+      subtype: search_type
+    });
   }
 
 }
@@ -1733,7 +1744,7 @@ function search_media_advanced() {
       }
 
       // 切换到结果页
-      navmenu('search?s=' + keyword);
+      navmenu('search', { s: keyword });
 
     });
 

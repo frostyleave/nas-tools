@@ -144,7 +144,7 @@
             </div>
             <div class="col" style="display: flex; flex-direction: column; overflow: hidden;">
               <h3 class="card-title mb-1 border-bottom rss-card-title">
-                <a href='javascript:navmenu("media_detail?type=${type}&id=${dataAttr.tmdbid}")'
+                <a href="javascript:navmenu('media_detail',{type:'${type}',id:'${dataAttr.tmdbid}'})"
                   class="text-reset card-text" title="${title}" onclick="event.stopPropagation();">
                   ${title}
                 </a>

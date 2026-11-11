@@ -35,6 +35,8 @@
       this._measureRetryTimer = null;
       this._scrollRaf = null;       // 翻页动画句柄，null 表示未在动画中
       this._scrollTarget = 0;       // 动画目标位置（动画中有效）
+      this._clickHandler = null;    // 标题栏点击回调（优先于 slide-click）
+      this._clickBound = false;     // 标题栏点击事件是否已绑定
       this._onResize = () => this._countMaxNumber();
       this._onScroll = () => this._countDisabled();
     }
@@ -44,6 +46,15 @@
 
     get slide_click() { return this.getAttribute('slide-click') || ''; }
     set slide_click(value) { this.setAttribute('slide-click', value); }
+
+    // 函数式点击回调：参数需要传对象时使用，避免把参数拼进 javascript: 链接
+    get slideClickHandler() { return this._clickHandler; }
+    set slideClickHandler(fn) {
+      this._clickHandler = typeof fn === 'function' ? fn : null;
+      if (this._headerLink) {
+        this._updateHeader();
+      }
+    }
 
     get lazy() { return this.getAttribute('lazy') || ''; }
     set lazy(value) { this.setAttribute('lazy', value); }
@@ -161,11 +172,23 @@
 
     _updateHeader() {
       const click = this.slide_click;
+      const clickable = !!(click || this._clickHandler);
       this._titleEl.textContent = this.slide_title;
-      this._headerLink.classList.toggle('cursor-pointer', !!click);
-      this._headerLink.classList.toggle('cursor-default', !click);
+      this._headerLink.classList.toggle('cursor-pointer', clickable);
+      this._headerLink.classList.toggle('cursor-default', !clickable);
       this._headerLink.setAttribute('href', click || 'javascript:void(0)');
-      this._moreIcon.classList.toggle('d-none', !click);
+      this._moreIcon.classList.toggle('d-none', !clickable);
+
+      // 绑定一次即可，回调在触发时动态读取
+      if (!this._clickBound) {
+        this._headerLink.addEventListener('click', (e) => {
+          if (this._clickHandler) {
+            e.preventDefault();
+            this._clickHandler();
+          }
+        });
+        this._clickBound = true;
+      }
     }
 
     _scheduleRenderCards() {

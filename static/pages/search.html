@@ -225,7 +225,7 @@
     return `
           <div class="card card-sm lit-normal-card rounded-3 cursor-pointer ratio shadow-sm">
             <div class="rounded-3">
-              <img class="card-img rounded-3" alt="查看详情" onclick='navmenu("media_detail?type=${mediaItem.type_key}&id=${mediaItem.tmdbid}")' style="display: block; min-width: 100%; max-width: 100%; min-height: 100%; max-height: 100%; object-fit: cover;" src="${mediaItem.poster}">
+              <img class="card-img rounded-3" alt="查看详情" onclick="navmenu('media_detail',{type:'${mediaItem.type_key}',id:'${mediaItem.tmdbid}'})" style="display: block; min-width: 100%; max-width: 100%; min-height: 100%; max-height: 100%; object-fit: cover;" src="${mediaItem.poster}">
               ${checkTagLfet}
               <span style="position: absolute; top: 10px; left: 10px; z-index: 9;" class="badge badge-pill bg-lime">${mediaItem.type}</span>
               <div class="badge badge-pill bg-purple" style="position: absolute; top: 10px; right: 10px; z-index: 9;">${mediaItem.vote}</div>
@@ -571,7 +571,7 @@
                           <a class="cursor-pointer" title="重新搜索" href='javascript:media_search("${item.tmdbid}", "${title}", "${item.type_key}")'>
                             <i class="ti ti-search fs-2 text-blue"></i>
                           </a>
-                          <a class="cursor-pointer" title="查看详情" href='javascript:navmenu("media_detail?type=${item.type_key}&id=${item.tmdbid}")'>
+                          <a class="cursor-pointer" title="查看详情" href="javascript:navmenu('media_detail',{type:'${item.type_key}',id:'${item.tmdbid}'})">
                             <i class="ti ti-info-circle fs-2 text-blue"></i>
                           </a>
                           ` : ''}

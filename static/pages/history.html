@@ -83,12 +83,12 @@
 <script type="text/javascript">
   // 上一页
   function go_pre_page(search, page) {
-    navmenu("history?s=" + search + "&page=" + (page - 1))
+    navmenu("history", { s: search, page: page - 1 })
   }
 
   // 下一页
   function go_next_page(search, page) {
-    navmenu("history?s=" + search + "&page=" + (page + 1))
+    navmenu("history", { s: search, page: page + 1 })
   }
 
   //手动重新识别
@@ -118,7 +118,7 @@
   $('#search_word').bind('keypress', function (event) {
     if (event.keyCode == "13") {
       const keyword = $("#search_word").val();
-      navmenu("history?s=" + keyword);
+      navmenu("history", { s: keyword });
     }
   });
 
@@ -144,12 +144,11 @@
   // 页面加载完成后，使用axios_post请求/data/history接口获取数据并填充页面
   $(document).ready(function() {
 
-    // 获取URL参数
-    const [path, queryString] = window.location.hash.split("?");
-    const urlParams = new URLSearchParams(queryString);
-    const searchKeyword = urlParams.get('s') || '';
-    const currentPage = urlParams.get('page') || 1;
-    const pageNum = urlParams.get('pagenum') || 20;
+    // 获取页面参数
+    const urlParams = getPageParams();
+    const searchKeyword = urlParams.s || '';
+    const currentPage = urlParams.page || 1;
+    const pageNum = urlParams.pagenum || 20;
 
     // 设置搜索框的值
     $('#search_word').val(searchKeyword);
