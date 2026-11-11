@@ -1,5 +1,4 @@
 import base64
-import re
 from dataclasses import dataclass, field
 from datetime import timedelta
 from threading import Event
@@ -29,9 +28,7 @@ class SignInResults:
     """
     success_names: list[str] = field(default_factory=list)
     failed_info: list[str] = field(default_factory=list)  # 格式: '站点名:失败信息'
-    retry_names: list[str] = field(default_factory=list)
-    retry_ids: list[str] = field(default_factory=list)
-    
+
     # 跟踪所有最终签到成功的站点ID（包括本次成功和历史已成功）
     all_signed_site_ids: list[str] = field(default_factory=list)
 
@@ -49,12 +46,7 @@ class SignInResults:
             self.failed_info.append(f'❌{sign_msg}')
         else:
             self.failed_info.append(f'❌{site_name}签到失败: {sign_msg}')
-    
-    def add_retry(self, site_name: str, site_id: str):
-        """记录一个需要重试的签到"""
-        self.retry_names.append(site_name)
-        self.retry_ids.append(site_id)
-        
+
     def add_script_error(self, site_name: str):
         """记录一个签到脚本执行时的意外错误"""
         self.failed_info.append(f'🛑{site_name}:签到时发生脚本错误')
@@ -69,7 +61,7 @@ class AutoSignIn(_IPluginModule):
     # 插件名称
     module_name = "站点自动签到"
     # 插件描述
-    module_desc = "站点自动签到保号，支持重试。"
+    module_desc = "站点自动签到保号。"
     # 插件图标
     module_icon = "signin.png"
     # 主题色
@@ -99,7 +91,6 @@ class AutoSignIn(_IPluginModule):
     """
     _config_sites = None
     _queue_cnt = None
-    _retry_keyword = None
     _special_sites = None
     _onlyonce = False
     _notify = False
@@ -177,18 +168,6 @@ class AutoSignIn(_IPluginModule):
                                 }
                             ]
                         },
-                        {
-                            'title': '重试关键词',
-                            'required': "",
-                            'tooltip': '重新签到关键词，支持正则表达式；每天首次全签，后续如果设置了重试词则只签到命中重试词的站点，否则全签。',
-                            'type': 'text',
-                            'content': [
-                                {
-                                    'id': 'retry_keyword',
-                                    'placeholder': '失败|错误',
-                                }
-                            ]
-                        },
                     ]
                 ]
             },
@@ -210,7 +189,7 @@ class AutoSignIn(_IPluginModule):
             {
                 'type': 'details',
                 'summary': '特殊站点',
-                'tooltip': '选中的站点无论是否匹配重试关键词都会进行重签（如无需要可不设置）',
+                'tooltip': '选中的站点即使今日已签到也会重新签到（如无需要可不设置）',
                 'content': [
                     # 同一行
                     [
@@ -233,7 +212,6 @@ class AutoSignIn(_IPluginModule):
         if config:
             self._enabled = config.get("enabled")
             self._cron = config.get("cron")
-            self._retry_keyword = config.get("retry_keyword")
             self._config_sites = config.get("sign_sites") or []
             self._special_sites = config.get("special_sites") or []
             self._notify = config.get("notify")
@@ -269,7 +247,6 @@ class AutoSignIn(_IPluginModule):
                 self.update_config({
                     "enabled": self._enabled,
                     "cron": self._cron,
-                    "retry_keyword": self._retry_keyword,
                     "sign_sites": self._config_sites,
                     "special_sites": self._special_sites,
                     "notify": self._notify,
@@ -332,7 +309,7 @@ class AutoSignIn(_IPluginModule):
             self._save_sign_in_history(
                 today_str,
                 results.all_signed_site_ids,
-                results.retry_ids,
+                results.failed_info,
                 history_exists
             )
             
@@ -368,25 +345,23 @@ class AutoSignIn(_IPluginModule):
             already_sign_sites = []
             history_exists = False
         else:
-            self.info(f"今日 {today_str} 已有签到记录，检查重试/未签站点")
+            self.info(f"今日 {today_str} 已有签到记录，检查未签站点")
             already_sign_sites = today_history.get('sign', [])
-            wait_retry_sites = today_history.get('retry', [])
 
             config_set = set(config_sites)
             already_set = set(already_sign_sites)
             special_set = set(self._special_sites)
-            retry_set = set(wait_retry_sites)
 
             # 未签站点 = 配置中 - 已签到
             no_sign_sites = config_set - already_set
-            
-            # 待签站点 = 重试 + 未签 + 特殊（集合会自动去重）
-            wait_sign_set = retry_set | no_sign_sites | special_set
+
+            # 待签站点 = 未签 + 特殊（集合会自动去重）
+            wait_sign_set = no_sign_sites | special_set
             wait_sign_sites = list(wait_sign_set)
-            
+
             if wait_sign_sites:
-                self.info("开始重签重试站点、特殊站点、未签站点")
-            
+                self.info("开始重签特殊站点、未签站点")
+
             history_exists = True
 
         return wait_sign_sites, already_sign_sites, history_exists
@@ -414,12 +389,6 @@ class AutoSignIn(_IPluginModule):
                     self.info(sign_msg)
                     continue
 
-                # 失败重试检查
-                if self._retry_keyword and re.search(self._retry_keyword, sign_msg):
-                    self.info(f"{sign_msg}, 命中重试关键词 {self._retry_keyword}")
-                    results.add_retry(site_name, site_id)
-                    continue
-                    
                 # 记录失败
                 results.add_fail(site_name, sign_msg)
                 self.warn(sign_msg)
@@ -431,12 +400,13 @@ class AutoSignIn(_IPluginModule):
         
         return results
 
-    def _save_sign_in_history(self, today_str: str, all_signed_ids: list[str], retry_ids: list[str], history_exists: bool):
+    def _save_sign_in_history(self, today_str: str, all_signed_ids: list[str],
+                              failed_info: list[str], history_exists: bool):
         """
         将签到结果存入历史。
         """
-        history = {"sign": all_signed_ids, "retry": retry_ids}
-        
+        history = {"sign": all_signed_ids, "fail": failed_info}
+
         if not history_exists:
             self.history(key=today_str, value=history)
         else:
@@ -447,16 +417,27 @@ class AutoSignIn(_IPluginModule):
         """
         签到历史中的站点ID转换为站点名称，便于用户阅读
         """
-        if isinstance(value, dict) and ("sign" in value or "retry" in value):
+        if isinstance(value, dict) and ("sign" in value or "fail" in value):
             signed = value.get("sign") or []
-            retry = value.get("retry") or []
+            failed = value.get("fail") or []
             text = f"已签到 {len(signed)} 个站点"
             if signed:
                 text += "：" + self.__history_site_names(signed)
-            if retry:
-                text += f"\n待重试 {len(retry)} 个站点：" + self.__history_site_names(retry)
+            if failed:
+                text += f"\n签到失败 {len(failed)} 个站点：\n" + self.__history_fail_lines(failed)
             return text
         return super().format_history(key, value)
+
+    def __history_fail_lines(self, failed_items):
+        """展示失败信息；兼容旧记录中只保存站点ID的情况"""
+        lines = []
+        for item in failed_items:
+            item_text = str(item)
+            if item_text.isdigit():
+                lines.append(self.__history_site_names([item_text]))
+            else:
+                lines.append(item_text)
+        return "\n".join(lines)
 
     def __history_site_names(self, site_ids):
         """把站点ID列表转换为站点名称列表，查询失败时回退为ID"""

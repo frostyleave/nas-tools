@@ -1,5 +1,4 @@
 import re
-import time
 from copy import deepcopy
 from threading import Event
 from typing import ClassVar

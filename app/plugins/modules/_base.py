@@ -69,13 +69,16 @@ def format_history_text(key, value) -> str:
         # 媒体类：{name, year, type, state, rating, add_time}
         if "state" in value and ("name" in value or "title" in value):
             return _history_text_of_media(value)
-        # 签到历史：{"sign": [...], "retry": [...]}
-        if "sign" in value or "retry" in value:
+        # 签到历史：{"sign": [...], "retry": [...], "fail": [...]}
+        if "sign" in value or "retry" in value or "fail" in value:
             signed = value.get("sign") or []
             retry = value.get("retry") or []
+            failed = value.get("fail") or []
             text = f"已签到 {len(signed)} 个站点"
             if signed:
                 text += "：" + "、".join(str(item) for item in signed)
+            if failed:
+                text += f"\n签到失败 {len(failed)} 个站点：\n" + "\n".join(str(item) for item in failed)
             if retry:
                 text += f"\n待重试 {len(retry)} 个站点：" + "、".join(str(item) for item in retry)
             return text

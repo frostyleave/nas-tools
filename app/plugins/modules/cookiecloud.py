@@ -1,16 +1,16 @@
-from typing import ClassVar
 import json
 from collections import defaultdict
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from threading import Event
+from typing import ClassVar
 
 from app.helper import ThreadHelper
 from app.helper.dict_helper import DictHelper
 from app.indexer.manager import IndexerManager
 from app.plugins.modules._base import _IPluginModule
 from app.sites import SitesManager
-from app.utils import RequestUtils
+from app.utils import RequestUtils, TimeUtils
 
 
 @dataclass
@@ -297,18 +297,22 @@ class CookieCloud(_IPluginModule):
 
         if not cloud_data.success:
             self.error(cloud_data.ret_msg)
+            self.__save_history("failed", cloud_data.ret_msg)
             self.__send_message(cloud_data.ret_msg)
             return
 
         contents = cloud_data.content
         if not contents:
-            self.info("未从CookieCloud获取到数据")
+            msg = "未从CookieCloud获取到数据"
+            self.info(msg)
+            self.__save_history("failed", msg)
             self.__send_message(cloud_data.ret_msg)
             return
 
         if self._cc_upd_time and cloud_data.update_time and self._cc_upd_time >= cloud_data.update_time:
             msg = f"CookieCloud数据时间 {cloud_data.update_time} <= {self._cc_upd_time}, 不执行更新"
             self.info(msg)
+            self.__save_history("skipped", msg)
             self.__send_message(msg)
             return
 
@@ -321,7 +325,8 @@ class CookieCloud(_IPluginModule):
         for domain, content_list in domain_groups.items():
 
             if event.is_set():
-                self.info(f"同步服务停止")
+                self.info("同步服务停止")
+                self.__save_history("stopped", "同步服务停止")
                 return
             
             # 只有cf的cookie过滤掉
@@ -382,8 +387,33 @@ class CookieCloud(_IPluginModule):
         msg = '\n'.join(lines) if lines else "同步完成，但未更新任何站点数据！"
 
         self.info(msg)
+        self.__save_history("success", msg)
         # 发送消息
         self.__send_message(msg)
+
+    def __save_history(self, status, message):
+        """
+        记录本次同步结果，供插件运行历史查看
+        """
+        self.history(key=TimeUtils.now_str(TIME_FORMART), value={
+            "status": status,
+            "message": message,
+        })
+
+    def format_history(self, key, value):
+        """
+        同步历史转为用户友好的文本
+        """
+        if isinstance(value, dict) and "status" in value:
+            status_text = {
+                "success": "同步成功",
+                "failed": "同步失败",
+                "skipped": "跳过同步",
+                "stopped": "同步已停止",
+            }.get(value.get("status"), value.get("status") or "未知状态")
+            message = value.get("message")
+            return f"{status_text}\n{message}" if message else status_text
+        return super().format_history(key, value)
 
     def __sort_domain_cookies(self, contents):
         # 整理数据,使用domain域名的最后两级作为分组依据

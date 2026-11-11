@@ -1,9 +1,9 @@
-from typing import ClassVar
 import time
+from typing import ClassVar
 
 import log
-from app.downloader import Downloader
 from app.core.security_center import SecurityCenter
+from app.downloader import Downloader
 from app.mediaserver import MediaServer
 from app.plugins import EventHandler
 from app.plugins.modules._base import _IPluginModule
