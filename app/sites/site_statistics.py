@@ -1,6 +1,6 @@
+import asyncio
 import json
 from datetime import datetime
-from multiprocessing.dummy import Pool as ThreadPool
 from threading import Lock
 
 import log
@@ -41,7 +41,7 @@ class SitesDataStatisticsCenter:
         # 站点数据
         self._sites_data = {}
 
-    def __refresh_site_data(self, site_info: UserSiteConf):
+    async def __refresh_site_data(self, site_info: UserSiteConf):
         """
         更新单个site 数据信息
         :param site_info:
@@ -50,15 +50,15 @@ class SitesDataStatisticsCenter:
         site_url = site_info.strict_url
         if not site_url:
             return None
-        
+
         site_name = site_info.name
 
         try:
-            site_user_info = SitesschemaCenter().build(site_info)
+            site_user_info = await SitesschemaCenter().build(site_info)
             if site_user_info:
                 log.debug(f"【Sites】站点 {site_name} 开始以 {site_user_info.site_schema()} 模型解析")
                 # 开始解析
-                site_user_info.parse()
+                await site_user_info.parse()
                 log.debug(f"【Sites】站点 {site_name} 解析完成")
 
                 # 获取不到数据时，仅返回错误信息，不做历史数据更新
@@ -66,10 +66,10 @@ class SitesDataStatisticsCenter:
                     log.warn(f'【Sites】 {site_name} 解析出错: {site_user_info.err_msg}')
                     return None
 
-                # 发送通知，存在未读消息
+                # 发送通知，存在未读消息（同步网络发送，放到线程池避免阻塞事件循环）
                 unread_msg_notify = site_info.unread_msg_notify
-                self.__notify_unread_msg(site_name, site_user_info, unread_msg_notify)
-                
+                await asyncio.to_thread(self.__notify_unread_msg, site_name, site_user_info, unread_msg_notify)
+
                 # 做种信息数组转换
                 if site_user_info.seeding_info is not None and isinstance(site_user_info.seeding_info, list):
                     site_user_info.seeding_info = json.dumps(site_user_info.seeding_info)
@@ -101,8 +101,11 @@ class SitesDataStatisticsCenter:
     def refresh_site_data_now(self, specify_sites=None):
         """
         强制刷新站点数据
+
+        对外保持同步接口（调用方均为线程：/do 线程池、命令线程、调度器），
+        内部刷新链路已异步化，用 asyncio.run 驱动。
         """
-        self.__refresh_all_site_data(force=True, specify_sites=specify_sites)
+        asyncio.run(self.__refresh_all_site_data(force=True, specify_sites=specify_sites))
         # 刷完发送消息
         string_list = []
 
@@ -135,9 +138,9 @@ class SitesDataStatisticsCenter:
 
             self.message.send_user_statistics_message(string_list)
 
-    def __refresh_all_site_data(self, force=False, specify_sites=None):
+    async def __refresh_all_site_data(self, force=False, specify_sites=None):
         """
-        多线程刷新站点下载上传量，默认间隔6小时
+        并发刷新站点下载上传量，默认间隔6小时
         """
         if not self.sites.get_sites():
             return
@@ -163,10 +166,24 @@ class SitesDataStatisticsCenter:
             if not refresh_sites:
                 return
 
-            # 并发刷新
-            with ThreadPool(min(len(refresh_sites), self._MAX_CONCURRENCY)) as p:
-                site_user_infos = list(filter(None, p.map(self.__refresh_site_data, refresh_sites)))
-                
+            # 并发刷新：协程并发，限制最大并发数
+            semaphore = asyncio.Semaphore(self._MAX_CONCURRENCY)
+
+            async def _refresh(site_info: UserSiteConf):
+                async with semaphore:
+                    return await self.__refresh_site_data(site_info)
+
+            results = await asyncio.gather(
+                *(_refresh(site) for site in refresh_sites),
+                return_exceptions=True
+            )
+            site_user_infos = []
+            for result in results:
+                if isinstance(result, BaseException):
+                    log.error(f"【Sites】刷新站点数据异常: {result!s}")
+                elif result:
+                    site_user_infos.append(result)
+
             # 登记历史数据
             self.dbhelper.insert_site_statistics_history(site_user_infos)
             # 实时用户数据

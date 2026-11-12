@@ -9,7 +9,7 @@ from pathlib import Path
 from typing import Annotated
 from urllib.parse import unquote, urljoin, urlparse, urlunparse
 
-import httpx
+import aiohttp
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response
 from fastapi.responses import FileResponse, StreamingResponse
 from starlette.concurrency import run_in_threadpool
@@ -20,7 +20,7 @@ from app.middleware.security import auth_check, get_current_user
 from app.models.user import LEVEL_OPERATOR, LEVEL_SYSADMIN, LEVEL_USER
 from app.modules.system.backup import Backup
 from app.utils import PathUtils, SystemUtils
-from app.utils.async_request import AsyncRequestUtils
+from app.utils.async_request import get_async_session
 from app.utils.types import OsType
 from config import Config
 
@@ -209,32 +209,30 @@ async def _fetch_image(url: str) -> tuple[bytes | None, int]:
 
     :return: (图片内容, 建议返回的状态码)；内容为 None 时按状态码返回错误
     """
-    client = AsyncRequestUtils.get_http_client()
+    session = get_async_session()
     current_url = url
     for _ in range(MAX_IMAGE_REDIRECTS + 1):
         if not _is_allowed_image_url(current_url):
             log.warn(f"【Security】图片代理拒绝了不支持的地址: {current_url}")
             raise HTTPException(status_code=400, detail="非法的图片地址")
         try:
-            async with client.stream("GET", current_url,
-                                     follow_redirects=False,
-                                     timeout=20.0) as resp:
-                if resp.is_redirect:
+            async with session.get(current_url, allow_redirects=False) as resp:
+                if resp.status in (301, 302, 303, 307, 308):
                     location = resp.headers.get("Location")
                     if not location:
                         return None, 502
                     current_url = urljoin(current_url, location)
                     continue
-                if resp.status_code != 200:
+                if resp.status != 200:
                     return None, 502
                 content = bytearray()
-                async for chunk in resp.aiter_bytes():
+                async for chunk in resp.content.iter_chunked(64 * 1024):
                     content.extend(chunk)
                     if len(content) > MAX_IMAGE_SIZE:
                         log.warn(f"【Security】图片代理响应超过大小上限，已终止: {current_url}")
                         return None, 413
                 return bytes(content), 200
-        except httpx.RequestError as err:
+        except (aiohttp.ClientError, TimeoutError) as err:
             log.warn(f"【Http】图片代理请求失败 {current_url}: {err!s}")
             return None, 502
     return None, 502
@@ -245,7 +243,7 @@ async def img(request: Request, url: str):
     """
     图片中转服务
 
-    异步接口：复用全局 AsyncClient 的连接池，不占用线程池工作线程。
+    异步接口：复用全局 aiohttp 会话的连接池，不占用线程池工作线程。
     """
     if not url:
         return Response(content="参数错误", status_code=400)
@@ -332,13 +330,16 @@ async def _limited_image_stream(resp):
     边转发边限制响应大小，防止上游返回超大文件耗尽带宽/内存
     """
     total = 0
-    async for chunk in resp.aiter_bytes():
-        total += len(chunk)
-        if total > MAX_IMAGE_SIZE:
-            log.warn(f"【Security】图片代理响应超过大小上限，已截断: {resp.url}")
-            await resp.aclose()
-            return
-        yield chunk
+    try:
+        async for chunk in resp.content.iter_chunked(64 * 1024):
+            total += len(chunk)
+            if total > MAX_IMAGE_SIZE:
+                log.warn(f"【Security】图片代理响应超过大小上限，已截断: {resp.url}")
+                return
+            yield chunk
+    finally:
+        # 无论正常结束、超限还是客户端断开，都把连接归还连接池
+        resp.release()
 
 
 @utility_router.get("/doubanimg")
@@ -361,7 +362,7 @@ async def proxy_douban_image(
     if not await _is_public_remote_url(webp_url):
         raise HTTPException(status_code=400, detail="Invalid url")
 
-    client = AsyncRequestUtils.get_http_client()
+    session = get_async_session()
     headers = {
         "Referer": DOUBAN_REFERER,
         "User-Agent": Config().get_ua(),
@@ -369,12 +370,12 @@ async def proxy_douban_image(
 
     try:
         # 不自动跟随重定向，避免被跳转到内网地址
-        resp = await client.get(webp_url, headers=headers, follow_redirects=False)
-    except httpx.RequestError as err:
+        resp = await session.get(webp_url, headers=headers, allow_redirects=False)
+    except (aiohttp.ClientError, TimeoutError) as err:
         raise HTTPException(status_code=502, detail="Upstream connection error") from err
 
-    if resp.status_code != 200:
-        await resp.aclose()
+    if resp.status != 200:
+        resp.release()
         raise HTTPException(status_code=502, detail="Upstream request failed")
 
     try:
@@ -382,7 +383,7 @@ async def proxy_douban_image(
     except ValueError:
         content_length = 0
     if content_length > MAX_IMAGE_SIZE:
-        await resp.aclose()
+        resp.release()
         raise HTTPException(status_code=413, detail="Upstream image too large")
 
     return StreamingResponse(

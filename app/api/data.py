@@ -243,7 +243,7 @@ def search():
 
 # 订阅页面
 @data_router.post("/rss")
-def rss(t: str = "MOV"):
+def rss():
 
     rule_groups = {str(group["id"]): group["name"] for group in Filter().get_rule_groups()}
     download_settings = Downloader().get_download_setting()
@@ -262,15 +262,11 @@ def rss(t: str = "MOV"):
 
 # 订阅历史页面
 @data_router.post("/rss_history")
-def rss_history(t: str = ""):
+def rss_history():
 
-    rss_history = [rec.as_dict() for rec in Rss().get_rss_history(rtype=t)]
+    rss_history = [rec.as_dict() for rec in Rss().get_rss_history()]
 
-    return response(data=
-        {
-            "Items": rss_history,
-            "Type": t,
-        })
+    return response(data={"Items": rss_history})
 
 
 # 订阅日历页面

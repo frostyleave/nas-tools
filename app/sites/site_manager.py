@@ -1,3 +1,4 @@
+import asyncio
 import json
 import re
 from datetime import datetime
@@ -320,7 +321,7 @@ class SitesManager:
         start_time = datetime.now()
 
         mteam_proxy = MTorrentUserInfo(site_name, url, site_cookie, '', apikey=site_appkey, proxy=proxy)
-        response_text, status_code = mteam_proxy.visit_base_info()
+        response_text, status_code = asyncio.run(mteam_proxy.visit_base_info())
 
         # 计算耗时
         seconds = int((datetime.now() - start_time).microseconds / 1000)

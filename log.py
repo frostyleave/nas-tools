@@ -305,13 +305,8 @@ LOGGING_CONFIG = {
             "handlers": ["null_handler"],
             "propagate": False,
         },
-        # 屏蔽 httpx 日志
-        "httpx": {
-            "handlers": ["null_handler"],
-            "propagate": False,
-        },
-        # 屏蔽 httpcore 日志(httpx 的底层，有时也会打印)
-        "httpcore": {
+        # 屏蔽 aiohttp 客户端日志
+        "aiohttp": {
             "handlers": ["null_handler"],
             "propagate": False,
         },

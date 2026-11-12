@@ -78,12 +78,12 @@ class MTorrentUserInfo(_ISiteUserInfo):
         self._sys_mail_unread_page = None
 
 
-    def _parse_user_base_info(self, response_text: str):
+    async def _parse_user_base_info(self, response_text: str):
         """
         解析用户基本信息
         """
-        response_text, _ = self.visit_base_info()
-        
+        response_text, _ = await self.visit_base_info()
+
         detail = json.loads(response_text)
         if not detail or detail.get("code") != "0":
             return
@@ -107,12 +107,12 @@ class MTorrentUserInfo(_ISiteUserInfo):
             "userid": self.userid
         }
 
-    def visit_base_info(self):
+    async def visit_base_info(self):
         """
         访问基础信息页
         """
         url = urljoin(self._base_url, self._user_basic_page)
-        return self._get_page_content(
+        return await self._get_page_content(
                         url=url,
                         params=self._user_basic_params,
                         headers=self._user_basic_headers
@@ -131,7 +131,7 @@ class MTorrentUserInfo(_ISiteUserInfo):
         """
         pass
 
-    def _parse_user_torrent_seeding_info(self, html_text: str, multi_page: bool | None = False) -> str | None:
+    async def _parse_user_torrent_seeding_info(self, html_text: str, multi_page: bool | None = False) -> str | None:
         """
         解析用户做种信息
         """
@@ -157,7 +157,7 @@ class MTorrentUserInfo(_ISiteUserInfo):
         # 查询总做种数
         seeder_count = 0
         try:
-            result, _ = self._get_page_content(
+            result, _ = await self._get_page_content(
                 url=urljoin(self._base_url, "api/tracker/myPeerStatus"),
                 params={"uid": self.userid},
             )
@@ -174,7 +174,7 @@ class MTorrentUserInfo(_ISiteUserInfo):
         self._torrent_seeding_params["pageNumber"] += 1
         return ""
 
-    def _parse_message_unread_links(self, html_text: str, msg_links: list) -> str | None:
+    async def _parse_message_unread_links(self, html_text: str, msg_links: list) -> str | None:
         """
         解析未读消息链接，这里直接读出详情
         """
@@ -193,7 +193,7 @@ class MTorrentUserInfo(_ISiteUserInfo):
             if head and date and content:
                 self.message_unread_contents.append((head, date, content))
                 # 设置已读
-                self._get_page_content(
+                await self._get_page_content(
                     url=urljoin(self._base_url, "api/msg/markRead"),
                     params={"msgId": message.get("id")}
                 )

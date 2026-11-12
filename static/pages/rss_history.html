@@ -82,16 +82,7 @@
 
   $(document).ready(function() {
     
-    // 获取页面参数中的类型
-    const urlParams = getPageParams();
-    const type = urlParams.t || urlParams.type || '';
-
-    // 设置返回按钮链接
-    // const backUrl = type === 'MOV' ? 'movie_rss' : 'tv_rss';
-    // $('#back-btn').attr('href', `javascript:navmenu('${backUrl}')`);
-    // $('#back-btn-mobile').attr('href', `javascript:navmenu('${backUrl}')`);
-
-    axios_post('/data/rss_history', {type: type}, function(response) {
+    axios_post('/data/rss_history', {}, function(response) {
 
       if (response.code === 0 && response.data) {
 

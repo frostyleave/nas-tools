@@ -70,6 +70,8 @@ class StringUtils:
             return int(text)
         text = text.replace(",", "").replace(" ", "").upper()
         size = re.sub(r"[KMGTPI]*B?", "", text, flags=re.IGNORECASE)
+        if not size:
+            return 0
         try:
             size = float(size)
         except Exception as e:

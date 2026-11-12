@@ -48,12 +48,8 @@
 
   function loadPageData() {
 
-    const container = document.getElementById("page-content");
-    const urlParams = $(container).data("params");
-    var typeParam = urlParams.t || '';
-
     // 请求数据并生成页面
-    axios_post("/data/rss?t=" + typeParam, {}, function(ret) {
+    axios_post("/data/rss", {}, function(ret) {
       if (ret.code === 0) {
         generateRssPage(ret.data);
       } else {
@@ -92,38 +88,38 @@
   // 生成单个RSS项目HTML
   function generateRssItemHtml(item, id, data, type) {
 
-    const dataAttr = item;
+    const rssAttr = item;
     const typeName = type === 'MOV' ? '电影' : '电视剧';
     // 评分角标：电影紫色、电视剧蓝色；评分统一保留一位小数
     const voteBg = type === 'MOV' ? 'bg-purple' : 'bg-blue';
-    const voteValue = parseFloat(dataAttr.vote);
+    const voteValue = parseFloat(rssAttr.vote);
     const voteText = isNaN(voteValue) ? '' : voteValue.toFixed(1);
 
     // 生成标题
     let title = '';
     if (type === 'MOV') {
-      title = `${dataAttr.name}(${dataAttr.year})`;
+      title = `${rssAttr.name}(${rssAttr.year})`;
     } else {
-      title = dataAttr.name;
-      if (dataAttr.season && dataAttr.season !== "S00") {
-        title += ` - ${dataAttr.season}`;
+      title = rssAttr.name;
+      if (rssAttr.season && rssAttr.season !== "S00") {
+        title += ` - ${rssAttr.season}`;
       }
     }
 
     // 生成标签
-    const badges = generateBadges(dataAttr, data);
+    const badges = generateBadges(rssAttr, data);
 
     // 生成站点标签
-    const siteBadges = generateSiteBadges(dataAttr);
+    const siteBadges = generateSiteBadges(rssAttr);
 
     // 生成状态
-    const statusInfo = generateStatusInfo(dataAttr);
+    const statusInfo = generateStatusInfo(rssAttr);
 
     // 生成进度条（仅TV）
-    const progressBar = type === 'TV' ? generateProgressBar(dataAttr) : '';
+    const progressBar = type === 'TV' ? generateProgressBar(rssAttr) : '';
 
     // 暂停/恢复订阅按钮
-    const pauseBtn = dataAttr.state === 'P'
+    const pauseBtn = rssAttr.state === 'P'
       ? `<a href="javascript:toggle_rss_pause('${type}','${id}','R')" title="恢复订阅"
           class="text-white" id="pause_btn_${type}_${id}"><i class="ti ti-player-play fs-2"></i></a>`
       : `<a href="javascript:toggle_rss_pause('${type}','${id}','P')" title="暂停订阅"
@@ -131,20 +127,20 @@
 
     return `
       <div class="card p-0 glass-card">
-        <div class="card-body media-box" style="background-image: url(${dataAttr.image});">
+        <div class="card-body media-box" style="background-image: url(${rssAttr.image});">
           <div class="ribbon ribbon-top ribbon-left ribbon-bookmark ${voteBg}">${voteText}</div>
           <div class="right-top-box rss-card-actions">
             ${pauseBtn}
-            <a href="javascript:remove_rss_click('${dataAttr.name}','${dataAttr.year}', '${type}','${id}', 'movie_rss')" title="取消订阅" class="text-danger"><i class="ti ti-x fs-2"></i></a>
+            <a href="javascript:remove_rss_click('${rssAttr.name}','${rssAttr.year}', '${type}','${id}', 'movie_rss')" title="取消订阅" class="text-danger"><i class="ti ti-x fs-2"></i></a>
           </div>
           <div class="row align-items-stretch media-content card-text rss-card-clickable"
             title="点击编辑订阅" onclick="show_edit_rss_media_modal('${id}', '${typeName}')">
             <div class="col-auto p-0 d-flex align-items-center">
-              <img src="${dataAttr.poster}" class="rounded" alt="" style="max-width: 80px;">
+              <img src="${rssAttr.poster}" class="rounded" alt="" style="max-width: 80px;">
             </div>
             <div class="col" style="display: flex; flex-direction: column; overflow: hidden;">
               <h3 class="card-title mb-1 border-bottom rss-card-title">
-                <a href="javascript:navmenu('media_detail',{type:'${type}',id:'${dataAttr.tmdbid}'})"
+                <a href="javascript:navmenu('media_detail',{type:'${type}',id:'${rssAttr.tmdbid}'})"
                   class="text-reset card-text" title="${title}" onclick="event.stopPropagation();">
                   ${title}
                 </a>
@@ -169,7 +165,7 @@
             </div>
           </div>
           <div class="rss-card-actions rss-card-actions-bottom" onclick="event.stopPropagation();">
-            <a href="javascript:search_mediainfo_media('${dataAttr.tmdbid}','${dataAttr.name}', '${typeName}')"
+            <a href="javascript:search_mediainfo_media('${rssAttr.tmdbid}','${rssAttr.keyword ? rssAttr.keyword : rssAttr.name}', '${typeName}')"
               title="搜索" class="text-azure" id="search_btn_${type}_${id}"><i class="ti ti-search fs-2"></i></a>
             <a href="javascript:refresh_rss_media('${type}', '${id}', 'movie_rss')" title="刷新"
               class="text-azure" id="refresh_btn_${type}_${id}"><i class="ti ti-refresh fs-2"></i></a>

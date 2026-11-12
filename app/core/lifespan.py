@@ -7,7 +7,7 @@ import log
 from app.core.initializer import start_config_monitor, stop_config_monitor
 from app.core.services import ServiceManager
 from app.core.task_manager import task_processor_start, task_processor_stop
-from app.utils.async_request import AsyncRequestUtils
+from app.utils.async_request import close_async_client, init_async_client
 from app.utils.asyncio_utils import install_connection_reset_filter
 from log import set_event_loop_for_logging
 
@@ -42,8 +42,8 @@ async def lifespan(app: FastAPI):
         # 启动任务管理器
         task_processor_start()
 
-        # 初始化客户端
-        AsyncRequestUtils.init_client()
+        # 初始化全局异步会话
+        init_async_client()
 
         log.info("✅ FastAPI 应用启动完成")
 
@@ -61,7 +61,7 @@ async def lifespan(app: FastAPI):
         # 关闭任务管理器
         task_processor_stop()
 
-        # 关闭client_session
-        AsyncRequestUtils.close_client()
+        # 关闭全局异步会话
+        await close_async_client()
 
         log.info("🛑 FastAPI 应用已关闭")
