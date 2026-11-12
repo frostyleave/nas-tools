@@ -15,6 +15,7 @@ from fastapi import (
     WebSocketDisconnect,
 )
 from fastapi.responses import StreamingResponse
+from starlette.concurrency import run_in_threadpool
 
 import log
 from app.core.cmd_handler import CommandHandler
@@ -67,7 +68,7 @@ async def message_handler(websocket: WebSocket):
     """
     # 先校验登录态，认证失败必须关闭连接
     try:
-        user_info = await get_current_user(websocket)
+        user_info = await run_in_threadpool(get_current_user, websocket)
     except Exception as e:
         log.warn(f"[WebSocket-消息]认证失败，关闭连接: {e!s}")
         await websocket.close(code=1008)
@@ -103,8 +104,9 @@ async def message_handler(websocket: WebSocket):
             try:
 
                 if msgbody.get("text"):
-                    # 发送的消息
-                    CommandHandler().handle_message_job(
+                    # 发送的消息（同步业务放入线程池，避免阻塞事件循环）
+                    await run_in_threadpool(
+                        CommandHandler().handle_message_job,
                         msg=msgbody.get("text"),
                         in_from=SearchType.WEB,
                         user_id=user_id,

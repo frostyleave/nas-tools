@@ -109,12 +109,29 @@ layout-navbar .accordion > a {
 
 html {
     --safe-area-inset-top: 0px;
-    min-height: calc(100% + env(safe-area-inset-top) + var(--safe-area-inset-top))
+    min-height: calc(100% + env(safe-area-inset-top) + var(--safe-area-inset-top));
+    background-color: #F5F5F9;
+    background-image: var(--app-wallpaper, none);
+    background-position: center;
+    background-size: cover;
+    background-repeat: no-repeat;
+    background-attachment: fixed;
+}
+
+html[data-bs-theme="dark"] {
+    background-color: #0f172a;
 }
 
 body, .page {
     min-height: 100%;
     overflow-y: auto;
+}
+
+body,
+body.theme-light,
+body.theme-dark {
+    background-color: transparent;
+    background-image: none;
 }
 
 body.no-after::after {
@@ -133,9 +150,11 @@ body::before {
     z-index: -1;
     content: "";
     position: fixed;
-    inset: -40px;
-    background: inherit;
-    background-attachment: scroll;
+    inset: -60px;
+    background-image: var(--app-wallpaper, none);
+    background-position: center;
+    background-size: cover;
+    background-repeat: no-repeat;
     filter: blur(20px);
     pointer-events: none;
 }

@@ -75,7 +75,8 @@ def validate_refresh_token(token: str) -> str | None:
     
 
 # 解析http请求中的用户
-async def get_current_user(request: HTTPConnection) -> User | None:
+# 同步依赖：FastAPI 会将其放到线程池执行，避免每次鉴权都在事件循环上同步查库
+def get_current_user(request: HTTPConnection) -> User | None:
     token = request.cookies.get("access_token")
     if not token:
         raise HTTPException(status_code=401, detail="no access token")

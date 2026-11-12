@@ -19,7 +19,7 @@ auth_router = APIRouter(prefix="/auth")
 
 
 @auth_router.post("/token")
-async def login(request: Request, form_data: Annotated[OAuth2PasswordRequestForm, Depends()]):
+def login(request: Request, form_data: Annotated[OAuth2PasswordRequestForm, Depends()]):
     """
     登陆: 验证授权信息, 生成access_token和refresh_token
     """
@@ -56,7 +56,7 @@ async def login(request: Request, form_data: Annotated[OAuth2PasswordRequestForm
 
 
 @auth_router.post("/refresh")
-async def refresh_token(request: Request):
+def refresh_token(request: Request):
     """
     刷新access_token
     """
@@ -88,7 +88,7 @@ async def refresh_token(request: Request):
 
 
 @auth_router.post("/logout")
-async def logout():
+def logout():
     """
     退出登录：清除 Cookie
     """

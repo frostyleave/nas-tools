@@ -72,6 +72,22 @@ def _build_dir_items(dirs: list[str], show_files: bool) -> list[str]:
     return items
 
 
+def _collect_dir_items(in_dir: str, show_files: bool) -> list[str]:
+    """
+    遍历目标目录并生成 li 节点
+
+    目录可能位于网络存储上，listdir/isdir 可能较慢，统一放到线程池执行。
+    """
+    if not in_dir or in_dir == "/":
+        dirs = _list_root_dirs()
+    else:
+        target = os.path.normpath(in_dir)
+        if not os.path.isdir(target):
+            target = os.path.dirname(target)
+        dirs = [os.path.join(target, name) for name in os.listdir(target)]
+    return _build_dir_items(dirs, show_files)
+
+
 @utility_router.post("/dirlist")
 @auth_check(LEVEL_OPERATOR)
 async def dirlist(request: Request) -> Response:
@@ -83,14 +99,8 @@ async def dirlist(request: Request) -> Response:
     try:
         form = await request.form()
         in_dir = unquote(form.get("dir") or "")
-        if not in_dir or in_dir == "/":
-            dirs = _list_root_dirs()
-        else:
-            target = os.path.normpath(in_dir)
-            if not os.path.isdir(target):
-                target = os.path.dirname(target)
-            dirs = [os.path.join(target, name) for name in os.listdir(target)]
-        items = _build_dir_items(dirs, form.get("filter") != "HIDE_FILES_FILTER")
+        items = await run_in_threadpool(
+            _collect_dir_items, in_dir, form.get("filter") != "HIDE_FILES_FILTER")
     except Exception as err:
         log.exception("[App]加载路径失败: ")
         error = str(err)

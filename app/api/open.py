@@ -2,7 +2,8 @@ import json
 import re
 import xml.dom.minidom
 
-from fastapi import APIRouter, Request, Response
+from fastapi import APIRouter, BackgroundTasks, Request, Response
+from starlette.concurrency import run_in_threadpool
 
 import log
 from app.conf.moduleconf import ModuleConf
@@ -70,7 +71,7 @@ async def wechat(request: Request, appid: str | None = None):
 
 @open_router.post("/wechat")
 @auth_required
-async def wechat_post(request: Request):
+async def wechat_post(request: Request, background_tasks: BackgroundTasks):
 
     try:
 
@@ -131,7 +132,10 @@ async def wechat_post(request: Request):
             if conf.get("adminUser") and not any(
                 user_id == admin_user for admin_user in str(conf.get("adminUser")).split(";")
             ):
-                MessageService().send_channel_msg(channel=SearchType.WX, title="用户无权限执行菜单命令", user_id=user_id)
+                background_tasks.add_task(MessageService().send_channel_msg,
+                                          channel=SearchType.WX,
+                                          title="用户无权限执行菜单命令",
+                                          user_id=user_id)
                 return Response(content="", status_code=200)
 
             event_key = DomUtils.tag_value(root_node, "EventKey")
@@ -146,12 +150,12 @@ async def wechat_post(request: Request):
 
         if content:
             log.info(f"收到微信消息: userid={user_id}, text={content}")
-            CommandHandler().handle_message_job(msg=content,
-                                                in_from=SearchType.WX,
-                                                user_id=user_id,
-                                                user_name=user_id,
-                                                client_id = str(agent_client.get("id"))
-            )
+            background_tasks.add_task(CommandHandler().handle_message_job,
+                                      msg=content,
+                                      in_from=SearchType.WX,
+                                      user_id=user_id,
+                                      user_name=user_id,
+                                      client_id=str(agent_client.get("id")))
 
         return Response(content=content, status_code=200)
 
@@ -162,7 +166,7 @@ async def wechat_post(request: Request):
 # 微信发送消息
 @open_router.post("/sendwechat")
 @auth_required
-async def sendwechat(request: Request, appid: str | None = None):
+async def sendwechat(request: Request, background_tasks: BackgroundTasks, appid: str | None = None):
     
     if not SecurityCenter().check_mediaserver_ip(request.client.host):
         log.warn(f"非法IP地址的媒体服务器消息通知: {request.client.host}")
@@ -188,12 +192,11 @@ async def sendwechat(request: Request, appid: str | None = None):
     if not message:
         return Response(content="请填写消息内容", status_code=200)
 
-    MessageService().send_custom_message(
-        clients=[str(assign_app.get("id"))],
-        title=title,
-        text=message,
-        image=req_json.get("image")
-    )
+    background_tasks.add_task(MessageService().send_custom_message,
+                              clients=[str(assign_app.get("id"))],
+                              title=title,
+                              text=message,
+                              image=req_json.get("image"))
     return Response(content="ok", status_code=200)
 
 
@@ -264,7 +267,7 @@ async def emby_webhook(request: Request):
 # Telegram消息响应
 @open_router.post("/telegram")
 @auth_required
-async def telegram(request: Request):
+async def telegram(request: Request, background_tasks: BackgroundTasks):
     interactive_clients = MessageService().get_interactive_client(SearchType.TG)
     if not interactive_clients:
         return Response(content="NAStool未启用Telegram交互", status_code=200)
@@ -286,28 +289,31 @@ async def telegram(request: Request):
             log.info(f"收到Telegram消息: userid={user_id}, username={user_name}, text={text}")
             if text.startswith("/"):
                 if str(user_id) not in interactive_client.get("client").get_admin():
-                    MessageService().send_channel_msg(channel=SearchType.TG,
-                                               title="只有管理员才有权限执行此命令",
-                                               user_id=user_id)
+                    background_tasks.add_task(MessageService().send_channel_msg,
+                                              channel=SearchType.TG,
+                                              title="只有管理员才有权限执行此命令",
+                                              user_id=user_id)
                     return Response(content="只有管理员才有权限执行此命令", status_code=200)
             else:
                 if str(user_id) not in interactive_client.get("client").get_users():
-                    MessageService().send_channel_msg(channel=SearchType.TG,
-                                               title="你不在用户白名单中，无法使用此机器人",
-                                               user_id=user_id)
+                    background_tasks.add_task(MessageService().send_channel_msg,
+                                              channel=SearchType.TG,
+                                              title="你不在用户白名单中，无法使用此机器人",
+                                              user_id=user_id)
                     return Response(content="你不在用户白名单中，无法使用此机器人", status_code=200)
 
-            CommandHandler().handle_message_job(msg=text,
-                                                in_from=SearchType.TG,
-                                                user_id=user_id,
-                                                user_name=user_name)
+            background_tasks.add_task(CommandHandler().handle_message_job,
+                                      msg=text,
+                                      in_from=SearchType.TG,
+                                      user_id=user_id,
+                                      user_name=user_name)
     return Response(content="Ok", status_code=200)
 
 
 # Synology Chat消息响应
 @open_router.post("/synology")
 @auth_required
-async def synology(request: Request):
+async def synology(request: Request, background_tasks: BackgroundTasks):
     interactive_clients = MessageService().get_interactive_client(SearchType.SYNOLOGY)
     if not interactive_clients:
         return Response(content="NAStool未启用Synology Chat交互", status_code=200)
@@ -331,17 +337,18 @@ async def synology(request: Request):
 
         if text:
             log.info(f"收到Synology Chat消息: userid={user_id}, username={user_name}, text={text}")
-            CommandHandler().handle_message_job(msg=text,
-                                                in_from=SearchType.SYNOLOGY,
-                                                user_id=user_id,
-                                                user_name=user_name)
+            background_tasks.add_task(CommandHandler().handle_message_job,
+                                      msg=text,
+                                      in_from=SearchType.SYNOLOGY,
+                                      user_id=user_id,
+                                      user_name=user_name)
     return Response(content="Ok", status_code=200)
 
 
 # Slack消息响应
 @open_router.post("/slack")
 @auth_required
-async def slack(request: Request):
+async def slack(request: Request, background_tasks: BackgroundTasks):
     if not SecurityCenter().check_slack_ip(request.client.host):
         log.warn(f"非法IP地址的Slack消息通知: {request.client.host}")
         return Response(content="不允许的IP地址请求", status_code=403)
@@ -372,11 +379,21 @@ async def slack(request: Request):
             return Response(content="Error", status_code=400)
 
         log.info(f"收到Slack消息: userid={userid}, username={username}, text={text}")
-        CommandHandler().handle_message_job(msg=text,
-                                            in_from=SearchType.SLACK,
-                                            user_id=userid,
-                                            user_name=username)
+        background_tasks.add_task(CommandHandler().handle_message_job,
+                                  msg=text,
+                                  in_from=SearchType.SLACK,
+                                  user_id=userid,
+                                  user_name=username)
     return Response(content="Ok", status_code=200)
+
+
+def _add_subscribe(**kwargs):
+    """
+    在线程池中添加订阅
+
+    add_rss_subscribe 内含 TMDB 查询、DB 写入等同步 IO，不能直接跑在事件循环上。
+    """
+    return Subscribe().add_rss_subscribe(**kwargs)
 
 
 # Jellyseerr Overseerr订阅接口
@@ -402,7 +419,8 @@ async def subscribe(request: Request):
     user_name = req_json.get("request", {}).get("requestedBy_username")
 
     if media_type == MediaType.MOVIE:
-        code, msg, _ = Subscribe().add_rss_subscribe(
+        code, msg, _ = await run_in_threadpool(
+            _add_subscribe,
             mtype=media_type,
             name=meta_info.get_name(),
             year=meta_info.year,
@@ -418,7 +436,8 @@ async def subscribe(request: Request):
                 seasons = [int(str(sea).strip()) for sea in extra.get("value").split(", ") if str(sea).isdigit()]
                 break
         for season in seasons:
-            code, msg, _ = Subscribe().add_rss_subscribe(
+            code, msg, _ = await run_in_threadpool(
+                _add_subscribe,
                 mtype=media_type,
                 name=meta_info.get_name(),
                 year=meta_info.year,

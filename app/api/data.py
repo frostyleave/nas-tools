@@ -1,8 +1,9 @@
 import copy
 import os
 import threading
+from typing import Annotated
 
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Body, Depends
 from fastapi.encoders import jsonable_encoder
 from fastapi.responses import JSONResponse
 
@@ -589,11 +590,10 @@ def plugin(current_user: CurrentUser):
 # 插件运行历史（插件通过 history() 写入 PLUGIN_HISTORY 的记录）
 @data_router.post("/plugin_history")
 @auth_check(LEVEL_OPERATOR)
-async def plugin_history(request: Request):
+def plugin_history(data: Annotated[dict, Body(...)]):
     """
     获取已安装插件的运行历史，按记录ID倒序返回
     """
-    data = await request.json()
     plugin_id = data.get("plugin_id") or ""
     if not plugin_id:
         return response(code=1, msg="参数错误")
@@ -998,11 +998,10 @@ def download_setting():
 # TMDB缓存页面
 @data_router.post("/tmdbcache")
 @auth_check(LEVEL_OPERATOR)
-async def tmdbcache(request: Request):
+def tmdbcache(data: Annotated[dict, Body(...)]):
     """
     TMDB缓存页面
     """
-    data = await request.json()
     current_page, page_num, search_str = _parse_page_params(data)
 
     total_count, tmdb_caches = MetaHelper().dump_meta_data(search_str, current_page, page_num)
@@ -1020,11 +1019,10 @@ async def tmdbcache(request: Request):
 # 历史记录页面
 @data_router.post("/history")
 @auth_check(LEVEL_OPERATOR)
-async def history(request: Request):
+def history(data: Annotated[dict, Body(...)]):
     """
     历史记录页面
     """
-    data = await request.json()
     current_page, page_size, search_str = _parse_page_params(data)
 
     # 查询
@@ -1060,11 +1058,10 @@ async def history(request: Request):
 # 手工识别页面
 @data_router.post("/unidentification")
 @auth_check(LEVEL_OPERATOR)
-async def unidentification(request: Request):
+def unidentification(data: Annotated[dict, Body(...)]):
     """
     手工识别页面
     """
-    data = await request.json()
     current_page, page_num, search_str = _parse_page_params(data)
 
     # 查询
@@ -1169,12 +1166,10 @@ def _get_library_spacesize():
 
 # 下载历史页面
 @data_router.post("/download_history")
-async def download_history(request: Request):
+def download_history(data: Annotated[dict, Body(...)]):
     """
     下载历史页面
     """
-    data = await request.json()
-
     search_type = data.get("type") or ""
     search_tmdbid = data.get("tmdbid") or ""
     search_site = data.get("site") or ""

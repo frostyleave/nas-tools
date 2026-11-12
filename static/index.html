@@ -1424,9 +1424,9 @@
       axios_post('/data/bing', {}, function (response) {
         if (response.code === 0 && response.data) {
           var data = response.data;
-          // 设置背景图片
+          // 壁纸设在根元素上，保证任何视口尺寸/安全区都有底图，模糊层再从变量取图
           if (data.imgUrl) {
-            $("body").css("background", `url(${data.imgUrl}) center / cover no-repeat fixed`);
+            document.documentElement.style.setProperty("--app-wallpaper", `url(${data.imgUrl})`);
           }
           // 显示图片信息
           $('#image-title').text(data.imgTitle);

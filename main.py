@@ -84,7 +84,7 @@ async def robots():
 
 # 主页面
 @app.get("/", response_class=HTMLResponse)
-async def home_page():
+def home_page():
     return render_html(
             "static/index.html",
             headers={
