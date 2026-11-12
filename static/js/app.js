@@ -17,8 +17,8 @@ let InitialPageLoadStarted = false;
 // 页面在菜单创建前已加载时，等待菜单就绪后再补执行菜单激活和页面后处理
 let PendingPageState = false;
 
-// 菜单切换序号：每次点击菜单自增，页面加载完成时仅最新一次切换播液态过渡
-let PageLiquidSeq = 0;
+// 菜单切换序号：每次点击菜单自增，页面加载完成时仅最新一次切换播放淡入过渡
+let PageSwitchSeq = 0;
 
 // 轮询管理器：收集所有需要停止的函数
 const PollingManager = {
@@ -324,7 +324,7 @@ function loadPage(htmlPath, queryString, navPath) {
   showPageLoading();
 
   // 记录本次加载所属的菜单切换序号（0 表示首次加载/刷新等非菜单切换）
-  const liquidSeq = PageLiquidSeq;
+  const switchSeq = PageSwitchSeq;
 
   // 1. 页面片段自带的静态参数（来自菜单配置的 html，如 rss.html?t=TV）
   let params = {};
@@ -381,8 +381,8 @@ function loadPage(htmlPath, queryString, navPath) {
   // 直接加载HTML文件
   $("#page-content").load(htmlPath, function(_, status, xhr) {
 
-    // 隐藏等待动画并关闭加载标记（菜单切换时顺带播放液态展开）
-    hidePageLoading(liquidSeq);
+    // 隐藏等待动画并关闭加载标记（菜单切换时顺带播放页面淡入）
+    hidePageLoading(switchSeq);
 
     if (status == "error") {
       $("#page-content").html(`<system-error title="${xhr.status}" text="${xhr.statusText || ''}"></system-error>`);
@@ -466,8 +466,8 @@ function navmenu(page, params) {
     NavParams.set(getMenuId(page), params);
   }
 
-  // 标记本次为菜单切换，加载完成后播放页面液态展开
-  PageLiquidSeq++;
+  // 标记本次为菜单切换，加载完成后播放页面淡入
+  PageSwitchSeq++;
 
   // 解除滚动事件
   $(window).unbind('scroll');
@@ -485,9 +485,10 @@ function navmenu(page, params) {
 
 }
 
-// 页面切换：显示加载动画，隐藏页面内容
+// 页面切换：显示加载动画
+// 不隐藏当前页面内容：新片段返回后会整体替换，提前隐藏会让整个页面区域（含滚动条布局）
+// 先塌缩成空白，表现为切换到哪一页都先闪一下
 function showPageLoading() {
-  $("#page-content").hide();
   NavPageLoading = true;
   if (PageLoadingToken === null) {
     PageLoadingToken = LoadingOverlay.show();
@@ -495,14 +496,14 @@ function showPageLoading() {
 }
 
 // 页面切换完成：显示页面内容并释放页面加载动画
-// liquidSeq 为触发本次加载的菜单切换序号，仅最新一次菜单切换才播放液态展开
-function hidePageLoading(liquidSeq) {
+// switchSeq 为触发本次加载的菜单切换序号，仅最新一次菜单切换才播放淡入
+function hidePageLoading(switchSeq) {
   // 清理页面内自行使用的加载提示（如 ranking 页）
   $("#loading-tips").hide();
   $("#page-content").show();
 
-  if (liquidSeq && liquidSeq === PageLiquidSeq) {
-    playPageLiquidReveal(document.getElementById("page-content"));
+  if (switchSeq && switchSeq === PageSwitchSeq) {
+    playPageFadeIn(document.getElementById("page-content"));
   }
 
   NavPageLoading = false;
@@ -512,19 +513,19 @@ function hidePageLoading(liquidSeq) {
   }
 }
 
-// 页面液态展开：重挂 class 触发 CSS 动画，支持连续切换时反复播放
-function playPageLiquidReveal(el) {
+// 页面淡入：重挂 class 触发 CSS 动画，支持连续切换时反复播放
+function playPageFadeIn(el) {
   if (!el) return;
-  el.classList.remove("page-liquid-reveal");
+  el.classList.remove("page-fade-in");
   void el.offsetWidth; // 强制回流，保证动画重新开始
-  el.classList.add("page-liquid-reveal");
+  el.classList.add("page-fade-in");
 
   // 用定时器（略长于动画时长）清理，连续切换时重置，不依赖 animationend
-  if (el._liquidRevealTimer) clearTimeout(el._liquidRevealTimer);
-  el._liquidRevealTimer = setTimeout(() => {
-    el.classList.remove("page-liquid-reveal");
-    el._liquidRevealTimer = null;
-  }, 700);
+  if (el._pageFadeTimer) clearTimeout(el._pageFadeTimer);
+  el._pageFadeTimer = setTimeout(() => {
+    el.classList.remove("page-fade-in");
+    el._pageFadeTimer = null;
+  }, 600);
 }
 
 

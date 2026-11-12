@@ -2552,6 +2552,8 @@ class MediaService:
         """
         if not mediaid:
             return None
+
+        mediaService = MediaService()
         media_info = None
         if str(mediaid).startswith("DB:"):
             # 豆瓣
@@ -2561,7 +2563,6 @@ class MediaService:
                 return None
             
             title = douban_info.get("title")
-            original_title = douban_info.get("original_title")
             year = douban_info.get("year")
 
             if not mtype and douban_info.get("subtype"):
@@ -2573,16 +2574,18 @@ class MediaService:
             if mtype == MediaType.TV and re.search(rf'{DB_SEASON_SUFFIX}', title, flags=re.IGNORECASE):
                 title, begin_season = MediaUtils.resolve_douban_season_tag(title)
 
-            tmdb_info = MediaService().query_tmdb_info(title, mtype, year, begin_season, append_to_response="all")
+            # 匹配TMDB数据
+            tmdb_info = mediaService.query_tmdb_info(title, mtype, year, begin_season, append_to_response="all")
             if not tmdb_info:
                 log.warn(f"【Douban】根据名称[{title}]查询tmdb数据失败")
+                original_title = douban_info.get("original_title")
                 if original_title:
                     log.info(f"【Douban】尝试根据别名[{original_title}]查询tmdb数据")
-                    tmdb_info = MediaService().query_tmdb_info(original_title, mtype, year, begin_season, append_to_response="all")
+                    tmdb_info = mediaService.query_tmdb_info(original_title, mtype, year, begin_season, append_to_response="all")
                     if not tmdb_info:
-                        log.info(f"【Douban】尝试根据别名[{original_title}]查询tmdb数据失败")
+                        log.warn(f"【Douban】尝试根据别名[{original_title}]查询tmdb数据失败")
                     else:
-                        log.info(f"【Douban】根据别名[{original_title}]查询tmdb数据成功！")
+                        log.info(f"【Douban】根据别名[{original_title}]查询tmdb数据成功")
 
             if not tmdb_info:
                 return None
@@ -2592,44 +2595,45 @@ class MediaService:
             media_info.set_tmdb_info(tmdb_info)
             media_info.begin_season = begin_season
             media_info.douban_id = doubanid
+            media_info.douban_vote = douban_info.get('rating', {}).get('average', 0)
 
-            return media_info
-        
+            return media_info # 豆瓣资源, 数据已全部补全, 可直接返回
+
+        # BANGUMI 动漫, 需要补全TMDB信息
         if str(mediaid).startswith("BG:"):
-            # BANGUMI
             bangumiid = str(mediaid)[3:]
-            info = Bangumi().detail(bid=bangumiid)
-            if not info:
+            bangumi_info = Bangumi().detail(bid=bangumiid)
+            if not bangumi_info:
                 return None
-            
-            title = info.get("name_cn")
-            year = info.get("date")[:4] if info.get("date") else ""
-            media_info = MediaService().get_media_info(title=f"{title} {year}",
-                                                mtype=MediaType.ANIME,
-                                                append_to_response="all")
-            
+            # 先使用中文名检索
+            title = bangumi_info.get("name_cn")
+            year = bangumi_info.get("date")[:4] if bangumi_info.get("date") else ""
+            media_info = mediaService.get_media_info(title=f"{title} {year}".strip(),
+                                                     mtype=MediaType.ANIME,
+                                                     append_to_response="all")
+            # 使用默认名称检索
             if not media_info or not media_info.tmdb_info:
-                title = info.get("name")
-                media_info = MediaService().get_media_info(title=f"{title} {year}",
-                                                    mtype=MediaType.ANIME,
-                                                    append_to_response="all")
+                title = bangumi_info.get("name")
+                media_info = mediaService.get_media_info(title=f"{title} {year}",
+                                                         mtype=MediaType.ANIME,
+                                                         append_to_response="all")
         else:
-            # TMDB
-            info = MediaService().get_tmdb_info(tmdbid=mediaid, mtype=mtype, append_to_response="all")
-            if not info:
+            # TMDB ID, 查询TMDB详情
+            tmdb_info = mediaService.get_tmdb_info(tmdbid=mediaid, mtype=mtype, append_to_response="all")
+            if not tmdb_info:
                 return None
-            title = MediaUtils.get_tmdb_title(info)
+            title = MediaUtils.get_tmdb_title(tmdb_info)
             media_info = MetaInfo(title)
-            media_info.set_tmdb_info(info)
+            media_info.set_tmdb_info(tmdb_info)
         
         # 豆瓣信息补全
         if media_info:
-            self._fill_douban_info(mtype, media_info)
+            self._fill_douban_info(media_info)
 
         return media_info
     
 
-    def _fill_douban_info(self, mtype:MediaType, media_info:MetaBase):
+    def _fill_douban_info(self, media_info:MetaBase):
         """
         补全豆瓣信息: 豆瓣id, 剧集名称
         """
@@ -2649,10 +2653,7 @@ class MediaService:
             if not str(doubanid).isdigit():
                 doubanid = re.search(r"\d+", doubanid).group(0)
             media_info.douban_id = doubanid
-
-            # 电影类型，不再进行后续操作
-            if mtype == MediaType.MOVIE:
-                return
+            media_info.douban_vote = douban_info.get('rating', {}).get('average', 0)
 
         except Exception as err:
             log.exception('[Web]补全豆瓣信息失败: ')

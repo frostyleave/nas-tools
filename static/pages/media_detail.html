@@ -74,11 +74,16 @@
             genresHtml = `<div class="list-inline-item">${info.year}</div>` + genresHtml;
           }
 
-          const doubanHtml = info.douban_id ? 
-              `<span id="doubanid-link-tag" class="mb-1 ms-1 d-inline-flex"><i class="ti ti-brand-douban fs-2 text-green"></i> ${renderDoubanLink(info.douban_id)}</span>` : '';          
+          var posterSrc = info.image || '../static/img/no-image.svg';
+          if (isDoubanImgUrl(posterSrc)) {
+            posterSrc = '/doubanimg?url=' + posterSrc;
+          }
+
+          const doubanHtml = info.douban_id ?
+              `<span id="doubanid-link-tag" class="mb-1 ms-1 d-inline-flex">${renderDoubanScore(info.douban_id, info.vote)}</span>` : '';
 
           const tmdbHtml = info.tmdbid && !info.tmdbid.includes(':') && info.link ?
-            `<span id="tmdbid-link-tag" class="mb-1 d-inline-flex"><i class="ti ti-badge-tm fs-2 text-blue"></i><a class="text-reset" href="${info.link}" target="_blank">${info.tmdbid}</a></span>` : '';
+            `<span id="tmdbid-link-tag" class="mb-1 d-inline-flex"><a id="tmdb-score-link" class="text-reset d-inline-flex align-items-center" href="${info.link}" target="_blank"><i class="ti ti-badge-tm fs-2 text-blue me-1"></i><span id="tmdb-score-text">${formatScore(info.vote)}</span></a></span>` : '';
 
           const searchBtnHtml = `
               <span class="btn btn-primary d-sm-inline-flex px-3 badge-pill" id="search-btn">
@@ -102,13 +107,12 @@
           <div id="main-card" class="card rounded-0 custom-media-info-height bg-transparent">
             <div id="main-info-background" class="card-img-overlay rounded-0">
               <div class="d-flex flex-row mb-4 align-items-stretch justify-content-center justify-content-md-start">
-                <custom-img id="main-poster-card" class="d-none d-md-flex justify-content-center flex-shrink-0 me-3" div-style="position:relative;"
-                  img-class="rounded-3 object-cover lit-media-info-image"
-                  img-error="0"
-                  img_vote="${info.vote}"
-                  img_mark="${fav == "2" ? "1" : "0"}"
-                  img-src="${info.image}">
-                </custom-img>
+                <div class="d-none d-md-flex justify-content-center flex-shrink-0 zoom-hover me-3" style="position:relative;">
+                  <img id="main-poster-card" class="rounded-3 object-cover lit-media-info-image" alt="" src="${posterSrc}"
+                    onerror="this.onerror=null;this.src='../static/img/no-image.svg';">
+                  ${info.vote ? `<div class="badge badge-pill bg-purple" style="position:absolute; top:10px; right:10px">${info.vote}</div>` : ''}
+                  ${fav == "2" ? `<div class="card-right-bottom-ribbon"><i class="ti ti-check"></i></div>` : ''}
+                </div>
                 <div class="d-flex flex-column align-items-center justify-content-end">
                   <div>
                     <h1 class="display-6 text-start text-shadow-b1">
@@ -134,10 +138,8 @@
             <h1 class="ms-2">
               <strong>简介</strong>
             </h1>
-            <div class="col-lg-9 py-2 row-cards overview-container liquid-glass-panel">
-              <h2 class="ms-3 me-2 secondry-text-color">
-                <small>${info.overview ?? ''}</small>
-              </h2>
+            <div class="col-lg-9 p-3 row-cards overview-container liquid-glass-panel">
+              <span class="text-reset fs-3 cursor-pointer">${info.overview ?? ''}</span>
             </div>
           </div>
           `;
@@ -201,18 +203,19 @@
         // 最新季
         var latestSeason = seasons[0];
 
+        // 最新季是否还未更新完
+        var latestEp = latestSeason.episode_count ? getLatestEpisode(tmdb_info, latestSeason) : 0;
+        var unfinished = latestEp > 0 && latestEp < latestSeason.episode_count;
+
         // 绘制更新进度标签
-        if (!document.getElementById('progress-tag') && latestSeason.episode_count) {
-          var latestEp = getLatestEpisode(tmdb_info, latestSeason);
-          if (latestEp) {
-            var progressHtml = '';
-            if (latestEp < latestSeason.episode_count) {
-              progressHtml = `<span id="progress-tag" class="mb-1 me-1 d-inline-flex fw-bold"><i class="ti ti-flame2 fs-2 text-google"></i>${latestEp}/${latestSeason.episode_count}</span>`;
-            } else {
-              progressHtml = `<span id="progress-tag" class="mb-1 me-1 d-inline-flex fw-bold"><i class="ti ti-circle-check fs-2 text-google"></i>已完结</span>`;
-            }
-            $('#tags-container').append(progressHtml);
+        if (!document.getElementById('progress-tag') && latestSeason.episode_count && latestEp) {
+          var progressHtml = '';
+          if (unfinished) {
+            progressHtml = `<span id="progress-tag" class="mb-1 me-1 d-inline-flex fw-bold"><i class="ti ti-flame2 fs-2 text-google"></i>${latestEp}/${latestSeason.episode_count}</span>`;
+          } else {
+            progressHtml = `<span id="progress-tag" class="mb-1 me-1 d-inline-flex fw-bold"><i class="ti ti-circle-check fs-2 text-google"></i>已完结</span>`;
           }
+          $('#tags-container').append(progressHtml);
         }
 
         // 只有1季 不单独展示面板
@@ -238,10 +241,7 @@
         var fallbackPoster = '';
         var el = document.getElementById('main-poster-card');
         if (el) {
-          fallbackPoster = el.getAttribute('img-src') || '';
-          if (isDoubanImgUrl(fallbackPoster)) {
-            fallbackPoster = '/doubanimg?url=' + fallbackPoster;
-          }
+          fallbackPoster = el.getAttribute('src') || '';
         }
 
         // 二次渲染时保留当前选中的季
@@ -271,16 +271,20 @@
                   <img alt="海报" class="d-block w-100" src="${posterPath}">
                 </div>
                 <div class="col ms-3 mt-2">
-                  <h3>${season.name}</h3>
-                  <small><span class="badge badge-pill px-2">共 ${season.episode_count} 集</span></small>
-                  <p class="secondry-text-color mt-1">${season.overview ?? ''}</p>
+                  <div class="d-flex align-items-center">
+                    <h3 class="mb-0 me-2 lh-1">${season.name}</h3>
+                    <small class="lh-1">${index === 0 && unfinished
+                      ? `<span class="d-inline-flex align-items-center fw-bold lh-1"><i class="ti ti-flame2 fs-2 text-google"></i>${latestEp}/${season.episode_count}</span>`
+                      : `<span class="badge badge-pill px-2">共 ${season.episode_count} 集</span>`}</small>
+                  </div>
+                  <p class="mt-1 season-overview cursor-pointer">${season.overview ?? ''}</p>
                 </div>
               </div>
             </div>`;
         });
 
         innerHtml += `
-          <div class="mx-1 rounded-3 overflow-hidden text-white liquid-glass-panel" style="max-width: 43rem;">
+          <div class="mx-1 rounded-3 overflow-hidden liquid-glass-panel" style="max-width: 43rem;">
             <ul class="nav nav-tabs mb-0" role="tablist">${tabsHtml}</ul>
             <div class="tab-content">${panesHtml}</div>
           </div>`;
@@ -349,22 +353,26 @@
 
         if (!document.getElementById('tmdbid-link-tag')) {
           if (info.tmdbid && !info.tmdbid.includes(':') && info.link) {
-            var tmdbHtml = `<span id="tmdbid-link-tag" class="mb-1 d-inline-flex"><i class="ti ti-badge-tm fs-2 text-blue"></i><a class="text-reset" href="${info.link}" target="_blank">${info.tmdbid}</a></span>`;
+            var tmdbHtml = `<span id="tmdbid-link-tag" class="mb-1 d-inline-flex"><a id="tmdb-score-link" class="text-reset d-inline-flex align-items-center" href="${info.link}" target="_blank"><i class="ti ti-badge-tm fs-2 text-blue"></i><span id="tmdb-score-text">${formatScore(info.vote)}</span></a></span>`;
             if (document.getElementById('doubanid-link-tag')) {
               $('#doubanid-link-tag').before(tmdbHtml);
             } else {
               $('#tags-container').append(tmdbHtml);
             }
           }
+        } else if (info.vote) {
+          $('#tmdb-score-text').text(formatScore(info.vote));
         }
 
         if (!document.getElementById('doubanid-link-tag') && info.douban_id) {
-            var doubanHtml = `<span id="doubanid-link-tag" class="mb-1 ms-1 d-inline-flex"><i class="ti ti-brand-douban fs-2 text-green"></i> ${renderDoubanLink(info.douban_id)}</span>`;
+            var doubanHtml = `<span id="doubanid-link-tag" class="mb-1 ms-1 d-inline-flex">${renderDoubanScore(info.douban_id, info.douban_vote)}</span>`;
             if (document.getElementById('tmdbid-link-tag')) {
               $('#tmdbid-link-tag').after(doubanHtml);
             } else {
               $('#tags-container').append(doubanHtml);
             }
+        } else if (info.douban_vote) {
+          $('#douban-score-text').text(formatScore(info.douban_vote));
         }
 
       }
@@ -375,7 +383,10 @@
           return;
         }
 
-        $('#background-carousel').remove();
+        // 已存在背景轮播时不重复构建，否则背景会消失再淡入，表现为整页闪一下
+        if (document.getElementById('background-carousel')) {
+          return;
+        }
 
         const bgCarousel = document.createElement('custom-img');
         bgCarousel.setAttribute('id', 'background-carousel');
@@ -527,11 +538,14 @@
 
       }
 
-      function renderDoubanLink(douban_id) {
+      function formatScore(vote) {
+          return Number(vote || 0).toFixed(1);
+      }
+
+      function renderDoubanScore(douban_id, vote) {
           if (!douban_id) return '';
-          return douban_id.split(',').map(id => 
-              `<a class="text-reset" href="https://movie.douban.com/subject/${id}" target="_blank">${id}</a> `
-          ).join('');
+          var id = String(douban_id).split(',')[0];
+          return `<a id="douban-score-link" class="text-reset d-inline-flex align-items-center" href="https://movie.douban.com/subject/${id}" target="_blank"><i class="ti ti-brand-douban fs-2 text-green"></i><span id="douban-score-text">${formatScore(vote)}</span></a>`;
       }
 
       // --- 事件绑定辅助函数 ---

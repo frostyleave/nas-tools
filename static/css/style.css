@@ -263,7 +263,16 @@ body.theme-dark::after {
     border: none;
 }
 
-.lit-normal-card:hover {
+.normal-card-content .card-img {
+    display: block; 
+    min-width: 100%; 
+    max-width: 100%; 
+    min-height: 100%; 
+    max-height: 100%; 
+    object-fit: cover;
+}
+
+.zoom-hover:hover {
     transform: scale(1.05, 1.05);
     opacity: 1;
 }
@@ -289,7 +298,7 @@ body.theme-dark::after {
 
 .lit-poster-card:hover {
     z-index: 2;
-    transform: translateY(-2px);
+    transform: scale(1.05, 1.05);
     border-color: rgba(15, 23, 42, 0.12);
     box-shadow: 0 8px 24px rgba(15, 23, 42, 0.1);
 }
@@ -364,6 +373,18 @@ body.theme-dark::after {
     pointer-events: auto;
     transition: opacity 180ms cubic-bezier(0.22, 1, 0.36, 1),
                 visibility 0s;
+}
+
+.lit-poster-card.poster-card-no-overview .poster-card-overlay {
+    background: linear-gradient(to top,
+        rgba(9, 12, 18, 0.86) 0,
+        rgba(9, 12, 18, 0.72) 44px,
+        rgba(9, 12, 18, 0) 64px);
+}
+
+.lit-poster-card.poster-card-no-overview .poster-card-content::after {
+    opacity: 0;
+    visibility: hidden;
 }
 
 .poster-card-info,
@@ -1696,9 +1717,16 @@ a:hover {
 }
 
 .liquid-glass-panel .nav-tabs {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scrollbar-width: thin;
     gap: .25rem;
     padding: .5rem .75rem;
     border-bottom: 1px solid rgb(255 255 255 / 12%);
+}
+
+.liquid-glass-panel .nav-tabs .nav-item {
+    flex: 0 0 auto;
 }
 
 .liquid-glass-panel .nav-tabs .nav-link {
@@ -1914,6 +1942,13 @@ h1.login_title>label {
     border: 1px solid var(--lit-person-card-bg);
 }
 
+.season-overview {
+    line-height: 1.5;
+    max-height: 18em;
+    overflow-y: auto;
+    scrollbar-width: thin;
+}
+
 .secondry-text-color {
     color: white !important;
     text-shadow: 1px 1px 2px rgba(0, 0, 0, 1.0);
@@ -2035,28 +2070,19 @@ div#main-info-container > * {
     vertical-align: middle;
 }
 
-/* 菜单切换：新页面内容像液体一样从顶部带圆角边缘流下展开 */
-#page-content.page-liquid-reveal {
-    animation: page-liquid-reveal 620ms cubic-bezier(0.22, 1, 0.36, 1);
-    will-change: clip-path, opacity;
+/* 菜单切换：新页面内容淡入
+ * 只做透明度过渡，不要改回整页 clip-path 动画：clip-path 每帧都要重绘整个页面，
+ * 页面里有 fixed 背景层和 backdrop-filter 玻璃面板时，部分浏览器会出现整页/局部闪烁 */
+#page-content.page-fade-in {
+    animation: page-fade-in 420ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-@keyframes page-liquid-reveal {
+@keyframes page-fade-in {
     0% {
         opacity: 0;
-        clip-path: inset(0 0 100% 0 round 0 0 50% 50% / 0 0 22px 22px);
-    }
-    20% {
-        opacity: 1;
-    }
-    /* 前 80% 让液面扫过整个可视区域；剩余长页面在最后一段时间里于视口外展开 */
-    80% {
-        opacity: 1;
-        clip-path: inset(0 0 calc(100% - 92vh) 0 round 0 0 50% 50% / 0 0 22px 22px);
     }
     100% {
         opacity: 1;
-        clip-path: inset(0 0 0 0 round 0);
     }
 }
 

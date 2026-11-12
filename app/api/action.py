@@ -3383,7 +3383,9 @@ class WebAction:
             "background": media_handler.get_tmdb_backdrops(tmdbinfo=media_info.tmdb_info),
             "crews": crews,
             "link": media_info.get_detail_url(),
-            "overview" : media_info.overview
+            "overview" : media_info.overview,
+            "vote": round(float(media_info.vote_average or 0), 1),
+            "douban_vote": media_info.douban_vote
         }
 
         # 解析季信息

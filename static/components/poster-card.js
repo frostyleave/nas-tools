@@ -109,6 +109,7 @@
       this._leftBadgeEl = this.querySelector('.poster-card-left-badge');
       this._rightBadgeEl = this.querySelector('.poster-card-right-badge');
       this._r18BadgeEl = this.querySelector('.poster-card-r18-badge');
+      this._infoEl = this.querySelector('.poster-card-info');
       this._overviewLineEl = this.querySelector('.poster-card-overview');
       this._bottomEl = this.querySelector('.poster-card-bottom');
       this._titleBarEl = this.querySelector('.poster-card-title-bar');
@@ -235,10 +236,14 @@
       }
 
       // Overlay text（名称不再显示在信息层中）
+      // 无简介时连同外层容器一起隐藏，hover 时才不会留下空的信息区
+      this._infoEl.hidden = !overview;
       this._overviewLineEl.hidden = !overview;
       if (overview) {
         this._overviewLineEl.textContent = overview;
       }
+      // 无简介时 hover 遮罩收缩到操作按钮附近，避免大面积压暗海报
+      this._cardEl.classList.toggle('poster-card-no-overview', !overview);
 
       // Bottom actions
       if (showSub !== this._bottomType || !this._bottomEl.hasChildNodes()) {

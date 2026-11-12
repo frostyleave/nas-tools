@@ -73,6 +73,7 @@ class MetaBase:
     tvdb_id = 0
     # 豆瓣 ID
     douban_id = ""
+    douban_vote = 0
     # 自定义搜索词
     keyword = None
     # 媒体标题
@@ -528,6 +529,7 @@ class MetaBase:
 
         self.tmdb_info = info
         self.douban_id = ''
+        self.douban_vote = 0
         self.vote_average = round(float(info.get('vote_average')), 1) if info.get('vote_average') else 0
         self.overview = info.get('overview')
         self.original_language = info.get('original_language')
