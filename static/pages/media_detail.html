@@ -134,7 +134,7 @@
             <h1 class="ms-2">
               <strong>简介</strong>
             </h1>
-            <div class="col-lg-9 py-2 row-cards overview-container">
+            <div class="col-lg-9 py-2 row-cards overview-container liquid-glass-panel">
               <h2 class="ms-3 me-2 secondry-text-color">
                 <small>${info.overview ?? ''}</small>
               </h2>
@@ -186,19 +186,6 @@
 
       }
       
-      function pickSeason(seasons, targetSeason) {
-        // 空数组保护
-        if (!seasons || seasons.length === 0) return null;
-
-        // 用 $.grep 筛选出 season_number 匹配的项（返回数组）
-        var matched = $.grep(seasons, function (item) {
-          return item.season_number === targetSeason;
-        });
-
-        // 找到就取第一个，否则兜底取最后一个元素
-        return matched.length > 0 ? matched[0] : seasons[seasons.length - 1];
-      }
-
       function renderSeasonInfo(tmdb_info) {
 
         // 没有季信息 不展示
@@ -206,14 +193,21 @@
           return;
         }
 
-        var displaySeason = pickSeason(tmdb_info.seasons, tmdb_info.number_of_seasons);
+        // 季数字从大到小
+        var seasons = tmdb_info.seasons.slice().sort(function (a, b) {
+          return b.season_number - a.season_number;
+        });
+
+        // 最新季
+        var latestSeason = seasons[0];
+
         // 绘制更新进度标签
-        if (!document.getElementById('progress-tag') && displaySeason.episode_count) {
-          var latestEp = getLatestEpisode(tmdb_info, displaySeason);
+        if (!document.getElementById('progress-tag') && latestSeason.episode_count) {
+          var latestEp = getLatestEpisode(tmdb_info, latestSeason);
           if (latestEp) {
             var progressHtml = '';
-            if (latestEp < displaySeason.episode_count) {
-              progressHtml = `<span id="progress-tag" class="mb-1 me-1 d-inline-flex fw-bold"><i class="ti ti-flame2 fs-2 text-google"></i>${latestEp}/${displaySeason.episode_count}</span>`;
+            if (latestEp < latestSeason.episode_count) {
+              progressHtml = `<span id="progress-tag" class="mb-1 me-1 d-inline-flex fw-bold"><i class="ti ti-flame2 fs-2 text-google"></i>${latestEp}/${latestSeason.episode_count}</span>`;
             } else {
               progressHtml = `<span id="progress-tag" class="mb-1 me-1 d-inline-flex fw-bold"><i class="ti ti-circle-check fs-2 text-google"></i>已完结</span>`;
             }
@@ -222,52 +216,75 @@
         }
 
         // 只有1季 不单独展示面板
-        if (tmdb_info.seasons.length <= 1) {
+        if (seasons.length <= 1) {
           return;
         }
 
-        var seasonBadge = tmdb_info.number_of_seasons && tmdb_info.number_of_seasons > 0
-        ? `<span class="badge bg-info-lt text-blue fw-bolder me-1">共 ${tmdb_info.number_of_seasons} 季</span>`
-        : "";
+        var seasonBadge = `<span class="badge bg-info-lt text-blue fw-bolder me-1">共 ${seasons.length} 季</span>`;
 
         var innerHtml = `
           <div class="page-header d-print-none">
             <div class="d-flex justify-content-between">
               <div class="d-inline-flex">
                 <a class="nav-link ms-2 mb-2 cursor-default" href="javascript:void(0)">
-                  <h2 class="my-1"><strong>最新季</strong></h2>
+                  <h2 class="my-1"><strong>季信息</strong></h2>
                   <div class="ms-2">${seasonBadge}</div>
                 </a>
               </div>
             </div>
           </div>`;
 
-        var displaySeason = pickSeason(tmdb_info.seasons, tmdb_info.number_of_seasons);
-        if (displaySeason != null) {
-          var posterPath = displaySeason.poster_path;
-          if (!posterPath || posterPath == '') {
-            var el = document.getElementById('main-poster-card');
-            if (el) {
-              posterPath = el.getAttribute('img-src');
-              if (isDoubanImgUrl(posterPath)) {
-                posterPath = '/doubanimg?url=' + posterPath;
-              }
-            }
+        // 海报兜底使用主海报
+        var fallbackPoster = '';
+        var el = document.getElementById('main-poster-card');
+        if (el) {
+          fallbackPoster = el.getAttribute('img-src') || '';
+          if (isDoubanImgUrl(fallbackPoster)) {
+            fallbackPoster = '/doubanimg?url=' + fallbackPoster;
           }
-          innerHtml +=`
-            <div class="d-flex align-items-stretch mx-1 p-3 rounded-3" style="max-width: 43rem; border: 1px solid var(--lit-person-card-bg); background-color: var(--card-transparent-bg);">
-              <div class="col-auto d-flex align-items-center border border-1">
-                <img alt="海报" class="rounded" style="display: block;min-width: 100%;max-width: 140px;object-fit: cover;" src="${posterPath}">
-              </div>
-              <div class="col ms-3 mt-3">
-                <h3>${displaySeason.name}</h3>
-                <small><span class="badge badge-pill px-2">共 ${displaySeason.episode_count} 集</span></small>
-                <p class="secondry-text-color mt-3">${displaySeason.overview}</p>
-              </div>
-            </div>
-          `;
         }
-        
+
+        // 二次渲染时保留当前选中的季
+        var activeTarget = $('#season-pannel .nav-link.active').attr('data-bs-target');
+        var hasActive = !!(activeTarget && seasons.some(function (season) {
+          return '#season-tab-' + season.season_number === activeTarget;
+        }));
+
+        var tabsHtml = '';
+        var panesHtml = '';
+        seasons.map(function (season, index) {
+          var target = '#season-tab-' + season.season_number;
+          var active = hasActive ? target === activeTarget : index === 0;
+          var posterPath = season.poster_path || fallbackPoster || '../static/img/no-image.svg';
+
+          tabsHtml += `
+            <li class="nav-item" role="presentation">
+              <button class="nav-link ${active ? 'active' : ''}" data-bs-toggle="tab" data-bs-target="${target}" type="button" role="tab" aria-selected="${active}">
+                ${season.name}
+              </button>
+            </li>`;
+
+          panesHtml += `
+            <div class="tab-pane p-3 fade ${active ? 'active show' : ''}" id="season-tab-${season.season_number}" role="tabpanel">
+              <div class="d-flex align-items-stretch">
+                <div class="col-auto d-flex align-items-center align-self-stretch" style="width: 140px;">
+                  <img alt="海报" class="d-block w-100" src="${posterPath}">
+                </div>
+                <div class="col ms-3 mt-2">
+                  <h3>${season.name}</h3>
+                  <small><span class="badge badge-pill px-2">共 ${season.episode_count} 集</span></small>
+                  <p class="secondry-text-color mt-1">${season.overview ?? ''}</p>
+                </div>
+              </div>
+            </div>`;
+        });
+
+        innerHtml += `
+          <div class="mx-1 rounded-3 overflow-hidden text-white liquid-glass-panel" style="max-width: 43rem;">
+            <ul class="nav nav-tabs mb-0" role="tablist">${tabsHtml}</ul>
+            <div class="tab-content">${panesHtml}</div>
+          </div>`;
+
         $('#season-pannel').html(innerHtml);
 
       }
