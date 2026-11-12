@@ -121,8 +121,27 @@ body.no-after::after {
   content: none !important;
 }
 
+body.no-after::before {
+  content: none !important;
+}
+
 .theme-light .page {
     background-color: transparent !important;
+}
+
+body::before {
+    z-index: -1;
+    content: "";
+    position: fixed;
+    inset: -40px;
+    background: inherit;
+    background-attachment: scroll;
+    filter: blur(20px);
+    pointer-events: none;
+}
+
+body.theme-light::before {
+    filter: blur(20px) saturate(150%);
 }
 
 body::after {
@@ -131,13 +150,11 @@ body::after {
     position: fixed;
     inset: 0;
     background: linear-gradient(135deg,var(--tblr-body-bg) 0%,rgba(123, 178, 233, 0.4) 100%);
-    backdrop-filter: blur(20px) saturate(150%);
     pointer-events: none;
 }
 
 body.theme-dark::after {
     background: linear-gradient(135deg, var(--tblr-body-bg) 25%,rgba(0, 0, 0, 0.35) 100%);
-    backdrop-filter: blur(20px);
 }
 
 .tooltip-inner {
