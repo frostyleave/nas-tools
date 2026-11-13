@@ -24,7 +24,10 @@ class NexusPhpSiteUserInfo(_ISiteUserInfo):
     def _parse_site_page(self, html_text):
         html_text = self._prepare_html_text(html_text)
 
-        user_detail = re.search(r"userdetails.php\?id=(\d+)", html_text)
+        # 用户详情链接：常见为 userdetails.php?id=123，部分站点改用 uuid，如 userdetails.php?uuid=xxxx
+        user_detail = re.search(r"userdetails\.php\?id=(\d+)", html_text)
+        if not user_detail:
+            user_detail = re.search(r"userdetails\.php\?uuid=([\w-]+)", html_text)
         if user_detail and user_detail.group().strip():
             self._user_detail_page = user_detail.group().strip().lstrip('/')
             self.userid = user_detail.group(1)

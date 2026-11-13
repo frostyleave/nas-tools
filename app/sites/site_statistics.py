@@ -223,7 +223,7 @@ class SitesDataStatisticsCenter:
         """
         log.info("【Sites】开始执行站点数据统计...")
         try:
-            asyncio.run(self.__refresh_all_site_data(force=True, specify_sites=specify_sites))
+            result = asyncio.run(self.__refresh_all_site_data(force=True, specify_sites=specify_sites))
         except Exception:
             # 命令线程/线程池会吞掉异常，这里必须显式记录，否则统计失败时无任何日志
             log.exception("【Sites】站点数据统计执行失败: ")
@@ -260,13 +260,15 @@ class SitesDataStatisticsCenter:
 
             self.message.send_user_statistics_message(string_list)
         log.info("【Sites】站点数据统计执行完成")
+        # 返回本次刷新的逐站点结果（成功/失败/未解析到的字段），供调用方（如单站点刷新接口）使用
+        return result
 
     async def __refresh_all_site_data(self, force=False, specify_sites=None):
         """
         并发刷新站点下载上传量，默认间隔6小时
         """
         if not self.sites.get_sites():
-            return
+            return {"total": 0, "sites": [], "msg": "没有配置站点"}
 
         with lock:
 
@@ -288,10 +290,12 @@ class SitesDataStatisticsCenter:
 
             if not refresh_sites:
                 if specify_sites:
-                    log.warn(f"【Sites】指定刷新的站点不存在或未启用站点统计：{'、'.join(specify_sites)}")
+                    msg = f"指定刷新的站点不存在或未启用站点统计：{'、'.join(specify_sites)}"
+                    log.warn(f"【Sites】{msg}")
                 else:
-                    log.info("【Sites】没有启用站点统计的站点，跳过站点数据统计")
-                return
+                    msg = "没有启用站点统计的站点，跳过站点数据统计"
+                    log.info(f"【Sites】{msg}")
+                return {"total": 0, "sites": [], "msg": msg}
 
             # 已有有效图标的站点不再重复抓取（懒更新）
             cached_favicon_sites = {
@@ -312,16 +316,24 @@ class SitesDataStatisticsCenter:
             )
             site_user_infos = []
             failed_results = []
+            site_results = []
             for site, result in zip(refresh_sites, results):
                 if isinstance(result, BaseException):
                     log.error(f"【Sites】刷新站点数据异常: {result!s}")
                     failed_results.append((site.name, f"刷新异常: {result!s}"))
+                    site_results.append({"site": site.name, "success": False, "msg": f"刷新异常: {result!s}"})
                     continue
                 site_user_info, fail_reason = result
                 if site_user_info:
                     site_user_infos.append(site_user_info)
+                    site_results.append({
+                        "site": site.name,
+                        "success": True,
+                        "missing": _get_missing_fields(site_user_info)
+                    })
                 else:
                     failed_results.append((site.name, fail_reason or "解析失败"))
+                    site_results.append({"site": site.name, "success": False, "msg": fail_reason or "解析失败"})
 
             # 最终执行结果：汇总成功/失败站点与未解析到的字段，便于排查 Cookie 失效、解析模型不适配等问题
             self.__log_result_summary(refresh_sites, site_user_infos, failed_results)
@@ -345,6 +357,8 @@ class SitesDataStatisticsCenter:
 
             # 更新时间
             self._last_update_time = datetime.now()
+
+            return {"total": len(refresh_sites), "sites": site_results}
 
     def get_pt_site_statistics_history(self, days=7, end_day=None):
         """

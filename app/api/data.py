@@ -897,12 +897,11 @@ def statistics():
     )
 
 
-# 数据统计页面（分站点信息，切换 Tab 时单独请求）
 @data_router.post("/site_statistics")
 @auth_check(LEVEL_OPERATOR)
 def site_statistics():
     """
-    数据统计页面 - 分站点信息
+    数据统计页面 - 站点明细
     """
     site_user_statistics = SitesDataStatisticsCenter().get_site_user_statistics(
         encoding="DICT", with_favicon=True, include_all_sites=True)

@@ -3718,16 +3718,44 @@ class WebAction:
         """
         if not self._current_user:
             return {"code": 1, "msg": "未登录"}
-        
-         # 刷新站点数据
-        if data.get('site'):
-            SitesDataStatisticsCenter().refresh_site_data_now(specify_sites=data.get('site'))
-        else:
-            CommandHandler().handle_message_job("/sta", 
-                                                in_from=SearchType.WEB, 
-                                                user_id=self._current_user.id, 
-                                                user_name=self._current_user.username)
 
+        site_name = data.get('site')
+        if site_name:
+            # 单站点刷新为同步执行，接口返回时刷新已完成，直接返回本次刷新结果
+            result = SitesDataStatisticsCenter().refresh_site_data_now(specify_sites=site_name)
+            if not result:
+                return {"code": 1, "msg": "刷新失败，请查看日志"}
+
+            site_results = result.get("sites") or []
+            if not site_results:
+                return {"code": 1, "msg": result.get("msg") or "站点不存在或未启用站点统计"}
+
+            failed = [item for item in site_results if not item.get("success")]
+            if failed:
+                return {
+                    "code": 1,
+                    "msg": "；".join(f"【{item['site']}】刷新失败：{item.get('msg') or '解析失败'}"
+                                    for item in failed)
+                }
+
+            missing = [item for item in site_results if item.get("missing")]
+            if missing:
+                # 刷新成功但有字段未解析到，交给前端提示
+                return {
+                    "code": 0,
+                    "msg": "刷新完成，但" + "；".join(
+                        f"【{item['site']}】以下字段未解析到：{'、'.join(item['missing'])}"
+                        for item in missing),
+                    "missing": missing
+                }
+
+            return {"code": 0, "msg": "刷新完成", "result": site_results}
+
+        # 全部站点刷新耗时较长，仍走后台任务
+        CommandHandler().handle_message_job("/sta",
+                                            in_from=SearchType.WEB,
+                                            user_id=self._current_user.id,
+                                            user_name=self._current_user.username)
         return {"code": 0, "msg": "已提交"}
 
     def __get_default_rss_setting(self, data):

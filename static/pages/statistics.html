@@ -1,12 +1,12 @@
 <div id="statistics-container">
   <div class="container-xl">
     <div class="page-body statistics-page">
-      <div class="statistics-toolbar">
+      <div class="statistics-toolbar mb-2">
         <div class="statistics-view-switch" role="group" aria-label="统计视图">
           <input type="radio" class="btn-check" name="statistics-view" id="statistics-total-tab" value="total" checked>
           <label class="btn" for="statistics-total-tab">总量信息</label>
           <input type="radio" class="btn-check" name="statistics-view" id="statistics-sites-tab" value="sites">
-          <label class="btn" for="statistics-sites-tab">分站点信息</label>
+          <label class="btn" for="statistics-sites-tab">站点明细</label>
         </div>
         <div class="ms-auto" id="statistics-total-toolbar">
           <div class="statistics-actions">
@@ -90,7 +90,7 @@
             </div>
           </section>
 
-          <section class="statistics-day">
+          <section class="statistics-day mt-2">
             <header class="statistics-day-header">
               <div class="statistics-day-heading">
                 <h3 class="statistics-panel-title">今日流量</h3>
@@ -1165,10 +1165,21 @@
 
     show_ask_modal(target, function () {
       axios_post_do("refresh_pt_statistics", {'site':site_name}, function (ret) {
-        if (ret.code === 0) {
+        if (ret.code !== 0) {
+          show_fail_modal(ret.msg);
+          return;
+        }
+        if (!site_name) {
+          // 全部站点刷新为后台任务，提交后不重新加载数据
           show_success_modal(ret.msg);
+          return;
+        }
+        // 单站点刷新为同步执行，返回后重新加载站点明细表格
+        load_site_statistics(true);
+        if (ret.missing && ret.missing.length) {
+          show_warning_modal(ret.msg);
         } else {
-          show_fail_modal(`任务提交失败：${ret.msg}`);
+          show_success_modal(ret.msg);
         }
       });
 
@@ -1182,7 +1193,7 @@
 
 <script type="text/javascript">
 
-  // 分站点信息是否已加载（切换视图时按需加载）
+  // 站点明细 是否已加载（切换视图时按需加载）
   var sites_statistics_loaded = false;
   // 分站点原始数据与排序状态
   var site_statistics_data = [];
@@ -1216,7 +1227,7 @@
     });
   }
 
-  // 加载分站点信息
+  // 加载站点明细
   function load_site_statistics(force) {
     if (sites_statistics_loaded && !force) {
       return;
@@ -1250,7 +1261,7 @@
     return Number(item[site_statistics_sort_by] || 0);
   }
 
-  // 按当前排序条件渲染分站点信息
+  // 按当前排序条件渲染 站点明细
   function render_site_statistics() {
     const list = $('#site-statistics-list');
 
@@ -1453,7 +1464,7 @@
     });
   }
 
-  // 页面加载完成后，加载总量信息与今日流量；分站点信息在切换视图时按需加载
+  // 页面加载完成后，加载总量信息与今日流量；站点明细 在切换视图时按需加载
   $(document).ready(function () {
 
     load_total_statistics();
