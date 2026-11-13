@@ -169,14 +169,6 @@
     "html": "/static/pages/plugin.html"
   },
   {
-    "name": "服务",
-    "level": 99,
-    "page": "service",
-    "group": "管理",
-    "icon": "<i class=\"ti ti-stack-2 fs-2 \"></i>",
-    "html": "/static/pages/service.html"
-  },
-  {
     "name": "设置",
     "level": 99,
     "page": "basic",
@@ -221,5 +213,13 @@
         "html": "/static/pages/users.html"
       }
     ]
+  },
+  {
+    "name": "系统",
+    "level": 99,
+    "page": "service",
+    "group": "管理",
+    "icon": "<i class=\"ti ti-stack-2 fs-2 \"></i>",
+    "html": "/static/pages/service.html"
   }
 ]

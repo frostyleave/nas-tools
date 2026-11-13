@@ -377,7 +377,7 @@
     // 请求数据并生成页面
     axios_post("/data/customwords", {}, function (ret) {
       if (ret.code === 0) {
-        generateCustomWordsPage(ret.data.Groups, ret.data.GroupsCount);
+        generateCustomWordsPage(ret.data.Groups);
       } else {
         show_fail_modal("加载自定义识别词失败");
       }
@@ -386,18 +386,18 @@
   });
 
   // 生成自定义识别词页面内容
-  function generateCustomWordsPage(groups, groupsCount) {
+  function generateCustomWordsPage(groups) {
     const container = $("#customwords-container");
     container.empty();
 
     groups.forEach(function (group) {
-      const groupHtml = generateGroupHtml(group, groupsCount);
+      const groupHtml = generateGroupHtml(group);
       container.append(groupHtml);
     });
   }
 
   // 生成单个组的HTML
-  function generateGroupHtml(group, groupsCount) {
+  function generateGroupHtml(group) {
     const linkHtml = group.link ?
       `<a href="${group.link}" target="_blank"><h3 class="card-title"><strong>${group.name}</strong></h3></a>` :
       `<h3 class="card-title"><strong>${group.name}</strong></h3>`;
@@ -406,8 +406,6 @@
       `<a href="javascript:delete_custom_word_group('${group.id}')" class="btn-action ms-1" title="删除识别词组">
           <i class="ti ti-x fs-2"></i>
         </a>` : '';
-
-    const displayStyle = groupsCount > 8 ? 'style="display: none;"' : '';
 
     const wordsHtml = generateWordsTableHtml(group);
 
@@ -427,7 +425,7 @@
                 ${deleteButtonHtml}
               </div>
             </div>
-            <div id="div_group${group.id}" class="table-responsive" ${displayStyle}>
+            <div id="div-group-${group.id}" class="table-responsive" style="display: none;">
               ${wordsHtml}
             </div>
           </div>
@@ -444,7 +442,7 @@
           show_fail_modal("未找到对应的识别词组");
           return;
         }
-        $(`#div_group${gid}`).html(generateWordsTableHtml(group));
+        $(`#div-group-${gid}`).html(generateWordsTableHtml(group));
         fresh_tooltip();
       } else {
         show_fail_modal("加载自定义识别词失败");
@@ -1019,7 +1017,7 @@
 
   // 展开/收起
   function show_customwords_detail(id) {
-    $(`#div_group${id}`).slideToggle()
+    $(`#div-group-${id}`).slideToggle()
   }
 
 </script>

@@ -1,8 +1,8 @@
 <div id="statistics-container">
   <div class="container-xl">
     <div class="page-body">
-      <div class="d-flex align-items-center mb-3 flex-wrap gap-2">
-        <div class="btn-group" role="group" aria-label="统计视图">
+      <div class="d-flex align-items-center mb-2 flex-wrap gap-2">
+        <div class="statistics-view-switch" role="group" aria-label="统计视图">
           <input type="radio" class="btn-check" name="statistics-view" id="statistics-total-tab" value="total" checked>
           <label class="btn" for="statistics-total-tab">总量信息</label>
           <input type="radio" class="btn-check" name="statistics-view" id="statistics-sites-tab" value="sites">
@@ -225,22 +225,6 @@
       </div>
       <div class="modal-body">
         <div id="site-activity-chart"></div>
-      </div>
-      <div class="modal-footer">
-      </div>
-    </div>
-  </div>
-</div>
-<div class="modal modal-blur fade" id="site-seeding-info" tabindex="-1" style="display: none;" aria-hidden="true">
-  <div class="modal-dialog modal-xl modal-dialog-centered" role="document">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title" id="site-seeding-info-title">站点信息</h5>
-        <input type="hidden" id="site-seeding-info-name" name="site-name" value="">
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-      </div>
-      <div class="modal-body">
-        <div id="site-seeding-info-chart"></div>
       </div>
       <div class="modal-footer">
       </div>
@@ -579,74 +563,6 @@
     $('#site-activity').modal("show");
   }
 
-  function show_site_seeding_info(site_name) {
-    $('#site-seeding-info-name').val(site_name);
-    $('#site-seeding-info-title').text(site_name + " 做种分布");
-    $('#site-seeding-info').modal("show");
-  }
-
-  $('#site-seeding-info').off('shown.bs.modal').on('shown.bs.modal', function (e) {
-    let site_name = $('#site-seeding-info-name').val();
-    // 做种散点图
-    if (typeof (chart_seeding_info) != 'undefined') {
-      chart_seeding_info.dispose();
-    }
-    chart_seeding_info = echarts.init($('#site-seeding-info-chart')[0], null, {
-      height: 350
-    });
-    chart_seeding_info.showLoading();
-
-    axios_post_do("get_site_seeding_info", { "name": site_name }, function (ret) {
-      chart_seeding_info.hideLoading();
-      if (ret.code == 0) {
-        let options_seeding_info = {
-          large: true,
-          animation: false,
-          dataset:
-          {
-            source: ret.dataset
-          }
-          ,
-          tooltip: {
-            position: 'top',
-            showDelay: 0,
-            trigger: 'item', formatter: function (params) {
-              return (
-                '人数 : ' + params.value[0] +
-                '<br/>' + '体积 : ' +
-                numeral(params.value[1]).format('0.0 ib')
-              );
-            }
-          },
-          xAxis: {
-            scale: true,
-            type: 'value',
-            name: '做种人数'
-          },
-          yAxis: {
-            scale: true,
-            type: 'value',
-            axisLabel: {
-              formatter: function (value, index) {
-                return numeral(value).format('0.0 ib');
-              }
-            }
-          },
-          series: {
-            type: 'scatter',
-            name: '做种人数',
-            encode: { tooltip: [1] }
-          }
-        };
-        chart_seeding_info.setOption(options_seeding_info);
-      } else {
-        show_fail_modal(`${site_name} 查询失败：${ret.msg}！`);
-      }
-    }
-    );
-
-  });
-
   // 今日上传饼图
   if (typeof (pie_ul) != 'undefined') {
     pie_ul.dispose();
@@ -684,6 +600,51 @@
     show_site_history_day(next.format('YYYY-MM-DD'), 1);
   }
 
+  // 饼图配置：数据不足两项时不绘制图形，只显示提示文字
+  function statistics_pie_option(source, value_field, empty_text) {
+    if (source.length <= 1) {
+      return {
+        title: {
+          text: empty_text,
+          left: 'center',
+          top: 'middle',
+          textStyle: { color: '#9e9e9e', fontSize: 14, fontWeight: 'normal' }
+        }
+      };
+    }
+    return {
+      tooltip: {
+        trigger: 'item', valueFormatter: value => numeral(value).format('0.0 ib')
+      },
+      legend: {
+        type: 'scroll',
+        orient: 'vertical',
+        right: 0,
+        top: 'middle',
+        itemWidth: 12,
+        itemHeight: 12,
+        itemGap: 6,
+        pageIconSize: 10,
+        textStyle: { fontSize: 12 }
+      },
+      dataset: {
+        source: source
+      },
+      series: [
+        {
+          type: 'pie',
+          radius: '58%',
+          center: ['32%', '50%'],
+          encode: {
+            itemName: 'site',
+            value: value_field
+          },
+          label: { show: false }
+        }
+      ]
+    };
+  }
+
   // 获取某一日的数据
   function show_site_history_day(end_day, days) {
 
@@ -691,69 +652,14 @@
     axios_post_do("get_site_history", { "days": days, "end_day": end_day }, function (ret) {
 
       if (ret.code == 0) {
-        let option_ul = {
-          tooltip: {
-            trigger: 'item', valueFormatter: value => numeral(value).format('0.0 ib')
-          },
-          dataset: {
-            source: ret.dataset.filter(item => {
-              return (item[1] > 0 || item[1] === 'upload')
-            })
-          },
-          series: [
-            {
-              type: 'pie',
-              encode: {
-                itemName: 'site',
-                value: 'upload'
-              },
-              label: {
-                formatter: function (params) {
-                  value = numeral(params.value[params.encode.value[0]]).format('0.0 ib');
-                  return params.name + ': ' + value;
-                }
-              },
-              emptyCircleStyle: {
-                color: 'transparent',
-                borderColor: '#ddd',
-                borderWidth: 1
-              }
-            },
-          ]
-        };
-        pie_ul.setOption(option_ul)
+        const upload_source = ret.dataset.filter(item => item[1] > 0 || item[1] === 'upload');
+        pie_ul.clear();
+        pie_ul.setOption(statistics_pie_option(upload_source, 'upload', '无上传量'));
         pie_ul.resize();
 
-        let option_dl = {
-          tooltip: {
-            trigger: 'item', valueFormatter: value => numeral(value).format('0.0 ib')
-          },
-          dataset: {
-            source: ret.dataset.filter(item => {
-              return (item[2] > 0 || item[2] === 'download')
-            })
-          },
-          series: [
-            {
-              type: 'pie',
-              encode: {
-                itemName: 'site',
-                value: 'download'
-              },
-              label: {
-                formatter: function (params) {
-                  value = numeral(params.value[params.encode.value[0]]).format('0.0 ib');
-                  return params.name + ': ' + value;
-                }
-              }, emptyCircleStyle: {
-                color: 'transparent',
-                borderColor: '#ddd',
-                borderWidth: 1
-              }
-            }
-          ]
-        };
-        pie_dl.setOption(option_dl)
+        const download_source = ret.dataset.filter(item => item[2] > 0 || item[2] === 'download');
+        pie_dl.clear();
+        pie_dl.setOption(statistics_pie_option(download_source, 'download', '无下载量'));
         pie_dl.resize();
 
         let up_all = 0;

@@ -1409,13 +1409,6 @@ class DbHelper:
                     FAVICON=site_icon
                 ))
 
-    def is_exists_site_favicon(self, site):
-        """
-        判断站点图标是否存在
-        """
-        count = self._db.query(SITEFAVICON).filter(SITEFAVICON.SITE == site).count()
-        return count > 0
-
     def get_site_favicons(self, site=None):
         """
         查询站点图标

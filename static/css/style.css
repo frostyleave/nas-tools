@@ -1841,19 +1841,60 @@ h1.login_title>label {
     width: 2.0rem;
     height: 2.0rem;
     object-fit: contain;
+    border: 1px solid var(--tblr-primary);
     border-radius: 8px;
     flex-shrink: 0;
 }
 
 .site-favicon-placeholder {
-    width: 2.5rem;
-    height: 2.5rem;
+    width: 2.0rem;
+    height: 2.0rem;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    font-size: 1.5rem;
-    opacity: .6;
+    border: 1px solid var(--tblr-primary);
+    border-radius: 8px;
+    color: var(--tblr-secondary);
     flex-shrink: 0;
+}
+
+.site-favicon-placeholder svg {
+    opacity: .6;
+}
+
+.statistics-view-switch {
+    display: inline-flex;
+    gap: 4px;
+    padding: 4px;
+    border: 1px solid var(--tblr-border-color);
+    border-radius: 8px;
+    background-color: var(--tblr-bg-forms);
+}
+
+.statistics-view-switch .btn {
+    padding: 5px 20px;
+    border: 0;
+    border-radius: 8px;
+    background-color: transparent;
+    color: var(--tblr-secondary);
+    font-weight: 500;
+    transition: color .18s ease, background-color .18s ease, box-shadow .18s ease;
+}
+
+.statistics-view-switch .btn:hover {
+    background-color: transparent;
+    color: var(--tblr-body-color);
+}
+
+.statistics-view-switch .btn-check:checked + .btn {
+    background-color: var(--tblr-primary);
+    color: #fff;
+    box-shadow: 0 1px 3px rgb(15 23 42 / 18%);
+}
+
+.statistics-view-switch .btn-check:focus-visible + .btn {
+    outline: 2px solid var(--tblr-primary);
+    outline-offset: 2px;
 }
 
 .navbar .navbar-toggler {
