@@ -34,7 +34,7 @@ class FfmpegHelper:
             command = ['ffmpeg', "-hide_banner", "-loglevel", "warning", '-y', '-i', video_path,
                        '-acodec', 'pcm_s16le', '-ac', '1', '-ar', '16000', audio_path]
 
-        ret = subprocess.run(command).returncode
+        ret = subprocess.run(command, check=False).returncode
         return ret == 0
 
     @staticmethod
@@ -47,7 +47,7 @@ class FfmpegHelper:
 
         try:
             command = ['ffprobe', '-v', 'quiet', '-print_format', 'json', '-show_format', '-show_streams', video_path]
-            result = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            result = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=False)
             if result.returncode == 0:
                 return json.loads(result.stdout.decode("utf-8"))
         except Exception as e:
@@ -68,5 +68,5 @@ class FfmpegHelper:
                        subtitle_path]
         else:
             command = ['ffmpeg', "-hide_banner", "-loglevel", "warning", '-y', '-i', video_path, subtitle_path]
-        ret = subprocess.run(command).returncode
+        ret = subprocess.run(command, check=False).returncode
         return ret == 0

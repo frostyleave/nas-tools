@@ -185,7 +185,7 @@ class SystemUtils:
             retcode = subprocess.run(['rclone', 'moveto',
                                       src,
                                       f'NASTOOL:{dest}'],
-                                     startupinfo=SystemUtils.__get_hidden_shell()).returncode
+                                     startupinfo=SystemUtils.__get_hidden_shell(), check=False).returncode
             return retcode, ""
         except Exception as err:
             log.exception("[SYS]rclone_move error:")
@@ -202,7 +202,7 @@ class SystemUtils:
             retcode = subprocess.run(['rclone', 'copyto',
                                       src,
                                       f'NASTOOL:{dest}'],
-                                     startupinfo=SystemUtils.__get_hidden_shell()).returncode
+                                     startupinfo=SystemUtils.__get_hidden_shell(), check=False).returncode
             return retcode, ""
         except Exception as err:
             log.exception("[SYS]rclone_copy error:")
@@ -221,7 +221,7 @@ class SystemUtils:
                                       '--recursive',
                                       src,
                                       f'NASTOOL/{dest}'],
-                                     startupinfo=SystemUtils.__get_hidden_shell()).returncode
+                                     startupinfo=SystemUtils.__get_hidden_shell(), check=False).returncode
             return retcode, ""
         except Exception as err:
             log.exception("[SYS]minio_move error:")
@@ -240,7 +240,7 @@ class SystemUtils:
                                       '--recursive',
                                       src,
                                       f'NASTOOL/{dest}'],
-                                     startupinfo=SystemUtils.__get_hidden_shell()).returncode
+                                     startupinfo=SystemUtils.__get_hidden_shell(), check=False).returncode
             return retcode, ""
         except Exception as err:
             log.exception("[SYS]minio_copy error:")
@@ -267,7 +267,8 @@ class SystemUtils:
             ret = subprocess.run(
                 ['fsutil', 'hardlink', 'list', file],
                 startupinfo=self.__get_hidden_shell(),
-                stdout=subprocess.PIPE
+                stdout=subprocess.PIPE,
+                check=False
             )
             if ret.returncode != 0:
                 return []
@@ -292,7 +293,8 @@ class SystemUtils:
                 fdir = os.path.dirname(file)
             stdout = subprocess.run(
                 ['find', fdir, '-inum', str(inode)],
-                stdout=subprocess.PIPE
+                stdout=subprocess.PIPE,
+                check=False
             ).stdout
             if stdout:
                 link_files = stdout.decode('utf-8').split('\n')

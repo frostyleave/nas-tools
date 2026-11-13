@@ -50,6 +50,7 @@ def run_system_update(
                 errors="replace",
                 timeout=300,
                 env={**os.environ, "GIT_TERMINAL_PROMPT": "0"},
+                check=False,
             )
         except Exception as err:
             log.error(f'【UpdateSystem】执行 git {" ".join(args)} 异常：{err!s}')
@@ -149,6 +150,7 @@ def get_git_info() -> dict[str, Any]:
             errors="replace",
             timeout=10,
             env={**os.environ, "GIT_TERMINAL_PROMPT": "0"},
+            check=False,
         )
         return ret.returncode, (ret.stdout or "").strip()
 
@@ -208,6 +210,7 @@ def check_system_update() -> dict[str, Any]:
                 errors="replace",
                 timeout=timeout,
                 env={**os.environ, "GIT_TERMINAL_PROMPT": "0"},
+                check=False,
             )
         except Exception as err:
             return 1, "", str(err)

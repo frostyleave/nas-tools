@@ -87,7 +87,7 @@ def set_git_proxy():
         # 设置 http.proxy
         result = subprocess.run(
             ['git', 'config', '--global', 'http.proxy', http_proxy],
-            capture_output=True, text=True
+            capture_output=True, text=True, check=False
         )
         if result.returncode != 0:
             log.error(f'❌ 设置Git HTTP代理失败: {result.stderr.strip()}')
@@ -97,7 +97,7 @@ def set_git_proxy():
         https_proxy = proxy_config.get('https', http_proxy)
         result = subprocess.run(
             ['git', 'config', '--global', 'https.proxy', https_proxy],
-            capture_output=True, text=True
+            capture_output=True, text=True, check=False
         )
         if result.returncode != 0:
             log.error(f'❌ 设置Git HTTPS代理失败: {result.stderr.strip()}')
