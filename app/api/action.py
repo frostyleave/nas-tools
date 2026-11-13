@@ -3667,6 +3667,9 @@ class WebAction:
 
         site = IndexerManager().get_indexer_base(url=url, public=True)
         if not site:
+            # 匹配不到时返回基础索引配置，允许查看/复制，保存由更新接口拦截
+            site = IndexerManager().get_base_indexer()
+        if not site:
             return {"code": 1, "msg": "索引站点查询失败"}
 
         return {
@@ -3691,6 +3694,8 @@ class WebAction:
         return {"code": 1, "msg": msg}
 
     def __update_indexer(self, data):
+        if IndexerManager.is_base_indexer_id(data.get('id')):
+            return {"code": 1, "msg": "基础索引配置不允许修改"}
         success = IndexerManager().update_indexer(data)
         if success:
             return {"code": 0, "msg": "更新成功"}
@@ -3700,7 +3705,10 @@ class WebAction:
         indexer_id = data.get('id')
         if indexer_id is None:
              return {"code": 1, "msg": "索引id为空"}
-        
+
+        if IndexerManager.is_base_indexer_id(indexer_id):
+            return {"code": 1, "msg": "基础索引配置不允许删除"}
+
         IndexerManager().delete_indexer(indexer_id)
         return {"code": 0, "msg": "更新成功"}
 

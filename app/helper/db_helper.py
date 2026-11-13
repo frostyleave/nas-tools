@@ -1294,7 +1294,9 @@ class DbHelper:
                     MSG_UNREAD=msg_unread
                 ))
             else:
-                update_dic = {}
+                # 按 URL 命中旧记录时同步站名：站点改名（或新增站点复用了历史 URL）后，
+                # 统计表里的站名不会一直停留在旧值
+                update_dic = {'SITE': site}
 
                 if username:
                     update_dic['USERNAME'] = username
@@ -1319,9 +1321,7 @@ class DbHelper:
                     update_dic['BONUS'] = bonus
                 if msg_unread is not None:
                     update_dic['MSG_UNREAD'] = msg_unread
-                if not update_dic:
-                    return
-                
+
                 update_dic['UPDATE_AT'] = update_at
                 
                 self._db.query(SITEUSERINFOSTATS).filter(SITEUSERINFOSTATS.URL == url).update(update_dic)
@@ -1469,15 +1469,15 @@ class DbHelper:
     def get_site_user_statistics(self, num=100, strict_urls=None):
         """
         查询站点数据历史
+
+        :param num: 查询条数上限
+        :param strict_urls: 需要查询的站点 URL 列表，只按 URL 过滤：
+                            站名在统计表里可能已过期，不能再用站名关联站点配置
         """
+        query = self._db.query(SITEUSERINFOSTATS)
         if strict_urls:
-            # 根据站点优先级排序
-            return self._db.query(SITEUSERINFOSTATS) \
-                .join(CONFIGSITE, SITEUSERINFOSTATS.SITE == CONFIGSITE.NAME) \
-                .filter(SITEUSERINFOSTATS.URL.in_(tuple(strict_urls + ["__DUMMY__"]))) \
-                .order_by(CONFIGSITE.PRI.asc()).limit(num).all()
-        else:
-            return self._db.query(SITEUSERINFOSTATS).limit(num).all()
+            query = query.filter(SITEUSERINFOSTATS.URL.in_(tuple(strict_urls + ["__DUMMY__"])))
+        return query.limit(num).all()
 
     def is_site_statistics_history_exists(self, url, date):
         """

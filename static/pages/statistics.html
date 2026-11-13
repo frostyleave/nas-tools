@@ -41,6 +41,11 @@
               <i class="ti ti-share fs-3"></i>
               <span class="d-none d-sm-inline">分享图</span>
             </a>
+            <a id="reload-site-statistics" class="btn statistics-action"
+              href="javascript:load_site_statistics(true)" title="重新获取分站点统计数据">
+              <i class="ti ti-refresh fs-3"></i>
+              <span class="d-none d-sm-inline">刷新</span>
+            </a>
           </div>
         </div>
       </div>
@@ -49,7 +54,7 @@
         <nodata-found id="no-statistics" title="没有数据" text="没有站点数据" style="display: none;"></nodata-found>
         <div id="total-statistics-content">
           <section class="statistics-summary">
-            <div class="statistics-summary-main liquid-glass-panel">
+            <div class="statistics-summary-main">
               <div class="statistics-summary-figures">
                 <div class="statistics-figure-block">
                   <div class="statistics-label">总上传量</div>
@@ -73,7 +78,7 @@
                 <span><i class="statistics-dot statistics-dot-down"></i>下载</span>
               </div>
             </div>
-            <div class="statistics-summary-side liquid-glass-panel">
+            <div class="statistics-summary-side">
               <div class="statistics-mini">
                 <span class="statistics-label">总做种数</span>
                 <span class="statistics-mini-value" id="total-seeding">0</span>
@@ -141,6 +146,10 @@
             <a href="javascript:sort_site_statistics('bonus')" class="site-statistics-sort statistics-sort statistics-num"
               data-sort="bonus">
               魔力值<i class="ti ti-arrow-down d-none"></i>
+            </a>
+            <a href="javascript:sort_site_statistics('update_at')" class="site-statistics-sort statistics-sort statistics-num"
+              data-sort="update_at">
+              更新时间<i class="ti ti-arrow-down d-none"></i>
             </a>
           </div>
           <div id="site-statistics-list" class="statistics-sites-list">
@@ -1231,6 +1240,10 @@
 
   // 排序取值：分享率显示为 ∞ 的情况（0 或大于 10000）按无穷大参与排序，与展示保持一致
   function site_statistics_sort_value(item) {
+    // 没有统计数据的站点不参与数值排序，统一排在末尾
+    if (item.has_data === false) {
+      return 0;
+    }
     if (site_statistics_sort_by === 'ratio') {
       return (item.ratio == 0.0 || item.ratio > 10000) ? Infinity : Number(item.ratio || 0);
     }
@@ -1252,8 +1265,8 @@
     const desc = site_statistics_sort_order === 'desc';
     const statistics = [...site_statistics_data].sort((a, b) => {
       let result;
-      if (site_statistics_sort_by === 'site' || site_statistics_sort_by === 'join_at') {
-        // 站点名称、加入时间为字符串，日期为 YYYY-MM-DD HH:MM:SS，可直接比较
+      if (site_statistics_sort_by === 'site' || site_statistics_sort_by === 'join_at' || site_statistics_sort_by === 'update_at') {
+        // 站点名称、加入/更新时间为字符串，日期为 YYYY-MM-DD HH:MM:SS，可直接比较
         result = String(a[site_statistics_sort_by] || '').localeCompare(String(b[site_statistics_sort_by] || ''));
       } else {
         // 用比较而非相减，避免两个 ∞ 相减得到 NaN
@@ -1302,7 +1315,10 @@
 
   // 渲染单个站点（桌面端与表头对齐，移动端为独立信息块）
   function render_site_statistics_row(item) {
-    const ratio = statistics_ratio_text(item.ratio);
+    // 未获取过统计数据的站点（含未启用统计的站点）也展示在列表里
+    const has_data = item.has_data !== false;
+    const no_data_text = '<span class="statistics-num-muted">-</span>';
+    const ratio = has_data ? statistics_ratio_text(item.ratio) : no_data_text;
     const site_arg = JSON.stringify(String(item.site || ''));
     const messageIcon = item.msg_unread > 0
       ? '<i class="ti ti-message statistics-unread" title="有未读消息"></i>'
@@ -1312,14 +1328,13 @@
       : '';
     const joinAt = item.join_at ? item.join_at.substring(0, 10) : '';
     const updateAt = item.update_at || '';
-    const meta = [
-      statistics_escape(item.username || '-'),
-      joinAt ? `加入 ${joinAt}` : ''
-    ].filter(Boolean).join(' · ');
-    const mobileMeta = [
-      statistics_escape(item.username || '-'),
-      updateAt ? `更新 ${statistics_escape(updateAt)}` : ''
-    ].filter(Boolean).join(' · ');
+    const meta = has_data
+      ? [statistics_escape(item.username || '-'), joinAt ? `${joinAt}` : ''].filter(Boolean).join(' · ')
+      : '尚无统计数据';
+    const mobileMeta = has_data
+      ? [statistics_escape(item.username || '-'),
+        updateAt ? `更新 ${statistics_escape(updateAt)}` : ''].filter(Boolean).join(' · ')
+      : '尚无统计数据';
     const nameLink = `<a href='javascript:show_site_activity(${site_arg})' class="statistics-site-name" title="查看历史数据"><span class="statistics-site-label">${statistics_escape(item.site)}</span>${messageIcon}</a>`;
     const siteTitle = `<div class="statistics-site-title">${nameLink}${level}</div>`;
     const refresh = `<a href='javascript:ask_refresh_statistics(${site_arg})' class="statistics-row-action" title="刷新站点数据"><i class="ti ti-refresh"></i></a>`;
@@ -1331,16 +1346,19 @@
           ${site_favicon_html(item)}
           <div class="statistics-site-text">
             ${siteTitle}
-            <div class="statistics-site-meta">${meta}</div>
+            <div class="statistics-site-meta">
+              <span class="statistics-site-meta-text">${meta}</span>
+              ${refresh}
+            </div>
           </div>
-          ${refresh}
         </div>
-        <div class="statistics-num">${statistics_size_text(item.upload)}</div>
-        <div class="statistics-num">${statistics_size_text(item.download)}</div>
+        <div class="statistics-num">${has_data ? statistics_size_text(item.upload) : no_data_text}</div>
+        <div class="statistics-num">${has_data ? statistics_size_text(item.download) : no_data_text}</div>
         <div class="statistics-num">${ratio}</div>
-        <div class="statistics-num">${statistics_count_text(item.seeding)}</div>
-        <div class="statistics-num">${statistics_size_text(item.seeding_size)}</div>
-        <div class="statistics-num">${statistics_bonus_text(item.bonus)}</div>
+        <div class="statistics-num">${has_data ? statistics_count_text(item.seeding) : no_data_text}</div>
+        <div class="statistics-num">${has_data ? statistics_size_text(item.seeding_size) : no_data_text}</div>
+        <div class="statistics-num">${has_data ? statistics_bonus_text(item.bonus) : no_data_text}</div>
+        <div class="statistics-num">${has_data && updateAt ? statistics_escape(updateAt) : no_data_text}</div>
       </div>
       <!-- 移动端 -->
       <div class="statistics-site-card d-lg-none">
@@ -1355,11 +1373,11 @@
         <div class="statistics-site-card-stats">
           <div class="statistics-site-card-stat">
             <div class="statistics-label">上传量</div>
-            <div class="statistics-num">${statistics_size_text(item.upload)}</div>
+            <div class="statistics-num">${has_data ? statistics_size_text(item.upload) : no_data_text}</div>
           </div>
           <div class="statistics-site-card-stat">
             <div class="statistics-label">下载量</div>
-            <div class="statistics-num">${statistics_size_text(item.download)}</div>
+            <div class="statistics-num">${has_data ? statistics_size_text(item.download) : no_data_text}</div>
           </div>
           <div class="statistics-site-card-stat">
             <div class="statistics-label">分享率</div>
@@ -1367,15 +1385,15 @@
           </div>
           <div class="statistics-site-card-stat">
             <div class="statistics-label">做种数</div>
-            <div class="statistics-num">${statistics_count_text(item.seeding)}</div>
+            <div class="statistics-num">${has_data ? statistics_count_text(item.seeding) : no_data_text}</div>
           </div>
           <div class="statistics-site-card-stat">
             <div class="statistics-label">做种体积</div>
-            <div class="statistics-num">${statistics_size_text(item.seeding_size)}</div>
+            <div class="statistics-num">${has_data ? statistics_size_text(item.seeding_size) : no_data_text}</div>
           </div>
           <div class="statistics-site-card-stat">
             <div class="statistics-label">魔力值</div>
-            <div class="statistics-num">${statistics_bonus_text(item.bonus)}</div>
+            <div class="statistics-num">${has_data ? statistics_bonus_text(item.bonus) : no_data_text}</div>
           </div>
         </div>
       </div>

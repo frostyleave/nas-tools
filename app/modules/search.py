@@ -496,6 +496,26 @@ class SearchProxy:
                     return (k[0], f'{parts[1]}-{parts[0]}')
             return (k[0], k[1])
 
+        def pix_sort_value(respix):
+            # 分辨率排序值，如 1920x1080 取高度，无法识别时排最后
+            if not respix:
+                return -1
+            m = re.search(r"\d{3,4}\s*[x×]\s*(\d{3,4})", respix, flags=re.I)
+            if m:
+                return int(m.group(1))
+            m = re.search(r"(\d{3,4})", respix)
+            return int(m.group(1)) if m else -1
+
+        def group_sort(k):
+            # 分组排序：先按分辨率倒序，同分辨率下有帧率的排前面且帧率倒序
+            group_info = k[1].get("group_info") or {}
+            frame = re.search(r"(\d+(?:\.\d+)?)",
+                              group_info.get("resource_frame") or "")
+            frame_value = float(frame.group(1)) if frame else 0
+            return (pix_sort_value(group_info.get("respix")),
+                    bool(frame),
+                    frame_value)
+
         for item in search_results.values():
             # 排序筛选器: 季倒序
             item["filter"]["season"].sort(reverse=True)
@@ -505,9 +525,12 @@ class SearchProxy:
             # 排序筛选器: 帧率倒序
             item["filter"]["resource_frame"] = sorted(
                 item["filter"]["resource_frame"], key=lambda x: float(x[:-3]), reverse=True)
-            # 排序种子列
-            item["torrent_dict"] = sorted(
-                item["torrent_dict"].items(), key=se_sort, reverse=True)
+            # 排序种子列及分组（分组按分辨率、帧率倒序）
+            item["torrent_dict"] = [
+                (se_key, dict(sorted(groups.items(), key=group_sort, reverse=True)))
+                for se_key, groups in sorted(
+                    item["torrent_dict"].items(), key=se_sort, reverse=True)
+            ]
             
             # 补充媒体存在标志
             tmdbid = item.get("tmdbid")

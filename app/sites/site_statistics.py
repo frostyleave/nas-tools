@@ -16,6 +16,59 @@ from app.utils.commons import singleton
 
 lock = Lock()
 
+# 统计链路需要解析到的文本字段（展示名称, 属性名），未解析到时为 None
+SITE_INFO_TEXT_FIELDS = (
+    ("用户名", "username"),
+    ("用户等级", "user_level"),
+    ("加入日期", "join_at"),
+)
+
+
+def _to_float(value, default=0.0) -> float:
+    """
+    安全转 float
+
+    部分解析器（如 mTorrent 的 shareRate）返回的数值可能是字符串
+    """
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return default
+
+
+def _get_missing_fields(site_user_info) -> list[str]:
+    """
+    检查站点统计结果中未解析到的关键字段
+
+    数值为 0 往往是页面的真实值（无下载量时分享率显示“无限”、未做种时做种数为 0、
+    新账号上传/下载为 0 等），不能按 0 直接判定缺失；这里只检查互相矛盾的情况：
+    - 上传量、下载量同时为 0：流量数据大概率未解析到
+    - 上传量、下载量都不为 0 而分享率为 0：分享率未解析到
+    - 做种数不为 0 而做种体积为 0：做种体积未解析到
+    """
+    missing = []
+
+    # 文本字段：未解析到时为 None 或空串
+    for label, attr in SITE_INFO_TEXT_FIELDS:
+        value = getattr(site_user_info, attr, None)
+        if value is None or (isinstance(value, str) and not value.strip()):
+            missing.append(label)
+
+    upload = _to_float(getattr(site_user_info, "upload", 0))
+    download = _to_float(getattr(site_user_info, "download", 0))
+    ratio = _to_float(getattr(site_user_info, "ratio", 0))
+    seeding = _to_float(getattr(site_user_info, "seeding", 0))
+    seeding_size = _to_float(getattr(site_user_info, "seeding_size", 0))
+
+    if upload <= 0 and download <= 0:
+        missing.append("上传量/下载量")
+    elif upload > 0 and download > 0 and ratio <= 0:
+        missing.append("分享率")
+    if seeding > 0 and seeding_size <= 0:
+        missing.append("做种体积")
+
+    return missing
+
 
 @dataclass
 class SiteFavicon:
@@ -60,42 +113,44 @@ class SitesDataStatisticsCenter:
         更新单个site 数据信息
         :param site_info: 站点配置
         :param cached_favicon_sites: 已有图标的站点名称，命中时跳过图标抓取
-        :return:
+        :return: (解析结果, 失败原因)；成功时失败原因为 None
         """
         site_url = site_info.strict_url
         if not site_url:
-            return None
+            return None, "站点地址为空"
 
         site_name = site_info.name
 
         try:
             site_user_info = await SitesschemaCenter().build(site_info)
-            if site_user_info:
-                # 懒更新：已有图标数据时不再重复请求
-                site_user_info.skip_favicon = site_name in cached_favicon_sites
-                log.debug(f"【Sites】站点 {site_name} 开始以 {site_user_info.site_schema()} 模型解析")
-                # 开始解析
-                await site_user_info.parse()
-                log.debug(f"【Sites】站点 {site_name} 解析完成")
+            if not site_user_info:
+                return None, "无法获取站点首页或未匹配到解析模型"
 
-                # 获取不到数据时，仅返回错误信息，不做历史数据更新
-                if site_user_info.err_msg:
-                    log.warn(f'【Sites】 {site_name} 解析出错: {site_user_info.err_msg}')
-                    return None
+            # 懒更新：已有图标数据时不再重复请求
+            site_user_info.skip_favicon = site_name in cached_favicon_sites
+            log.debug(f"【Sites】站点 {site_name} 开始以 {site_user_info.site_schema()} 模型解析")
+            # 开始解析
+            await site_user_info.parse()
+            log.debug(f"【Sites】站点 {site_name} 解析完成")
 
-                # 发送通知，存在未读消息（同步网络发送，放到线程池避免阻塞事件循环）
-                unread_msg_notify = site_info.unread_msg_notify
-                await asyncio.to_thread(self.__notify_unread_msg, site_name, site_user_info, unread_msg_notify)
+            # 获取不到数据时，仅返回错误信息，不做历史数据更新
+            if site_user_info.err_msg:
+                log.warn(f'【Sites】 {site_name} 解析出错: {site_user_info.err_msg}')
+                return None, site_user_info.err_msg
 
-                # 做种信息数组转换
-                if site_user_info.seeding_info is not None and isinstance(site_user_info.seeding_info, list):
-                    site_user_info.seeding_info = json.dumps(site_user_info.seeding_info)
+            # 发送通知，存在未读消息（同步网络发送，放到线程池避免阻塞事件循环）
+            unread_msg_notify = site_info.unread_msg_notify
+            await asyncio.to_thread(self.__notify_unread_msg, site_name, site_user_info, unread_msg_notify)
 
-                return site_user_info
+            # 做种信息数组转换
+            if site_user_info.seeding_info is not None and isinstance(site_user_info.seeding_info, list):
+                site_user_info.seeding_info = json.dumps(site_user_info.seeding_info)
+
+            return site_user_info, None
 
         except Exception as e:
             log.exception(f'【Sites】站点 {site_name} 获取流量数据失败: ')
-            return None
+            return None, f"解析异常: {e!s}"
 
     def __notify_unread_msg(self, site_name, site_user_info, unread_msg_notify):
         if site_user_info.message_unread <= 0:
@@ -114,6 +169,23 @@ class SitesDataStatisticsCenter:
         else:
             self.message.send_site_message(
                 title=f"站点 {site_user_info.site_name} 收到 {site_user_info.message_unread} 条新消息，请登陆查看")
+
+    @staticmethod
+    def __log_result_summary(refresh_sites, site_user_infos, failed_results):
+        """
+        输出本次统计的最终执行结果：成功/失败站点数、失败原因、未解析到的字段
+        """
+        log.info(f"【Sites】站点数据统计完成：共 {len(refresh_sites)} 个站点，"
+                 f"成功 {len(site_user_infos)} 个，失败 {len(failed_results)} 个")
+
+        for site_name, fail_reason in failed_results:
+            log.warn(f"【Sites】站点 {site_name} 统计失败：{fail_reason}")
+
+        for site_user_info in site_user_infos:
+            missing_fields = _get_missing_fields(site_user_info)
+            if missing_fields:
+                log.warn(f"【Sites】站点 {site_user_info.site_name} 以下字段未解析到："
+                         f"{'、'.join(missing_fields)}")
 
     async def __fetch_failed_site_favicons(self, sites: list[UserSiteConf]) -> list[SiteFavicon]:
         """
@@ -149,7 +221,13 @@ class SitesDataStatisticsCenter:
         对外保持同步接口（调用方均为线程：/do 线程池、命令线程、调度器），
         内部刷新链路已异步化，用 asyncio.run 驱动。
         """
-        asyncio.run(self.__refresh_all_site_data(force=True, specify_sites=specify_sites))
+        log.info("【Sites】开始执行站点数据统计...")
+        try:
+            asyncio.run(self.__refresh_all_site_data(force=True, specify_sites=specify_sites))
+        except Exception:
+            # 命令线程/线程池会吞掉异常，这里必须显式记录，否则统计失败时无任何日志
+            log.exception("【Sites】站点数据统计执行失败: ")
+            return
         # 刷完发送消息
         string_list = []
 
@@ -181,6 +259,7 @@ class SitesDataStatisticsCenter:
                                   f"\n————————————")
 
             self.message.send_user_statistics_message(string_list)
+        log.info("【Sites】站点数据统计执行完成")
 
     async def __refresh_all_site_data(self, force=False, specify_sites=None):
         """
@@ -208,6 +287,10 @@ class SitesDataStatisticsCenter:
                                  site.name in specify_sites]
 
             if not refresh_sites:
+                if specify_sites:
+                    log.warn(f"【Sites】指定刷新的站点不存在或未启用站点统计：{'、'.join(specify_sites)}")
+                else:
+                    log.info("【Sites】没有启用站点统计的站点，跳过站点数据统计")
                 return
 
             # 已有有效图标的站点不再重复抓取（懒更新）
@@ -228,11 +311,20 @@ class SitesDataStatisticsCenter:
                 return_exceptions=True
             )
             site_user_infos = []
-            for result in results:
+            failed_results = []
+            for site, result in zip(refresh_sites, results):
                 if isinstance(result, BaseException):
                     log.error(f"【Sites】刷新站点数据异常: {result!s}")
-                elif result:
-                    site_user_infos.append(result)
+                    failed_results.append((site.name, f"刷新异常: {result!s}"))
+                    continue
+                site_user_info, fail_reason = result
+                if site_user_info:
+                    site_user_infos.append(site_user_info)
+                else:
+                    failed_results.append((site.name, fail_reason or "解析失败"))
+
+            # 最终执行结果：汇总成功/失败站点与未解析到的字段，便于排查 Cookie 失效、解析模型不适配等问题
+            self.__log_result_summary(refresh_sites, site_user_infos, failed_results)
 
             # 解析失败的站点（无法访问、521/522、解析出错）仍单独尝试抓取图标
             parsed_sites = {site_user_info.site_name for site_user_info in site_user_infos}
@@ -266,26 +358,35 @@ class SitesDataStatisticsCenter:
 
         return self.dbhelper.get_site_statistics_recent_sites(days=days, end_day=end_day, strict_urls=site_urls)
 
-    def get_site_user_statistics(self, sites=None, encoding="RAW", with_favicon=False):
+    def get_site_user_statistics(self, sites=None, encoding="RAW", with_favicon=False,
+                                 include_all_sites=False):
         """
         获取站点用户数据
         :param sites: 站点名称
         :param encoding: RAW/DICT
         :param with_favicon: DICT 结果中是否附带站点图标
+        :param include_all_sites: 是否包含未启用统计、暂无数据的站点（以站点配置为准）
         :return:
         """
-        statistic_sites = self.sites.get_sites(statistic=True)
-        if not sites:
-            site_urls = [site.strict_url for site in statistic_sites]
-        else:
-            site_urls = [site.strict_url for site in statistic_sites
-                         if site.name in sites]
+        statistic_sites = self.sites.get_sites() if include_all_sites \
+            else self.sites.get_sites(statistic=True)
+        if sites:
+            statistic_sites = [site for site in statistic_sites if site.name in sites]
+        site_urls = [site.strict_url for site in statistic_sites]
 
-        raw_statistics = self.dbhelper.get_site_user_statistics(strict_urls=site_urls)
+        # 查询上限与站点数保持一致，避免默认 100 条把站点截断
+        query_num = max(len(site_urls), 1) if include_all_sites else 100
+        raw_statistics = self.dbhelper.get_site_user_statistics(num=query_num, strict_urls=site_urls)
         if encoding == "RAW":
             return raw_statistics
 
         statistics = self.__todict(raw_statistics)
+        if include_all_sites:
+            statistics = self.__merge_site_statistics(statistic_sites, statistics)
+        else:
+            # 不带全部站点时按站点配置（优先级）顺序输出
+            site_order = {site.strict_url: index for index, site in enumerate(statistic_sites)}
+            statistics.sort(key=lambda item: site_order.get(item.get("url"), len(site_order)))
         if with_favicon:
             # 只使用站点图标表里已收录的图标，未收录的不做兜底
             # 历史遗留的远程图标地址无法在导出时内联，同样按未收录处理
@@ -350,6 +451,44 @@ class SitesDataStatisticsCenter:
         if dates:
             return min(dates).strftime("%Y-%m-%d")
         return ""
+
+    @staticmethod
+    def __merge_site_statistics(sites, statistics):
+        """
+        以站点配置为准整理列表：没有统计数据记录的站点补一条空数据
+
+        :param sites: 站点配置列表（按优先级排序）
+        :param statistics: __todict 后的统计结果
+        :return: 与站点配置顺序一致的统计列表，含 has_data 标记
+        """
+        # 统计数据按 URL 与站点配置对应，不用站名：统计表里的站名可能未随站点改名而更新
+        stats_by_url = {item["url"]: item for item in statistics if item.get("url")}
+        merged = []
+        for site in sites:
+            item = stats_by_url.get(site.strict_url)
+            if item:
+                # 展示名以站点配置为准
+                item = dict(item, site=site.name, has_data=True)
+            else:
+                item = {
+                    "site": site.name,
+                    "username": "",
+                    "user_level": "",
+                    "join_at": "",
+                    "update_at": "",
+                    "upload": 0,
+                    "download": 0,
+                    "ratio": 0,
+                    "seeding": 0,
+                    "leeching": 0,
+                    "seeding_size": 0,
+                    "bonus": 0,
+                    "url": site.strict_url or "",
+                    "msg_unread": 0,
+                    "has_data": False,
+                }
+            merged.append(item)
+        return merged
 
     @staticmethod
     def __todict(raw_statistics):

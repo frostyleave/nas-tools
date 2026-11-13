@@ -25,8 +25,13 @@
 
 .modal.fade .modal-dialog {
     transition: none !important;
-    will-change: transform, opacity;
-    backface-visibility: hidden;
+}
+
+@media (max-width: 768px) {
+    #system-ask-modal {
+        -webkit-backdrop-filter: none;
+        backdrop-filter: none;
+    }
 }
 
 .theme-dark {
@@ -1883,7 +1888,7 @@ h1.login_title>label {
 .statistics-actions {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 4px;
     flex-wrap: wrap;
 }
 
@@ -1898,7 +1903,8 @@ h1.login_title>label {
 }
 
 @media (max-width: 575.98px) {
-    #share-btn-container {
+    #share-btn-container,
+    #reload-site-statistics {
         justify-content: center;
         width: 2rem;
         height: 2rem;
@@ -1913,13 +1919,15 @@ h1.login_title>label {
     display: flex;
 }
 
-#share-btn-container {
+#share-btn-container,
+#reload-site-statistics {
     border-color: transparent;
     background-color: transparent;
     box-shadow: none;
 }
 
-#share-btn-container:hover {
+#share-btn-container:hover,
+#reload-site-statistics:hover {
     border-color: transparent;
     background-color: var(--tblr-bg-surface-secondary);
 }
@@ -2291,7 +2299,7 @@ h1.login_title>label {
 .statistics-sites-head,
 .statistics-site-row {
     display: grid;
-    grid-template-columns: minmax(220px, 2.6fr) 1.1fr 1.1fr .8fr .7fr 1.1fr .9fr;
+    grid-template-columns: minmax(220px, 2.6fr) 1.1fr 1.1fr .8fr .7fr 1.1fr .9fr 1.5fr;
     align-items: center;
     gap: 16px;
     padding: 0 24px;
@@ -2412,6 +2420,37 @@ h1.login_title>label {
     color: var(--tblr-secondary);
     white-space: nowrap;
     text-overflow: ellipsis;
+}
+
+.statistics-site-row .statistics-site-meta {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.statistics-site-row .statistics-site-meta-text {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.statistics-site-row .statistics-site-meta .statistics-row-action {
+    width: 22px;
+    height: 22px;
+}
+
+.statistics-site-row .statistics-site-meta .statistics-row-action i {
+    position: relative;
+    top: 1px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 15px;
+    line-height: 1;
+}
+
+.statistics-site-row .statistics-site-meta .statistics-row-action i::before {
+    vertical-align: 0;
 }
 
 .statistics-row-action {

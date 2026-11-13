@@ -4,6 +4,7 @@ from urllib.parse import urljoin
 
 import log as logger
 from app.sites.siteuserinfo._base import _ISiteUserInfo
+from app.utils import StringUtils
 from app.utils.site_utils import SiteUtils
 from config import Config
 
@@ -113,7 +114,8 @@ class MTorrentUserInfo(_ISiteUserInfo):
 
         self.upload = int(user_info.get("memberCount", {}).get("uploaded") or '0')
         self.download = int(user_info.get("memberCount", {}).get("downloaded") or '0')
-        self.ratio = user_info.get("memberCount", {}).get("shareRate") or 0
+        # 接口返回的 shareRate 可能是字符串（如 "1.234"），统一转成数值
+        self.ratio = StringUtils.str_float(user_info.get("memberCount", {}).get("shareRate"))
         self.bonus = user_info.get("memberCount", {}).get("bonus") or 0
         self.message_read_force = True
         self._torrent_seeding_params = {

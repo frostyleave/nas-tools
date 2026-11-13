@@ -71,6 +71,16 @@ class NexusPhpSiteUserInfo(_ISiteUserInfo):
         if not html:
             return
 
+        # 优先取带 _Name 类名的用户名链接（User_Name / PowerUser_Name / Rainbow_Name 等）
+        # 部分模板的顶部状态栏里也有指向 userdetails 的链接（上传量/下载量），
+        # 直接取第一个 <b> 会把流量数字当成用户名
+        ret = html.xpath(f'//a[contains(@class, "_Name") and contains(@href, "{self.userid}")]//b//text()'
+                         f'|//a[contains(@class, "_Name") and contains(@href, "{self.userid}")]/text()')
+        ret = [text.strip() for text in ret if text.strip()]
+        if ret:
+            self.username = str(ret[0])
+            return
+
         ret = html.xpath(f'//a[contains(@href, "userdetails") and contains(@href, "{self.userid}")]//b//text()')
         if ret:
             self.username = str(ret[0])
@@ -345,6 +355,11 @@ class NexusPhpSiteUserInfo(_ISiteUserInfo):
         if not html:
             return
 
+        # 用户名：部分模板的详情页标题（<h1><span class="nowrap"><b>用户名</b></span></h1>）
+        username = html.xpath('//h1//span[contains(@class, "nowrap")]//b//text()')
+        if username and username[0].strip():
+            self.username = username[0].strip()
+
         self.__get_user_level(html)
 
         self.__fixup_traffic_info(html)
@@ -378,7 +393,13 @@ class NexusPhpSiteUserInfo(_ISiteUserInfo):
             download_html = html.xpath('//*[@id="user-info-panel"]/div[2]/div[2]/div[5]/text()')
             if download_html:
                 download_match = re.search(r"[_<>/a-zA-Z-=\"'\s#;]+([\d,.\s]+[KMGTPI]*B)", download_html[0])
-                self.download = StringUtils.num_filesize(download_match.group(1).strip()) if download_match else 0            
+                self.download = StringUtils.num_filesize(download_match.group(1).strip()) if download_match else 0
+
+        # 通用兜底：信息卡 / “上传量: 200.32 GB”这类标签文本（如 Depth Studio）
+        if not self.upload:
+            self.upload = self.__parse_labeled_filesize(html, "上传量")
+        if not self.download:
+            self.download = self.__parse_labeled_filesize(html, "下载量")
 
         # 做种体积 & 做种数
         # seeding 页面获取不到的话，此处再获取一次
@@ -429,7 +450,40 @@ class NexusPhpSiteUserInfo(_ISiteUserInfo):
             self.seeding = tmp_seeding
 
         self.__fixup_torrent_seeding_page(html)
-    
+
+    @staticmethod
+    def __parse_labeled_filesize(html, label):
+        """
+        从“上传量/下载量”标签附近提取文件大小
+
+        部分站点模板把数值和单位拆在不同节点里，导致首页的连续文本正则匹配失败，
+        这里按结构补充兜底：
+        1. 信息卡：<span class="info-stat-label">上传量</span>
+                  <span class="info-stat-value">200.32 <span class="info-stat-unit">GB</span></span>
+        2. 表格文本：<strong>上传量</strong>: 200.32 GB
+        """
+        # 信息卡结构
+        values = html.xpath(
+            f'//*[contains(@class, "info-stat-label") and contains(normalize-space(text()), "{label}")]'
+            f'/following-sibling::*[contains(@class, "info-stat-value")]'
+        )
+        if values:
+            size_match = re.search(r"[\d,.]+\s*[KMGTPI]?B", "".join(values[0].itertext()), re.IGNORECASE)
+            if size_match:
+                return StringUtils.num_filesize(size_match.group())
+
+        # “标签: 数值”文本结构
+        texts = html.xpath(
+            f'//*[self::strong or self::b or self::span][normalize-space(text())="{label}"]'
+            f'/following-sibling::text()[1]'
+        )
+        for text in texts:
+            size_match = re.search(r"[\d,.]+\s*[KMGTPI]?B", text, re.IGNORECASE)
+            if size_match:
+                return StringUtils.num_filesize(size_match.group())
+
+        return 0
+
     def extract_seed_info(html_tree):
         
         # 第一种：<b>5</b> 条记录 | 总大小：1.66 GB

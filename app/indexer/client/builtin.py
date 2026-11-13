@@ -14,6 +14,7 @@ from app.indexer.manager import IndexerManager
 from app.media.meta.metainfo import MetaInfo
 from app.models.model import IndexerInfo
 from app.sites import SitesManager
+from app.utils.site_utils import SiteUtils
 from app.utils.string_utils import StringUtils
 from app.utils.types import IndexerType, MediaType, SearchType, SystemConfigKey
 
@@ -53,7 +54,8 @@ class BuiltinIndexer(_IIndexClient):
 
         # 选中站点配置
         indexer_sites = SystemConfig().get(SystemConfigKey.UserIndexerSites) or []
-        _indexer_domains = []
+        # 已加入的站点主机名，用于去重（兜底基础索引配置的域名是占位值，不能用于去重）
+        _indexer_hosts = []
 
         # PT站点
         sites_manager = SitesManager()
@@ -70,8 +72,9 @@ class BuiltinIndexer(_IIndexClient):
             if indexer_conf:
                 if check and (not indexer_sites or indexer_conf.id not in indexer_sites):
                     continue
-                if indexer_conf.domain not in _indexer_domains:
-                    _indexer_domains.append(indexer_conf.domain)
+                site_host = SiteUtils.get_url_host(pt_site.strict_url or url)
+                if site_host not in _indexer_hosts:
+                    _indexer_hosts.append(site_host)
                     indexer_conf.name = pt_site.name
                     ret_indexers.append(indexer_conf)
         # 公开站点
@@ -85,8 +88,9 @@ class BuiltinIndexer(_IIndexClient):
             if check and (not indexer_sites or base_item.id not in indexer_sites):
                 continue
 
-            if base_item.domain not in _indexer_domains:
-                _indexer_domains.append(base_item.domain)
+            base_host = SiteUtils.get_url_host(base_item.domain)
+            if base_host not in _indexer_hosts:
+                _indexer_hosts.append(base_host)
                 conf_data = IndexerManager().prepare_datas(site_base=base_item)
                 ret_indexers.append(IndexerInfo.from_datas(conf_data))
         

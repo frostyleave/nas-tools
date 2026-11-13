@@ -25,6 +25,8 @@ if (window.location.protocol === "https:") {
 }
 // 页面加载的时间
 let PageLoadedTime = new Date();
+// 基础索引配置ID（站点匹配不到索引器时兜底，禁止修改）
+const BASE_INDEXER_ID = "_nexus_";
 
 
 /**
@@ -2305,6 +2307,11 @@ function do_add_indexer() {
     return
   }
 
+  if (indexer_id == BASE_INDEXER_ID || indexer_id.startsWith(BASE_INDEXER_ID + '@')) {
+    show_fail_modal('基础索引配置ID不可使用');
+    return
+  }
+
   var indexer_name = $("#indexer-name").val().trim();
   if (!indexer_name || indexer_name == '' ) {
     show_fail_modal('站点名称不能为空');
@@ -2372,6 +2379,11 @@ function do_update_indexer() {
   var indexer_id = $("#indexer-id").val();
   if (current_indexer.id != indexer_id) {
     show_fail_modal('站点ID不一致, 请重新编辑');
+    return
+  }
+
+  if (indexer_id == BASE_INDEXER_ID || indexer_id.startsWith(BASE_INDEXER_ID + '@')) {
+    show_fail_modal('基础索引配置不允许修改');
     return
   }
 

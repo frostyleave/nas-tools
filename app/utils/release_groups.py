@@ -18,7 +18,9 @@ class ReleaseGroupsMatcher:
         "0ff": ['FF(?:(?:A|WE)B|CD|E(?:DU|B)|TV)'],
         "1pt": ['1PTBA'],
         "52pt": ['52pt'],
+        "AGSV": ['AGSV'],
         "audiences": ['Audies', 'AD(?:Audio|E(?:|book)|Music|Web)'],
+        "baozi": ['BAOZIWEB', 'Baozi'],
         "beitai": ['BeiTai'],
         "btschool": ['Bts(?:CHOOL|HD|PAD|TV)', 'Zone'],
         "BeyondHD": ['BYNDR'],
@@ -44,6 +46,7 @@ class ReleaseGroupsMatcher:
         "keepfrds": ['FRDS', 'Yumi', 'cXcY'],
         "lemonhd": ['L(?:eague(?:(?:C|H)D|(?:M|T)V|NF|WEB)|HD)', 'i18n', 'CiNT'],
         "mteam": ['MTeam(?:|TV)', 'MPAD', 'MWeb'],
+        "novahd": ['NHDWeb', 'NDJWEB'],
         "ourbits": ['Our(?:Bits|TV)', 'FLTTH', 'Ao', 'PbK', 'MGs', 'iLove(?:HD|TV)'],
         "piggo": ['PiGo(?:NF|(?:H|WE)B)'],
         "panda": ['AilMWeb', 'Panda', 'AilME', 'AilMTV', 'AilMUpscale'],
@@ -60,7 +63,7 @@ class ReleaseGroupsMatcher:
         "zmpt": ['ZmWeb', 'ZmAudio'],
         "others": ['B(?:MDru|eyondHD|TN)', 'C(?:fandora|trlhd|MRG)', 'DON', 'EVO', 'FLUX', 'HONE(?:|yG)',
                    'N(?:oGroup|T(?:b|G))', 'PandaMoon', 'SMURF', 'T(?:EPES|aengoo|rollHD )', 
-                   'Kitsune', 'SPWEB', 'SLOT', 'FLIX', 'KyoGo', 'TeamSyndicate'],
+                   'Kitsune', 'SPWEB', 'SLOT', 'FLIX', 'KyoGo', 'TeamSyndicate', 'MySiLU'],
         "anime": ['ANi', 'HYSUB', 'KTXP', 'LoliHouse', 'MCE', 'Nekomoe kissaten', r'(\d|\w|[\u4e00-\u9fa5])+-Raws',
                   '织梦字幕组', '豌豆字幕组&风之圣殿字幕组', '豌豆&风之圣殿字幕组', '风之圣殿字幕组', '豌豆字幕组', '今晚月色真美']
     }

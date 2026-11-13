@@ -754,7 +754,7 @@
     $("#modal-manual-indexer").data("indexer", NaN);
     if (ispt) {
       $('.pt-hide').hide();
-      $("[name='indexer-cop-btn']").show();
+      $("[name='indexer-copy-btn']").show();
     } else {
       $('.pt-hide').show();
       $("[name='indexer-copy-btn']").hide();
@@ -942,7 +942,8 @@
             // 弹窗提示
             show_fail_modal('操作失败, ' + ret.msg);
           } else {
-            var $card = $('#' + siteId + '-pop-card');  // 先拿到元素引用
+            // 卡片的DOM id按站点ID生成（多个站点可能共用同一个索引配置）
+            var $card = $('#site-' + $checkbox.attr('data-site-id') + '-pop-card');
             $card.detach();                     // 从当前所在容器移除
             if (previousChecked) {
               $('#sites-list').append($card);    // 添加到目标容器
@@ -995,13 +996,13 @@
             const siteLevel = String(site.level || '').replace(/[（(][^（）()]*[）)]/g, '').trim();
 
             const site_card = `
-              <div class="card glass-card" id='${site.indexer_id}-pop-card'>
+              <div class="card glass-card" id='site-${site.id}-pop-card'>
                 <div class="card-body p-3" >
                   <div class="col d-flex flex-column p-0" style="height: 100%;">
                     <div class="d-flex justify-content-between pb-2 border-bottom">
                       <div class="d-flex align-items-center ms-1">
                         <div class="form-switch">
-                          <input name="indexer_sites" type="checkbox" class="form-check-input" value="${site.indexer_id}" ${data.indexerSites.includes(site.indexer_id) ? 'checked' : ''}>
+                          <input name="indexer_sites" type="checkbox" class="form-check-input" value="${site.indexer_id}" data-site-id="${site.id}" ${data.indexerSites.includes(site.indexer_id) ? 'checked' : ''}>
                         </div>
                         <span>
                           <a class="text-reset card-text" href="${site.strict_url}" target="_blank">${site.name}</a>

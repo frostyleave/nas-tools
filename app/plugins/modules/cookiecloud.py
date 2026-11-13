@@ -10,7 +10,7 @@ from app.helper.dict_helper import DictHelper
 from app.indexer.manager import IndexerManager
 from app.plugins.modules._base import _IPluginModule
 from app.sites import SitesManager
-from app.utils import RequestUtils, TimeUtils
+from app.utils import RequestUtils, SiteUtils, TimeUtils
 
 
 @dataclass
@@ -320,7 +320,7 @@ class CookieCloud(_IPluginModule):
         update_sites = []
         add_sites = []
 
-        # 整理数据,使用domain域名的最后两级作为分组依据
+        # 整理数据,使用统一归一化后的主域名作为分组依据
         domain_groups = self.__sort_domain_cookies(contents)
         for domain, content_list in domain_groups.items():
 
@@ -336,7 +336,7 @@ class CookieCloud(_IPluginModule):
             # 拼接Cookie
             cookie_str = self.__join_cookie(content_list)
             # 域名
-            domain_url = ".".join(domain)
+            domain_url = domain
             # 查询站点
             site_info = self.sites_manager.get_sites_by_suffix(domain_url)
             if site_info:
@@ -416,13 +416,14 @@ class CookieCloud(_IPluginModule):
         return super().format_history(key, value)
 
     def __sort_domain_cookies(self, contents):
-        # 整理数据,使用domain域名的最后两级作为分组依据
+        # 整理数据,使用统一归一化后的主域名作为分组依据
         domain_groups = defaultdict(list)
         for site, cookies in contents.items():
             self.debug(f"加载[{site}]站点cookie")
             for cookie in cookies:
-                domain_parts = cookie["domain"].split(".")[-2:]
-                domain_key = tuple(domain_parts)
+                domain_key = SiteUtils.get_url_domain(cookie["domain"])
+                if not domain_key:
+                    continue
                 domain_groups[domain_key].append(cookie)
         return domain_groups
 

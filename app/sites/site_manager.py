@@ -50,7 +50,7 @@ class SitesManager:
 
         for site in config_sites:
 
-            site_strict_url = SiteUtils.get_url_domain(site.SIGNURL or site.RSSURL)
+            site_strict_url = SiteUtils.get_url_host(site.SIGNURL or site.RSSURL)
             if not site_strict_url:
                 continue
 
@@ -61,7 +61,7 @@ class SitesManager:
 
             # 以ID存储
             self._siteByIds[site.ID] = site_info
-            # 以域名存储
+            # 以主机名存储
             self._siteByUrls[site_strict_url] = site_info
 
             # 初始化站点限速器
@@ -70,6 +70,35 @@ class SitesManager:
                 limit_count = site_info.limit_count if site_info.limit_interval and site_info.limit_count else None,
                 limit_seconds = site_info.limit_seconds
             )
+
+    def refresh_indexer_links(self, missing_only=False):
+        """
+        重新关联站点与索引器，索引器配置变更后调用
+        :param missing_only: 只处理尚未关联索引器的站点
+        """
+        for site in self._siteByIds.values():
+            # 兜底到基础索引配置的站点仍视为可重新关联
+            if missing_only and site.indexer_id \
+                    and not IndexerManager.is_base_indexer_id(site.indexer_id):
+                continue
+            indexer, indexer_id = self.__resolve_site_indexer(site.strict_url, site.id)
+            site.indexer_id = indexer_id
+            site.parser = indexer.parser if indexer else ''
+
+    @staticmethod
+    def __resolve_site_indexer(strict_url, site_id) -> tuple[SiteBaseModel | None, str]:
+        """
+        匹配站点索引器；匹配不到时取基础索引配置兜底
+        :return: 索引器配置、站点关联的索引ID
+        """
+        indexer = IndexerManager().get_indexer_base(strict_url)
+        if indexer:
+            return indexer, indexer.id
+        base_indexer = IndexerManager().get_base_indexer()
+        if base_indexer:
+            # 基础配置为通用模板，按站点派生独立ID，保证站点的启停互不影响
+            return base_indexer, IndexerManager().build_site_indexer_id(site_id)
+        return None, ''
 
     def prepra_site_attr(self, site:CONFIGSITE):
 
@@ -98,13 +127,12 @@ class SitesManager:
                 statistic_enable = False
 
             site_parser = ''
-            indexer_id = ''            
+            indexer_id = ''
             strict_url = SiteUtils.get_base_url(site_signurl or site_rssurl)
-                # 解析器
-            indexer_base = IndexerManager().get_indexer_base(strict_url)
+                # 解析器（匹配不到时取基础索引配置兜底）
+            indexer_base, indexer_id = self.__resolve_site_indexer(strict_url, site.ID)
             if indexer_base:
                 site_parser = indexer_base.parser
-                indexer_id = indexer_base.id
                 
             # 从订阅链接解析passkey
             passkey = ''
@@ -220,9 +248,18 @@ class SitesManager:
         if siteid:
             return self._siteByIds.get(int(siteid)) or None
         if siteurl:
-            url_domain = SiteUtils.get_url_domain(siteurl)
-            return self._siteByUrls.get(url_domain) or None
+            return self.__get_site_by_url(siteurl)
         return None
+
+    def __get_site_by_url(self, url) -> UserSiteConf | None:
+        """
+        根据地址查找站点配置
+        按主机名精确匹配（忽略协议、端口和 www. 前缀）
+        """
+        host = SiteUtils.get_url_host(url)
+        if not host:
+            return None
+        return self._siteByUrls.get(host) or None
 
     def get_sites(self,
                   siteids=None,
@@ -262,17 +299,20 @@ class SitesManager:
             log.warn(f"【Sites】站点 {self._siteByIds[site_id].name} {msg}")
         return state
 
-    def get_sites_by_suffix(self, suffix) -> UserSiteConf:
+    def get_sites_by_suffix(self, suffix) -> UserSiteConf | None:
         """
-        根据url的后缀获取站点配置
+        根据域名后缀获取站点配置（用于 CookieCloud 等只能提供主域名的场景）
         """
-        for key in self._siteByUrls:
-            # 使用.分割后再将最后两位(顶级域和二级域)拼起来
-            key_parts = key.split(".")
-            key_end = ".".join(key_parts[-2:])
-            # 将拼起来的结果与参数进行对比
-            if suffix == key_end:
-                return self._siteByUrls[key]
+        site_info = self.__get_site_by_url(suffix)
+        if site_info:
+            return site_info
+        suffix_domain = SiteUtils.get_url_domain(suffix)
+        if not suffix_domain:
+            return None
+        for site in self._siteByIds.values():
+            site_url = site.strict_url or site.signurl or site.rssurl
+            if SiteUtils.get_url_domain(site_url) == suffix_domain:
+                return site
         return None
 
     def get_sites_by_name(self, name) -> list[UserSiteConf]:
@@ -439,10 +479,12 @@ class SitesManager:
         if len(xpaths) > 3:
             referer = xpaths[3]
         try:
-            site_info = self.match_indexer_sites(url=page_url)
-            if not site_info.referer:
-                referer = None
-            proxy = Config().get_proxies() if site_info.proxy else None
+            # 索引配置匹配不到时会兜底到基础索引配置，代理开关以站点配置为准
+            indexer_info = self.match_indexer_sites(url=page_url)
+            indexer_extra = (indexer_info.get('extra') or {}) if indexer_info else {}
+            site_conf = self.get_site(siteurl=page_url)
+            use_proxy = bool(site_conf and site_conf.proxy) or bool(indexer_extra.get('proxy'))
+            proxy = Config().get_proxies() if use_proxy else None
 
             req = RequestUtils(
                 ua=ua,
@@ -465,25 +507,20 @@ class SitesManager:
 
     def match_indexer_sites(self, url, site_name=None) -> SiteBaseModel | None:
         """
-        根据url匹配索引站点信息
+        根据url匹配索引站点信息，匹配不到时取基础索引配置兜底
         """
         indexers = IndexerManager().get_all_indexer_base()
         if url:
-            base_url = SiteUtils.get_base_url(url)            
-            sites_info = next(filter(lambda x: x.domain.startswith(base_url), indexers), None)
+            sites_info = IndexerManager().get_indexer_base(url, public=True)
             if sites_info:
                 return sites_info
-            
-            url_sld = SiteUtils.get_url_sld(url)
-            sites_info = next(filter(lambda x: url_sld.startswith(x.id), indexers), None)
-            if sites_info:
-                return sites_info
-            
+
         if site_name:
             sites_info = next(filter(lambda x: x.name == site_name, indexers), None)
-            return sites_info
+            if sites_info:
+                return sites_info
 
-        return None
+        return IndexerManager().get_base_indexer()
 
     def __get_site_note_items(self, note):
         """

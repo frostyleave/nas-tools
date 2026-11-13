@@ -404,14 +404,15 @@ def sites_page():
 
     # 统计数据
     site_user_statistics = SitesDataStatisticsCenter().get_site_user_statistics()
-    statistic_dict = {obj.SITE: obj for obj in site_user_statistics} if site_user_statistics else {}
+    # 按 URL 关联，统计表里的站名可能未随站点改名而更新
+    statistic_dict = {obj.URL: obj for obj in site_user_statistics} if site_user_statistics else {}
 
     enriched = []
     for it in cfg_sites:
         new_item = _site_view(it)
         enriched.append(new_item)
         # 填充统计数据
-        statistic_info = statistic_dict.get(it.name)
+        statistic_info = statistic_dict.get(it.strict_url)
         if statistic_info:
             new_item['ratio'] = statistic_info.RATIO
             new_item['upload'] = statistic_info.UPLOAD
@@ -903,8 +904,8 @@ def site_statistics():
     """
     数据统计页面 - 分站点信息
     """
-    site_user_statistics = SitesDataStatisticsCenter().get_site_user_statistics(encoding="DICT",
-                                                                                with_favicon=True)
+    site_user_statistics = SitesDataStatisticsCenter().get_site_user_statistics(
+        encoding="DICT", with_favicon=True, include_all_sites=True)
     return response(data=
         {
             "SiteUserStatistics": site_user_statistics,
