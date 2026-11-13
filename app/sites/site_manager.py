@@ -160,6 +160,59 @@ class SitesManager:
             log.exception(f'【Sites】站点[{site.NAME}]配置解析异常: ')
             return None
 
+    def get_site_statistic_sites(self) -> list[dict]:
+        """
+        获取所有站点及其数据统计开关状态
+        """
+        return [
+            {
+                "id": site.id,
+                "name": site.name,
+                "statistic": site.statistic_enable
+            }
+            for site in self.get_sites()
+        ]
+
+    def save_site_statistic_sites(self, settings: dict):
+        """
+        保存站点数据统计开关
+        :param settings: {站点ID: 是否启用}
+        """
+        for site_id, enabled in (settings or {}).items():
+            try:
+                site_id = int(site_id)
+            except (TypeError, ValueError):
+                continue
+
+            enabled = bool(enabled)
+
+            cft_sites = self.dbhelper.get_site_by_id(site_id)
+            if not cft_sites:
+                continue
+
+            # 站点用途标记（D订阅/S刷流/T数据统计），仅增删 T
+            include = cft_sites[0].INCLUDE or ""
+            has_statistic = "T" in include
+            if enabled and not has_statistic:
+                include += "T"
+            elif not enabled and has_statistic:
+                include = include.replace("T", "")
+
+            self.dbhelper.update_config_site_include(site_id, include)
+
+            # 就地同步内存中的站点配置，不全量 init_config（那会重建限速器等运行时状态）
+            site_info = self._siteByIds.get(site_id)
+            if not site_info:
+                continue
+            if enabled and "T" not in site_info.uses:
+                site_info.uses.append("T")
+            elif not enabled and "T" in site_info.uses:
+                site_info.uses.remove("T")
+            # 与 prepra_site_attr 保持一致：只有同时配置了 RSS/签到地址的站点才算启用统计
+            site_info.statistic_enable = enabled and bool(site_info.rssurl or site_info.signurl)
+
+        return True
+
     def get_site(self, siteid=None, siteurl=None) -> UserSiteConf | None:
         """
         获取单个站点配置

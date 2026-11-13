@@ -1,5 +1,6 @@
 import asyncio
 import json
+from dataclasses import dataclass
 from datetime import datetime
 from threading import Lock
 
@@ -9,10 +10,23 @@ from app.message import MessageService
 from app.models.model import UserSiteConf
 from app.sites import SitesManager
 from app.sites.site_schema import SitesschemaCenter
+from app.sites.siteuserinfo._base import fetch_site_favicon
 from app.utils import StringUtils
 from app.utils.commons import singleton
 
 lock = Lock()
+
+
+@dataclass
+class SiteFavicon:
+    """
+    站点图标抓取结果
+
+    站点数据解析失败时只更新图标，用该结构传给 DbHelper.update_site_favicon
+    """
+    site_name: str
+    site_url: str
+    site_favicon: str
 
 
 @singleton
@@ -41,10 +55,11 @@ class SitesDataStatisticsCenter:
         # 站点数据
         self._sites_data = {}
 
-    async def __refresh_site_data(self, site_info: UserSiteConf):
+    async def __refresh_site_data(self, site_info: UserSiteConf, cached_favicon_sites: set[str]):
         """
         更新单个site 数据信息
-        :param site_info:
+        :param site_info: 站点配置
+        :param cached_favicon_sites: 已有图标的站点名称，命中时跳过图标抓取
         :return:
         """
         site_url = site_info.strict_url
@@ -56,6 +71,8 @@ class SitesDataStatisticsCenter:
         try:
             site_user_info = await SitesschemaCenter().build(site_info)
             if site_user_info:
+                # 懒更新：已有图标数据时不再重复请求
+                site_user_info.skip_favicon = site_name in cached_favicon_sites
                 log.debug(f"【Sites】站点 {site_name} 开始以 {site_user_info.site_schema()} 模型解析")
                 # 开始解析
                 await site_user_info.parse()
@@ -97,6 +114,33 @@ class SitesDataStatisticsCenter:
         else:
             self.message.send_site_message(
                 title=f"站点 {site_user_info.site_name} 收到 {site_user_info.message_unread} 条新消息，请登陆查看")
+
+    async def __fetch_failed_site_favicons(self, sites: list[UserSiteConf]) -> list[SiteFavicon]:
+        """
+        站点首页无法解析时（无法访问、Cloudflare 521/522 等）仍单独尝试抓取图标
+
+        :return: 只包含站点图标信息的列表，供 update_site_favicon 使用
+        """
+        semaphore = asyncio.Semaphore(self._MAX_CONCURRENCY)
+
+        async def _fetch(site_info: UserSiteConf):
+            async with semaphore:
+                try:
+                    favicon = await fetch_site_favicon(
+                        site_info.strict_url,
+                        site_cookie=site_info.cookie,
+                        ua=site_info.ua,
+                        proxy=site_info.proxy
+                    )
+                except Exception as e:
+                    log.warn(f"【Sites】{site_info.name} 获取站点图标失败: {e!s}")
+                    return None
+                if not favicon:
+                    return None
+                return SiteFavicon(site_info.name, site_info.strict_url, favicon)
+
+        results = await asyncio.gather(*(_fetch(site) for site in sites), return_exceptions=True)
+        return [result for result in results if result and not isinstance(result, BaseException)]
 
     def refresh_site_data_now(self, specify_sites=None):
         """
@@ -166,12 +210,18 @@ class SitesDataStatisticsCenter:
             if not refresh_sites:
                 return
 
+            # 已有有效图标的站点不再重复抓取（懒更新）
+            cached_favicon_sites = {
+                favicon.SITE for favicon in self.dbhelper.get_site_favicons()
+                if self.dbhelper.is_valid_site_favicon(favicon.FAVICON)
+            }
+
             # 并发刷新：协程并发，限制最大并发数
             semaphore = asyncio.Semaphore(self._MAX_CONCURRENCY)
 
             async def _refresh(site_info: UserSiteConf):
                 async with semaphore:
-                    return await self.__refresh_site_data(site_info)
+                    return await self.__refresh_site_data(site_info, cached_favicon_sites)
 
             results = await asyncio.gather(
                 *(_refresh(site) for site in refresh_sites),
@@ -184,10 +234,20 @@ class SitesDataStatisticsCenter:
                 elif result:
                     site_user_infos.append(result)
 
+            # 解析失败的站点（无法访问、521/522、解析出错）仍单独尝试抓取图标
+            parsed_sites = {site_user_info.site_name for site_user_info in site_user_infos}
+            favicon_infos = list(site_user_infos)
+            failed_sites = [site for site in refresh_sites
+                            if site.name not in parsed_sites and site.name not in cached_favicon_sites]
+            if failed_sites:
+                favicon_infos += await self.__fetch_failed_site_favicons(failed_sites)
+
             # 登记历史数据
             self.dbhelper.insert_site_statistics_history(site_user_infos)
             # 实时用户数据
             self.dbhelper.update_site_user_statistics(site_user_infos)
+            # 站点图标
+            self.dbhelper.update_site_favicon(favicon_infos)
             # 实时做种信息
             self.dbhelper.update_site_seed_info(site_user_infos)
 
@@ -206,11 +266,12 @@ class SitesDataStatisticsCenter:
 
         return self.dbhelper.get_site_statistics_recent_sites(days=days, end_day=end_day, strict_urls=site_urls)
 
-    def get_site_user_statistics(self, sites=None, encoding="RAW"):
+    def get_site_user_statistics(self, sites=None, encoding="RAW", with_favicon=False):
         """
         获取站点用户数据
         :param sites: 站点名称
         :param encoding: RAW/DICT
+        :param with_favicon: DICT 结果中是否附带站点图标
         :return:
         """
         statistic_sites = self.sites.get_sites(statistic=True)
@@ -224,7 +285,18 @@ class SitesDataStatisticsCenter:
         if encoding == "RAW":
             return raw_statistics
 
-        return self.__todict(raw_statistics)
+        statistics = self.__todict(raw_statistics)
+        if with_favicon:
+            # 只使用站点图标表里已收录的图标，未收录的不做兜底
+            # 历史遗留的远程图标地址无法在导出时内联，同样按未收录处理
+            favicons = {
+                favicon.SITE: favicon.FAVICON
+                for favicon in self.dbhelper.get_site_favicons()
+                if self.dbhelper.is_valid_site_favicon(favicon.FAVICON)
+            }
+            for item in statistics:
+                item["favicon"] = favicons.get(item.get("site")) or ""
+        return statistics
 
     def get_pt_site_activity_history(self, site, days=365 * 2):
         """
@@ -307,4 +379,5 @@ class SitesDataStatisticsCenter:
         self.dbhelper.update_site_user_statistics_site_name(name, old_name)
         self.dbhelper.update_site_seed_info_site_name(name, old_name)
         self.dbhelper.update_site_statistics_site_name(name, old_name)
+        self.dbhelper.update_site_favicon_site_name(name, old_name)
         return True

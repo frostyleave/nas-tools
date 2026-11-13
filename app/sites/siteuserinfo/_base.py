@@ -47,6 +47,82 @@ def build_async_session(site_cookie: str | None = None) -> aiohttp.ClientSession
     return aiohttp.ClientSession(**kwargs)
 
 
+def _is_image_content(content: bytes) -> bool:
+    """
+    判断响应内容是否为图片（ico/png/gif/jpeg/webp/svg/bmp）
+    """
+    head = content[:200].lstrip()
+    return (content.startswith((b"\x00\x00\x01\x00", b"\x00\x00\x02\x00", b"\x89PNG",
+                                b"GIF8", b"\xff\xd8\xff", b"BM"))
+            or (content.startswith(b"RIFF") and content[8:12] == b"WEBP")
+            or b"<svg" in head)
+
+
+def _favicon_urls(site_url: str, html_text: str = "") -> list[str]:
+    """
+    生成候选图标地址：优先页面声明的图标，最后回退到站点根目录的 favicon.ico
+    """
+    urls: list[str] = []
+    html = etree.HTML(html_text) if html_text else None
+    if html is not None:
+        for href in html.xpath('//head/link[contains(@rel, "icon")]/@href'):
+            # 图标地址相对站点首页解析（部分解析器的 _base_url 是接口域名）
+            favicon_url = urljoin(site_url, href)
+            if favicon_url not in urls:
+                urls.append(favicon_url)
+
+    split_url = urlsplit(site_url)
+    default_url = f"{split_url.scheme}://{split_url.netloc}/favicon.ico"
+    if default_url not in urls:
+        urls.append(default_url)
+    return urls
+
+
+async def fetch_site_favicon(site_url: str,
+                             html_text: str = "",
+                             site_cookie: str | None = None,
+                             ua: str | None = None,
+                             proxy: bool = False,
+                             session: aiohttp.ClientSession | None = None) -> str:
+    """
+    抓取站点图标，返回 base64 编码的图片内容；获取失败返回空串
+
+    - 图标地址优先使用页面里的 <link rel="icon">，获取失败时回退到 /favicon.ico
+    - 只要响应内容确实是图片就接受，不校验状态码：部分站点（如 Cloudflare
+      521/522 状态下）仍会在异常响应中返回图标内容
+    """
+    if not site_url:
+        return ""
+
+    kwargs = {
+        # 图标只是展示用途，使用较短的超时，避免拖慢站点数据刷新
+        "timeout": aiohttp.ClientTimeout(total=15),
+        "headers": {"User-Agent": ua or Config().get_ua()},
+    }
+    proxy_url = resolve_proxy_url(proxy)
+    if proxy_url:
+        kwargs["proxy"] = proxy_url
+
+    async def _fetch(active_session: aiohttp.ClientSession) -> str:
+        for favicon_url in _favicon_urls(site_url, html_text):
+            try:
+                async with active_session.get(favicon_url, **kwargs) as res:
+                    content = await res.read()
+            except (aiohttp.ClientError, TimeoutError) as e:
+                log.warn(f"【Sites】获取站点图标失败 {favicon_url}: {e!s}")
+                continue
+            # 部分站点未登录时会把登录页当图标返回，需要校验内容确实是图片
+            if content and _is_image_content(content):
+                return base64.b64encode(content).decode()
+        return ""
+
+    if session is not None:
+        return await _fetch(session)
+    # 没有可用会话时在当前事件循环内临时创建，避免复用绑定在其它事件循环上的全局客户端
+    async with build_async_session(site_cookie) as local_session:
+        return await _fetch(local_session)
+
+
 class _ISiteUserInfo(metaclass=ABCMeta):
     # 站点模版
     schema = SiteSchema.NexusPhp
@@ -54,6 +130,8 @@ class _ISiteUserInfo(metaclass=ABCMeta):
     order = SITE_BASE_ORDER
     # 请求模式 cookie/apikey
     request_mode = "cookie"
+    # 是否跳过图标抓取（已有图标数据时由统计中心置 True，懒更新）
+    skip_favicon = False
 
     def __init__(self, site_name, url, site_cookie, index_html, apikey=None, session=None, ua=None, emulate=False, proxy=None):
         super().__init__()
@@ -118,7 +196,6 @@ class _ISiteUserInfo(metaclass=ABCMeta):
         self.site_url = url
 
         self._base_url = f"{split_url.scheme}://{split_url.netloc}"
-        self._favicon_url = urljoin(self._base_url, "favicon.ico")
         self._site_cookie = site_cookie
         self._apikey = apikey
         self._index_html = index_html
@@ -153,7 +230,9 @@ class _ISiteUserInfo(metaclass=ABCMeta):
         :return:
         """
         try:
-            # self._parse_favicon(self._index_html)
+            # 懒更新：已有图标数据时不再重复抓取
+            if not self.skip_favicon:
+                await self._parse_favicon(self._index_html)
             if not self._parse_logged_in(self._index_html):
                 return
 
@@ -176,7 +255,7 @@ class _ISiteUserInfo(metaclass=ABCMeta):
             self.seeding_info = json.dumps(self.seeding_info)
 
         except Exception as e:
-            log.exception(f"【Sites】{self.site_name} 解析站点信息出错")
+            log.exception(f"【Sites】{self.site_name} 解析站点信息出错: {e!s}")
         finally:
             # 关闭连接
             await self.close()
@@ -263,34 +342,31 @@ class _ISiteUserInfo(metaclass=ABCMeta):
 
     async def _parse_favicon(self, html_text):
         """
-        解析站点favicon,返回base64 fav图标
-        :param html_text:
+        解析站点 favicon，结果保存在 site_favicon（获取失败不影响站点数据解析）
+        :param html_text: 站点首页内容，用于查找图标地址
         :return:
         """
-        html = etree.HTML(html_text)
-        if html:
-            fav_link = html.xpath('//head/link[contains(@rel, "icon")]/@href')
-            if fav_link:
-                self._favicon_url = urljoin(self._base_url, fav_link[0])
+        try:
+            self.site_favicon = await fetch_site_favicon(
+                self.site_url,
+                html_text or "",
+                site_cookie=self._site_cookie,
+                ua=self._ua,
+                proxy=self._proxy,
+                session=self._session
+            )
+        except Exception as e:
+            log.warn(f"【Sites】{self.site_name} 获取站点图标失败: {e!s}")
 
-        if self._session is not None:
-            async with self._session.get(self._favicon_url) as res:
-                if res.status == 200:
-                    self.site_favicon = base64.b64encode(await res.read()).decode()
-        else:
-            async with build_async_session(self._site_cookie) as session, \
-                    session.get(self._favicon_url) as res:
-                if res.status == 200:
-                    self.site_favicon = base64.b64encode(await res.read()).decode()
-
-    async def _get_page_content(self, url, params=None, headers=None):
+    async def _get_page_content(self, url, params=None, headers=None, with_api_headers=True):
         """
         :param url: 网页地址
         :param params: post参数
         :param headers: 额外的请求头
+        :param with_api_headers: 是否携带站点接口专用请求头（如 x-api-key）
         :return:
         """
-        req_headers = self._assemble_request_headers(headers)
+        req_headers = self._assemble_request_headers(headers, with_api_headers)
         if self._session is not None:
             return await self.__request_page(self._session, url, params, req_headers)
 
@@ -353,15 +429,16 @@ class _ISiteUserInfo(metaclass=ABCMeta):
 
         return decode_bytes(content, charset), status
 
-    def _assemble_request_headers(self, headers):
+    def _assemble_request_headers(self, headers, with_api_headers=True):
         """
         组装请求头信息
         :param headers: 额外的请求头
+        :param with_api_headers: 是否携带站点接口专用请求头
         :return: 请求头信息
         """
         req_headers = None
-        
-        if self._ua or headers or self._addition_headers:
+
+        if self._ua or headers or (with_api_headers and self._addition_headers):
             if self.request_mode == "apikey":
                 req_headers = {}
             else:
@@ -376,7 +453,7 @@ class _ISiteUserInfo(metaclass=ABCMeta):
                     "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"
                 })
 
-            if self._addition_headers:
+            if with_api_headers and self._addition_headers:
                 req_headers.update(self._addition_headers)
 
         return req_headers

@@ -1,3 +1,4 @@
+import base64
 import datetime
 import json
 import os.path
@@ -478,6 +479,19 @@ class DbHelper:
                 "API_KEY": apikey,
                 "NOTE": note,
                 "INCLUDE": rss_uses
+            }
+        )
+
+    @DbPersist(_db)
+    def update_config_site_include(self, tid, include):
+        """
+        更新站点用途标记
+        """
+        if not tid:
+            return
+        self._db.query(CONFIGSITE).filter(CONFIGSITE.ID == int(tid)).update(
+            {
+                "INCLUDE": include
             }
         )
 
@@ -1318,6 +1332,98 @@ class DbHelper:
         """
         count = self._db.query(SITEUSERINFOSTATS).filter(SITEUSERINFOSTATS.URL == url).count()
         return count > 0
+
+    @DbPersist(_db)
+    def update_site_favicon_site_name(self, new_name, old_name):
+        """
+        更新站点图标中站点名称
+        """
+        self._db.query(SITEFAVICON).filter(SITEFAVICON.SITE == old_name).update(
+            {
+                "SITE": new_name
+            }
+        )
+
+    @staticmethod
+    def __favicon_data_uri(favicon: str) -> str:
+        """
+        根据图标内容生成 data URI（SVG/PNG 等需要正确的 MIME 才能正常显示）
+        """
+        mime = "image/x-icon"
+        try:
+            raw = base64.b64decode(favicon)
+            if raw.startswith(b"\x89PNG"):
+                mime = "image/png"
+            elif raw.startswith(b"GIF8"):
+                mime = "image/gif"
+            elif raw.startswith(b"\xff\xd8\xff"):
+                mime = "image/jpeg"
+            elif raw.startswith(b"RIFF") and raw[8:12] == b"WEBP":
+                mime = "image/webp"
+            elif b"<svg" in raw[:200]:
+                mime = "image/svg+xml"
+        except Exception:
+            pass
+        return f"data:{mime};base64,{favicon}"
+
+    @staticmethod
+    def is_valid_site_favicon(favicon: str | None) -> bool:
+        """
+        是否为可直接展示/导出的站点图标
+
+        历史遗留的远程地址无法在导出时内联，按无效处理
+        """
+        return bool(favicon) and favicon.startswith("data:image/")
+
+    @DbPersist(_db)
+    def update_site_favicon(self, site_user_infos: list):
+        """
+        更新站点图标数据
+
+        懒更新：已有有效图标的站点直接跳过，只补充缺失的图标
+        """
+        if not site_user_infos:
+            return
+        for site_user_info in site_user_infos:
+            # 只记录真正抓取到的图标，抓不到就不留记录
+            if not site_user_info.site_url or not site_user_info.site_favicon:
+                continue
+            existing = self.get_site_favicons(site_user_info.site_name)
+            # 已有 data URI 图标说明数据有效，保持原样；历史遗留的远程地址继续覆盖
+            if existing and self.is_valid_site_favicon(existing[0].FAVICON):
+                continue
+            site_icon = self.__favicon_data_uri(site_user_info.site_favicon)
+            if existing:
+                self._db.query(SITEFAVICON).filter(
+                    SITEFAVICON.SITE == site_user_info.site_name
+                ).update(
+                    {
+                        "URL": site_user_info.site_url,
+                        "FAVICON": site_icon
+                    }
+                )
+            else:
+                self._db.insert(SITEFAVICON(
+                    SITE=site_user_info.site_name,
+                    URL=site_user_info.site_url,
+                    FAVICON=site_icon
+                ))
+
+    def is_exists_site_favicon(self, site):
+        """
+        判断站点图标是否存在
+        """
+        count = self._db.query(SITEFAVICON).filter(SITEFAVICON.SITE == site).count()
+        return count > 0
+
+    def get_site_favicons(self, site=None):
+        """
+        查询站点图标
+        """
+        if site:
+            return self._db.query(SITEFAVICON).filter(SITEFAVICON.SITE == site).all()
+        else:
+            return self._db.query(SITEFAVICON).all()
 
     @DbPersist(_db)
     def update_site_seed_info_site_name(self, new_name, old_name):

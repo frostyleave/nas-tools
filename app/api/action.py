@@ -24,7 +24,7 @@ from app.media.meta import MetaInfo
 from app.mediaserver import MediaServer
 from app.message import MessageService
 from app.middleware.security import CurrentUser, get_current_user
-from app.models.user import User, UserManager
+from app.models.user import LEVEL_OPERATOR, User, UserManager
 from app.modules.brushtaskv2 import BrushTaskV2 as BrushTask
 from app.modules.filetransfer import FileTransfer
 from app.modules.filter import Filter
@@ -233,6 +233,8 @@ class WebAction:
             "get_message_client": self.__get_message_client,
             "test_message_client": self.__test_message_client,
             "get_sites": self.__get_sites,
+            "get_site_statistic_sites": self.__get_site_statistic_sites,
+            "save_site_statistic_sites": self.__save_site_statistic_sites,
             "get_indexers": self.__get_indexers,
             "get_download_dirs": self.__get_download_dirs,
             "find_hardlinks": self.__find_hardlinks,
@@ -874,6 +876,26 @@ class WebAction:
                                              brush=brush,
                                              statistic=statistic)
         return {"code": 0, "sites": sites}
+
+    def __get_site_statistic_sites(self):
+        """
+        查询所有站点的数据统计开关
+        """
+        return {"code": 0, "sites": SitesManager().get_site_statistic_sites()}
+
+    def __save_site_statistic_sites(self, data):
+        """
+        保存站点的数据统计开关
+        """
+        if not self._current_user or self._current_user.level < LEVEL_OPERATOR:
+            return {"code": 1, "msg": "权限不足"}
+
+        sites = data.get("sites")
+        if not isinstance(sites, dict):
+            return {"code": 1, "msg": "参数错误"}
+
+        SitesManager().save_site_statistic_sites(sites)
+        return {"code": 0, "msg": "保存成功"}
 
     def __del_site(self, data):
         """

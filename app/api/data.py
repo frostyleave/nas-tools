@@ -845,33 +845,27 @@ def mediafile():
     )
 
 
-# 数据统计页面
+# 数据统计页面（总量信息）
 @data_router.post("/statistics")
 @auth_check(LEVEL_OPERATOR)
 def statistics():
     """
-    数据统计页面
+    数据统计页面 - 总量信息
     """
-    # 总上传下载
-    TotalUpload = 0
-    TotalDownload = 0
-    TotalSeedingSize = 0
-    TotalSeeding = 0
-    # 站点标签及上传下载
-    SiteNames = []
-    SiteUploads = []
-    SiteDownloads = []
-    SiteRatios = []
-    SiteErrs = {}
+    total_upload = 0
+    total_download = 0
+    total_seeding = 0
+    total_seeding_size = 0
+    site_names = set()
 
     # 站点用户数据
-    site_user_statistics = SitesDataStatisticsCenter().get_site_user_statistics(encoding= "DICT")
-    
+    site_user_statistics = SitesDataStatisticsCenter().get_site_user_statistics(encoding="DICT")
+
     # 站点上传下载总量
     for site_item in site_user_statistics:
 
         name = site_item.get('site')
-        if not name:
+        if not name or name in site_names:
             continue
 
         up = site_item.get("upload", 0)
@@ -884,27 +878,35 @@ def statistics():
             continue
         if not str(up).isdigit() or not str(dl).isdigit():
             continue
-        if name not in SiteNames:
-            SiteNames.append(name)
-            TotalUpload += int(up)
-            TotalDownload += int(dl)
-            TotalSeeding += int(seeding)
-            TotalSeedingSize += int(seeding_size)
-            SiteUploads.append(int(up))
-            SiteDownloads.append(int(dl))
-            SiteRatios.append(round(float(ratio), 1))
+
+        site_names.add(name)
+        total_upload += int(up)
+        total_download += int(dl)
+        total_seeding += int(seeding)
+        total_seeding_size += int(seeding_size)
 
     return response(data=
         {
-            "TotalDownload": TotalDownload,
-            "TotalUpload": TotalUpload,
-            "TotalSeedingSize": TotalSeedingSize,
-            "TotalSeeding": TotalSeeding,
-            "SiteDownloads": SiteDownloads,
-            "SiteUploads": SiteUploads,
-            "SiteRatios": SiteRatios,
-            "SiteNames": SiteNames,
-            "SiteErr": SiteErrs,
+            "TotalDownload": total_download,
+            "TotalUpload": total_upload,
+            "TotalSeedingSize": total_seeding_size,
+            "TotalSeeding": total_seeding,
+            "SiteCount": len(site_names),
+        }
+    )
+
+
+# 数据统计页面（分站点信息，切换 Tab 时单独请求）
+@data_router.post("/site_statistics")
+@auth_check(LEVEL_OPERATOR)
+def site_statistics():
+    """
+    数据统计页面 - 分站点信息
+    """
+    site_user_statistics = SitesDataStatisticsCenter().get_site_user_statistics(encoding="DICT",
+                                                                                with_favicon=True)
+    return response(data=
+        {
             "SiteUserStatistics": site_user_statistics,
         }
     )

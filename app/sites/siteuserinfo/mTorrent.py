@@ -5,6 +5,7 @@ from urllib.parse import urljoin
 import log as logger
 from app.sites.siteuserinfo._base import _ISiteUserInfo
 from app.utils.site_utils import SiteUtils
+from config import Config
 
 # 用户级别字典
 _USER_LEVEL_DICT = {
@@ -31,8 +32,6 @@ _USER_LEVEL_DICT = {
 class MTorrentUserInfo(_ISiteUserInfo):
 
     request_mode = "apikey"
-
-
 
     def __init__(self, site_name, url, site_cookie, index_html, apikey=None, session=None, ua=None, emulate=False, proxy=None):
         # 基类初始化
@@ -68,7 +67,24 @@ class MTorrentUserInfo(_ISiteUserInfo):
             logger.warn(f"{self.site_name} 未设置apikey，跳过后续操作")
             return False
         return True
-    
+
+    async def _parse_favicon(self, _html_text):
+        """
+        接口解析器没有站点首页内容，先请求站点首页，再交给基类解析图标
+        """
+        page_content = ""
+        try:
+            page_content, _ = await self._get_page_content(
+                url=self.site_url,
+                headers={"User-Agent": self._ua or Config().get_ua()},
+                with_api_headers=False
+            )
+        except Exception as e:
+            logger.warn(f"【Sites】{self.site_name} 获取站点首页失败: {e!s}")
+        # 首页不可用（如 Cloudflare 521/522）时仍会回退到 /favicon.ico 抓取图标
+        await super()._parse_favicon(page_content)
+
+
     def _parse_site_page(self, html_text):
         """
         获取站点页面地址
@@ -106,6 +122,7 @@ class MTorrentUserInfo(_ISiteUserInfo):
             "type": "SEEDING",
             "userid": self.userid
         }
+
 
     async def visit_base_info(self):
         """
