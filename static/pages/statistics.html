@@ -1,7 +1,7 @@
 <div id="statistics-container">
   <div class="container-xl">
-    <div class="page-body">
-      <div class="d-flex align-items-center mb-2 flex-wrap gap-2">
+    <div class="page-body statistics-page">
+      <div class="statistics-toolbar">
         <div class="statistics-view-switch" role="group" aria-label="统计视图">
           <input type="radio" class="btn-check" name="statistics-view" id="statistics-total-tab" value="total" checked>
           <label class="btn" for="statistics-total-tab">总量信息</label>
@@ -9,208 +9,144 @@
           <label class="btn" for="statistics-sites-tab">分站点信息</label>
         </div>
         <div class="ms-auto" id="statistics-total-toolbar">
-          <div class="btn-list">
-            <a href="javascript:ask_refresh_statistics()" class="btn btn-primary d-none d-sm-inline-flex">
-              <i class="ti ti-refresh fs-3"></i>
-              强制刷新
-            </a>
-            <a href="javascript:ask_refresh_statistics()" class="btn btn-primary d-sm-none mbtn-action">
-              <i class="ti ti-refresh fs-3"></i>
-            </a>
-            <a href="javascript:show_history()" class="btn d-none d-sm-inline-flex">
+          <div class="statistics-actions">
+            <a href="javascript:show_history()" class="btn statistics-action d-none d-sm-inline-flex" title="历史数据">
               <i class="ti ti-history fs-3"></i>
               历史数据
             </a>
-            <a href="javascript:show_history()" class="btn d-sm-none mbtn-action">
+            <a href="javascript:show_history()" class="btn statistics-action d-sm-none mbtn-action" title="历史数据">
               <i class="ti ti-history fs-3"></i>
             </a>
-            <a href="javascript:show_statistic_sites_modal()" class="btn d-none d-sm-inline-flex">
-              <i class="ti ti-settings fs-3"></i>
+            <a href="javascript:show_statistic_sites_modal()" class="btn statistics-action d-none d-sm-inline-flex" title="统计站点">
+              <i class="ti ti-adjustments fs-3"></i>
               统计站点
             </a>
-            <a href="javascript:show_statistic_sites_modal()" class="btn d-sm-none mbtn-action">
-              <i class="ti ti-settings fs-3"></i>
+            <a href="javascript:show_statistic_sites_modal()" class="btn statistics-action d-sm-none mbtn-action" title="统计站点">
+              <i class="ti ti-adjustments fs-3"></i>
+            </a>
+            <a href="javascript:ask_refresh_statistics()" class="btn btn-primary statistics-action d-none d-sm-inline-flex" title="刷新全部站点数据">
+              <i class="ti ti-refresh fs-3"></i>
+              刷新数据
+            </a>
+            <a href="javascript:ask_refresh_statistics()" class="btn btn-primary statistics-action d-sm-none mbtn-action" title="刷新全部站点数据">
+              <i class="ti ti-refresh fs-3"></i>
             </a>
           </div>
         </div>
         <div class="ms-auto d-none" id="statistics-sites-toolbar">
-          <div class="d-flex align-items-center me-2">
-            <span class="text-muted">共 <span id="site-count">0</span> 个站点</span>
-            <a id="share-btn-container" class="btn-icon ms-2" style="display: none;"
+          <div class="statistics-actions me-2">
+            <span class="statistics-count">共 <span id="site-count">0</span> 个站点</span>
+            <a id="share-btn-container" class="btn statistics-action" style="display: none;"
               href="javascript:show_statistics_picture_modal()" title="生成分享图片">
-              <i class="ti ti-share fs-2"></i>
+              <i class="ti ti-share fs-3"></i>
+              <span class="d-none d-sm-inline">分享图</span>
             </a>
           </div>
         </div>
       </div>
+
       <div id="tab-statistics-total">
         <nodata-found id="no-statistics" title="没有数据" text="没有站点数据" style="display: none;"></nodata-found>
         <div id="total-statistics-content">
-          <div class="row row-cards mb-3">
-            <div class="col-12 col-md-4 col-xl-3">
-              <div class="card card-sm">
-                <div class="card-body">
-                  <div class="row align-items-center">
-                    <div class="col-auto">
-                      <span class="bg-blue avatar text-white">
-                        <i class="ti ti-arrow-up fs-1"></i>
-                      </span>
-                    </div>
-                    <div class="col">
-                      <div class="d-flex align-items-center">
-                        <div class="subheader">总上传量</div>
-                      </div>
-                      <div class="d-flex align-items-baseline">
-                        <div class="h1 mb-0 me-2" id="total-upload">0 B</div>
-                      </div>
-                    </div>
-                  </div>
+          <section class="statistics-summary">
+            <div class="statistics-summary-main liquid-glass-panel">
+              <div class="statistics-summary-figures">
+                <div class="statistics-figure-block">
+                  <div class="statistics-label">总上传量</div>
+                  <div class="statistics-figure" id="total-upload">0 B</div>
+                </div>
+                <div class="statistics-figure-block">
+                  <div class="statistics-label">总下载量</div>
+                  <div class="statistics-figure" id="total-download">0 B</div>
+                </div>
+                <div class="statistics-figure-block statistics-figure-ratio">
+                  <div class="statistics-label">分享率</div>
+                  <div class="statistics-figure statistics-ratio" id="total-ratio">—</div>
                 </div>
               </div>
-            </div>
-            <div class="col-12 col-md-4 col-xl-3">
-              <div class="card card-sm">
-                <div class="card-body">
-                  <div class="row align-items-center">
-                    <div class="col-auto">
-                      <span class="bg-red avatar text-white">
-                        <i class="ti ti-arrow-down fs-1"></i>
-                      </span>
-                    </div>
-                    <div class="col">
-                      <div class="d-flex align-items-center">
-                        <div class="subheader">总下载量</div>
-                      </div>
-                      <div class="d-flex align-items-baseline">
-                        <div class="h1 mb-0 me-2" id="total-download">0 B</div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
+              <div class="statistics-traffic-bar" role="img" aria-label="上传量与下载量占比">
+                <span class="statistics-traffic-up" id="total-upload-bar"></span>
+                <span class="statistics-traffic-down" id="total-download-bar"></span>
+              </div>
+              <div class="statistics-traffic-legend">
+                <span><i class="statistics-dot statistics-dot-up"></i>上传</span>
+                <span><i class="statistics-dot statistics-dot-down"></i>下载</span>
               </div>
             </div>
-            <div class="col-12 col-md-4 col-xl-3">
-              <div class="card card-sm">
-                <div class="card-body">
-                  <div class="row align-items-center">
-                    <div class="col-auto">
-                      <span class="bg-green avatar text-white">
-                        <i class="ti ti-seedling fs-1"></i>
-                      </span>
-                    </div>
-                    <div class="col">
-                      <div class="d-flex align-items-center">
-                        <div class="subheader">总做种数</div>
-                      </div>
-                      <div class="d-flex align-items-baseline">
-                        <div class="h1 mb-0 me-2" id="total-seeding">0</div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
+            <div class="statistics-summary-side liquid-glass-panel">
+              <div class="statistics-mini">
+                <span class="statistics-label">总做种数</span>
+                <span class="statistics-mini-value" id="total-seeding">0</span>
+              </div>
+              <div class="statistics-mini">
+                <span class="statistics-label">总做种体积</span>
+                <span class="statistics-mini-value" id="total-seeding-size">0 B</span>
               </div>
             </div>
-            <div class="col-12 col-md-4 col-xl-3">
-              <div class="card card-sm">
-                <div class="card-body">
-                  <div class="row align-items-center">
-                    <div class="col-auto">
-                      <span class="bg-vimeo avatar text-white">
-                        <i class="ti ti-database fs-1"></i>
-                      </span>
-                    </div>
-                    <div class="col">
-                      <div class="d-flex align-items-center">
-                        <div class="subheader">总做种体积</div>
-                      </div>
-                      <div class="d-flex align-items-baseline">
-                        <div class="h1 mb-0 me-2" id="total-seeding-size">0 B</div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
+          </section>
+
+          <section class="statistics-day">
+            <header class="statistics-day-header">
+              <div class="statistics-day-heading">
+                <h3 class="statistics-panel-title">今日流量</h3>
+                <p class="statistics-panel-meta" id="day-traffic-date">今日</p>
               </div>
-            </div>
-          </div>
-          <div class="row row-cards">
-            <div class="col-lg-6">
-              <div class="card">
-                <div class="card-body">
-                  <div class="d-flex">
-                    <h3 class="card-title d-flex align-items-center w-100">
-                      <button class="btn btn-link btn-icon" onclick="switch_date(-1)"><i class="ti ti-chevron-left fs-2"></i></button>
-                      <span id="chart-recent-upload-title" class="w-100 chart-title">今日上传量</span>
-                      <button class="btn btn-link btn-icon" onclick="switch_date(1)"><i class="ti ti-chevron-right fs-2"></i></button>
-                    </h3>
-                  </div>
-                  <div id="chart-recent-upload"></div>
-                </div>
+              <div class="statistics-day-totals">
+                <span><i class="statistics-dot statistics-dot-up"></i>上传 <strong id="day-upload-total">0 B</strong></span>
+                <span><i class="statistics-dot statistics-dot-down"></i>下载 <strong id="day-download-total">0 B</strong></span>
               </div>
-            </div>
-            <div class="col-lg-6">
-              <div class="card">
-                <div class="card-body">
-                  <div class="d-flex">
-                    <h3 class="card-title d-flex align-items-center w-100">
-                      <button class="btn btn-link btn-icon" onclick="switch_date(-1)"><i class="ti ti-chevron-left fs-2"></i></button>
-                      <span id="chart-recent-download-title" class="w-100 chart-title">今日下载量</span>
-                      <button class="btn btn-link btn-icon" onclick="switch_date(1)"><i class="ti ti-chevron-right fs-2"></i></button>
-                    </h3>
-                  </div>
-                  <div id="chart-recent-download"></div>
-                </div>
+              <div class="statistics-day-nav">
+                <button type="button" class="btn-icon" onclick="switch_date(-1)" title="前一天">
+                  <i class="ti ti-chevron-left"></i>
+                </button>
+                <button type="button" class="btn-icon" id="day-next" onclick="switch_date(1)" title="后一天">
+                  <i class="ti ti-chevron-right"></i>
+                </button>
               </div>
+            </header>
+            <div class="statistics-day-list" id="day-traffic-list">
+              <div class="statistics-empty">加载中...</div>
             </div>
-          </div>
+          </section>
         </div>
       </div>
+
       <div id="tab-statistics-sites" style="display: none;">
-        <div class="card">
-          <div class="card-header px-3 py-2 d-none d-lg-block">
-            <div class="row g-2 align-items-center small w-100">
-              <div class="col-lg-3">
-                <a href="javascript:sort_site_statistics('join_at')" class="site-statistics-sort text-muted" data-sort="join_at" title="按加入时间排序">
-                  站点<i class="ti ti-arrow-down d-none ms-1"></i>
-                </a>
-              </div>
-              <div class="col-lg-2">
-                <a href="javascript:sort_site_statistics('upload')" class="site-statistics-sort text-muted" data-sort="upload">
-                  上传量<i class="ti ti-arrow-down d-none ms-1"></i>
-                </a>
-              </div>
-              <div class="col-lg-2">
-                <a href="javascript:sort_site_statistics('download')" class="site-statistics-sort text-muted" data-sort="download">
-                  下载量<i class="ti ti-arrow-down d-none ms-1"></i>
-                </a>
-              </div>
-              <div class="col-lg-1">
-                <a href="javascript:sort_site_statistics('ratio')" class="site-statistics-sort text-muted" data-sort="ratio">
-                  分享率<i class="ti ti-arrow-down d-none ms-1"></i>
-                </a>
-              </div>
-              <div class="col-lg-1">
-                <a href="javascript:sort_site_statistics('seeding')" class="site-statistics-sort text-muted" data-sort="seeding">
-                  做种数<i class="ti ti-arrow-down d-none ms-1"></i>
-                </a>
-              </div>
-              <div class="col-lg-2">
-                <a href="javascript:sort_site_statistics('seeding_size')" class="site-statistics-sort text-muted" data-sort="seeding_size">
-                  做种体积<i class="ti ti-arrow-down d-none ms-1"></i>
-                </a>
-              </div>
-              <div class="col-lg-1">
-                <a href="javascript:sort_site_statistics('bonus')" class="site-statistics-sort text-muted" data-sort="bonus">
-                  魔力值<i class="ti ti-arrow-down d-none ms-1"></i>
-                </a>
-              </div>
-            </div>
+        <section class="statistics-sites">
+          <div class="statistics-sites-head d-none d-lg-grid">
+            <a href="javascript:sort_site_statistics('join_at')" class="site-statistics-sort statistics-sort"
+              data-sort="join_at" title="按加入时间排序">
+              站点<i class="ti ti-arrow-down d-none"></i>
+            </a>
+            <a href="javascript:sort_site_statistics('upload')" class="site-statistics-sort statistics-sort statistics-num"
+              data-sort="upload">
+              上传量<i class="ti ti-arrow-down d-none"></i>
+            </a>
+            <a href="javascript:sort_site_statistics('download')" class="site-statistics-sort statistics-sort statistics-num"
+              data-sort="download">
+              下载量<i class="ti ti-arrow-down d-none"></i>
+            </a>
+            <a href="javascript:sort_site_statistics('ratio')" class="site-statistics-sort statistics-sort statistics-num"
+              data-sort="ratio">
+              分享率<i class="ti ti-arrow-down d-none"></i>
+            </a>
+            <a href="javascript:sort_site_statistics('seeding')" class="site-statistics-sort statistics-sort statistics-num"
+              data-sort="seeding">
+              做种数<i class="ti ti-arrow-down d-none"></i>
+            </a>
+            <a href="javascript:sort_site_statistics('seeding_size')" class="site-statistics-sort statistics-sort statistics-num"
+              data-sort="seeding_size">
+              做种体积<i class="ti ti-arrow-down d-none"></i>
+            </a>
+            <a href="javascript:sort_site_statistics('bonus')" class="site-statistics-sort statistics-sort statistics-num"
+              data-sort="bonus">
+              魔力值<i class="ti ti-arrow-down d-none"></i>
+            </a>
           </div>
-          <div class="card-body p-0">
-            <div id="site-statistics-list" class="list-group list-group-flush">
-              <div class="text-center text-muted py-4">加载中...</div>
-            </div>
+          <div id="site-statistics-list" class="statistics-sites-list">
+            <div class="statistics-empty">加载中...</div>
           </div>
-        </div>
+        </section>
       </div>
     </div>
   </div>
@@ -308,18 +244,21 @@
     <div class="modal-content">
       <div class="modal-header">
         <h5 class="modal-title" id="site-history-title">历史数据</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="关闭"></button>
       </div>
       <div class="modal-body">
-        <div class="btn-list d-flex justify-content-end">
-          <button id="btn-history-one-week" class="btn btn-ghost-info active btn-site-history"
-            onclick="show_site_history(this, 7)">最近一周
-          </button>
-          <button id="btn-history-one-month" class="btn btn-ghost-info btn-site-history"
-            onclick="show_site_history(this, 30)">最近一月
-          </button>
-          <button id="btn-history-one-year" class="btn btn-ghost-info btn-site-history"
-            onclick="show_site_history(this, 365)">最近一年
-          </button>
+        <div class="d-flex justify-content-end mb-3">
+          <div class="statistics-range" role="group" aria-label="统计范围">
+            <button id="btn-history-one-week" class="statistics-range-btn active btn-site-history"
+              onclick="show_site_history(this, 7)">最近一周
+            </button>
+            <button id="btn-history-one-month" class="statistics-range-btn btn-site-history"
+              onclick="show_site_history(this, 30)">最近一月
+            </button>
+            <button id="btn-history-one-year" class="statistics-range-btn btn-site-history"
+              onclick="show_site_history(this, 365)">最近一年
+            </button>
+          </div>
         </div>
         <div id="chart-site-history"></div>
       </div>
@@ -338,6 +277,33 @@
   var chart_history = null;
   var current_date = ""
 
+  // 图表配色：跟随页面主题，强调色只用于上传与主指标
+  function statistics_chart_palette() {
+    const styles = getComputedStyle(document.documentElement);
+    const read = (name, fallback) => {
+      const value = (styles.getPropertyValue(name) || '').trim();
+      return value || fallback;
+    };
+    const dark = document.documentElement.getAttribute('data-bs-theme') === 'dark';
+    return {
+      accent: read('--tblr-primary', '#696cff'),
+      secondary: read('--tblr-secondary', '#616876'),
+      muted: dark ? '#8b98ad' : '#9aa4b2',
+      axis: dark ? '#cbd5e1' : '#475569',
+      hairline: dark ? '#313c52' : '#e6e7e9',
+      grid: dark ? 'rgba(148, 163, 184, .16)' : 'rgba(148, 163, 184, .22)'
+    };
+  }
+
+  function statistics_escape(value) {
+    return String(value == null ? '' : value)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
   $('#site-activity').off('shown.bs.modal').on('shown.bs.modal', function (e) {
     
     let site_name = $('#site-activity-name').val();
@@ -354,10 +320,10 @@
     axios_post_do("get_site_activity", { "name": site_name }, function (ret) {
       chart_site_activity.hideLoading();
       if (ret.code == 0) {
-        const colors = ['#206bc4', '#d63939', '#2fb344', '#d6b344'];
+        const palette = statistics_chart_palette();
         let options_site_activity = {
           animation: false,
-          color: colors,
+          color: [palette.accent, palette.secondary, palette.muted, palette.axis],
           dataset: {
             source: ret.dataset
           },
@@ -366,13 +332,36 @@
               type: 'inside'
             },
             {
-              type: 'slider'
+              type: 'slider',
+              height: 18,
+              bottom: 8,
+              borderColor: palette.hairline,
+              fillerColor: palette.grid,
+              handleStyle: {
+                color: palette.secondary
+              },
+              textStyle: {
+                color: palette.secondary,
+                fontSize: 10
+              },
+              dataBackground: {
+                lineStyle: {
+                  color: palette.grid
+                },
+                areaStyle: {
+                  color: palette.grid
+                }
+              }
             }
           ],
           tooltip: {
             trigger: 'axis',
             axisPointer: {
-              type: 'cross'
+              type: 'line',
+              lineStyle: {
+                color: palette.axis,
+                width: 1
+              }
             },
             formatter: function (params) {
               let html = params[0].axisValueLabel + '<br>';
@@ -388,39 +377,63 @@
             }
           },
           grid: {
-            right: '30%'
+            left: 8,
+            right: 8,
+            top: 48,
+            bottom: 44,
+            containLabel: true
           },
           toolbox: {
             feature: {
               restore: { show: true },
+            },
+            iconStyle: {
+              borderColor: palette.secondary
             }
           },
           legend: {
-            data: ['总上传量', '总下载量', '做种体积', '积分']
+            data: ['总上传量', '总下载量', '做种体积', '积分'],
+            top: 0,
+            left: 0,
+            itemWidth: 12,
+            itemHeight: 8,
+            itemGap: 16,
+            textStyle: {
+              color: palette.secondary,
+              fontSize: 12
+            }
           },
           xAxis: [
             {
               type: 'time',
-              axisTick: {
-                alignWithLabel: true
+              axisTick: { show: false },
+              axisLine: {
+                lineStyle: {
+                  color: palette.hairline
+                }
               },
+              axisLabel: {
+                color: palette.secondary,
+                fontSize: 11
+              },
+              splitLine: { show: false }
             }
           ],
           yAxis: [
             {
               type: 'value',
-              name: '总上传量',
-              position: 'left',
-              alignTicks: true,
-              axisLine: {
-                show: true,
-                lineStyle: {
-                  color: colors[0]
-                }
-              },
+              axisLine: { show: false },
+              axisTick: { show: false },
               axisLabel: {
+                color: palette.secondary,
+                fontSize: 11,
                 formatter: function (value, index) {
                   return numeral(value).format('0.0 ib');
+                }
+              },
+              splitLine: {
+                lineStyle: {
+                  color: palette.grid
                 }
               },
               axisPointer: {
@@ -433,70 +446,17 @@
             },
             {
               type: 'value',
-              name: '总下载量',
               position: 'right',
-              alignTicks: true,
-              offset: 70,
-              axisLine: {
-                show: true,
-                lineStyle: {
-                  color: colors[1]
-                }
-              },
+              axisLine: { show: false },
+              axisTick: { show: false },
               axisLabel: {
-                formatter: function (value, index) {
-                  return numeral(value).format('0.0 ib');
-                }
-              },
-              axisPointer: {
-                label: {
-                  formatter: function (params) {
-                    return numeral(params.value).format('0.0 ib');
-                  }
-                }
-              }
-            },
-            {
-              type: 'value',
-              name: '做种体积',
-              position: 'right',
-              alignTicks: true,
-              axisLine: {
-                show: true,
-                lineStyle: {
-                  color: colors[2]
-                }
-              },
-              axisLabel: {
-                formatter: function (value, index) {
-                  return numeral(value).format('0.0 ib');
-                }
-              },
-              axisPointer: {
-                label: {
-                  formatter: function (params) {
-                    return numeral(params.value).format('0.0 ib');
-                  }
-                }
-              }
-            },
-            {
-              type: 'value',
-              name: '积分',
-              position: 'right',
-              alignTicks: true,
-              offset: 140,
-              axisLine: {
-                show: true,
-                lineStyle: {
-                  color: colors[3]
-                }
-              },
-              axisLabel: {
+                color: palette.secondary,
+                fontSize: 11,
                 formatter: function (value, index) {
                   return numeral(value).format('0.0 a')
                 }
               },
+              splitLine: { show: false },
               axisPointer: {
                 label: {
                   formatter: function (params) {
@@ -511,7 +471,8 @@
               name: '总上传量',
               type: 'line',
               large: true, smooth: true, symbol: 'none',
-              yAxisIndex: '0',
+              lineStyle: { width: 2 },
+              yAxisIndex: 0,
               encode: {
                 x: "time",
                 y: "upload"
@@ -521,7 +482,8 @@
               name: '总下载量',
               type: 'line',
               large: true, smooth: true, symbol: 'none',
-              yAxisIndex: '1',
+              lineStyle: { width: 1.5 },
+              yAxisIndex: 0,
               encode: {
                 x: "time",
                 y: "download"
@@ -531,7 +493,8 @@
               name: '做种体积',
               type: 'line',
               large: true, smooth: true, symbol: 'none',
-              yAxisIndex: '2',
+              lineStyle: { width: 1.5, type: 'dashed' },
+              yAxisIndex: 0,
               encode: {
                 x: "time",
                 y: "seeding_size"
@@ -541,7 +504,8 @@
               name: '积分',
               type: 'line',
               large: true, smooth: true, symbol: 'none',
-              yAxisIndex: '3',
+              lineStyle: { width: 1.5, type: 'dashed' },
+              yAxisIndex: 1,
               encode: {
                 x: "time",
                 y: "bonus"
@@ -551,43 +515,25 @@
         };
         chart_site_activity.setOption(options_site_activity);
       } else {
-        show_fail_modal(`${site_name} 查询失败：${ret.msg}！`);
+        show_fail_modal(`${site_name} 查询失败：${ret.msg}`);
       }
     }
     );
   });
 
   function show_site_activity(site_name) {
-    $('#site-activity-title').text(site_name + " 历史数据");
+    $('#site-activity-title').text(site_name + " · 历史数据");
     $('#site-activity-name').val(site_name);
     $('#site-activity').modal("show");
   }
 
-  // 今日上传饼图
-  if (typeof (pie_ul) != 'undefined') {
-    pie_ul.dispose();
-  }
-
-  pie_ul = echarts.init($('#chart-recent-upload')[0], null, {
-    height: 300
-  });
-
-  // 今日下载饼图
-  if (typeof (pie_dl) != 'undefined') {
-    pie_dl.dispose();
-  }
-    
-  pie_dl = echarts.init($('#chart-recent-download')[0], null, {
-    height: 300
-  });
-
   // 响应大小调整
   window.onresize = function () {
-    if (pie_ul) {
-      pie_ul.resize();
+    if (chart_history) {
+      chart_history.resize();
     }
-    if (pie_dl) {
-      pie_dl.resize();
+    if (typeof (chart_site_activity) != 'undefined' && chart_site_activity) {
+      chart_site_activity.resize();
     }
   };
 
@@ -600,91 +546,94 @@
     show_site_history_day(next.format('YYYY-MM-DD'), 1);
   }
 
-  // 饼图配置：数据不足两项时不绘制图形，只显示提示文字
-  function statistics_pie_option(source, value_field, empty_text) {
-    if (source.length <= 1) {
-      return {
-        title: {
-          text: empty_text,
-          left: 'center',
-          top: 'middle',
-          textStyle: { color: '#9e9e9e', fontSize: 14, fontWeight: 'normal' }
-        }
-      };
+  // 文件大小统一保留两位小数，避免同一列里 5 TB 与 1.49 TB 混排
+  function statistics_size_text(bytes) {
+    const text = formatFileSize(bytes || 0);
+    if (text === '0 B') {
+      return text;
     }
-    return {
-      tooltip: {
-        trigger: 'item', valueFormatter: value => numeral(value).format('0.0 ib')
-      },
-      legend: {
-        type: 'scroll',
-        orient: 'vertical',
-        right: 0,
-        top: 'middle',
-        itemWidth: 12,
-        itemHeight: 12,
-        itemGap: 6,
-        pageIconSize: 10,
-        textStyle: { fontSize: 12 }
-      },
-      dataset: {
-        source: source
-      },
-      series: [
-        {
-          type: 'pie',
-          radius: '58%',
-          center: ['32%', '50%'],
-          encode: {
-            itemName: 'site',
-            value: value_field
-          },
-          label: { show: false }
-        }
-      ]
-    };
+    const parts = text.split(' ');
+    return Number(parts[0]).toFixed(2) + ' ' + parts[1];
   }
 
-  // 获取某一日的数据
+  // 站点数字格式：千分位、魔力值、分享率
+  function statistics_count_text(value) {
+    return Number(value || 0).toLocaleString('en-US');
+  }
+
+  function statistics_bonus_text(value) {
+    const num = Number(value || 0);
+    if (num >= 1000000) {
+      return (num / 1000000).toFixed(2) + ' M';
+    }
+    if (num >= 1000) {
+      return (num / 1000).toFixed(2) + ' K';
+    }
+    return String(Math.round(num));
+  }
+
+  function statistics_ratio_text(value) {
+    const num = Number(value || 0);
+    return (num === 0 || num > 10000) ? '∞' : num.toFixed(2);
+  }
+
+  // 获取某一日的数据：按站点列出上传/下载双条
   function show_site_history_day(end_day, days) {
 
     current_date = end_day;
     axios_post_do("get_site_history", { "days": days, "end_day": end_day }, function (ret) {
 
-      if (ret.code == 0) {
-        const upload_source = ret.dataset.filter(item => item[1] > 0 || item[1] === 'upload');
-        pie_ul.clear();
-        pie_ul.setOption(statistics_pie_option(upload_source, 'upload', '无上传量'));
-        pie_ul.resize();
-
-        const download_source = ret.dataset.filter(item => item[2] > 0 || item[2] === 'download');
-        pie_dl.clear();
-        pie_dl.setOption(statistics_pie_option(download_source, 'download', '无下载量'));
-        pie_dl.resize();
-
-        let up_all = 0;
-        let dl_all = 0;
-        let len = ret.dataset.length;
-        for (let i = 1; i < len; i++) {
-          up_all += ret.dataset[i][1];
-        }
-        for (let i = 1; i < len; i++) {
-          dl_all += ret.dataset[i][2];
-        }
-        up_all = numeral(up_all).format('0.0 ib')
-        dl_all = numeral(dl_all).format('0.0 ib')
-
-        let dateStr = end_day;
-        if (moment().isSame(moment(end_day, 'YYYY-MM-DD'), 'd')) {
-          dateStr = "今日"
-        }
-        $('#chart-recent-upload-title').text(dateStr + "上传量 共" + up_all)
-        $('#chart-recent-download-title').text(dateStr + "下载量 共" + dl_all)
-      } else {
-        show_fail_modal(`历史数据 查询失败：${ret.msg}！`);
+      if (ret.code !== 0) {
+        show_fail_modal(`历史数据 查询失败：${ret.msg}`);
+        return;
       }
-    }
-    );
+
+      const rows = ret.dataset.slice(1)
+        .map(item => ({
+          site: item[0],
+          upload: Number(item[1]) || 0,
+          download: Number(item[2]) || 0
+        }))
+        .filter(item => item.upload > 0 || item.download > 0)
+        .sort((a, b) => b.upload - a.upload);
+
+      const upload_total = rows.reduce((sum, item) => sum + item.upload, 0);
+      const download_total = rows.reduce((sum, item) => sum + item.download, 0);
+      const scale = Math.max(...rows.map(item => Math.max(item.upload, item.download)), 1);
+
+      const day = moment(end_day, 'YYYY-MM-DD');
+      const is_today = moment().isSame(day, 'day');
+      $('#day-traffic-date').text(day.format('M月D日'));
+      $('#day-next').prop('disabled', is_today);
+      $('#day-upload-total').text(statistics_size_text(upload_total));
+      $('#day-download-total').text(statistics_size_text(download_total));
+
+      if (!rows.length) {
+        $('#day-traffic-list').html('<div class="statistics-empty">当日没有流量记录</div>');
+        return;
+      }
+
+      $('#day-traffic-list').html(rows.map(item => {
+        const upload_width = (item.upload / scale * 100).toFixed(2);
+        const download_width = (item.download / scale * 100).toFixed(2);
+        return `
+          <div class="statistics-day-row">
+            <div class="statistics-day-site" title="${statistics_escape(item.site)}">${statistics_escape(item.site)}</div>
+            <div class="statistics-day-bars">
+              <div class="statistics-day-track">
+                <div class="statistics-day-bar statistics-day-bar-up" style="width: ${upload_width}%"></div>
+              </div>
+              <div class="statistics-day-track">
+                <div class="statistics-day-bar statistics-day-bar-down" style="width: ${download_width}%"></div>
+              </div>
+            </div>
+            <div class="statistics-day-values">
+              <span class="statistics-day-value-up">${statistics_size_text(item.upload)}</span>
+              <span class="statistics-day-value-down">${statistics_size_text(item.download)}</span>
+            </div>
+          </div>`;
+      }).join(''));
+    });
   }
 
   function show_history() {
@@ -718,37 +667,51 @@
 
       if (ret.code == 0) {
 
+        const palette = statistics_chart_palette();
         let rotate = ret.dataset.length > 15 ? 40 : 0;
         let option_history = {
           animation: false,
           grid: {
-            left: 0,
-            top: 50,
-            right: 20,
-            bottom: "0%",
+            left: 8,
+            top: 40,
+            right: 8,
+            bottom: 8,
             containLabel: true
           },
-          color: ['#206bc4', '#d63939'],
+          color: [palette.accent, palette.muted],
           tooltip: {
             trigger: 'axis',
             axisPointer: {
-              type: 'shadow'
+              type: 'line',
+              lineStyle: { color: palette.axis, width: 1 }
             }, valueFormatter: value => numeral(value).format('0.0 ib')
           },
           dataset: {
             source: ret.dataset
           },
-          toolbox: {
-            show: true,
-            orient: 'vertical',
-            left: 'right',
-            top: 'center'
+          legend: {
+            top: 0,
+            right: 0,
+            itemWidth: 12,
+            itemHeight: 8,
+            itemGap: 16,
+            textStyle: {
+              color: palette.secondary,
+              fontSize: 12
+            }
           },
           xAxis: [
             {
               type: 'category',
               axisTick: { show: false },
+              axisLine: {
+                lineStyle: {
+                  color: palette.hairline
+                }
+              },
               axisLabel: {
+                color: palette.secondary,
+                fontSize: 11,
                 rotate: rotate,
               },
             }
@@ -756,15 +719,35 @@
           yAxis: [
             {
               type: 'value',
+              axisLine: { show: false },
+              axisTick: { show: false },
               axisLabel: {
+                color: palette.secondary,
+                fontSize: 11,
                 formatter: function (value, index) {
                   return numeral(value).format('0.0 ib');
+                }
+              },
+              splitLine: {
+                lineStyle: {
+                  color: palette.grid
                 }
               }
             }
           ],
           series: [
-            { name: "上传量", type: 'bar' }, { name: "下载量", type: 'bar' }
+            {
+              name: "上传量",
+              type: 'bar',
+              barMaxWidth: 18,
+              itemStyle: { borderRadius: [3, 3, 0, 0] }
+            },
+            {
+              name: "下载量",
+              type: 'bar',
+              barMaxWidth: 18,
+              itemStyle: { borderRadius: [3, 3, 0, 0] }
+            }
           ]
         };
 
@@ -783,9 +766,9 @@
         }
         up_all = numeral(up_all).format('0.0 ib')
         dl_all = numeral(dl_all).format('0.0 ib')
-        $('#site-history-title').text("历史数据 (上传量 " + up_all + " / 下载量 " + dl_all + ")")
+        $('#site-history-title').text("历史数据 · 上传 " + up_all + " / 下载 " + dl_all)
       } else {
-        show_fail_modal(`历史数据 查询失败：${ret.msg}！`);
+        show_fail_modal(`历史数据 查询失败：${ret.msg}`);
       }
     }
     );
@@ -1176,7 +1159,7 @@
         if (ret.code === 0) {
           show_success_modal(ret.msg);
         } else {
-          show_fail_modal(`任务提交失败：${ret.msg}!`);
+          show_fail_modal(`任务提交失败：${ret.msg}`);
         }
       });
 
@@ -1207,13 +1190,20 @@
       }
 
       const data = response.data;
+      const upload = Number(data.TotalUpload || 0);
+      const download = Number(data.TotalDownload || 0);
+      const total = upload + download;
+
       $('#no-statistics').hide();
       $('#total-statistics-content').show();
 
-      $('#total-upload').text(formatFileSize(data.TotalUpload || 0));
-      $('#total-download').text(formatFileSize(data.TotalDownload || 0));
-      $('#total-seeding').text(data.TotalSeeding || 0);
-      $('#total-seeding-size').text(formatFileSize(data.TotalSeedingSize || 0));
+      $('#total-upload').text(statistics_size_text(upload));
+      $('#total-download').text(statistics_size_text(download));
+      $('#total-seeding').text(statistics_count_text(data.TotalSeeding));
+      $('#total-seeding-size').text(statistics_size_text(data.TotalSeedingSize));
+      $('#total-ratio').text(total > 0 ? (download > 0 ? (upload / download).toFixed(2) : '∞') : '—');
+      $('#total-upload-bar').css('width', total > 0 ? (upload / total * 100).toFixed(2) + '%' : '0%');
+      $('#total-download-bar').css('width', total > 0 ? (download / total * 100).toFixed(2) + '%' : '0%');
     });
   }
 
@@ -1224,11 +1214,11 @@
     }
 
     const list = $('#site-statistics-list');
-    list.html('<div class="text-center text-muted py-4">加载中...</div>');
+    list.html('<div class="statistics-empty">加载中...</div>');
 
     axios_post('/data/site_statistics', {}, function (response) {
       if (response.code !== 0 || !response.data) {
-        list.html('<div class="text-center text-danger py-4">加载失败</div>');
+        list.html('<div class="statistics-empty">加载失败</div>');
         return;
       }
 
@@ -1252,7 +1242,7 @@
     const list = $('#site-statistics-list');
 
     if (!site_statistics_data.length) {
-      list.html('<div class="text-center text-muted py-4">没有站点数据</div>');
+      list.html('<div class="statistics-empty">没有站点数据</div>');
       $('#share-btn-container').hide();
       return;
     }
@@ -1305,104 +1295,87 @@
   // 站点图标：有图标显示图片，否则显示问号占位
   function site_favicon_html(item) {
     if (item.favicon) {
-      return `<img src="${item.favicon}" class="site-favicon me-2" alt="" loading="lazy" onerror="this.style.display='none'">`;
+      return `<img src="${statistics_escape(item.favicon)}" class="site-favicon" alt="" loading="lazy" onerror="this.style.display='none'">`;
     }
-    return `<span class="site-favicon-placeholder me-2">${statistics_pic_help_icon(24, 'currentColor')}</span>`;
+    return `<span class="site-favicon-placeholder">${statistics_pic_help_icon(18, 'currentColor')}</span>`;
   }
 
   // 渲染单个站点（桌面端与表头对齐，移动端为独立信息块）
   function render_site_statistics_row(item) {
-    const ratio = (item.ratio == 0.0 || item.ratio > 10000) ? '∞' : Number(item.ratio || 0).toFixed(2);
-    const messageIcon = item.msg_unread > 0 ? '<i class="ti ti-message fs-2 text-muted ms-1" title="有未读消息"></i>' : '';
-    const levelBadge = item.user_level ? `<span class="badge bg-primary-lt text-blue ms-1">${item.user_level}</span>` : '';
+    const ratio = statistics_ratio_text(item.ratio);
+    const site_arg = JSON.stringify(String(item.site || ''));
+    const messageIcon = item.msg_unread > 0
+      ? '<i class="ti ti-message statistics-unread" title="有未读消息"></i>'
+      : '';
+    const level = item.user_level
+      ? `<span class="statistics-level">${statistics_escape(item.user_level)}</span>`
+      : '';
     const joinAt = item.join_at ? item.join_at.substring(0, 10) : '';
     const updateAt = item.update_at || '';
     const meta = [
-      item.username || '-',
-      joinAt ? `加入 ${joinAt}` : '',
-      updateAt ? `更新 ${updateAt}` : ''
+      statistics_escape(item.username || '-'),
+      joinAt ? `加入 ${joinAt}` : ''
     ].filter(Boolean).join(' · ');
     const mobileMeta = [
-      item.username || '-',
-      updateAt ? `更新 ${updateAt}` : ''
+      statistics_escape(item.username || '-'),
+      updateAt ? `更新 ${statistics_escape(updateAt)}` : ''
     ].filter(Boolean).join(' · ');
+    const nameLink = `<a href='javascript:show_site_activity(${site_arg})' class="statistics-site-name" title="查看历史数据"><span class="statistics-site-label">${statistics_escape(item.site)}</span>${messageIcon}</a>`;
+    const siteTitle = `<div class="statistics-site-title">${nameLink}${level}</div>`;
+    const refresh = `<a href='javascript:ask_refresh_statistics(${site_arg})' class="statistics-row-action" title="刷新站点数据"><i class="ti ti-refresh"></i></a>`;
 
     return `
       <!-- 桌面端 -->
-      <div class="d-none d-lg-block list-group-item px-3 py-2">
-        <div class="row g-2 align-items-center">
-          <div class="col-lg-3">
-            <div class="d-flex align-items-center">
-              ${site_favicon_html(item)}
-              <div class="flex-fill text-truncate">
-                <div class="font-weight-medium text-truncate">
-                  <a href="javascript:show_site_activity('${item.site}')" class="text-reset" title="查看历史数据">${item.site}</a>${levelBadge}${messageIcon}
-                </div>
-                <div class="text-muted small text-truncate">${meta}</div>
-              </div>
-              <a href="javascript:ask_refresh_statistics('${item.site}')" class="btn-icon ms-2" title="刷新站点数据">
-                <i class="ti ti-refresh fs-2"></i>
-              </a>
-            </div>
+      <div class="statistics-site-row d-none d-lg-grid">
+        <div class="statistics-site-cell">
+          ${site_favicon_html(item)}
+          <div class="statistics-site-text">
+            ${siteTitle}
+            <div class="statistics-site-meta">${meta}</div>
           </div>
-          <div class="col-lg-2">
-            <div class="text-green font-weight-medium text-nowrap"><i class="ti ti-arrow-narrow-up"></i>${formatFileSize(item.upload || 0)}</div>
-          </div>
-          <div class="col-lg-2">
-            <div class="text-red font-weight-medium text-nowrap"><i class="ti ti-arrow-narrow-down"></i>${formatFileSize(item.download || 0)}</div>
-          </div>
-          <div class="col-lg-1">
-            <div class="font-weight-medium text-nowrap">${ratio}</div>
-          </div>
-          <div class="col-lg-1">
-            <div class="font-weight-medium text-nowrap">${item.seeding || 0}</div>
-          </div>
-          <div class="col-lg-2">
-            <div class="font-weight-medium text-nowrap">${formatFileSize(item.seeding_size || 0)}</div>
-          </div>
-          <div class="col-lg-1">
-            <div class="font-weight-medium text-nowrap">${item.bonus || 0}</div>
-          </div>
+          ${refresh}
         </div>
+        <div class="statistics-num">${statistics_size_text(item.upload)}</div>
+        <div class="statistics-num">${statistics_size_text(item.download)}</div>
+        <div class="statistics-num">${ratio}</div>
+        <div class="statistics-num">${statistics_count_text(item.seeding)}</div>
+        <div class="statistics-num">${statistics_size_text(item.seeding_size)}</div>
+        <div class="statistics-num">${statistics_bonus_text(item.bonus)}</div>
       </div>
       <!-- 移动端 -->
-      <div class="d-lg-none list-group-item px-3 py-3">
-        <div class="d-flex align-items-center">
+      <div class="statistics-site-card d-lg-none">
+        <div class="statistics-site-card-head">
           ${site_favicon_html(item)}
-          <div class="flex-fill text-truncate">
-            <div class="font-weight-medium text-truncate">
-              <a href="javascript:show_site_activity('${item.site}')" class="text-reset" title="查看历史数据">${item.site}</a>${levelBadge}${messageIcon}
-            </div>
-            <div class="text-muted small text-truncate">${mobileMeta}</div>
+          <div class="statistics-site-text">
+            ${siteTitle}
+            <div class="statistics-site-meta">${mobileMeta}</div>
           </div>
-          <a href="javascript:ask_refresh_statistics('${item.site}')" class="btn-icon ms-2" title="刷新站点数据">
-            <i class="ti ti-refresh fs-2"></i>
-          </a>
+          ${refresh}
         </div>
-        <div class="row g-2 mt-2">
-          <div class="col-4">
-            <div class="text-muted small">上传量</div>
-            <div class="text-green font-weight-medium text-truncate">${formatFileSize(item.upload || 0)}</div>
+        <div class="statistics-site-card-stats">
+          <div class="statistics-site-card-stat">
+            <div class="statistics-label">上传量</div>
+            <div class="statistics-num">${statistics_size_text(item.upload)}</div>
           </div>
-          <div class="col-4">
-            <div class="text-muted small">下载量</div>
-            <div class="text-red font-weight-medium text-truncate">${formatFileSize(item.download || 0)}</div>
+          <div class="statistics-site-card-stat">
+            <div class="statistics-label">下载量</div>
+            <div class="statistics-num">${statistics_size_text(item.download)}</div>
           </div>
-          <div class="col-4">
-            <div class="text-muted small">分享率</div>
-            <div class="font-weight-medium">${ratio}</div>
+          <div class="statistics-site-card-stat">
+            <div class="statistics-label">分享率</div>
+            <div class="statistics-num">${ratio}</div>
           </div>
-          <div class="col-4">
-            <div class="text-muted small">做种数</div>
-            <div class="font-weight-medium">${item.seeding || 0}</div>
+          <div class="statistics-site-card-stat">
+            <div class="statistics-label">做种数</div>
+            <div class="statistics-num">${statistics_count_text(item.seeding)}</div>
           </div>
-          <div class="col-4">
-            <div class="text-muted small">做种体积</div>
-            <div class="font-weight-medium text-truncate">${formatFileSize(item.seeding_size || 0)}</div>
+          <div class="statistics-site-card-stat">
+            <div class="statistics-label">做种体积</div>
+            <div class="statistics-num">${statistics_size_text(item.seeding_size)}</div>
           </div>
-          <div class="col-4">
-            <div class="text-muted small">魔力值</div>
-            <div class="font-weight-medium text-truncate">${item.bonus || 0}</div>
+          <div class="statistics-site-card-stat">
+            <div class="statistics-label">魔力值</div>
+            <div class="statistics-num">${statistics_bonus_text(item.bonus)}</div>
           </div>
         </div>
       </div>
@@ -1462,12 +1435,12 @@
     });
   }
 
-  // 页面加载完成后，加载总量信息与今日饼图；分站点信息在切换视图时按需加载
+  // 页面加载完成后，加载总量信息与今日流量；分站点信息在切换视图时按需加载
   $(document).ready(function () {
 
     load_total_statistics();
 
-    // 今日上传/下载饼图
+    // 今日流量
     show_site_history_day(moment().format('YYYY-MM-DD'), 1);
 
     // 视图切换
@@ -1481,13 +1454,6 @@
 
       if (sites_view) {
         load_site_statistics();
-      } else {
-        if (pie_ul) {
-          pie_ul.resize();
-        }
-        if (pie_dl) {
-          pie_dl.resize();
-        }
       }
     });
 
