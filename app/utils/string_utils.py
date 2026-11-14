@@ -330,7 +330,7 @@ class StringUtils:
         从搜索关键字中拆分中年份、季、集、类型
         """
         if not content:
-            return None, None, None, None, None
+            return None, None, None, None, None, None
         # 去掉查询中的电影或电视剧关键字
         if re.search(r'^电视剧|\s+电视剧|^动漫|\s+动漫', content):
             mtype = MediaType.TV
@@ -354,20 +354,19 @@ class StringUtils:
         year_re = re.search(r"[\s(]+(\d{4})[\s)]*", content)
         if year_re:
             year = year_re.group(1)
-        key_word = re.sub(
-            r'第\s*[0-9一二三四五六七八九十]+\s*季|第\s*[0-9一二三四五六七八九十百零]+\s*集|[\s(]+(\d{4})[\s)]*', '',
-            content,
-            flags=re.IGNORECASE).strip()
-        if key_word:
-            key_word = re.sub(r'\s+', ' ', key_word)
-        
+        # 去掉 "xxx篇" 后缀（如番剧名）
         season_name = re.sub(
             r'([\s|.].*)(篇){1}', '',
             content,
             flags=re.IGNORECASE).strip()
-        if season_name:
-            key_word = re.sub(r'\s+', ' ', season_name)
-            
+        base_content = season_name if season_name and season_name != content else content
+        # 去掉季、集、年份
+        key_word = re.sub(
+            r'第\s*[0-9一二三四五六七八九十]+\s*季|第\s*[0-9一二三四五六七八九十百零]+\s*集|[\s(]+(\d{4})[\s)]*', '',
+            base_content,
+            flags=re.IGNORECASE).strip()
+        if key_word:
+            key_word = re.sub(r'\s+', ' ', key_word)
         if not key_word:
             key_word = year
 

@@ -101,10 +101,13 @@
       title = `${rssAttr.name}(${rssAttr.year})`;
     } else {
       title = rssAttr.name;
-      if (rssAttr.season && rssAttr.season !== "S00") {
+      if (rssAttr.season) {
         title += ` - ${rssAttr.season}`;
       }
     }
+
+    // 搜索按钮展示的标题（转义单引号，避免内联事件解析失败）
+    const searchTitle = title.replace(/'/g, "\\'");
 
     // 生成标签
     const badges = generateBadges(rssAttr, data);
@@ -165,7 +168,7 @@
             </div>
           </div>
           <div class="rss-card-actions rss-card-actions-bottom" onclick="event.stopPropagation();">
-            <a href="javascript:search_mediainfo_media('${rssAttr.tmdbid}','${rssAttr.keyword ? rssAttr.keyword : rssAttr.name}', '${typeName}')"
+            <a href="javascript:media_search_rss('${id}', '${type}', '${searchTitle}')"
               title="搜索" class="text-azure" id="search_btn_${type}_${id}"><i class="ti ti-search fs-2"></i></a>
             <a href="javascript:refresh_rss_media('${type}', '${id}', 'movie_rss')" title="刷新"
               class="text-azure" id="refresh_btn_${type}_${id}"><i class="ti ti-refresh fs-2"></i></a>
@@ -269,7 +272,7 @@
     const percentage = (completed * 100) / (attr.total || -1);
 
     return `
-      <div class="media-box-progress card-progress" style="overflow: hidden">
+      <div class="media-box-progress card-progress" >
         <div class="progress-bar bg-green"
           style="width:${percentage}%"
           role="progressbar"

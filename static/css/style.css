@@ -1614,6 +1614,9 @@ a:hover {
     position: absolute;
     width: 100%;
     bottom: 0;
+    overflow: hidden;
+    margin-left: 2px;
+    margin-right: 2px;
 }
 
 /* 强制进度条动画，无视 prefers-reduced-motion */

@@ -33,14 +33,13 @@ const BASE_INDEXER_ID = "_nexus_";
  * 公共函数区
  */
 
-// 搜索
-function media_search(tmdbid, title, type) {
+// 发起搜索任务并跳转到搜索结果页
+function start_media_search(api, param, title) {
 
-  const param = { "tmdbid": tmdbid, "search_word": title, "media_type": type };
   // 显示弹窗
   show_progress_modal("正在搜索 " + title + " ...", "search")
   // 发起请求
-  axios_post('/search', param, function(ret) {
+  axios_post(api, param, function(ret) {
 
     // 请求失败
     if (ret.code != 0) {
@@ -62,6 +61,18 @@ function media_search(tmdbid, title, type) {
 
   }, false); // 已有进度弹窗，不显示全局加载遮罩
 
+}
+
+// 搜索
+function media_search(tmdbid, title, type) {
+  const param = { "tmdbid": tmdbid, "search_word": title, "media_type": type };
+  start_media_search('/search', param, title);
+}
+
+// 按订阅配置搜索
+function media_search_rss(rssid, mtype, title) {
+  const param = { "rssid": rssid, "mtype": mtype };
+  start_media_search('/search_rss', param, title);
 }
 
 // 显示全局加载蒙版

@@ -504,6 +504,58 @@ class Subscribe:
             }
         return ret_dict
 
+    def get_web_search_args(self, rssid, mtype=None):
+        """
+        根据订阅配置生成网页搜索参数
+        :param rssid: 订阅ID
+        :param mtype: 媒体类型，为空时自动判断
+        :return: 搜索参数，订阅不存在时返回 None
+        """
+        try:
+            rssid = int(rssid)
+        except (TypeError, ValueError):
+            return None
+
+        rss_info = None
+        if mtype != MediaType.TV:
+            rss_info = self.get_subscribe_movies(rid=rssid).get(str(rssid))
+            if rss_info:
+                mtype = MediaType.MOVIE
+        if not rss_info and mtype != MediaType.MOVIE:
+            rss_info = self.get_subscribe_tvs(rid=rssid).get(str(rssid))
+            if rss_info:
+                mtype = MediaType.TV
+        if not rss_info:
+            return None
+
+        # 搜索词：订阅名称，剧集带上订阅的季
+        content = rss_info.get("name") or ""
+        season = str(rss_info.get("season") or "").lstrip("Ss")
+        if mtype != MediaType.MOVIE and season.isdigit() and int(season) > 0 \
+                and f"第{int(season)}季" not in content:
+            content = f"{content} 第{int(season)}季"
+
+        # 过滤条件：沿用订阅配置
+        filters = {
+            "restype": rss_info.get("filter_restype"),
+            "pix": rss_info.get("filter_pix"),
+            "team": rss_info.get("filter_team"),
+            "rule": rss_info.get("filter_rule"),
+            "include": rss_info.get("filter_include"),
+            "exclude": rss_info.get("filter_exclude"),
+            "site": rss_info.get("search_sites") or None
+        }
+        filters = {key: value for key, value in filters.items()
+                   if value not in (None, "", [])}
+
+        return {
+            "content": content,
+            "keyword": rss_info.get("keyword"),
+            "tmdbid": rss_info.get("tmdbid"),
+            "media_type": mtype,
+            "filters": filters or None
+        }
+
     @staticmethod
     def __parse_rss_desc(desc):
         """

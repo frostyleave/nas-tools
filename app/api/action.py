@@ -85,10 +85,33 @@ def do(background_tasks: BackgroundTasks, content: Annotated[dict, Body(...)], c
         log.debug("[%s] %s, 耗时: %s ms", str(threading.get_ident()),
                   json.dumps(mask_sensitive(content), ensure_ascii=False), format(process_time, ".2f"))
 
+
+def _start_web_search(background_tasks: BackgroundTasks,
+                      content: str,
+                      ident_flag: bool = True,
+                      filters: dict | None = None,
+                      tmdbid=None,
+                      media_type=None,
+                      keyword=None):
+    """
+    创建网页搜索任务
+    """
+    task_id = TaskStore().create_task()
+    background_tasks.add_task(SearchProxy().search_torrents_from_web,
+                              content=content,
+                              ident_flag=ident_flag,
+                              filters=filters,
+                              tmdbid=tmdbid,
+                              media_type=media_type,
+                              keyword=keyword,
+                              task_id=task_id)
+    return task_id
+
+
 # search
 @action_router.post("/search")
 def search(background_tasks: BackgroundTasks, data: Annotated[dict, Body(...)]):
-    
+
     try:
         search_word = data.get("search_word")
         if not search_word:
@@ -105,20 +128,50 @@ def search(background_tasks: BackgroundTasks, data: Annotated[dict, Body(...)]):
             else:
                 media_type = MediaType.TV
 
-        task_id = TaskStore().create_task()
+        task_id = _start_web_search(background_tasks,
+                                    content=search_word,
+                                    ident_flag=ident_flag,
+                                    filters=filters,
+                                    tmdbid=tmdbid,
+                                    media_type=media_type)
 
-        background_tasks.add_task(SearchProxy().search_torrents_from_web,
-                                  content=search_word,
-                                  ident_flag=ident_flag,
-                                  filters=filters,
-                                  tmdbid=tmdbid,
-                                  media_type=media_type,
-                                  task_id=task_id)
-        
         return {"code": 0, "task_id": task_id}
-    
+
     except Exception as e:
         log.exception("处理/search请求出错")
+        return {"code": -1, "msg": str(e)}
+
+
+# search rss 按订阅配置搜索
+@action_router.post("/search_rss")
+def search_rss(background_tasks: BackgroundTasks, data: Annotated[dict, Body(...)]):
+    try:
+        rssid = data.get("rssid")
+        if not rssid:
+            return {"code": -1, "msg": "缺少订阅ID"}
+
+        mtype = data.get("mtype")
+        if mtype in Constants.MOVIE_TYPES:
+            mtype = MediaType.MOVIE
+        elif mtype in Constants.TVT_YPES:
+            mtype = MediaType.TV
+        else:
+            mtype = None
+
+        search_args = Subscribe().get_web_search_args(rssid=rssid, mtype=mtype)
+        if not search_args:
+            return {"code": -1, "msg": "订阅不存在"}
+
+        task_id = _start_web_search(background_tasks,
+                                    content=search_args["content"],
+                                    filters=search_args["filters"],
+                                    tmdbid=search_args["tmdbid"],
+                                    media_type=search_args["media_type"],
+                                    keyword=search_args["keyword"])
+        return {"code": 0, "task_id": task_id}
+
+    except Exception as e:
+        log.exception("处理/search_rss请求出错")
         return {"code": -1, "msg": str(e)}
 
 class WebAction:

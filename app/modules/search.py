@@ -1,6 +1,7 @@
 import re
 
 import log
+from app.core.task_manager import TaskStore
 from app.downloader.downloader import Downloader
 from app.media import DouBan, MediaService
 from app.media.meta import MetaInfo
@@ -21,15 +22,53 @@ class SearchProxy:
                                  filters=None,
                                  tmdbid=None,
                                  media_type=None,
+                                 keyword=None,
                                  task_id=None):
         """
-        WEB资源搜索
+        WEB资源搜索，统一保证搜索任务在任意分支都能结束
         :param content: 关键字文本，可以包括 类型、标题、季、集、年份等信息，使用 空格分隔，也支持种子的命名格式
         :param ident_flag: 是否进行媒体信息识别
         :param filters: 其它过滤条件
         :param tmdbid: TMDBID或DB:豆瓣ID
         :param media_type: 媒体类型, 配合tmdbid传入
+        :param keyword: 自定义搜索词，为空时使用媒体名称搜索
         :return: 错误码，错误原因，成功时直接插入数据库
+        """
+        task_finished = False
+        fail_msg = "搜索失败"
+        try:
+            code, msg = self._search_torrents_from_web(content=content,
+                                                       ident_flag=ident_flag,
+                                                       filters=filters,
+                                                       tmdbid=tmdbid,
+                                                       media_type=media_type,
+                                                       keyword=keyword,
+                                                       task_id=task_id)
+            if code == -1:
+                fail_msg = msg or fail_msg
+            else:
+                # Searcher 正常返回时已自行结束任务
+                task_finished = True
+            return code, msg
+        except Exception as e:
+            log.exception("【Web】搜索出错: %s", content)
+            fail_msg = str(e) or fail_msg
+            return -1, fail_msg
+        finally:
+            # 提前退出或异常时兜底结束任务，避免前端进度框一直等待
+            if task_id and not task_finished:
+                TaskStore().finish_task(task_id, message=fail_msg, result=0)
+
+    def _search_torrents_from_web(self,
+                                  content,
+                                  ident_flag=True,
+                                  filters=None,
+                                  tmdbid=None,
+                                  media_type=None,
+                                  keyword=None,
+                                  task_id=None):
+        """
+        WEB资源搜索
         """
         mtype, key_word, season_num, episode_num, year, content = StringUtils.get_keyword_from_string(content)
         if not key_word:
@@ -74,7 +113,8 @@ class SearchProxy:
                     search_cn_name = media_info.cn_name
                 else:
                     search_cn_name = media_info.title
-                first_search_name = search_cn_name
+                # 订阅配置了自定义搜索词时优先使用
+                first_search_name = keyword or search_cn_name
                 season_name = None
                 if season_num and 1 < season_num <= len(media_info.tmdb_info.seasons):
                     match_season = next(filter(lambda x: x.season_number == season_num, media_info.tmdb_info.seasons), None)
@@ -90,7 +130,7 @@ class SearchProxy:
                 log.info("【Web】 未从TMDB匹配到媒体信息, 将使用快速搜索...", content)
                 ident_flag = False
                 media_info = None
-                first_search_name = key_word
+                first_search_name = keyword or key_word
                 filter_args = {
                     "season": season_num,
                     "episode": episode_num,
@@ -98,7 +138,7 @@ class SearchProxy:
                 }    
         else:
             # 快速搜索
-            first_search_name = key_word
+            first_search_name = keyword or key_word
             filter_args = {
                 "season": season_num,
                 "episode": episode_num,
