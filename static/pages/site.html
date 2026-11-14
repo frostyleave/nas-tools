@@ -1027,7 +1027,8 @@
       var previousChecked = !this.checked;
 
       var siteId = $checkbox.val();
-      if (!siteId || siteId == '') {
+      var siteDbId = $checkbox.attr('data-site-id');
+      if (!siteId && !siteDbId) {
         // 还原 checkbox 为点击前的状态
         $checkbox.prop('checked', previousChecked);
         // 弹窗提示
@@ -1036,6 +1037,10 @@
       }
 
       let params = { "site_id": siteId, "checked": this.checked };
+      if (siteDbId) {
+        // 站点卡片以数据库站点ID启用，未匹配索引器时由后端校验后分配默认索引器
+        params.site_db_id = siteDbId;
+      }
       axios_post_do("set_user_indexer_sites", params,
         function (ret) {
           if (ret.code != 0) {
@@ -1044,6 +1049,10 @@
             // 弹窗提示
             show_fail_modal('操作失败, ' + ret.msg);
           } else {
+            // 启用成功后同步索引器ID（未匹配索引器的站点会分配默认索引器）
+            if (siteDbId && ret.indexer_id) {
+              $checkbox.val(ret.indexer_id);
+            }
             // 卡片的DOM id按站点ID生成（多个站点可能共用同一个索引配置）
             var $card = $('#site-' + $checkbox.attr('data-site-id') + '-pop-card');
             $card.detach();                     // 从当前所在容器移除
@@ -1056,7 +1065,7 @@
             filter_site_cards($('#site_search').val());
           }
         },
-        false);
+        true);
 
     });
 

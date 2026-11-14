@@ -3,7 +3,11 @@ import aiohttp
 import log
 from app.helper import SubmoduleHelper
 from app.models.model import UserSiteConf
-from app.sites.siteuserinfo._base import _ISiteUserInfo, build_async_session, resolve_proxy_url
+from app.sites.siteuserinfo._base import (
+    _ISiteUserInfo,
+    build_async_session,
+    resolve_proxy_url,
+)
 from app.sites.siteuserinfo.mTorrent import MTorrentUserInfo
 from app.utils.async_request import decode_bytes
 from app.utils.commons import mask_value, singleton

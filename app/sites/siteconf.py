@@ -1,8 +1,8 @@
-from typing import ClassVar
 import os
 import pickle
 import random
 import time
+from typing import ClassVar
 
 from cachetools import TTLCache, cached
 from lxml import etree

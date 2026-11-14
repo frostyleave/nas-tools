@@ -1,10 +1,12 @@
 import asyncio
 import re
 from datetime import datetime
+from html import unescape
 
 from lxml import etree
 
 import log
+from app.conf import SystemConfig
 from app.db.models import CONFIGSITE
 from app.helper import DbHelper, SiteHelper
 from app.indexer.manager import IndexerManager
@@ -14,8 +16,11 @@ from app.sites import SiteRateLimiter
 from app.sites.siteuserinfo.mTorrent import MTorrentUserInfo
 from app.utils import JsonUtils, RequestUtils, SiteUtils
 from app.utils.commons import singleton
-from app.utils.types import Spider
+from app.utils.types import Spider, SystemConfigKey
 from config import Config
+
+# NexusPHP 站点页脚特征
+_NEXUSPHP_PATTERN = re.compile(r'powered\s+by\s+nexusphp', re.IGNORECASE)
 
 
 @singleton
@@ -46,6 +51,11 @@ class SitesManager:
         self._limiters : dict[int, SiteRateLimiter] = {}
         # 站点数据
         config_sites = self.dbhelper.get_config_site()
+        # 已启用的索引器（未匹配索引器的站点只有已启用时才使用默认索引器）
+        enabled_indexer_ids = list(
+            SystemConfig().get(SystemConfigKey.UserIndexerSites) or [])
+        indexer_manager = IndexerManager()
+        links_changed = False
 
         for site in config_sites:
 
@@ -53,7 +63,7 @@ class SitesManager:
             if not site_strict_url:
                 continue
 
-            site_data_dic = self.prepra_site_attr(site)           
+            site_data_dic = self.prepra_site_attr(site, enabled_indexer_ids)
 
             # 实例化
             site_info = UserSiteConf.from_datas(site_data_dic)
@@ -63,6 +73,17 @@ class SitesManager:
             # 以主机名存储
             self._siteByUrls[site_strict_url] = site_info
 
+            # 站点改为使用默认索引器启用后，地址变更可能重新匹配到具体索引器，
+            # 迁移启用记录并清理残留的默认索引器标记
+            derived_indexer_id = indexer_manager.build_site_indexer_id(site.ID)
+            if derived_indexer_id in enabled_indexer_ids \
+                    and site_info.indexer_id != derived_indexer_id:
+                enabled_indexer_ids.remove(derived_indexer_id)
+                if site_info.indexer_id \
+                        and site_info.indexer_id not in enabled_indexer_ids:
+                    enabled_indexer_ids.append(site_info.indexer_id)
+                links_changed = True
+
             # 初始化站点限速器
             self._limiters[site.ID] = SiteRateLimiter(
                 limit_interval= site_info.limit_interval if site_info.limit_interval and site_info.limit_count else None,
@@ -70,36 +91,91 @@ class SitesManager:
                 limit_seconds = site_info.limit_seconds
             )
 
+        # 清理已删除站点遗留的默认索引器标记，避免站点ID复用后未经校验直接启用
+        for indexer_id in list(enabled_indexer_ids):
+            if not isinstance(indexer_id, str) \
+                    or not indexer_manager.is_base_indexer_id(indexer_id) \
+                    or indexer_id == indexer_manager.BASE_INDEXER_ID:
+                continue
+            try:
+                site_id = int(indexer_id.rsplit('@', 1)[-1])
+            except ValueError:
+                site_id = None
+            if site_id not in self._siteByIds:
+                enabled_indexer_ids.remove(indexer_id)
+                links_changed = True
+
+        if links_changed:
+            try:
+                SystemConfig().set(key=SystemConfigKey.UserIndexerSites,
+                                   value=enabled_indexer_ids)
+            except Exception:
+                log.exception("【Sites】同步站点索引器启用记录出错: ")
+
     def refresh_indexer_links(self, missing_only=False):
         """
         重新关联站点与索引器，索引器配置变更后调用
-        :param missing_only: 只处理尚未关联索引器的站点
+        :param missing_only: 只处理尚未匹配索引器的站点（含使用默认索引器的站点）
         """
+        # 已启用的索引器，站点匹配到具体索引器后需要同步启用记录
+        enabled_indexer_ids = list(
+            SystemConfig().get(SystemConfigKey.UserIndexerSites) or [])
+        indexer_manager = IndexerManager()
+        links_changed = False
+
         for site in self._siteByIds.values():
-            # 兜底到基础索引配置的站点仍视为可重新关联
             if missing_only and site.indexer_id \
-                    and not IndexerManager.is_base_indexer_id(site.indexer_id):
+                    and not indexer_manager.is_base_indexer_id(site.indexer_id):
                 continue
-            indexer, indexer_id = self.__resolve_site_indexer(site.strict_url, site.id)
+
+            previous_indexer_id = site.indexer_id
+            indexer, indexer_id = self.__resolve_site_indexer(
+                site.strict_url, site.id, enabled_indexer_ids)
             site.indexer_id = indexer_id
             site.parser = indexer.parser if indexer else ''
 
+            # 站点原先已启用，跟随匹配结果迁移启用记录，避免重新匹配后变回未启用
+            if previous_indexer_id and previous_indexer_id != indexer_id \
+                    and previous_indexer_id in enabled_indexer_ids:
+                enabled_indexer_ids.remove(previous_indexer_id)
+                if indexer_id and indexer_id not in enabled_indexer_ids:
+                    enabled_indexer_ids.append(indexer_id)
+                links_changed = True
+
+        if links_changed:
+            SystemConfig().set(key=SystemConfigKey.UserIndexerSites,
+                               value=enabled_indexer_ids)
+
     @staticmethod
-    def __resolve_site_indexer(strict_url, site_id) -> tuple[SiteBaseModel | None, str]:
+    def __resolve_site_indexer(strict_url, site_id,
+                               enabled_indexer_ids=None) -> tuple[SiteBaseModel | None, str]:
         """
-        匹配站点索引器；匹配不到时取基础索引配置兜底
+        匹配站点索引器；匹配不到时，已启用的站点使用基础索引配置兜底
+        :param strict_url: 站点地址
+        :param site_id: 站点ID
+        :param enabled_indexer_ids: 已启用的索引器ID，为空时实时读取
         :return: 索引器配置、站点关联的索引ID
         """
-        indexer = IndexerManager().get_indexer_base(strict_url)
+        indexer_manager = IndexerManager()
+        indexer = indexer_manager.get_indexer_base(strict_url)
         if indexer:
             return indexer, indexer.id
-        base_indexer = IndexerManager().get_base_indexer()
-        if base_indexer:
-            # 基础配置为通用模板，按站点派生独立ID，保证站点的启停互不影响
-            return base_indexer, IndexerManager().build_site_indexer_id(site_id)
-        return None, ''
 
-    def prepra_site_attr(self, site:CONFIGSITE):
+        base_indexer = indexer_manager.get_base_indexer()
+        if not base_indexer:
+            return None, ''
+
+        if enabled_indexer_ids is None:
+            enabled_indexer_ids = SystemConfig().get(SystemConfigKey.UserIndexerSites) or []
+
+        # 基础配置为通用模板，按站点派生独立ID，保证站点的启停互不影响
+        indexer_id = indexer_manager.build_site_indexer_id(site_id)
+        # 未启用且匹配不到索引器的站点不分配默认索引器，启用前需校验站点架构
+        if indexer_id not in enabled_indexer_ids:
+            return None, ''
+        return base_indexer, indexer_id
+
+    def prepra_site_attr(self, site:CONFIGSITE, enabled_indexer_ids=None):
 
         try:
 
@@ -129,7 +205,8 @@ class SitesManager:
             indexer_id = ''
             strict_url = SiteUtils.get_base_url(site_signurl or site_rssurl)
                 # 解析器（匹配不到时取基础索引配置兜底）
-            indexer_base, indexer_id = self.__resolve_site_indexer(strict_url, site.ID)
+            indexer_base, indexer_id = self.__resolve_site_indexer(
+                strict_url, site.ID, enabled_indexer_ids)
             if indexer_base:
                 site_parser = indexer_base.parser
                 
@@ -381,6 +458,69 @@ class SitesManager:
             return indexer_base.extra.get('downloader', None)
         return None
 
+    def verify_default_indexer(self, site_id) -> tuple[bool, str, str]:
+        """
+        校验站点是否可使用默认索引器
+        使用站点对接信息请求签到页，确认站点为 NexusPHP 架构后才允许使用默认索引器
+        :param site_id: 站点编号
+        :return: 是否通过校验、失败提示、校验通过后的索引ID
+        """
+        site = self.get_site(siteid=site_id)
+        if not site:
+            return False, '站点不存在', ''
+
+        # 已匹配索引器的站点无需校验
+        if site.indexer_id:
+            return True, '', site.indexer_id
+
+        indexer_manager = IndexerManager()
+        base_indexer = indexer_manager.get_base_indexer()
+        if not base_indexer:
+            return False, '默认索引器不存在，请先新增索引器', ''
+
+        check_url = site.signurl or site.strict_url
+        if not check_url:
+            return False, '站点未配置签到地址，无法校验站点架构', ''
+
+        try:
+            res = RequestUtils(
+                cookies=site.cookie,
+                ua=site.ua or Config().get_ua(),
+                proxies=Config().get_proxies() if site.proxy else None
+            ).get_res(url=check_url)
+        except Exception:
+            log.exception(f'【Sites】站点 {site.name} 签到页访问异常: ')
+            res = None
+
+        if not res or res.status_code != 200:
+            log.warn(f'【Sites】站点 {site.name} 签到页无法访问，禁止使用默认索引器')
+            return False, '站点域名无法匹配预设的站点信息，无法执行搜索', ''
+
+        res.encoding = res.apparent_encoding
+        # 去掉标签并还原实体，兼容页脚中的链接、换行等写法
+        page_text = unescape(re.sub(r'<[^>]+>', ' ', res.text or ''))
+        if not _NEXUSPHP_PATTERN.search(page_text):
+            log.warn(f'【Sites】站点 {site.name} 非 NexusPHP 架构，禁止使用默认索引器')
+            return False, '站点域名无法匹配预设的站点信息，无法执行搜索', ''
+
+        log.info(f'【Sites】站点 {site.name} 确认为 NexusPHP 架构，可使用默认索引器')
+        return True, '', indexer_manager.build_site_indexer_id(site.id)
+
+    def attach_default_indexer(self, site_id) -> str:
+        """
+        将站点关联到默认索引器（启用记录写入成功后调用）
+        :param site_id: 站点编号
+        :return: 站点索引ID
+        """
+        site = self.get_site(siteid=site_id)
+        indexer_manager = IndexerManager()
+        base_indexer = indexer_manager.get_base_indexer()
+        if not site or not base_indexer:
+            return ''
+        site.indexer_id = indexer_manager.build_site_indexer_id(site.id)
+        site.parser = base_indexer.parser or ''
+        return site.indexer_id
+
     def test_connection(self, site_id) -> tuple[bool, str, int]:
         """
         测试站点连通性
@@ -549,6 +689,15 @@ class SitesManager:
         """
         更新站点
         """
+        # 记录更新前的地址与启用状态：地址变更后需要重新匹配索引器并校验
+        old_site = self.get_site(siteid=tid)
+        old_indexer_id = old_site.indexer_id if old_site else ''
+        enabled_indexer_ids = SystemConfig().get(
+            SystemConfigKey.UserIndexerSites) or []
+        was_enabled = bool(old_indexer_id) and old_indexer_id in enabled_indexer_ids
+        old_host = SiteUtils.get_url_host(old_site.strict_url) if old_site else ''
+        new_host = SiteUtils.get_url_host(signurl or rssurl)
+
         ret = self.dbhelper.update_config_site(tid=tid,
                                                name=name,
                                                site_pri=site_pri,
@@ -560,7 +709,62 @@ class SitesManager:
                                                note=note,
                                                rss_uses=rss_uses)
         self.init_config()
+
+        if ret and old_site and old_host != new_host:
+            self.__recheck_site_indexer(tid, old_indexer_id, was_enabled)
         return ret
+
+    def __recheck_site_indexer(self, site_id, old_indexer_id, was_enabled):
+        """
+        站点地址变更后重新匹配索引器
+        匹配不到索引器时，原本已启用的站点需按新地址重新校验 NexusPHP 架构
+        """
+        site = self.get_site(siteid=site_id)
+        if not site:
+            return
+
+        indexer_manager = IndexerManager()
+        # 新地址匹配到具体索引器：保持启用状态（启用记录跟随新的索引器）
+        if site.indexer_id and not indexer_manager.is_base_indexer_id(site.indexer_id):
+            if was_enabled and old_indexer_id != site.indexer_id:
+                self.__migrate_enabled_indexer(old_indexer_id, site.indexer_id)
+            return
+
+        # 新地址匹配不到索引器：先解除默认索引器关联，强制按新地址重新校验
+        if indexer_manager.is_base_indexer_id(site.indexer_id):
+            self.__migrate_enabled_indexer(site.indexer_id, '')
+            site.indexer_id = ''
+            site.parser = ''
+
+        # 原本未启用的站点保持未启用，待用户手动启用时再校验
+        if not was_enabled:
+            return
+
+        success, _, indexer_id = self.verify_default_indexer(site_id)
+        if not success:
+            log.warn(f'【Sites】站点 {site.name} 地址变更后校验未通过，已停止使用默认索引器')
+            return
+
+        self.__migrate_enabled_indexer('', indexer_id)
+        self.attach_default_indexer(site_id)
+
+    @staticmethod
+    def __migrate_enabled_indexer(old_indexer_id, new_indexer_id):
+        """
+        启用记录中把旧索引器替换为新索引器，new 为空表示仅移除旧记录
+        """
+        enabled_indexer_ids = list(SystemConfig().get(
+            SystemConfigKey.UserIndexerSites) or [])
+        changed = False
+        if old_indexer_id and old_indexer_id in enabled_indexer_ids:
+            enabled_indexer_ids.remove(old_indexer_id)
+            changed = True
+        if new_indexer_id and new_indexer_id not in enabled_indexer_ids:
+            enabled_indexer_ids.append(new_indexer_id)
+            changed = True
+        if changed:
+            SystemConfig().set(key=SystemConfigKey.UserIndexerSites,
+                               value=enabled_indexer_ids)
 
     def delete_site(self, siteid):
         """

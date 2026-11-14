@@ -3208,24 +3208,60 @@ class WebAction:
         """
         设置索引站点（数据库）
         """
-        site_id = data.get("site_id")
-        if not site_id:
-            return {"code": 1, "msg": "site_id为空, 请检查索引器是否匹配站点索引模板"}
-        
+        checked = data.get("checked")
+        site_db_id = data.get("site_db_id")
+        site = None
+
+        if site_db_id:
+            try:
+                site_db_id = int(site_db_id)
+            except (TypeError, ValueError):
+                return {"code": 1, "msg": "站点ID无效"}
+            site = SitesManager().get_site(siteid=site_db_id)
+            if not site:
+                return {"code": 1, "msg": "站点不存在"}
+            # 站点卡片：未匹配索引器的站点在启用前需校验站点架构
+            if checked:
+                if site.indexer_id:
+                    site_id = site.indexer_id
+                else:
+                    success, msg, site_id = SitesManager().verify_default_indexer(site_db_id)
+                    if not success:
+                        return {"code": 1, "msg": msg}
+            else:
+                site_id = site.indexer_id
+            # 未启用且未匹配索引器的站点无需记录
+            if not site_id:
+                return {"code": 0}
+        else:
+            # 公共索引器：site_id 即索引器ID
+            site_id = data.get("site_id")
+            if not site_id:
+                return {"code": 1, "msg": "site_id为空, 请检查索引器是否匹配站点索引模板"}
+
         try:
             indexer_sites = SystemConfig().get(SystemConfigKey.UserIndexerSites) or []
-            checked = data.get("checked")
+            changed = False
             if checked:
-                if site_id in indexer_sites:
-                    return {"code": 0}
-                indexer_sites.append(site_id)
-            else:
                 if site_id not in indexer_sites:
-                    return {"code": 0}
+                    indexer_sites.append(site_id)
+                    changed = True
+            elif site_id in indexer_sites:
                 indexer_sites.remove(site_id)
-            SystemConfig().set(key=SystemConfigKey.UserIndexerSites, value=indexer_sites)
-            return {"code": 0}
-        except Exception as e:
+                changed = True
+
+            if changed:
+                SystemConfig().set(key=SystemConfigKey.UserIndexerSites,
+                                   value=indexer_sites)
+            if checked and site and not site.indexer_id:
+                # 启用记录写入成功后再关联默认索引器，避免写库失败时内存状态先行
+                SitesManager().attach_default_indexer(site.id)
+            elif not checked and site and IndexerManager().is_base_indexer_id(site_id):
+                # 默认索引器按站点派生，停用后解除关联，重新启用时需重新校验站点架构
+                site.indexer_id = ''
+                site.parser = ''
+            return {"code": 0, "indexer_id": site_id}
+        except Exception:
             log.exception("[act]设置索引站点 异常:")
             return {"code": 1}
 
@@ -3754,7 +3790,7 @@ class WebAction:
         return {"code": 1, "msg": msg}
 
     def __update_indexer(self, data):
-        if IndexerManager.is_base_indexer_id(data.get('id')):
+        if IndexerManager().is_base_indexer_id(data.get('id')):
             return {"code": 1, "msg": "基础索引配置不允许修改"}
         success = IndexerManager().update_indexer(data)
         if success:
@@ -3766,7 +3802,7 @@ class WebAction:
         if indexer_id is None:
              return {"code": 1, "msg": "索引id为空"}
 
-        if IndexerManager.is_base_indexer_id(indexer_id):
+        if IndexerManager().is_base_indexer_id(indexer_id):
             return {"code": 1, "msg": "基础索引配置不允许删除"}
 
         IndexerManager().delete_indexer(indexer_id)
