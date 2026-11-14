@@ -1113,7 +1113,8 @@ class FileTransfer:
         # 电视剧
         else:
             dir_name, season_name, _ = self.get_tv_dest_path(meta_info)
-            if not season or not total_num:
+            # 季号 0 为特别篇，空值才视为未指定季
+            if season in (None, "") or not total_num:
                 return []
             if meta_info.type == MediaType.ANIME:
                 dest_paths = self._anime_path

@@ -334,7 +334,7 @@ class MetaBase:
 
     # 返回集数格式化长度
     def get_format_padding_val(self):
-        if (not self.begin_season
+        if (self.begin_season is None
                 or not self.tmdb_info
                 or not hasattr(self.tmdb_info, 'seasons')
                 or len(self.tmdb_info.seasons) <= 0):

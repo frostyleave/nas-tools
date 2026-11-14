@@ -228,7 +228,9 @@ class Filter:
         :param year_str: 要匹配的年份，为空则不匹配
         :return: 是否命中
         """
-        if (not s_name or media_info.get_name() not in s_name) and s_num:
+        # 季号 0 为特别篇，需与未指定季（None/空列表）区分
+        if (not s_name or media_info.get_name() not in s_name) \
+                and s_num is not None and s_num != [] and s_num != "":
             if not media_info.get_season_list():
                 return False
             if not isinstance(s_num, list):

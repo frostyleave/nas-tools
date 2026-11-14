@@ -147,14 +147,15 @@ class TorrentUtils:
         """
         if not tmdb_id:
             return target
+        # 季号 0 为特别篇，空值才按第1季处理
         try:
-            season = int(season) if season else 1
+            season = int(season)
         except (TypeError, ValueError):
             season = 1
         season_list = target.setdefault(tmdb_id, [])
         for no_item in season_list:
             try:
-                item_season = int(no_item.get("season") or 1)
+                item_season = int(no_item.get("season"))
             except (TypeError, ValueError):
                 item_season = 1
             if item_season == season:
@@ -175,13 +176,14 @@ class TorrentUtils:
         """
         if not no_exists or not tmdb_id:
             return None
+        # 季号 0 为特别篇，空值才按第1季处理
         try:
             season = int(season)
         except (TypeError, ValueError):
             season = 1
         for no_item in no_exists.get(tmdb_id) or []:
             try:
-                item_season = int(no_item.get("season") or 1)
+                item_season = int(no_item.get("season"))
             except (TypeError, ValueError):
                 item_season = 1
             if item_season == season:

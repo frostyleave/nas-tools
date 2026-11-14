@@ -39,8 +39,8 @@ class MediaExistenceChecker:
         if not total_ep:
             total_ep = {}
 
-        # 查找的季
-        if not meta_info.begin_season:
+        # 查找的季（季号 0 为特别篇，不能用真假值判断）
+        if meta_info.begin_season is None:
             search_season = None
         else:
             search_season = meta_info.get_season_list()
@@ -84,7 +84,8 @@ class MediaExistenceChecker:
                 for season in total_seasons:
                     season_number = season.get("season_number")
                     episode_count = season.get("episode_count")
-                    if not season_number or not episode_count:
+                    # 季号 0 为特别篇，不能用真假值判断
+                    if season_number is None or not episode_count:
                         continue
 
                     no_exists_episodes = self._mediaserver.get_no_exists_episodes(meta_info, season_number, episode_count)

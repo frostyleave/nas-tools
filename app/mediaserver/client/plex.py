@@ -199,7 +199,8 @@ class Plex(_IMediaClient):
             episodes = self._plex.fetchItem(item_id).episodes()
         ret_tvs = []
         for episode in episodes:
-            if season and episode.seasonNumber != int(season):
+            # 季号 0 为特别篇，只有空值才不过滤季
+            if season not in (None, "") and episode.seasonNumber != int(season):
                 continue
             ret_tvs.append({
                 "season_num": episode.seasonNumber,
@@ -217,8 +218,8 @@ class Plex(_IMediaClient):
         """
         if not self._plex:
             return None
-        # 没有季默认为和1季
-        if not season:
+        # 没有季默认为第1季，季号 0 为特别篇
+        if season is None or season == "":
             season = 1
         episodes = self.get_tv_episodes(title=meta_info.title,
                                         year=meta_info.year,

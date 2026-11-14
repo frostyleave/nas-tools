@@ -202,7 +202,7 @@ class MetaVideo(MetaBase):
             if self.begin_episode is None:
                 self.begin_episode = int(name)
                 name = None
-            elif self.is_in_episode(int(name)) and not self.begin_season:
+            elif self.is_in_episode(int(name)) and self.begin_season is None:
                 name = None
         return name
 

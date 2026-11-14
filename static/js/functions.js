@@ -1279,13 +1279,12 @@ function show_add_rss_media_modal(mtype, tmdbid, rss_name, rss_year, rss_season=
   if (mtype === "TV") {
     $("#rss_type").val("TV");
     $("#rss_tv_season_div").show();
-    // 季
-    if (rss_season) {
-      if (typeof(rss_season) === "number") {
-        $("#rss_season").val(rss_season);
-      } else {
-        $("#rss_season").val(parseInt(rss_season.replace("S", "")));
-      }
+    // 季（0 为特别篇，不能用真假值判断；多选时取第一个）
+    if (Array.isArray(rss_season)) {
+      rss_season = rss_season.length > 0 ? rss_season[0] : '';
+    }
+    if (rss_season !== '' && rss_season !== null && rss_season !== undefined) {
+      $("#rss_season").val(parseInt(String(rss_season).replace("S", "")));
     }
   } else if (mtype === "MOV") {
     $("#rss_type").val("MOV");

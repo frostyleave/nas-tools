@@ -92,7 +92,8 @@ class SearchProxy:
                 media_info = _media.get_media_info(mtype=media_type or mtype, title=content)
             # 整合集
             if media_info:
-                if season_num:
+                # 季号 0 为特别篇，需与未识别季（None）区分
+                if season_num is not None:
                     media_info.begin_season = int(season_num)
                 if episode_num:
                     media_info.begin_episode = int(episode_num)
@@ -116,7 +117,8 @@ class SearchProxy:
                 # 订阅配置了自定义搜索词时优先使用
                 first_search_name = keyword or search_cn_name
                 season_name = None
-                if season_num and 1 < season_num <= len(media_info.tmdb_info.seasons):
+                if season_num is not None \
+                        and (season_num == 0 or 1 < season_num <= len(media_info.tmdb_info.seasons)):
                     match_season = next(filter(lambda x: x.season_number == season_num, media_info.tmdb_info.seasons), None)
                     if match_season and match_season.name:
                         season_name = match_season.name

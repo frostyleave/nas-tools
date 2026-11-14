@@ -84,7 +84,10 @@ class BatchDownloader:
                 if not tv:
                     continue
                 if not tv.get("episodes"):
-                    need_seasons.setdefault(need_tmdbid, []).append(tv.get("season") or 1)
+                    # 季号 0 为特别篇，空值才按第1季处理
+                    need_season = tv.get("season")
+                    need_seasons.setdefault(need_tmdbid, []).append(
+                        1 if need_season is None else need_season)
 
         for need_tmdbid, need_season in need_seasons.items():
             for item in download_list:
@@ -127,7 +130,7 @@ class BatchDownloader:
             if not need_tv:
                 continue
             for idx, tv in enumerate(need_tv):
-                need_season = tv.get("season") or 1
+                need_season = tv.get("season") if tv.get("season") is not None else 1
                 need_episodes = tv.get("episodes")
                 total_episodes = tv.get("total_episodes")
                 if not need_episodes:
@@ -161,7 +164,7 @@ class BatchDownloader:
             if not need_tv:
                 continue
             for idx, tv in enumerate(need_tv):
-                need_season = tv.get("season") or 1
+                need_season = tv.get("season") if tv.get("season") is not None else 1
                 need_episodes = tv.get("episodes")
                 if not need_episodes:
                     continue
@@ -231,7 +234,8 @@ class BatchDownloader:
         need = list(set(need).difference(set(current)))
         for cur in current:
             for nt in need_tvs.get(tmdbid):
-                if cur == nt.get("season") or (cur == 1 and not nt.get("season")):
+                # 季号 0 为特别篇，只有未登记季（空值）才按第1季匹配
+                if cur == nt.get("season") or (cur == 1 and nt.get("season") in (None, "")):
                     need_tvs[tmdbid].remove(nt)
         if not need_tvs.get(tmdbid):
             need_tvs.pop(tmdbid)

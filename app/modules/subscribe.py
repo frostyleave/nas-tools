@@ -176,17 +176,21 @@ class Subscribe:
         # 订阅站点和搜索站点允许任意一个为空，但不能同时为空，否则订阅没有任何来源
         if not rss_sites and not search_sites:
             return -1, "订阅站点和搜索站点不能同时为空，请至少选择一项", None
+        # 季号统一为数字，0 表示特别篇，空值表示未指定
+        if season is not None:
+            season_str = str(season).strip().upper().replace("S", "")
+            season = int(season_str) if season_str.isdigit() else None
         # 搜索媒体信息
         if not media_info or hasattr(media_info, 'tmdb_info') == False or not media_info.tmdb_info:
             # 根据TMDBID查询，从推荐加订阅的情况
             if mediaid:
                 # 根据ID查询
                 media_info = MediaService().get_mediainfo_from_id(mediaid=mediaid, mtype=mtype)
-                if not season:
+                if season is None:
                     season = media_info.begin_season
             else:
                 # 根据名称和年份查询
-                if season:
+                if season is not None:
                     title = "%s %s 第%s季".strip() % (name, year, season)
                 else:
                     title = "%s %s".strip() % (name, year)
@@ -201,9 +205,9 @@ class Subscribe:
         if media_info.type != MediaType.MOVIE:
             # 电视剧
             # 豆瓣来的电视剧且没有季数时，设为第一季
-            if not season and str(mediaid).startswith("DB:"):
+            if season is None and str(mediaid).startswith("DB:"):
                 season = 1
-            if season:
+            if season is not None:
                 total_episode = self.media.get_tmdb_season_episodes_num(tv_info=media_info.tmdb_info,
                                                                         season=int(season))
             else:
@@ -531,7 +535,8 @@ class Subscribe:
         # 搜索词：订阅名称，剧集带上订阅的季
         content = rss_info.get("name") or ""
         season = str(rss_info.get("season") or "").lstrip("Ss")
-        if mtype != MediaType.MOVIE and season.isdigit() and int(season) > 0 \
+        # 季号可以为 0（特别篇）
+        if mtype != MediaType.MOVIE and season.isdigit() \
                 and f"第{int(season)}季" not in content:
             content = f"{content} 第{int(season)}季"
 
@@ -710,9 +715,9 @@ class Subscribe:
                 continue
             # 搜索站点范围
             rssid = rss_info.get("id")
-            # 未配置搜索站点时不做站点搜索，队列中的订阅直接转入订阅状态
+            # 未配置搜索站点时不做站点搜索；队列中或搜索异常中断的订阅转入订阅状态
             if not rss_info.get("search_sites"):
-                if rss_info.get("state") == 'D':
+                if rss_info.get("state") in ('D', 'S'):
                     self._restore_rss_state_after_search(MediaType.MOVIE, rssid)
                 continue
             name = rss_info.get("name")
@@ -777,6 +782,7 @@ class Subscribe:
                                                            rssid=rssid,
                                                            media=search_result)
                     else:
+                        log.info(f"【Subscribe】电影 {media_info.get_title_string()} 已搜索到资源并发起下载, 订阅任务完成")
                         self.finish_rss_subscribe(rssid=rssid, media=media_info)
                 else:
                     self._restore_rss_state_after_search(MediaType.MOVIE, rssid)
@@ -804,9 +810,9 @@ class Subscribe:
                 log.info(f"【Subscribe】电视剧 {rss_info.get('name')} 订阅已暂停，跳过检索")
                 continue
             rssid = rss_info.get("id")
-            # 未配置搜索站点时不做站点搜索，队列中的订阅直接转入订阅状态
+            # 未配置搜索站点时不做站点搜索；队列中或搜索异常中断的订阅转入订阅状态
             if not rss_info.get("search_sites"):
-                if rss_info.get("state") == 'D':
+                if rss_info.get("state") in ('D', 'S'):
                     self._restore_rss_state_after_search(MediaType.TV, rssid)
                 continue
             name = rss_info.get("name")
@@ -859,7 +865,6 @@ class Subscribe:
                         # 已全部存在
                         if not library_no_exists or not library_no_exists.get(media_info.tmdb_id):
                             log.info(f"【Subscribe】电视剧 {media_info.get_title_string()} 订阅剧集已全部存在")
-                            # 完成订阅
                             self.finish_rss_subscribe(rssid=rss_info.get("id"), media=media_info)
                         continue
                     # 同一 tmdb_id 存在多季订阅时按季合并，避免后一季覆盖前一季
@@ -912,7 +917,7 @@ class Subscribe:
                                                            rssid=rssid,
                                                            media=search_result)
                     else:
-                        # 完成订阅
+                        log.info(f"【Subscribe】{media_info.get_title_string()} 已无缺失剧集, 订阅任务完成")
                         self.finish_rss_subscribe(rssid=rssid, media=media_info)
                 elif no_exists:
                     # 更新状态
@@ -977,7 +982,7 @@ class Subscribe:
         # 检查是否匹配最高优先级规则
         over_edition_order = self.filter.get_rule_first_order(rulegroup=media.filter_rule)
         if int(media.res_order) >= int(over_edition_order):
-            # 完成洗版订阅
+            log.info("【Subscribe】完成洗版订阅")
             self.finish_rss_subscribe(rssid=rssid, media=media)
             return True
         else:

@@ -321,10 +321,10 @@ class MediaServer:
         if not media:
             return None
 
-        # 剧集没有季时默认为第1季
-        if mtype not in Constants.MOVIE_TYPES and not season:
+        # 剧集没有季时默认为第1季，季号 0 为特别篇
+        if mtype not in Constants.MOVIE_TYPES and season in (None, ""):
             season = 1
-        if season:
+        if season is not None and season != "":
             # 匹配剧集是否存在
             seasoninfos = JsonUtils.loads(media.JSON or "[]", default=[])
             for seasoninfo in seasoninfos:

@@ -286,7 +286,8 @@ class Jellyfin(_IMediaClient):
             item_tmdbid = self.get_iteminfo(item_id).get("ProviderIds", {}).get("Tmdb")
             if tmdb_id and item_tmdbid and str(tmdb_id) != str(item_tmdbid):
                 return []
-        if not season:
+        # 季号 0 为特别篇，只有空值才表示全部季
+        if season is None:
             season = ""
         req_url = f"{self._host}Shows/{item_id}/Episodes?season={season}&isMissing=false"
         try:
@@ -315,8 +316,8 @@ class Jellyfin(_IMediaClient):
         """
         if not self._host or not self._apikey:
             return None
-        # 没有季默认为和1季
-        if not season:
+        # 没有季默认为第1季，季号 0 为特别篇
+        if season is None or season == "":
             season = 1
         exists_episodes = self.get_tv_episodes(title=meta_info.title,
                                                year=meta_info.year,

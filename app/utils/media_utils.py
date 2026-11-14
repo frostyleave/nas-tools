@@ -371,7 +371,9 @@ class MediaUtils:
         
         seasons = [
                 {
-                    "text": "第{}季".format(StringUtils.number_to_cn(season.get("season_number"))),
+                    # 季号 0 为特别篇，不能转换成“第零季”
+                    "text": "第0季(特别篇)" if season.get("season_number") == 0
+                            else "第{}季".format(StringUtils.number_to_cn(season.get("season_number"))),
                     "num": season.get("season_number")
                 }
                 for season in season_list

@@ -2134,10 +2134,11 @@ class WebAction:
         else:
             season_infos = _media.get_tmdb_tv_seasons_byid(tmdbid=tmdbid)
 
-        if title_season:
+        # 季号 0 为特别篇，需要与未识别季（None）区分
+        if title_season is not None:
             seasons = [
                 {
-                    "text": f"第{title_season}季",
+                    "text": "第0季(特别篇)" if title_season == 0 else f"第{title_season}季",
                     "num": title_season
                 }
             ]

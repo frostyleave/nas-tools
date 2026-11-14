@@ -370,7 +370,7 @@ class MediaService:
             try:
                 seasons = self.get_tmdb_tv_seasons(tv_info=tv_info)
                 for season in seasons:
-                    if season.get("air_date") and season.get("season_number") \
+                    if season.get("air_date") and season.get("season_number") is not None \
                         and season.get("air_date")[0:4] == str(season_year) \
                             and season.get("season_number") == int(season_number):
                         return True
@@ -895,8 +895,8 @@ class MediaService:
                     if left_str and left_str.isdigit():
                         meta_info.begin_season = int(left_str)
 
-            # 未识别出季集信息
-            if not meta_info.begin_season:           
+            # 未识别出季集信息（季号 0 为特别篇，属于已识别）
+            if meta_info.begin_season is None:
                 if meta_info.cn_name and tmdb_info.name != meta_info.cn_name:
                     self._fix_when_name_different(meta_info, tmdb_info)
                 elif '篇' in meta_info.rev_string:
@@ -971,8 +971,11 @@ class MediaService:
         """
         if media_info.type == MediaType.MOVIE or not media_info:
             return
-        if media_info.begin_season == None \
-            or (media_info.begin_season == 0 and media_info.rev_string.lower().find('s00') < 0):
+        # 季号 0 为特别篇，仅在名称中没有特别篇标识时才按第1季处理
+        rev_string = (media_info.rev_string or "").lower()
+        if media_info.begin_season is None \
+            or (media_info.begin_season == 0
+                and not any(key in rev_string for key in ('s00', '第0季', '第零季', '特别篇'))):
             media_info.begin_season = 1
 
         if not media_info.begin_episode or not media_info.tmdb_info:
@@ -1212,7 +1215,8 @@ class MediaService:
                     meta_info = MetaInfo(title=file_name, mtype=media_type)
                     meta_info.set_tmdb_info(tmdb_info)
                     self.fix_file_season_by_tmdb_info(meta_info)
-                    if season and meta_info.type != MediaType.MOVIE:
+                    # 季号 0 为特别篇，需与未指定季（空值）区分
+                    if season not in (None, "") and meta_info.type != MediaType.MOVIE:
                         meta_info.begin_season = int(season)
                     if episode_format:
                         begin_ep, end_ep, part = episode_format.split_episode(file_name)
@@ -1808,7 +1812,8 @@ class MediaService:
             return []
         ret_info = []
         for info in tv_info.get("seasons") or []:
-            if not info.get("season_number") or not info.get("episode_count"):
+            # 季号 0 为特别篇，不能用真假值判断
+            if info.get("season_number") is None or not info.get("episode_count"):
                 continue
             ret_info.append({
                 "air_date": info.get("air_date"),
