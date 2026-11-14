@@ -736,7 +736,7 @@ class ModuleConf:
         },
         "jellyfin": {
             "name": "Jellyfin",
-            "img_url": "../static/img/mediaserver/jellyfin.jpg",
+            "img_url": "../static/img/mediaserver/jellyfin.png",
             "background": "bg-purple",
             "test_command": "app.mediaserver.client.jellyfin|Jellyfin",
             "config": {
