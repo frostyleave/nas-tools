@@ -1,4 +1,3 @@
-import json
 import threading
 
 import log
@@ -8,6 +7,7 @@ from app.db.media_db import MediaDb
 from app.helper import SubmoduleHelper
 from app.media import MediaService
 from app.message import MessageService
+from app.utils import JsonUtils
 from app.utils.commons import singleton
 from app.utils.constants import Constants
 from app.utils.types import MediaServerType, SystemConfigKey
@@ -326,7 +326,7 @@ class MediaServer:
             season = 1
         if season:
             # 匹配剧集是否存在
-            seasoninfos = json.loads(media.JSON or "[]")
+            seasoninfos = JsonUtils.loads(media.JSON or "[]", default=[])
             for seasoninfo in seasoninfos:
                 if seasoninfo.get("season_num") == int(season) and (not episode or seasoninfo.get("episode_num") == int(episode)):
                     return media.ITEM_ID

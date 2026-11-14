@@ -10,7 +10,7 @@ from lxml import etree
 from app.helper.site_signin_helper import SiteSigninHelper, Verdict
 from app.models.model import UserSiteConf
 from app.plugins.modules._autosignin._base import _ISiteSigninHandler
-from app.utils import RequestUtils, SiteUtils
+from app.utils import JsonUtils, RequestUtils, SiteUtils
 from config import Config
 
 
@@ -139,7 +139,7 @@ class FWpt(_ISiteSigninHandler):
         try:
             with open(self._answer_file, 'r') as f:
                 json_str = f.read()
-            exits_answers = json.loads(json_str)
+            exits_answers = JsonUtils.loads(json_str, default={})
             # 查询本地本次验证码hash答案
             question_answer = exits_answers[question_str]
             # question_answer是数组

@@ -25,6 +25,7 @@ from app.message.message_center import SysMessageCenter
 from app.middleware.security import auth_check, get_current_user
 from app.models.user import LEVEL_OPERATOR, LEVEL_SYSADMIN
 from app.modules.media_status import MediaStatusChecker
+from app.utils import JsonUtils
 from app.utils.time_utils import TimeUtils
 from app.utils.types import SearchType
 from log import active_sse_queues, log_buffer
@@ -87,10 +88,9 @@ async def message_handler(websocket: WebSocket):
                 if not data:
                     continue
 
-                try:
-                    msgbody = json.loads(data)
-                except Exception as err:
-                    log.warn("[WebSocket-消息]连接出错: " + str(err))
+                msgbody = JsonUtils.loads(data, silent=True)
+                if msgbody is None:
+                    log.warn("[WebSocket-消息]连接出错: 消息格式非 JSON")
                     continue
             except WebSocketDisconnect:
                 # WebSocket正常断开，直接退出循环

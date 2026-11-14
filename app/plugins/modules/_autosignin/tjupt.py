@@ -10,7 +10,7 @@ from PIL import Image
 from app.helper.site_signin_helper import SiteSigninHelper, Verdict
 from app.models.model import UserSiteConf
 from app.plugins.modules._autosignin._base import _ISiteSigninHandler
-from app.utils import RequestUtils, SiteUtils
+from app.utils import JsonUtils, RequestUtils, SiteUtils
 from config import Config
 
 
@@ -115,7 +115,7 @@ class Tjupt(_ISiteSigninHandler):
         try:
             with open(self._answer_file, 'r') as f:
                 json_str = f.read()
-            exits_answers = json.loads(json_str)
+            exits_answers = JsonUtils.loads(json_str, default={})
             # 查询本地本次验证码hash答案
             captcha_answer = exits_answers[captcha_img_hash]
 
@@ -142,7 +142,7 @@ class Tjupt(_ISiteSigninHandler):
                     continue
 
                 # 豆瓣返回结果
-                db_answers = json.loads(db_res.text)
+                db_answers = JsonUtils.loads(db_res.text, default=[])
                 if not isinstance(db_answers, list):
                     db_answers = [db_answers]
 

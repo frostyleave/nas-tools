@@ -1,22 +1,16 @@
 import os
-import time
+from collections.abc import Mapping
 
 from alembic.command import upgrade as alembic_upgrade
 from alembic.config import Config as AlembicConfig
-from watchdog.events import FileSystemEventHandler
-from watchdog.observers import Observer
 
 import log
 from app.db.main_db import MainDb
 from app.db.media_db import MediaDb
-from app.media import Category
-from app.utils.cache_manager import CategoryLoadCache, ConfigLoadBlockCache, ConfigLoadCache
-from app.utils.commons import INSTANCES
 from app.utils.password_hash import generate_password_hash, normalize_password_hash
 from app.utils.string_utils import StringUtils
 from config import Config
 
-_observer = Observer(timeout=10)
 
 def init_data():
 
@@ -160,64 +154,136 @@ def update_config():
         Config().save_config(_config)
 
 
-class ConfigMonitor(FileSystemEventHandler):
-    """
-    配置文件变化响应
-    """
-
-    def __init__(self):
-        FileSystemEventHandler.__init__(self)
-
-    def on_modified(self, event):
-        if event.is_directory:
-            return
-        src_path = event.src_path
-        file_name = os.path.basename(src_path)
-        file_head, file_ext = os.path.splitext(os.path.basename(file_name))
-        if file_ext != ".yaml":
-            return
-        # 配置文件10秒内只能加载一次
-        if file_name == "config.yaml" and not ConfigLoadCache.get(src_path):
-            ConfigLoadCache[src_path] = True
-            ConfigLoadBlockCache["ConfigLoadBlock"] = True
-            log.warn(f"【System】进程 {os.getpid()} 检测到系统配置文件已修改，正在重新加载...")
-            time.sleep(1)
-            # 重新加载配置
-            Config().init_config()
-            # 重载singleton服务
-            for instance in INSTANCES.values():
-                if hasattr(instance, "init_config"):
-                    instance.init_config()
-        # 正在使用的二级分类策略文件3秒内只能加载一次，配置文件加载时，二级分类策略文件不加载
-        elif file_name == os.path.basename(Config().category_path) \
-                and not CategoryLoadCache.get(src_path) \
-                and not ConfigLoadBlockCache.get("ConfigLoadBlock"):
-            CategoryLoadCache[src_path] = True
-            log.warn(f"【System】进程 {os.getpid()} 检测到二级分类策略 {file_head} 配置文件已修改，正在重新加载...")
-            time.sleep(1)
-            # 重新加载二级分类策略
-            Category().init_config()
+# 日志输出相关配置项，变化后需要重建日志处理器
+_LOG_CONFIG_KEYS = {"app.loglevel", "app.logtype", "app.logpath", "app.logserver"}
 
 
-def start_config_monitor():
+def diff_config(old_cfg, new_cfg, prefix=""):
     """
-    启动服务
+    递归比对配置，返回发生变化的配置项（点号路径集合）
+
+    :param old_cfg: 变更前的配置
+    :param new_cfg: 变更后的配置
+    :param prefix: 当前比对节点的路径前缀
     """
-    global _observer
-    # 配置文件监听
-    _observer.schedule(ConfigMonitor(), path=Config().get_config_path(), recursive=False)
-    _observer.daemon = True
-    _observer.start()
+    changed = set()
+    if isinstance(old_cfg, Mapping) and isinstance(new_cfg, Mapping):
+        for key in set(old_cfg.keys()) | set(new_cfg.keys()):
+            path = f"{prefix}.{key}" if prefix else str(key)
+            changed |= diff_config(old_cfg.get(key), new_cfg.get(key), path)
+    elif old_cfg != new_cfg:
+        changed.add(prefix)
+    return changed
 
 
-def stop_config_monitor():
+def _get_config_handlers():
     """
-    停止服务
+    配置项与重载动作的映射（按需重载，顺序即执行顺序）
+
+    只列出会缓存 config.yaml 配置的服务/任务；其余均在使用时实时读取配置。
+    依赖写法：
+    - 精确配置项：media.category
+    - 整个节点：security（匹配 security 下任意配置项变更）
+    - 通配：media.transfer.*（匹配该前缀下的配置项）
     """
-    global _observer
+    # 延迟导入，避免启动阶段产生循环依赖
+    from app.core.scheduler import Scheduler
+    from app.core.security_center import SecurityCenter
+    from app.helper.meta_helper import MetaHelper
+    from app.media.category import Category
+    from app.media.media import MediaService
+    from app.mediaserver.media_server import MediaServer
+    from app.modules.filetransfer import FileTransfer
+
+    return [
+        ("日志", _LOG_CONFIG_KEYS, lambda *_: log.setup_logging()),
+        # 二级分类在文件转移初始化前加载
+        ("Category", {"media.category"}, lambda *_: Category().init_config()),
+        ("MediaService", {
+            "media.tmdb_language",
+            "laboratory.search_keyword",
+            "laboratory.search_tmdbweb",
+        }, lambda *_: MediaService().init_config()),
+        ("FileTransfer", {
+            "media.category",
+            "media.movie_path",
+            "media.tv_path",
+            "media.anime_path",
+            "media.unknown_path",
+            "media.min_filesize",
+            "media.ignored_paths",
+            "media.ignored_files",
+            "media.filesize_cover",
+            "media.movie_name_format",
+            "media.tv_name_format",
+            "media.nfo_poster",
+            "pt.rmt_mode",
+        }, lambda *_: FileTransfer().init_config()),
+        ("MediaServer", {"media.media_server", "emby", "jellyfin", "plex"},
+         lambda *_: MediaServer().init_config()),
+        ("SecurityCenter", {"security"}, lambda *_: SecurityCenter().init_config()),
+        ("MetaHelper", {"laboratory.tmdb_cache_expire"},
+         lambda *_: MetaHelper().init_config()),
+        # 定时任务精确到单个 job，避免无关任务被重建
+        ("Scheduler", {
+            "media.mediasync_interval",
+            "pt.ptrefresh_date_cron",
+            "pt.pt_check_interval",
+            "pt.search_rss_interval",
+        }, lambda keys: Scheduler().reload_jobs(keys)),
+    ]
+
+
+def _match_config_keys(dependencies, changed_keys):
+    """
+    判断变更项是否命中服务依赖的配置项
+    """
+    for dep in dependencies:
+        # 通配依赖：media.transfer.*
+        if dep.endswith(".*"):
+            prefix = dep[:-1]
+            if any(key.startswith(prefix) or key == dep[:-2] for key in changed_keys):
+                return True
+            continue
+        # 精确配置项
+        if dep in changed_keys:
+            return True
+        # 整个节点依赖；节点被整体替换/删除时也视为命中
+        if "." not in dep:
+            if any(key.split(".")[0] == dep for key in changed_keys):
+                return True
+        elif dep.split(".")[0] in changed_keys:
+            return True
+    return False
+
+
+def reload_config(changed_keys):
+    """
+    按配置变更项执行受影响的重载动作
+
+    :param changed_keys: 发生变化的配置项点号路径集合，由 diff_config 生成
+    :return: 已重新加载的服务/任务名称列表
+    """
+    changed_keys = set(changed_keys or [])
+    if not changed_keys:
+        return []
+
     try:
-        if _observer:
-            _observer.stop()
-            _observer.join()
-    except Exception as err:
-        print(str(err))
+        handlers = _get_config_handlers()
+    except Exception:
+        log.exception("【Config】加载配置依赖关系失败：")
+        return []
+
+    reloaded = []
+    for name, dependencies, handler in handlers:
+        if not _match_config_keys(dependencies, changed_keys):
+            continue
+        try:
+            handler(changed_keys)
+            reloaded.append(name)
+        except Exception:
+            log.exception(f"【Config】{name} 重新加载配置失败：")
+
+    if reloaded:
+        log.info(f"【Config】配置已更新，已重新加载：{'、'.join(reloaded)}")
+    return reloaded

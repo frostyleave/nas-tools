@@ -21,7 +21,7 @@ class MetaHelper:
         "type": MediaType
     }
     """
-    _meta_data: dict
+    _meta_data: dict = None
 
     _meta_path = None
     _tmdb_cache_expire = False
@@ -30,11 +30,17 @@ class MetaHelper:
         self.init_config()
 
     def init_config(self):
-        laboratory = Config().get_config('laboratory')
-        if laboratory:
-            self._tmdb_cache_expire = laboratory.get("tmdb_cache_expire")
+        """
+        刷新配置
+
+        缓存数据只在首次加载时从文件读取，配置变更重载时保留内存中的缓存，
+        避免丢弃尚未落盘的数据。
+        """
+        laboratory = Config().get_config('laboratory') or {}
+        self._tmdb_cache_expire = laboratory.get("tmdb_cache_expire")
         self._meta_path = os.path.join(Config().get_config_path(), 'tmdb.dat')
-        self._meta_data = self.__load_meta_data(self._meta_path)
+        if self._meta_data is None:
+            self._meta_data = self.__load_meta_data(self._meta_path)
 
     def clear_meta_data(self):
         """

@@ -558,7 +558,7 @@
     });
   }
 
-  // 保存基础设置
+  // 保存媒体库设置
   function save_basic_config(type, flag = true) {
     let params = input_select_GetVal(type);
     if (params["media.category"] === "config") {
@@ -571,8 +571,13 @@
     axios_post("/sys/update_config", params, function (ret) {
       if (flag) {
         $("#" + type + "_btn").text("保存").attr("disabled", false);
-        // window_history_refresh();
-        show_success_modal("配置已保存!");
+      }
+      if (ret && ret.code === 0) {
+        if (flag) {
+          show_success_modal("配置已保存!");
+        }
+      } else {
+        show_fail_modal((ret && ret.msg) || "配置保存失败");
       }
     });
   }

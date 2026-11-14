@@ -1,9 +1,8 @@
-import json
 
 from app.helper.site_signin_helper import SiteSigninHelper, Verdict
 from app.models.model import UserSiteConf
 from app.plugins.modules._autosignin._base import _ISiteSigninHandler
-from app.utils import RequestUtils, SiteUtils
+from app.utils import JsonUtils, RequestUtils, SiteUtils
 from config import Config
 
 
@@ -49,8 +48,8 @@ class PTerClub(_ISiteSigninHandler):
             self.warn(f'[{site}]签到失败: {sign_status.reason}')
             return False, f'[{site}]签到失败: {sign_status.reason}'
 
-        sign_dict = json.loads(sign_res.text)
-        if sign_dict['status'] == '1':
+        sign_dict = JsonUtils.loads(sign_res.text, default={})
+        if sign_dict.get('status') == '1':
             # {"status":"1","data":" (签到已成功300)","message":"<p>这是您的第<b>237</b>次签到，
             # 已连续签到<b>237</b>天。</p><p>本次签到获得<b>300</b>克猫粮。</p>"}
             self.info("签到成功")

@@ -1,11 +1,10 @@
 from typing import ClassVar
-import json
 import re
 
 import requests
 from cachetools import TTLCache, cached
 
-from app.utils import RequestUtils
+from app.utils import JsonUtils, RequestUtils
 from app.utils.commons import singleton
 
 
@@ -127,10 +126,7 @@ class DoubanWebApi:
         if resp_str:
             resp_str = re.sub(r'qnmob\d+', 'img1', resp_str)
 
-        try:
-            return json.loads(resp_str)
-        except json.JSONDecodeError as e:
-            return {}
+        return JsonUtils.loads(resp_str, default={})
 
     def search(self, keyword, start=0, count=20):
         """

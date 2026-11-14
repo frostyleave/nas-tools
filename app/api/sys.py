@@ -8,6 +8,7 @@ from fastapi import APIRouter, BackgroundTasks, Body, Depends
 
 import log
 from app.conf import SystemConfig
+from app.core.initializer import diff_config, reload_config
 from app.core.security_center import SecurityCenter
 from app.core.services import ServiceManager
 from app.core.system_update import check_system_update, get_git_info, run_system_update
@@ -155,7 +156,8 @@ def update_config(current_user: CurrentUser, data: Annotated[dict, Body(...)]):
     data = dict(data)
 
     # 使用副本修改，校验失败时不污染内存中的配置
-    cfg = copy.deepcopy(Config().get_config())
+    old_cfg = copy.deepcopy(Config().get_config())
+    cfg = copy.deepcopy(old_cfg)
     old_login_user = str((cfg.get('app') or {}).get('login_user') or '').strip()
 
     # 仅测试不保存
@@ -195,6 +197,7 @@ def update_config(current_user: CurrentUser, data: Annotated[dict, Body(...)]):
             rename_admin = False
 
     relogin = False
+    reloaded = []
     # 保存配置
     if not config_test:
         # 用户名以数据库为准，先同步数据库再保存配置
@@ -213,7 +216,10 @@ def update_config(current_user: CurrentUser, data: Annotated[dict, Body(...)]):
             if not UserManager().update_admin_password(password_hash):
                 log.warn("【Config】未找到系统管理员账号，密码仅保存到配置文件")
 
-    return {"code": 0, "relogin": relogin}
+        # 按变更内容重新初始化受影响的服务
+        reloaded = reload_config(diff_config(old_cfg, cfg))
+
+    return {"code": 0, "relogin": relogin, "reloaded": reloaded}
 
 
 @sys_router.post("/sys/user_manager")

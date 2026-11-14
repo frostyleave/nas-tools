@@ -1,5 +1,4 @@
 import hashlib
-import json
 import os
 import re
 import time
@@ -9,7 +8,7 @@ import qbittorrentapi
 
 import log
 from app.downloader.client._base import _IDownloadClient
-from app.utils import SiteUtils, StringUtils
+from app.utils import JsonUtils, SiteUtils, StringUtils
 from app.utils.types import DownloaderType
 
 
@@ -510,7 +509,7 @@ class Qbittorrent(_IDownloadClient):
                 log.warn(f"【{self.client_name}】{self.name} 添加种子错误：{qbc_ret}")
 
             if qbc_ret.find('added_torrent_ids') > 0:
-                ret_data = json.loads(qbc_ret)
+                ret_data = JsonUtils.loads(qbc_ret, default={})
                 # 添加成功
                 if ret_data and ret_data.get('success_count', 0) > 0:
                     # 优先取返回的id

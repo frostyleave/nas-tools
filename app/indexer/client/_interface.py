@@ -1,4 +1,3 @@
-import json
 import re
 from urllib.parse import quote
 
@@ -6,6 +5,7 @@ import requests
 
 import log
 from app.models.model import IndexerInfo
+from app.utils import JsonUtils
 from app.utils.string_utils import StringUtils
 from config import Config
 
@@ -74,9 +74,8 @@ class InterfaceSpider:
             return True, []
 
         # 解析文本
-        try:
-            json_obj = json.loads(html_text)
-        except (json.JSONDecodeError, TypeError):
+        json_obj = JsonUtils.loads(html_text, silent=True)
+        if json_obj is None:
             log.warn(f"【InterfaceSpider】json解析失败: {html_text[:500]}")
             return True, []
         if not json_obj:

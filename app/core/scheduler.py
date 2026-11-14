@@ -24,10 +24,24 @@ META_DELETE_UNKNOWN_INTERVAL = 12
 @singleton
 class Scheduler:
 
+    # 配置驱动的定时任务标识
+    JOB_PT_REFRESH = "pt_refresh"
+    JOB_RSS_DOWNLOAD = "rss_download"
+    JOB_SUBSCRIBE_SEARCH = "subscribe_search_timer"
+    JOB_MEDIASYNC = "mediasync"
+    # 固定定时任务标识
+    JOB_META_SAVE = "meta_save"
+    JOB_SUBSCRIBE_CHECK = "subscribe_check"
+    JOB_REFRESH_RSS_META = "refresh_rss_meta"
+    JOB_DELETE_UNKNOWN_META = "delete_unknown_meta"
+    JOB_HISTORY_CLEANUP = "history_cleanup"
+
     _pt_config = None
     _media_config = None
 
     def __init__(self):
+        # 本服务注册的定时任务：标识 -> Job，配置变更时可精确重建单个任务
+        self._jobs = {}
         self.init_config()
 
     def init_config(self):
@@ -38,127 +52,211 @@ class Scheduler:
 
     def run_service(self):
         """
-        读取配置，启动定时服务
+        读取配置，启动全部定时服务
         """
-        
-        if self._pt_config:
-            # 数据统计
-            ptrefresh_date_cron = self._pt_config.get("ptrefresh_date_cron")
-            if ptrefresh_date_cron:
-                SchedulerUtils.add_job(
-                    scheduler=self.get_scheduler(),
-                    func=SitesDataStatisticsCenter().refresh_site_data_now,
-                    func_desc="数据统计",
-                    cron=str(ptrefresh_date_cron)
-                )
+        # 配置驱动的任务
+        self.__refresh_pt_refresh_job()
+        self.__refresh_rss_download_job()
+        self.__refresh_subscribe_search_job()
+        self.__refresh_mediasync_job()
+        # 固定任务
+        self.__add_fixed_jobs()
 
-            # RSS下载器
-            pt_check_interval = self._pt_config.get("pt_check_interval")
-            if pt_check_interval:
-                if isinstance(pt_check_interval, str) and pt_check_interval.isdigit():
-                    pt_check_interval = int(pt_check_interval)
-                else:
-                    try:
-                        pt_check_interval = round(float(pt_check_interval))
-                    except Exception as e:
-                        log.error(f"RSS订阅周期 配置格式错误：{str(e)}")
-                        pt_check_interval = 0
-                if pt_check_interval:
-                    pt_check_interval = max(pt_check_interval, 300)
-                    self.get_scheduler().add_job(
-                        Rss().rssdownload, "interval", seconds=pt_check_interval, name='RSS订阅'
-                    )
+    def reload_jobs(self, changed_keys):
+        """
+        按配置项只重建对应的定时任务，不影响其他任务
 
-            # RSS订阅定时搜索
-            search_rss_interval = self._pt_config.get("search_rss_interval")
-            if search_rss_interval:
-                if (
-                    isinstance(search_rss_interval, str)
-                    and search_rss_interval.isdigit()
-                ):
-                    search_rss_interval = int(search_rss_interval)
-                else:
-                    try:
-                        search_rss_interval = round(float(search_rss_interval))
-                    except Exception as e:
-                        log.error(f"订阅定时搜索周期 配置格式错误：{str(e)}")
-                        search_rss_interval = 0
-                if search_rss_interval:
-                    search_rss_interval = max(search_rss_interval, 3)
-                    self.get_scheduler().add_job(
-                        Subscribe().subscribe_search_all,
-                        "interval",
-                        hours=search_rss_interval, 
-                        name='订阅定时搜索'
-                    )
+        :param changed_keys: 发生变化的配置项点号路径集合
+        """
+        changed_keys = set(changed_keys or [])
+        self._pt_config = Config().get_config("pt")
+        self._media_config = Config().get_config("media")
+        if "pt.ptrefresh_date_cron" in changed_keys:
+            self.__refresh_pt_refresh_job()
+        if "pt.pt_check_interval" in changed_keys:
+            self.__refresh_rss_download_job()
+        if "pt.search_rss_interval" in changed_keys:
+            self.__refresh_subscribe_search_job()
+        if "media.mediasync_interval" in changed_keys:
+            self.__refresh_mediasync_job()
 
-        # 媒体库同步
-        if self._media_config:
-            mediasync_interval = self._media_config.get("mediasync_interval")
-            if mediasync_interval:
-                if isinstance(mediasync_interval, str):
-                    if mediasync_interval.isdigit():
-                        mediasync_interval = int(mediasync_interval)
-                    else:
-                        try:
-                            mediasync_interval = round(float(mediasync_interval))
-                        except Exception as e:
-                            log.info(f"媒体库数据同步服务启动失败：{e!s}")
-                            mediasync_interval = 0
-                if mediasync_interval:
-                    self.get_scheduler().add_job(
-                        MediaServer().sync_mediaserver,
-                        "interval",
-                        hours=mediasync_interval,
-                        name='媒体库同步'
-                    )
+    def __refresh_pt_refresh_job(self):
+        """站点数据统计任务"""
+        self.__remove_job(self.JOB_PT_REFRESH)
+        ptrefresh_date_cron = (self._pt_config or {}).get("ptrefresh_date_cron")
+        if not ptrefresh_date_cron:
+            return
+        self.__track_job(
+            self.JOB_PT_REFRESH,
+            SchedulerUtils.add_job(
+                scheduler=self.get_scheduler(),
+                func=SitesDataStatisticsCenter().refresh_site_data_now,
+                func_desc="数据统计",
+                cron=str(ptrefresh_date_cron)
+            )
+        )
 
+    def __refresh_rss_download_job(self):
+        """RSS下载器任务"""
+        self.__remove_job(self.JOB_RSS_DOWNLOAD)
+        pt_check_interval = (self._pt_config or {}).get("pt_check_interval")
+        if not pt_check_interval:
+            return
+        if isinstance(pt_check_interval, str) and pt_check_interval.isdigit():
+            pt_check_interval = int(pt_check_interval)
+        else:
+            try:
+                pt_check_interval = round(float(pt_check_interval))
+            except Exception as e:
+                log.error(f"RSS订阅周期 配置格式错误：{e!s}")
+                return
+        pt_check_interval = max(pt_check_interval, 300)
+        self.__track_job(
+            self.JOB_RSS_DOWNLOAD,
+            self.get_scheduler().add_job(
+                Rss().rssdownload,
+                "interval",
+                seconds=pt_check_interval,
+                name='RSS订阅'
+            )
+        )
+
+    def __refresh_subscribe_search_job(self):
+        """订阅定时搜索任务"""
+        self.__remove_job(self.JOB_SUBSCRIBE_SEARCH)
+        search_rss_interval = (self._pt_config or {}).get("search_rss_interval")
+        if not search_rss_interval:
+            return
+        if isinstance(search_rss_interval, str) and search_rss_interval.isdigit():
+            search_rss_interval = int(search_rss_interval)
+        else:
+            try:
+                search_rss_interval = round(float(search_rss_interval))
+            except Exception as e:
+                log.error(f"订阅定时搜索周期 配置格式错误：{e!s}")
+                return
+        search_rss_interval = max(search_rss_interval, 3)
+        self.__track_job(
+            self.JOB_SUBSCRIBE_SEARCH,
+            self.get_scheduler().add_job(
+                Subscribe().subscribe_search_all,
+                "interval",
+                hours=search_rss_interval,
+                name='订阅定时搜索'
+            )
+        )
+
+    def __refresh_mediasync_job(self):
+        """媒体库同步任务"""
+        self.__remove_job(self.JOB_MEDIASYNC)
+        mediasync_interval = (self._media_config or {}).get("mediasync_interval")
+        if not mediasync_interval:
+            return
+        if isinstance(mediasync_interval, str):
+            if mediasync_interval.isdigit():
+                mediasync_interval = int(mediasync_interval)
+            else:
+                try:
+                    mediasync_interval = round(float(mediasync_interval))
+                except Exception as e:
+                    log.info(f"媒体库数据同步服务启动失败：{e!s}")
+                    return
+        if not mediasync_interval:
+            return
+        self.__track_job(
+            self.JOB_MEDIASYNC,
+            self.get_scheduler().add_job(
+                MediaServer().sync_mediaserver,
+                "interval",
+                hours=mediasync_interval,
+                name='媒体库同步'
+            )
+        )
+
+    def __add_fixed_jobs(self):
+        """与配置无关的固定任务"""
         # 元数据定时保存
-        self.get_scheduler().add_job(
-            MetaHelper().save_meta_data, 
-            "interval", 
-            seconds=METAINFO_SAVE_INTERVAL, 
-            name='元数据定时保存'
+        self.__track_job(
+            self.JOB_META_SAVE,
+            self.get_scheduler().add_job(
+                MetaHelper().save_meta_data,
+                "interval",
+                seconds=METAINFO_SAVE_INTERVAL,
+                name='元数据定时保存'
+            )
         )
 
         # RSS队列中搜索
-        self.get_scheduler().add_job(
-            Subscribe().subscribe_search, 
-            "interval", 
-            seconds=RSS_CHECK_INTERVAL, 
-            name='订阅进度检查'
+        self.__track_job(
+            self.JOB_SUBSCRIBE_CHECK,
+            self.get_scheduler().add_job(
+                Subscribe().subscribe_search,
+                "interval",
+                seconds=RSS_CHECK_INTERVAL,
+                name='订阅进度检查'
+            )
         )
 
         # 豆瓣RSS转TMDB，定时更新TMDB数据
-        self.get_scheduler().add_job(
-            Subscribe().refresh_rss_metainfo,
-            "interval",
-            hours=RSS_REFRESH_TMDB_INTERVAL,
-            name='刷新订阅TMDB数据'
+        self.__track_job(
+            self.JOB_REFRESH_RSS_META,
+            self.get_scheduler().add_job(
+                Subscribe().refresh_rss_metainfo,
+                "interval",
+                hours=RSS_REFRESH_TMDB_INTERVAL,
+                name='刷新订阅TMDB数据'
+            )
         )
 
         # 定时清除未识别的缓存
-        self.get_scheduler().add_job(
-            MetaHelper().delete_unknown_meta,
-            "interval",
-            hours=META_DELETE_UNKNOWN_INTERVAL,
-            name='清理未识别缓存'
+        self.__track_job(
+            self.JOB_DELETE_UNKNOWN_META,
+            self.get_scheduler().add_job(
+                MetaHelper().delete_unknown_meta,
+                "interval",
+                hours=META_DELETE_UNKNOWN_INTERVAL,
+                name='清理未识别缓存'
+            )
         )
 
         # 定时清理历史数据
-        SchedulerUtils.add_job(
-            scheduler=self.get_scheduler(),
-            func=HistoryCleanup().cleanup_history_tables,
-            func_desc="清理历史记录",
-            cron='30 1,2 * * *'
+        self.__track_job(
+            self.JOB_HISTORY_CLEANUP,
+            SchedulerUtils.add_job(
+                scheduler=self.get_scheduler(),
+                func=HistoryCleanup().cleanup_history_tables,
+                func_desc="清理历史记录",
+                cron='30 1,2 * * *'
+            )
         )
+
+    def __track_job(self, name, job):
+        """登记任务，便于后续精确移除"""
+        if not job:
+            return
+        old_job = self._jobs.get(name)
+        if old_job and old_job is not job:
+            self.__remove_job(name)
+        self._jobs[name] = job
+
+    def __remove_job(self, name):
+        """移除指定任务"""
+        job = self._jobs.pop(name, None)
+        if not job:
+            return
+        try:
+            job.remove()
+        except Exception as e:
+            # 任务可能已被其他流程移除
+            log.debug(f"【System】移除定时任务 {name} 失败：{e!s}")
 
     def get_scheduler(self) -> BackgroundScheduler:
         """获取任务管理器"""
         return JobCenter().get_sys_scheduler()
-    
+
     def stop_service(self):
         """
-        停止定时服务
+        移除本服务注册的定时任务，不影响其他服务注册的任务
         """
-        pass
+        for name in list(self._jobs.keys()):
+            self.__remove_job(name)

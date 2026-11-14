@@ -13,6 +13,7 @@ from app.conf import SystemConfig
 from app.core.jobcenter import JobCenter
 from app.helper import DbHelper
 from app.message import MessageService
+from app.utils import JsonUtils
 from config import Config
 
 # 插件运行历史中媒体状态/类型的中文说明
@@ -282,14 +283,13 @@ class _IPluginModule(metaclass=ABCMeta):
             if not history:
                 continue
             if self.__is_obj(history.VALUE):
-                try:
+                parsed = JsonUtils.loads(history.VALUE, silent=True)
+                if parsed is not None:
                     if key:
-                        return json.loads(history.VALUE)
+                        return parsed
                     else:
-                        result.append(json.loads(history.VALUE))
+                        result.append(parsed)
                     continue
-                except Exception as err:
-                    print(str(err))
             if key:
                 return history.VALUE
             else:

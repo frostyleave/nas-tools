@@ -1,11 +1,10 @@
-import json
 
 from lxml import etree
 
 from app.helper.site_signin_helper import SiteSigninHelper, Verdict
 from app.models.model import UserSiteConf
 from app.plugins.modules._autosignin._base import _ISiteSigninHandler
-from app.utils import RequestUtils, SiteUtils
+from app.utils import JsonUtils, RequestUtils, SiteUtils
 from config import Config
 
 
@@ -73,9 +72,9 @@ class ZhuQue(_ISiteSigninHandler):
         if not skill_res or skill_res.status_code != 200:
             self.error("签到失败：释放技能失败")
         else:
-            skill_dict = json.loads(skill_res.text)
-            if skill_dict['status'] == 200:
-                bonus = int(skill_dict['data']['bonus'])
+            skill_dict = JsonUtils.loads(skill_res.text, default={})
+            if skill_dict.get('status') == 200:
+                bonus = int(skill_dict.get('data', {}).get('bonus') or 0)
                 msg = f'成功，获得{bonus}魔力'
 
         self.info(f'[{site_name}]签到{msg}')

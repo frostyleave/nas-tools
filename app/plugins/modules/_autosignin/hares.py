@@ -1,9 +1,8 @@
-import json
 
 from app.helper.site_signin_helper import SiteSigninHelper, Verdict
 from app.models.model import UserSiteConf
 from app.plugins.modules._autosignin._base import _ISiteSigninHandler
-from app.utils import RequestUtils, SiteUtils
+from app.utils import JsonUtils, RequestUtils, SiteUtils
 from config import Config
 
 
@@ -70,8 +69,8 @@ class Hares(_ISiteSigninHandler):
 
         # {"code":1,"msg":"您今天已经签到过了"}
         # {"code":0,"msg":"签到成功"}
-        sign_dict = json.loads(sign_res.text)
-        if sign_dict['code'] == 0:
+        sign_dict = JsonUtils.loads(sign_res.text, default={})
+        if sign_dict.get('code') == 0:
             self.info("签到成功")
             return True, f'[{site}]签到成功'
         else:

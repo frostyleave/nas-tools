@@ -3,6 +3,7 @@ import json
 import log
 from app.helper.db_helper import DbHelper
 from app.models.model import IndexerInfo, SiteBaseModel, UserSiteConf
+from app.utils import JsonUtils
 from app.utils.commons import singleton
 from app.utils.site_utils import SiteUtils
 
@@ -36,11 +37,11 @@ class IndexerManager:
                         'name': db_item.NAME,
                         'domain': db_item.DOMAIN,
                         'parser': db_item.PARSER if db_item.PARSER else '',
-                        'search': json.loads(db_item.SEARCH) if db_item.SEARCH else {},
-                        'torrents': json.loads(db_item.TORRENTS) if db_item.TORRENTS else {},
-                        'category': json.loads(db_item.CATEGORY) if db_item.CATEGORY else {},
+                        'search': JsonUtils.loads(db_item.SEARCH, default={}),
+                        'torrents': JsonUtils.loads(db_item.TORRENTS, default={}),
+                        'category': JsonUtils.loads(db_item.CATEGORY, default={}),
                         'public': db_item.PUBLIC,
-                        'extra': json.loads(db_item.EXTRA) if db_item.EXTRA else {}
+                        'extra': JsonUtils.loads(db_item.EXTRA, default={})
                     }
 
                     indexer = SiteBaseModel(**indexer_data)

@@ -1,4 +1,3 @@
-import json
 import time
 
 from lxml import etree
@@ -7,7 +6,7 @@ from app.helper import OcrHelper
 from app.helper.site_signin_helper import SiteSigninHelper, Verdict
 from app.models.model import UserSiteConf
 from app.plugins.modules._autosignin._base import _ISiteSigninHandler
-from app.utils import RequestUtils, SiteUtils
+from app.utils import JsonUtils, RequestUtils, SiteUtils
 from config import Config
 
 
@@ -111,8 +110,8 @@ class Opencd(_ISiteSigninHandler):
             if sign_res and sign_res.status_code == 200:
                 self.debug(f"sign_res返回 {sign_res.text}")
                 # sign_res.text = '{"state":"success","signindays":"0","integral":"10"}'
-                sign_dict = json.loads(sign_res.text)
-                if sign_dict['state']:
+                sign_dict = JsonUtils.loads(sign_res.text, default={})
+                if sign_dict.get('state'):
                     self.info("签到成功")
                     return True, f'[{site}]签到成功'
                 else:

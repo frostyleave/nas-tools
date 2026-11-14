@@ -1,7 +1,6 @@
 import base64
 import hashlib
 import hmac
-import json
 import re
 from random import choice
 from typing import ClassVar
@@ -11,7 +10,7 @@ import requests
 from cachetools import TTLCache, cached
 
 import log
-from app.utils import RequestUtils
+from app.utils import JsonUtils, RequestUtils
 from app.utils.commons import singleton
 from app.utils.time_utils import TimeUtils
 
@@ -221,12 +220,7 @@ class DoubanApi:
         log.debug(f'【DoubanApi】{req_url}, return:{resp_txt}')
         resp_txt = re.sub(r'qnmob\d+', 'img1', resp_txt)
 
-        try:
-            response_data = json.loads(resp_txt)
-            return response_data
-        except Exception as e:
-            log.exception("【DoubanApi】返回解析出错: ")
-            return {}
+        return JsonUtils.loads(resp_txt, default={})
 
     @cached(cache=TTLCache(maxsize=256, ttl=7200))
     def __post(self, url: str, **kwargs) -> dict:

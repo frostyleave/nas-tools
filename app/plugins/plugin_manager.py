@@ -1,4 +1,3 @@
-import json
 import os.path
 from concurrent.futures import ThreadPoolExecutor
 from threading import RLock, Semaphore, Thread
@@ -7,7 +6,7 @@ import log
 from app.conf import SystemConfig
 from app.helper import SubmoduleHelper
 from app.plugins.event_manager import EventManager
-from app.utils import ImageUtils, PathUtils, SystemUtils
+from app.utils import ImageUtils, JsonUtils, PathUtils, SystemUtils
 from app.utils.commons import singleton
 from app.utils.types import SystemConfigKey
 from config import Config
@@ -266,10 +265,7 @@ class PluginManager:
         :param value: 历史记录原始值（JSON 字符串会自动解析）
         """
         if isinstance(value, str) and value[:1] in ("{", "["):
-            try:
-                value = json.loads(value)
-            except (TypeError, ValueError):
-                pass
+            value = JsonUtils.loads(value, default=value, silent=True)
         plugin = self._running_plugins.get(pid)
         if plugin and hasattr(plugin, "format_history"):
             try:

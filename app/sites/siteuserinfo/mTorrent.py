@@ -1,10 +1,9 @@
 # author: https://github.com/jxxghp/MoviePilot/blob/v2/app/modules/indexer/parser/mtorrent.py
-import json
 from urllib.parse import urljoin
 
 import log as logger
 from app.sites.siteuserinfo._base import _ISiteUserInfo
-from app.utils import StringUtils
+from app.utils import JsonUtils, StringUtils
 from app.utils.site_utils import SiteUtils
 from config import Config
 
@@ -101,7 +100,7 @@ class MTorrentUserInfo(_ISiteUserInfo):
         """
         response_text, _ = await self.visit_base_info()
 
-        detail = json.loads(response_text)
+        detail = JsonUtils.loads(response_text)
         if not detail or detail.get("code") != "0":
             return
         
@@ -156,7 +155,7 @@ class MTorrentUserInfo(_ISiteUserInfo):
         """
         if not html_text:
             return None
-        seeding_info = json.loads(html_text)
+        seeding_info = JsonUtils.loads(html_text)
         if not seeding_info or seeding_info.get("code") != "0":
             return None
         torrents = seeding_info.get("data", {}).get("data", [])
@@ -181,7 +180,7 @@ class MTorrentUserInfo(_ISiteUserInfo):
                 params={"uid": self.userid},
             )
             if result:
-                seeder_info = json.loads(result)
+                seeder_info = JsonUtils.loads(result) or {}
                 seeder_count = int(seeder_info.get("data", {}).get("seeder") or 0)
         except Exception as e:
             logger.error(f"获取做种数失败: {e!s}")
@@ -199,7 +198,7 @@ class MTorrentUserInfo(_ISiteUserInfo):
         """
         if not html_text:
             return None
-        messages_info = json.loads(html_text)
+        messages_info = JsonUtils.loads(html_text)
         if not messages_info or messages_info.get("code") != "0":
             return None
         messages = messages_info.get("data", {}).get("data", [])

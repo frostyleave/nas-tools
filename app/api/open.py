@@ -1,4 +1,3 @@
-import json
 import re
 import xml.dom.minidom
 
@@ -17,7 +16,7 @@ from app.middleware.security import auth_required
 from app.models.WXBizMsgCrypt3 import WXBizMsgCrypt
 from app.modules.subscribe import Subscribe
 from app.plugins.event_manager import EventManager
-from app.utils import DomUtils
+from app.utils import DomUtils, JsonUtils
 from app.utils.types import EventType, MediaServerType, MediaType, RssType, SearchType
 
 # 开放接口路由
@@ -209,7 +208,7 @@ async def plex_webhook(request: Request):
         return Response(content="不允许的IP地址请求", status_code=403)
 
     form = await request.form()
-    request_json = json.loads(form.get("payload", "{}"))
+    request_json = JsonUtils.loads(form.get("payload", "{}"), default={})
     log.debug("收到Plex Webhook报文: %s", request_json)
 
     event_match = request_json.get("event") in ["media.play", "media.stop", "library.new"]
@@ -251,7 +250,7 @@ async def emby_webhook(request: Request):
     if request.method == "POST":
         form = await request.form()
         log.debug("Emby Webhook data: %s", form.get("data", {}))
-        request_json = json.loads(form.get("data", "{}"))
+        request_json = JsonUtils.loads(form.get("data", "{}"), default={})
     else:
         query = dict(request.query_params)
         log.debug("Emby Webhook data: %s", query)

@@ -11,7 +11,7 @@ from app.models.model import UserSiteConf
 from app.sites import SitesManager
 from app.sites.site_schema import SitesschemaCenter
 from app.sites.siteuserinfo._base import fetch_site_favicon
-from app.utils import StringUtils
+from app.utils import JsonUtils, StringUtils
 from app.utils.commons import singleton
 
 lock = Lock()
@@ -445,7 +445,7 @@ class SitesDataStatisticsCenter:
         if not seeding_info:
             return site_seeding_info
 
-        site_seeding_info["seeding_info"] = json.loads(seeding_info[0])
+        site_seeding_info["seeding_info"] = JsonUtils.loads(seeding_info[0], default=[])
         return site_seeding_info
 
     def get_pt_site_min_join_date(self, sites=None):

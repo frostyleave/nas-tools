@@ -10,7 +10,7 @@ from .time_utils import TimeUtils
 from .system_utils import SystemUtils
 from .tokens import Tokens
 from .torrent import TorrentUtils
-from .cache_manager import cacheman, ConfigLoadCache, CategoryLoadCache
+from .cache_manager import cacheman
 from .rsstitle_utils import RssTitleUtils
 from .nfo_reader import NfoReader
 from .ip_utils import IpUtils

@@ -1,4 +1,3 @@
-import json
 import re
 from enum import Enum
 
@@ -6,7 +5,7 @@ import log
 from app.conf import ModuleConf
 from app.helper import DbHelper, SubmoduleHelper
 from app.message.message_center import SysMessageCenter
-from app.utils import IpUtils, StringUtils, TimeUtils
+from app.utils import IpUtils, JsonUtils, StringUtils, TimeUtils
 from app.utils.commons import singleton
 from app.utils.types import MediaType, SearchType
 from config import Config
@@ -24,7 +23,11 @@ class MessageService:
     _active_clients: list
     _active_interactive_clients: dict
     _client_configs: dict
-    _domain = None
+
+    @property
+    def domain(self) -> str:
+        """消息中使用的跳转地址（实时读取配置）"""
+        return Config().get_domain()
 
     def __init__(self):
         self._message_schemas = SubmoduleHelper.import_submodules(
@@ -39,7 +42,6 @@ class MessageService:
         self.dbhelper = DbHelper()
         self.sysMsgCenter = SysMessageCenter()
 
-        self._domain = Config().get_domain()
         # 停止旧服务
         if self._active_clients:
             for active_client in self._active_clients:
@@ -54,7 +56,7 @@ class MessageService:
         # 全量客户端配置
         self._client_configs = {}
         for client_config in self.dbhelper.get_message_client() or []:
-            config = json.loads(client_config.CONFIG) if client_config.CONFIG else {}
+            config = JsonUtils.loads(client_config.CONFIG, default={})
             config.update({
                 "interactive": client_config.INTERACTIVE
             })
@@ -63,7 +65,7 @@ class MessageService:
                 "name": client_config.NAME,
                 "type": client_config.TYPE,
                 "config": config,
-                "switchs": json.loads(client_config.SWITCHS) if client_config.SWITCHS else [],
+                "switchs": JsonUtils.loads(client_config.SWITCHS, default=[]),
                 "interactive": client_config.INTERACTIVE,
                 "enabled": client_config.ENABLED
             }
@@ -125,14 +127,14 @@ class MessageService:
         
         cname = client.get('name')
         log.info(f"【Message】发送消息 {cname}：title={title}, text={text}")
-        if self._domain:
+        if self.domain:
             if url:
                 # 唤起App
                 if '/open?url=' in url:
-                    url = f"{self._domain}{url}"
+                    url = f"{self.domain}{url}"
                 # 跳转页面
                 elif not url.startswith("http"):
-                    url = f"{self._domain}?next={url}"
+                    url = f"{self.domain}?next={url}"
             else:
                 url = ""
         elif not StringUtils.is_public_url(url):
@@ -206,7 +208,7 @@ class MessageService:
         state, ret_msg = client.get('client').send_list_msg(medias=medias,
                                                             user_id=user_id,
                                                             title=title,
-                                                            url=self._domain)
+                                                            url=self.domain)
         if not state:
             log.error(f"【Message】{cname} 发送消息失败：%s" % ret_msg)
             

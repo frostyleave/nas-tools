@@ -10,7 +10,7 @@ from app.helper.dict_helper import DictHelper
 from app.indexer.manager import IndexerManager
 from app.plugins.modules._base import _IPluginModule
 from app.sites import SitesManager
-from app.utils import RequestUtils, SiteUtils, TimeUtils
+from app.utils import JsonUtils, RequestUtils, SiteUtils, TimeUtils
 
 
 @dataclass
@@ -243,7 +243,7 @@ class CookieCloud(_IPluginModule):
         plugin_id = f"plugin.{self.__class__.__name__}"
         extra = self.dicthelper.get_note("SystemConfig", plugin_id)
         if extra:
-            extra_data = json.loads(extra)
+            extra_data = JsonUtils.loads(extra, default={})
             if extra_data:
                 self._cc_upd_time = self.__parse_to_datetime(extra_data.get("cc_upd_time"))
 

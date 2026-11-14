@@ -1,10 +1,8 @@
-import json
-
 from lxml import etree
 
-import log
 from app.sites.siteuserinfo._base import SITE_BASE_ORDER
 from app.sites.siteuserinfo.nexus_php import NexusPhpSiteUserInfo
+from app.utils import JsonUtils
 from app.utils.types import SiteSchema
 
 
@@ -34,11 +32,10 @@ class NexusRabbitSiteUserInfo(NexusPhpSiteUserInfo):
         :return: 下页地址
         """
 
-        try:
-            torrents = json.loads(html_text).get('data')
-        except Exception as e:
-            log.exception('【Sites】解析做种信息出错: ')
+        data = JsonUtils.loads(html_text)
+        if not data:
             return
+        torrents = data.get('data') or []
 
         page_seeding_size = 0
         page_seeding_info = []

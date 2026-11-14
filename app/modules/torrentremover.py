@@ -1,4 +1,3 @@
-import json
 from threading import Lock
 
 from apscheduler.job import Job
@@ -11,6 +10,7 @@ from app.core.jobcenter import JobCenter
 from app.downloader import Downloader
 from app.helper import DbHelper
 from app.message import MessageService
+from app.utils import JsonUtils
 from app.utils.commons import singleton
 
 lock = Lock()
@@ -58,7 +58,7 @@ class TorrentRemover:
                 "onlynastool": task.ONLYNASTOOL,
                 "samedata": task.SAMEDATA,
                 "action": task.ACTION,
-                "config": json.loads(config) if config else {},
+                "config": JsonUtils.loads(config, default={}),
                 "interval": task.INTERVAL,
                 "enabled": task.ENABLED,
             }

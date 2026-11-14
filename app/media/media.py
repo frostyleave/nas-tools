@@ -36,6 +36,7 @@ from app.utils import (
 from app.utils import (
     zhconv_compat as zhconv,
 )
+from app.utils.commons import singleton
 from app.utils.media_utils import MediaUtils
 from app.utils.types import MatchMode, MediaType
 from config import Config
@@ -52,8 +53,9 @@ KEYWORD_BLACKLIST = ['中字', '韩语', '双字', '中英', '日语', '双语',
                     '法语', '西班牙语', 'HRHDTVAC3264', '未删减版', '未删减', '国语', '字幕组', '人人影视', 'www66ystv',
                     '人人影视制作', '英语', 'www6vhaotv', '无删减版', '完成版', '德意']
 
+@singleton
 class MediaService:
-    
+
     _search_keyword = None
     _search_tmdbweb = None
     _default_language = None

@@ -1,4 +1,5 @@
 import base64
+import copy
 import datetime
 import inspect
 import json
@@ -13,13 +14,14 @@ from fastapi import APIRouter, BackgroundTasks, Body, Depends
 import log
 from app.conf import ModuleConf, SystemConfig
 from app.core.cmd_handler import CommandHandler
+from app.core.initializer import diff_config, reload_config
 from app.core.jobcenter import JobCenter
 from app.core.task_manager import TaskStore
 from app.downloader import Downloader
 from app.helper import FileHelper, MetaHelper, RssHelper, ThreadHelper, WordsHelper
 from app.indexer import Indexer
 from app.indexer.manager import IndexerManager
-from app.media import Bangumi, DouBan, MediaService, Scraper
+from app.media import Bangumi, Category, DouBan, MediaService, Scraper
 from app.media.meta import MetaInfo
 from app.mediaserver import MediaServer
 from app.message import MessageService
@@ -40,6 +42,7 @@ from app.plugins import EventManager, PluginManager
 from app.sites import SiteConf, SitesDataStatisticsCenter, SitesManager
 from app.utils import (
     EpisodeFormat,
+    JsonUtils,
     MediaUtils,
     PathUtils,
     RequestUtils,
@@ -2573,7 +2576,7 @@ class WebAction:
             string = base64.b64decode(import_code.encode(
                 "utf-8")).decode('utf-8').split("@@@@@@")
             note_string = string[1]
-            import_dict = json.loads(string[0])
+            import_dict = JsonUtils.loads(string[0], default={})
             groups = []
             for group in import_dict.values():
                 wid = group.get('id')
@@ -2606,7 +2609,7 @@ class WebAction:
             ids_info = data.get('ids_info')
             string = base64.b64decode(import_code.encode(
                 "utf-8")).decode('utf-8').split("@@@@@@")
-            import_dict = json.loads(string[0])
+            import_dict = JsonUtils.loads(string[0], default={})
             import_group_ids = [id_info.split("_")[0] for id_info in ids_info]
             group_id_dict = {}
             for import_group_id in import_group_ids:
@@ -2736,7 +2739,7 @@ class WebAction:
 
             json_str = base64.b64decode(
                 str(content).encode("utf-8")).decode('utf-8')
-            json_obj = json.loads(json_str)
+            json_obj = JsonUtils.loads(json_str, default={})
             if json_obj:
                 if not json_obj.get("name"):
                     return {"code": 1, "msg": "数据格式不正确"}
@@ -2859,13 +2862,16 @@ class WebAction:
         """
         维护媒体库目录
         """
-        cfg = self.set_config_directory(Config().get_config(),
+        old_cfg = Config().get_config()
+        cfg = self.set_config_directory(copy.deepcopy(old_cfg),
                                         data.get("oper"),
                                         data.get("key"),
                                         data.get("value"),
                                         data.get("replace_value"))
         # 保存配置
         Config().save_config(cfg)
+        # 按变更内容重新初始化受影响的服务
+        reload_config(diff_config(old_cfg, cfg))
         return {"code": 0}
 
     def __test_site(self, data):
@@ -3023,7 +3029,7 @@ class WebAction:
         测试消息设置
         """
         ctype = data.get("type")
-        config = json.loads(data.get("config"))
+        config = JsonUtils.loads(data.get("config"), default={})
         res = MessageService().get_status(ctype=ctype, config=config)
         if res:
             return {"code": 0}
@@ -3650,7 +3656,7 @@ class WebAction:
         测试下载器
         """
         dtype = data.get("type")
-        config = json.loads(data.get("config"))
+        config = JsonUtils.loads(data.get("config"), default={})
         res = Downloader().get_status(dtype=dtype, config=config)
         if res:
             return {"code": 0}
@@ -3801,6 +3807,8 @@ class WebAction:
         if category_path:
             with open(category_path, "w", encoding="utf-8") as f:
                 f.write(text)
+            # 二级分类配置不经过 config.yaml，直接重新加载
+            Category().init_config()
         return {"code": 0, "msg": "保存成功"}
 
     def __get_category_config(self, data):

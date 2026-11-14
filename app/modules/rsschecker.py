@@ -1,4 +1,3 @@
-import json
 from typing import ClassVar
 
 import jsonpath
@@ -17,7 +16,7 @@ from app.message import MessageService
 from app.modules.filter import Filter
 from app.modules.searcher import Searcher
 from app.modules.subscribe import Subscribe
-from app.utils import RequestUtils, StringUtils, TimeUtils
+from app.utils import JsonUtils, RequestUtils, StringUtils, TimeUtils
 from app.utils.commons import singleton
 from app.utils.types import MediaType, RssType, SearchType
 from config import Config
@@ -82,29 +81,15 @@ class RssChecker:
             else:
                 filterrule = {}
             # 解析属性
-            note = {}
-            if task.NOTE:
-                try:
-                    note = json.loads(task.NOTE)
-                except Exception as e:
-                    print(str(e))
-                    note = {}
+            note = JsonUtils.loads(task.NOTE, default={})
             save_path = note.get("save_path") or ""
             recognization = note.get("recognization") or "Y"
             proxy = note.get("proxy") in ["Y", "1", True]
-            try:
-                addresses = json.loads(task.ADDRESS)
-                if not isinstance(addresses, list):
-                    addresses = [addresses]
-            except Exception as e:
-                print(str(e))
+            addresses = JsonUtils.loads(task.ADDRESS, silent=True)
+            if not isinstance(addresses, list):
                 addresses = [task.ADDRESS]
-            try:
-                parsers = json.loads(task.PARSER)
-                if not isinstance(parsers, list):
-                    parsers = [task.PARSER]
-            except Exception as e:
-                print(str(e))
+            parsers = JsonUtils.loads(task.PARSER, silent=True)
+            if not isinstance(parsers, list):
                 parsers = [task.PARSER]
             state = task.STATE in ["Y", "1", True]
             self._rss_tasks.append({
@@ -127,9 +112,8 @@ class RssChecker:
                 "download_setting": task.DOWNLOAD_SETTING or "",
                 "recognization": task.RECOGNIZATION or recognization,
                 "over_edition": task.OVER_EDITION or 0,
-                "sites": json.loads(task.SITES) if task.SITES else {"rss_sites": [], "search_sites": []},
-                "filter_args": json.loads(task.FILTER_ARGS)
-                if task.FILTER_ARGS else {"restype": "", "pix": "", "team": ""},
+                "sites": JsonUtils.loads(task.SITES, default={"rss_sites": [], "search_sites": []}),
+                "filter_args": JsonUtils.loads(task.FILTER_ARGS, default={"restype": "", "pix": "", "team": ""}),
             })
         if not self._rss_tasks:
             return
@@ -418,10 +402,9 @@ class RssChecker:
             if not rss_parser.get("format"):
                 log.error("【RssChecker】任务 %s 配置解析器 %s 格式不正确", task_name, parser_name)
                 continue
-            try:
-                rss_parser_format = json.loads(rss_parser.get("format"))
-            except Exception as e:
-                log.exception("【RssChecker】任务 %s 配置解析器 %s 不是合法的Json格式: ", task_name, parser_name)
+            rss_parser_format = JsonUtils.loads(rss_parser.get("format"))
+            if rss_parser_format is None:
+                log.error("【RssChecker】任务 %s 配置解析器 %s 不是合法的Json格式: ", task_name, parser_name)
                 continue
 
             # 拼装链接
@@ -471,10 +454,9 @@ class RssChecker:
                     log.exception("【RssChecker】任务 %s RSS地址 %s 获取的订阅报文无法解析：", task_name, rss_url)
                     continue
             elif rss_parser.get("type") == "JSON":
-                try:
-                    result_json = json.loads(ret.text)
-                except Exception as err:
-                    log.exception("【RssChecker】任务 %s RSS地址 %s 获取的订阅报文不是合法的Json格式: ", task_name, rss_url)
+                result_json = JsonUtils.loads(ret.text)
+                if result_json is None:
+                    log.error("【RssChecker】任务 %s RSS地址 %s 获取的订阅报文不是合法的Json格式: ", task_name, rss_url)
                     continue
                 item_list = jsonpath.jsonpath(result_json, rss_parser_format.get("list"))[0]
                 if not isinstance(item_list, list):
@@ -692,7 +674,7 @@ class RssChecker:
         taskinfos = self.dbhelper.get_userrss_tasks()
         mediainfos_all = []
         for taskinfo in taskinfos:
-            mediainfos = json.loads(taskinfo.MEDIAINFOS) if taskinfo.MEDIAINFOS else []
+            mediainfos = JsonUtils.loads(taskinfo.MEDIAINFOS, default=[])
             if mediainfos:
                 mediainfos_all += mediainfos
         return mediainfos_all

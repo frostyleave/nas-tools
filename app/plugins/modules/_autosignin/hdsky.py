@@ -1,12 +1,11 @@
 from typing import ClassVar
-import json
 import time
 
 from app.helper import OcrHelper
 from app.helper.site_signin_helper import SiteSigninHelper, Verdict
 from app.models.model import UserSiteConf
 from app.plugins.modules._autosignin._base import _ISiteSigninHandler
-from app.utils import RequestUtils, SiteUtils
+from app.utils import JsonUtils, RequestUtils, SiteUtils
 from config import Config
 
 
@@ -65,9 +64,9 @@ class HDSky(_ISiteSigninHandler):
                                      ).post_res(url='https://hdsky.me/image_code_ajax.php',
                                                 data={'action': 'new'})
             if image_res and image_res.status_code == 200:
-                image_json = json.loads(image_res.text)
-                if image_json["success"]:
-                    img_hash = image_json["code"]
+                image_json = JsonUtils.loads(image_res.text, default={})
+                if image_json.get("success"):
+                    img_hash = image_json.get("code")
                     break
                 res_times += 1
                 self.debug(f"获取{site}验证码失败，正在进行重试，目前重试次数 {res_times}")
@@ -108,14 +107,15 @@ class HDSky(_ISiteSigninHandler):
                                    proxies=proxy
                                    ).post_res(url='https://hdsky.me/showup.php', data=data)
                 if res and res.status_code == 200:
-                    if json.loads(res.text)["success"]:
+                    showup_result = JsonUtils.loads(res.text, default={})
+                    if showup_result.get("success"):
                         self.info("签到成功")
                         return True, f'[{site}]签到成功'
-                    elif str(json.loads(res.text)["message"]) == "date_unmatch":
+                    elif str(showup_result.get("message")) == "date_unmatch":
                         # 重复签到
                         self.warn("重复成功")
                         return True, f'[{site}]今日已签到'
-                    elif str(json.loads(res.text)["message"]) == "invalid_imagehash":
+                    elif str(showup_result.get("message")) == "invalid_imagehash":
                         # 验证码错误
                         self.warn("签到失败：验证码错误")
                         return False, f'[{site}]签到失败：验证码错误'

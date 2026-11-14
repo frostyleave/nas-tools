@@ -1,7 +1,6 @@
-import json
 import subprocess
 
-from app.utils import SystemUtils
+from app.utils import JsonUtils, SystemUtils
 
 
 class FfmpegHelper:
@@ -49,7 +48,7 @@ class FfmpegHelper:
             command = ['ffprobe', '-v', 'quiet', '-print_format', 'json', '-show_format', '-show_streams', video_path]
             result = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=False)
             if result.returncode == 0:
-                return json.loads(result.stdout.decode("utf-8"))
+                return JsonUtils.loads(result.stdout.decode("utf-8"))
         except Exception as e:
             print(e)
         return None

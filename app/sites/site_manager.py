@@ -1,5 +1,4 @@
 import asyncio
-import json
 import re
 from datetime import datetime
 
@@ -13,7 +12,7 @@ from app.message import MessageService
 from app.models.model import SiteBaseModel, UserSiteConf
 from app.sites import SiteRateLimiter
 from app.sites.siteuserinfo.mTorrent import MTorrentUserInfo
-from app.utils import RequestUtils, SiteUtils
+from app.utils import JsonUtils, RequestUtils, SiteUtils
 from app.utils.commons import singleton
 from app.utils.types import Spider
 from config import Config
@@ -420,7 +419,7 @@ class SitesManager:
         seconds = int((datetime.now() - start_time).microseconds / 1000)
 
         if response_text and status_code == 200:
-            detail = json.loads(response_text)
+            detail = JsonUtils.loads(response_text)
             if not detail or detail.get("code") != "0":
                 return False, "apikey失效", seconds
             return True, "连接成功", seconds
@@ -526,10 +525,7 @@ class SitesManager:
         """
         从note中提取站点信息
         """
-        infos = {}
-        if note:
-            infos = json.loads(note)
-        return infos
+        return JsonUtils.loads(note, default={})
 
     def add_site(self, name, site_pri,
                  rssurl='', signurl='', cookie='', token='', apikey='', note='', rss_uses=''):

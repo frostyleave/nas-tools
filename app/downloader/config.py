@@ -5,7 +5,6 @@
 从 Downloader 类中提取，遵循单一职责原则。
 """
 
-import json
 import os
 from dataclasses import dataclass, field
 from enum import Enum
@@ -14,8 +13,9 @@ from typing import Any
 import log
 from app.conf import ModuleConf, SystemConfig
 from app.helper import DbHelper
-from app.utils import NumberUtils, StringUtils, SystemUtils
+from app.utils import JsonUtils, NumberUtils, StringUtils, SystemUtils
 from app.utils.types import DownloaderType, SystemConfigKey
+from config import Config
 
 # 标签隔离
 PT_TAG = "NASTOOL"
@@ -56,7 +56,6 @@ class DownloadConfig:
         self._downloader_confs: dict[str, DownloaderConfItem] = {}
         self._download_settings: dict[str, dict] = {}
         self._monitor_downloader_ids: list[int] = []
-        self._download_order: str | None = None
         self._DownloaderEnum: Enum | None = None
 
     def reload(self) -> None:
@@ -93,7 +92,7 @@ class DownloadConfig:
                 else:
                     log.info(f"【Downloader】下载器: {name} 不进行监控: 下载器未启用")
 
-            config = json.loads(downloader_conf.CONFIG)
+            config = JsonUtils.loads(downloader_conf.CONFIG, default={})
             dtype = downloader_conf.TYPE
 
             self._downloader_confs[str(did)] = DownloaderConfItem(
@@ -107,7 +106,7 @@ class DownloadConfig:
                 rmt_mode=rmt_mode,
                 rmt_mode_name=rmt_mode_name,
                 config=config,
-                download_dir=json.loads(downloader_conf.DOWNLOAD_DIR),
+                download_dir=JsonUtils.loads(downloader_conf.DOWNLOAD_DIR, default=[]),
             )
 
         # 生成下载器ID-名称枚举
@@ -119,11 +118,6 @@ class DownloadConfig:
 
     def _load_download_settings(self) -> None:
         """加载下载设置（含预设）"""
-        from config import Config
-        pt = Config().get_config('pt')
-        if pt:
-            self._download_order = pt.get("download_order")
-
         self._download_settings = {
             "-1": {
                 "id": -1,
@@ -277,8 +271,9 @@ class DownloadConfig:
 
     @property
     def download_order(self) -> str | None:
-        """获取下载排序设置"""
-        return self._download_order
+        """获取下载排序设置（实时读取配置，变更后无需重载服务）"""
+        pt = Config().get_config('pt') or {}
+        return pt.get("download_order")
 
     # ---- 静态工具方法 ----
 

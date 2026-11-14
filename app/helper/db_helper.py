@@ -8,7 +8,7 @@ from sqlalchemy import cast, func
 
 from app.db.main_db import DbPersist, MainDb
 from app.db.models import *
-from app.utils import StringUtils, TimeUtils
+from app.utils import JsonUtils, StringUtils, TimeUtils
 from app.utils.types import MediaType, RmtMode
 
 
@@ -504,7 +504,7 @@ class DbHelper:
             return
         rec = self._db.query(CONFIGSITE).filter(CONFIGSITE.ID == int(tid)).first()
         if rec.NOTE:
-            note = json.loads(rec.NOTE)
+            note = JsonUtils.loads(rec.NOTE, default={})
             if ua:
                 note['ua'] = ua
         else:
@@ -2138,7 +2138,7 @@ class DbHelper:
         taskinfo = self._db.query(CONFIGUSERRSS).filter(CONFIGUSERRSS.ID == int(tid)).all()
         if not taskinfo:
             return
-        mediainfos = json.loads(taskinfo[0].MEDIAINFOS) if taskinfo[0].MEDIAINFOS else []
+        mediainfos = JsonUtils.loads(taskinfo[0].MEDIAINFOS, default=[])
         tmdbid = str(mediainfo.tmdb_id)
         season = int(mediainfo.get_season_seq())
         for media in mediainfos:

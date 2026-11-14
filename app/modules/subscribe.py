@@ -13,7 +13,7 @@ from app.modules.filter import Filter
 from app.modules.search import SearchProxy
 from app.plugins import EventManager
 from app.sites import SitesManager
-from app.utils import TorrentUtils
+from app.utils import JsonUtils, TorrentUtils
 from app.utils.commons import singleton
 from app.utils.types import EventType, MediaType, RssType, SearchType, SystemConfigKey
 
@@ -371,8 +371,8 @@ class Subscribe:
             desc = rss_movie.DESC
             note = rss_movie.NOTE
             tmdbid = rss_movie.TMDBID
-            rss_sites = json.loads(rss_movie.RSS_SITES) if rss_movie.RSS_SITES else []
-            search_sites = json.loads(rss_movie.SEARCH_SITES) if rss_movie.SEARCH_SITES else []
+            rss_sites = JsonUtils.loads(rss_movie.RSS_SITES, default=[])
+            search_sites = JsonUtils.loads(rss_movie.SEARCH_SITES, default=[])
             over_edition = rss_movie.OVER_EDITION == 1
             filter_restype = rss_movie.FILTER_RESTYPE
             filter_pix = rss_movie.FILTER_PIX
@@ -437,8 +437,8 @@ class Subscribe:
             desc = rss_tv.DESC
             note = rss_tv.NOTE
             tmdbid = rss_tv.TMDBID
-            rss_sites = json.loads(rss_tv.RSS_SITES) if rss_tv.RSS_SITES else []
-            search_sites = json.loads(rss_tv.SEARCH_SITES) if rss_tv.SEARCH_SITES else []
+            rss_sites = JsonUtils.loads(rss_tv.RSS_SITES, default=[])
+            search_sites = JsonUtils.loads(rss_tv.SEARCH_SITES, default=[])
             over_edition = rss_tv.OVER_EDITION == 1
             filter_restype = rss_tv.FILTER_RESTYPE
             filter_pix = rss_tv.FILTER_PIX
@@ -511,7 +511,7 @@ class Subscribe:
         """
         if not desc:
             return {}
-        return json.loads(desc) or {}
+        return JsonUtils.loads(desc, default={}) or {}
 
     @staticmethod
     def gen_rss_note(media):

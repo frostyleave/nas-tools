@@ -1,4 +1,3 @@
-import json
 import re
 
 import log
@@ -7,6 +6,7 @@ from app.media import DouBan, MediaService
 from app.media.meta import MetaInfo
 from app.message import MessageService
 from app.modules.searcher import Searcher
+from app.utils import JsonUtils
 from app.utils.media_utils import MediaUtils
 from app.utils.string_utils import StringUtils
 from app.utils.types import MediaType, SearchType
@@ -277,10 +277,9 @@ class SearchProxy:
         for item in res:
             # 质量(来源、效果)、分辨率
             if item.RES_TYPE:
-                try:
-                    res_mix = json.loads(item.RES_TYPE)
-                except Exception as err:
-                    log.exception("【Searcher】解析质量配置异常:")
+                res_mix = JsonUtils.loads(item.RES_TYPE)
+                if res_mix is None:
+                    log.error("【Searcher】解析质量配置异常:")
                     continue
                 respix = res_mix.get("respix") or ""
                 resource_frame = res_mix.get("resource_frame") or ""

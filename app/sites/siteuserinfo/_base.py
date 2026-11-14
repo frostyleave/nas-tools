@@ -10,6 +10,7 @@ from lxml import etree
 
 import log
 from app.helper import SiteHelper
+from app.utils import JsonUtils
 from app.utils.async_request import decode_bytes
 from app.utils.http_utils import RequestUtils
 from app.utils.types import SiteSchema
@@ -421,11 +422,11 @@ class _ISiteUserInfo(metaclass=ABCMeta):
             return "", -1
 
         if req_headers and "application/json" in str(req_headers.get("Accept")):
-            try:
-                return json.dumps(json.loads(decode_bytes(content, charset))), status
-            except (json.JSONDecodeError, ValueError) as e:
-                log.exception(f"【Sites】{self.site_name} API响应JSON解析失败: {e}")
+            parsed = JsonUtils.loads(decode_bytes(content, charset), silent=True)
+            if parsed is None:
+                log.error(f"【Sites】{self.site_name} API响应JSON解析失败")
                 return "", status
+            return json.dumps(parsed), status
 
         return decode_bytes(content, charset), status
 

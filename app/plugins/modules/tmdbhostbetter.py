@@ -1,4 +1,3 @@
-import json
 import re
 import socket
 import time
@@ -10,7 +9,7 @@ from python_hosts import Hosts, HostsEntry
 
 from app.helper import ThreadHelper
 from app.plugins.modules._base import _IPluginModule
-from app.utils import IpUtils, RequestUtils, SystemUtils
+from app.utils import IpUtils, JsonUtils, RequestUtils, SystemUtils
 from config import Config
 
 
@@ -383,7 +382,8 @@ class TmdbHostBetter(_IPluginModule):
             if not match:
                 return []
             literal = match.group(1).replace("\\'", "'")
-            servers = json.loads(json.loads('"' + literal + '"'))
+            literal = JsonUtils.loads('"' + literal + '"')
+            servers = JsonUtils.loads(literal, default=[])
             return servers if isinstance(servers, list) else []
         except Exception as err:
             self.debug(f"解析dnschecker服务器列表失败：{err}")

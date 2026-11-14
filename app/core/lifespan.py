@@ -4,7 +4,6 @@ import contextlib
 from fastapi import FastAPI
 
 import log
-from app.core.initializer import start_config_monitor, stop_config_monitor
 from app.core.services import ServiceManager
 from app.core.task_manager import task_processor_start, task_processor_stop
 from app.utils.async_request import close_async_client, init_async_client
@@ -32,9 +31,6 @@ async def lifespan(app: FastAPI):
         log.info('服务启动中...')
         ServiceManager.start_service()
         ServiceManager.pre_warming_zhconv()
-        
-        log.info('开启配置文件监控...')
-        start_config_monitor()
 
         # 注入事件循环
         _inject_event_loop()
@@ -53,10 +49,6 @@ async def lifespan(app: FastAPI):
     finally:
         log.info('FastAPI 应用开始关闭...')
         ServiceManager.stop_service()
-
-        # 关闭配置文件监控
-        log.info('关闭配置文件监控...')
-        stop_config_monitor()
 
         # 关闭任务管理器
         task_processor_stop()

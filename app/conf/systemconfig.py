@@ -2,6 +2,7 @@ from typing import ClassVar
 import json
 
 from app.helper import DictHelper
+from app.utils import JsonUtils
 from app.utils.commons import singleton
 from app.utils.types import SystemConfigKey
 
@@ -23,7 +24,7 @@ class SystemConfig:
             if not item:
                 continue
             if self.__is_obj(item.VALUE):
-                self.systemconfig[item.KEY] = json.loads(item.VALUE)
+                self.systemconfig[item.KEY] = JsonUtils.loads(item.VALUE, default=item.VALUE)
             else:
                 self.systemconfig[item.KEY] = item.VALUE
 
