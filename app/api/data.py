@@ -171,7 +171,6 @@ def basic():
             "Config": Config().get_config(),
             "Proxy": proxy,
             "CustomScriptCfg": custom_script_cfg,
-            "MediaServerConf": ModuleConf.MEDIASERVER_CONF,
             "TmdbDomains": Constants.TMDB_API_DOMAINS,
         }
     )
@@ -441,13 +440,21 @@ def sites_page():
 
 # 媒体库页面
 @data_router.post("/library")
-@auth_check(LEVEL_OPERATOR)
+@auth_check(LEVEL_SYSADMIN)
 def library():
     rmt_mode_dict = _get_rmt_modes_dict()
     scraper_conf = SystemConfig().get(SystemConfigKey.UserScraperConf) or {}
+    # 媒体服务器卡片所需的结构配置与当前配置值（含凭据，仅系统管理员可见）
+    media_server_conf = ModuleConf.MEDIASERVER_CONF
+    media_server_config = {
+        server_type: Config().get_config(server_type) or {}
+        for server_type in media_server_conf
+    }
     return response(data=
         {
             "MediaConfig": Config().get_config('media'),
+            "MediaServerConf": media_server_conf,
+            "MediaServerConfig": media_server_config,
             "RmtModeDict": rmt_mode_dict,
             "ScraperNfo": scraper_conf.get("scraper_nfo") or {},
             "ScraperPic": scraper_conf.get("scraper_pic") or {},

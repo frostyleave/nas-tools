@@ -1,143 +1,556 @@
-<div class="page-body">
-  <div class="container-xl">
-    <div class="col-12 mb-1">
-      <div class="card">
-        <div class="card-header">
-          <h4 class="card-title"><strong>存储设置</strong></h4>
-          <div class="card-actions btn-actions">
-            <a href="javascript:void(0)" class="btn d-none d-sm-inline-block" data-bs-toggle="modal"data-bs-target="#modal-scraper">
-              刮削设置
-            </a>
-            <a href="javascript:void(0)" class="btn d-sm-none mbtn-action" data-bs-toggle="modal"data-bs-target="#modal-scraper" title="刮削设置">
-              <i class="ti ti-slideshow fs-2"></i>
-            </a>
-            <a href="javascript:slideToggle('sys_media_config')" class="btn-action ms-1" title="展开/折叠">
-              <i class="ti ti-menu-2 fs-2"></i>
-            </a>
-          </div>
+<style>
+  .lib-page {
+    --lib-accent-rgb: 105, 108, 255;
+    --lib-accent-ink: #4f52c9;
+    --lib-hairline: var(--tblr-border-color);
+    --lib-mono: var(--tblr-font-monospace);
+  }
+
+  [data-bs-theme="dark"] .lib-page {
+    --lib-accent-rgb: 134, 137, 255;
+    --lib-accent-ink: #a9abff;
+  }
+
+  .lib-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .lib-section > .card-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 16px 24px;
+  }
+
+  .lib-section-title {
+    margin: 0;
+    font-size: 15px;
+    font-weight: 500;
+    line-height: 22px;
+    color: var(--tblr-emphasis-color);
+  }
+
+  .lib-section-desc {
+    margin-top: 2px;
+    font-size: 12.5px;
+    line-height: 18px;
+    color: var(--tblr-secondary-color);
+  }
+
+  .lib-section > .card-body {
+    padding: 20px 24px;
+  }
+
+  .lib-collapse {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 28px;
+    width: 28px;
+    height: 28px;
+    margin: -2px -6px 0 0;
+    padding: 0;
+    border: 0;
+    border-radius: 6px;
+    background: transparent;
+    color: var(--tblr-secondary-color);
+  }
+
+  .lib-collapse:hover {
+    background: var(--tblr-tertiary-bg);
+    color: var(--tblr-body-color);
+  }
+
+  .lib-collapse i {
+    font-size: 16px;
+    transform: rotate(90deg);
+    transition: transform 160ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  .lib-collapse.is-collapsed i {
+    transform: rotate(0deg);
+  }
+
+  .lib-server-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 12px;
+  }
+
+  .lib-server {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    border: 1px solid var(--lib-hairline);
+    border-radius: 10px;
+    background: var(--tblr-card-bg);
+    color: inherit;
+    text-decoration: none;
+    transition: border-color 160ms, background-color 160ms;
+  }
+
+  .lib-server:hover {
+    border-color: var(--tblr-secondary-color);
+    color: inherit;
+  }
+
+  .lib-server:focus-visible {
+    outline: 2px solid rgba(var(--lib-accent-rgb), 0.55);
+    outline-offset: 2px;
+  }
+
+  .lib-server.is-active {
+    border-color: rgba(var(--lib-accent-rgb), 0.5);
+    background: rgba(var(--lib-accent-rgb), 0.05);
+  }
+
+  .lib-server-logo {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 36px;
+    width: 36px;
+    height: 36px;
+    border: 1px solid var(--lib-hairline);
+    border-radius: 8px;
+    background: #fff;
+    overflow: hidden;
+  }
+
+  [data-bs-theme="dark"] .lib-server-logo {
+    background: rgba(255, 255, 255, 0.06);
+  }
+
+  .lib-server-logo img {
+    width: 28px;
+    height: 28px;
+    object-fit: contain;
+  }
+
+  .lib-server-body {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+  }
+
+  .lib-server-name {
+    font-size: 14px;
+    font-weight: 500;
+    line-height: 20px;
+    color: var(--tblr-emphasis-color);
+  }
+
+  .lib-server-state {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    line-height: 16px;
+    color: var(--tblr-secondary-color);
+  }
+
+  .lib-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--tblr-secondary-color);
+    opacity: 0.45;
+  }
+
+  .lib-server.is-active .lib-dot {
+    background: rgb(var(--lib-accent-rgb));
+    opacity: 1;
+  }
+
+  .lib-server.is-active .lib-server-state {
+    color: var(--lib-accent-ink);
+  }
+
+  .lib-inline-field {
+    display: flex;
+    align-items: flex-end;
+    flex-wrap: wrap;
+    gap: 8px 20px;
+    margin-top: 20px;
+  }
+
+  .lib-inline-control {
+    width: 260px;
+    max-width: 100%;
+  }
+
+  .lib-hint {
+    max-width: 460px;
+    margin: 0 0 8px;
+    font-size: 12.5px;
+    line-height: 18px;
+    color: var(--tblr-secondary-color);
+  }
+
+  .lib-switch-row {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px 32px;
+  }
+
+  .lib-switch-row .form-check {
+    margin: 0;
+  }
+
+  .lib-switch-row .form-check-label {
+    font-size: 14px;
+  }
+
+  .lib-switch-group {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px 12px;
+  }
+
+  .lib-footer {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 24px;
+    padding-top: 16px;
+    border-top: 1px solid var(--lib-hairline);
+  }
+
+  .lib-collapse:focus-visible,
+  .lib-icon-btn:focus-visible {
+    outline: 2px solid rgba(var(--lib-accent-rgb), 0.55);
+    outline-offset: 2px;
+  }
+
+  [data-bs-theme="dark"] .lib-page .form-label {
+    color: var(--tblr-emphasis-color);
+  }
+
+  .lib-req {
+    margin-left: 2px;
+    font-weight: 500;
+    color: #dc2626;
+  }
+
+  [data-bs-theme="dark"] .lib-req {
+    color: #e5484d;
+  }
+
+  .lib-field-mono input {
+    font-family: var(--lib-mono);
+    font-size: 12.5px;
+  }
+
+  .lib-count {
+    flex: 0 0 auto;
+    padding-top: 2px;
+    font-family: var(--lib-mono);
+    font-size: 12px;
+    color: var(--tblr-secondary-color);
+  }
+
+  .lib-dir-body {
+    padding-top: 16px;
+  }
+
+  .lib-dir-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(420px, 1fr));
+    gap: 12px;
+  }
+
+  .lib-dir-card {
+    padding: 0 16px;
+    border: 1px solid var(--lib-hairline);
+    border-radius: 10px;
+  }
+
+  .lib-dir-card-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--lib-hairline);
+  }
+
+  .lib-dir-title {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    min-width: 0;
+  }
+
+  .lib-dir-name {
+    font-size: 14px;
+    font-weight: 500;
+    line-height: 20px;
+    color: var(--tblr-emphasis-color);
+  }
+
+  .lib-dir-meta {
+    font-size: 12px;
+    line-height: 16px;
+    color: var(--tblr-secondary-color);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .lib-dir-paths {
+    display: flex;
+    flex-direction: column;
+    padding: 8px 0;
+  }
+
+  .lib-dir-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    min-height: 32px;
+    padding: 0 8px;
+    margin: 0 -8px;
+    border-radius: 6px;
+    transition: background-color 120ms;
+  }
+
+  .lib-dir-row:hover {
+    background: var(--tblr-tertiary-bg);
+  }
+
+  .lib-path {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+    font-family: var(--lib-mono);
+    font-size: 12.5px;
+    line-height: 18px;
+    color: var(--tblr-emphasis-color);
+  }
+
+  .lib-path i {
+    flex: 0 0 16px;
+    font-size: 16px;
+    color: var(--tblr-secondary-color);
+  }
+
+  .lib-path-text {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .lib-dir-empty {
+    display: flex;
+    align-items: center;
+    min-height: 32px;
+    padding: 0 8px;
+    margin: 0 -8px;
+    font-size: 13px;
+    color: var(--tblr-secondary-color);
+  }
+
+  .lib-icon-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 28px;
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    border: 0;
+    border-radius: 6px;
+    background: transparent;
+    color: var(--tblr-secondary-color);
+  }
+
+  .lib-icon-btn i {
+    font-size: 16px;
+  }
+
+  .lib-icon-btn:hover {
+    background: var(--tblr-tertiary-bg);
+    color: var(--tblr-body-color);
+  }
+
+  .lib-icon-danger:hover {
+    background: rgba(220, 38, 38, 0.08);
+    color: #dc2626;
+  }
+
+  [data-bs-theme="dark"] .lib-icon-danger:hover {
+    color: #e5484d;
+  }
+
+  @media (max-width: 575.98px) {
+    .lib-section > .card-header,
+    .lib-section > .card-body {
+      padding-left: 16px;
+      padding-right: 16px;
+    }
+
+    .lib-dir-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .lib-count {
+      display: none;
+    }
+  }
+</style>
+
+<div class="page-body lib-page">
+  <div class="container-xl lib-stack">
+    <section class="card lib-section">
+      <div class="card-header">
+        <div>
+          <h2 class="lib-section-title">媒体服务器</h2>
+          <div class="lib-section-desc">连接 Emby、Jellyfin 或 Plex，用于媒体库状态与播放跳转</div>
         </div>
-        <div class="card-body" id="sys_media_config">
-          <div class="row">
-            <div class="col-lg">
-              <div class="mb-3">
-                <label class="form-label">文件管理默认路径 <span class="form-help" title="文件管理、自定义识别等默认路径" data-bs-toggle="tooltip">?</span></label>
-                <input type="text" value="" class="form-control filetree-folders-only" id="media.media_default_path" placeholder="/" autocomplete="off">
-              </div>
-            </div>
-            <div class="col-lg">
-              <div class="mb-3">
-                <label class="form-label">文件二级分类策略 <span class="form-help"
-                    title="启用二级分类后会在电影/电视剧/动漫媒体库目录下按二级分类名建立子目录；此处配置分类的策略名，保存后会自动生成默认配置；如不需要启动分类，则该项配置为空"
-                    data-bs-toggle="tooltip">?</span></label>
-                <div class="input-group input-group-flat">
-                  <input type="text" value="" class="form-control" id="media.category"
-                    placeholder="留空不启用二级分类" autocomplete="off" name="category_name">
-                  <span class="input-group-text">
-                    <a href="javascript:show_category_config_modal()" class="link-secondary" title="编辑二级分类策略"
-                      data-bs-toggle="tooltip">
-                      <i class="ti ti-edit fs-2"></i>
-                    </a>
-                  </span>
-                </div>
-              </div>
-            </div>
-            <div class="col-lg">
-              <div class="mb-3">
-                <label class="form-label required">默认文件转移方式 <span class="form-help" title="手动识别等未指定转移方式的场景默认使用的转移方式"
-                    data-bs-toggle="tooltip">?</span></label>
-                <select id="media.default_rmt_mode" class="form-select">
-                </select>
-              </div>
-            </div>
-            <div class="col-lg">
-              <div class="mb-3">
-                <label class="form-label required">转移最小文件大小(MB) <span class="form-help" title="小于该大小的文件将会忽略，不进行转移重命名"
-                    data-bs-toggle="tooltip">?</span></label>
-                <input type="text" value="" class="form-control"
-                  id="media.min_filesize" placeholder="200" autocomplete="off">
-              </div>
+        <button type="button" class="lib-collapse" onclick="lib_toggle_section('sys_media_server_config', this)"
+          aria-label="折叠媒体服务器" aria-expanded="true">
+          <i class="ti ti-chevron-right"></i>
+        </button>
+      </div>
+      <div class="card-body" id="sys_media_server_config">
+        <div class="lib-server-grid" id="media-server-list">
+          <!-- JS 动态填充 -->
+        </div>
+        <div class="lib-inline-field">
+          <div class="lib-inline-control">
+            <label class="form-label" for="media.mediasync_interval">同步周期</label>
+            <div class="input-group">
+              <input type="text" value="" class="form-control" id="media.mediasync_interval"
+                placeholder="留空不启用" autocomplete="off">
+              <span class="input-group-text">小时</span>
             </div>
           </div>
-          <div class="row">
-            <div class="col-lg">
-              <div class="mb-3">
-                <label class="form-label">文件路径转移忽略词 <span class="form-help" title="文件路径包含忽略词的，忽略转移，支持正则表达式，注意特殊字符转义"
-                    data-bs-toggle="tooltip">?</span></label>
-                <input type="text" value="" class="form-control"
-                  id="media.ignored_paths" placeholder="支持正则表达式，使用;分隔" autocomplete="off">
-              </div>
-            </div>
+          <p class="lib-hint">定时同步媒体服务器数据，用于标记媒体是否已入库。留空则关闭同步。</p>
+        </div>
+        <div class="lib-footer">
+          <a id="sys_media_server_config_btn" href="javascript:save_basic_config('sys_media_server_config')"
+            class="btn btn-primary">
+            保存
+          </a>
+        </div>
+      </div>
+    </section>
+    <section class="card lib-section">
+      <div class="card-header">
+        <div>
+          <h2 class="lib-section-title">存储与整理</h2>
+          <div class="lib-section-desc">媒体文件的默认路径、转移规则、命名格式与刮削</div>
+        </div>
+        <button type="button" class="lib-collapse" onclick="lib_toggle_section('sys_media_config', this)"
+          aria-label="折叠存储与整理" aria-expanded="true">
+          <i class="ti ti-chevron-right"></i>
+        </button>
+      </div>
+      <div class="card-body" id="sys_media_config">
+        <div class="row g-4">
+          <div class="col-12 col-md-6 col-xl-3">
+            <label class="form-label" for="media.media_default_path">文件管理默认路径 <span class="form-help"
+                title="文件管理、自定义识别等默认路径" data-bs-toggle="tooltip">?</span></label>
+            <input type="text" value="" class="form-control filetree-folders-only" id="media.media_default_path"
+              placeholder="/" autocomplete="off">
           </div>
-          <div class="row">
-            <div class="col-lg">
-              <div class="mb-3">
-                <label class="form-label">文件名转移忽略词 <span class="form-help" title="文件名（包括扩展名）包含忽略词的，忽略转移，支持正则表达式，注意特殊字符转义"
-                    data-bs-toggle="tooltip">?</span></label>
-                <input type="text" value="" class="form-control"
-                  id="media.ignored_files" placeholder="支持正则表达式，使用;分隔" autocomplete="off">
-              </div>
-            </div>
-          </div>
-          <div class="row">
-            <div class="col-lg">
-              <div class="mb-3">
-                <label class="form-label required">电影重命名格式 <span class="form-help"
-                    title="程序会按定义的命名格式对电影进行重命名；/代表上下级目录，{}内为占位符，转义为&#123;&#123;&#125;&#125;；占位符会使用文件识别出来的实际值替换；占位符外的字符会当成普通字符，直接体现在名称上。<br>电影占位符：<br>{title}：标题<br>{en_title}：英文标题<br>{original_title}：原语种标题<br>{original_name}：原文件名<br>{rev_name}：识别词处理后的原文件名<br>{year}：年份<br>{edition}：版本(Bluray/WEB-DL等)<br>{videoFormat}：分辨率(1080p/4k等)<br>{videoCodec}：视频编码<br>{audioCodec}：音频编码及声道<br>{tmdbid}：TMDB的ID<br>{imdbid}：IMDB的ID<br>{part}：part1/disc1/dvd1<br>{releaseGroup}：制作组/字幕组<br>{name}：识别名称（文件名中识别出的名称，可用自定义识别词替换）<br><br>重命名使用Python的format格式化，可进行指定格式输出"
-                    data-bs-toggle="tooltip" data-bs-html="true">?</span></label>
-                <input type="text" value="" class="form-control"
-                  id="media.movie_name_format" placeholder="{title} ({year})/{title}-{part} ({year}) - {videoFormat}"
-                  autocomplete="off">
-              </div>
-            </div>
-          </div>
-          <div class="row">
-            <div class="col-lg">
-              <div class="mb-3">
-                <label class="form-label required">剧集重命名格式 <span class="form-help"
-                    title="程序会按定义的命名格式对电视剧进行重命名；/代表上下级目录，{}内为占位符，转义为&#123;&#123;&#125;&#125;；占位符会使用文件识别出来的实际值替换，占位符外的字符会当成普通字符，直接体现在名称上。<br>电视剧占位符：<br>{title}：标题<br>{en_title}：英文标题<br>{original_title}：原语种标题<br>{original_name}：原文件名<br>{rev_name}：识别词处理后的原文件名<br>{year}：年份<br>{edition}：版本(Bluray/WEB-DL等)<br>{videoFormat}：分辨率(1080p/4k等)<br>{videoCodec}：视频编码<br>{audioCodec}：音频编码及声道<br>{tmdbid}：TMDB的ID<br>{imdbid}：IMDB的ID<br>{season}：季数<br>{episode}：集数<br>{season_episode}：剧集SxxExx<br>{part}：part1/disc1/dvd1<br>{releaseGroup}：制作组/字幕组<br>{name}：识别名称（文件名中识别出的名称，可用自定义识别词替换）<br><br>重命名使用Python的format格式化，可进行指定格式输出"
-                    data-bs-toggle="tooltip" data-bs-html="true">?</span></label>
-                <input type="text" value="" class="form-control"
-                  id="media.tv_name_format"
-                  placeholder="{title} ({year})/Season {season}/{title}-{part} - {season_episode} - 第 {episode} 集"
-                  autocomplete="off">
-              </div>
-            </div>
-          </div>
-          <div class="row">
-            <div class="col-12 col-xl-3">
-              <div class="mb-3">
-                <label class="form-check form-switch">
-                  <input class="form-check-input" type="checkbox" id="media.filesize_cover">
-                  <span class="form-check-label">高质量文件覆盖 <span class="form-help"
-                      title="开启后，如下载了更高质量的同名文件时，会覆盖媒体库中已有的文件，否则不会进行转移处理" data-bs-toggle="tooltip">?</span></span>
-                </label>
-              </div>
-            </div>
-            <div class="col-12 col-xl-3">
-              <div class="mb-3">
-                <label class="form-check form-switch">
-                  <input class="form-check-input" type="checkbox" id="media.nfo_poster">
-                  <span class="form-check-label">刮削元数据及图片 <span class="form-help"
-                      title="开启后会自动生成nfo描述文件及图片，协助媒体服务器识别和刮削，在刮削设置中自定义刮削内容" data-bs-toggle="tooltip">?</span></span>
-                </label>
-              </div>
-            </div>
-          </div>
-          <hr class="mt-1 mb-3">
-          <div class="row align-items-center">
-            <div class="col"></div>
-            <div class="col-auto">
-              <a id="basic_system_btn" href="javascript:save_basic_config('sys_media_config')" class="btn btn-primary">
-                保存
+          <div class="col-12 col-md-6 col-xl-3">
+            <label class="form-label" for="media.category">文件二级分类策略 <span class="form-help"
+                title="启用二级分类后会在电影/电视剧/动漫媒体库目录下按二级分类名建立子目录；此处配置分类的策略名，保存后会自动生成默认配置；如不需要启动分类，则该项配置为空"
+                data-bs-toggle="tooltip">?</span></label>
+            <div class="input-group">
+              <input type="text" value="" class="form-control" id="media.category"
+                placeholder="留空不启用" autocomplete="off" name="category_name">
+              <a href="javascript:show_category_config_modal()" class="input-group-text link-secondary"
+                title="编辑二级分类策略" data-bs-toggle="tooltip" aria-label="编辑二级分类策略">
+                <i class="ti ti-edit"></i>
               </a>
             </div>
           </div>
+          <div class="col-12 col-md-6 col-xl-3">
+            <label class="form-label" for="media.default_rmt_mode">默认文件转移方式 <span class="lib-req"
+                title="必填">*</span><span class="form-help" title="手动识别等未指定转移方式的场景默认使用的转移方式"
+                data-bs-toggle="tooltip">?</span></label>
+            <select id="media.default_rmt_mode" class="form-select">
+            </select>
+          </div>
+          <div class="col-12 col-md-6 col-xl-3">
+            <label class="form-label" for="media.min_filesize">转移最小文件大小（MB） <span class="lib-req"
+                title="必填">*</span><span class="form-help" title="小于该大小的文件将会忽略，不进行转移重命名"
+                data-bs-toggle="tooltip">?</span></label>
+            <input type="text" value="" class="form-control" id="media.min_filesize" placeholder="200"
+              autocomplete="off">
+          </div>
+          <div class="col-12 col-xl-6">
+            <label class="form-label" for="media.ignored_paths">文件路径转移忽略词 <span class="form-help"
+                title="文件路径包含忽略词的，忽略转移，支持正则表达式，注意特殊字符转义"
+                data-bs-toggle="tooltip">?</span></label>
+            <input type="text" value="" class="form-control" id="media.ignored_paths"
+              placeholder="支持正则表达式，使用 ; 分隔" autocomplete="off">
+          </div>
+          <div class="col-12 col-xl-6">
+            <label class="form-label" for="media.ignored_files">文件名转移忽略词 <span class="form-help"
+                title="文件名（包括扩展名）包含忽略词的，忽略转移，支持正则表达式，注意特殊字符转义"
+                data-bs-toggle="tooltip">?</span></label>
+            <input type="text" value="" class="form-control" id="media.ignored_files"
+              placeholder="支持正则表达式，使用 ; 分隔" autocomplete="off">
+          </div>
+          <div class="col-12 col-xl-6 lib-field-mono">
+            <label class="form-label" for="media.movie_name_format">电影重命名格式 <span class="lib-req"
+                title="必填">*</span><span class="form-help"
+                title="程序会按定义的命名格式对电影进行重命名；/代表上下级目录，{}内为占位符，转义为&#123;&#123;&#125;&#125;；占位符会使用文件识别出来的实际值替换；占位符外的字符会当成普通字符，直接体现在名称上。<br>电影占位符：<br>{title}：标题<br>{en_title}：英文标题<br>{original_title}：原语种标题<br>{original_name}：原文件名<br>{rev_name}：识别词处理后的原文件名<br>{year}：年份<br>{edition}：版本(Bluray/WEB-DL等)<br>{videoFormat}：分辨率(1080p/4k等)<br>{videoCodec}：视频编码<br>{audioCodec}：音频编码及声道<br>{tmdbid}：TMDB的ID<br>{imdbid}：IMDB的ID<br>{part}：part1/disc1/dvd1<br>{releaseGroup}：制作组/字幕组<br>{name}：识别名称（文件名中识别出的名称，可用自定义识别词替换）<br><br>重命名使用Python的format格式化，可进行指定格式输出"
+                data-bs-toggle="tooltip" data-bs-html="true">?</span></label>
+            <input type="text" value="" class="form-control" id="media.movie_name_format"
+              placeholder="{title} ({year})/{title}-{part} ({year}) - {videoFormat}" autocomplete="off">
+          </div>
+          <div class="col-12 col-xl-6 lib-field-mono">
+            <label class="form-label" for="media.tv_name_format">剧集重命名格式 <span class="lib-req"
+                title="必填">*</span><span class="form-help"
+                title="程序会按定义的命名格式对电视剧进行重命名；/代表上下级目录，{}内为占位符，转义为&#123;&#123;&#125;&#125;；占位符会使用文件识别出来的实际值替换，占位符外的字符会当成普通字符，直接体现在名称上。<br>电视剧占位符：<br>{title}：标题<br>{en_title}：英文标题<br>{original_title}：原语种标题<br>{original_name}：原文件名<br>{rev_name}：识别词处理后的原文件名<br>{year}：年份<br>{edition}：版本(Bluray/WEB-DL等)<br>{videoFormat}：分辨率(1080p/4k等)<br>{videoCodec}：视频编码<br>{audioCodec}：音频编码及声道<br>{tmdbid}：TMDB的ID<br>{imdbid}：IMDB的ID<br>{season}：季数<br>{episode}：集数<br>{season_episode}：剧集SxxExx<br>{part}：part1/disc1/dvd1<br>{releaseGroup}：制作组/字幕组<br>{name}：识别名称（文件名中识别出的名称，可用自定义识别词替换）<br><br>重命名使用Python的format格式化，可进行指定格式输出"
+                data-bs-toggle="tooltip" data-bs-html="true">?</span></label>
+            <input type="text" value="" class="form-control" id="media.tv_name_format"
+              placeholder="{title} ({year})/Season {season}/{title}-{part} - {season_episode} - 第 {episode} 集"
+              autocomplete="off">
+          </div>
+          <div class="col-12">
+            <div class="lib-switch-row">
+              <label class="form-check form-switch">
+                <input class="form-check-input" type="checkbox" id="media.filesize_cover">
+                <span class="form-check-label">高质量文件覆盖 <span class="form-help"
+                    title="开启后，如下载了更高质量的同名文件时，会覆盖媒体库中已有的文件，否则不会进行转移处理"
+                    data-bs-toggle="tooltip">?</span></span>
+              </label>
+              <div class="lib-switch-group">
+                <label class="form-check form-switch">
+                  <input class="form-check-input" type="checkbox" id="media.nfo_poster">
+                  <span class="form-check-label">刮削元数据及图片 <span class="form-help"
+                      title="开启后会自动生成nfo描述文件及图片，协助媒体服务器识别和刮削，在刮削设置中自定义刮削内容"
+                      data-bs-toggle="tooltip">?</span></span>
+                </label>
+                <a href="javascript:void(0)" class="btn btn-outline-primary text-nowrap" data-bs-toggle="modal"
+                  data-bs-target="#modal-scraper">
+                  刮削设置
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="lib-footer">
+          <a id="sys_media_config_btn" href="javascript:save_basic_config('sys_media_config')" class="btn btn-primary">
+            保存
+          </a>
         </div>
       </div>
-    </div>
-    <div class="card" id="library-list">
+    </section>
+    <section class="card lib-section" id="library-list">
       <!-- JS 动态填充 -->
-    </div>
+    </section>
   </div>
 </div>
 
@@ -150,16 +563,12 @@
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
       <div class="modal-body">
-        <div class="row">
-          <div class="col-lg-12">
-            <div class="mb-3">
-              <label class="form-label">路径 <span class="form-help"
-                  title="Emby/Jellyfin/Plex媒体库对应文件的路径，下载文件转移、目录同步未配置目的目录时，媒体文件将重命名转移到该目录"
-                  data-bs-toggle="tooltip">?</span></label>
-              <input type="text" value="" id="path_str" class="form-control filetree-folders-only" autocomplete="off">
-              <input type="hidden" value="" id="path_type" class="form-control">
-            </div>
-          </div>
+        <div class="mb-3">
+          <label class="form-label">路径 <span class="form-help"
+              title="Emby/Jellyfin/Plex媒体库对应文件的路径，下载文件转移、目录同步未配置目的目录时，媒体文件将重命名转移到该目录"
+              data-bs-toggle="tooltip">?</span></label>
+          <input type="text" value="" id="path_str" class="form-control filetree-folders-only" autocomplete="off">
+          <input type="hidden" value="" id="path_type" class="form-control">
         </div>
       </div>
       <div class="modal-footer">
@@ -178,14 +587,14 @@
         style="border-top-left-radius:var(--tblr-modal-inner-border-radius) !important; border-top-right-radius:var(--tblr-modal-inner-border-radius) !important">
         <ul class="nav nav-fill card-header-tabs nav-tabs rounded-3" data-bs-toggle="tabs" role="tablist">
           <li class="nav-item" role="presentation">
-            <a href="#tabs-scraper-nfo" class="nav-link active" style="justify-content: center" data-bs-toggle="tab"
+            <a href="#tabs-scraper-nfo" class="nav-link active justify-content-center" data-bs-toggle="tab"
               aria-selected="true" role="tab">
               <span class="me-2"><i class="ti ti-info-square-rounded fs-2"></i></span>
               元数据
             </a>
           </li>
           <li class="nav-item" role="presentation">
-            <a href="#tabs-scraper-pic" class="nav-link" style="justify-content: center" data-bs-toggle="tab"
+            <a href="#tabs-scraper-pic" class="nav-link justify-content-center" data-bs-toggle="tab"
               aria-selected="false" role="tab" tabindex="-1">
               <span class="me-2"><i class="ti ti-photo fs-2"></i></span>
               图片
@@ -197,12 +606,8 @@
         <div class="tab-content">
           <div class="tab-pane fade active show" id="tabs-scraper-nfo" role="tabpanel">
             <div class="card-body">
-              <div class="row">
-                <div class="col">
-                  <div class="mb-3">
-                    <label class="form-label">电影 </label>
-                  </div>
-                </div>
+              <div class="mb-3">
+                <label class="form-label">电影 </label>
               </div>
               <div class="row">
                 <div class="col-12 col-lg-4">
@@ -230,12 +635,8 @@
                   </div>
                 </div>
               </div>
-              <div class="row">
-                <div class="col">
-                  <div class="mb-3">
-                    <label class="form-label">电视剧 </label>
-                  </div>
-                </div>
+              <div class="mb-3">
+                <label class="form-label">电视剧 </label>
               </div>
               <div class="row">
                 <div class="col-12 col-lg-4">
@@ -263,12 +664,8 @@
                   </div>
                 </div>
               </div>
-              <div class="row">
-                <div class="col">
-                  <div class="mb-3">
-                    <label class="form-label">电视剧-季-集 </label>
-                  </div>
-                </div>
+              <div class="mb-3">
+                <label class="form-label">电视剧-季-集 </label>
               </div>
               <div class="row">
                 <div class="col-12 col-lg-4">
@@ -300,12 +697,8 @@
           </div>
           <div class="tab-pane fade" id="tabs-scraper-pic" role="tabpanel">
             <div class="card-body">
-              <div class="row">
-                <div class="col">
-                  <div class="mb-3">
-                    <label class="form-label">电影图片 </label>
-                  </div>
-                </div>
+              <div class="mb-3">
+                <label class="form-label">电影图片 </label>
               </div>
               <div class="row">
                 <div class="col-12 col-lg-3">
@@ -367,12 +760,8 @@
                   </div>
                 </div>
               </div>
-              <div class="row">
-                <div class="col">
-                  <div class="mb-3">
-                    <label class="form-label">电视剧图片 </label>
-                  </div>
-                </div>
+              <div class="mb-3">
+                <label class="form-label">电视剧图片 </label>
               </div>
               <div class="row">
                 <div class="col-12 col-lg-3">
@@ -434,12 +823,8 @@
                   </div>
                 </div>
               </div>
-              <div class="row">
-                <div class="col">
-                  <div class="mb-3">
-                    <label class="form-label">电视剧-季图片 </label>
-                  </div>
-                </div>
+              <div class="mb-3">
+                <label class="form-label">电视剧-季图片 </label>
               </div>
               <div class="row">
                 <div class="col-12 col-lg-3">
@@ -467,12 +852,8 @@
                   </div>
                 </div>
               </div>
-              <div class="row">
-                <div class="col">
-                  <div class="mb-3">
-                    <label class="form-label">电视剧-集图片 </label>
-                  </div>
-                </div>
+              <div class="mb-3">
+                <label class="form-label">电视剧-集图片 </label>
               </div>
               <div class="row">
                 <div class="col-12 col-lg-3">
@@ -574,7 +955,7 @@
       }
       if (ret && ret.code === 0) {
         if (flag) {
-          show_success_modal("配置已保存!");
+          show_success_modal("配置已保存");
         }
       } else {
         show_fail_modal((ret && ret.msg) || "配置保存失败");
@@ -582,6 +963,149 @@
     });
   }
 
+
+  // 保存媒体服务器配置
+  function save_mediaserver_config(type) {
+    $("#modal-" + type).modal('hide');
+
+    const params = input_select_GetVal(`modal-${type}`);
+    params['test'] = false;
+    params['media.media_server'] = type;
+    axios_post("/sys/update_config", params, function (ret) {
+      window_history_refresh();
+    });
+  }
+
+  // 测试媒体服务器配置
+  function test_mediaserver_config(type) {
+    $("#" + type + "_test_btn").text("测试中...").attr("disabled", true);
+    axios_post_do("test_mediaserver", { "type": type }, function (ret) {
+      if (ret.code === 0) {
+        $("#" + type + "_test_btn").text("测试成功").attr("disabled", false);
+      } else {
+        $("#" + type + "_test_btn").text("测试失败").attr("disabled", false);
+      }
+    });
+  }
+
+  // 生成媒体服务器配置表单
+  function genFormConfigElements(type, config, fields) {
+    let $container = $("<div>");
+    let $row;
+    let index = 0;
+    $.each(fields, function (fieldId, fieldAttr) {
+      if (index % 2 === 0) {
+        $row = $("<div class='row'>");
+        $container.append($row);
+      }
+
+      let colClass = (fieldAttr.type === "switch") ? "col-12" : "col-lg";
+      let $col = $('<div class="' + colClass + '"><div class="mb-3"></div></div>');
+      let $inner = $col.find(".mb-3");
+
+      if (fieldAttr.type === "switch") {
+        let checked = (config[type] && config[type][fieldId]) ? "checked" : "";
+        $inner.append(`
+          <label class="form-check form-switch">
+            <input class="form-check-input" type="checkbox" id="${fieldAttr.id}" ${checked}>
+            <span class="form-check-label">${fieldAttr.title}</span>
+          </label>
+        `);
+      } else {
+        let requiredClass = fieldAttr.required ? "required" : "";
+        let value = (config[type] && config[type][fieldId]) ? config[type][fieldId] : "";
+        if (fieldAttr.type === "select") {
+          let $select = $('<select class="form-select" id="' + fieldAttr.id + '"></select>');
+          $.each(fieldAttr.options, function (optValue, optTitle) {
+            let selected = (value === optValue) ? "selected" : "";
+            $select.append('<option value="' + optValue + '" ' + selected + '>' + optTitle + '</option>');
+          });
+          $inner.append(`<label class="form-label ${requiredClass}">${fieldAttr.title}</label>`).append($select);
+        } else {
+          $inner.append(`
+            <label class="form-label ${requiredClass}">${fieldAttr.title}</label>
+            <input type="${fieldAttr.type}" id="${fieldAttr.id}" class="form-control" value="${value}" placeholder="${fieldAttr.placeholder || ""}">
+          `);
+        }
+      }
+
+      $row.append($col);
+
+      index++;
+    });
+    return $container.html();
+  }
+
+  // 组装媒体服务器渲染所需的配置视图
+  function buildMediaServerConfigInfo(serverConfig, mediaConfig) {
+    const configInfo = {
+      media: { media_server: (mediaConfig && mediaConfig.media_server) || "" }
+    };
+    $.each(serverConfig || {}, function (type, config) {
+      configInfo[type] = config || {};
+    });
+    return configInfo;
+  }
+
+  // 展开/折叠卡片内容，并同步箭头方向
+  function lib_toggle_section(id, btn) {
+    const $body = $("#" + id);
+    const collapsed = $body.is(":visible");
+    $body.slideToggle(160);
+    $(btn).toggleClass("is-collapsed", collapsed)
+      .attr("aria-expanded", collapsed ? "false" : "true");
+  }
+
+  // 渲染媒体服务器选择块与配置弹窗
+  function renderMediaServers(mediaServerConf, configInfo) {
+    let $list = $("#media-server-list");
+    $list.data("server_conf", mediaServerConf);
+
+    $.each(mediaServerConf, function (type, server) {
+      const values = configInfo[type] || {};
+      const requiredKeys = [];
+      $.each(server.config || {}, function (key, field) {
+        if (field.required) {
+          requiredKeys.push(key);
+        }
+      });
+      const configured = requiredKeys.length > 0 && requiredKeys.every(function (key) {
+        return !!values[key];
+      });
+      const active = configInfo.media && configInfo.media.media_server === type;
+      const stateText = active ? "正在使用" : (configured ? "已配置" : "未配置");
+
+      $list.append(`
+        <a class="lib-server ${active ? "is-active" : ""}" href="#" data-bs-toggle="modal" data-bs-target="#modal-${type}">
+          <span class="lib-server-logo"><img src="${server.img_url}" alt=""></span>
+          <span class="lib-server-body">
+            <span class="lib-server-name">${server.name}</span>
+            <span class="lib-server-state"><span class="lib-dot"></span>${stateText}</span>
+          </span>
+        </a>
+      `);
+
+      $("#page-content").append(`
+        <div class="modal modal-blur fade" id="modal-${type}" tabindex="-1">
+          <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content">
+              <div class="modal-header">
+                <h5 class="modal-title">${server.name}</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+              </div>
+              <div class="modal-body">
+                ${genFormConfigElements(type, configInfo, server.config)}
+              </div>
+              <div class="modal-footer">
+                <a href="javascript:test_mediaserver_config('${type}')" id="${type}_test_btn" class="btn me-auto">测试</a>
+                <a href="javascript:save_mediaserver_config('${type}')" id="${type}_save_btn" class="btn btn-primary">确定</a>
+              </div>
+            </div>
+          </div>
+        </div>
+      `);
+    });
+  }
 
   // 保存刮削配置
   function save_scraper_config() {
@@ -662,12 +1186,9 @@
     }
     axios_post_do("get_category_config", { "category_name": category_name }, function (ret) {
       if (ret.code === 0) {
-        ensure_category_editor(function () {
-          if (category_editor) {
-            category_editor.setValue(ret.text);
-          }
-          $("#modal-library-category").modal('show');
-        });
+        // 先显示弹窗，待编辑器创建完成后再写入内容（见 shown.bs.modal 处理）
+        $("#modal-library-category").data("category_text", ret.text || "");
+        $("#modal-library-category").modal('show');
       } else {
         show_warning_modal(ret.msg);
       }
@@ -782,11 +1303,23 @@
     });
   }
 
-  // 弹窗显示后重新测量编辑器尺寸
+  // 弹窗显示后再创建编辑器并写入内容
+  // 编辑器在隐藏状态下初始化时行高、字符宽度会被测量成接近 0，导致文字重叠
   $("#modal-library-category").on("shown.bs.modal", function () {
-    if (category_editor) {
-      category_editor.resize();
-    }
+    const text = $(this).data("category_text") || "";
+    ensure_category_editor(function () {
+      if (!category_editor) {
+        return;
+      }
+      category_editor.setValue(text, -1);
+      // 弹窗完全显示后再测量一次字体，避免按渲染初期的错误比例计算出行高
+      setTimeout(function () {
+        if (category_editor) {
+          category_editor.renderer.updateFontSize();
+          category_editor.resize(true);
+        }
+      }, 300);
+    });
   });
 
 </script>
@@ -796,57 +1329,92 @@
 
   var mediaConfig = {};
 
-  // 渲染媒体库目录（单个 card、单个 table，同分类合并单元格）
+  // 渲染媒体库目录：按分类分组的路径清单
   function renderLibraries() {
     const types = { movie: "电影", tv: "电视剧", anime: "动漫", unknown: "未识别" };
     let $list = $("#library-list");
     $list.empty();
 
-    var bodyRows = "";
-
-    $.each(types, function (type, title) {
-
-      var paths = mediaConfig[type + "_path"] || [];
-      var addBtn = `<a href="javascript:show_directory_modal('${type}')" class="btn-action me-1" title="新增目录"><i class="ti ti-plus fs-2"></i></a>`;
-      var titleCell = `${addBtn}<strong>${title}目录</strong>`;
-
-      if (paths.length > 0) {
-        $.each(paths, function (i, path) {
-          bodyRows += "<tr>";
-          if (i === 0) {
-            bodyRows += `<td class="library-cat text-start align-middle" rowspan="${paths.length}">${titleCell}</td>`;
-          }
-          bodyRows += `
-              <td class="library-path text-start align-middle">
-                <div class="d-flex align-items-center justify-content-between">
-                  <span><input type="hidden" value="${path}">${path}</span>
-                  <a href="javascript:sub_directory_config('${type}','${path}')" class="library-del ms-1" title="删除目录"><i class="ti ti-x fs-2 text-danger"></i></a>
-                </div>
-              </td>
-            </tr>`;
-        });
-      } else {
-        bodyRows += `
-            <tr>
-              <td class="library-cat text-start align-middle">${titleCell}</td>
-              <td class="library-empty text-center align-middle">未配置</td>
-            </tr>`;
+    let totalDirs = 0;
+    let configuredCats = 0;
+    $.each(types, function (type) {
+      const count = (mediaConfig[type + "_path"] || []).length;
+      totalDirs += count;
+      if (count > 0) {
+        configuredCats++;
       }
     });
 
     $list.append(`
-        <div class="table-responsive">
-          <table class="card-table library-table table text-nowrap table-hover table-bordered border-top-0 mb-0">
-            <thead class="border-top-0">
-              <tr>
-                <th class="library-cat text-start" style="width:9rem">分类</th>
-                <th class="text-start">目录</th>
-              </tr>
-            </thead>
-            <tbody>${bodyRows}</tbody>
-          </table>
+      <div class="card-header">
+        <div>
+          <h2 class="lib-section-title">媒体库目录</h2>
+          <div class="lib-section-desc">转移后的媒体文件按分类写入这些目录</div>
         </div>
+        <div class="lib-count">${configuredCats} 个分类 · ${totalDirs} 个目录</div>
+      </div>
     `);
+
+    const $body = $('<div class="card-body lib-dir-body"></div>');
+    const $grid = $('<div class="lib-dir-grid"></div>');
+
+    $.each(types, function (type, title) {
+      const paths = mediaConfig[type + "_path"] || [];
+      const $card = $('<div class="lib-dir-card"></div>');
+
+      const $add = $('<button type="button" class="lib-icon-btn" title="添加目录"><i class="ti ti-plus"></i></button>')
+        .attr({
+          "data-lib-action": "add",
+          "data-lib-type": type,
+          "aria-label": "添加" + title + "目录"
+        });
+
+      const $title = $('<div class="lib-dir-title"></div>');
+      $title.append($('<span class="lib-dir-name"></span>').text(title));
+      $title.append($('<span class="lib-dir-meta"></span>').text(paths.length + " 个目录"));
+
+      const $head = $('<div class="lib-dir-card-head"></div>');
+      $head.append($title, $add);
+      $card.append($head);
+
+      const $paths = $('<div class="lib-dir-paths"></div>');
+      if (paths.length > 0) {
+        $.each(paths, function (i, path) {
+          const $row = $('<div class="lib-dir-row"></div>');
+          const $label = $('<span class="lib-path"></span>');
+          $label.append('<i class="ti ti-folders"></i>');
+          $label.append($('<span class="lib-path-text"></span>').text(path).attr("title", path));
+
+          const $del = $('<button type="button" class="lib-icon-btn lib-icon-danger" title="删除目录"><i class="ti ti-trash"></i></button>')
+            .attr({
+              "data-lib-action": "remove",
+              "data-lib-type": type,
+              "aria-label": "删除目录 " + path
+            })
+            .data("path", path);
+
+          $row.append($label, $del);
+          $paths.append($row);
+        });
+      } else {
+        $paths.append('<div class="lib-dir-empty">尚未配置目录</div>');
+      }
+      $card.append($paths);
+      $grid.append($card);
+    });
+
+    $body.append($grid);
+    $list.append($body);
+
+    $list.off("click.libdir").on("click.libdir", "[data-lib-action]", function () {
+      const action = $(this).attr("data-lib-action");
+      const type = $(this).attr("data-lib-type");
+      if (action === "add") {
+        show_directory_modal(type);
+      } else if (action === "remove") {
+        sub_directory_config(type, $(this).data("path"));
+      }
+    });
   }
 
   // 页面初始化
@@ -880,6 +1448,12 @@
           $('#media\\.tmdb_language').val(data.MediaConfig.tmdb_language || 'zh');
           $('#media\\.filesize_cover').prop('checked', data.MediaConfig.filesize_cover || false);
           $('#media\\.nfo_poster').prop('checked', data.MediaConfig.nfo_poster || false);
+          $('#media\\.mediasync_interval').val(data.MediaConfig.mediasync_interval || '');
+        }
+
+        // 渲染媒体服务器
+        if (data.MediaServerConf) {
+          renderMediaServers(data.MediaServerConf, buildMediaServerConfigInfo(data.MediaServerConfig, data.MediaConfig));
         }
 
         // 填充转移模式选项

@@ -1663,7 +1663,6 @@
       const renameSelect = $("#rename_season");
       renameSelect.empty();
       renameSelect.append('<option value="" selected>请选择</option>');
-      renameSelect.append('<option value="0" selected>第0季(特别篇)</option>');
 
       const rssSelect = $("#rss_season");
       rssSelect.empty();
@@ -1673,8 +1672,10 @@
       advancedSelect.empty();
       advancedSelect.append('<option value="" selected>全部</option>');
 
-      for (let i = 1; i <= 50; i++) {
-        var option = `<option value="${i}">第${i}季</option>`;
+      for (let i = 0; i <= 50; i++) {
+        var option = i == 0 
+          ? '<option value="0" selected>第0季(特别篇)</option>'
+          : `<option value="${i}">第${i}季</option>`;
         advancedSelect.append(option);
         rssSelect.append(option);
         renameSelect.append(option);

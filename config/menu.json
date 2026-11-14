@@ -106,12 +106,6 @@
         "html": "/static/pages/unidentification.html"
       },
       {
-        "name": "自动删种",
-        "page": "torrent_remove",
-        "icon": "<i class=\"ti ti-stack-x fs-2 \"></i>",
-        "html": "/static/pages/torrent_remove.html"
-      },
-      {
         "name": "转移记录",
         "page": "history",
         "icon": "<i class=\"ti ti-history fs-2 \"></i>",
@@ -157,6 +151,12 @@
         "page": "brushtask",
         "icon": "<i class=\"ti ti-list-check fs-2 \"></i>",
         "html": "/static/pages/brushtask.html"
+      },
+      {
+        "name": "自动删种",
+        "page": "torrent_remove",
+        "icon": "<i class=\"ti ti-stack-x fs-2 \"></i>",
+        "html": "/static/pages/torrent_remove.html"
       }
     ]
   },

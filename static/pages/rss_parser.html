@@ -161,10 +161,14 @@
   }
 
   // 弹窗显示后重新测量编辑器尺寸
+  // 编辑器在隐藏状态下初始化时行高、字符宽度会被测量成接近 0，导致文字重叠
   $("#modal-userrss-parser").on("shown.bs.modal", function () {
-    if (json_editor) {
-      json_editor.resize();
-    }
+    setTimeout(function () {
+      if (json_editor) {
+        json_editor.renderer.updateFontSize();
+        json_editor.resize(true);
+      }
+    }, 300);
   });
 
   // 打开新增窗口
