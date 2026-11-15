@@ -25,7 +25,7 @@ class ReleaseGroupsMatcher:
         "btschool": ['Bts(?:CHOOL|HD|PAD|TV)', 'Zone'],
         "BeyondHD": ['BYNDR'],
         "carpt": ['CarPT'],
-        "colapt": ['COLAWEB'],
+        "colapt": ['COLAWEB', 'COLAPT'],
         "cspt": ['CSWEB','CSPT','HSWEB','HSPT'],
         "chdbits": ['CHD(?:|Bits|PAD|(?:|HK)TV|WEB)', 'StBOX', 'OneHD', 'Lee', 'xiaopie'],
         "dstudio": ['DS','DStudio','DepWeb','DSAudio'],
@@ -61,9 +61,9 @@ class ReleaseGroupsMatcher:
         "ubits": ['UBWEB', 'UBits'],
         "xingyungept": ['StarfallWeb'],
         "zmpt": ['ZmWeb', 'ZmAudio'],
-        "others": ['B(?:MDru|eyondHD|TN)', 'C(?:fandora|trlhd|MRG)', 'DON', 'EVO', 'FLUX', 'HONE(?:|yG)',
-                   'N(?:oGroup|T(?:b|G))', 'PandaMoon', 'SMURF', 'T(?:EPES|aengoo|rollHD )', 
-                   'Kitsune', 'SPWEB', 'SLOT', 'FLIX', 'KyoGo', 'TeamSyndicate', 'MySiLU'],
+        "others": ['B(?:MDru|eyondHD|TN)', 'C(?:fandora|trlhd|MRG)', 'DON', 'EVO', 'FLUX', 'FLIX', 'HONE(?:|yG)',
+                   'N(?:oGroup|T(?:b|G))', 'PandaMoon', 'SMURF', 'T(?:EPES|aengoo|rollHD )', 'Tasko', 'HYPERION',
+                   'Kitsune', 'SPWEB', 'SLOT', 'TMT', 'KyoGo', 'TeamSyndicate', 'MySiLU', 'FraMeSToR', 'ZoroSenpai'],
         "anime": ['ANi', 'HYSUB', 'KTXP', 'LoliHouse', 'MCE', 'Nekomoe kissaten', r'(\d|\w|[\u4e00-\u9fa5])+-Raws',
                   '织梦字幕组', '豌豆字幕组&风之圣殿字幕组', '豌豆&风之圣殿字幕组', '风之圣殿字幕组', '豌豆字幕组', '今晚月色真美']
     }

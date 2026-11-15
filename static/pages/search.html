@@ -327,7 +327,7 @@
             <input type="hidden" id="description_${torrent.id}" value="${torrent.description}">
             <input type="hidden" id="site_${torrent.id}" value="${torrent.site}">
             <div class="row g-2 align-items-center">
-              <div class="col">
+              <div class="col mt-1">
                 <span class="search-progress-line">${progressTag}<a href='javascript:download_search_resource("${torrent.id}")'>${torrent.torrent_name}</a></span>
           `;
         if (torrent.pubdate) {
@@ -477,7 +477,7 @@
           <div class="accordion-item" id="search_results_accordion_item_${group_key}_${item.key}_${seKey}">
             <h2 class="accordion-header">
               <button
-                              class="accordion-button p-2 ${loopIndex != 0 ? 'collapsed' : ''}"
+                              class="accordion-button p-2 pb-1 ${loopIndex != 0 ? 'collapsed' : ''}"
                               type="button"
                               data-bs-toggle="collapse"
                               data-bs-target="#search_results_group_${group_key}_${item.key}_${seKey}"
@@ -496,7 +496,7 @@
                  class="accordion-collapse collapse ${loopIndex == 0 ? 'show' : ''}"
                  data-bs-parent="#search_results_accordion_${item.key}">
               <div class="accordion-body p-1">
-                <div class="card-list-group mt-1">
+                <div class="card-list-group">
                   <!-- 种子列表 -->
                   ${drawTorrentList(item, seKey, group_key, group)}
                 </div>
