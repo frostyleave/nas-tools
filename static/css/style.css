@@ -1632,8 +1632,8 @@ a:hover {
     width: 100%;
     bottom: 0;
     overflow: hidden;
-    margin-left: 2px;
-    margin-right: 2px;
+    margin-left: 1px;
+    margin-right: 1px;
 }
 
 /* 强制进度条动画，无视 prefers-reduced-motion */

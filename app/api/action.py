@@ -2424,7 +2424,16 @@ class WebAction:
             if wtype in ["3", "4"]:
                 if not re.findall(r'EP', offset):
                     return {"code": 1, "msg": "偏移集数格式有误"}
-                if re.findall(r'(?!-|\+|\*|/|[0-9]).', re.sub(r'EP', "", offset)):
+                # 仅允许数字、EP 及 + - * / % ( ) 和空白，防止 eval 注入
+                if re.findall(r'[^0-9+\-*/%()\s]', re.sub(r'EP', "", offset)):
+                    return {"code": 1, "msg": "偏移集数格式有误"}
+                # 禁止幂运算，避免超大指数导致 eval 卡死
+                if "**" in offset:
+                    return {"code": 1, "msg": "偏移集数格式有误"}
+                # 试算校验，确保表达式能正常运算
+                try:
+                    int(eval(offset.replace("EP", "1")))
+                except Exception:
                     return {"code": 1, "msg": "偏移集数格式有误"}
             if wid:
                 _wordshelper.delete_custom_word(wid=wid)
