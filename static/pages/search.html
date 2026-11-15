@@ -328,7 +328,7 @@
             <input type="hidden" id="site_${torrent.id}" value="${torrent.site}">
             <div class="row g-2 align-items-center">
               <div class="col mt-1">
-                <span class="search-progress-line">${progressTag}<a href='javascript:download_search_resource("${torrent.id}")'>${torrent.torrent_name}</a></span>
+                ${progressTag}<a href='javascript:download_search_resource("${torrent.id}")'>${torrent.torrent_name}</a>
           `;
         if (torrent.pubdate) {
           html += `<span class="text-muted">[${torrent.pubdate}]</span>`;
