@@ -1000,7 +1000,7 @@ body.theme-dark::after {
 
 /* TMDB 缓存页：卡片网格 */
 .tmdbcache-grid {
-    grid-template-columns: repeat(auto-fill, minmax(min(320px, 100%), 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(min(400px, 100%), 1fr));
 }
 
 .tmdbcache-card .card-body {

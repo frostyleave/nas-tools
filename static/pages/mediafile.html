@@ -498,8 +498,10 @@
 
       if (response.code === 0 && response.data) {
         const data = response.data;
+        const params = getPageParams();
 
-        var rootPath = data.Dir || '/';
+        // 优先使用其它页面带过来的目录参数（如转移记录、手动识别）
+        var rootPath = params.dir ? String(params.dir).replace(/\\/g, '/') : (data.Dir || '/');
 
         // 更新目录路径
         $('#mediafile_path').val(rootPath);

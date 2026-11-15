@@ -141,6 +141,16 @@
     history_page = parseInt(page) || 1;
     const pageNum = 20;
 
+    // HTML 属性转义，避免路径中的引号破坏结构
+    function escapeAttr(value) {
+      return String(value === undefined || value === null ? '' : value)
+        .replace(/&/g, '&amp;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;');
+    }
+
     // 设置搜索框的值
     $('#search_word').val(history_search);
 
@@ -165,6 +175,10 @@
         const paginationContainer = $('#pagination-container');
 
         tableBody.empty();
+        // 目录链接：参数走 navmenu 的对象形式，不拼进地址栏
+        tableBody.off('click.mediafile-dir').on('click.mediafile-dir', '.mediafile-dir-link', function () {
+          navmenu('mediafile', {dir: $(this).attr('data-dir')});
+        });
         // 局部刷新时先移除上一次插入的复选框列，避免重复
         tableHeader.find('th.table-checkbox-col').remove();
 
@@ -245,14 +259,14 @@
                 </td>
                 <td>
                   <div class="text-wrap">
-                    <a href='javascript:navmenu("mediafile?dir=${sourcePathEncoded}")'>
+                    <a href="javascript:void(0)" class="mediafile-dir-link" data-dir="${escapeAttr(sourcePathEncoded)}">
                       ${history.SOURCE_FILENAME || ''}
                     </a>
                   </div>
                   <div class="text-wrap">
                     ${history.DEST_PATH || history.DEST_FILENAME ? '<span class="text-muted">=> </span>' : ''}
                     ${history.DEST_PATH ?
-                      `<a class="text-green" href='javascript:navmenu("mediafile?dir=${destPathEncoded}")'>
+                      `<a class="text-green mediafile-dir-link" href="javascript:void(0)" data-dir="${escapeAttr(destPathEncoded)}">
                         ${history.DEST_FILENAME || ''}
                       </a>` :
                       (history.DEST_FILENAME || '')
