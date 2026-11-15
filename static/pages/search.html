@@ -308,6 +308,12 @@
     var html = '';
     $.each(groupItem.group_torrents, function (uniqKey, uniq) {
       uniq.torrent_list.forEach(torrent => {
+        var progressTag = '';
+        if (torrent.progress) {
+          var progressValue = parseFloat(torrent.progress);
+          var progressComplete = !isNaN(progressValue) && progressValue >= 100;
+          progressTag = `<span class="poster-card-fav-ribbon search-progress-tag${progressComplete ? '' : ' search-progress-tag--down'}" title="进度 ${torrent.progress}"><i class="ti ti-${progressComplete ? 'check' : 'arrow-down'}"></i></span>`;
+        }
         html += `
           <div class="list-group-item p-1 search_results_torrent"
               data-site="${torrent.site}"
@@ -322,7 +328,7 @@
             <input type="hidden" id="site_${torrent.id}" value="${torrent.site}">
             <div class="row g-2 align-items-center">
               <div class="col">
-                <a href='javascript:download_search_resource("${torrent.id}")'>${torrent.torrent_name}</a>
+                <span class="search-progress-line">${progressTag}<a href='javascript:download_search_resource("${torrent.id}")'>${torrent.torrent_name}</a></span>
           `;
         if (torrent.pubdate) {
           html += `<span class="text-muted">[${torrent.pubdate}]</span>`;

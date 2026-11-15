@@ -500,6 +500,31 @@ class TorrentSpider:
         else:
             return '0'
         
+    def _getprogress(self, torrent) -> str:
+        # torrent progress
+        if "progress" not in self.fields_conf:
+            return ''
+
+        selector = self.fields_conf.get("progress")
+        if not isinstance(selector, dict):
+            return ''
+
+        progress = torrent(selector.get("selector", "")).clone()
+        self.__remove(progress, selector)
+        items = self.__attribute_or_text(progress, selector)
+        item = self.__index(items, selector)
+        item = self.__filter_text(item, selector.get("filters"))
+        if not item:
+            return ''
+
+        # 统一提取百分比，兼容“100%”“seeding 100%”“100.00”等格式
+        match = re.search(r"(\d+(?:\.\d+)?)", str(item))
+        if not match:
+            return ''
+
+        value = float(match.group(1))
+        return f"{value:g}%"
+
     def _getpubdate(self, torrent) -> str:
         # torrent pubdate
         if "date_added" not in self.fields_conf:
@@ -623,6 +648,7 @@ class TorrentSpider:
             torrents_info["pubdate"] = self._getpubdate(torrent_html)
             torrents_info["date_elapsed"] = self._getelapsed_date(torrent_html)
             torrents_info["labels"] = self._getlabels(torrent_html)
+            torrents_info["progress"] = self._getprogress(torrent_html)
             torrents_info["hr"] = self._checkhr(torrent_html)
         except Exception as err:
             log.exception(f"【Spider】{self.indexername} 搜索出现错误：")

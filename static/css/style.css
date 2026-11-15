@@ -531,6 +531,23 @@ body.theme-dark::after {
     line-height: 1;
 }
 
+.search-progress-line {
+    display: inline-flex;
+    align-items: flex-start;
+    gap: 2px;
+    max-width: 100%;
+}
+
+.poster-card-fav-ribbon.search-progress-tag {
+    flex: none;
+    margin-top: 2px;
+}
+
+.poster-card-fav-ribbon.search-progress-tag--down {
+    border-color: dodgerblue;
+    background-color: dodgerblue;
+}
+
 .lit-poster-card:hover .poster-card-year,
 .lit-poster-card:focus-within .poster-card-year,
 .lit-poster-card:hover .poster-card-r18-badge,

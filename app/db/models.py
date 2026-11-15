@@ -380,6 +380,7 @@ class SEARCHRESULTINFO(Base):
     SIZE = Column(Integer)
     SEEDERS = Column(Integer)
     PEERS = Column(Integer)
+    PROGRESS = Column(Text)
     SITE = Column(Text)
     SITE_ORDER = Column(Text)
     PAGEURL = Column(Text)

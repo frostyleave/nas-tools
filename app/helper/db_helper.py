@@ -57,6 +57,7 @@ class DbHelper:
                     SIZE=StringUtils.str_filesize(int(media_item.size)),
                     SEEDERS=media_item.seeders,
                     PEERS=media_item.peers,
+                    PROGRESS=media_item.progress,
                     SITE=media_item.site,
                     SITE_ORDER=media_item.site_order,
                     PAGEURL=media_item.page_url,

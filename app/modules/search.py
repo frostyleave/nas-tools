@@ -375,6 +375,7 @@ class SearchProxy:
             torrent_item = {
                 "id": item.ID,
                 "seeders": item.SEEDERS,
+                "progress": item.PROGRESS or '',
                 "enclosure": item.ENCLOSURE,
                 "site": item.SITE,
                 "torrent_name": item.TORRENT_NAME,

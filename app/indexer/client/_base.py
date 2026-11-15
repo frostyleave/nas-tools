@@ -124,6 +124,8 @@ class _IIndexClient(metaclass=ABCMeta):
 
             imdbid = item.get("imdbid")
             labels = item.get("labels") if item.get("labels") else ''
+            # 种子进度
+            progress = item.get("progress") if item.get("progress") else ''
             # 描述
             description = item.get('description') if item.get('description') else ''
             # 识别种子名称
@@ -234,6 +236,7 @@ class _IIndexClient(metaclass=ABCMeta):
                                         size=size,
                                         seeders=seeders,
                                         peers=peers,
+                                        progress=progress,
                                         description=description,
                                         page_url=page_url,
                                         upload_volume_factor=uploadvolumefactor,

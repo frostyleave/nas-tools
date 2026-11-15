@@ -122,6 +122,8 @@ class MetaBase:
     seeders = 0
     # 下载者
     peers = 0
+    # 下载进度
+    progress = ''
     # 种子描述
     description = None
     # 详情页面
@@ -571,6 +573,7 @@ class MetaBase:
                          size=0,
                          seeders=0,
                          peers=0,
+                         progress=None,
                          description=None,
                          page_url=None,
                          upload_volume_factor=None,
@@ -597,6 +600,8 @@ class MetaBase:
             self.seeders = seeders
         if peers:
             self.peers = peers
+        if progress:
+            self.progress = progress
         if description:
             self.description = description
         if page_url:
@@ -922,6 +927,7 @@ class MetaBase:
             "size": self.size,
             "seeders": self.seeders,
             "peers": self.peers,
+            "progress": self.progress,
             "page_url": self.page_url,
             "upload_volume_factor": self.upload_volume_factor,
             "download_volume_factor": self.download_volume_factor,
