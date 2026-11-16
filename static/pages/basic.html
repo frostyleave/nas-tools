@@ -2,9 +2,10 @@
 <div class="card components-div" id="sys_config">
   <div class="card-header">
     <h4 class="card-title"><strong>基础设置</strong></h4>
-    <a href="javascript:slideToggle('basic_system')" class="btn-action ms-1 card-actions" title="展开/折叠">
-      <i class="ti ti-menu-2 fs-2"></i>
-    </a>
+    <button type="button" class="card-collapse ms-auto" onclick="toggle_card_section('basic_system', this)"
+      data-section-label="基础设置" aria-label="折叠基础设置" aria-expanded="true">
+      <i class="ti ti-chevron-right"></i>
+    </button>
   </div>
   <div class="card-body border-bottom" id="basic_system">
     <div class="row">
@@ -153,9 +154,10 @@
   </div>
   <div class="card-header">
     <h4 class="card-title"><strong>服务配置</strong></h4>
-    <a href="javascript:slideToggle('basic_service')" class="btn-action ms-1 card-actions" title="展开/折叠">
-      <i class="ti ti-menu-2 fs-2"></i>
-    </a>
+    <button type="button" class="card-collapse is-collapsed ms-auto" onclick="toggle_card_section('basic_service', this)"
+      data-section-label="服务配置" aria-label="展开服务配置" aria-expanded="false">
+      <i class="ti ti-chevron-right"></i>
+    </button>
   </div>
   <div class="card-body border-bottom" id="basic_service" style="display: none;">
     <div class="row">
@@ -216,9 +218,10 @@
   </div>
   <div class="card-header">
     <h4 class="card-title"><strong>安全配置</strong></h4>
-    <a href="javascript:slideToggle('security')" class="btn-action ms-1 card-actions" title="展开/折叠">
-      <i class="ti ti-menu-2 fs-2"></i>
-    </a>
+    <button type="button" class="card-collapse is-collapsed ms-auto" onclick="toggle_card_section('security', this)"
+      data-section-label="安全配置" aria-label="展开安全配置" aria-expanded="false">
+      <i class="ti ti-chevron-right"></i>
+    </button>
   </div>
   <div class="card-body border-bottom" id="security" style="display: none;">
     <div class="row align-items-center mb-3">
@@ -279,9 +282,10 @@
   </div>
   <div class="card-header">
     <h4 class="card-title"><strong>实验室</strong></h4>
-    <a href="javascript:slideToggle('laboratory')" class="btn-action ms-1 card-actions" title="展开/折叠">
-      <i class="ti ti-menu-2 fs-2"></i>
-    </a>
+    <button type="button" class="card-collapse is-collapsed ms-auto" onclick="toggle_card_section('laboratory', this)"
+      data-section-label="实验室" aria-label="展开实验室" aria-expanded="false">
+      <i class="ti ti-chevron-right"></i>
+    </button>
   </div>
   <div class="card-body border-bottom" id="laboratory" style="display: none;">
     <div class="row">

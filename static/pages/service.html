@@ -1,14 +1,427 @@
 <style>
-  /* 定时任务列表：弱化分割线，悬浮时给出轻微反馈 */
-  #modal-job-list .list-group-item {
-      border-color: var(--tblr-border-color-translucent);
-      transition: background-color .15s ease;
+  #page-content {
+      --svc-line: color-mix(in srgb, var(--tblr-body-color) 9%, transparent);
+      --svc-line-strong: color-mix(in srgb, var(--tblr-body-color) 15%, transparent);
+      --svc-text-2: color-mix(in srgb, var(--tblr-body-color) 64%, transparent);
+      --svc-text-3: color-mix(in srgb, var(--tblr-body-color) 44%, transparent);
+      --svc-hover: color-mix(in srgb, var(--tblr-body-color) 3.5%, transparent);
+      --svc-accent: var(--tblr-primary);
+      --svc-mono: var(--tblr-font-monospace);
   }
 
-  #modal-job-list .list-group-item:hover {
-      background-color: var(--tblr-bg-surface-secondary);
+  .svc-summary {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 4px;
+      color: var(--svc-text-2);
+      font-size: 13px;
+      line-height: 1.4;
+      font-variant-numeric: tabular-nums;
   }
 
+  .svc-summary[hidden],
+  .job-rail[hidden] { display: none; }
+
+  .svc-summary-sep { color: var(--svc-text-3); }
+  .svc-summary-name { color: var(--svc-text-3); }
+
+  .svc-summary-time {
+      color: var(--tblr-body-color);
+      font-family: var(--svc-mono);
+      font-size: 12px;
+  }
+
+  .svc-group { margin-top: 32px; }
+  .svc-group:first-child { margin-top: 24px; }
+
+  .svc-group-title {
+      margin: 0 0 8px;
+      padding-left: 20px;
+      color: var(--svc-text-3);
+      font-size: 12px;
+      font-weight: 400;
+      line-height: 1.4;
+  }
+
+  .svc-panel {
+      overflow: hidden;
+      background-color: var(--tblr-bg-surface);
+      border: 1px solid var(--svc-line);
+      border-radius: 12px;
+  }
+
+  .svc-row {
+      display: grid;
+      grid-template-columns: 32px minmax(0, 1fr) 116px 104px 16px;
+      align-items: center;
+      column-gap: 16px;
+      min-height: 60px;
+      padding: 8px 20px;
+      border-top: 1px solid var(--svc-line);
+      color: inherit;
+      text-decoration: none;
+      transition: background-color 140ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  .svc-row:first-child { border-top: 0; }
+
+  .svc-row:hover {
+      background-color: color-mix(in srgb, var(--svc-color, var(--tblr-body-color)) 4.5%, transparent);
+  }
+
+  .svc-row:focus-visible {
+      outline: 2px solid var(--svc-accent);
+      outline-offset: -2px;
+  }
+
+  .svc-icon {
+      display: flex;
+      width: 32px;
+      height: 32px;
+      align-items: center;
+      justify-content: center;
+      color: color-mix(in srgb, var(--svc-color, var(--tblr-body-color)) 78%, var(--tblr-body-color));
+      font-size: 18px;
+      line-height: 1;
+      background-color: color-mix(in srgb, var(--svc-color, var(--tblr-body-color)) 11%, var(--tblr-bg-surface));
+      border: 1px solid color-mix(in srgb, var(--svc-color, var(--tblr-body-color)) 22%, transparent);
+      border-radius: 8px;
+  }
+
+  .svc-icon svg { width: 18px; height: 18px; }
+
+  .svc-copy {
+      display: flex;
+      min-width: 0;
+      flex-direction: column;
+      gap: 2px;
+  }
+
+  .svc-name {
+      color: var(--tblr-body-color);
+      font-size: 14px;
+      font-weight: 500;
+      line-height: 1.35;
+  }
+
+  .svc-desc {
+      overflow: hidden;
+      color: var(--svc-text-3);
+      font-size: 12px;
+      line-height: 1.4;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+  }
+
+  .svc-cadence {
+      color: var(--svc-text-2);
+      font-size: 13px;
+      font-variant-numeric: tabular-nums;
+      text-align: right;
+      white-space: nowrap;
+  }
+
+  .svc-state {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--svc-text-3);
+      font-size: 12px;
+      white-space: nowrap;
+  }
+
+  .svc-state.is-running { color: var(--svc-accent); }
+
+  .svc-go {
+      justify-self: end;
+      color: var(--svc-text-3);
+      font-size: 16px;
+  }
+
+  .svc-led,
+  .job-led {
+      flex: 0 0 auto;
+      width: 6px;
+      height: 6px;
+      border-radius: 2px;
+      background-color: color-mix(in srgb, var(--tblr-body-color) 28%, transparent);
+  }
+
+  .svc-led.is-service {
+      background-color: color-mix(in srgb, var(--svc-color, var(--tblr-body-color)) 82%, var(--tblr-body-color));
+  }
+
+  .svc-led.is-on,
+  .job-led.is-on {
+      background-color: var(--svc-accent);
+      animation: svc-led-breathe 2.6s ease-in-out infinite;
+  }
+
+  .svc-led.is-off,
+  .job-led.is-off {
+      background-color: transparent;
+      box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--tblr-body-color) 30%, transparent);
+  }
+
+  @keyframes svc-led-breathe {
+      0%, 100% { opacity: 1; }
+      50% { opacity: .38; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+      .svc-led.is-on,
+      .job-led.is-on { animation: none; }
+  }
+
+  .svc-empty {
+      padding: 48px 20px;
+      text-align: center;
+  }
+
+  .svc-empty-icon {
+      color: var(--svc-text-3);
+      font-size: 24px;
+  }
+
+  .svc-empty-title {
+      margin-top: 12px;
+      color: var(--tblr-body-color);
+      font-size: 14px;
+      font-weight: 500;
+  }
+
+  .svc-empty-desc {
+      margin-top: 4px;
+      color: var(--svc-text-3);
+      font-size: 13px;
+  }
+
+  #modal-job-list .modal-content { border-radius: 14px; }
+
+  #modal-job-list .modal-header {
+      align-items: flex-start;
+      padding: 20px 24px 16px;
+  }
+
+  #modal-job-list .modal-title {
+      font-size: 16px;
+      font-weight: 500;
+      line-height: 1.4;
+  }
+
+  .job-sub {
+      margin-top: 2px;
+      color: var(--svc-text-3);
+      font-size: 12px;
+      font-variant-numeric: tabular-nums;
+  }
+
+  .job-rail {
+      padding: 12px 24px 8px;
+      border-bottom: 1px solid var(--svc-line);
+  }
+
+  .job-rail-head {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      color: var(--svc-text-3);
+      font-size: 12px;
+  }
+
+  .job-rail-now {
+      font-family: var(--svc-mono);
+      font-size: 11px;
+      font-variant-numeric: tabular-nums;
+  }
+
+  .job-rail-track {
+      position: relative;
+      height: 40px;
+      margin-top: 6px;
+  }
+
+  .job-rail-base {
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 16px;
+      height: 1px;
+      background-color: var(--svc-line-strong);
+  }
+
+  .job-rail-tick {
+      position: absolute;
+      bottom: 16px;
+      width: 1px;
+      height: 5px;
+      background-color: var(--svc-line);
+  }
+
+  .job-rail-tick-label {
+      position: absolute;
+      bottom: 0;
+      color: var(--svc-text-3);
+      font-family: var(--svc-mono);
+      font-size: 10px;
+      line-height: 1;
+      font-variant-numeric: tabular-nums;
+      white-space: nowrap;
+      transform: translateX(-50%);
+  }
+
+  .job-rail-tick-label.is-start { transform: none; }
+  .job-rail-tick-label.is-end { transform: translateX(-100%); }
+
+  .job-rail-mark {
+      position: absolute;
+      bottom: 16px;
+      width: 2px;
+      height: 12px;
+      border-radius: 1px;
+      background-color: color-mix(in srgb, var(--tblr-body-color) 34%, transparent);
+      transform: translateX(-1px);
+  }
+
+  .job-rail-mark.is-next {
+      height: 18px;
+      background-color: var(--svc-accent);
+  }
+
+  .job-head,
+  .job-row {
+      display: grid;
+      grid-template-columns: 8px minmax(0, 1fr) 128px 92px 64px;
+      align-items: center;
+      column-gap: 12px;
+      padding: 0 24px;
+  }
+
+  .job-head {
+      position: sticky;
+      top: 0;
+      z-index: 1;
+      height: 32px;
+      border-bottom: 1px solid var(--svc-line);
+      background-color: var(--tblr-bg-surface);
+      color: var(--svc-text-3);
+      font-size: 11px;
+  }
+
+  .job-head .is-right { text-align: right; }
+
+  .job-row {
+      min-height: 52px;
+      padding-top: 8px;
+      padding-bottom: 8px;
+      border-top: 1px solid var(--svc-line);
+  }
+
+  .job-row:first-child { border-top: 0; }
+  .job-row:hover { background-color: var(--svc-hover); }
+
+  .job-name {
+      display: flex;
+      min-width: 0;
+      align-items: center;
+      gap: 8px;
+      color: var(--tblr-body-color);
+      font-size: 14px;
+      line-height: 1.35;
+  }
+
+  .job-name-text {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+  }
+
+  .job-tag {
+      flex: 0 0 auto;
+      padding: 1px 6px;
+      border: 1px solid var(--svc-line-strong);
+      border-radius: 4px;
+      color: var(--svc-text-3);
+      font-size: 10px;
+      line-height: 1.4;
+  }
+
+  .job-cadence {
+      overflow: hidden;
+      color: var(--svc-text-3);
+      font-size: 12px;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+  }
+
+  .job-next {
+      color: var(--svc-text-2);
+      font-family: var(--svc-mono);
+      font-size: 12px;
+      font-variant-numeric: tabular-nums;
+      text-align: right;
+      white-space: nowrap;
+  }
+
+  .job-status {
+      color: var(--svc-text-3);
+      font-size: 12px;
+      text-align: right;
+      white-space: nowrap;
+  }
+
+  .job-status.is-running { color: var(--svc-accent); }
+  .job-status.is-queued { color: var(--svc-text-2); }
+
+  .job-empty {
+      padding: 40px 24px;
+      color: var(--svc-text-3);
+      font-size: 13px;
+      text-align: center;
+  }
+
+  @media (max-width: 767.98px) {
+      .svc-row {
+          grid-template-columns: 32px minmax(0, 1fr) auto;
+          column-gap: 12px;
+          padding: 10px 16px;
+      }
+
+      .svc-cadence,
+      .svc-go { display: none; }
+
+      .svc-group-title { padding-left: 16px; }
+  }
+
+  @media (max-width: 639.98px) {
+      #modal-job-list .modal-header { padding: 16px 20px 12px; }
+
+      .job-rail { padding: 12px 20px 8px; }
+
+      .job-head { display: none; }
+
+      .job-row {
+          grid-template-columns: 8px minmax(0, 1fr) auto;
+          grid-template-areas:
+              "led name status"
+              ". cadence next";
+          row-gap: 2px;
+          padding: 10px 20px;
+      }
+
+      .job-led {
+          grid-area: led;
+          align-self: start;
+          margin-top: 6px;
+      }
+
+      .job-name { grid-area: name; }
+      .job-cadence { grid-area: cadence; font-size: 11px; }
+      .job-next { grid-area: next; font-size: 11px; }
+      .job-status { grid-area: status; }
+  }
 </style>
 <div class="container-xl">
   <!-- Page title -->
@@ -16,6 +429,7 @@
     <div class="row align-items-center">
       <div class="col">
         <h2 class="page-title">系统服务</h2>
+        <div class="svc-summary" id="svc-summary" hidden></div>
       </div>
     </div>
   </div>
@@ -23,19 +437,15 @@
 <!-- 业务页面代码 -->
 <div class="page-body" id="services-container" style="display: none;">
   <div class="container-xl">
-    <div class="d-grid gap-3 grid-normal-card" id="services-list">
-    </div>
+    <div id="services-list"></div>
   </div>
 </div>
 <div class="page-body" id="no-services" style="display: none;">
-  <div class="container-xl d-flex flex-column justify-content-center">
-    <div class="empty">
-      <div class="empty-img"><img src="./static/img/sign_in.svg" height="128" alt="">
-      </div>
-      <p class="empty-title">没有服务</p>
-      <p class="empty-subtitle text-muted">
-        没有开启任何后台服务。
-      </p>
+  <div class="container-xl">
+    <div class="svc-panel svc-empty">
+      <i class="ti ti-server-2 svc-empty-icon"></i>
+      <div class="svc-empty-title">没有可用的服务</div>
+      <div class="svc-empty-desc">当前账号没有开启任何后台服务</div>
     </div>
   </div>
 </div>
@@ -252,14 +662,28 @@
   <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable" role="document">
     <div class="modal-content">
       <div class="modal-header">
-        <div class="d-flex align-items-center flex-wrap gap-2">
+        <div>
           <h5 class="modal-title">定时任务</h5>
-          <span class="text-muted small" id="job-list-summary">加载中...</span>
+          <div class="job-sub" id="job-list-summary">加载中...</div>
         </div>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="关闭"></button>
       </div>
       <div class="modal-body p-0">
-        <div class="list-group list-group-flush" id="job-list-body"></div>
+        <div class="job-rail" id="job-rail" hidden>
+          <div class="job-rail-head">
+            <span>接下来 24 小时</span>
+            <span class="job-rail-now" id="job-rail-now"></span>
+          </div>
+          <div class="job-rail-track" id="job-rail-track"></div>
+        </div>
+        <div class="job-head">
+          <span></span>
+          <span>任务</span>
+          <span>执行频率</span>
+          <span class="is-right">下次执行</span>
+          <span class="is-right">状态</span>
+        </div>
+        <div class="job-list" id="job-list-body"></div>
       </div>
     </div>
   </div>
@@ -388,7 +812,7 @@
       $(this).attr("disabled", false).text("恢复配置");
       $("#modal-backup").modal('hide');
       if (ret.code === 0) {
-        show_success_modal("备份恢复成功，请重启系统生效！");
+        show_success_modal("备份恢复成功，请重启系统生效");
       } else {
         show_fail_modal(`备份恢复失败：${ret.msg}`, function() {
           $("#modal-backup").modal('show');
@@ -535,30 +959,107 @@
     })[ch]);
   }
 
-  var JOB_ICON_CLOCK = `<svg xmlns="http://www.w3.org/2000/svg" class="icon" width="20" height="20"
-    viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none"
-    stroke-linecap="round" stroke-linejoin="round">
-    <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
-    <circle cx="12" cy="12" r="9"/>
-    <path d="M12 7v5l3 3"/>
-  </svg>`;
+  // 时间解析与展示：当天只显示时分，跨天补上「明天 / 月-日」
+  function parse_job_date(value) {
+    if (!value) {
+      return null;
+    }
+    const date = new Date(String(value).replace(" ", "T"));
+    return isNaN(date.getTime()) ? null : date;
+  }
 
-  var JOB_ICON_PLUGIN = `<svg xmlns="http://www.w3.org/2000/svg" class="icon" width="20" height="20"
-    viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none"
-    stroke-linecap="round" stroke-linejoin="round">
-    <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
-    <path transform="translate(2 0)" d="M4 7h3a1 1 0 0 0 1 -1v-1a2 2 0 0 1 4 0v1a1 1 0 0 0 1 1h3a1 1 0 0 1 1 1v3a1 1 0 0 0 1 1h1a2 2 0 0 1 0 4h-1a1 1 0 0 0 -1 1v3a1 1 0 0 1 -1 1h-3a1 1 0 0 1 -1 -1v-1a2 2 0 0 0 -4 0v1a1 1 0 0 1 -1 1h-3a1 1 0 0 1 -1 -1v-3a1 1 0 0 0 -1 -1h-1a2 2 0 0 1 0 -4h1a1 1 0 0 0 1 -1v-3a1 1 0 0 1 1 -1"/>
-  </svg>`;
+  function pad_job_num(value) {
+    return String(value).padStart(2, "0");
+  }
+
+  function format_job_clock(date) {
+    return `${pad_job_num(date.getHours())}:${pad_job_num(date.getMinutes())}`;
+  }
+
+  function format_job_time(value) {
+    const date = parse_job_date(value);
+    if (!date) {
+      return "—";
+    }
+    const now = new Date();
+    const tomorrow = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+    const clock = format_job_clock(date);
+    if (date.toDateString() === now.toDateString()) {
+      return clock;
+    }
+    if (date.toDateString() === tomorrow.toDateString()) {
+      return `明天 ${clock}`;
+    }
+    return `${pad_job_num(date.getMonth() + 1)}-${pad_job_num(date.getDate())} ${clock}`;
+  }
+
+  // 统一间隔描述里的空格（「每30分钟」→「每 30 分钟」）
+  function format_job_frequency(value) {
+    return String(value ?? "")
+      .replace(/^每(?=\d)/, "每 ")
+      .replace(/(\d)(分钟|小时|秒|天)/g, "$1 $2");
+  }
 
   // 任务状态：执行中 / 排队中 / 待执行
   function get_job_status(info) {
     if (info.running) {
-      return {key: "running", cls: "bg-blue-lt", text: "执行中", dot: true};
+      return {key: "running", led: "is-on", cls: "is-running", text: "执行中"};
     }
     if (info.pending) {
-      return {key: "queued", cls: "bg-orange-lt", text: "排队中", dot: false};
+      return {key: "queued", led: "", cls: "is-queued", text: "排队中"};
     }
-    return {key: "scheduled", cls: "bg-green-lt", text: "待执行", dot: false};
+    if (!info.next_run_time) {
+      return {key: "paused", led: "is-off", cls: "", text: "已暂停"};
+    }
+    return {key: "scheduled", led: "", cls: "", text: "待执行"};
+  }
+
+  // 接下来 24 小时的排程轨道，每个任务只标出它的下一次执行点
+  function draw_job_rail(jobs) {
+    const rail = $("#job-rail");
+    const now = new Date();
+    const window_ms = 24 * 60 * 60 * 1000;
+    const marks = [];
+
+    jobs.forEach(info => {
+      const date = parse_job_date(info.next_run_time);
+      if (!date) {
+        return;
+      }
+      const offset = date.getTime() - now.getTime();
+      if (offset < -60000 || offset > window_ms) {
+        return;
+      }
+      marks.push({offset: offset, name: info.name, time: format_job_time(info.next_run_time)});
+    });
+
+    if (!marks.length) {
+      rail.attr("hidden", true);
+      return;
+    }
+
+    marks.sort((a, b) => a.offset - b.offset);
+    $("#job-rail-now").text(`现在 ${format_job_clock(now)}`);
+
+    let content = '<div class="job-rail-base"></div>';
+    for (let step = 0; step <= 4; step++) {
+      const ratio = step / 4;
+      const tickTime = new Date(now.getTime() + ratio * window_ms);
+      const position = (ratio * 100).toFixed(3);
+      const labelClass = step === 0 ? " is-start" : (step === 4 ? " is-end" : "");
+      content += `<span class="job-rail-tick" style="left:${position}%"></span>`;
+      content += `<span class="job-rail-tick-label${labelClass}" style="left:${position}%">${format_job_clock(tickTime)}</span>`;
+    }
+
+    marks.forEach(mark => {
+      const position = Math.min(100, Math.max(0, mark.offset / window_ms * 100)).toFixed(3);
+      const nextClass = mark === marks[0] ? " is-next" : "";
+      const markTitle = escape_job_html(`${mark.name} ${mark.time}`);
+      content += `<span class="job-rail-mark${nextClass}" style="left:${position}%" title="${markTitle}"></span>`;
+    });
+
+    $("#job-rail-track").html(content);
+    rail.removeAttr("hidden");
   }
 
   // 查询定时任务信息
@@ -581,45 +1082,35 @@
       const runningCount = jobs.filter(job => job.running).length;
       $("#job-list-summary").text(
         jobs.length
-          ? `共 ${jobs.length} 个任务${runningCount ? `，${runningCount} 个执行中` : ""}`
+          ? `共 ${jobs.length} 个任务${runningCount ? ` · ${runningCount} 个执行中` : ""}`
           : "暂无定时任务"
       );
 
+      draw_job_rail(jobs);
+
       const jobListBody = $("#job-list-body").empty();
       if (!jobs.length) {
-        jobListBody.append('<div class="list-group-item text-center text-muted py-5">暂无定时任务</div>');
+        jobListBody.append('<div class="job-empty">暂无定时任务</div>');
         return;
       }
 
       jobs.forEach(info => {
         const status = get_job_status(info);
         const isPlugin = !!info.from_plugin;
-        const pluginBadge = isPlugin ? '<span class="badge bg-purple-lt">插件</span>' : "";
+        const pluginTag = isPlugin ? '<span class="job-tag">插件</span>' : "";
         // 执行频率：优先使用后端转换的文字描述，未识别时回退到原始触发器信息
-        const frequency = escape_job_html(info.trigger_text || info.trigger_details);
-        const scheduleText = status.key === "scheduled"
-          ? `下次执行：<span class="text-body">${escape_job_html(info.next_run_time || "未知")}</span>${frequency ? `(<span class="text-mute">${frequency}</span>)` : ""}`
-          : (frequency ? `执行频率：<span class="text-body">${frequency}</span>` : "");
-        const statusBadge = `
-          <span class="badge ${status.cls}">
-            ${status.dot ? '<span class="status-dot status-dot-animated bg-blue me-1"></span>' : ""}${status.text}
-          </span>`;
-
+        const frequency = escape_job_html(format_job_frequency(info.trigger_text || info.trigger_details || ""));
+        const nextRun = escape_job_html(format_job_time(info.next_run_time));
         const row = `
-          <div class="list-group-item px-3 px-md-4 py-3">
-            <div class="d-flex align-items-start">
-              <span class="avatar avatar-sm ${isPlugin ? "bg-purple-lt text-purple" : "bg-blue-lt text-blue"} me-3">
-                ${isPlugin ? JOB_ICON_PLUGIN : JOB_ICON_CLOCK}
-              </span>
-              <div class="flex-fill" style="min-width: 0">
-                <div class="d-flex align-items-center flex-wrap gap-2">
-                  <span class="font-weight-medium text-truncate" style="min-width: 0" title="${escape_job_html(info.name)}">${escape_job_html(info.name)}</span>
-                  ${pluginBadge}
-                </div>
-                ${scheduleText ? `<div class="text-muted small mt-1 text-truncate" title="${escape_job_html(info.trigger_details)}">${scheduleText}</div>` : ""}
-              </div>
-              <div class="ms-3 align-self-center">${statusBadge}</div>
-            </div>
+          <div class="job-row" title="${escape_job_html(info.trigger_details || "")}">
+            <span class="job-led ${status.led}"></span>
+            <span class="job-name">
+              <span class="job-name-text">${escape_job_html(info.name)}</span>
+              ${pluginTag}
+            </span>
+            <span class="job-cadence">${frequency || "—"}</span>
+            <span class="job-next">${nextRun}</span>
+            <span class="job-status ${status.cls}">${status.text}</span>
           </div>`;
         jobListBody.append(row);
       });
@@ -659,8 +1150,220 @@
 
 <script type="text/javascript">
 
+  // 服务分组与说明：分组只影响展示顺序，未知服务归入「其他」
+  var SERVICE_GROUPS = [
+    {title: "自动任务", ids: ["rssdownload", "subscribe_search_all", "pttransfer", "sync"]},
+    {title: "维护工具", ids: ["blacklist", "rsshistory", "backup", "checkupdate"]},
+    {title: "诊断工具", ids: ["nametest", "ruletest", "nettest", "cron_job_list", "processes"]}
+  ];
+
+  var SERVICE_ICONS = {
+    rssdownload: "ti-rss",
+    subscribe_search_all: "ti-search",
+    pttransfer: "ti-transform",
+    sync: "ti-refresh",
+    blacklist: "ti-trash",
+    rsshistory: "ti-eraser",
+    nametest: "ti-text-recognition",
+    ruletest: "ti-filter",
+    cron_job_list: "ti-calendar-month",
+    nettest: "ti-world-www",
+    backup: "ti-database",
+    checkupdate: "ti-refresh-dot",
+    processes: "ti-cpu"
+  };
+
+  var SERVICE_DESCS = {
+    rssdownload: "按间隔检查订阅并下载新种子",
+    subscribe_search_all: "定期搜索还没有完成的订阅",
+    pttransfer: "把下载完成的文件转移到媒体库",
+    sync: "监控目录变化并同步文件",
+    blacklist: "清理已转移文件的记录，允许重新转移",
+    rsshistory: "清理已经下载过的 RSS 记录",
+    nametest: "测试种子名与文件名的识别结果",
+    ruletest: "用过滤规则组测试种子",
+    cron_job_list: "查看排队与待执行的定时任务",
+    nettest: "检查站点与 API 的连通性",
+    backup: "备份或恢复配置文件",
+    checkupdate: "检查并更新系统镜像",
+    processes: "查看后台进程与内存占用"
+  };
+
+  // 服务配色沿用 services.json 的 color 字段，只用于图标砖、状态灯和悬浮底色
+  var SERVICE_COLOR_VARS = {
+    blue: "--tblr-blue",
+    green: "--tblr-green",
+    orange: "--tblr-orange",
+    red: "--tblr-red",
+    purple: "--tblr-purple",
+    lime: "--tblr-lime",
+    yellow: "--tblr-yellow",
+    cyan: "--tblr-cyan",
+    azure: "--tblr-azure",
+    teal: "--tblr-teal"
+  };
+
+  // 定时任务名与页面服务项的对应关系，用于显示执行状态
+  var SERVICE_JOB_NAMES = {
+    rssdownload: ["RSS订阅"],
+    subscribe_search_all: ["订阅定时搜索"],
+    pttransfer: ["下载文件转移"]
+  };
+
+  var servicePageData = null;
+  var servicePageJobs = [];
+  var serviceJobsLoaded = false;
+
+  // 后端时间只写「30 分钟」时不带「每」，这里补上前缀
+  function format_service_cadence(value) {
+    const text = String(value ?? "").trim();
+    if (!text) {
+      return "";
+    }
+    return /^\d+\s*(分钟|小时)$/.test(text) ? `每 ${text}` : text;
+  }
+
+  function get_service_job_state(id, jobs) {
+    const names = SERVICE_JOB_NAMES[id] || [];
+    for (const info of jobs) {
+      if (!names.includes(info.name)) {
+        continue;
+      }
+      if (info.running) {
+        return "running";
+      }
+      if (info.pending) {
+        return "pending";
+      }
+    }
+    return "";
+  }
+
+  function build_service_row(id, task, jobs) {
+    const name = task.name || id;
+    const desc = SERVICE_DESCS[id] || "";
+    const icon = SERVICE_ICONS[id];
+    const iconHtml = icon ? `<i class="ti ${icon}"></i>` : (task.svg || "");
+    const cadence = format_service_cadence(task.time);
+    const isAuto = SERVICE_GROUPS[0].ids.includes(id);
+    const colorVar = SERVICE_COLOR_VARS[task.color];
+    const colorStyle = colorVar ? ` style="--svc-color: var(${colorVar})"` : "";
+    let stateHtml = "";
+
+    if (isAuto) {
+      const jobState = get_service_job_state(id, jobs);
+      const enabled = task.state === "ON";
+      let label = enabled ? "已启用" : "已停用";
+      let ledClass = enabled ? "is-service" : "is-off";
+      let stateClass = "";
+      if (jobState === "running") {
+        label = "运行中";
+        ledClass = "is-on";
+        stateClass = "is-running";
+      } else if (jobState === "pending") {
+        label = "排队中";
+        ledClass = "is-service";
+      }
+      stateHtml = `<span class="svc-state ${stateClass}"><span class="svc-led ${ledClass}"></span>${label}</span>`;
+    }
+
+    return `
+      <a class="svc-row" href="javascript:void(0)" data-id="${escape_job_html(id)}" data-name="${escape_job_html(name)}"${colorStyle}>
+        <span class="svc-icon">${iconHtml}</span>
+        <span class="svc-copy">
+          <span class="svc-name">${escape_job_html(name)}</span>
+          ${desc ? `<span class="svc-desc">${escape_job_html(desc)}</span>` : ""}
+        </span>
+        <span class="svc-cadence">${escape_job_html(cadence)}</span>
+        <span>${stateHtml}</span>
+        <i class="ti ti-chevron-right svc-go"></i>
+      </a>`;
+  }
+
+  function render_service_summary(jobs) {
+    const summary = $("#svc-summary");
+    if (!jobs.length) {
+      summary.html("<span>暂无定时任务</span>").removeAttr("hidden");
+      return;
+    }
+    const runningCount = jobs.filter(job => job.running).length;
+    // 「下次」优先取页面上的自动任务，避免总是显示内部的元数据保存等高频任务
+    const serviceJobNames = new Set(Object.values(SERVICE_JOB_NAMES).flat());
+    const serviceJobs = jobs.filter(job => serviceJobNames.has(job.name));
+    const nextPool = serviceJobs.some(job => job.next_run_time) ? serviceJobs : jobs;
+    const nextJob = nextPool
+      .map(job => ({job: job, date: parse_job_date(job.next_run_time)}))
+      .filter(item => item.date)
+      .sort((a, b) => a.date - b.date)[0];
+
+    const parts = [`<span>${jobs.length} 个定时任务</span>`];
+    if (runningCount) {
+      parts.push(`<span class="d-inline-flex align-items-center gap-2"><span class="svc-led is-on"></span>${runningCount} 个执行中</span>`);
+    }
+    if (nextJob) {
+      parts.push(`<span>下次 <span class="svc-summary-time">${escape_job_html(format_job_time(nextJob.job.next_run_time))}</span><span class="svc-summary-name"> ${escape_job_html(nextJob.job.name)}</span></span>`);
+    }
+    summary.html(parts.join('<span class="svc-summary-sep">·</span>')).removeAttr("hidden");
+  }
+
+  function render_services(tasks, jobs) {
+    const list = $("#services-list").empty();
+    const grouped = [];
+    const used = new Set();
+
+    SERVICE_GROUPS.forEach(group => {
+      const ids = group.ids.filter(id => tasks[id]);
+      if (ids.length) {
+        grouped.push({title: group.title, ids: ids});
+        ids.forEach(id => used.add(id));
+      }
+    });
+
+    const rest = Object.keys(tasks).filter(id => !used.has(id));
+    if (rest.length) {
+      grouped.push({title: "其他", ids: rest});
+    }
+
+    grouped.forEach(group => {
+      const panel = $('<div class="svc-panel"></div>');
+      group.ids.forEach(id => {
+        panel.append(build_service_row(id, tasks[id], jobs));
+      });
+      list.append(`
+        <section class="svc-group">
+          <div class="svc-group-title">${escape_job_html(group.title)}</div>
+          ${panel.prop("outerHTML")}
+        </section>`);
+    });
+  }
+
+  function refresh_service_page() {
+    if (!servicePageData) {
+      return;
+    }
+    const tasks = servicePageData.schedulerTasks || {};
+    if (!Object.keys(tasks).length) {
+      $("#services-container").hide();
+      $("#no-services").show();
+      $("#svc-summary").attr("hidden", true);
+      return;
+    }
+    render_services(tasks, servicePageJobs);
+    if (serviceJobsLoaded) {
+      render_service_summary(servicePageJobs);
+    } else {
+      $("#svc-summary").attr("hidden", true);
+    }
+    $("#services-container").show();
+    $("#no-services").hide();
+  }
+
   // 页面加载完成后，使用axios_post请求/data/service接口获取数据并填充页面
   $(document).ready(function() {
+    $("#services-list").off("click.svc").on("click.svc", ".svc-row", function () {
+      show_service_modal($(this).data("id"), $(this).data("name"));
+    });
+
     axios_post('/data/service', {}, function(response) {
       if (response.code === 0 && response.data) {
 
@@ -695,75 +1398,41 @@
           });
         }
 
-        // 生成服务列表
-        if (data.schedulerTasks && Object.keys(data.schedulerTasks).length > 0) {
-
-          const servicesList = $('#services-list');
-          const servicesContainer = $('#services-container');
-          const noServices = $('#no-services');
-
-          servicesList.empty();
-
-          Object.entries(data.schedulerTasks).forEach(([id, scheduler]) => {
-            const serviceCard = `
-              <div class="card card-sm card-link-pop">
-                <div class="card-body">
-                  <div class="row align-items-center">
-                    <div class="col-auto">
-                      <span class="bg-${scheduler.color} text-white avatar">
-                        ${scheduler.svg}
-                      </span>
-                    </div>
-                    <div class="col">
-                      <div class="font-weight-medium">
-                        <a href="javascript:show_service_modal('${id}','${scheduler.name}')" id="service_btn">${scheduler.name}</a>
-                      </div>
-                      <div class="text-muted">
-                        ${scheduler.time}
-                      </div>
-                    </div>
-                    ${scheduler.state === 'ON' ? `
-                      <div class="col-auto align-self-center">
-                        <span class="badge bg-green"></span>
-                      </div>
-                    ` : ''}
-                  </div>
-                </div>
-              </div>
+        // 填充网络测试表格
+        if (data.schedulerTasks && data.schedulerTasks.nettest && data.schedulerTasks.nettest.targets) {
+          const nettestTableBody = $('#nettest-table-body');
+          nettestTableBody.empty();
+          for (const target of data.schedulerTasks.nettest.targets) {
+            const [[name, url]] = Object.entries(target);
+            const row = `
+              <tr>
+                <td class="w-1"><input class="form-check-input m-0 align-middle" name="nettest-item" value="${name}" type="checkbox"></td>
+                <td>
+                  <span>${url}</span>
+                  <input id="nettest_item_url_${name}" value="${url}" type="hidden">
+                </td>
+                <td id="nettest_item_res_${name}"></td>
+                <td id="nettest_item_res_time_${name}"></td>
+              </tr>
             `;
-            servicesList.append(serviceCard);
-          });
-
-          servicesContainer.show();
-          noServices.hide();
-
-          // 填充网络测试表格
-          if (data.schedulerTasks.nettest && data.schedulerTasks.nettest.targets) {
-            const nettestTableBody = $('#nettest-table-body');
-            nettestTableBody.empty();
-            for (const target of data.schedulerTasks.nettest.targets) {
-              const [[name, url]] = Object.entries(target);
-              const row = `
-                <tr>
-                  <td class="w-1"><input class="form-check-input m-0 align-middle" name="nettest-item" value="${name}" type="checkbox"></td>
-                  <td>
-                    <span>${url}</span>
-                    <input id="nettest_item_url_${name}" value="${url}" type="hidden">
-                  </td>
-                  <td id="nettest_item_res_${name}"></td>
-                  <td id="nettest_item_res_time_${name}"></td>
-                </tr>
-              `;
-              nettestTableBody.append(row);
-            }
+            nettestTableBody.append(row);
           }
-
-        } else {
-          $('#services-container').hide();
-          $('#no-services').show();
         }
+
+        servicePageData = data;
+        refresh_service_page();
       }
     });
+
+    // 静默取一次定时任务状态，用于标题摘要与「运行中」标记
+    axios_post_do("get_jobs", {}, function (ret) {
+      if (!ret || String(ret.code) !== "0") {
+        return;
+      }
+      servicePageJobs = ret.result || [];
+      serviceJobsLoaded = true;
+      refresh_service_page();
+    }, false);
   });
 
 </script>

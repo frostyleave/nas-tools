@@ -488,6 +488,20 @@ function slideToggle(id) {
   $(`#${id}`).slideToggle();
 }
 
+// 展开/折叠卡片区段，同步箭头方向和无障碍状态
+function toggle_card_section(id, btn) {
+  const $body = $("#" + id);
+  const collapsed = $body.is(":visible");
+  $body.slideToggle(160);
+  const $btn = $(btn);
+  $btn.toggleClass("is-collapsed", collapsed)
+    .attr("aria-expanded", collapsed ? "false" : "true");
+  const label = $btn.attr("data-section-label");
+  if (label) {
+    $btn.attr("aria-label", (collapsed ? "展开" : "折叠") + label);
+  }
+}
+
 // 刷新tooltip
 function fresh_tooltip() {
   const tooltipTriggerList = Array.prototype.slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));

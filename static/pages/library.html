@@ -44,36 +44,6 @@
     padding: 20px 24px;
   }
 
-  .lib-collapse {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    flex: 0 0 28px;
-    width: 28px;
-    height: 28px;
-    margin: -2px -6px 0 0;
-    padding: 0;
-    border: 0;
-    border-radius: 6px;
-    background: transparent;
-    color: var(--tblr-secondary-color);
-  }
-
-  .lib-collapse:hover {
-    background: var(--tblr-tertiary-bg);
-    color: var(--tblr-body-color);
-  }
-
-  .lib-collapse i {
-    font-size: 16px;
-    transform: rotate(90deg);
-    transition: transform 160ms cubic-bezier(0.22, 1, 0.36, 1);
-  }
-
-  .lib-collapse.is-collapsed i {
-    transform: rotate(0deg);
-  }
-
   .lib-server-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
@@ -222,7 +192,6 @@
     border-top: 1px solid var(--lib-hairline);
   }
 
-  .lib-collapse:focus-visible,
   .lib-icon-btn:focus-visible {
     outline: 2px solid rgba(var(--lib-accent-rgb), 0.55);
     outline-offset: 2px;
@@ -253,6 +222,13 @@
     font-family: var(--lib-mono);
     font-size: 12px;
     color: var(--tblr-secondary-color);
+  }
+
+  .lib-section-actions {
+    display: flex;
+    flex: 0 0 auto;
+    align-items: flex-start;
+    gap: 16px;
   }
 
   .lib-dir-body {
@@ -413,8 +389,8 @@
           <h2 class="lib-section-title">媒体服务器</h2>
           <div class="lib-section-desc">连接 Emby、Jellyfin 或 Plex，用于媒体库状态与播放跳转</div>
         </div>
-        <button type="button" class="lib-collapse" onclick="lib_toggle_section('sys_media_server_config', this)"
-          aria-label="折叠媒体服务器" aria-expanded="true">
+        <button type="button" class="card-collapse" onclick="toggle_card_section('sys_media_server_config', this)"
+          data-section-label="媒体服务器" aria-label="折叠媒体服务器" aria-expanded="true">
           <i class="ti ti-chevron-right"></i>
         </button>
       </div>
@@ -447,8 +423,8 @@
           <h2 class="lib-section-title">存储与整理</h2>
           <div class="lib-section-desc">媒体文件的默认路径、转移规则、命名格式与刮削</div>
         </div>
-        <button type="button" class="lib-collapse" onclick="lib_toggle_section('sys_media_config', this)"
-          aria-label="折叠存储与整理" aria-expanded="true">
+        <button type="button" class="card-collapse" onclick="toggle_card_section('sys_media_config', this)"
+          data-section-label="存储与整理" aria-label="折叠存储与整理" aria-expanded="true">
           <i class="ti ti-chevron-right"></i>
         </button>
       </div>
@@ -1047,15 +1023,6 @@
     return configInfo;
   }
 
-  // 展开/折叠卡片内容，并同步箭头方向
-  function lib_toggle_section(id, btn) {
-    const $body = $("#" + id);
-    const collapsed = $body.is(":visible");
-    $body.slideToggle(160);
-    $(btn).toggleClass("is-collapsed", collapsed)
-      .attr("aria-expanded", collapsed ? "false" : "true");
-  }
-
   // 渲染媒体服务器选择块与配置弹窗
   function renderMediaServers(mediaServerConf, configInfo) {
     let $list = $("#media-server-list");
@@ -1328,6 +1295,15 @@
 <script type="text/javascript">
 
   var mediaConfig = {};
+  // 记录媒体库目录整块的折叠状态，重新渲染后保持
+  var libraryListCollapsed = false;
+
+  // 折叠媒体库目录整块内容
+  function lib_toggle_libraries(btn) {
+    const willCollapse = !libraryListCollapsed;
+    toggle_card_section("library-list-body", btn);
+    libraryListCollapsed = willCollapse;
+  }
 
   // 渲染媒体库目录：按分类分组的路径清单
   function renderLibraries() {
@@ -1351,11 +1327,22 @@
           <h2 class="lib-section-title">媒体库目录</h2>
           <div class="lib-section-desc">转移后的媒体文件按分类写入这些目录</div>
         </div>
-        <div class="lib-count">${configuredCats} 个分类 · ${totalDirs} 个目录</div>
+        <div class="lib-section-actions">
+          <div class="lib-count">${configuredCats} 个分类 · ${totalDirs} 个目录</div>
+          <button type="button" class="card-collapse${libraryListCollapsed ? " is-collapsed" : ""}"
+            onclick="lib_toggle_libraries(this)" data-section-label="媒体库目录"
+            aria-label="${libraryListCollapsed ? "展开" : "折叠"}媒体库目录"
+            aria-expanded="${libraryListCollapsed ? "false" : "true"}">
+            <i class="ti ti-chevron-right"></i>
+          </button>
+        </div>
       </div>
     `);
 
-    const $body = $('<div class="card-body lib-dir-body"></div>');
+    const $body = $('<div class="card-body lib-dir-body" id="library-list-body"></div>');
+    if (libraryListCollapsed) {
+      $body.hide();
+    }
     const $grid = $('<div class="lib-dir-grid"></div>');
 
     $.each(types, function (type, title) {

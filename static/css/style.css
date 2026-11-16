@@ -1858,6 +1858,41 @@ h1.login_title>label {
     border-radius: 2px;
 }
 
+.card-collapse {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 28px;
+    width: 28px;
+    height: 28px;
+    margin: -2px -6px 0 0;
+    padding: 0;
+    border: 0;
+    border-radius: 6px;
+    background: transparent;
+    color: var(--tblr-secondary-color);
+}
+
+.card-collapse:hover {
+    background: var(--tblr-tertiary-bg);
+    color: var(--tblr-body-color);
+}
+
+.card-collapse i {
+    font-size: 16px;
+    transform: rotate(90deg);
+    transition: transform 160ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.card-collapse.is-collapsed i {
+    transform: rotate(0deg);
+}
+
+.card-collapse:focus-visible {
+    outline: 2px solid var(--tblr-primary);
+    outline-offset: 2px;
+}
+
 .mbtn-action {
     padding: 0;
     border: 0;
