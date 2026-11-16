@@ -1,6 +1,12 @@
+from threading import Lock
 from typing import Any, ClassVar
 
-from apscheduler.events import EVENT_JOB_ERROR, EVENT_JOB_EXECUTED, EVENT_JOB_SUBMITTED
+from apscheduler.events import (
+    EVENT_JOB_ERROR,
+    EVENT_JOB_EXECUTED,
+    EVENT_JOB_MISSED,
+    EVENT_JOB_SUBMITTED,
+)
 from apscheduler.executors.pool import ThreadPoolExecutor
 from apscheduler.job import Job
 from apscheduler.schedulers import (
@@ -33,14 +39,22 @@ class JobCenter:
 
     def __init__(self):
 
-        # 正在执行的任务ID
-        self._running_jobs: set[str] = set()
+        # 正在执行的任务计数：job_id -> 尚未结束的执行实例数
+        # 不用集合的原因：APScheduler 的 EVENT_JOB_SUBMITTED 是在整批到期任务全部提交后
+        # 才统一派发的，而 EVENT_JOB_EXECUTED/ERROR 由工作线程在任务跑完后立即派发。
+        # 执行极快的任务（如“清理未识别缓存”）可能结束事件先到，用集合会出现
+        # “结束丢弃空转、开始又加回去”的永久卡“执行中”；改计数后 -1 与 +1 仍能配平归零。
+        self._running_counts: dict[str, int] = {}
+        self._running_lock = Lock()
 
         # BackgroundScheduler init
         for _scheduler in self._scheduler_list:
-            # 注册事件监听器
+            # 注册事件监听器（MISSED 也要监听，否则错过的执行永远不会从计数中扣除）
             _scheduler.add_listener(self._job_start_listener, EVENT_JOB_SUBMITTED)
-            _scheduler.add_listener(self._job_end_listener, EVENT_JOB_EXECUTED | EVENT_JOB_ERROR)
+            _scheduler.add_listener(
+                self._job_end_listener,
+                EVENT_JOB_EXECUTED | EVENT_JOB_ERROR | EVENT_JOB_MISSED
+            )
 
         self.init_config()
 
@@ -80,7 +94,7 @@ class JobCenter:
                 _scheduler.remove_all_jobs()
             except Exception as e:
                 log.exception(f'【System】清理定时任务({_scheduler.name})出错: ')
-        self._running_jobs.clear()
+        self._clear_running_counts()
 
     def stop_service(self):
         """
@@ -100,7 +114,7 @@ class JobCenter:
             except Exception as e:
                 log.exception(f'【System】停止定时服务({_scheduler.name})出错: ')
 
-        self._running_jobs.clear()
+        self._clear_running_counts()
 
     def get_sys_scheduler(self) -> BackgroundScheduler:
         """获取系统任务管理器"""
@@ -144,7 +158,7 @@ class JobCenter:
                     "trigger_details": str(job.trigger), # 触发器的详细信息 (例如 "interval[0:00:10]")
                     "trigger_text": SchedulerDescUtils.describe(job.trigger), # 执行频率的文字描述
                     "pending": job.pending, # 是否待处理
-                    "running": job.id in self._running_jobs, # 是否正在执行
+                    "running": self._is_job_running(job.id), # 是否正在执行
                     "from_plugin": from_plugin, # 是否来自插件
                 }
                 
@@ -165,9 +179,29 @@ class JobCenter:
         for _scheduler in self._scheduler_list:
             _scheduler.print_jobs()
 
+    def _change_running_count(self, job_id, delta):
+        """调整任务执行计数；归零时删除，负值保留用于配平先到的结束事件"""
+        with self._running_lock:
+            count = self._running_counts.get(job_id, 0) + delta
+            if count == 0:
+                self._running_counts.pop(job_id, None)
+            else:
+                self._running_counts[job_id] = count
+
+    def _is_job_running(self, job_id):
+        """任务是否正在执行"""
+        with self._running_lock:
+            return self._running_counts.get(job_id, 0) > 0
+
+    def _clear_running_counts(self):
+        """清空任务执行计数"""
+        with self._running_lock:
+            self._running_counts.clear()
+
     def _job_start_listener(self, event):
         """监听 job 开始执行"""
-        self._running_jobs.add(event.job_id)
+        # 一次提交可能包含多个执行时间点，需要按实际执行次数计数
+        self._change_running_count(event.job_id, len(event.scheduled_run_times) or 1)
         job = self.get_job(event.job_id)
         if job:
             job_name = job.name or job.id
@@ -176,8 +210,8 @@ class JobCenter:
             log.debug("--- [Job 开始] --- 无法查询到id=%s 的任务", str(event.job_id))
 
     def _job_end_listener(self, event):
-        """监听 job 执行完毕（无论成功还是失败）"""
-        self._running_jobs.discard(event.job_id)
+        """监听 job 执行完毕（成功、失败或错过执行时间）"""
+        self._change_running_count(event.job_id, -1)
         job = self.get_job(event.job_id)
         if not job:
             return
