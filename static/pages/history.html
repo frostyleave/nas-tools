@@ -1,382 +1,1080 @@
+<style>
+  .hx-head-meta {
+      margin-top: 2px;
+      color: color-mix(in srgb, var(--tblr-body-color) 60%, var(--tblr-secondary));
+      font-size: 12px;
+      font-variant-numeric: tabular-nums;
+  }
+
+  .hx-card {
+      background-color: var(--tblr-bg-surface);
+      border: 1px solid var(--tblr-border-color);
+      border-radius: var(--tblr-border-radius-lg);
+  }
+
+  #tr-batch-retry:disabled,
+  #tr-batch-delete:disabled {
+      opacity: 1;
+  }
+
+  #tr-batch-retry:disabled {
+      border-color: color-mix(in srgb, var(--tblr-primary) 22%, var(--tblr-border-color));
+      background-color: color-mix(in srgb, var(--tblr-primary) 10%, var(--tblr-bg-surface));
+      color: color-mix(in srgb, var(--tblr-primary) 72%, var(--tblr-secondary));
+  }
+
+  #tr-batch-delete:disabled {
+      border-color: var(--tblr-border-color);
+      background-color: transparent;
+      color: color-mix(in srgb, var(--tblr-danger) 68%, var(--tblr-secondary));
+  }
+
+  .hx-toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 10px 14px;
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--tblr-border-color);
+  }
+
+  .hx-search {
+      position: relative;
+      display: flex;
+      align-items: center;
+      width: 320px;
+      max-width: 100%;
+  }
+
+  .hx-search > .ti {
+      position: absolute;
+      left: 11px;
+      color: var(--tblr-secondary);
+      font-size: 15px;
+      pointer-events: none;
+  }
+
+  .hx-search input {
+      width: 100%;
+      height: 34px;
+      padding: 0 30px 0 32px;
+      border: 1px solid transparent;
+      border-radius: 8px;
+      background-color: var(--tblr-bg-surface-secondary);
+      color: var(--tblr-body-color);
+      font-size: 13px;
+      transition: border-color .15s ease, background-color .15s ease, box-shadow .15s ease;
+  }
+
+  .hx-search input::placeholder { color: var(--tblr-secondary); }
+
+  .hx-search input:focus {
+      outline: none;
+      border-color: var(--tblr-primary);
+      background-color: var(--tblr-bg-surface);
+      box-shadow: 0 0 0 3px color-mix(in srgb, var(--tblr-primary) 16%, transparent);
+  }
+
+  .hx-search input::-webkit-search-cancel-button { display: none; }
+
+  .hx-search-clear {
+      position: absolute;
+      right: 5px;
+      display: none;
+      width: 24px;
+      height: 24px;
+      align-items: center;
+      justify-content: center;
+      padding: 0;
+      border: 0;
+      border-radius: 6px;
+      background: transparent;
+      color: var(--tblr-secondary);
+      font-size: 13px;
+  }
+
+  .hx-search-clear:hover { background-color: var(--tblr-bg-surface); color: var(--tblr-body-color); }
+  .hx-search.has-value .hx-search-clear { display: inline-flex; }
+
+  .hx-selection {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      margin-left: auto;
+      color: var(--tblr-secondary);
+      font-size: 12px;
+      font-variant-numeric: tabular-nums;
+  }
+
+  .hx-selection[hidden] { display: none; }
+  .hx-selection b { color: var(--tblr-body-color); font-weight: 600; }
+  .hx-page-select { margin-left: auto; }
+  .hx-page-select[hidden] { display: none; }
+
+  .hx-link-btn {
+      padding: 0;
+      border: 0;
+      background: transparent;
+      color: var(--tblr-primary);
+      font-size: 12px;
+  }
+
+  .hx-link-btn:hover { text-decoration: underline; }
+
+  .hx-table {
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 0;
+      table-layout: fixed;
+  }
+
+  .hx-table thead th {
+      padding: 8px 12px;
+      border-bottom: 1px solid var(--tblr-border-color);
+      color: var(--tblr-secondary);
+      font-size: 11px;
+      font-weight: 500;
+      text-align: left;
+  }
+
+  .hx-table .hx-col-check { width: 44px; padding-left: 16px; }
+  .hx-table .hx-col-time { width: 74px; }
+  .hx-table .hx-col-menu { width: 48px; padding-right: 10px; text-align: right; }
+
+  .hx-row > td {
+      padding: 12px;
+      border-top: 1px solid color-mix(in srgb, var(--tblr-body-color) 7%, transparent);
+      vertical-align: middle;
+  }
+
+  .hx-row > td.hx-col-check { padding-left: 16px; }
+  .hx-row > td.hx-col-menu { padding-right: 10px; text-align: right; }
+
+  .hx-row { transition: background-color .12s ease; }
+  .hx-row:hover > td { background-color: color-mix(in srgb, var(--tblr-body-color) 2.5%, transparent); }
+
+  .hx-day + .hx-row > td { border-top: 0; }
+
+  .hx-day > td {
+      padding: 10px 16px 7px;
+      border-top: 1px solid var(--tblr-border-color);
+      background-color: var(--tblr-bg-surface-secondary);
+  }
+
+  .hx-day:first-child > td { border-top: 0; }
+
+  .hx-day-inner {
+      display: flex;
+      align-items: baseline;
+      gap: 8px;
+  }
+
+  .hx-day-name {
+      color: var(--tblr-body-color);
+      font-size: 12px;
+      font-weight: 600;
+  }
+
+  .hx-day-date {
+      color: var(--tblr-secondary);
+      font-size: 12px;
+  }
+
+  .hx-day-count {
+      margin-left: auto;
+      color: var(--tblr-secondary);
+      font-size: 11px;
+      font-variant-numeric: tabular-nums;
+  }
+
+  .hx-time {
+      color: var(--tblr-secondary);
+      font-family: var(--tblr-font-monospace);
+      font-size: 12px;
+      font-variant-numeric: tabular-nums;
+      white-space: nowrap;
+  }
+
+  .hx-media {
+      display: flex;
+      min-width: 0;
+      align-items: flex-start;
+      gap: 10px;
+  }
+
+  .hx-type {
+      display: inline-flex;
+      flex: none;
+      width: 30px;
+      height: 30px;
+      margin-top: 1px;
+      align-items: center;
+      justify-content: center;
+      border-radius: 8px;
+      font-size: 16px;
+  }
+
+  .hx-media-main { flex: 1 1 auto; min-width: 0; }
+
+  .hx-title {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 2px 6px;
+      color: var(--tblr-body-color);
+      font-size: 14px;
+      font-weight: 500;
+      line-height: 1.4;
+  }
+
+  .hx-title-link,
+  .hx-title-text { color: inherit; text-decoration: none; }
+
+  .hx-title-link:hover { color: var(--tblr-primary); text-decoration: underline; }
+
+  .hx-ep {
+      padding: 0 6px;
+      border-radius: 5px;
+      background-color: color-mix(in srgb, var(--tblr-orange) 13%, transparent);
+      color: color-mix(in srgb, var(--tblr-orange) 64%, var(--tblr-body-color));
+      font-size: 11px;
+      font-weight: 500;
+      line-height: 18px;
+      text-decoration: none;
+      font-variant-numeric: tabular-nums;
+  }
+
+  .hx-ep:hover { color: color-mix(in srgb, var(--tblr-orange) 64%, var(--tblr-body-color)); text-decoration: underline; }
+
+  .hx-meta {
+      margin-top: 3px;
+      color: var(--tblr-secondary);
+      font-size: 12px;
+      line-height: 1.5;
+  }
+
+  .hx-unmatched-actions {
+      display: inline-flex;
+      align-items: center;
+      margin-left: 6px;
+      white-space: nowrap;
+  }
+
+  .hx-unmatched {
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+      color: color-mix(in srgb, var(--tblr-orange) 64%, var(--tblr-body-color));
+      vertical-align: -2px;
+  }
+
+  .hx-inline-btn {
+      margin-left: 6px;
+      padding: 0;
+      border: 0;
+      background: transparent;
+      color: var(--tblr-primary);
+      font-size: 12px;
+  }
+
+  .hx-inline-btn:hover { text-decoration: underline; }
+
+  .hx-flow {
+      position: relative;
+      min-width: 0;
+      padding-left: 14px;
+  }
+
+  .hx-flow::before {
+      content: "";
+      position: absolute;
+      left: 3px;
+      top: 11px;
+      bottom: 13px;
+      width: 1px;
+      background-color: color-mix(in srgb, var(--tblr-body-color) 16%, transparent);
+  }
+
+  .hx-flow::after {
+      content: "";
+      position: absolute;
+      left: 3px;
+      bottom: 13px;
+      width: 6px;
+      height: 1px;
+      background-color: color-mix(in srgb, var(--tblr-body-color) 16%, transparent);
+  }
+
+  .hx-path-line {
+      display: flex;
+      min-width: 0;
+      align-items: center;
+      gap: 6px;
+      line-height: 1.55;
+      text-decoration: none;
+  }
+
+  .hx-path-line + .hx-path-line { margin-top: 1px; }
+
+  .hx-path-line > .ti { flex: none; font-size: 13px; }
+
+  .hx-path-name {
+      flex: 1 1 auto;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+  }
+
+  #hx-card.is-empty #history-table-header { display: none; }
+
+  .hx-src { color: var(--tblr-secondary); font-size: 12px; }
+
+  .hx-src > .ti { color: var(--tblr-secondary); }
+
+  .hx-src:hover .hx-path-name { color: var(--tblr-body-color); text-decoration: underline; }
+
+  .hx-dst {
+      color: var(--tblr-body-color);
+      font-size: 12.5px;
+  }
+
+  .hx-dst > .ti { color: var(--tblr-green); }
+
+  .hx-dst:hover .hx-path-name { color: var(--tblr-primary); text-decoration: underline; }
+
+  .hx-dst.is-missing { color: var(--tblr-secondary); font-size: 12px; }
+  .hx-dst.is-missing > .ti { color: color-mix(in srgb, var(--tblr-orange) 64%, var(--tblr-body-color)); }
+
+  .hx-menu-btn {
+      display: inline-flex;
+      width: 30px;
+      height: 30px;
+      align-items: center;
+      justify-content: center;
+      border-radius: 8px;
+      color: var(--tblr-secondary);
+  }
+
+  .hx-menu-btn:hover,
+  .hx-menu-btn:focus-visible {
+      background-color: var(--tblr-bg-surface-secondary);
+      color: var(--tblr-body-color);
+  }
+
+  .hx-card a:focus-visible,
+  .hx-card button:focus-visible {
+      outline: 2px solid var(--tblr-primary);
+      outline-offset: 2px;
+  }
+
+  .hx-empty-row > td { padding: 0; border-top: 0; }
+
+  .hx-empty {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      padding: 48px 16px;
+      text-align: center;
+  }
+
+  .hx-empty-icon { color: var(--tblr-secondary); font-size: 28px; line-height: 1; opacity: .7; }
+
+  .hx-empty-title { color: var(--tblr-body-color); font-size: 13px; font-weight: 500; }
+
+  .hx-empty-desc { color: var(--tblr-secondary); font-size: 12px; }
+
+  .hx-empty .btn { margin-top: 6px; }
+
+  @keyframes hx-spin { to { transform: rotate(360deg); } }
+  .hx-spin { display: inline-block; animation: hx-spin 1s linear infinite; }
+
+  .hx-footer {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 16px;
+      border-top: 1px solid var(--tblr-border-color);
+  }
+
+  .hx-footer[hidden] { display: none; }
+
+  .hx-footer-meta {
+      color: var(--tblr-secondary);
+      font-size: 12px;
+      font-variant-numeric: tabular-nums;
+  }
+
+  .hx-footer .pagination { --tblr-pagination-margin-start: 3px; }
+
+  @media (max-width: 767.98px) {
+      .hx-toolbar { padding: 10px 12px; }
+      .hx-search { width: auto; flex: 1 1 140px; }
+
+      .hx-selection { flex: 1 1 100%; margin-left: 0; }
+
+      .hx-table thead { display: none !important; }
+      .hx-table,
+      .hx-table tbody { display: block; }
+
+      .hx-table colgroup { display: none; }
+
+      .hx-day { display: block; }
+      .hx-day > td { display: block; padding: 10px 14px 5px; }
+
+      .hx-row {
+          display: grid;
+          grid-template-columns: 22px minmax(0, 1fr) 30px;
+          grid-template-areas:
+              "check time time"
+              ". media menu"
+              "path path path";
+          column-gap: 8px;
+          row-gap: 6px;
+          padding: 11px 14px 12px;
+          border-top: 1px solid color-mix(in srgb, var(--tblr-body-color) 7%, transparent);
+      }
+
+      .hx-day + .hx-row { border-top: 0; }
+
+      .hx-row > td { display: block; padding: 0; border: 0; }
+
+      .hx-row > td.hx-col-check,
+      .hx-row > td.hx-col-time,
+      .hx-row > td.hx-col-media,
+      .hx-row > td.hx-col-path,
+      .hx-row > td.hx-col-menu { width: auto; }
+      .hx-row > td.hx-col-check { grid-area: check; align-self: center; padding: 0; }
+      .hx-row > td.hx-col-time { grid-area: time; align-self: center; padding: 0; }
+      .hx-row > td.hx-col-media { grid-area: media; padding: 0; }
+      .hx-row > td.hx-col-path { grid-area: path; padding: 0 0 0 67px; }
+      .hx-row > td.hx-col-menu { grid-area: menu; align-self: center; padding: 0; text-align: right; }
+
+      .hx-row > td { background: transparent !important; }
+
+      .hx-media { gap: 9px; }
+      .hx-type { width: 28px; height: 28px; font-size: 15px; }
+
+      .hx-flow { padding-left: 0; }
+      .hx-flow::before,
+      .hx-flow::after { content: none; }
+      .hx-path-line { gap: 5px; line-height: 1.5; }
+      .hx-path-line > .ti { font-size: 11px; }
+
+      .hx-footer {
+          flex-wrap: wrap;
+          row-gap: 8px;
+          padding: 10px 12px;
+      }
+
+      .hx-footer .pagination { width: 100%; justify-content: space-between; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+      .hx-spin { animation: none; }
+      .hx-row, .hx-search input { transition: none; }
+  }
+</style>
+
 <div class="container-xl">
-  <!-- Page title -->
   <div class="page-header d-print-none mt-2">
-    <div class="row align-items-center">
+    <div class="row align-items-end g-2">
       <div class="col">
         <h2 class="page-title">转移记录</h2>
+        <div class="hx-head-meta" id="hx-head-meta">正在加载…</div>
       </div>
       <div class="col-auto ms-auto d-print-none">
         <div class="btn-list">
-          <a href="javascript:batch_check_action('reidentification')" class="btn btn-primary ms-auto d-none d-sm-inline-flex">
+          <button type="button" class="btn btn-primary" id="tr-batch-retry" aria-label="重新识别所选记录" disabled>
             <i class="ti ti-refresh fs-3"></i>
-            重新识别
-          </a>
-          <a href="javascript:batch_check_action('reidentification')" class="btn btn-primary d-sm-none mbtn-action" >
-            <i class="ti ti-refresh fs-3"></i>
-          </a>
+            <span class="d-none d-sm-inline">重新识别</span>
+          </button>
           <div class="dropdown">
-            <a href="#" class="btn btn-danger ms-auto d-none d-sm-inline-flex dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+            <button type="button" class="btn btn-outline-danger dropdown-toggle" id="tr-batch-delete"
+                    data-bs-toggle="dropdown" aria-expanded="false" aria-label="批量删除所选记录" disabled>
               <i class="ti ti-trash fs-3"></i>
-              批量删除
-            </a>
-            <a href="#" class="btn btn-danger d-sm-none mbtn-action"
-               data-bs-toggle="dropdown" aria-expanded="false">
-              <i class="ti ti-trash fs-3"></i>
-            </a>
+              <span class="d-none d-sm-inline">批量删除</span>
+            </button>
             <div class="dropdown-menu dropdown-menu-end">
-              <a class="dropdown-item text-danger" href="javascript:batch_check_action('del_source')" >
-                删除源文件
-              </a>
-              <a class="dropdown-item text-danger" href="javascript:batch_check_action('del_dest')" >
-                删除媒体库文件
-              </a>
-              <a class="dropdown-item text-danger" href="javascript:batch_check_action('del_all')" >
-                删除源及媒体库文件
-              </a>
+              <button type="button" class="dropdown-item text-danger" data-batch-action="del_source">删除源文件</button>
+              <button type="button" class="dropdown-item text-danger" data-batch-action="del_dest">删除媒体库文件</button>
+              <button type="button" class="dropdown-item text-danger" data-batch-action="del_all">删除源及媒体库文件</button>
             </div>
           </div>
         </div>
       </div>
-      <!-- Page title actions -->
     </div>
   </div>
 </div>
-<!-- 业务页面代码 -->
+
 <div class="page-body">
   <div class="container-xl">
-    <div class="row row-cards">
-      <div class="col-12">
-        <div class="card">
-          <div class="card-body border-bottom py-3">
-            <div class="d-flex">
-              <div class="text-muted">
-                搜索:
-                <div class="ms-2 d-inline-block">
-                  <input id="search_word" value="" type="text" class="form-control form-control-sm" aria-label="搜索">
-                </div>
-              </div>
-            </div>
-          </div>
-          <div class="table-responsive" id="history-table-container">
-            <table class="table table-vcenter card-table table-hover table-striped">
-              <thead>
-              <tr id="history-table-header">
-                <th>媒体信息</th>
-                <th>文件信息</th>
-                <th>时间</th>
-                <th></th>
-              </tr>
-              </thead>
-              <tbody id="history-table-body"></tbody>
-            </table>
-          </div>
-          <div class="card-footer d-flex align-items-center" id="pagination-container" style="display: none;">
-            <p class="m-0 text-muted">当前页 <span id="current-count">0</span> 条, <div class="text-muted" id="total-count"> 共 0 条记录 </div></p>
-            <ul class="pagination m-0 ms-auto" id="pagination-list">
-            </ul>
-          </div>
+    <div class="hx-card" id="hx-card">
+      <div class="hx-toolbar">
+        <label class="hx-search" id="hx-search-wrap">
+          <i class="ti ti-search"></i>
+          <input id="search_word" type="search" value="" autocomplete="off"
+                 enterkeyhint="search" placeholder="搜索标题或文件名" aria-label="搜索标题或文件名">
+          <button type="button" class="hx-search-clear" id="hx-search-clear" aria-label="清除搜索">
+            <i class="ti ti-x"></i>
+          </button>
+        </label>
+        <button type="button" class="hx-link-btn hx-page-select d-md-none" id="hx-page-select" hidden>全选</button>
+        <div class="hx-selection" id="hx-selection" hidden>
+          已选 <b id="hx-selection-count">0</b> 项
+          <button type="button" class="hx-link-btn" id="hx-selection-clear">取消选择</button>
         </div>
+      </div>
+
+      <table class="hx-table" id="history-table-container">
+        <colgroup>
+          <col style="width:44px">
+          <col style="width:74px">
+          <col style="width:36%">
+          <col>
+          <col style="width:48px">
+        </colgroup>
+        <thead id="history-table-header">
+          <tr>
+            <th class="hx-col-check">
+              <input class="form-check-input m-0 align-middle" type="checkbox" id="hx-select-all" aria-label="全选">
+            </th>
+            <th class="hx-col-time">时间</th>
+            <th class="hx-col-media">媒体</th>
+            <th>转移路径</th>
+            <th class="hx-col-menu"><span class="visually-hidden">操作</span></th>
+          </tr>
+        </thead>
+        <tbody id="history-table-body">
+          <tr class="hx-empty-row">
+            <td colspan="5">
+              <div class="hx-empty">
+                <span class="hx-empty-icon"><i class="ti ti-reload hx-spin"></i></span>
+                <div class="hx-empty-title">正在加载…</div>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="hx-footer" id="pagination-container" hidden>
+        <div class="hx-footer-meta" id="hx-footer-meta"></div>
+        <ul class="pagination pagination-sm m-0 ms-auto" id="pagination-list"></ul>
       </div>
     </div>
   </div>
 </div>
+
 <script type="text/javascript">
-  //手动重新识别
-  function rename_history(type, path, id, rmt_mode) {
-    show_manual_transfer_modal(2, path, rmt_mode, type, '', id);
-  }
+  (function () {
+    var history_search = '';
+    var history_page = 1;
+    var history_page_size = 20;
+    var history_req_seq = 0;
 
-  //删除
-  function delete_history(flag, logids, name) {
-    let msg = "";
-    if (flag === 'del_all') {
-      msg = '源文件及媒体库';
-    } else if (flag === 'del_source') {
-      msg = '源';
-    } else if  (flag === 'del_dest') {
-      msg = '媒体库';
-    }
-    let confirm_tip = `${name} 对应${msg}文件将被同步删除，是否确认？`;
-    show_confirm_modal(confirm_tip, function () {
-      axios_post_do("delete_history", {"flag": flag, "logids": logids}, function (ret) {
-        window_history_refresh();
-      });
-    });
-  }
+    var HX_TYPES = {
+      '电影': {icon: 'ti-movie', tone: 'green'},
+      '电视剧': {icon: 'ti-device-tv', tone: 'blue'},
+      '动漫': {icon: 'ti-brand-bilibili', tone: 'orange'}
+    };
 
-  // 搜索按钮
-  $('#search_word').bind('keypress', function (event) {
-    if (event.keyCode == "13") {
-      const keyword = $("#search_word").val();
-      history_goto_page(keyword, 1);
-    }
-  });
-
-  // 批量删除/重新识别
-  function batch_check_action(flag) {
-    let logids = select_GetSelectedVAL("transfer_history")
-    if (logids.length === 0) {
-      return;
-    }
-    if (flag.startsWith("del")) {
-      delete_history(flag, logids, "");
-    } else if (flag === "reidentification") {
-      re_identification("history", logids);
-    }
-  }
-
-  //单条记录删除
-  function single_delete_history(flag, logid, name) {
-    const logids = [logid];
-    delete_history(flag, logids, name);
-  }
-
-  // 当前搜索条件与页码，供页面内局部刷新使用
-  var history_search = '';
-  var history_page = 1;
-
-  // 加载表格数据：只刷新表格内容，不触达路由
-  function history_load_data(keyword, page) {
-    history_search = keyword || '';
-    history_page = parseInt(page) || 1;
-    const pageNum = 20;
-
-    // HTML 属性转义，避免路径中的引号破坏结构
-    function escapeAttr(value) {
+    function hx_esc(value) {
       return String(value === undefined || value === null ? '' : value)
         .replace(/&/g, '&amp;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&#39;')
         .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;');
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
     }
 
-    // 设置搜索框的值
-    $('#search_word').val(history_search);
+    function hx_path(value) {
+      return value ? String(value).replace(/\\/g, '/') : '';
+    }
 
-    const requestData = {};
-    requestData.s = history_search;
-    requestData.page = history_page;
-    requestData.pagenum = pageNum;
+    function hx_join(dir, name) {
+      if (!dir) {
+        return name || '';
+      }
+      return dir.replace(/\/+$/, '') + '/' + (name || '');
+    }
 
-    axios_post('/data/history', requestData, function(response) {
+    function hx_clock(value) {
+      var match = String(value || '').match(/\d{1,2}:\d{2}(:\d{2})?/);
+      return match ? match[0].slice(0, 5) : '';
+    }
 
-      if (response.code === 0 && response.data) {
+    function hx_day_key(value) {
+      var text = String(value || '');
+      return text.length >= 10 ? text.slice(0, 10) : text;
+    }
 
-        const data = response.data;
+    function hx_day_info(key) {
+      var date = new Date(key.replace(/-/g, '/'));
+      if (isNaN(date.getTime())) {
+        return {name: '', date: key || '未知日期'};
+      }
+      var now = new Date();
+      var startToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      var startDay = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+      var diff = Math.round((startToday - startDay) / 86400000);
+      var name = '';
+      if (diff === 0) {
+        name = '今天';
+      } else if (diff === 1) {
+        name = '昨天';
+      } else if (diff > 1 && diff < 7) {
+        name = '周' + '日一二三四五六'.charAt(date.getDay());
+      } else if (diff < 0) {
+        name = '';
+      }
+      var yearPrefix = date.getFullYear() !== now.getFullYear() ? date.getFullYear() + '年' : '';
+      return {
+        name: name,
+        date: yearPrefix + (date.getMonth() + 1) + '月' + date.getDate() + '日'
+      };
+    }
 
-        // 更新总记录数
-        $('#total-count').text(`共 ${data.TotalCount || 0} 条记录`);
-        $('#current-count').text(data.Count || 0);
+    function hx_stamp(value) {
+      var key = hx_day_key(value);
+      if (!key) {
+        return '';
+      }
+      var info = hx_day_info(key);
+      var clock = hx_clock(value);
+      return (info.name === '今天' || info.name === '昨天' ? info.name + ' ' : info.date + ' ') + clock;
+    }
 
-        // 生成历史记录表格
-        const tableBody = $('#history-table-body');
-        const tableHeader = $('#history-table-header');
-        const paginationContainer = $('#pagination-container');
+    function hx_day_html(key, count) {
+      var info = hx_day_info(key);
+      return `
+        <tr class="hx-day">
+          <td colspan="5">
+            <div class="hx-day-inner">
+              ${info.name ? `<span class="hx-day-name">${hx_esc(info.name)}</span>` : ''}
+              <span class="hx-day-date">${hx_esc(info.date)}</span>
+              <span class="hx-day-count">${count} 条</span>
+            </div>
+          </td>
+        </tr>`;
+    }
 
-        tableBody.empty();
-        // 目录链接：参数走 navmenu 的对象形式，不拼进地址栏
-        tableBody.off('click.mediafile-dir').on('click.mediafile-dir', '.mediafile-dir-link', function () {
-          navmenu('mediafile', {dir: $(this).attr('data-dir')});
-        });
-        // 局部刷新时先移除上一次插入的复选框列，避免重复
-        tableHeader.find('th.table-checkbox-col').remove();
+    function hx_title_html(item) {
+      var title = item.TITLE || '未知标题';
+      if (item.TMDBID) {
+        var mediaType = item.TYPE === '电影' ? 'movie' : 'tv';
+        return `<a class="hx-title-link" href="https://www.themoviedb.org/${mediaType}/${encodeURIComponent(item.TMDBID)}"
+                   target="_blank" rel="noopener">${hx_esc(title)}</a>`;
+      }
+      return `<span class="hx-title-text">${hx_esc(title)}</span>`;
+    }
 
-        if (data.Historys && data.Historys.length > 0) {
-          // 添加复选框列头
-          if (data.TotalCount > 0) {
-            tableHeader.prepend(`
-              <th class="w-1 table-checkbox-col">
-                <input class="form-check-input m-0 align-middle" type="checkbox" aria-label="全选"
-                       onclick="select_SelectALL($(this).prop('checked'), 'transfer_history')">
-              </th>
-            `);
-            $('#history-table-container').addClass('table-page-body');
-          }
+    function hx_episode_html(item) {
+      if (!item.SEASON_EPISODE) {
+        return '';
+      }
+      var text = hx_esc(item.SEASON_EPISODE);
+      if (item.TMDBID) {
+        var suffix = String(item.SEASON_EPISODE).replace('S', '/season/').replace('E', '/episode/');
+        var href = `https://www.themoviedb.org/tv/${encodeURIComponent(item.TMDBID)}${hx_esc(suffix)}`;
+        return `<a class="hx-ep" href="${href}" target="_blank" rel="noopener">${text}</a>`;
+      }
+      return `<span class="hx-ep">${text}</span>`;
+    }
 
-          data.Historys.forEach(history => {
-            
-            // 按媒体类型区分头像底色
-            const mediaTypeColor = {
-              '电影': 'bg-green',
-              '电视剧': 'bg-blue',
-              '动漫': 'bg-orange'
-            }[history.TYPE] || 'bg-secondary';
-            // 取分类名称的前两个字作为头像内容
-            const categoryText = Array.from((history.CATEGORY || history.TYPE || '?').trim()).slice(0, 2).join('') || '?';
+    function hx_meta_html(item) {
+      var parts = [];
+      var typeLabel = item.CATEGORY || item.TYPE;
+      if (typeLabel) {
+        parts.push(hx_esc(typeLabel));
+      }
+      if (item.YEAR) {
+        parts.push(hx_esc(item.YEAR));
+      }
+      if (item.SOURCE) {
+        parts.push(hx_esc(item.SOURCE));
+      }
+      if (item.MODE) {
+        parts.push(hx_esc(item.MODE));
+      }
 
-            let titleHtml = '';
-            if (history.TMDBID) {
-              const mediaType = history.TYPE === '电影' ? 'movie' : 'tv';
-              titleHtml = `<a href="https://www.themoviedb.org/${mediaType}/${history.TMDBID}" target="_blank">
-                ${history.TITLE} (${history.YEAR})
+      var html = parts.length ? parts.join(' · ') : '';
+      if (!item.TMDBID) {
+        html += '<span class="hx-unmatched-actions">' +
+          '<span class="hx-unmatched"><i class="ti ti-circle-x"></i>未匹配</span>' +
+          '<button type="button" class="hx-inline-btn" data-row-action="manual">手动识别</button>' +
+          '</span>';
+      }
+      return html;
+    }
+
+    function hx_dest_html(item) {
+      var destPath = hx_path(item.DEST_PATH);
+      var destName = item.DEST_FILENAME || '';
+      var fullPath = hx_join(destPath, destName);
+      if (!destName) {
+        return `<span class="hx-path-line hx-dst is-missing" title="本次没有生成媒体库文件">
+                  <i class="ti ti-alert-triangle"></i>
+                  <span class="hx-path-name">未生成媒体库文件</span>
+                </span>`;
+      }
+      if (!destPath) {
+        return `<span class="hx-path-line hx-dst" title="${hx_esc(destName)}">
+                  <i class="ti ti-folders"></i>
+                  <span class="hx-path-name">${hx_esc(destName)}</span>
+                </span>`;
+      }
+      return `<a class="hx-path-line hx-dst hx-dir-link" href="javascript:void(0)"
+                 data-dir="${hx_esc(destPath)}" title="${hx_esc(fullPath || destName)}">
+                <i class="ti ti-folders"></i>
+                <span class="hx-path-name">${hx_esc(destName)}</span>
               </a>`;
-              if (history.SEASON_EPISODE) {
-                const episodeUrl = history.SEASON_EPISODE.replace('S', '/season/').replace('E', '/episode/');
-                titleHtml += `<br><a href="https://www.themoviedb.org/tv/${history.TMDBID}${episodeUrl}" target="_blank">
-                  <span class="text-orange">${history.SEASON_EPISODE}</span>
-                </a>`;
-              }
-            } else {
-              titleHtml = `${history.TITLE} (${history.YEAR})`;
-              if (history.SEASON_EPISODE) {
-                titleHtml += ` <span class="text-orange">${history.SEASON_EPISODE}</span>`;
-              }
-            }
+    }
 
-            const sourcePathEncoded = history.SOURCE_PATH ? history.SOURCE_PATH.replace(/\\/g, '/') : '';
-            const destPathEncoded = history.DEST_PATH ? history.DEST_PATH.replace(/\\/g, '/') : '';
+    function hx_source_html(item) {
+      var sourcePath = hx_path(item.SOURCE_PATH);
+      var sourceName = item.SOURCE_FILENAME || '';
+      var fullPath = hx_join(sourcePath, sourceName);
+      if (!sourceName) {
+        return `<span class="hx-path-line hx-src"><i class="ti ti-download"></i><span class="hx-path-name">源文件未知</span></span>`;
+      }
+      if (!sourcePath) {
+        return `<span class="hx-path-line hx-src" title="${hx_esc(sourceName)}">
+                  <i class="ti ti-download"></i>
+                  <span class="hx-path-name">${hx_esc(sourceName)}</span>
+                </span>`;
+      }
+      return `<a class="hx-path-line hx-src hx-dir-link" href="javascript:void(0)"
+                 data-dir="${hx_esc(sourcePath)}" title="${hx_esc(fullPath || sourceName)}">
+                <i class="ti ti-download"></i>
+                <span class="hx-path-name">${hx_esc(sourceName)}</span>
+              </a>`;
+    }
 
-            // 类别、转移方式、来自合并为一行展示
-            const metaParts = [];
-            if (history.CATEGORY) {
-              metaParts.push(`${history.CATEGORY}`);
-            }
-            if (history.SYNC_MODE) {
-              metaParts.push(`${history.SYNC_MODE}`);
-            }
-            if (history.SOURCE) {
-              metaParts.push(`${history.SOURCE}`);
-            }
+    function hx_row_html(item) {
+      var type = item.TYPE || '';
+      var typeMeta = HX_TYPES[type] || {icon: 'ti-file-info', tone: 'secondary'};
+      var episodeHtml = hx_episode_html(item);
+      var displayName = (item.TITLE || '未知标题') +
+        (item.YEAR ? ` (${item.YEAR})` : '') +
+        (item.SEASON_EPISODE ? ` ${item.SEASON_EPISODE}` : '');
 
-            const row = `
-              <tr>
-                <td class="w-1">
-                  <input class="form-check-input m-0 align-middle" name="transfer_history" value="${history.ID}" type="checkbox">
-                </td>
-                <td>
-                  <div class="d-flex py-1 align-items-center">
-                    <span class="avatar avatar-md me-2 text-nowrap text-white ${mediaTypeColor}">
-                      ${categoryText}
-                    </span>
-                    <div class="flex-fill">
-                      <div class="font-weight-medium text-nowrap">
-                        ${titleHtml}
-                      </div>
-                      ${metaParts.length > 0 ? `<div class="text-muted">${metaParts.join(' · ')}</div>` : ''}
-                    </div>
-                  </div>
-                </td>
-                <td>
-                  <div class="text-wrap">
-                    <a href="javascript:void(0)" class="mediafile-dir-link" data-dir="${escapeAttr(sourcePathEncoded)}">
-                      ${history.SOURCE_FILENAME || ''}
-                    </a>
-                  </div>
-                  <div class="text-wrap">
-                    ${history.DEST_PATH || history.DEST_FILENAME ? '<span class="text-muted">=> </span>' : ''}
-                    ${history.DEST_PATH ?
-                      `<a class="text-green mediafile-dir-link" href="javascript:void(0)" data-dir="${escapeAttr(destPathEncoded)}">
-                        ${history.DEST_FILENAME || ''}
-                      </a>` :
-                      (history.DEST_FILENAME || '')
-                    }
-                  </div>
-                </td>
-                <td>
-                  <div class="text-nowrap">
-                    <small>${history.DATE}</small>
-                  </div>
-                </td>
-                <td>
-                  <div class="dropdown">
-                    <a href="#" class="btn-action" data-bs-toggle="dropdown" aria-expanded="false">
-                      <i class="ti ti-dots-vertical fs-2"></i>
-                    </a>
-                    <div class="dropdown-menu dropdown-menu-end">
-                      <a class="dropdown-item" href='javascript:re_identification("history", ["${history.ID}"])'>
-                        重新识别
-                      </a>
-                      <a class="dropdown-item" href='javascript:rename_history("${history.TYPE}", "${history.SOURCE_FILENAME}", "${history.ID}", "${history.RMT_MODE}")'>
-                        手动识别
-                      </a>
-                      <a class="dropdown-item text-danger" href='javascript:single_delete_history("del_source", "${history.ID}", "${history.TITLE} (${history.YEAR}) ${history.SEASON_EPISODE || ''}")'>
-                        删除源文件
-                      </a>
-                      <a class="dropdown-item text-danger" href='javascript:single_delete_history("del_dest", "${history.ID}", "${history.TITLE} (${history.YEAR}) ${history.SEASON_EPISODE || ''}")'>
-                        删除媒体库文件
-                      </a>
-                      <a class="dropdown-item text-danger" href='javascript:single_delete_history("del_all", "${history.ID}", "${history.TITLE} (${history.YEAR}) ${history.SEASON_EPISODE || ''}")'>
-                        删除源及媒体库文件
-                      </a>
-                    </div>
-                  </div>
-                </td>
-              </tr>
-            `;
-            tableBody.append(row);
-          });
+      return `
+        <tr class="hx-row"
+            data-id="${hx_esc(item.ID)}"
+            data-type="${hx_esc(type)}"
+            data-path="${hx_esc(item.SOURCE_FILENAME || '')}"
+            data-rmt="${hx_esc(item.RMT_MODE || '')}"
+            data-name="${hx_esc(displayName)}">
+          <td class="hx-col-check">
+            <input class="form-check-input m-0 align-middle" type="checkbox" name="transfer_history"
+                   value="${hx_esc(item.ID)}" aria-label="选择 ${hx_esc(displayName)}">
+          </td>
+          <td class="hx-col-time">
+            <time class="hx-time" datetime="${hx_esc(item.DATE || '')}"
+                  title="${hx_esc(item.DATE || '')}">${hx_esc(hx_clock(item.DATE))}</time>
+          </td>
+          <td class="hx-col-media">
+            <div class="hx-media">
+              <span class="hx-type bg-${typeMeta.tone}-lt text-${typeMeta.tone}">
+                <i class="ti ${typeMeta.icon}"></i>
+              </span>
+              <div class="hx-media-main">
+                <div class="hx-title">${hx_title_html(item)}${episodeHtml}</div>
+                <div class="hx-meta">${hx_meta_html(item)}</div>
+              </div>
+            </div>
+          </td>
+          <td class="hx-col-path">
+            <div class="hx-flow">
+              ${hx_source_html(item)}
+              ${hx_dest_html(item)}
+            </div>
+          </td>
+          <td class="hx-col-menu">
+            <div class="dropdown">
+              <button type="button" class="btn-action hx-menu-btn" data-bs-toggle="dropdown"
+                      aria-expanded="false" aria-label="记录操作">
+                <i class="ti ti-dots-vertical fs-2"></i>
+              </button>
+              <div class="dropdown-menu dropdown-menu-end">
+                <button type="button" class="dropdown-item" data-row-action="retry">重新识别</button>
+                <button type="button" class="dropdown-item" data-row-action="manual">手动识别</button>
+                <div class="dropdown-divider"></div>
+                <button type="button" class="dropdown-item text-danger" data-row-action="del_source">删除源文件</button>
+                <button type="button" class="dropdown-item text-danger" data-row-action="del_dest">删除媒体库文件</button>
+                <button type="button" class="dropdown-item text-danger" data-row-action="del_all">删除源及媒体库文件</button>
+              </div>
+            </div>
+          </td>
+        </tr>`;
+    }
 
-          // 生成分页
-          if (data.TotalCount > 0) {
-            const paginationList = $('#pagination-list');
-            paginationList.empty();
+    function hx_empty_html(keyword) {
+      var isSearch = !!keyword;
+      var title = isSearch ? '没有找到匹配的记录' : '还没有转移记录';
+      var desc = isSearch
+        ? `没有标题或文件名包含“${hx_esc(keyword)}”的记录`
+        : '下载完成的文件转移到媒体库后，会在这里留下记录。';
+      return `
+        <tr class="hx-empty-row">
+          <td colspan="5">
+            <div class="hx-empty">
+              <span class="hx-empty-icon"><i class="ti ${isSearch ? 'ti-list-search' : 'ti-history'}"></i></span>
+              <div class="hx-empty-title">${title}</div>
+              <div class="hx-empty-desc">${desc}</div>
+              ${isSearch ? '<button type="button" class="btn btn-sm btn-outline-secondary" id="hx-empty-clear">清除搜索</button>' : ''}
+            </div>
+          </td>
+        </tr>`;
+    }
 
-            // 上一页
-            const prevDisabled = data.CurrentPage == 1 ? 'disabled' : '';
-            paginationList.append(`
-              <li class="page-item ${prevDisabled}">
-                <a class="page-link" href="javascript:history_goto_page(history_search, ${Math.max(1, data.CurrentPage - 1)})" tabindex="-1" aria-disabled="true">
-                  <i class="ti ti-chevron-left fs-2"></i>
-                </a>
-              </li>
-            `);
+    function hx_update_search_clear() {
+      $('#hx-search-wrap').toggleClass('has-value', !!$('#search_word').val());
+    }
 
-            var total_page = (data.TotalCount + pageNum - 1) / pageNum;
-            var page_range = get_page_range(data.CurrentPage, total_page);
-            // 页码
-            page_range.forEach(page => {
-              const active = page == data.CurrentPage ? 'active' : '';
-              paginationList.append(`
-                <li class="page-item ${active}">
-                  <a class="page-link" href="javascript:history_goto_page(history_search, ${page})">${page}</a>
-                </li>
-              `);
-            });
-            
-            // 下一页
-            const nextDisabled = data.CurrentPage >= data.TotalPage ? 'disabled' : '';
-            const nextHref = data.CurrentPage < data.TotalPage ?
-              `javascript:history_goto_page(history_search, ${(parseInt(data.CurrentPage) || 1) + 1})` :
-              'javascript:void(0)';
-            paginationList.append(`
-              <li class="page-item ${nextDisabled}">
-                <a class="page-link" href="${nextHref}">
-                  <i class="ti ti-chevron-right fs-2"></i>
-                </a>
-              </li>
-            `);
+    function hx_update_selection() {
+      var total = $('input[name="transfer_history"]').length;
+      var count = select_GetSelectedVAL('transfer_history').length;
+      $('#hx-selection').prop('hidden', count === 0);
+      $('#hx-selection-count').text(count);
+      $('#hx-selection-clear').toggle(total === 0 || count !== total);
+      $('#tr-batch-retry, #tr-batch-delete').prop('disabled', count === 0);
+      $('#hx-select-all')
+        .prop('checked', total > 0 && count === total)
+        .prop('indeterminate', count > 0 && count < total);
+      $('#hx-page-select')
+        .prop('hidden', total === 0)
+        .text(total > 0 && count === total ? '取消全选' : '全选');
+    }
 
-            paginationContainer.show();
-          }
-        } else {
-          // 没有数据
-          paginationContainer.hide();
-          tableBody.append(`
-            <tr>
-              <td colspan="4" align="center">没有数据</td>
-            </tr>
-          `);
+    function hx_clear_selection() {
+      $('input[name="transfer_history"]').prop('checked', false);
+      hx_update_selection();
+    }
+
+    function hx_pagination_html(data) {
+      var current = parseInt(data.CurrentPage) || 1;
+      var pages = Math.max(1, Math.ceil((parseInt(data.TotalCount) || 0) / history_page_size));
+      var list = [];
+
+      function item(label, page, opts) {
+        opts = opts || {};
+        var cls = 'page-item' + (opts.active ? ' active' : '') + (opts.disabled ? ' disabled' : '');
+        var inner = opts.disabled
+          ? `<span class="page-link">${label}</span>`
+          : `<a class="page-link" href="javascript:void(0)" data-page="${page}"
+                ${opts.active ? 'aria-current="page"' : ''}>${label}</a>`;
+        return `<li class="${cls}">${inner}</li>`;
+      }
+
+      list.push(item('<i class="ti ti-chevron-left fs-2"></i>', Math.max(1, current - 1), {disabled: current <= 1}));
+      get_page_range(current, pages).forEach(function (page) {
+        list.push(item(page, page, {active: page === current}));
+      });
+      list.push(item('<i class="ti ti-chevron-right fs-2"></i>', Math.min(pages, current + 1), {disabled: current >= pages}));
+      return list.join('');
+    }
+
+    function hx_render(data) {
+      var items = data.Historys || [];
+      var keyword = data.Search || history_search;
+      var total = parseInt(data.TotalCount) || 0;
+      var current = parseInt(data.CurrentPage) || 1;
+      var totalPage = Math.max(1, Math.ceil(total / history_page_size));
+      var body = $('#history-table-body').empty();
+
+      $('#hx-card').toggleClass('is-empty', items.length === 0);
+
+      if (!items.length && total > 0) {
+        var fallbackPage = Math.min(current, totalPage);
+        if (fallbackPage !== current) {
+          history_goto_page(history_search, fallbackPage);
+          return;
         }
       }
+
+      if (!items.length && total === 0 && current > 1) {
+        history_goto_page(history_search, 1);
+        return;
+      }
+
+      if (!items.length) {
+        body.html(hx_empty_html(keyword));
+        $('#pagination-container').prop('hidden', true);
+        $('#hx-head-meta').text(keyword ? `搜索“${keyword}” · 共 0 条记录` : '共 0 条记录');
+        hx_clear_selection();
+        return;
+      }
+
+      var groups = [];
+      var groupMap = {};
+      items.forEach(function (item) {
+        var key = hx_day_key(item.DATE) || '';
+        if (!groupMap[key]) {
+          groupMap[key] = {count: 0, rows: []};
+          groups.push({key: key, group: groupMap[key]});
+        }
+        groupMap[key].count += 1;
+        groupMap[key].rows.push(hx_row_html(item));
+      });
+
+      var html = '';
+      groups.forEach(function (entry) {
+        html += hx_day_html(entry.key, entry.group.count);
+        html += entry.group.rows.join('');
+      });
+      body.html(html);
+
+      var recent = hx_stamp(items[0].DATE);
+      var scope = keyword ? `搜索“${keyword}” · ` : '';
+      $('#hx-head-meta').text(`${scope}共 ${total} 条记录${recent ? ' · 最近一次 ' + recent : ''}`);
+
+      $('#hx-footer-meta').text(`共 ${total} 条记录 · 第 ${current} / ${totalPage} 页`);
+      $('#pagination-list').html(hx_pagination_html(data));
+      $('#pagination-container').prop('hidden', false);
+
+      $('#hx-select-all').prop('checked', false).prop('indeterminate', false);
+      hx_update_selection();
+    }
+
+    function history_load_data(keyword, page) {
+      var seq = ++history_req_seq;
+      history_search = keyword || '';
+      history_page = parseInt(page) || 1;
+      $('#search_word').val(history_search);
+      hx_update_search_clear();
+      $('#history-table-container').attr('aria-busy', 'true');
+
+      axios_post('/data/history', {
+        s: history_search,
+        page: history_page,
+        pagenum: history_page_size
+      }, function (response) {
+        if (seq !== history_req_seq) {
+          return;
+        }
+        $('#history-table-container').removeAttr('aria-busy');
+        if (response.code === 0 && response.data) {
+          hx_render(response.data);
+        }
+      });
+    }
+
+    function history_goto_page(keyword, page) {
+      var targetPage = parseInt(page) || 1;
+      setPageParams({s: keyword || '', page: targetPage});
+      history_load_data(keyword, targetPage);
+    }
+
+    function rename_history(type, path, id, rmt_mode) {
+      show_manual_transfer_modal(2, path, rmt_mode, type, '', id);
+    }
+
+    function delete_history(flag, logids, name) {
+      var label = '';
+      if (flag === 'del_all') {
+        label = '源文件及媒体库';
+      } else if (flag === 'del_source') {
+        label = '源';
+      } else if (flag === 'del_dest') {
+        label = '媒体库';
+      }
+      var confirmTip = `${name ? name + ' 对应的' : ''}${label}文件将被同步删除，是否确认？`;
+      show_confirm_modal(confirmTip, function () {
+        axios_post_do('delete_history', {flag: flag, logids: logids}, function () {
+          window_history_refresh();
+        });
+      });
+    }
+
+    function batch_check_action(flag) {
+      var logids = select_GetSelectedVAL('transfer_history');
+      if (logids.length === 0) {
+        return;
+      }
+      if (flag.indexOf('del') === 0) {
+        delete_history(flag, logids, '');
+      } else if (flag === 'reidentification') {
+        re_identification('history', logids);
+      }
+    }
+
+    $(document).ready(function () {
+      $('#search_word')
+        .on('keypress', function (event) {
+          if (event.key === 'Enter' || event.keyCode === 13) {
+            event.preventDefault();
+            history_goto_page($(this).val(), 1);
+          }
+        })
+        .on('input', hx_update_search_clear);
+
+      $('#hx-search-clear').on('click', function () {
+        $('#search_word').val('').trigger('focus');
+        history_goto_page('', 1);
+      });
+
+      $('#hx-select-all').on('change', function () {
+        select_SelectALL($(this).prop('checked'), 'transfer_history');
+        hx_update_selection();
+      });
+
+      $('#hx-selection-clear').on('click', hx_clear_selection);
+
+      $('#hx-page-select').on('click', function () {
+        var all = $('input[name="transfer_history"]');
+        var count = all.filter(':checked').length;
+        select_SelectALL(!(all.length && count === all.length), 'transfer_history');
+        hx_update_selection();
+      });
+      $('#tr-batch-retry').on('click', function () {
+        batch_check_action('reidentification');
+      });
+
+      $(document)
+        .off('click.hx-batch', '[data-batch-action]')
+        .on('click.hx-batch', '[data-batch-action]', function () {
+          batch_check_action($(this).attr('data-batch-action'));
+        });
+
+      $('#history-table-body')
+        .on('change', 'input[name="transfer_history"]', hx_update_selection)
+        .on('click', '#hx-empty-clear', function () {
+          history_goto_page('', 1);
+        })
+        .on('click', '.hx-dir-link', function () {
+          var dir = $(this).attr('data-dir');
+          if (dir) {
+            navmenu('mediafile', {dir: dir});
+          }
+        })
+        .on('click', '[data-row-action]', function (event) {
+          event.preventDefault();
+          var action = $(this).attr('data-row-action');
+          var row = $(this).closest('.hx-row');
+          var id = row.attr('data-id');
+          var name = row.attr('data-name') || '';
+          if (action === 'retry') {
+            re_identification('history', [id]);
+          } else if (action === 'manual') {
+            rename_history(row.attr('data-type'), row.attr('data-path'), id, row.attr('data-rmt'));
+          } else if (action === 'del_source' || action === 'del_dest' || action === 'del_all') {
+            delete_history(action, [id], name);
+          }
+        });
+
+      $('#pagination-list').on('click', '[data-page]', function (event) {
+        event.preventDefault();
+        history_goto_page(history_search, $(this).attr('data-page'));
+      });
+
+      setPageRefreshHandler(function () {
+        history_load_data(history_search, history_page);
+      });
+
+      var params = (typeof getPageParams === 'function' && getPageParams()) || {};
+      history_load_data(params.s || '', params.page || 1);
     });
-  }
-
-  // 搜索/翻页：更新页面参数并局部刷新表格
-  function history_goto_page(keyword, page) {
-    const targetPage = parseInt(page) || 1;
-    setPageParams({ s: keyword || '', page: targetPage });
-    history_load_data(keyword, targetPage);
-  }
-
-  // 删除等操作完成后刷新当前视图
-  setPageRefreshHandler(function () {
-    history_load_data(history_search, history_page);
-  });
-
-  // 页面加载完成后，按页面参数加载表格数据
-  $(document).ready(function () {
-    history_load_data('', 1);
-  });
-
+  })();
 </script>
