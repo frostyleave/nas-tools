@@ -1,17 +1,14 @@
 <style>
   /* 系统服务：现代列表页，表面与文字跟随全站主题 */
   .svc-card {
+      display: flex;
+      flex-direction: column;
       overflow: hidden;
       background-color: var(--tblr-bg-surface);
       border: 1px solid var(--tblr-border-color);
       border-radius: var(--tblr-border-radius-lg);
   }
   .svc-card-head { min-height: 58px; }
-  .svc-card-meta {
-      font-size: 12px;
-      line-height: 1.4;
-      font-variant-numeric: tabular-nums;
-  }
 
   .svc-row {
       display: grid;
@@ -349,12 +346,11 @@
 <div class="page-body" id="services-container" style="display: none;">
   <div class="container-xl">
     <section class="mt-3">
-      <div class="row row-cards svc-grid align-items-start">
+      <div class="row row-cards svc-grid align-items-stretch">
         <div class="col-12 col-xl-4">
           <div class="svc-card">
             <div class="svc-card-head d-flex align-items-baseline gap-2 p-3">
               <h4 class="card-title fw-semibold mb-0">自动任务</h4>
-              <span class="svc-card-meta text-muted" id="svc-auto-meta"></span>
             </div>
             <div id="svc-auto-list"></div>
           </div>
@@ -1232,9 +1228,6 @@
     $("#svc-diag-list").html(diagIds.length
       ? diagIds.map(id => tool_row_html(id, serviceTasks[id])).join("")
       : '<div class="svc-empty text-center text-muted">暂无诊断工具</div>');
-
-    const enabled = autoIds.filter(id => serviceTasks[id].state === "ON").length;
-    $("#svc-auto-meta").text(`${enabled}/${autoIds.length} 已启用`);
 
     bind_service_actions();
     update_auto_rows();

@@ -12,7 +12,7 @@ class DiskSpaceSaver(_IPluginModule):
     # 插件描述
     module_desc = "计算文件SHA1，同磁盘下相同SHA1的文件只保留一个，其他的用硬链接替换。"
     # 插件图标
-    module_icon = "diskusage.jpg"
+    module_icon = "diskusage.png"
     # 主题色
     module_color = "#FE9003"
     # 插件版本

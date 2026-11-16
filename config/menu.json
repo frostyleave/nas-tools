@@ -58,7 +58,7 @@
     "html": "/static/pages/rss.html?t=TV",
     "nav": [
       {
-        "name": "订阅",
+        "name": "订阅任务",
         "page": "rss",
         "icon": "<i class=\"ti ti-rss fs-2 \"></i>",
         "html": "/static/pages/rss.html"
@@ -147,7 +147,7 @@
         "html": "/static/pages/statistics.html"
       },
       {
-        "name": "刷流",
+        "name": "站点刷流",
         "page": "brushtask",
         "icon": "<i class=\"ti ti-list-check fs-2 \"></i>",
         "html": "/static/pages/brushtask.html"

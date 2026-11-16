@@ -24,20 +24,27 @@ class NexusPhpSiteUserInfo(_ISiteUserInfo):
     def _parse_site_page(self, html_text):
         html_text = self._prepare_html_text(html_text)
 
-        # 用户详情链接：常见为 userdetails.php?id=123，部分站点改用 uuid，如 userdetails.php?uuid=xxxx
-        user_detail = re.search(r"userdetails\.php\?id=(\d+)", html_text)
-        if not user_detail:
-            user_detail = re.search(r"userdetails\.php\?uuid=([\w-]+)", html_text)
-        if user_detail and user_detail.group().strip():
-            self._user_detail_page = user_detail.group().strip().lstrip('/')
+        # 用户详情链接：数字 uid 或 uuid 两种形式
+        detail_patterns = (
+            (r"userdetails\.php\?id=(\d+)", "userid"),
+            (r"userdetails\.php\?uuid=([\w-]+)", "useruuid"),
+        )
+        for pattern, param_name in detail_patterns:
+            user_detail = re.search(pattern, html_text)
+            if not user_detail:
+                continue
+            self._user_detail_page = user_detail.group().lstrip("/")
             self.userid = user_detail.group(1)
-            self._torrent_seeding_page = f"getusertorrentlistajax.php?userid={self.userid}&type=seeding"
-        else:
-            user_detail = re.search(r"(userdetails)", html_text)
-            if user_detail and user_detail.group().strip():
-                self._user_detail_page = user_detail.group().strip().lstrip('/')
-                self.userid = None
-                self._torrent_seeding_page = None
+            self._torrent_seeding_page = (
+                f"getusertorrentlistajax.php?{param_name}={self.userid}&type=seeding"
+            )
+            return
+
+        # 兜底：页面仅出现 userdetails，无法取得用户标识
+        if re.search(r"userdetails", html_text):
+            self._user_detail_page = "userdetails"
+            self.userid = None
+            self._torrent_seeding_page = None
 
     def _parse_message_unread(self, html_text):
         """
@@ -451,6 +458,14 @@ class NexusPhpSiteUserInfo(_ISiteUserInfo):
             self.seeding_size = tmp_seeding_size
         if not self.seeding:
             self.seeding = tmp_seeding
+        if not self.seeding:
+            seeding = html.xpath('.//img[@alt="Torrents seeding"]/following-sibling::text()')
+            seeding = self.clean_text_list(seeding)
+            self.seeding = StringUtils.str_int(seeding[0].strip())
+        if not self.seeding_size:
+            seeding_size_text = html.xpath('//tr/td[text()="做种大小"]/following-sibling::td[1]/text()')
+            if seeding_size_text:
+                self.seeding_size = StringUtils.num_filesize(seeding_size_text[0])
 
         self.__fixup_torrent_seeding_page(html)
 

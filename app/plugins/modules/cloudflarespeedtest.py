@@ -22,7 +22,7 @@ class CloudflareSpeedTest(_IPluginModule):
     # 插件描述
     module_desc = "🌩 测试 Cloudflare CDN 延迟和速度，自动优选IP。"
     # 插件图标
-    module_icon = "cloudflare.jpg"
+    module_icon = "cloudflare.png"
     # 主题色
     module_color = "#F6821F"
     # 插件版本

@@ -18,7 +18,7 @@ class TmdbHostBetter(_IPluginModule):
     module_name = "TMDB API IP优选"
     module_desc = "通过DNS查询TMDB API域名的候选IP并测速，自动优选最佳IP写入系统hosts。"
     # 插件图标
-    module_icon = "tmdb.png"
+    module_icon = "tmdb-logo.png"
     # 主题色
     module_color = "#01B3E3"
     # 插件版本

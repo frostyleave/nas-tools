@@ -18,7 +18,7 @@ class TmdbHotMovieRank(_IPluginModule):
     # 插件描述
     module_desc = "监控TMDB热门电影, 自动添加订阅。"
     # 插件图标
-    module_icon = "tmdb.png"
+    module_icon = "tmdb-logo.png"
     # 主题色
     module_color = "#01B3E3"
     # 插件版本

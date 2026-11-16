@@ -16,7 +16,7 @@ class MovieLike(_IPluginModule):
     # 插件描述
     module_desc = "媒体服务器中用户将电影设为最爱时，自动转移到精选文件夹。"
     # 插件图标
-    module_icon = "like.jpg"
+    module_icon = "like.png"
     # 主题色
     module_color = "#E4003F"
     # 插件版本

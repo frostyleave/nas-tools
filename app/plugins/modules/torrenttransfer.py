@@ -28,7 +28,7 @@ class TorrentTransfer(_IPluginModule):
     # 插件描述
     module_desc = "定期转移下载器中的做种任务到另一个下载器。"
     # 插件图标
-    module_icon = "torrenttransfer.jpg"
+    module_icon = "torrenttransfer.png"
     # 主题色
     module_color = "#272636"
     # 插件版本

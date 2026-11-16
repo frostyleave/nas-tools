@@ -1,8 +1,24 @@
+<style>
+  .rss-type-filter {
+    width: auto;
+    min-width: 6.5rem;
+    padding-left: 0.75rem;
+    text-align: center;
+    text-align-last: center;
+    font-weight: 500;
+  }
+</style>
+
 <div class="container-xl">
   <div class="page-header d-print-none mt-2">
     <div class="row align-items-center">
       <div class="col">
-        <h2 class="page-title" id="rss-page-title">订阅任务</h2>
+        <select class="form-select rss-type-filter" aria-label="订阅类型"
+          onchange="filter_rss(this.value)">
+          <option value="ALL">全部</option>
+          <option value="TV">剧集</option>
+          <option value="MOV">电影</option>
+        </select>
       </div>
       <div class="col-auto ms-auto d-print-none">
         <div class="btn-list">
@@ -32,11 +48,12 @@
     </div>
   </div>
 </div>
-<div class="page-body" id="rss-container">
+<div class="page-body">
   <div class="container-xl">
     <div class="d-grid gap-3 grid-info-card" id="rss-list">
       <!-- 动态生成的内容将在这里显示 -->
     </div>
+    <div class="text-center text-muted py-4" id="rss-filter-empty" style="display: none;">该分类下暂无订阅</div>
   </div>
 </div>
 
@@ -83,6 +100,27 @@
       container.append(generateRssItemHtml(item, id, data, 'TV'));
     });
 
+    apply_rss_filter();
+  }
+
+  var rss_type_filter = 'ALL';
+
+  // 按订阅类型筛选卡片
+  function filter_rss(type) {
+    rss_type_filter = (type === 'TV' || type === 'MOV') ? type : 'ALL';
+    apply_rss_filter();
+  }
+
+  function apply_rss_filter() {
+    let visible = 0;
+    $('#rss-list > .card').each(function () {
+      const matched = rss_type_filter === 'ALL' || this.getAttribute('data-rss-type') === rss_type_filter;
+      $(this).toggle(matched);
+      if (matched) {
+        visible++;
+      }
+    });
+    $('#rss-filter-empty').toggle(visible === 0);
   }
 
   // 生成单个RSS项目HTML
@@ -129,7 +167,7 @@
           class="text-white" id="pause_btn_${type}_${id}"><i class="ti ti-player-pause fs-2"></i></a>`;
 
     return `
-      <div class="card p-0 glass-card">
+      <div class="card p-0 glass-card" data-rss-type="${type}">
         <div class="card-body media-box" style="background-image: url(${rssAttr.image});">
           <div class="ribbon ribbon-top ribbon-left ribbon-bookmark ${voteBg}">${voteText}</div>
           <div class="right-top-box rss-card-actions">

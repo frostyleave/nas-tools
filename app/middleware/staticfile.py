@@ -9,6 +9,8 @@ from starlette.responses import HTMLResponse, Response
 
 # 内容稳定、随版本整体替换的目录：命中后浏览器一年内不再请求
 LONG_CACHE_PREFIXES = ("libs/", "img/")
+# 插件图标会按文件名就地更新（清理白底、裁切等），必须走协商缓存才能及时生效
+PLUGIN_ICON_PREFIX = "img/plugins/"
 LONG_CACHE_CONTROL = "public, max-age=31536000, immutable"
 # 业务资源（页面片段、自研 JS/CSS、组件）每次使用前向服务器协商，改完刷新即生效
 REVALIDATE_CACHE_CONTROL = "no-cache, must-revalidate"
@@ -82,6 +84,7 @@ class StaticFilesWithCache(StaticFiles):
     """
     按路径区分静态资源缓存策略，并为 static/libs 提供版本化 URL：
     - /static/libs/<版本>/...：剥掉版本片段后按原路径返回文件，长缓存 + immutable
+    - /static/img/plugins/...：插件图标，no-cache + ETag，图标替换后刷新即生效
     - 其它：no-cache + ETag，文件变化后浏览器立即拿到新版本
     """
 
@@ -113,7 +116,8 @@ class StaticFilesWithCache(StaticFiles):
 
     @staticmethod
     def _cache_headers(path: str) -> dict:
-        if path.lstrip("/").startswith(LONG_CACHE_PREFIXES):
+        path = path.lstrip("/")
+        if not path.startswith(PLUGIN_ICON_PREFIX) and path.startswith(LONG_CACHE_PREFIXES):
             return {"Cache-Control": LONG_CACHE_CONTROL}
         return {
             "Cache-Control": REVALIDATE_CACHE_CONTROL,

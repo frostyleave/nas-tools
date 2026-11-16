@@ -1,59 +1,1034 @@
+<style>
+  #statistics-container {
+    --st-radius: 12px;
+    --statistics-radius: 14px;
+    --st-border: var(--tblr-border-color);
+    --st-border-soft: color-mix(in srgb, var(--tblr-body-color) 8%, transparent);
+    --st-surface-2: var(--tblr-bg-surface-secondary);
+    --st-track: color-mix(in srgb, var(--tblr-body-color) 8%, transparent);
+    /* 小字号文字用的强调色：浅色主题加深、深色主题提亮，保证 4.5:1 */
+    --st-accent-text: color-mix(in srgb, var(--tblr-primary) 72%, var(--tblr-body-color));
+  }
+
+  #statistics-container ::selection {
+    background: color-mix(in srgb, var(--tblr-primary) 24%, transparent);
+  }
+
+  .statistics-page {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding-bottom: 32px;
+    caret-color: var(--tblr-primary);
+  }
+
+  .st-head {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
+    padding-top: 4px;
+  }
+
+  .st-view-toggle {
+    display: inline-flex;
+    align-items: stretch;
+    border-radius: 8px;
+    overflow: hidden;
+  }
+
+  .st-view-option {
+    height: 36px;
+    padding: 0 20px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 0;
+    border-radius: 0;
+    background-color: var(--st-surface-2);
+    box-shadow: none;
+    color: var(--tblr-secondary);
+    font-size: 13.5px;
+    font-weight: 500;
+    transition: background-color .18s ease, color .18s ease;
+  }
+
+  .st-view-option:hover {
+    background-color: color-mix(in srgb, var(--tblr-body-color) 8%, var(--st-surface-2));
+    color: var(--tblr-body-color);
+  }
+
+  .st-view-option-right {
+    margin-left: -20px;
+    clip-path: polygon(20px 0, 100% 0, 100% 100%, 0 100%);
+  }
+
+  .st-view-toggle .btn-check:checked+.st-view-option {
+    background-color: var(--tblr-primary);
+    color: var(--tblr-primary-fg);
+  }
+
+  .st-view-toggle .btn-check:focus-visible+.st-view-option {
+    box-shadow: inset 0 0 0 2px var(--tblr-primary);
+  }
+
+  .st-head-actions {
+    margin-left: auto;
+    display: flex;
+    gap: 4px;
+    flex-wrap: wrap;
+  }
+
+  .st-btn {
+    height: 36px;
+    padding: 0 12px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    font-weight: 500;
+  }
+
+  .st-btn i {
+    font-size: 16px;
+  }
+
+  .st-btn-quiet {
+    border-color: transparent;
+    background-color: transparent;
+    box-shadow: none;
+  }
+
+  .st-btn-quiet:hover {
+    border-color: transparent;
+    background-color: var(--tblr-bg-surface-secondary);
+  }
+
+  .st-btn:focus-visible,
+  .st-icon-btn:focus-visible,
+  .st-site-name:focus-visible,
+  .st-expand:focus-visible,
+  .st-link:focus-visible,
+  .st-sort-select:focus-visible {
+    outline: 2px solid var(--tblr-primary);
+    outline-offset: 2px;
+  }
+
+  .st-card {
+    background: var(--tblr-bg-surface);
+    border: 1px solid var(--st-border);
+    border-radius: var(--st-radius);
+  }
+
+  #statistics-content {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .st-icon-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid transparent;
+    border-radius: 8px;
+    background: transparent;
+    color: var(--tblr-secondary);
+    transition: background-color .16s ease, color .16s ease, border-color .16s ease;
+  }
+
+  .st-icon-btn:hover {
+    background: var(--st-surface-2);
+    color: var(--tblr-body-color);
+  }
+
+  .st-empty-inline {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    padding: 26px 16px;
+    text-align: center;
+    font-size: 13px;
+    color: var(--tblr-secondary);
+  }
+
+  .st-loading {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 26px 4px;
+    font-size: 13px;
+    color: var(--tblr-secondary);
+  }
+
+  .st-loading::before {
+    content: "";
+    width: 14px;
+    height: 14px;
+    border: 2px solid var(--st-track);
+    border-top-color: var(--tblr-primary);
+    border-radius: 999px;
+    animation: st-spin .8s linear infinite;
+  }
+
+  @keyframes st-spin {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+
+  .statistics-summary {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 248px;
+    overflow: hidden;
+    background-color: var(--tblr-bg-surface);
+    border: 1px solid var(--tblr-border-color);
+    border-radius: var(--statistics-radius);
+  }
+
+  .statistics-summary-main {
+    min-width: 0;
+    padding: 24px;
+  }
+
+  .statistics-summary-figures {
+    display: flex;
+    align-items: flex-end;
+    gap: 48px;
+    flex-wrap: wrap;
+  }
+
+  .statistics-figure-block {
+    min-width: 0;
+  }
+
+  .statistics-figure-ratio {
+    margin-left: auto;
+    text-align: right;
+  }
+
+  .statistics-label {
+    font-size: 12px;
+    line-height: 16px;
+    color: var(--tblr-secondary);
+  }
+
+  .statistics-figure {
+    margin-top: 6px;
+    font-size: 32px;
+    line-height: 1.05;
+    font-weight: 500;
+    letter-spacing: -.02em;
+    color: var(--tblr-body-color);
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+
+  .statistics-ratio {
+    color: var(--tblr-primary);
+  }
+
+  .statistics-traffic-bar {
+    display: flex;
+    height: 6px;
+    margin-top: 24px;
+    overflow: hidden;
+    border-radius: 3px;
+    background-color: color-mix(in srgb, var(--tblr-body-color) 7%, transparent);
+  }
+
+  .statistics-traffic-up,
+  .statistics-traffic-down {
+    height: 100%;
+  }
+
+  .statistics-traffic-up {
+    background-color: var(--tblr-primary);
+  }
+
+  .statistics-traffic-down {
+    background-color: color-mix(in srgb, var(--tblr-secondary) 45%, transparent);
+  }
+
+  .statistics-traffic-legend {
+    display: flex;
+    gap: 20px;
+    margin-top: 10px;
+    font-size: 12px;
+    line-height: 16px;
+    color: var(--tblr-secondary);
+  }
+
+  .statistics-dot {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    margin-right: 6px;
+    border-radius: 2px;
+  }
+
+  .statistics-dot-up {
+    background-color: var(--tblr-primary);
+  }
+
+  .statistics-dot-down {
+    background-color: color-mix(in srgb, var(--tblr-secondary) 45%, transparent);
+  }
+
+  .statistics-summary-side {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 20px;
+    padding: 24px;
+    border-left: 1px solid var(--tblr-border-color);
+  }
+
+  .statistics-mini {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  .statistics-mini-value {
+    font-size: 18px;
+    line-height: 24px;
+    font-weight: 500;
+    color: var(--tblr-body-color);
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+
+  .statistics-day {
+    overflow: hidden;
+    background-color: var(--tblr-bg-surface);
+    border: 1px solid var(--tblr-border-color);
+    border-radius: var(--statistics-radius);
+  }
+
+  .statistics-day-header {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    flex-wrap: wrap;
+    padding: 20px 24px;
+    border-bottom: 1px solid var(--tblr-border-color);
+  }
+
+  .statistics-panel-title {
+    margin: 0;
+    font-size: 15px;
+    line-height: 20px;
+    font-weight: 500;
+    color: var(--tblr-body-color);
+  }
+
+  .statistics-panel-meta {
+    margin: 2px 0 0;
+    font-size: 12px;
+    line-height: 16px;
+    color: var(--tblr-secondary);
+  }
+
+  .statistics-day-totals {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    margin-left: auto;
+    font-size: 13px;
+    color: var(--tblr-secondary);
+  }
+
+  .statistics-day-totals strong {
+    margin-left: 4px;
+    font-weight: 500;
+    color: var(--tblr-body-color);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .statistics-day-nav {
+    display: flex;
+    gap: 2px;
+  }
+
+  .statistics-day-nav .btn-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border: 0;
+    border-radius: 8px;
+    background-color: transparent;
+    color: var(--tblr-secondary);
+    transition: background-color .16s ease, color .16s ease, opacity .16s ease;
+  }
+
+  .statistics-day-nav .btn-icon i {
+    transition: transform .2s cubic-bezier(.22, 1, .36, 1);
+  }
+
+  .statistics-day-nav .btn-icon:hover i {
+    transform: translateX(-3px);
+  }
+
+  .statistics-day-nav .btn-icon#day-next:hover i {
+    transform: translateX(3px);
+  }
+
+  .statistics-day-nav .btn-icon:active i {
+    transform: scale(.86);
+  }
+
+  .statistics-day-nav .btn-icon i.is-switching {
+    animation: st-day-nav-nudge .34s cubic-bezier(.22, 1, .36, 1);
+  }
+
+  .statistics-day-nav .btn-icon#day-next i.is-switching {
+    animation-name: st-day-nav-nudge-next;
+  }
+
+  @keyframes st-day-nav-nudge {
+    0%, 100% {
+      transform: none;
+    }
+
+    45% {
+      transform: translateX(-7px);
+    }
+  }
+
+  @keyframes st-day-nav-nudge-next {
+    0%, 100% {
+      transform: none;
+    }
+
+    45% {
+      transform: translateX(7px);
+    }
+  }
+
+  .statistics-day-nav .btn-icon:hover {
+    background-color: var(--tblr-bg-surface-secondary);
+    color: var(--tblr-body-color);
+  }
+
+  .statistics-day-nav .btn-icon:disabled {
+    opacity: .35;
+    pointer-events: none;
+  }
+
+  .statistics-day-list {
+    padding: 8px 0;
+  }
+
+  .statistics-day-row {
+    display: grid;
+    grid-template-columns: minmax(120px, 200px) minmax(0, 1fr) 168px;
+    align-items: center;
+    gap: 24px;
+    padding: 8px 24px;
+  }
+
+  .statistics-day-row:hover {
+    background-color: var(--tblr-bg-surface-secondary);
+  }
+
+  .statistics-day-site {
+    overflow: hidden;
+    font-size: 13px;
+    line-height: 18px;
+    color: var(--tblr-body-color);
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+
+  .statistics-day-bars {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 0;
+  }
+
+  .statistics-day-track {
+    height: 3px;
+    overflow: hidden;
+    border-radius: 2px;
+    background-color: color-mix(in srgb, var(--tblr-body-color) 6%, transparent);
+  }
+
+  .statistics-day-bar {
+    height: 3px;
+    border-radius: 2px;
+  }
+
+  .statistics-day-bar-up {
+    background-color: var(--tblr-primary);
+  }
+
+  .statistics-day-bar-down {
+    background-color: color-mix(in srgb, var(--tblr-secondary) 45%, transparent);
+  }
+
+  .statistics-day-values {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 3px;
+    font-size: 12px;
+    line-height: 16px;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+
+  .statistics-day-value-up {
+    color: var(--tblr-body-color);
+  }
+
+  .statistics-day-value-down {
+    color: var(--tblr-secondary);
+  }
+
+  .statistics-empty {
+    padding: 32px 24px;
+    text-align: center;
+    font-size: 13px;
+    color: var(--tblr-secondary);
+  }
+
+  .st-sites-head {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
+    margin-bottom: 12px;
+  }
+
+  .st-sites-meta {
+    margin: 0;
+    font-size: 13px;
+    line-height: 1.5;
+    color: var(--tblr-secondary);
+  }
+
+  .st-sites-tools {
+    align-items: center;
+    gap: 8px;
+  }
+
+  .st-sites-filters {
+    display: flex;
+    align-items: center;
+    margin-left: auto;
+  }
+
+  .st-sort-label {
+    margin: 0;
+    font-size: 12.5px;
+    color: var(--tblr-secondary);
+  }
+
+  .st-sort-select {
+    width: auto;
+    height: 34px;
+    padding-top: 0;
+    padding-bottom: 0;
+    padding-right: 22px;
+    padding-left: 8px;
+    font-size: 13px;
+    text-align: center;
+    text-align-last: center;
+    background-position: right 4px center;
+    border-radius: 8px;
+    border-color: transparent;
+    background-color: transparent;
+    box-shadow: none;
+    transition: background-color .16s ease, border-color .16s ease;
+  }
+
+  .st-sort-select:hover {
+    background-color: var(--st-surface-2);
+  }
+
+  .st-site-grid {
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+  }
+
+  .st-site-col {
+    flex: 1 1 0;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  .st-site-grid > .st-loading,
+  .st-site-grid > .st-error-inline,
+  .st-site-grid > .st-empty-inline {
+    flex: 1 1 100%;
+    width: 100%;
+  }
+
+  .st-site-card {
+    display: flex;
+    flex-direction: column;
+    padding: 16px 18px 14px;
+    background: var(--tblr-bg-surface);
+    border: 1px solid var(--st-border);
+    border-radius: var(--st-radius);
+    transition: border-color .16s ease;
+  }
+
+  .st-site-card:hover {
+    border-color: color-mix(in srgb, var(--tblr-primary) 28%, var(--st-border));
+  }
+
+  .st-site-head {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  .st-favicon {
+    position: relative;
+    flex: 0 0 34px;
+    width: 34px;
+    height: 34px;
+    display: grid;
+    place-items: center;
+    overflow: hidden;
+    border-radius: 9px;
+    background: var(--st-surface-2);
+    color: var(--tblr-secondary);
+    font-size: 17px;
+  }
+
+  .st-favicon img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    background: var(--tblr-bg-surface);
+  }
+
+  .st-site-title {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .st-site-name {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+    max-width: 100%;
+    font-size: 14.5px;
+    line-height: 1.4;
+    font-weight: 600;
+    color: var(--tblr-body-color);
+    text-decoration: none;
+  }
+
+  .st-site-name:hover {
+    color: var(--st-accent-text);
+  }
+
+  .st-site-label {
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+
+  .st-unread {
+    flex-shrink: 0;
+    font-size: 14px;
+    color: var(--st-accent-text);
+  }
+
+  .st-site-meta {
+    margin-top: 2px;
+    overflow: hidden;
+    font-size: 12px;
+    line-height: 1.5;
+    color: var(--tblr-secondary);
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+
+  .st-level {
+    flex-shrink: 0;
+    padding: 1px 8px;
+    border-radius: 999px;
+    background: var(--st-surface-2);
+    font-size: 11.5px;
+    line-height: 18px;
+    color: var(--tblr-secondary);
+    white-space: nowrap;
+  }
+
+  .st-site-stats {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 10px;
+    margin-top: 14px;
+  }
+
+  .st-site-stat .st-k {
+    font-size: 12px;
+    line-height: 1.4;
+    color: var(--tblr-secondary);
+  }
+
+  .st-site-stat .st-v {
+    margin-top: 2px;
+    font-size: 15px;
+    line-height: 1.4;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+
+  .st-site-stat .st-v.is-primary {
+    color: var(--st-accent-text);
+  }
+
+  .st-muted {
+    color: var(--tblr-secondary);
+    font-weight: 400;
+  }
+
+  .st-site-foot {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin-top: 14px;
+    padding-top: 12px;
+    border-top: 1px solid var(--st-border-soft);
+  }
+
+  .st-site-updated {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 12px;
+    color: var(--tblr-secondary);
+  }
+
+  .st-site-updated i {
+    font-size: 13px;
+  }
+
+  .st-expand {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    font-size: 12.5px;
+    font-weight: 500;
+    color: var(--st-accent-text);
+  }
+
+  .st-expand i {
+    font-size: 14px;
+    transition: transform .18s ease;
+  }
+
+  .st-expand[aria-expanded="true"] i {
+    transform: rotate(90deg);
+  }
+
+  .st-site-detail {
+    max-height: 0;
+    overflow: hidden;
+    visibility: hidden;
+    transition: max-height .28s cubic-bezier(.4, 0, .2, 1), visibility 0s .28s;
+  }
+
+  .st-site-detail.is-open {
+    visibility: visible;
+    transition: max-height .3s cubic-bezier(.22, 1, .36, 1), visibility 0s;
+  }
+
+  .st-site-detail-inner {
+    min-height: 0;
+    overflow: hidden;
+    opacity: 0;
+    transform: translateY(-10px);
+    transition: opacity .2s ease, transform .28s cubic-bezier(.4, 0, .2, 1);
+  }
+
+  .st-site-detail-body {
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid var(--st-border-soft);
+  }
+
+  .st-site-detail.is-open .st-site-detail-inner {
+    opacity: 1;
+    transform: none;
+    transition: opacity .2s ease .06s, transform .3s cubic-bezier(.22, 1, .36, 1);
+  }
+
+  .st-detail-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px 16px;
+  }
+
+  .st-detail-k {
+    font-size: 12px;
+    line-height: 1.4;
+    color: var(--tblr-secondary);
+  }
+
+  .st-detail-v {
+    margin-top: 2px;
+    font-size: 13.5px;
+    line-height: 1.45;
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .st-site-actions {
+    display: flex;
+    gap: 16px;
+    margin-top: 14px;
+  }
+
+  .st-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 12.5px;
+    font-weight: 500;
+    color: var(--st-accent-text);
+    text-decoration: none;
+  }
+
+  .st-link.is-quiet {
+    color: var(--tblr-secondary);
+  }
+
+  .st-link:hover {
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+
+  .st-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    padding: 46px 24px;
+    text-align: center;
+  }
+
+  .st-empty-icon {
+    width: 52px;
+    height: 52px;
+    display: grid;
+    place-items: center;
+    margin-bottom: 6px;
+    border-radius: 14px;
+    background: var(--st-surface-2);
+    color: var(--tblr-secondary);
+    font-size: 24px;
+  }
+
+  .st-empty-title {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 600;
+    letter-spacing: -.01em;
+  }
+
+  .st-empty-text {
+    max-width: 46ch;
+    margin: 0;
+    font-size: 14px;
+    line-height: 1.7;
+    color: var(--tblr-secondary);
+  }
+
+  .st-empty-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 14px;
+  }
+
+  .st-error-inline {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 22px 4px;
+    font-size: 13px;
+    color: var(--tblr-secondary);
+  }
+
+  .st-error-inline p {
+    margin: 0;
+  }
+
+  #modal-indexer-history .st-range {
+    display: inline-flex;
+    gap: 2px;
+    padding: 3px;
+    border: 1px solid var(--st-border);
+    border-radius: 9px;
+    background: var(--st-surface-2);
+  }
+
+  #modal-indexer-history .btn-site-history {
+    padding: 5px 12px;
+    border: 0;
+    border-radius: 7px;
+    background: transparent;
+    font-size: 12.5px;
+    line-height: 1.4;
+    color: var(--tblr-secondary);
+  }
+
+  #modal-indexer-history .btn-site-history:hover {
+    color: var(--tblr-body-color);
+  }
+
+  #modal-indexer-history .btn-site-history.active {
+    background: var(--tblr-bg-surface);
+    color: var(--tblr-body-color);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, .06);
+  }
+
+  @media (max-width: 767.98px) {
+    .statistics-summary {
+      grid-template-columns: 1fr;
+    }
+
+    .statistics-summary-main,
+    .statistics-summary-side,
+    .statistics-day-header {
+      padding-right: 16px;
+      padding-left: 16px;
+    }
+
+    .statistics-summary-side {
+      flex-direction: row;
+      border-top: 1px solid var(--tblr-border-color);
+      border-left: 0;
+    }
+
+    .statistics-mini {
+      flex: 1;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 2px;
+    }
+
+    .statistics-day-nav {
+      order: 2;
+      margin-left: auto;
+    }
+
+    .statistics-day-totals {
+      order: 3;
+      flex-basis: 100%;
+      margin-left: 0;
+    }
+
+    .statistics-summary-figures {
+      gap: 24px;
+    }
+
+    .statistics-figure {
+      font-size: 26px;
+    }
+
+    .statistics-day-row {
+      grid-template-columns: minmax(88px, 120px) minmax(0, 1fr) 120px;
+      gap: 12px;
+      padding: 8px 16px;
+    }
+  }
+
+  @media (max-width: 575.98px) {
+    .st-head-actions .st-btn {
+      width: 36px;
+      padding: 0;
+      justify-content: center;
+    }
+
+    .st-head-actions .st-btn span {
+      display: none;
+    }
+
+    .st-sort-label {
+      display: none;
+    }
+
+    .st-sort-select {
+      flex: 1;
+      min-width: 0;
+    }
+  }
+
+</style>
+
 <div id="statistics-container">
   <div class="container-xl">
-    <div class="page-body statistics-page">
-      <div class="statistics-toolbar mb-2">
-        <div class="statistics-view-switch" role="group" aria-label="统计视图">
-          <input type="radio" class="btn-check" name="statistics-view" id="statistics-total-tab" value="total" checked>
-          <label class="btn" for="statistics-total-tab">总量信息</label>
-          <input type="radio" class="btn-check" name="statistics-view" id="statistics-sites-tab" value="sites">
-          <label class="btn" for="statistics-sites-tab">站点明细</label>
+    <div class="page-body statistics-page mt-2">
+      <header class="st-head">
+        <div class="st-view-toggle" id="st-view-switch" role="group" aria-label="统计视图">
+          <input type="radio" class="btn-check" name="statistics-view" id="st-tab-total" value="total"
+            autocomplete="off" checked onchange="switch_statistics_view('total')">
+          <label class="btn st-view-option" for="st-tab-total">总量信息</label>
+          <input type="radio" class="btn-check" name="statistics-view" id="st-tab-sites" value="sites"
+            autocomplete="off" onchange="switch_statistics_view('sites')">
+          <label class="btn st-view-option st-view-option-right" for="st-tab-sites">站点明细</label>
         </div>
-        <div class="ms-auto" id="statistics-total-toolbar">
-          <div class="statistics-actions">
-            <a href="javascript:show_history()" class="btn statistics-action d-none d-sm-inline-flex" title="历史数据">
-              <i class="ti ti-history fs-3"></i>
-              历史数据
-            </a>
-            <a href="javascript:show_history()" class="btn statistics-action d-sm-none mbtn-action" title="历史数据">
-              <i class="ti ti-history fs-3"></i>
-            </a>
-            <a href="javascript:show_statistic_sites_modal()" class="btn statistics-action d-none d-sm-inline-flex" title="统计站点">
-              <i class="ti ti-adjustments fs-3"></i>
-              统计站点
-            </a>
-            <a href="javascript:show_statistic_sites_modal()" class="btn statistics-action d-sm-none mbtn-action" title="统计站点">
-              <i class="ti ti-adjustments fs-3"></i>
-            </a>
-            <a href="javascript:ask_refresh_statistics()" class="btn btn-primary statistics-action d-none d-sm-inline-flex" title="刷新全部站点数据">
-              <i class="ti ti-refresh fs-3"></i>
-              刷新数据
-            </a>
-            <a href="javascript:ask_refresh_statistics()" class="btn btn-primary statistics-action d-sm-none mbtn-action" title="刷新全部站点数据">
-              <i class="ti ti-refresh fs-3"></i>
-            </a>
-          </div>
+        <div class="st-head-actions" id="st-total-actions">
+          <a href="javascript:show_history()" class="btn st-btn" aria-label="历史数据" title="查看最近一周、一月或一年的总流量">
+            <i class="ti ti-history"></i><span>历史数据</span>
+          </a>
+          <a href="javascript:show_statistic_sites_modal()" class="btn st-btn" aria-label="统计站点" title="选择要参与统计的站点">
+            <i class="ti ti-adjustments"></i><span>统计站点</span>
+          </a>
+          <a href="javascript:ask_refresh_statistics()" class="btn btn-primary st-btn" aria-label="刷新数据" title="立即重新抓取所有站点的数据">
+            <i class="ti ti-refresh"></i><span>刷新数据</span>
+          </a>
         </div>
-        <div class="ms-auto d-none" id="statistics-sites-toolbar">
-          <div class="statistics-actions me-2">
-            <span class="statistics-count">共 <span id="site-count">0</span> 个站点</span>
-            <a id="share-btn-container" class="btn statistics-action" style="display: none;"
-              href="javascript:show_statistics_picture_modal()" title="生成分享图片">
-              <i class="ti ti-share fs-3"></i>
-              <span class="d-none d-sm-inline">分享图</span>
-            </a>
-            <a id="reload-site-statistics" class="btn statistics-action"
-              href="javascript:load_site_statistics(true)" title="重新获取分站点统计数据">
-              <i class="ti ti-refresh fs-3"></i>
-              <span class="d-none d-sm-inline">刷新</span>
-            </a>
-          </div>
+        <div class="st-head-actions st-sites-tools" id="st-sites-actions" style="display: none;">
+          <a href="javascript:show_statistics_picture_modal()" class="btn st-btn st-btn-quiet"
+            id="share-btn-container" style="display: none;" aria-label="生成分享图片" title="把站点数据生成一张分享图">
+            <i class="ti ti-share"></i><span>分享图</span>
+          </a>
+          <button type="button" class="btn st-btn st-btn-quiet" onclick="reload_page_data()"
+            aria-label="重新读取" title="重新读取已经保存的统计数据">
+            <i class="ti ti-reload"></i><span>重新读取</span>
+          </button>
+        </div>
+      </header>
+
+      <div class="st-card st-empty" id="statistics-empty" style="display: none;">
+        <div class="st-empty-icon"><i class="ti ti-chart-column"></i></div>
+        <h2 class="st-empty-title" id="statistics-empty-title">还没有统计数据</h2>
+        <p class="st-empty-text" id="statistics-empty-text">先在「统计站点」里勾选要统计的站点，再点「刷新数据」。</p>
+        <div class="st-empty-actions">
+          <button type="button" class="btn st-btn" onclick="show_statistic_sites_modal()">选择站点</button>
+          <button type="button" class="btn btn-primary st-btn" id="statistics-empty-primary"
+            onclick="ask_refresh_statistics()">刷新数据</button>
         </div>
       </div>
 
-      <div id="tab-statistics-total">
-        <nodata-found id="no-statistics" title="没有数据" text="没有站点数据" style="display: none;"></nodata-found>
-        <div id="total-statistics-content">
-          <section class="statistics-summary">
+      <div id="statistics-content">
+        <div id="st-view-total">
+          <section class="statistics-summary" aria-label="累计数据">
             <div class="statistics-summary-main">
               <div class="statistics-summary-figures">
                 <div class="statistics-figure-block">
@@ -90,10 +1065,10 @@
             </div>
           </section>
 
-          <section class="statistics-day mt-2">
+          <section class="statistics-day mt-2" aria-labelledby="day-traffic-title">
             <header class="statistics-day-header">
-              <div class="statistics-day-heading">
-                <h3 class="statistics-panel-title">今日流量</h3>
+              <div>
+                <h3 class="statistics-panel-title" id="day-traffic-title">今日流量</h3>
                 <p class="statistics-panel-meta" id="day-traffic-date">今日</p>
               </div>
               <div class="statistics-day-totals">
@@ -101,10 +1076,12 @@
                 <span><i class="statistics-dot statistics-dot-down"></i>下载 <strong id="day-download-total">0 B</strong></span>
               </div>
               <div class="statistics-day-nav">
-                <button type="button" class="btn-icon" onclick="switch_date(-1)" title="前一天">
+                <button type="button" class="btn-icon" id="day-prev" onclick="switch_date(-1)" aria-label="前一天"
+                  title="前一天">
                   <i class="ti ti-chevron-left"></i>
                 </button>
-                <button type="button" class="btn-icon" id="day-next" onclick="switch_date(1)" title="后一天">
+                <button type="button" class="btn-icon" id="day-next" onclick="switch_date(1)" aria-label="后一天"
+                  title="后一天">
                   <i class="ti ti-chevron-right"></i>
                 </button>
               </div>
@@ -114,59 +1091,43 @@
             </div>
           </section>
         </div>
-      </div>
 
-      <div id="tab-statistics-sites" style="display: none;">
-        <section class="statistics-sites">
-          <div class="statistics-sites-head d-none d-lg-grid">
-            <a href="javascript:sort_site_statistics('join_at')" class="site-statistics-sort statistics-sort"
-              data-sort="join_at" title="按加入时间排序">
-              站点<i class="ti ti-arrow-down d-none"></i>
-            </a>
-            <a href="javascript:sort_site_statistics('upload')" class="site-statistics-sort statistics-sort statistics-num"
-              data-sort="upload">
-              上传量<i class="ti ti-arrow-down d-none"></i>
-            </a>
-            <a href="javascript:sort_site_statistics('download')" class="site-statistics-sort statistics-sort statistics-num"
-              data-sort="download">
-              下载量<i class="ti ti-arrow-down d-none"></i>
-            </a>
-            <a href="javascript:sort_site_statistics('ratio')" class="site-statistics-sort statistics-sort statistics-num"
-              data-sort="ratio">
-              分享率<i class="ti ti-arrow-down d-none"></i>
-            </a>
-            <a href="javascript:sort_site_statistics('seeding')" class="site-statistics-sort statistics-sort statistics-num"
-              data-sort="seeding">
-              做种数<i class="ti ti-arrow-down d-none"></i>
-            </a>
-            <a href="javascript:sort_site_statistics('seeding_size')" class="site-statistics-sort statistics-sort statistics-num"
-              data-sort="seeding_size">
-              做种体积<i class="ti ti-arrow-down d-none"></i>
-            </a>
-            <a href="javascript:sort_site_statistics('bonus')" class="site-statistics-sort statistics-sort statistics-num"
-              data-sort="bonus">
-              魔力值<i class="ti ti-arrow-down d-none"></i>
-            </a>
-            <a href="javascript:sort_site_statistics('update_at')" class="site-statistics-sort statistics-sort statistics-num"
-              data-sort="update_at">
-              更新时间<i class="ti ti-arrow-down d-none"></i>
-            </a>
-          </div>
-          <div id="site-statistics-list" class="statistics-sites-list">
-            <div class="statistics-empty">加载中...</div>
+        <section id="st-view-sites" hidden>
+          <header class="st-sites-head">
+            <p class="st-sites-meta" id="site-count">正在读取站点数据…</p>
+            <div class="st-sites-filters">
+              <label class="st-sort-label" for="site-sort">排序</label>
+              <select class="form-select st-sort-select" id="site-sort" onchange="apply_site_sort()">
+                <option value="upload">上传量</option>
+                <option value="download">下载量</option>
+                <option value="ratio">分享率</option>
+                <option value="seeding">做种数</option>
+                <option value="seeding_size">做种体积</option>
+                <option value="bonus">魔力值</option>
+                <option value="update_at">最近更新</option>
+              </select>
+              <button type="button" class="st-icon-btn" id="site-sort-order" onclick="toggle_site_sort_order()"
+                aria-label="当前降序，点击改为升序" title="切换排序方向">
+                <i class="ti ti-arrow-down"></i>
+              </button>
+            </div>
+          </header>
+          <div id="site-statistics-list" class="st-site-grid">
+            <div class="st-loading">加载中…</div>
           </div>
         </section>
       </div>
     </div>
   </div>
 </div>
+
 <div class="modal modal-blur fade" id="site-activity" tabindex="-1" style="display: none;" aria-hidden="true">
   <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable" role="document">
     <div class="modal-content">
       <div class="modal-header">
         <h5 class="modal-title" id="site-activity-title">站点信息</h5>
         <input type="hidden" id="site-activity-name" name="site-name" value="">
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="关闭"></button>
       </div>
       <div class="modal-body">
         <div id="site-activity-chart"></div>
@@ -176,6 +1137,7 @@
     </div>
   </div>
 </div>
+
 <div class="modal fade" id="modal-statistic-sites" tabindex="-1" role="dialog" aria-hidden="true"
   data-bs-backdrop="static" data-bs-keyboard="false">
   <div class="modal-dialog modal-lg modal-dialog-centered" role="document"
@@ -183,7 +1145,7 @@
     <div class="modal-content">
       <div class="modal-header">
         <h5 class="modal-title">统计站点</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="关闭"></button>
       </div>
       <div class="modal-body">
         <div class="text-muted mb-3">点击站点名称切换选择，选中的站点将参与自动数据统计（定时刷新上传量、下载量、做种等数据）。</div>
@@ -204,7 +1166,7 @@
     <div class="modal-content">
       <div class="modal-header">
         <h5 class="modal-title">分享图片</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="关闭"></button>
       </div>
       <div class="modal-body">
         <div class="row g-3">
@@ -212,7 +1174,8 @@
             <div id="statistics-pic-preview" class="rounded"
               style="max-height: 72vh; overflow: auto; background: #1f2a30; padding: 12px;">
               <div id="statistics-pic-scale" style="position: relative; margin: 0 auto;">
-                <div id="statistics-pic-poster" style="position: absolute; top: 0; left: 0; width: 1300px; transform-origin: top left;"></div>
+                <div id="statistics-pic-poster"
+                  style="position: absolute; top: 0; left: 0; width: 1300px; transform-origin: top left;"></div>
               </div>
             </div>
           </div>
@@ -231,6 +1194,14 @@
                   onchange="render_statistics_picture()">
                 <span class="form-check-label">展示各个站点信息</span>
               </label>
+            </div>
+            <div class="mb-3">
+              <label class="form-label" for="statistics-pic-watermark">水印</label>
+              <select class="form-select" id="statistics-pic-watermark" onchange="render_statistics_picture()">
+                <option value="ptdepiler">PT Depiler（v0.0.6.2063+aa5778e）</option>
+                <option value="nastool">NASTool</option>
+                <option value="none">无水印</option>
+              </select>
             </div>
             <div class="mb-2">
               <span class="form-label mb-0">站点选择</span>
@@ -257,16 +1228,13 @@
       </div>
       <div class="modal-body">
         <div class="d-flex justify-content-end mb-3">
-          <div class="statistics-range" role="group" aria-label="统计范围">
-            <button id="btn-history-one-week" class="statistics-range-btn active btn-site-history"
-              onclick="show_site_history(this, 7)">最近一周
-            </button>
-            <button id="btn-history-one-month" class="statistics-range-btn btn-site-history"
-              onclick="show_site_history(this, 30)">最近一月
-            </button>
-            <button id="btn-history-one-year" class="statistics-range-btn btn-site-history"
-              onclick="show_site_history(this, 365)">最近一年
-            </button>
+          <div class="st-range" role="group" aria-label="统计范围">
+            <button id="btn-history-one-week" class="btn-site-history active"
+              onclick="show_site_history(this, 7)">最近一周</button>
+            <button class="btn-site-history"
+              onclick="show_site_history(this, 30)">最近一月</button>
+            <button class="btn-site-history"
+              onclick="show_site_history(this, 365)">最近一年</button>
           </div>
         </div>
         <div id="chart-site-history"></div>
@@ -284,9 +1252,15 @@
 <script type="text/javascript">
 
   var chart_history = null;
-  var current_date = ""
+  var chart_site_activity = null;
+  var current_date = "";
+  var site_statistics_data = [];
+  var site_statistics_sort_by = "upload";
+  var site_statistics_sort_order = "desc";
+  var site_statistics_columns = 0;
+  var expanded_sites = new Set();
 
-  // 图表配色：跟随页面主题，强调色只用于上传与主指标
+  // 图表配色跟随页面主题，强调色只用于上传与主指标
   function statistics_chart_palette() {
     const styles = getComputedStyle(document.documentElement);
     const read = (name, fallback) => {
@@ -313,248 +1287,6 @@
       .replace(/'/g, '&#39;');
   }
 
-  $('#site-activity').off('shown.bs.modal').on('shown.bs.modal', function (e) {
-    
-    let site_name = $('#site-activity-name').val();
-
-    // 单站点历史数据图
-    if (typeof (chart_site_activity) != 'undefined') {
-      chart_site_activity.dispose();
-    }
-    chart_site_activity = echarts.init($('#site-activity-chart')[0], null, {
-      height: 350
-    });
-    chart_site_activity.showLoading();
-
-    axios_post_do("get_site_activity", { "name": site_name }, function (ret) {
-      chart_site_activity.hideLoading();
-      if (ret.code == 0) {
-        const palette = statistics_chart_palette();
-        let options_site_activity = {
-          animation: false,
-          color: [palette.accent, palette.secondary, palette.muted, palette.axis],
-          dataset: {
-            source: ret.dataset
-          },
-          dataZoom: [
-            {
-              type: 'inside'
-            },
-            {
-              type: 'slider',
-              height: 18,
-              bottom: 8,
-              borderColor: palette.hairline,
-              fillerColor: palette.grid,
-              handleStyle: {
-                color: palette.secondary
-              },
-              textStyle: {
-                color: palette.secondary,
-                fontSize: 10
-              },
-              dataBackground: {
-                lineStyle: {
-                  color: palette.grid
-                },
-                areaStyle: {
-                  color: palette.grid
-                }
-              }
-            }
-          ],
-          tooltip: {
-            trigger: 'axis',
-            axisPointer: {
-              type: 'line',
-              lineStyle: {
-                color: palette.axis,
-                width: 1
-              }
-            },
-            formatter: function (params) {
-              let html = params[0].axisValueLabel + '<br>';
-              for (let i = 0; i < params.length; i++) {
-                let value = params[i].data[params[i].encode.y[0]];
-                if (params[i].seriesIndex == 3) {
-                  html += params[i].marker + params[i].seriesName + ': ' + value + ' (' + numeral(value).format('0.0 a') + ')' + '<br>';
-                } else {
-                  html += params[i].marker + params[i].seriesName + ': ' + numeral(value).format('0.0 ib') + '<br>';
-                }
-              }
-              return html;
-            }
-          },
-          grid: {
-            left: 8,
-            right: 8,
-            top: 48,
-            bottom: 44,
-            containLabel: true
-          },
-          toolbox: {
-            feature: {
-              restore: { show: true },
-            },
-            iconStyle: {
-              borderColor: palette.secondary
-            }
-          },
-          legend: {
-            data: ['总上传量', '总下载量', '做种体积', '积分'],
-            top: 0,
-            left: 0,
-            itemWidth: 12,
-            itemHeight: 8,
-            itemGap: 16,
-            textStyle: {
-              color: palette.secondary,
-              fontSize: 12
-            }
-          },
-          xAxis: [
-            {
-              type: 'time',
-              axisTick: { show: false },
-              axisLine: {
-                lineStyle: {
-                  color: palette.hairline
-                }
-              },
-              axisLabel: {
-                color: palette.secondary,
-                fontSize: 11
-              },
-              splitLine: { show: false }
-            }
-          ],
-          yAxis: [
-            {
-              type: 'value',
-              axisLine: { show: false },
-              axisTick: { show: false },
-              axisLabel: {
-                color: palette.secondary,
-                fontSize: 11,
-                formatter: function (value, index) {
-                  return numeral(value).format('0.0 ib');
-                }
-              },
-              splitLine: {
-                lineStyle: {
-                  color: palette.grid
-                }
-              },
-              axisPointer: {
-                label: {
-                  formatter: function (params) {
-                    return numeral(params.value).format('0.0 ib');
-                  }
-                }
-              }
-            },
-            {
-              type: 'value',
-              position: 'right',
-              axisLine: { show: false },
-              axisTick: { show: false },
-              axisLabel: {
-                color: palette.secondary,
-                fontSize: 11,
-                formatter: function (value, index) {
-                  return numeral(value).format('0.0 a')
-                }
-              },
-              splitLine: { show: false },
-              axisPointer: {
-                label: {
-                  formatter: function (params) {
-                    return numeral(params.value).format('0.0 a');
-                  }
-                }
-              }
-            },
-          ],
-          series: [
-            {
-              name: '总上传量',
-              type: 'line',
-              large: true, smooth: true, symbol: 'none',
-              lineStyle: { width: 2 },
-              yAxisIndex: 0,
-              encode: {
-                x: "time",
-                y: "upload"
-              }
-            },
-            {
-              name: '总下载量',
-              type: 'line',
-              large: true, smooth: true, symbol: 'none',
-              lineStyle: { width: 1.5 },
-              yAxisIndex: 0,
-              encode: {
-                x: "time",
-                y: "download"
-              }
-            },
-            {
-              name: '做种体积',
-              type: 'line',
-              large: true, smooth: true, symbol: 'none',
-              lineStyle: { width: 1.5, type: 'dashed' },
-              yAxisIndex: 0,
-              encode: {
-                x: "time",
-                y: "seeding_size"
-              }
-            },
-            {
-              name: '积分',
-              type: 'line',
-              large: true, smooth: true, symbol: 'none',
-              lineStyle: { width: 1.5, type: 'dashed' },
-              yAxisIndex: 1,
-              encode: {
-                x: "time",
-                y: "bonus"
-              }
-            }
-          ]
-        };
-        chart_site_activity.setOption(options_site_activity);
-      } else {
-        show_fail_modal(`${site_name} 查询失败：${ret.msg}`);
-      }
-    }
-    );
-  });
-
-  function show_site_activity(site_name) {
-    $('#site-activity-title').text(site_name + " · 历史数据");
-    $('#site-activity-name').val(site_name);
-    $('#site-activity').modal("show");
-  }
-
-  // 响应大小调整
-  window.onresize = function () {
-    if (chart_history) {
-      chart_history.resize();
-    }
-    if (typeof (chart_site_activity) != 'undefined' && chart_site_activity) {
-      chart_site_activity.resize();
-    }
-  };
-
-  function switch_date(date_offset) {
-    const current = moment(current_date)
-    const next = current.add(date_offset, 'days')
-    if (next.isAfter(moment(), 'day')) {
-      return; // 如果加完日期大于今天，返回
-    }
-    show_site_history_day(next.format('YYYY-MM-DD'), 1);
-  }
-
   // 文件大小统一保留两位小数，避免同一列里 5 TB 与 1.49 TB 混排
   function statistics_size_text(bytes) {
     const text = formatFileSize(bytes || 0);
@@ -565,7 +1297,6 @@
     return Number(parts[0]).toFixed(2) + ' ' + parts[1];
   }
 
-  // 站点数字格式：千分位、魔力值、分享率
   function statistics_count_text(value) {
     return Number(value || 0).toLocaleString('en-US');
   }
@@ -586,9 +1317,290 @@
     return (num === 0 || num > 10000) ? '∞' : num.toFixed(2);
   }
 
-  // 获取某一日的数据：按站点列出上传/下载双条
-  function show_site_history_day(end_day, days) {
+  // 把更新时间写成“3 分钟前”，比一串完整时间更好扫读
+  function statistics_relative_time(value) {
+    if (!value) {
+      return '';
+    }
+    const time = moment(String(value).replace(/-/g, '/'), 'YYYY/MM/DD HH:mm:ss');
+    if (!time.isValid()) {
+      return String(value);
+    }
+    const minutes = moment().diff(time, 'minutes');
+    if (minutes < 1) {
+      return '刚刚';
+    }
+    if (minutes < 60) {
+      return minutes + ' 分钟前';
+    }
+    const hours = Math.floor(minutes / 60);
+    if (hours < 24) {
+      return hours + ' 小时前';
+    }
+    const days = Math.floor(hours / 24);
+    if (days < 30) {
+      return days + ' 天前';
+    }
+    return time.format('YYYY-MM-DD');
+  }
 
+  function statistics_ratio_value(upload, download) {
+    if (Number(upload) + Number(download) === 0) {
+      return '—';
+    }
+    return Number(download) > 0 ? (Number(upload) / Number(download)).toFixed(2) : '∞';
+  }
+
+  $('#site-activity').off('shown.bs.modal').on('shown.bs.modal', function () {
+    let site_name = $('#site-activity-name').val();
+
+    if (typeof (chart_site_activity) != 'undefined' && chart_site_activity) {
+      chart_site_activity.dispose();
+    }
+    chart_site_activity = echarts.init($('#site-activity-chart')[0], null, {
+      height: 350
+    });
+    chart_site_activity.showLoading();
+
+    axios_post_do("get_site_activity", { "name": site_name }, function (ret) {
+      chart_site_activity.hideLoading();
+      if (ret.code == 0) {
+        const palette = statistics_chart_palette();
+        let options_site_activity = {
+          animation: false,
+          color: [palette.accent, palette.secondary, palette.muted, palette.axis],
+          dataset: {
+            source: ret.dataset
+          },
+          dataZoom: [
+            { type: 'inside' },
+            {
+              type: 'slider',
+              height: 18,
+              bottom: 8,
+              borderColor: palette.hairline,
+              fillerColor: palette.grid,
+              handleStyle: { color: palette.secondary },
+              textStyle: { color: palette.secondary, fontSize: 10 },
+              dataBackground: {
+                lineStyle: { color: palette.grid },
+                areaStyle: { color: palette.grid }
+              }
+            }
+          ],
+          tooltip: {
+            trigger: 'axis',
+            axisPointer: {
+              type: 'line',
+              lineStyle: { color: palette.axis, width: 1 }
+            },
+            formatter: function (params) {
+              let html = params[0].axisValueLabel + '<br>';
+              for (let i = 0; i < params.length; i++) {
+                let value = params[i].data[params[i].encode.y[0]];
+                if (params[i].seriesIndex == 3) {
+                  html += params[i].marker + params[i].seriesName + ': ' + value + ' (' + numeral(value).format('0.0 a') + ')' + '<br>';
+                } else {
+                  html += params[i].marker + params[i].seriesName + ': ' + numeral(value).format('0.0 ib') + '<br>';
+                }
+              }
+              return html;
+            }
+          },
+          grid: { left: 8, right: 8, top: 48, bottom: 44, containLabel: true },
+          toolbox: {
+            feature: { restore: { show: true } },
+            iconStyle: { borderColor: palette.secondary }
+          },
+          legend: {
+            data: ['总上传量', '总下载量', '做种体积', '积分'],
+            top: 0,
+            left: 0,
+            itemWidth: 12,
+            itemHeight: 8,
+            itemGap: 16,
+            textStyle: { color: palette.secondary, fontSize: 12 }
+          },
+          xAxis: [{
+            type: 'time',
+            axisTick: { show: false },
+            axisLine: { lineStyle: { color: palette.hairline } },
+            axisLabel: { color: palette.secondary, fontSize: 11 },
+            splitLine: { show: false }
+          }],
+          yAxis: [
+            {
+              type: 'value',
+              axisLine: { show: false },
+              axisTick: { show: false },
+              axisLabel: {
+                color: palette.secondary,
+                fontSize: 11,
+                formatter: function (value) {
+                  return numeral(value).format('0.0 ib');
+                }
+              },
+              splitLine: { lineStyle: { color: palette.grid } },
+              axisPointer: {
+                label: {
+                  formatter: function (params) {
+                    return numeral(params.value).format('0.0 ib');
+                  }
+                }
+              }
+            },
+            {
+              type: 'value',
+              position: 'right',
+              axisLine: { show: false },
+              axisTick: { show: false },
+              axisLabel: {
+                color: palette.secondary,
+                fontSize: 11,
+                formatter: function (value) {
+                  return numeral(value).format('0.0 a');
+                }
+              },
+              splitLine: { show: false },
+              axisPointer: {
+                label: {
+                  formatter: function (params) {
+                    return numeral(params.value).format('0.0 a');
+                  }
+                }
+              }
+            }
+          ],
+          series: [
+            {
+              name: '总上传量',
+              type: 'line',
+              large: true, smooth: true, symbol: 'none',
+              lineStyle: { width: 2 },
+              yAxisIndex: 0,
+              encode: { x: "time", y: "upload" }
+            },
+            {
+              name: '总下载量',
+              type: 'line',
+              large: true, smooth: true, symbol: 'none',
+              lineStyle: { width: 1.5 },
+              yAxisIndex: 0,
+              encode: { x: "time", y: "download" }
+            },
+            {
+              name: '做种体积',
+              type: 'line',
+              large: true, smooth: true, symbol: 'none',
+              lineStyle: { width: 1.5, type: 'dashed' },
+              yAxisIndex: 0,
+              encode: { x: "time", y: "seeding_size" }
+            },
+            {
+              name: '积分',
+              type: 'line',
+              large: true, smooth: true, symbol: 'none',
+              lineStyle: { width: 1.5, type: 'dashed' },
+              yAxisIndex: 1,
+              encode: { x: "time", y: "bonus" }
+            }
+          ]
+        };
+        chart_site_activity.setOption(options_site_activity);
+      } else {
+        show_fail_modal(`${site_name} 查询失败：${ret.msg}`);
+      }
+    });
+  });
+
+  function show_site_activity(site_name) {
+    $('#site-activity-title').text(site_name + " · 历史数据");
+    $('#site-activity-name').val(site_name);
+    $('#site-activity').modal("show");
+  }
+
+  window.onresize = function () {
+    if (chart_history) {
+      chart_history.resize();
+    }
+    if (typeof (chart_site_activity) != 'undefined' && chart_site_activity) {
+      chart_site_activity.resize();
+    }
+    update_site_statistics_layout();
+  };
+
+  // 站点卡片按列独立排布：展开一张卡片只会挤开同列的下一张
+  // 列数不写死断点，按实际可用宽度和卡片最小宽度计算
+  function site_statistics_column_count() {
+    const list = document.getElementById('site-statistics-list');
+    if (!list) {
+      return 1;
+    }
+    const gap = 14;
+    const minCardWidth = 300;
+
+    // 站点明细在「总量信息」TAB 下是隐藏的，此时取外层容器的实际内容宽度
+    let width = list.clientWidth;
+    if (!width) {
+      const container = list.closest('.container-xl');
+      if (container) {
+        const style = window.getComputedStyle(container);
+        width = container.clientWidth
+          - parseFloat(style.paddingLeft)
+          - parseFloat(style.paddingRight);
+      }
+    }
+    if (!width) {
+      width = window.innerWidth;
+    }
+
+    const per_row = Math.floor((width + gap) / (minCardWidth + gap));
+    return Math.max(1, Math.min(4, per_row));
+  }
+
+  function update_site_statistics_layout() {
+    const columns = site_statistics_column_count();
+    if (columns === site_statistics_columns) {
+      return;
+    }
+    site_statistics_columns = columns;
+    if (site_statistics_data.length) {
+      render_site_statistics();
+    }
+  }
+
+  // 顶部视图切换：总量信息 / 站点明细
+  function switch_statistics_view(view) {
+    const show_sites = view === 'sites';
+    document.getElementById('st-view-total').hidden = show_sites;
+    document.getElementById('st-view-sites').hidden = !show_sites;
+    // 两个 Tab 各自显示自己的工具按钮
+    document.getElementById('st-total-actions').style.display = show_sites ? 'none' : '';
+    document.getElementById('st-sites-actions').style.display = show_sites ? '' : 'none';
+  }
+
+  function switch_date(date_offset) {
+    const current = moment(current_date);
+    const next = current.add(date_offset, 'days');
+    if (next.isAfter(moment(), 'day')) {
+      return;
+    }
+    animate_day_nav(date_offset);
+    show_site_history_day(next.format('YYYY-MM-DD'), 1);
+  }
+
+  function animate_day_nav(date_offset) {
+    const button = document.getElementById(date_offset < 0 ? 'day-prev' : 'day-next');
+    const icon = button ? button.querySelector('i') : null;
+    if (!icon) {
+      return;
+    }
+    icon.classList.remove('is-switching');
+    void icon.offsetWidth;
+    icon.classList.add('is-switching');
+  }
+
+  function show_site_history_day(end_day, days) {
     current_date = end_day;
     axios_post_do("get_site_history", { "days": days, "end_day": end_day }, function (ret) {
 
@@ -610,47 +1622,369 @@
       const download_total = rows.reduce((sum, item) => sum + item.download, 0);
       const scale = Math.max(...rows.map(item => Math.max(item.upload, item.download)), 1);
 
-      const day = moment(end_day, 'YYYY-MM-DD');
-      const is_today = moment().isSame(day, 'day');
-      $('#day-traffic-date').text(day.format('M月D日'));
+      const is_today = moment().isSame(moment(end_day, 'YYYY-MM-DD'), 'day');
+      $('#day-traffic-date').text(moment(end_day, 'YYYY-MM-DD').format('M月D日'));
       $('#day-next').prop('disabled', is_today);
       $('#day-upload-total').text(statistics_size_text(upload_total));
       $('#day-download-total').text(statistics_size_text(download_total));
 
+      const list = document.getElementById('day-traffic-list');
       if (!rows.length) {
-        $('#day-traffic-list').html('<div class="statistics-empty">当日没有流量记录</div>');
+        list.innerHTML = '<div class="statistics-empty">当日没有流量记录</div>';
         return;
       }
 
-      $('#day-traffic-list').html(rows.map(item => {
+      list.innerHTML = rows.map(item => {
         const upload_width = (item.upload / scale * 100).toFixed(2);
         const download_width = (item.download / scale * 100).toFixed(2);
         return `
           <div class="statistics-day-row">
             <div class="statistics-day-site" title="${statistics_escape(item.site)}">${statistics_escape(item.site)}</div>
             <div class="statistics-day-bars">
-              <div class="statistics-day-track">
-                <div class="statistics-day-bar statistics-day-bar-up" style="width: ${upload_width}%"></div>
-              </div>
-              <div class="statistics-day-track">
-                <div class="statistics-day-bar statistics-day-bar-down" style="width: ${download_width}%"></div>
-              </div>
+              <div class="statistics-day-track"><div class="statistics-day-bar statistics-day-bar-up" style="width: ${upload_width}%"></div></div>
+              <div class="statistics-day-track"><div class="statistics-day-bar statistics-day-bar-down" style="width: ${download_width}%"></div></div>
             </div>
             <div class="statistics-day-values">
               <span class="statistics-day-value-up">${statistics_size_text(item.upload)}</span>
               <span class="statistics-day-value-down">${statistics_size_text(item.download)}</span>
             </div>
           </div>`;
-      }).join(''));
+      }).join('');
+    });
+  }
+
+  function show_empty_state(kind) {
+    $('#statistics-content').hide();
+    $('#st-view-switch').hide();
+    $('#st-sites-actions').hide();
+    $('#statistics-empty').show();
+    const title = document.getElementById('statistics-empty-title');
+    const text = document.getElementById('statistics-empty-text');
+    const primary = document.getElementById('statistics-empty-primary');
+    if (kind === 'error') {
+      title.textContent = '读取失败';
+      text.textContent = '没能读到统计数据，请确认服务正常后重试。';
+      primary.textContent = '重试';
+      primary.setAttribute('onclick', 'reload_page_data()');
+    } else {
+      title.textContent = '还没有统计数据';
+      text.textContent = '先在「统计站点」里勾选要统计的站点，再点「刷新数据」。';
+      primary.textContent = '刷新数据';
+      primary.setAttribute('onclick', 'ask_refresh_statistics()');
+    }
+  }
+
+  function load_total_statistics() {
+    axios_post('/data/statistics', {}, function (response) {
+      if (!response || response.code !== 0 || !response.data) {
+        show_empty_state('error');
+        return;
+      }
+
+      const data = response.data;
+      const total_statistics = {
+        upload: Number(data.TotalUpload || 0),
+        download: Number(data.TotalDownload || 0),
+        seeding: Number(data.TotalSeeding || 0),
+        seeding_size: Number(data.TotalSeedingSize || 0),
+        site_count: Number(data.SiteCount || 0)
+      };
+
+      if (!total_statistics.site_count) {
+        show_empty_state('empty');
+        return;
+      }
+
+      const upload = total_statistics.upload;
+      const download = total_statistics.download;
+      const traffic_total = upload + download;
+
+      $('#statistics-empty').hide();
+      $('#st-view-switch').show();
+      $('#statistics-content').show();
+      $('#total-upload').text(statistics_size_text(upload));
+      $('#total-download').text(statistics_size_text(download));
+      $('#total-ratio').text(statistics_ratio_value(upload, download));
+      $('#total-seeding').text(statistics_count_text(total_statistics.seeding));
+      $('#total-seeding-size').text(statistics_size_text(total_statistics.seeding_size));
+      $('#total-upload-bar').css('width', traffic_total > 0 ? (upload / traffic_total * 100).toFixed(2) + '%' : '0%');
+      $('#total-download-bar').css('width', traffic_total > 0 ? (download / traffic_total * 100).toFixed(2) + '%' : '0%');
+    });
+  }
+
+  function load_site_statistics(force) {
+    if (force !== true && site_statistics_data.length) {
+      return;
+    }
+
+    const list = $('#site-statistics-list');
+    list.html('<div class="st-loading">加载中…</div>');
+
+    axios_post('/data/site_statistics', {}, function (response) {
+      if (!response || response.code !== 0 || !response.data) {
+        list.html(`
+          <div class="st-error-inline">
+            <p>站点数据读取失败。</p>
+            <button type="button" class="btn st-btn" onclick="load_site_statistics(true)">重试</button>
+          </div>`);
+        return;
+      }
+
+      site_statistics_data = response.data.SiteUserStatistics || [];
+      render_site_statistics();
+    });
+  }
+
+  function site_statistics_sort_value(item) {
+    if (site_statistics_sort_by === 'ratio') {
+      return (item.ratio == 0.0 || item.ratio > 10000) ? Infinity : Number(item.ratio || 0);
+    }
+    return Number(item[site_statistics_sort_by] || 0);
+  }
+
+  function update_site_sort_order_button() {
+    const button = document.getElementById('site-sort-order');
+    if (!button) {
+      return;
+    }
+    const desc = site_statistics_sort_order === 'desc';
+    button.querySelector('i').className = desc ? 'ti ti-arrow-down' : 'ti ti-arrow-up';
+    button.setAttribute('aria-label', desc ? '当前降序，点击改为升序' : '当前升序，点击改为降序');
+    button.title = desc ? '当前降序，点击改为升序' : '当前升序，点击改为降序';
+  }
+
+  function apply_site_sort() {
+    site_statistics_sort_by = $('#site-sort').val();
+    site_statistics_sort_order = 'desc';
+    render_site_statistics();
+  }
+
+  function toggle_site_sort_order() {
+    site_statistics_sort_order = site_statistics_sort_order === 'desc' ? 'asc' : 'desc';
+    render_site_statistics();
+  }
+
+  function render_site_statistics() {
+    const list = $('#site-statistics-list');
+    update_site_sort_order_button();
+
+    if (!site_statistics_data.length) {
+      list.html('<div class="st-empty-inline">没有站点数据</div>');
+      $('#share-btn-container').hide();
+      $('#site-count').text('没有站点数据');
+      return;
+    }
+
+    const with_data = site_statistics_data.filter(item => item.has_data !== false).length;
+    $('#site-count').text('共 ' + site_statistics_data.length + ' 个站点，' + with_data + ' 个有统计数据');
+    $('#share-btn-container').show();
+
+    const desc = site_statistics_sort_order === 'desc';
+    const sorted = [...site_statistics_data].sort((a, b) => {
+      const a_has = a.has_data !== false;
+      const b_has = b.has_data !== false;
+      if (a_has !== b_has) {
+        return a_has ? -1 : 1;
+      }
+      let result;
+      if (site_statistics_sort_by === 'update_at') {
+        result = String(a.update_at || '').localeCompare(String(b.update_at || ''));
+      } else {
+        const av = site_statistics_sort_value(a);
+        const bv = site_statistics_sort_value(b);
+        result = av === bv ? 0 : (av > bv ? 1 : -1);
+      }
+      if (result === 0) {
+        result = String(a.site || '').localeCompare(String(b.site || ''));
+      }
+      return desc ? -result : result;
+    });
+
+    site_statistics_columns = site_statistics_column_count();
+    const columns = Array.from({ length: site_statistics_columns }, () => []);
+    sorted.forEach((item, index) => {
+      columns[index % site_statistics_columns].push(render_site_statistics_row(item, index));
+    });
+    list.html(columns.map(cards => `<div class="st-site-col">${cards.join('')}</div>`).join(''));
+  }
+
+  function site_favicon_html(item) {
+    const image = item.favicon
+      ? `<img src="${statistics_escape(item.favicon)}" alt="" loading="lazy" onerror="this.style.display='none'">`
+      : '';
+    return `<span class="st-favicon"><i class="ti ti-world-www"></i>${image}</span>`;
+  }
+
+  function render_site_statistics_row(item, index) {
+    const has_data = item.has_data !== false;
+    const no_data = '<span class="st-muted">—</span>';
+    const ratio = has_data ? statistics_ratio_text(item.ratio) : no_data;
+    const site_arg = JSON.stringify(String(item.site || ''));
+    const detail_id = 'st-detail-' + index;
+    const is_open = expanded_sites.has(String(item.site || ''));
+    const message_icon = item.msg_unread > 0
+      ? '<i class="ti ti-message st-unread" title="有未读消息"></i>'
+      : '';
+    const level = item.user_level
+      ? `<span class="st-level">${statistics_escape(item.user_level)}</span>`
+      : '';
+    const join_at = item.join_at ? item.join_at.substring(0, 10) : '';
+    const meta = has_data
+      ? [statistics_escape(item.username || '—'), join_at ? '加入 ' + statistics_escape(join_at) : ''].filter(Boolean).join(' · ')
+      : '还没有统计数据';
+    const updated = has_data && item.update_at ? statistics_relative_time(item.update_at) : '';
+    const name_link = `<a href='javascript:show_site_activity(${site_arg})' class="st-site-name" title="查看历史数据"><span class="st-site-label">${statistics_escape(item.site)}</span>${message_icon}</a>`;
+
+    const foot = has_data
+      ? `<div class="st-site-foot">
+          <span class="st-site-updated"><i class="ti ti-clock"></i>${statistics_escape(updated || '等待更新')}</span>
+          <button type="button" class="st-expand" aria-expanded="${is_open ? 'true' : 'false'}" aria-controls="${detail_id}"
+            onclick="toggle_site_detail(this)"><span>${is_open ? '收起' : '全部指标'}</span><i class="ti ti-chevron-right"></i></button>
+        </div>`
+      : `<div class="st-site-foot">
+          <span class="st-site-updated">这个站点还没有统计</span>
+          <a href='javascript:ask_refresh_statistics(${site_arg})' class="st-link">刷新本站</a>
+        </div>`;
+
+    const detail = has_data
+      ? `<div class="st-site-detail${is_open ? ' is-open' : ''}" id="${detail_id}" aria-hidden="${is_open ? 'false' : 'true'}"${is_open ? ' style="max-height: none"' : ''}>
+          <div class="st-site-detail-inner">
+            <div class="st-site-detail-body">
+              <div class="st-detail-grid">
+                <div><div class="st-detail-k">做种数</div><div class="st-detail-v">${statistics_count_text(item.seeding)}</div></div>
+                <div><div class="st-detail-k">做种体积</div><div class="st-detail-v">${statistics_size_text(item.seeding_size)}</div></div>
+                <div><div class="st-detail-k">魔力值</div><div class="st-detail-v">${statistics_bonus_text(item.bonus)}</div></div>
+                <div><div class="st-detail-k">最近更新</div><div class="st-detail-v">${statistics_escape(item.update_at || '—')}</div></div>
+                <div><div class="st-detail-k">加入时间</div><div class="st-detail-v">${statistics_escape(join_at || '—')}</div></div>
+                <div><div class="st-detail-k">用户名</div><div class="st-detail-v">${statistics_escape(item.username || '—')}</div></div>
+              </div>
+              <div class="st-site-actions">
+                <a href='javascript:show_site_activity(${site_arg})' class="st-link"><i class="ti ti-history"></i>历史数据</a>
+                <a href='javascript:ask_refresh_statistics(${site_arg})' class="st-link is-quiet"><i class="ti ti-refresh"></i>刷新本站</a>
+              </div>
+            </div>
+          </div>
+        </div>`
+      : '';
+
+    return `
+      <article class="st-site-card" data-site="${statistics_escape(item.site)}">
+        <div class="st-site-head">
+          ${site_favicon_html(item)}
+          <div class="st-site-title">${name_link}<div class="st-site-meta">${meta}</div></div>
+          ${level}
+        </div>
+        <div class="st-site-stats">
+          <div class="st-site-stat"><div class="st-k">上传</div><div class="st-v">${has_data ? statistics_size_text(item.upload) : no_data}</div></div>
+          <div class="st-site-stat"><div class="st-k">下载</div><div class="st-v">${has_data ? statistics_size_text(item.download) : no_data}</div></div>
+          <div class="st-site-stat"><div class="st-k">分享率</div><div class="st-v is-primary">${ratio}</div></div>
+        </div>
+        ${foot}
+        ${detail}
+      </article>`;
+  }
+
+  function toggle_site_detail(button) {
+    const card = button.closest('.st-site-card');
+    if (!card) {
+      return;
+    }
+    const detail = card.querySelector('.st-site-detail');
+    const inner = detail ? detail.querySelector('.st-site-detail-inner') : null;
+    const label = button.querySelector('span');
+    if (!detail || !inner) {
+      return;
+    }
+
+    const open = !detail.classList.contains('is-open');
+    const site = String(card.getAttribute('data-site') || '');
+
+    if (open) {
+      detail.style.maxHeight = inner.scrollHeight + 'px';
+      detail.classList.add('is-open');
+      expanded_sites.add(site);
+    } else {
+      // 先固定当前高度，再移除展开态并收起到 0，保证收起也是高度过渡
+      detail.style.maxHeight = detail.getBoundingClientRect().height + 'px';
+      void detail.offsetHeight;
+      detail.classList.remove('is-open');
+      detail.style.maxHeight = '0px';
+      expanded_sites.delete(site);
+    }
+
+    detail.setAttribute('aria-hidden', open ? 'false' : 'true');
+    button.setAttribute('aria-expanded', open ? 'true' : 'false');
+    label.textContent = open ? '收起' : '全部指标';
+
+    // 过渡结束后交还给内容自然高度，避免窗口变化时被写死的高度裁切
+    if (detail._maxHeightDone) {
+      detail.removeEventListener('transitionend', detail._maxHeightDone);
+    }
+    detail._maxHeightDone = function (event) {
+      if (event.target !== detail || event.propertyName !== 'max-height') {
+        return;
+      }
+      detail.removeEventListener('transitionend', detail._maxHeightDone);
+      detail._maxHeightDone = null;
+      detail.style.maxHeight = detail.classList.contains('is-open') ? 'none' : '';
+    };
+    detail.addEventListener('transitionend', detail._maxHeightDone);
+  }
+
+  function reload_page_data() {
+    load_total_statistics();
+    show_site_history_day(current_date || moment().format('YYYY-MM-DD'), 1);
+    load_site_statistics(true);
+  }
+
+  function show_statistic_sites_modal() {
+    const list = $('#statistic-sites-setting-list');
+    list.html('<div class="text-muted py-3">加载中...</div>');
+    $('#modal-statistic-sites').modal('show');
+
+    axios_post_do('get_site_statistic_sites', {}, function (ret) {
+      if (ret.code !== 0) {
+        list.html(`<div class="text-danger py-3">${ret.msg || '加载失败'}</div>`);
+        return;
+      }
+
+      const sites = ret.sites || [];
+      if (!sites.length) {
+        list.html('<div class="text-muted py-3">没有可配置的站点</div>');
+        return;
+      }
+
+      list.html(sites.map(site => `
+        <label class="form-selectgroup-item">
+          <input type="checkbox" name="statistic_sites_setting" value="${site.id}"
+            class="form-selectgroup-input" ${site.statistic ? 'checked' : ''}>
+          <span class="form-selectgroup-label">${site.name}</span>
+        </label>
+      `).join(''));
+    });
+  }
+
+  function save_statistic_sites_setting() {
+    const settings = {};
+    $('#statistic-sites-setting-list input[name="statistic_sites_setting"]').each(function () {
+      settings[$(this).val()] = $(this).prop('checked');
+    });
+
+    axios_post_do('save_site_statistic_sites', { sites: settings }, function (ret) {
+      if (ret.code !== 0) {
+        show_fail_modal(ret.msg || '保存失败');
+        return;
+      }
+
+      $('#modal-statistic-sites').modal('hide');
+      show_success_modal(ret.msg || '保存成功');
+      reload_page_data();
     });
   }
 
   function show_history() {
-            
-    // 展示面板
     $('#modal-indexer-history').modal("show");
 
-    // 在 modal 完全显示后再初始化图表
     $('#modal-indexer-history').one('shown.bs.modal', function () {
       if (chart_history) {
         chart_history.dispose();
@@ -660,90 +1994,58 @@
         height: 350
       });
 
-      // 当前一周数据
       $('#btn-history-one-week').trigger('click');
     });
-
   }
-  
-  function show_site_history(obj, days) {
 
+  function show_site_history(obj, days) {
     $('.btn-site-history').removeClass('active');
     $(obj).addClass('active');
 
-    // 请求数据
     axios_post_do("get_site_history", { "days": days }, function (ret) {
-
       if (ret.code == 0) {
-
         const palette = statistics_chart_palette();
         let rotate = ret.dataset.length > 15 ? 40 : 0;
         let option_history = {
           animation: false,
-          grid: {
-            left: 8,
-            top: 40,
-            right: 8,
-            bottom: 8,
-            containLabel: true
-          },
+          grid: { left: 8, top: 40, right: 8, bottom: 8, containLabel: true },
           color: [palette.accent, palette.muted],
           tooltip: {
             trigger: 'axis',
             axisPointer: {
               type: 'line',
               lineStyle: { color: palette.axis, width: 1 }
-            }, valueFormatter: value => numeral(value).format('0.0 ib')
+            },
+            valueFormatter: value => numeral(value).format('0.0 ib')
           },
-          dataset: {
-            source: ret.dataset
-          },
+          dataset: { source: ret.dataset },
           legend: {
             top: 0,
             right: 0,
             itemWidth: 12,
             itemHeight: 8,
             itemGap: 16,
-            textStyle: {
-              color: palette.secondary,
-              fontSize: 12
-            }
+            textStyle: { color: palette.secondary, fontSize: 12 }
           },
-          xAxis: [
-            {
-              type: 'category',
-              axisTick: { show: false },
-              axisLine: {
-                lineStyle: {
-                  color: palette.hairline
-                }
-              },
-              axisLabel: {
-                color: palette.secondary,
-                fontSize: 11,
-                rotate: rotate,
-              },
-            }
-          ],
-          yAxis: [
-            {
-              type: 'value',
-              axisLine: { show: false },
-              axisTick: { show: false },
-              axisLabel: {
-                color: palette.secondary,
-                fontSize: 11,
-                formatter: function (value, index) {
-                  return numeral(value).format('0.0 ib');
-                }
-              },
-              splitLine: {
-                lineStyle: {
-                  color: palette.grid
-                }
+          xAxis: [{
+            type: 'category',
+            axisTick: { show: false },
+            axisLine: { lineStyle: { color: palette.hairline } },
+            axisLabel: { color: palette.secondary, fontSize: 11, rotate: rotate }
+          }],
+          yAxis: [{
+            type: 'value',
+            axisLine: { show: false },
+            axisTick: { show: false },
+            axisLabel: {
+              color: palette.secondary,
+              fontSize: 11,
+              formatter: function (value) {
+                return numeral(value).format('0.0 ib');
               }
-            }
-          ],
+            },
+            splitLine: { lineStyle: { color: palette.grid } }
+          }],
           series: [
             {
               name: "上传量",
@@ -761,9 +2063,8 @@
         };
 
         chart_history.setOption(option_history);
-        chart_history.resize()
+        chart_history.resize();
 
-        // 总量计算
         let up_all = 0;
         let dl_all = 0;
         let len = ret.dataset.length;
@@ -773,17 +2074,15 @@
         for (let i = 1; i < len; i++) {
           dl_all += ret.dataset[i][2];
         }
-        up_all = numeral(up_all).format('0.0 ib')
-        dl_all = numeral(dl_all).format('0.0 ib')
-        $('#site-history-title').text("历史数据 · 上传 " + up_all + " / 下载 " + dl_all)
+        up_all = numeral(up_all).format('0.0 ib');
+        dl_all = numeral(dl_all).format('0.0 ib');
+        $('#site-history-title').text("历史数据 · 上传 " + up_all + " / 下载 " + dl_all);
       } else {
         show_fail_modal(`历史数据 查询失败：${ret.msg}`);
       }
-    }
-    );
+    });
   }
 
-  // 图片数值格式化
   function statistics_pic_file_size(value) {
     return numeral(Number(value || 0)).format('0.00 ib');
   }
@@ -804,7 +2103,6 @@
     return (num === 0 || num > 10000) ? '∞' : num.toFixed(2);
   }
 
-  // 站点之最排序取值：分享率显示为 ∞ 的数据不参与排名
   function statistics_pic_record_value(key, value) {
     const num = Number(value || 0);
     if (key === 'ratio' && (num === 0 || num > 10000)) {
@@ -813,20 +2111,21 @@
     return num;
   }
 
-  // 缺少用户名/加入时间的站点信息不完整，不绘制到分享图中
   function statistics_pic_site_available(item) {
     return Boolean(item && item.username && item.join_at);
   }
 
-  // 可绘制到分享图的站点
   function statistics_pic_drawable_sites() {
     return (site_statistics_data || []).filter(item => statistics_pic_site_available(item));
   }
 
-  // 分享图设置的默认值：Favicon 模糊度 37.5%（对应 PT-depiler 的 3px），默认展示站点时间线
-  const STATISTICS_PIC_DEFAULT_SETTING = { favicon_blur: 37.5, show_timeline: true };
+  var STATISTICS_PIC_DEFAULT_SETTING = { favicon_blur: 37.5, show_timeline: true, watermark: 'nastool' };
 
-  // 读取本地保存的分享图设置
+  var STATISTICS_PIC_WATERMARKS = {
+    ptdepiler: 'PT Depiler（v0.0.6.2063+aa5778e）',
+    nastool: 'NAStool'
+  };
+
   function statistics_pic_get_setting() {
     const setting = { ...STATISTICS_PIC_DEFAULT_SETTING };
     try {
@@ -840,13 +2139,14 @@
       if (typeof saved.show_timeline === 'boolean') {
         setting.show_timeline = saved.show_timeline;
       }
+      if (saved.watermark === 'none' || STATISTICS_PIC_WATERMARKS[saved.watermark]) {
+        setting.watermark = saved.watermark;
+      }
     } catch (e) {
-      // 本地存储损坏时按默认值处理
     }
     return setting;
   }
 
-  // 进度条取值（百分比），面板未打开时回落到本地保存的设置
   function statistics_pic_favicon_blur_percent() {
     const input = document.getElementById('statistics-pic-favicon-blur');
     if (input && isFinite(Number(input.value))) {
@@ -863,7 +2163,22 @@
     return statistics_pic_get_setting().show_timeline;
   }
 
-  // 百分比换算成模糊半径，100% 对应 PT-depiler 滑块的最大值 8px
+  function statistics_pic_watermark_type() {
+    const select = document.getElementById('statistics-pic-watermark');
+    if (select) {
+      return select.value;
+    }
+    return statistics_pic_get_setting().watermark;
+  }
+
+  function statistics_pic_watermark_html(timestamp) {
+    const watermark = STATISTICS_PIC_WATERMARKS[statistics_pic_watermark_type()];
+    if (!watermark) {
+      return '';
+    }
+    return `<div style="margin-top: 16px; text-align: right; font-size: 24px; color: #b5b5b5;">Created By ${watermark} at ${timestamp}</div>`;
+  }
+
   function statistics_pic_favicon_blur_px() {
     return statistics_pic_favicon_blur_percent() / 100 * 8;
   }
@@ -872,36 +2187,43 @@
     return `${Number(percent).toFixed(1).replace(/\.0$/, '')}%`;
   }
 
-  // 拖动进度条：更新数值并重绘预览
-  let statistics_pic_blur_timer = null;
+  var statistics_pic_blur_timer = null;
+
   function statistics_pic_favicon_blur_input(input) {
     $('#statistics-pic-favicon-blur-value').text(statistics_pic_format_blur(input.value));
     clearTimeout(statistics_pic_blur_timer);
     statistics_pic_blur_timer = setTimeout(render_statistics_picture, 80);
   }
 
-  // 显示分享图片面板
   function show_statistics_picture_modal() {
-    const sites = statistics_pic_drawable_sites();
+    const sites = statistics_pic_drawable_sites()
+      .sort((a, b) => Number(b.seeding || 0) - Number(a.seeding || 0));
     if (!sites.length) {
       show_fail_modal('没有可生成分享图的站点数据');
       return;
     }
 
-    // 恢复上次保存的设置，未保存过则默认全选站点
     const setting = statistics_pic_get_setting();
     const saved_sites = setting.sites || [];
-    const select_all = !saved_sites.length;
+    // 无历史选择时默认勾选做种数大于 50 的站点；若都不满足则全选
+    const default_hit = sites.some(item => Number(item.seeding || 0) > 50);
+    const is_checked = item => {
+      if (saved_sites.length) {
+        return saved_sites.includes(item.site);
+      }
+      return default_hit ? Number(item.seeding || 0) > 50 : true;
+    };
 
     $('#statistics-pic-favicon-blur').val(setting.favicon_blur);
     $('#statistics-pic-favicon-blur-value').text(statistics_pic_format_blur(setting.favicon_blur));
     $('#statistics-pic-show-timeline').prop('checked', setting.show_timeline);
+    $('#statistics-pic-watermark').val(setting.watermark);
 
     $('#statistics-pic-sites').html(sites.map(item => `
       <label class="form-selectgroup-item">
         <input type="checkbox" name="statistics_pic_sites" value="${item.site}"
           class="form-selectgroup-input" onchange="render_statistics_picture()"
-          ${(select_all || saved_sites.includes(item.site)) ? 'checked' : ''}>
+          ${is_checked(item) ? 'checked' : ''}>
         <span class="form-selectgroup-label">${item.site}</span>
       </label>
     `).join(''));
@@ -910,7 +2232,6 @@
     render_statistics_picture();
   }
 
-  // 根据选中的站点重新生成预览图
   function render_statistics_picture() {
     const drawable_sites = statistics_pic_drawable_sites();
     const selected = select_GetSelectedVAL("statistics_pic_sites");
@@ -919,7 +2240,6 @@
     setTimeout(fit_statistics_picture_preview, 0);
   }
 
-  // 预览图按面板宽度等比缩放
   function fit_statistics_picture_preview() {
     const preview = document.getElementById('statistics-pic-preview');
     const holder = document.getElementById('statistics-pic-scale');
@@ -940,29 +2260,24 @@
     holder.style.height = `${Math.round(poster_height * scale)}px`;
   }
 
-  // MDI 图标路径（与 PT-depiler 同款字体取出，内联 SVG 保证导出时不依赖字体）
-  const STATISTICS_PIC_ICON_PATH = {
+  var STATISTICS_PIC_ICON_PATH = {
     account:
       "M256 38Q217 38 183.0 56.5Q149 75 128 107Q128 126 152 143Q172 157 204 165Q233 173 256.0 173.0Q279 173 308 165Q340 157 360 143Q384 126 384 107Q363 75 329.0 56.5Q295 38 256 38ZM256 341Q283 341 301.5 322.5Q320 304 320.0 277.5Q320 251 301.5 232.0Q283 213 256.0 213.0Q229 213 210.5 232.0Q192 251 192.0 277.5Q192 304 210.5 322.5Q229 341 256 341ZM256 405Q214 405 174.5 389.0Q135 373 105.0 343.0Q75 313 59.0 273.5Q43 234 43.0 192.0Q43 150 59.0 110.5Q75 71 105.0 41.0Q135 11 174.5 -5.0Q214 -21 256.0 -21.0Q298 -21 337.5 -5.0Q377 11 407.0 41.0Q437 71 453.0 110.5Q469 150 469 192Q469 250 440.5 299.0Q412 348 363.0 376.5Q314 405 256 405Z",
     trophy:
       "M384 405Q369 405 355.0 391.5Q341 378 341 363H171Q171 378 157.0 391.5Q143 405 128 405H43V213Q43 197 56.0 184.0Q69 171 85 171H132Q139 135 162 114Q188 90 235 85V41Q213 38 198 27Q186 19 179 6Q174 -3 172 -13L171 -21H341L340 -13Q338 -3 333 6Q326 19 314 27Q299 38 277 41V85Q324 90 350 114Q373 135 380 171H427Q443 171 456.0 184.0Q469 197 469 213V405ZM128 213H85V363H128ZM427 213H384V363H427Z"
   };
 
-  // 生成 MDI 图标 SVG：字形坐标 512 单位、y 轴向上，这里统一转成 426×426 的正向坐标
   function statistics_pic_icon(name, size, fill) {
     return `<svg width="${size}" height="${size}" viewBox="0 0 426 426" style="display: block;"><g transform="translate(-43,405) scale(1,-1)"><path fill="${fill}" d="${STATISTICS_PIC_ICON_PATH[name]}"/></g></svg>`;
   }
 
-  // 站点未收录图标时显示的问号（MDI help，内联 SVG，导出时不依赖图标字体）
-  const STATISTICS_PIC_HELP_PATH = "M10,19H13V22H10V19M12,2C17.35,2.22 19.68,7.62 16.5,11.67C15.67,12.67 14.33,13.33 13.67,14.17C13,15 13,16 13,17H10C10,15.33 10,13.92 10.67,12.92C11.33,11.92 12.67,11.33 13.5,10.67C15.92,8.43 15.32,5.26 12,5A3,3 0 0,0 9,8H6A6,6 0 0,1 12,2Z";
+  var STATISTICS_PIC_HELP_PATH ="M10,19H13V22H10V19M12,2C17.35,2.22 19.68,7.62 16.5,11.67C15.67,12.67 14.33,13.33 13.67,14.17C13,15 13,16 13,17H10C10,15.33 10,13.92 10.67,12.92C11.33,11.92 12.67,11.33 13.5,10.67C15.92,8.43 15.32,5.26 12,5A3,3 0 0,0 9,8H6A6,6 0 0,1 12,2Z";
 
   function statistics_pic_help_icon(size, color) {
     return `<svg width="${size}" height="${size}" viewBox="0 0 24 24" style="display: block;"><path fill="${color}" d="${STATISTICS_PIC_HELP_PATH}"/></svg>`;
   }
 
-  // 生成分享图片主体 HTML
   function build_statistics_picture_html(sites) {
-    // 缺少用户名/加入时间的站点信息不完整，不绘制到分享图中
     sites = sites.filter(item => statistics_pic_site_available(item));
     if (!sites.length) {
       return `<div style="width: 1300px; height: 300px; box-sizing: border-box; background: #455a64; display: flex; align-items: center; justify-content: center; color: #9fb0ba; font-size: 32px;">请选择要展示的站点</div>`;
@@ -978,22 +2293,17 @@
     const join_times = sites
       .map(item => item.join_at ? new Date(String(item.join_at).replace(/-/g, '/')).getTime() : NaN)
       .filter(time => !isNaN(time));
-    // 与 PT-depiler 一致：P龄按 365 天折合一年
     const age_years = join_times.length
       ? (Date.now() - Math.min(...join_times)) / (365 * 24 * 60 * 60 * 1000)
       : null;
     const username = (sites.find(item => item.username) || {}).username || 'NAStool';
     const timestamp = moment().format('YYYY-MM-DD HH:mm:ss');
-    // 与 PT-depiler 一致：拉丁字符使用 Arial（Konva 默认字体），中文回退到系统字体
     const font_family = "Arial, 'Noto Sans SC', 'PingFang SC', 'Microsoft YaHei', sans-serif";
     const line_color = '#3d4f58';
-    // 站点图标模糊度与时间线开关
     const favicon_blur = statistics_pic_favicon_blur_px();
     const favicon_filter = favicon_blur > 0 ? `filter: blur(${favicon_blur.toFixed(2)}px);` : '';
     const show_timeline = statistics_pic_show_timeline();
 
-    // 站点明细字段：PT-depiler 为 uploaded/downloaded/seeding/seedingSize/bonus/bonusPerHour/ratio，
-    // NAStool 没有时魔值（bonusPerHour）数据
     const site_fields = [
       { label: '上传量', format: site => statistics_pic_file_size(site.upload) },
       { label: '下载量', format: site => statistics_pic_file_size(site.download) },
@@ -1002,7 +2312,6 @@
       { label: '积分值', format: site => statistics_pic_bonus(site.bonus) },
       { label: '分享率', format: site => statistics_pic_ratio(site.ratio) }
     ];
-    // 行高 408，站点块/日期块的垂直位置与 PT-depiler 的公式一致
     const per_site_height = 408;
     const stats_top = per_site_height / 2 - 20 - 20 * site_fields.length;
     const date_top = per_site_height / 2 - 40;
@@ -1044,7 +2353,6 @@
     };
     const records = trophy_cell(false) + trophy_cell(true) + record_metrics.map(metric => {
       const ranked = [...sites]
-        // 与 PT-depiler 一致：只有信息完整、分享率非 ∞ 且数值大于 0 的站点参与排名
         .filter(item => item.join_at && item.username)
         .map(item => ({ item, value: statistics_pic_record_value(metric.key, item[metric.key]) }))
         .filter(({ value }) => Number.isFinite(value) && value > 0)
@@ -1055,7 +2363,6 @@
 
     const timeline = ordered_sites.map((site, index) => {
       const stats_on_left = index % 2 === 0;
-      // 与 PT-depiler 一致：最后一个站点行不画分隔线
       const is_last_site = index === ordered_sites.length - 1;
       const favicon = site.favicon
         ? `<img src="${site.favicon}" style="width: 76px; height: 76px; object-fit: contain; display: block; ${favicon_filter}">`
@@ -1115,17 +2422,14 @@
           ${timeline}
         </div>` : ''}
         <div style="height: 4px; background: ${line_color}; margin-top: ${show_timeline ? 88 : 12}px;"></div>
-        <div style="margin-top: 16px; text-align: right; font-size: 24px; color: #b5b5b5;">Created By NAStool at ${timestamp}</div>
+        ${statistics_pic_watermark_html(timestamp)}
       </div>`;
   }
 
-  // 图标加载失败时的占位图：与缺失图标的问号保持一致
-  // 注意必须是 base64：dom-to-image 取占位图逗号后的内容直接拼成 "data:<mime>;base64,"
-  const STATISTICS_PIC_IMAGE_PLACEHOLDER = 'data:image/svg+xml;base64,' + btoa(
+  var STATISTICS_PIC_IMAGE_PLACEHOLDER = 'data:image/svg+xml;base64,' + btoa(
     `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path fill="#9e9e9e" d="${STATISTICS_PIC_HELP_PATH}"/></svg>`
   );
 
-  // 保存当前预览为图片
   function save_statistics_picture() {
     const poster = document.getElementById('statistics-pic-poster');
     if (!poster) {
@@ -1139,7 +2443,8 @@
     localStorage.setItem("StatisticsPicSetting", JSON.stringify({
       sites: selected,
       favicon_blur: statistics_pic_favicon_blur_percent(),
-      show_timeline: statistics_pic_show_timeline()
+      show_timeline: statistics_pic_show_timeline(),
+      watermark: statistics_pic_watermark_type()
     }));
 
     const width = poster.offsetWidth;
@@ -1150,7 +2455,6 @@
       width: width,
       height: height,
       style: { transform: 'none', position: 'static', top: 'auto', left: 'auto' },
-      // 图标地址取不到时用占位图代替，避免整张图片生成失败或留下空洞
       imagePlaceholder: STATISTICS_PIC_IMAGE_PLACEHOLDER
     }).then(function (blob) {
       saveAs(blob, `nastool_statistics_${moment().format('YYYYMMDDHHmmss')}.png`);
@@ -1160,333 +2464,33 @@
   }
 
   function ask_refresh_statistics(site_name) {
-
-    var target = site_name ? '是否立即刷新【'+ site_name +'】站点数据?' : "是否立即刷新所有站点的数据?"
+    var target = site_name ? '是否立即刷新【' + site_name + '】站点数据?' : "是否立即刷新所有站点的数据?";
 
     show_ask_modal(target, function () {
-      axios_post_do("refresh_pt_statistics", {'site':site_name}, function (ret) {
+      axios_post_do("refresh_pt_statistics", { 'site': site_name }, function (ret) {
         if (ret.code !== 0) {
           show_fail_modal(ret.msg);
           return;
         }
         if (!site_name) {
-          // 全部站点刷新为后台任务，提交后不重新加载数据
           show_success_modal(ret.msg);
           return;
         }
-        // 单站点刷新为同步执行，返回后重新加载站点明细表格
-        load_site_statistics(true);
+        reload_page_data();
         if (ret.missing && ret.missing.length) {
           show_warning_modal(ret.msg);
         } else {
           show_success_modal(ret.msg);
         }
       });
-
-    });
-
-  }
-
-</script>
-
-
-
-<script type="text/javascript">
-
-  // 站点明细 是否已加载（切换视图时按需加载）
-  var sites_statistics_loaded = false;
-  // 分站点原始数据与排序状态
-  var site_statistics_data = [];
-  var site_statistics_sort_by = 'upload';
-  var site_statistics_sort_order = 'desc';
-
-  // 加载总量信息
-  function load_total_statistics() {
-    axios_post('/data/statistics', {}, function (response) {
-      if (response.code !== 0 || !response.data || !response.data.SiteCount) {
-        $('#total-statistics-content').hide();
-        $('#no-statistics').show();
-        return;
-      }
-
-      const data = response.data;
-      const upload = Number(data.TotalUpload || 0);
-      const download = Number(data.TotalDownload || 0);
-      const total = upload + download;
-
-      $('#no-statistics').hide();
-      $('#total-statistics-content').show();
-
-      $('#total-upload').text(statistics_size_text(upload));
-      $('#total-download').text(statistics_size_text(download));
-      $('#total-seeding').text(statistics_count_text(data.TotalSeeding));
-      $('#total-seeding-size').text(statistics_size_text(data.TotalSeedingSize));
-      $('#total-ratio').text(total > 0 ? (download > 0 ? (upload / download).toFixed(2) : '∞') : '—');
-      $('#total-upload-bar').css('width', total > 0 ? (upload / total * 100).toFixed(2) + '%' : '0%');
-      $('#total-download-bar').css('width', total > 0 ? (download / total * 100).toFixed(2) + '%' : '0%');
     });
   }
 
-  // 加载站点明细
-  function load_site_statistics(force) {
-    if (sites_statistics_loaded && !force) {
-      return;
-    }
-
-    const list = $('#site-statistics-list');
-    list.html('<div class="statistics-empty">加载中...</div>');
-
-    axios_post('/data/site_statistics', {}, function (response) {
-      if (response.code !== 0 || !response.data) {
-        list.html('<div class="statistics-empty">加载失败</div>');
-        return;
-      }
-
-      site_statistics_data = response.data.SiteUserStatistics || [];
-      sites_statistics_loaded = true;
-      $('#site-count').text(site_statistics_data.length);
-      render_site_statistics();
-    });
-  }
-
-  // 排序取值：分享率显示为 ∞ 的情况（0 或大于 10000）按无穷大参与排序，与展示保持一致
-  function site_statistics_sort_value(item) {
-    // 没有统计数据的站点不参与数值排序，统一排在末尾
-    if (item.has_data === false) {
-      return 0;
-    }
-    if (site_statistics_sort_by === 'ratio') {
-      return (item.ratio == 0.0 || item.ratio > 10000) ? Infinity : Number(item.ratio || 0);
-    }
-    return Number(item[site_statistics_sort_by] || 0);
-  }
-
-  // 按当前排序条件渲染 站点明细
-  function render_site_statistics() {
-    const list = $('#site-statistics-list');
-
-    if (!site_statistics_data.length) {
-      list.html('<div class="statistics-empty">没有站点数据</div>');
-      $('#share-btn-container').hide();
-      return;
-    }
-
-    update_site_statistics_sort_header();
-
-    const desc = site_statistics_sort_order === 'desc';
-    const statistics = [...site_statistics_data].sort((a, b) => {
-      let result;
-      if (site_statistics_sort_by === 'site' || site_statistics_sort_by === 'join_at' || site_statistics_sort_by === 'update_at') {
-        // 站点名称、加入/更新时间为字符串，日期为 YYYY-MM-DD HH:MM:SS，可直接比较
-        result = String(a[site_statistics_sort_by] || '').localeCompare(String(b[site_statistics_sort_by] || ''));
-      } else {
-        // 用比较而非相减，避免两个 ∞ 相减得到 NaN
-        const av = site_statistics_sort_value(a);
-        const bv = site_statistics_sort_value(b);
-        result = av === bv ? 0 : (av > bv ? 1 : -1);
-      }
-      return desc ? -result : result;
-    });
-
-    $('#share-btn-container').show();
-    list.html(statistics.map(render_site_statistics_row).join(''));
-  }
-
-  // 更新表头排序状态
-  function update_site_statistics_sort_header() {
-    $('.site-statistics-sort').each(function () {
-      const active = $(this).data('sort') === site_statistics_sort_by;
-      $(this).toggleClass('text-body', active).toggleClass('text-muted', !active).toggleClass('fw-semibold', active);
-      const icon = $(this).find('i');
-      icon.toggleClass('d-none', !active);
-      if (active) {
-        icon.attr('class', site_statistics_sort_order === 'desc' ? 'ti ti-arrow-down ms-1' : 'ti ti-arrow-up ms-1');
-      }
-    });
-  }
-
-  // 点击表头排序：同字段切换升降序，新字段默认降序（站点名称升序，加入时间最新在前）
-  function sort_site_statistics(field) {
-    if (site_statistics_sort_by === field) {
-      site_statistics_sort_order = site_statistics_sort_order === 'desc' ? 'asc' : 'desc';
-    } else {
-      site_statistics_sort_by = field;
-      site_statistics_sort_order = field === 'site' ? 'asc' : 'desc';
-    }
-    render_site_statistics();
-  }
-
-  // 站点图标：有图标显示图片，否则显示问号占位
-  function site_favicon_html(item) {
-    if (item.favicon) {
-      return `<img src="${statistics_escape(item.favicon)}" class="site-favicon" alt="" loading="lazy" onerror="this.style.display='none'">`;
-    }
-    return `<span class="site-favicon-placeholder">${statistics_pic_help_icon(18, 'currentColor')}</span>`;
-  }
-
-  // 渲染单个站点（桌面端与表头对齐，移动端为独立信息块）
-  function render_site_statistics_row(item) {
-    // 未获取过统计数据的站点（含未启用统计的站点）也展示在列表里
-    const has_data = item.has_data !== false;
-    const no_data_text = '<span class="statistics-num-muted">-</span>';
-    const ratio = has_data ? statistics_ratio_text(item.ratio) : no_data_text;
-    const site_arg = JSON.stringify(String(item.site || ''));
-    const messageIcon = item.msg_unread > 0
-      ? '<i class="ti ti-message statistics-unread" title="有未读消息"></i>'
-      : '';
-    const level = item.user_level
-      ? `<span class="statistics-level">${statistics_escape(item.user_level)}</span>`
-      : '';
-    const joinAt = item.join_at ? item.join_at.substring(0, 10) : '';
-    const updateAt = item.update_at || '';
-    const meta = has_data
-      ? [statistics_escape(item.username || '-'), joinAt ? `${joinAt}` : ''].filter(Boolean).join(' · ')
-      : '尚无统计数据';
-    const mobileMeta = has_data
-      ? [statistics_escape(item.username || '-'),
-        updateAt ? `更新 ${statistics_escape(updateAt)}` : ''].filter(Boolean).join(' · ')
-      : '尚无统计数据';
-    const nameLink = `<a href='javascript:show_site_activity(${site_arg})' class="statistics-site-name" title="查看历史数据"><span class="statistics-site-label">${statistics_escape(item.site)}</span>${messageIcon}</a>`;
-    const siteTitle = `<div class="statistics-site-title">${nameLink}${level}</div>`;
-    const refresh = `<a href='javascript:ask_refresh_statistics(${site_arg})' class="statistics-row-action" title="刷新站点数据"><i class="ti ti-refresh"></i></a>`;
-
-    return `
-      <!-- 桌面端 -->
-      <div class="statistics-site-row d-none d-lg-grid">
-        <div class="statistics-site-cell">
-          ${site_favicon_html(item)}
-          <div class="statistics-site-text">
-            ${siteTitle}
-            <div class="statistics-site-meta">
-              <span class="statistics-site-meta-text">${meta}</span>
-              ${refresh}
-            </div>
-          </div>
-        </div>
-        <div class="statistics-num">${has_data ? statistics_size_text(item.upload) : no_data_text}</div>
-        <div class="statistics-num">${has_data ? statistics_size_text(item.download) : no_data_text}</div>
-        <div class="statistics-num">${ratio}</div>
-        <div class="statistics-num">${has_data ? statistics_count_text(item.seeding) : no_data_text}</div>
-        <div class="statistics-num">${has_data ? statistics_size_text(item.seeding_size) : no_data_text}</div>
-        <div class="statistics-num">${has_data ? statistics_bonus_text(item.bonus) : no_data_text}</div>
-        <div class="statistics-num">${has_data && updateAt ? statistics_escape(updateAt) : no_data_text}</div>
-      </div>
-      <!-- 移动端 -->
-      <div class="statistics-site-card d-lg-none">
-        <div class="statistics-site-card-head">
-          ${site_favicon_html(item)}
-          <div class="statistics-site-text">
-            ${siteTitle}
-            <div class="statistics-site-meta">${mobileMeta}</div>
-          </div>
-          ${refresh}
-        </div>
-        <div class="statistics-site-card-stats">
-          <div class="statistics-site-card-stat">
-            <div class="statistics-label">上传量</div>
-            <div class="statistics-num">${has_data ? statistics_size_text(item.upload) : no_data_text}</div>
-          </div>
-          <div class="statistics-site-card-stat">
-            <div class="statistics-label">下载量</div>
-            <div class="statistics-num">${has_data ? statistics_size_text(item.download) : no_data_text}</div>
-          </div>
-          <div class="statistics-site-card-stat">
-            <div class="statistics-label">分享率</div>
-            <div class="statistics-num">${ratio}</div>
-          </div>
-          <div class="statistics-site-card-stat">
-            <div class="statistics-label">做种数</div>
-            <div class="statistics-num">${has_data ? statistics_count_text(item.seeding) : no_data_text}</div>
-          </div>
-          <div class="statistics-site-card-stat">
-            <div class="statistics-label">做种体积</div>
-            <div class="statistics-num">${has_data ? statistics_size_text(item.seeding_size) : no_data_text}</div>
-          </div>
-          <div class="statistics-site-card-stat">
-            <div class="statistics-label">魔力值</div>
-            <div class="statistics-num">${has_data ? statistics_bonus_text(item.bonus) : no_data_text}</div>
-          </div>
-        </div>
-      </div>
-    `;
-  }
-
-  // 显示站点统计设置（平铺站点名称，点击切换选中）
-  function show_statistic_sites_modal() {
-    const list = $('#statistic-sites-setting-list');
-    list.html('<div class="text-muted py-3">加载中...</div>');
-    $('#modal-statistic-sites').modal('show');
-
-    axios_post_do('get_site_statistic_sites', {}, function (ret) {
-      if (ret.code !== 0) {
-        list.html(`<div class="text-danger py-3">${ret.msg || '加载失败'}</div>`);
-        return;
-      }
-
-      const sites = ret.sites || [];
-      if (!sites.length) {
-        list.html('<div class="text-muted py-3">没有可配置的站点</div>');
-        return;
-      }
-
-      list.html(sites.map(site => `
-        <label class="form-selectgroup-item">
-          <input type="checkbox" name="statistic_sites_setting" value="${site.id}"
-            class="form-selectgroup-input" ${site.statistic ? 'checked' : ''}>
-          <span class="form-selectgroup-label">${site.name}</span>
-        </label>
-      `).join(''));
-    });
-  }
-
-  // 保存站点统计设置
-  function save_statistic_sites_setting() {
-    const settings = {};
-    $('#statistic-sites-setting-list input[name="statistic_sites_setting"]').each(function () {
-      settings[$(this).val()] = $(this).prop('checked');
-    });
-
-    axios_post_do('save_site_statistic_sites', { sites: settings }, function (ret) {
-      if (ret.code !== 0) {
-        show_fail_modal(ret.msg || '保存失败');
-        return;
-      }
-
-      $('#modal-statistic-sites').modal('hide');
-      show_success_modal(ret.msg || '保存成功');
-
-      // 站点范围变化后重新加载统计数据
-      sites_statistics_loaded = false;
-      load_total_statistics();
-      if ($('#statistics-sites-tab').prop('checked')) {
-        load_site_statistics(true);
-      }
-    });
-  }
-
-  // 页面加载完成后，加载总量信息与今日流量；站点明细 在切换视图时按需加载
   $(document).ready(function () {
-
     load_total_statistics();
-
-    // 今日流量
     show_site_history_day(moment().format('YYYY-MM-DD'), 1);
+    load_site_statistics();
 
-    // 视图切换
-    $('input[name="statistics-view"]').on('change', function () {
-      const sites_view = $(this).val() === 'sites';
-
-      $('#tab-statistics-total').toggle(!sites_view);
-      $('#tab-statistics-sites').toggle(sites_view);
-      $('#statistics-total-toolbar').toggleClass('d-none', sites_view);
-      $('#statistics-sites-toolbar').toggleClass('d-none', !sites_view);
-
-      if (sites_view) {
-        load_site_statistics();
-      }
-    });
-
-    // 分享图片：弹窗显示完成后按面板宽度重新缩放预览
     $('#modal-statistics-pic-setting').on('shown.bs.modal', function () {
       fit_statistics_picture_preview();
     });

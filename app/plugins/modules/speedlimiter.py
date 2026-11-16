@@ -16,7 +16,7 @@ class SpeedLimiter(_IPluginModule):
     # 插件描述
     module_desc = "媒体服务器播状态改变时，根据设置对下载器进行限速。"
     # 插件图标
-    module_icon = "SpeedLimiter.jpg"
+    module_icon = "SpeedLimiter.png"
     # 主题色
     module_color = "#183883"
     # 插件版本
