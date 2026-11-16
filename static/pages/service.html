@@ -1,201 +1,91 @@
 <style>
-  #page-content {
-      --svc-line: color-mix(in srgb, var(--tblr-body-color) 9%, transparent);
-      --svc-line-strong: color-mix(in srgb, var(--tblr-body-color) 15%, transparent);
-      --svc-text-2: color-mix(in srgb, var(--tblr-body-color) 64%, transparent);
-      --svc-text-3: color-mix(in srgb, var(--tblr-body-color) 44%, transparent);
-      --svc-hover: color-mix(in srgb, var(--tblr-body-color) 3.5%, transparent);
-      --svc-accent: var(--tblr-primary);
-      --svc-mono: var(--tblr-font-monospace);
-  }
-
-  .svc-summary {
-      display: flex;
-      align-items: center;
-      flex-wrap: wrap;
-      gap: 8px;
-      margin-top: 4px;
-      color: var(--svc-text-2);
-      font-size: 13px;
-      line-height: 1.4;
-      font-variant-numeric: tabular-nums;
-  }
-
-  .svc-summary[hidden],
-  .job-rail[hidden] { display: none; }
-
-  .svc-summary-sep { color: var(--svc-text-3); }
-  .svc-summary-name { color: var(--svc-text-3); }
-
-  .svc-summary-time {
-      color: var(--tblr-body-color);
-      font-family: var(--svc-mono);
-      font-size: 12px;
-  }
-
-  .svc-group { margin-top: 32px; }
-  .svc-group:first-child { margin-top: 24px; }
-
-  .svc-group-title {
-      margin: 0 0 8px;
-      padding-left: 20px;
-      color: var(--svc-text-3);
-      font-size: 12px;
-      font-weight: 400;
-      line-height: 1.4;
-  }
-
-  .svc-panel {
+  /* 系统服务：现代列表页，表面与文字跟随全站主题 */
+  .svc-card {
       overflow: hidden;
       background-color: var(--tblr-bg-surface);
-      border: 1px solid var(--svc-line);
-      border-radius: 12px;
+      border: 1px solid var(--tblr-border-color);
+      border-radius: var(--tblr-border-radius-lg);
+  }
+  .svc-card-head { min-height: 58px; }
+  .svc-card-meta {
+      font-size: 12px;
+      line-height: 1.4;
+      font-variant-numeric: tabular-nums;
   }
 
   .svc-row {
       display: grid;
-      grid-template-columns: 32px minmax(0, 1fr) 116px 104px 16px;
+      grid-template-columns: 40px minmax(0, 1fr) auto;
+      column-gap: 14px;
       align-items: center;
-      column-gap: 16px;
-      min-height: 60px;
-      padding: 8px 20px;
-      border-top: 1px solid var(--svc-line);
+      padding: 11px 16px;
       color: inherit;
-      text-decoration: none;
-      transition: background-color 140ms cubic-bezier(0.22, 1, 0.36, 1);
+      transition: background-color .12s ease;
   }
-
-  .svc-row:first-child { border-top: 0; }
-
-  .svc-row:hover {
-      background-color: color-mix(in srgb, var(--svc-color, var(--tblr-body-color)) 4.5%, transparent);
-  }
-
-  .svc-row:focus-visible {
-      outline: 2px solid var(--svc-accent);
+  .svc-row .svc-status { justify-self: end; }
+  .svc-row:hover { background-color: var(--tblr-bg-surface-secondary); }
+  .svc-row:focus-visible,
+  .svc-tool:focus-visible {
+      outline: 2px solid var(--tblr-primary);
       outline-offset: -2px;
   }
 
-  .svc-icon {
-      display: flex;
-      width: 32px;
-      height: 32px;
+  .svc-ico {
+      display: inline-flex;
+      width: 40px;
+      height: 40px;
       align-items: center;
       justify-content: center;
-      color: color-mix(in srgb, var(--svc-color, var(--tblr-body-color)) 78%, var(--tblr-body-color));
-      font-size: 18px;
-      line-height: 1;
-      background-color: color-mix(in srgb, var(--svc-color, var(--tblr-body-color)) 11%, var(--tblr-bg-surface));
-      border: 1px solid color-mix(in srgb, var(--svc-color, var(--tblr-body-color)) 22%, transparent);
-      border-radius: 8px;
+      border-radius: 50%;
   }
+  .svc-ico svg { width: 20px; height: 20px; }
 
-  .svc-icon svg { width: 18px; height: 18px; }
+  .svc-copy { display: flex; min-width: 0; flex-direction: column; gap: 1px; }
+  .svc-name { font-size: 13px; line-height: 1.45; }
+  .svc-desc { font-size: 11px; line-height: 1.45; }
 
-  .svc-copy {
-      display: flex;
-      min-width: 0;
-      flex-direction: column;
-      gap: 2px;
-  }
-
-  .svc-name {
-      color: var(--tblr-body-color);
-      font-size: 14px;
-      font-weight: 500;
-      line-height: 1.35;
-  }
-
-  .svc-desc {
-      overflow: hidden;
-      color: var(--svc-text-3);
-      font-size: 12px;
-      line-height: 1.4;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-  }
-
-  .svc-cadence {
-      color: var(--svc-text-2);
-      font-size: 13px;
-      font-variant-numeric: tabular-nums;
-      text-align: right;
-      white-space: nowrap;
-  }
-
-  .svc-state {
+  .svc-status {
       display: inline-flex;
       align-items: center;
-      gap: 8px;
-      color: var(--svc-text-3);
+      gap: 6px;
+      color: var(--tblr-secondary);
       font-size: 12px;
-      white-space: nowrap;
+      line-height: 1.4;
   }
-
-  .svc-state.is-running { color: var(--svc-accent); }
-
-  .svc-go {
-      justify-self: end;
-      color: var(--svc-text-3);
-      font-size: 16px;
-  }
-
-  .svc-led,
-  .job-led {
-      flex: 0 0 auto;
+  .svc-status.is-running { color: var(--tblr-blue); }
+  .svc-status.is-queued { color: var(--tblr-orange); }
+  .svc-status.is-enabled .svc-dot,
+  .svc-status.is-scheduled .svc-dot { background-color: var(--tblr-green); }
+  .svc-status.is-off .svc-dot { background-color: var(--tblr-secondary); opacity: .45; }
+  .svc-dot {
       width: 6px;
       height: 6px;
-      border-radius: 2px;
-      background-color: color-mix(in srgb, var(--tblr-body-color) 28%, transparent);
+      flex: none;
+      background-color: currentColor;
+      border-radius: 50%;
   }
 
-  .svc-led.is-service {
-      background-color: color-mix(in srgb, var(--svc-color, var(--tblr-body-color)) 82%, var(--tblr-body-color));
+  .svc-tool {
+      display: grid;
+      grid-template-columns: 40px minmax(0, 1fr);
+      column-gap: 12px;
+      align-items: center;
+      padding: 10px 16px;
+      color: inherit;
+      transition: background-color .12s ease;
   }
+  .svc-tool:hover { background-color: var(--tblr-bg-surface-secondary); }
 
-  .svc-led.is-on,
-  .job-led.is-on {
-      background-color: var(--svc-accent);
-      animation: svc-led-breathe 2.6s ease-in-out infinite;
-  }
+  .svc-empty { padding: 22px 16px; font-size: 12px; }
 
-  .svc-led.is-off,
-  .job-led.is-off {
-      background-color: transparent;
-      box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--tblr-body-color) 30%, transparent);
-  }
-
-  @keyframes svc-led-breathe {
-      0%, 100% { opacity: 1; }
-      50% { opacity: .38; }
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-      .svc-led.is-on,
-      .job-led.is-on { animation: none; }
-  }
-
-  .svc-empty {
-      padding: 48px 20px;
-      text-align: center;
-  }
-
-  .svc-empty-icon {
-      color: var(--svc-text-3);
-      font-size: 24px;
-  }
-
-  .svc-empty-title {
-      margin-top: 12px;
-      color: var(--tblr-body-color);
-      font-size: 14px;
-      font-weight: 500;
-  }
-
-  .svc-empty-desc {
-      margin-top: 4px;
-      color: var(--svc-text-3);
-      font-size: 13px;
+  #modal-job-list {
+      --job-line: color-mix(in srgb, var(--tblr-body-color) 9%, transparent);
+      --job-line-strong: color-mix(in srgb, var(--tblr-body-color) 15%, transparent);
+      --job-text-2: color-mix(in srgb, var(--tblr-body-color) 64%, transparent);
+      --job-text-3: color-mix(in srgb, var(--tblr-body-color) 44%, transparent);
+      --job-hover: color-mix(in srgb, var(--tblr-body-color) 3.5%, transparent);
+      --job-accent: var(--tblr-primary);
+      --job-mono: var(--tblr-font-monospace);
   }
 
   #modal-job-list .modal-content { border-radius: 14px; }
@@ -213,26 +103,26 @@
 
   .job-sub {
       margin-top: 2px;
-      color: var(--svc-text-3);
+      color: var(--job-text-3);
       font-size: 12px;
       font-variant-numeric: tabular-nums;
   }
 
   .job-rail {
       padding: 12px 24px 8px;
-      border-bottom: 1px solid var(--svc-line);
+      border-bottom: 1px solid var(--job-line);
   }
 
   .job-rail-head {
       display: flex;
       align-items: baseline;
       justify-content: space-between;
-      color: var(--svc-text-3);
+      color: var(--job-text-3);
       font-size: 12px;
   }
 
   .job-rail-now {
-      font-family: var(--svc-mono);
+      font-family: var(--job-mono);
       font-size: 11px;
       font-variant-numeric: tabular-nums;
   }
@@ -245,11 +135,11 @@
 
   .job-rail-base {
       position: absolute;
-      left: 0;
       right: 0;
       bottom: 16px;
+      left: 0;
       height: 1px;
-      background-color: var(--svc-line-strong);
+      background-color: var(--job-line-strong);
   }
 
   .job-rail-tick {
@@ -257,14 +147,14 @@
       bottom: 16px;
       width: 1px;
       height: 5px;
-      background-color: var(--svc-line);
+      background-color: var(--job-line);
   }
 
   .job-rail-tick-label {
       position: absolute;
       bottom: 0;
-      color: var(--svc-text-3);
-      font-family: var(--svc-mono);
+      color: var(--job-text-3);
+      font-family: var(--job-mono);
       font-size: 10px;
       line-height: 1;
       font-variant-numeric: tabular-nums;
@@ -280,14 +170,14 @@
       bottom: 16px;
       width: 2px;
       height: 12px;
-      border-radius: 1px;
       background-color: color-mix(in srgb, var(--tblr-body-color) 34%, transparent);
+      border-radius: 1px;
       transform: translateX(-1px);
   }
 
   .job-rail-mark.is-next {
       height: 18px;
-      background-color: var(--svc-accent);
+      background-color: var(--job-accent);
   }
 
   .job-head,
@@ -304,9 +194,9 @@
       top: 0;
       z-index: 1;
       height: 32px;
-      border-bottom: 1px solid var(--svc-line);
       background-color: var(--tblr-bg-surface);
-      color: var(--svc-text-3);
+      border-bottom: 1px solid var(--job-line);
+      color: var(--job-text-3);
       font-size: 11px;
   }
 
@@ -316,11 +206,38 @@
       min-height: 52px;
       padding-top: 8px;
       padding-bottom: 8px;
-      border-top: 1px solid var(--svc-line);
+      border-top: 1px solid var(--job-line);
   }
 
   .job-row:first-child { border-top: 0; }
-  .job-row:hover { background-color: var(--svc-hover); }
+  .job-row:hover { background-color: var(--job-hover); }
+
+  .job-led {
+      flex: 0 0 auto;
+      width: 6px;
+      height: 6px;
+      background-color: color-mix(in srgb, var(--tblr-body-color) 28%, transparent);
+      border-radius: 2px;
+  }
+
+  .job-led.is-on {
+      background-color: var(--job-accent);
+      animation: job-led-breathe 2.6s ease-in-out infinite;
+  }
+
+  .job-led.is-off {
+      background-color: transparent;
+      box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--tblr-body-color) 30%, transparent);
+  }
+
+  @keyframes job-led-breathe {
+      0%, 100% { opacity: 1; }
+      50% { opacity: .38; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+      .job-led.is-on { animation: none; }
+  }
 
   .job-name {
       display: flex;
@@ -341,24 +258,24 @@
   .job-tag {
       flex: 0 0 auto;
       padding: 1px 6px;
-      border: 1px solid var(--svc-line-strong);
+      border: 1px solid var(--job-line-strong);
       border-radius: 4px;
-      color: var(--svc-text-3);
+      color: var(--job-text-3);
       font-size: 10px;
       line-height: 1.4;
   }
 
   .job-cadence {
       overflow: hidden;
-      color: var(--svc-text-3);
+      color: var(--job-text-3);
       font-size: 12px;
       text-overflow: ellipsis;
       white-space: nowrap;
   }
 
   .job-next {
-      color: var(--svc-text-2);
-      font-family: var(--svc-mono);
+      color: var(--job-text-2);
+      font-family: var(--job-mono);
       font-size: 12px;
       font-variant-numeric: tabular-nums;
       text-align: right;
@@ -366,33 +283,20 @@
   }
 
   .job-status {
-      color: var(--svc-text-3);
+      color: var(--job-text-3);
       font-size: 12px;
       text-align: right;
       white-space: nowrap;
   }
 
-  .job-status.is-running { color: var(--svc-accent); }
-  .job-status.is-queued { color: var(--svc-text-2); }
+  .job-status.is-running { color: var(--job-accent); }
+  .job-status.is-queued { color: var(--job-text-2); }
 
   .job-empty {
       padding: 40px 24px;
-      color: var(--svc-text-3);
+      color: var(--job-text-3);
       font-size: 13px;
       text-align: center;
-  }
-
-  @media (max-width: 767.98px) {
-      .svc-row {
-          grid-template-columns: 32px minmax(0, 1fr) auto;
-          column-gap: 12px;
-          padding: 10px 16px;
-      }
-
-      .svc-cadence,
-      .svc-go { display: none; }
-
-      .svc-group-title { padding-left: 16px; }
   }
 
   @media (max-width: 639.98px) {
@@ -422,14 +326,21 @@
       .job-next { grid-area: next; font-size: 11px; }
       .job-status { grid-area: status; }
   }
+
+  @media (max-width: 991.98px) {
+      .svc-grid { --tblr-gutter-x: 1rem; --tblr-gutter-y: 1rem; }
+  }
+
+  @media (max-width: 767.98px) {
+      .svc-grid { --tblr-gutter-x: .75rem; --tblr-gutter-y: .75rem; }
+      .svc-row { padding: 12px 14px; }
+  }
 </style>
 <div class="container-xl">
-  <!-- Page title -->
   <div class="page-header d-print-none mt-2">
-    <div class="row align-items-center">
+    <div class="row align-items-end g-2">
       <div class="col">
         <h2 class="page-title">系统服务</h2>
-        <div class="svc-summary" id="svc-summary" hidden></div>
       </div>
     </div>
   </div>
@@ -437,15 +348,46 @@
 <!-- 业务页面代码 -->
 <div class="page-body" id="services-container" style="display: none;">
   <div class="container-xl">
-    <div id="services-list"></div>
+    <section class="mt-3">
+      <div class="row row-cards svc-grid align-items-start">
+        <div class="col-12 col-xl-4">
+          <div class="svc-card">
+            <div class="svc-card-head d-flex align-items-baseline gap-2 p-3">
+              <h4 class="card-title fw-semibold mb-0">自动任务</h4>
+              <span class="svc-card-meta text-muted" id="svc-auto-meta"></span>
+            </div>
+            <div id="svc-auto-list"></div>
+          </div>
+        </div>
+        <div class="col-12 col-md-6 col-xl-4">
+          <div class="svc-card">
+            <div class="svc-card-head d-flex align-items-baseline gap-2 p-3">
+              <h4 class="card-title fw-semibold mb-0">维护工具</h4>
+            </div>
+            <div id="svc-maint-list"></div>
+          </div>
+        </div>
+        <div class="col-12 col-md-6 col-xl-4">
+          <div class="svc-card">
+            <div class="svc-card-head d-flex align-items-baseline gap-2 p-3">
+              <h4 class="card-title fw-semibold mb-0">诊断工具</h4>
+            </div>
+            <div id="svc-diag-list"></div>
+          </div>
+        </div>
+      </div>
+    </section>
   </div>
 </div>
 <div class="page-body" id="no-services" style="display: none;">
-  <div class="container-xl">
-    <div class="svc-panel svc-empty">
-      <i class="ti ti-server-2 svc-empty-icon"></i>
-      <div class="svc-empty-title">没有可用的服务</div>
-      <div class="svc-empty-desc">当前账号没有开启任何后台服务</div>
+  <div class="container-xl d-flex flex-column justify-content-center">
+    <div class="empty">
+      <div class="empty-img"><img src="./static/img/sign_in.svg" height="128" alt="">
+      </div>
+      <p class="empty-title">没有服务</p>
+      <p class="empty-subtitle text-muted">
+        没有开启任何后台服务。
+      </p>
     </div>
   </div>
 </div>
@@ -812,7 +754,7 @@
       $(this).attr("disabled", false).text("恢复配置");
       $("#modal-backup").modal('hide');
       if (ret.code === 0) {
-        show_success_modal("备份恢复成功，请重启系统生效");
+        show_success_modal("备份恢复成功，请重启系统生效！");
       } else {
         show_fail_modal(`备份恢复失败：${ret.msg}`, function() {
           $("#modal-backup").modal('show');
@@ -959,46 +901,13 @@
     })[ch]);
   }
 
-  // 时间解析与展示：当天只显示时分，跨天补上「明天 / 月-日」
-  function parse_job_date(value) {
-    if (!value) {
-      return null;
-    }
-    const date = new Date(String(value).replace(" ", "T"));
-    return isNaN(date.getTime()) ? null : date;
-  }
-
-  function pad_job_num(value) {
-    return String(value).padStart(2, "0");
-  }
-
-  function format_job_clock(date) {
-    return `${pad_job_num(date.getHours())}:${pad_job_num(date.getMinutes())}`;
-  }
-
-  function format_job_time(value) {
-    const date = parse_job_date(value);
-    if (!date) {
-      return "—";
-    }
-    const now = new Date();
-    const tomorrow = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
-    const clock = format_job_clock(date);
-    if (date.toDateString() === now.toDateString()) {
-      return clock;
-    }
-    if (date.toDateString() === tomorrow.toDateString()) {
-      return `明天 ${clock}`;
-    }
-    return `${pad_job_num(date.getMonth() + 1)}-${pad_job_num(date.getDate())} ${clock}`;
-  }
-
-  // 统一间隔描述里的空格（「每30分钟」→「每 30 分钟」）
-  function format_job_frequency(value) {
-    return String(value ?? "")
-      .replace(/^每(?=\d)/, "每 ")
-      .replace(/(\d)(分钟|小时|秒|天)/g, "$1 $2");
-  }
+  var JOB_ICON_CLOCK = `<svg xmlns="http://www.w3.org/2000/svg" class="icon" width="20" height="20"
+    viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none"
+    stroke-linecap="round" stroke-linejoin="round">
+    <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+    <circle cx="12" cy="12" r="9"/>
+    <path d="M12 7v5l3 3"/>
+  </svg>`;
 
   // 任务状态：执行中 / 排队中 / 待执行
   function get_job_status(info) {
@@ -1014,51 +923,87 @@
     return {key: "scheduled", led: "", cls: "", text: "待执行"};
   }
 
-  // 接下来 24 小时的排程轨道，每个任务只标出它的下一次执行点
-  function draw_job_rail(jobs) {
-    const rail = $("#job-rail");
-    const now = new Date();
-    const window_ms = 24 * 60 * 60 * 1000;
-    const marks = [];
+  function format_job_clock(date) {
+    return `${pad2(date.getHours())}:${pad2(date.getMinutes())}`;
+  }
 
+  // 任务时间：当天只显示时分，跨天补上「明天 / 月-日」
+  function format_job_time(value) {
+    const date = parse_job_date(value);
+    if (!date) {
+      return "—";
+    }
+    const now = new Date();
+    const tomorrow = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+    const clock = format_job_clock(date);
+    if (date.toDateString() === now.toDateString()) {
+      return clock;
+    }
+    if (date.toDateString() === tomorrow.toDateString()) {
+      return `明天 ${clock}`;
+    }
+    return `${date.getMonth() + 1}-${date.getDate()} ${clock}`;
+  }
+
+  // 统一间隔描述里的空格（「每30分钟」→「每 30 分钟」）
+  function format_job_frequency(value) {
+    return String(value ?? "")
+      .replace(/^每(?=\d)/, "每 ")
+      .replace(/(\d)(分钟|小时|秒|天)/g, "$1 $2");
+  }
+
+  // 收集接下来 24 小时内的执行点，按时间排序
+  function collect_job_marks(jobs, now) {
+    const windowMs = 24 * 60 * 60 * 1000;
+    const marks = [];
     jobs.forEach(info => {
       const date = parse_job_date(info.next_run_time);
       if (!date) {
         return;
       }
       const offset = date.getTime() - now.getTime();
-      if (offset < -60000 || offset > window_ms) {
+      if (offset < -60000 || offset > windowMs) {
         return;
       }
-      marks.push({offset: offset, name: info.name, time: format_job_time(info.next_run_time)});
+      marks.push({offset: offset, name: info.name, time: format_job_clock(date)});
     });
+    marks.sort((a, b) => a.offset - b.offset);
+    return marks;
+  }
+
+  // 生成 24 小时排程轨道，每个任务只标出它的下一次执行点
+  function build_job_rail_content(marks, now) {
+    const windowMs = 24 * 60 * 60 * 1000;
+    let content = '<div class="job-rail-base"></div>';
+    for (let step = 0; step <= 4; step++) {
+      const ratio = step / 4;
+      const tickTime = new Date(now.getTime() + ratio * windowMs);
+      const position = (ratio * 100).toFixed(3);
+      const labelClass = step === 0 ? " is-start" : (step === 4 ? " is-end" : "");
+      content += `<span class="job-rail-tick" style="left:${position}%"></span>`;
+      content += `<span class="job-rail-tick-label${labelClass}" style="left:${position}%">${format_job_clock(tickTime)}</span>`;
+    }
+    marks.forEach(mark => {
+      const position = Math.min(100, Math.max(0, mark.offset / windowMs * 100)).toFixed(3);
+      const nextClass = mark === marks[0] ? " is-next" : "";
+      const markTitle = escape_job_html(`${mark.name} ${mark.time}`);
+      content += `<span class="job-rail-mark${nextClass}" style="left:${position}%" title="${markTitle}"></span>`;
+    });
+    return content;
+  }
+
+  function draw_job_rail(jobs) {
+    const rail = $("#job-rail");
+    const now = new Date();
+    const marks = collect_job_marks(jobs, now);
 
     if (!marks.length) {
       rail.attr("hidden", true);
       return;
     }
 
-    marks.sort((a, b) => a.offset - b.offset);
     $("#job-rail-now").text(`现在 ${format_job_clock(now)}`);
-
-    let content = '<div class="job-rail-base"></div>';
-    for (let step = 0; step <= 4; step++) {
-      const ratio = step / 4;
-      const tickTime = new Date(now.getTime() + ratio * window_ms);
-      const position = (ratio * 100).toFixed(3);
-      const labelClass = step === 0 ? " is-start" : (step === 4 ? " is-end" : "");
-      content += `<span class="job-rail-tick" style="left:${position}%"></span>`;
-      content += `<span class="job-rail-tick-label${labelClass}" style="left:${position}%">${format_job_clock(tickTime)}</span>`;
-    }
-
-    marks.forEach(mark => {
-      const position = Math.min(100, Math.max(0, mark.offset / window_ms * 100)).toFixed(3);
-      const nextClass = mark === marks[0] ? " is-next" : "";
-      const markTitle = escape_job_html(`${mark.name} ${mark.time}`);
-      content += `<span class="job-rail-mark${nextClass}" style="left:${position}%" title="${markTitle}"></span>`;
-    });
-
-    $("#job-rail-track").html(content);
+    $("#job-rail-track").html(build_job_rail_content(marks, now));
     rail.removeAttr("hidden");
   }
 
@@ -1070,7 +1015,10 @@
         return;
       }
 
-      const jobs = ret.result || [];
+      // 与页面内排程一致，按下次执行时间排序
+      const jobs = typeof sorted_service_jobs === "function"
+        ? sorted_service_jobs(ret.result || [])
+        : (ret.result || []);
 
       // 轮询时数据未变化则不重绘，避免闪烁及滚动位置丢失
       const signature = JSON.stringify(jobs);
@@ -1082,7 +1030,7 @@
       const runningCount = jobs.filter(job => job.running).length;
       $("#job-list-summary").text(
         jobs.length
-          ? `共 ${jobs.length} 个任务${runningCount ? ` · ${runningCount} 个执行中` : ""}`
+          ? `共 ${jobs.length} 个任务${runningCount ? `，${runningCount} 个执行中` : ""}`
           : "暂无定时任务"
       );
 
@@ -1096,12 +1044,11 @@
 
       jobs.forEach(info => {
         const status = get_job_status(info);
-        const isPlugin = !!info.from_plugin;
-        const pluginTag = isPlugin ? '<span class="job-tag">插件</span>' : "";
+        const pluginTag = info.from_plugin ? '<span class="job-tag">插件</span>' : "";
         // 执行频率：优先使用后端转换的文字描述，未识别时回退到原始触发器信息
         const frequency = escape_job_html(format_job_frequency(info.trigger_text || info.trigger_details || ""));
         const nextRun = escape_job_html(format_job_time(info.next_run_time));
-        const row = `
+        jobListBody.append(`
           <div class="job-row" title="${escape_job_html(info.trigger_details || "")}">
             <span class="job-led ${status.led}"></span>
             <span class="job-name">
@@ -1111,8 +1058,7 @@
             <span class="job-cadence">${frequency || "—"}</span>
             <span class="job-next">${nextRun}</span>
             <span class="job-status ${status.cls}">${status.text}</span>
-          </div>`;
-        jobListBody.append(row);
+          </div>`);
       });
     }, false);
   }
@@ -1150,27 +1096,15 @@
 
 <script type="text/javascript">
 
-  // 服务分组与说明：分组只影响展示顺序，未知服务归入「其他」
-  var SERVICE_GROUPS = [
-    {title: "自动任务", ids: ["rssdownload", "subscribe_search_all", "pttransfer", "sync"]},
-    {title: "维护工具", ids: ["blacklist", "rsshistory", "backup", "checkupdate"]},
-    {title: "诊断工具", ids: ["nametest", "ruletest", "nettest", "cron_job_list", "processes"]}
-  ];
+  var AUTO_IDS = ["rssdownload", "subscribe_search_all", "pttransfer", "sync"];
+  var MAINT_IDS = ["blacklist", "rsshistory", "backup", "checkupdate"];
+  var DIAG_IDS = ["nametest", "ruletest", "nettest", "cron_job_list", "processes"];
+  var SERVICE_COLOR_CLASSES = ["blue", "green", "orange", "red", "purple", "lime", "yellow", "cyan", "azure", "teal", "muted"];
 
-  var SERVICE_ICONS = {
-    rssdownload: "ti-rss",
-    subscribe_search_all: "ti-search",
-    pttransfer: "ti-transform",
-    sync: "ti-refresh",
-    blacklist: "ti-trash",
-    rsshistory: "ti-eraser",
-    nametest: "ti-text-recognition",
-    ruletest: "ti-filter",
-    cron_job_list: "ti-calendar-month",
-    nettest: "ti-world-www",
-    backup: "ti-database",
-    checkupdate: "ti-refresh-dot",
-    processes: "ti-cpu"
+  var SERVICE_JOB_NAMES = {
+    rssdownload: ["RSS订阅"],
+    subscribe_search_all: ["订阅定时搜索"],
+    pttransfer: ["下载文件转移"]
   };
 
   var SERVICE_DESCS = {
@@ -1182,194 +1116,186 @@
     rsshistory: "清理已经下载过的 RSS 记录",
     nametest: "测试种子名与文件名的识别结果",
     ruletest: "用过滤规则组测试种子",
-    cron_job_list: "查看排队与待执行的定时任务",
+    cron_job_list: "查看全部定时任务与执行状态",
     nettest: "检查站点与 API 的连通性",
     backup: "备份或恢复配置文件",
     checkupdate: "检查并更新系统镜像",
     processes: "查看后台进程与内存占用"
   };
 
-  // 服务配色沿用 services.json 的 color 字段，只用于图标砖、状态灯和悬浮底色
-  var SERVICE_COLOR_VARS = {
-    blue: "--tblr-blue",
-    green: "--tblr-green",
-    orange: "--tblr-orange",
-    red: "--tblr-red",
-    purple: "--tblr-purple",
-    lime: "--tblr-lime",
-    yellow: "--tblr-yellow",
-    cyan: "--tblr-cyan",
-    azure: "--tblr-azure",
-    teal: "--tblr-teal"
-  };
+  var serviceTasks = {};
+  var serviceJobs = [];
 
-  // 定时任务名与页面服务项的对应关系，用于显示执行状态
-  var SERVICE_JOB_NAMES = {
-    rssdownload: ["RSS订阅"],
-    subscribe_search_all: ["订阅定时搜索"],
-    pttransfer: ["下载文件转移"]
-  };
+  function parse_job_date(value) {
+    if (!value) return null;
+    const date = new Date(String(value).replace(/-/g, "/"));
+    return isNaN(date.getTime()) ? null : date;
+  }
 
-  var servicePageData = null;
-  var servicePageJobs = [];
-  var serviceJobsLoaded = false;
+  function pad2(value) {
+    return String(value).padStart(2, "0");
+  }
 
-  // 后端时间只写「30 分钟」时不带「每」，这里补上前缀
-  function format_service_cadence(value) {
+  // 后端只写「30 分钟」时补上「每」
+  function format_cadence(value) {
     const text = String(value ?? "").trim();
-    if (!text) {
-      return "";
-    }
+    if (!text) return "";
     return /^\d+\s*(分钟|小时)$/.test(text) ? `每 ${text}` : text;
   }
 
-  function get_service_job_state(id, jobs) {
-    const names = SERVICE_JOB_NAMES[id] || [];
-    for (const info of jobs) {
-      if (!names.includes(info.name)) {
-        continue;
-      }
-      if (info.running) {
-        return "running";
-      }
-      if (info.pending) {
-        return "pending";
-      }
-    }
-    return "";
+  function service_color(color) {
+    return SERVICE_COLOR_CLASSES.includes(color) ? color : "secondary";
   }
 
-  function build_service_row(id, task, jobs) {
+  function find_service_job(id) {
+    const names = SERVICE_JOB_NAMES[id] || [];
+    return serviceJobs.find(job => names.includes(job.name));
+  }
+
+  function sorted_service_jobs(jobs) {
+    return jobs.slice().sort((a, b) => {
+      const da = parse_job_date(a.next_run_time);
+      const db = parse_job_date(b.next_run_time);
+      if (da && db) return da - db;
+      if (da) return -1;
+      if (db) return 1;
+      return String(a.name).localeCompare(String(b.name), "zh-CN");
+    });
+  }
+
+  function service_status(id, task) {
+    if (task.state !== "ON") {
+      return {key: "off", text: "已停用"};
+    }
+    const job = find_service_job(id);
+    if (job && job.running) return {key: "running", text: "运行中"};
+    if (job && job.pending) return {key: "queued", text: "排队中"};
+    return {key: "enabled", text: "已启用"};
+  }
+
+  function service_icon(task) {
+    return task.svg || (typeof JOB_ICON_CLOCK !== "undefined" ? JOB_ICON_CLOCK : "");
+  }
+
+  function auto_row_html(id, task) {
+    const name = task.name || id;
+    const state = service_status(id, task);
+    const cadence = format_cadence(task.time);
+    const color = service_color(task.color);
+    return `
+      <div class="svc-row cursor-pointer" role="button" tabindex="0"
+           data-service-id="${escape_job_html(id)}"
+           data-service-name="${escape_job_html(name)}"
+           aria-label="${escape_job_html(name)}，${escape_job_html(cadence || "无固定计划")}，${state.text}">
+        <span class="svc-ico bg-${color}-lt text-${color}">${service_icon(task)}</span>
+        <span class="svc-copy">
+          <span class="svc-name fw-medium text-truncate">${escape_job_html(name)}</span>
+          ${SERVICE_DESCS[id] ? `<span class="svc-desc text-muted text-truncate">${escape_job_html(SERVICE_DESCS[id])}</span>` : ""}
+        </span>
+        <span class="svc-status text-nowrap is-${state.key}" data-service-state><span class="svc-dot"></span>${state.text}</span>
+      </div>`;
+  }
+
+  function tool_row_html(id, task) {
     const name = task.name || id;
     const desc = SERVICE_DESCS[id] || "";
-    const icon = SERVICE_ICONS[id];
-    const iconHtml = icon ? `<i class="ti ${icon}"></i>` : (task.svg || "");
-    const cadence = format_service_cadence(task.time);
-    const isAuto = SERVICE_GROUPS[0].ids.includes(id);
-    const colorVar = SERVICE_COLOR_VARS[task.color];
-    const colorStyle = colorVar ? ` style="--svc-color: var(${colorVar})"` : "";
-    let stateHtml = "";
-
-    if (isAuto) {
-      const jobState = get_service_job_state(id, jobs);
-      const enabled = task.state === "ON";
-      let label = enabled ? "已启用" : "已停用";
-      let ledClass = enabled ? "is-service" : "is-off";
-      let stateClass = "";
-      if (jobState === "running") {
-        label = "运行中";
-        ledClass = "is-on";
-        stateClass = "is-running";
-      } else if (jobState === "pending") {
-        label = "排队中";
-        ledClass = "is-service";
-      }
-      stateHtml = `<span class="svc-state ${stateClass}"><span class="svc-led ${ledClass}"></span>${label}</span>`;
-    }
-
+    const color = service_color(task.color);
     return `
-      <a class="svc-row" href="javascript:void(0)" data-id="${escape_job_html(id)}" data-name="${escape_job_html(name)}"${colorStyle}>
-        <span class="svc-icon">${iconHtml}</span>
+      <div class="svc-tool cursor-pointer" role="button" tabindex="0"
+           data-tool-id="${escape_job_html(id)}"
+           data-tool-name="${escape_job_html(name)}"
+           aria-label="${escape_job_html(name)}${desc ? "：" + escape_job_html(desc) : ""}">
+        <span class="svc-ico bg-${color}-lt text-${color}">${service_icon(task)}</span>
         <span class="svc-copy">
-          <span class="svc-name">${escape_job_html(name)}</span>
-          ${desc ? `<span class="svc-desc">${escape_job_html(desc)}</span>` : ""}
+          <span class="svc-name fw-medium text-truncate">${escape_job_html(name)}</span>
+          ${desc ? `<span class="svc-desc text-muted text-truncate">${escape_job_html(desc)}</span>` : ""}
         </span>
-        <span class="svc-cadence">${escape_job_html(cadence)}</span>
-        <span>${stateHtml}</span>
-        <i class="ti ti-chevron-right svc-go"></i>
-      </a>`;
+      </div>`;
   }
 
-  function render_service_summary(jobs) {
-    const summary = $("#svc-summary");
-    if (!jobs.length) {
-      summary.html("<span>暂无定时任务</span>").removeAttr("hidden");
-      return;
-    }
-    const runningCount = jobs.filter(job => job.running).length;
-    // 「下次」优先取页面上的自动任务，避免总是显示内部的元数据保存等高频任务
-    const serviceJobNames = new Set(Object.values(SERVICE_JOB_NAMES).flat());
-    const serviceJobs = jobs.filter(job => serviceJobNames.has(job.name));
-    const nextPool = serviceJobs.some(job => job.next_run_time) ? serviceJobs : jobs;
-    const nextJob = nextPool
-      .map(job => ({job: job, date: parse_job_date(job.next_run_time)}))
-      .filter(item => item.date)
-      .sort((a, b) => a.date - b.date)[0];
+  function render_services(tasks) {
+    serviceTasks = tasks || {};
+    const autoIds = AUTO_IDS.filter(id => serviceTasks[id]);
+    const maintIds = MAINT_IDS.filter(id => serviceTasks[id]);
+    const diagIds = DIAG_IDS.filter(id => serviceTasks[id]);
+    const known = new Set([...AUTO_IDS, ...MAINT_IDS, ...DIAG_IDS]);
+    Object.keys(serviceTasks).forEach(id => {
+      if (!known.has(id)) diagIds.push(id);
+    });
 
-    const parts = [`<span>${jobs.length} 个定时任务</span>`];
-    if (runningCount) {
-      parts.push(`<span class="d-inline-flex align-items-center gap-2"><span class="svc-led is-on"></span>${runningCount} 个执行中</span>`);
-    }
-    if (nextJob) {
-      parts.push(`<span>下次 <span class="svc-summary-time">${escape_job_html(format_job_time(nextJob.job.next_run_time))}</span><span class="svc-summary-name"> ${escape_job_html(nextJob.job.name)}</span></span>`);
-    }
-    summary.html(parts.join('<span class="svc-summary-sep">·</span>')).removeAttr("hidden");
+    $("#svc-auto-list").html(autoIds.length
+      ? autoIds.map(id => auto_row_html(id, serviceTasks[id])).join("")
+      : '<div class="svc-empty text-center text-muted">没有自动任务</div>');
+    $("#svc-maint-list").html(maintIds.length
+      ? maintIds.map(id => tool_row_html(id, serviceTasks[id])).join("")
+      : '<div class="svc-empty text-center text-muted">暂无维护工具</div>');
+    $("#svc-diag-list").html(diagIds.length
+      ? diagIds.map(id => tool_row_html(id, serviceTasks[id])).join("")
+      : '<div class="svc-empty text-center text-muted">暂无诊断工具</div>');
+
+    const enabled = autoIds.filter(id => serviceTasks[id].state === "ON").length;
+    $("#svc-auto-meta").text(`${enabled}/${autoIds.length} 已启用`);
+
+    bind_service_actions();
+    update_auto_rows();
   }
 
-  function render_services(tasks, jobs) {
-    const list = $("#services-list").empty();
-    const grouped = [];
-    const used = new Set();
-
-    SERVICE_GROUPS.forEach(group => {
-      const ids = group.ids.filter(id => tasks[id]);
-      if (ids.length) {
-        grouped.push({title: group.title, ids: ids});
-        ids.forEach(id => used.add(id));
+  function bind_service_actions() {
+    const $lists = $("#svc-auto-list, #svc-maint-list, #svc-diag-list");
+    $lists.off(".svc");
+    $lists.on("click.svc", "[data-service-id], [data-tool-id]", function () {
+      open_service_item($(this));
+    }).on("keydown.svc", "[data-service-id], [data-tool-id]", function (e) {
+      if (e.key === "Enter" || e.key === " " || e.key === "Spacebar") {
+        e.preventDefault();
+        open_service_item($(this));
       }
     });
+  }
 
-    const rest = Object.keys(tasks).filter(id => !used.has(id));
-    if (rest.length) {
-      grouped.push({title: "其他", ids: rest});
+  function open_service_item($el) {
+    const id = $el.attr("data-service-id") || $el.attr("data-tool-id");
+    const name = $el.attr("data-service-name") || $el.attr("data-tool-name");
+    if (id) {
+      show_service_modal(id, name || id);
     }
+  }
 
-    grouped.forEach(group => {
-      const panel = $('<div class="svc-panel"></div>');
-      group.ids.forEach(id => {
-        panel.append(build_service_row(id, tasks[id], jobs));
-      });
-      list.append(`
-        <section class="svc-group">
-          <div class="svc-group-title">${escape_job_html(group.title)}</div>
-          ${panel.prop("outerHTML")}
-        </section>`);
+  function update_auto_rows() {
+    $("#svc-auto-list [data-service-id]").each(function () {
+      const row = $(this);
+      const id = row.attr("data-service-id");
+      const task = serviceTasks[id];
+      if (!task) return;
+
+      const state = service_status(id, task);
+      const cadence = format_cadence(task.time);
+
+      row.find("[data-service-state]")
+        .attr("class", `svc-status text-nowrap is-${state.key}`)
+        .html(`<span class="svc-dot"></span>${state.text}`);
+
+      row.attr("aria-label", `${task.name || id}，${cadence || "无固定计划"}，${state.text}`);
     });
   }
 
-  function refresh_service_page() {
-    if (!servicePageData) {
-      return;
-    }
-    const tasks = servicePageData.schedulerTasks || {};
-    if (!Object.keys(tasks).length) {
-      $("#services-container").hide();
-      $("#no-services").show();
-      $("#svc-summary").attr("hidden", true);
-      return;
-    }
-    render_services(tasks, servicePageJobs);
-    if (serviceJobsLoaded) {
-      render_service_summary(servicePageJobs);
-    } else {
-      $("#svc-summary").attr("hidden", true);
-    }
-    $("#services-container").show();
-    $("#no-services").hide();
+  function load_service_jobs() {
+    return new Promise(resolve => {
+      axios_post_do("get_jobs", {}, function (ret) {
+        if (ret && String(ret.code) === "0") {
+          serviceJobs = ret.result || [];
+          update_auto_rows();
+        }
+        resolve();
+      }, false);
+    });
   }
 
-  // 页面加载完成后，使用axios_post请求/data/service接口获取数据并填充页面
   $(document).ready(function() {
-    $("#services-list").off("click.svc").on("click.svc", ".svc-row", function () {
-      show_service_modal($(this).data("id"), $(this).data("name"));
-    });
-
     axios_post('/data/service', {}, function(response) {
       if (response.code === 0 && response.data) {
-
         const data = response.data;
 
-        // 填充过滤规则选项
         if (data.ruleGroups) {
           const ruleSelect = $('#test_rulegroup');
           ruleSelect.empty();
@@ -1383,7 +1309,6 @@
           }
         }
 
-        // 填充同步路径选项
         if (data.syncPaths) {
           const syncPathsGroup = $('#sync-paths-group');
           syncPathsGroup.empty();
@@ -1398,41 +1323,42 @@
           });
         }
 
-        // 填充网络测试表格
-        if (data.schedulerTasks && data.schedulerTasks.nettest && data.schedulerTasks.nettest.targets) {
-          const nettestTableBody = $('#nettest-table-body');
-          nettestTableBody.empty();
-          for (const target of data.schedulerTasks.nettest.targets) {
-            const [[name, url]] = Object.entries(target);
-            const row = `
-              <tr>
-                <td class="w-1"><input class="form-check-input m-0 align-middle" name="nettest-item" value="${name}" type="checkbox"></td>
-                <td>
-                  <span>${url}</span>
-                  <input id="nettest_item_url_${name}" value="${url}" type="hidden">
-                </td>
-                <td id="nettest_item_res_${name}"></td>
-                <td id="nettest_item_res_time_${name}"></td>
-              </tr>
-            `;
-            nettestTableBody.append(row);
-          }
-        }
+        if (data.schedulerTasks && Object.keys(data.schedulerTasks).length > 0) {
+          render_services(data.schedulerTasks);
+          $('#services-container').show();
+          $('#no-services').hide();
 
-        servicePageData = data;
-        refresh_service_page();
+          if (data.schedulerTasks.nettest && data.schedulerTasks.nettest.targets) {
+            const nettestTableBody = $('#nettest-table-body');
+            nettestTableBody.empty();
+            for (const target of data.schedulerTasks.nettest.targets) {
+              const [[name, url]] = Object.entries(target);
+              const row = `
+                <tr>
+                  <td class="w-1"><input class="form-check-input m-0 align-middle" name="nettest-item" value="${name}" type="checkbox"></td>
+                  <td>
+                    <span>${url}</span>
+                    <input id="nettest_item_url_${name}" value="${url}" type="hidden">
+                  </td>
+                  <td id="nettest_item_res_${name}"></td>
+                  <td id="nettest_item_res_time_${name}"></td>
+                </tr>
+              `;
+              nettestTableBody.append(row);
+            }
+          }
+
+          if (typeof startPolling === "function") {
+            startPolling("service_jobs", load_service_jobs, 10000);
+          } else {
+            load_service_jobs();
+          }
+        } else {
+          $('#services-container').hide();
+          $('#no-services').show();
+        }
       }
     });
-
-    // 静默取一次定时任务状态，用于标题摘要与「运行中」标记
-    axios_post_do("get_jobs", {}, function (ret) {
-      if (!ret || String(ret.code) !== "0") {
-        return;
-      }
-      servicePageJobs = ret.result || [];
-      serviceJobsLoaded = true;
-      refresh_service_page();
-    }, false);
   });
 
 </script>
