@@ -108,11 +108,11 @@ class SitesDataStatisticsCenter:
         # 站点数据
         self._sites_data = {}
 
-    async def __refresh_site_data(self, site_info: UserSiteConf, cached_favicon_sites: set[str]):
+    async def __refresh_site_data(self, site_info: UserSiteConf, cached_favicon_urls: set[str]):
         """
         更新单个site 数据信息
         :param site_info: 站点配置
-        :param cached_favicon_sites: 已有图标的站点名称，命中时跳过图标抓取
+        :param cached_favicon_urls: 已有图标的站点地址，地址命中时跳过图标抓取
         :return: (解析结果, 失败原因)；成功时失败原因为 None
         """
         site_url = site_info.strict_url
@@ -126,8 +126,8 @@ class SitesDataStatisticsCenter:
             if not site_user_info:
                 return None, "无法获取站点首页或未匹配到解析模型"
 
-            # 懒更新：已有图标数据时不再重复请求
-            site_user_info.skip_favicon = site_name in cached_favicon_sites
+            # 懒更新：当前地址已有图标时不再重复请求
+            site_user_info.skip_favicon = site_url in cached_favicon_urls
             log.debug(f"【Sites】站点 {site_name} 开始以 {site_user_info.site_schema()} 模型解析")
             # 开始解析
             await site_user_info.parse()
@@ -297,10 +297,10 @@ class SitesDataStatisticsCenter:
                     log.info(f"【Sites】{msg}")
                 return {"total": 0, "sites": [], "msg": msg}
 
-            # 已有有效图标的站点不再重复抓取（懒更新）
-            cached_favicon_sites = {
-                favicon.SITE for favicon in self.dbhelper.get_site_favicons()
-                if self.dbhelper.is_valid_site_favicon(favicon.FAVICON)
+            # 已有有效图标的站点不再重复抓取（懒更新），站点改地址后按新地址重新抓取
+            cached_favicon_urls = {
+                favicon.URL for favicon in self.dbhelper.get_site_favicons()
+                if favicon.URL and self.dbhelper.is_valid_site_favicon(favicon.FAVICON)
             }
 
             # 并发刷新：协程并发，限制最大并发数
@@ -308,7 +308,7 @@ class SitesDataStatisticsCenter:
 
             async def _refresh(site_info: UserSiteConf):
                 async with semaphore:
-                    return await self.__refresh_site_data(site_info, cached_favicon_sites)
+                    return await self.__refresh_site_data(site_info, cached_favicon_urls)
 
             results = await asyncio.gather(
                 *(_refresh(site) for site in refresh_sites),
@@ -342,7 +342,8 @@ class SitesDataStatisticsCenter:
             parsed_sites = {site_user_info.site_name for site_user_info in site_user_infos}
             favicon_infos = list(site_user_infos)
             failed_sites = [site for site in refresh_sites
-                            if site.name not in parsed_sites and site.name not in cached_favicon_sites]
+                            if site.name not in parsed_sites
+                            and site.strict_url not in cached_favicon_urls]
             if failed_sites:
                 favicon_infos += await self.__fetch_failed_site_favicons(failed_sites)
 
@@ -404,14 +405,22 @@ class SitesDataStatisticsCenter:
         if with_favicon:
             # 只使用站点图标表里已收录的图标，未收录的不做兜底
             # 历史遗留的远程图标地址无法在导出时内联，同样按未收录处理
+            # 按图标抓取地址关联：站点改地址后旧地址的图标不再展示
             favicons = {
-                favicon.SITE: favicon.FAVICON
+                favicon.URL: favicon.FAVICON
                 for favicon in self.dbhelper.get_site_favicons()
-                if self.dbhelper.is_valid_site_favicon(favicon.FAVICON)
+                if favicon.URL and self.dbhelper.is_valid_site_favicon(favicon.FAVICON)
             }
             for item in statistics:
-                item["favicon"] = favicons.get(item.get("site")) or ""
+                item["favicon"] = favicons.get(item.get("url")) or ""
         return statistics
+
+    def __get_site_url(self, site_name):
+        """
+        按站点名称获取当前站点地址，统计数据统一按地址关联
+        """
+        sites = self.sites.get_sites_by_name(site_name)
+        return sites[0].strict_url if sites else ""
 
     def get_pt_site_activity_history(self, site, days=365 * 2):
         """
@@ -421,7 +430,10 @@ class SitesDataStatisticsCenter:
         :return:
         """
         site_activities = [["time", "upload", "download", "bonus", "seeding", "seeding_size"]]
-        sql_site_activities = self.dbhelper.get_site_statistics_history(site=site, days=days)
+        site_url = self.__get_site_url(site)
+        if not site_url:
+            return site_activities
+        sql_site_activities = self.dbhelper.get_site_statistics_history(url=site_url, days=days)
         for sql_site_activity in sql_site_activities:
             timestamp = datetime.strptime(sql_site_activity.DATE, '%Y-%m-%d').timestamp() * 1000
             site_activities.append(
@@ -441,7 +453,10 @@ class SitesDataStatisticsCenter:
         :return: seeding_info:[uploader_num, seeding_size]
         """
         site_seeding_info = {"seeding_info": []}
-        seeding_info = self.dbhelper.get_site_seeding_info(site=site)
+        site_url = self.__get_site_url(site)
+        if not site_url:
+            return site_seeding_info
+        seeding_info = self.dbhelper.get_site_seeding_info(url=site_url)
         if not seeding_info:
             return site_seeding_info
 
@@ -525,12 +540,16 @@ class SitesDataStatisticsCenter:
                                })
         return statistics
 
-    def update_site_name(self, old_name, name):
+    def update_site_name(self, url, name):
         """
-        更新站点数据中的站点名称
+        按站点地址更新统计数据中的站点名称
+        :param url: 站点地址
+        :param name: 新的站点名称
         """
-        self.dbhelper.update_site_user_statistics_site_name(name, old_name)
-        self.dbhelper.update_site_seed_info_site_name(name, old_name)
-        self.dbhelper.update_site_statistics_site_name(name, old_name)
-        self.dbhelper.update_site_favicon_site_name(name, old_name)
+        if not url:
+            return False
+        self.dbhelper.update_site_user_statistics_site_name(url, name)
+        self.dbhelper.update_site_seed_info_site_name(url, name)
+        self.dbhelper.update_site_statistics_site_name(url, name)
+        self.dbhelper.update_site_favicon_site_name(url, name)
         return True

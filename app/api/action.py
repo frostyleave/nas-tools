@@ -877,8 +877,8 @@ class WebAction:
                                      note=note,
                                      rss_uses=rss_uses)
             if ret and (name != old_name):
-                # 更新历史站点数据信息
-                SitesDataStatisticsCenter().update_site_name(name, old_name)
+                # 按站点地址更新历史统计数据中的站点名称
+                SitesDataStatisticsCenter().update_site_name(site_data.strict_url, name)
 
         else:
             ret = _sites.add_site(name=name,

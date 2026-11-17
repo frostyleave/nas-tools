@@ -1245,13 +1245,15 @@ class DbHelper:
         ).order_by(TRANSFERHISTORY.DATE).all()
 
     @DbPersist(_db)
-    def update_site_user_statistics_site_name(self, new_name, old_name):
+    def update_site_user_statistics_site_name(self, url, name):
         """
-        更新站点用户数据中站点名称
+        按站点地址更新用户数据中的站点名称
         """
-        self._db.query(SITEUSERINFOSTATS).filter(SITEUSERINFOSTATS.SITE == old_name).update(
+        if not url:
+            return
+        self._db.query(SITEUSERINFOSTATS).filter(SITEUSERINFOSTATS.URL == url).update(
             {
-                "SITE": new_name
+                "SITE": name
             }
         )
 
@@ -1335,13 +1337,15 @@ class DbHelper:
         return count > 0
 
     @DbPersist(_db)
-    def update_site_favicon_site_name(self, new_name, old_name):
+    def update_site_favicon_site_name(self, url, name):
         """
-        更新站点图标中站点名称
+        按站点地址更新图标数据中的站点名称
         """
-        self._db.query(SITEFAVICON).filter(SITEFAVICON.SITE == old_name).update(
+        if not url:
+            return
+        self._db.query(SITEFAVICON).filter(SITEFAVICON.URL == url).update(
             {
-                "SITE": new_name
+                "SITE": name
             }
         )
 
@@ -1381,7 +1385,7 @@ class DbHelper:
         """
         更新站点图标数据
 
-        懒更新：已有有效图标的站点直接跳过，只补充缺失的图标
+        懒更新：当前地址已有有效图标的直接跳过，只补充缺失的图标
         """
         if not site_user_infos:
             return
@@ -1389,47 +1393,49 @@ class DbHelper:
             # 只记录真正抓取到的图标，抓不到就不留记录
             if not site_user_info.site_url or not site_user_info.site_favicon:
                 continue
-            existing = self.get_site_favicons(site_user_info.site_name)
-            # 已有 data URI 图标说明数据有效，保持原样；历史遗留的远程地址继续覆盖
+            # 图标按抓取地址关联，同一地址已有有效图标时保持原样
+            existing = self.get_site_favicons(site_user_info.site_url)
             if existing and self.is_valid_site_favicon(existing[0].FAVICON):
                 continue
             site_icon = self.__favicon_data_uri(site_user_info.site_favicon)
             if existing:
                 self._db.query(SITEFAVICON).filter(
-                    SITEFAVICON.SITE == site_user_info.site_name
+                    SITEFAVICON.URL == site_user_info.site_url
                 ).update(
                     {
-                        "URL": site_user_info.site_url,
+                        "SITE": site_user_info.site_name,
                         "FAVICON": site_icon
                     }
                 )
             else:
                 self._db.insert(SITEFAVICON(
-                    SITE=site_user_info.site_name,
                     URL=site_user_info.site_url,
+                    SITE=site_user_info.site_name,
                     FAVICON=site_icon
                 ))
 
-    def get_site_favicons(self, site=None):
+    def get_site_favicons(self, url=None):
         """
-        查询站点图标
+        查询站点图标（按站点地址）
         """
-        if site:
-            return self._db.query(SITEFAVICON).filter(SITEFAVICON.SITE == site).all()
+        if url:
+            return self._db.query(SITEFAVICON).filter(SITEFAVICON.URL == url).all()
         else:
             return self._db.query(SITEFAVICON).all()
 
     @DbPersist(_db)
-    def update_site_seed_info_site_name(self, new_name, old_name):
+    def update_site_seed_info_site_name(self, url, name):
         """
-        更新站点做种数据中站点名称
-        :param new_name: 新的站点名称
-        :param old_name: 原始站点名称
+        按站点地址更新做种数据中的站点名称
+        :param url: 站点地址
+        :param name: 新的站点名称
         :return:
         """
-        self._db.query(SITEUSERSEEDINGINFO).filter(SITEUSERSEEDINGINFO.SITE == old_name).update(
+        if not url:
+            return
+        self._db.query(SITEUSERSEEDINGINFO).filter(SITEUSERSEEDINGINFO.URL == url).update(
             {
-                "SITE": new_name
+                "SITE": name
             }
         )
 
@@ -1491,16 +1497,18 @@ class DbHelper:
         return count > 0
 
     @DbPersist(_db)
-    def update_site_statistics_site_name(self, new_name, old_name):
+    def update_site_statistics_site_name(self, url, name):
         """
-        更新站点做种数据中站点名称
-        :param new_name: 新站点名称
-        :param old_name: 原始站点名称
+        按站点地址更新历史数据中的站点名称
+        :param url: 站点地址
+        :param name: 新的站点名称
         :return:
         """
-        self._db.query(SITESTATISTICSHISTORY).filter(SITESTATISTICSHISTORY.SITE == old_name).update(
+        if not url:
+            return
+        self._db.query(SITESTATISTICSHISTORY).filter(SITESTATISTICSHISTORY.URL == url).update(
             {
-                "SITE": new_name
+                "SITE": name
             }
         )
 
@@ -1553,21 +1561,25 @@ class DbHelper:
                     }
                 )
 
-    def get_site_statistics_history(self, site, days=30):
+    def get_site_statistics_history(self, url, days=30):
         """
-        查询站点数据历史
+        查询站点数据历史（按站点地址）
         """
+        if not url:
+            return []
         return self._db.query(SITESTATISTICSHISTORY).filter(
-            SITESTATISTICSHISTORY.SITE == site).order_by(
+            SITESTATISTICSHISTORY.URL == url).order_by(
             SITESTATISTICSHISTORY.DATE.asc()
         ).limit(days).all()
 
-    def get_site_seeding_info(self, site):
+    def get_site_seeding_info(self, url):
         """
-        查询站点做种信息
+        查询站点做种信息（按站点地址）
         """
+        if not url:
+            return None
         return self._db.query(SITEUSERSEEDINGINFO.SEEDING_INFO).filter(
-            SITEUSERSEEDINGINFO.SITE == site).first()
+            SITEUSERSEEDINGINFO.URL == url).first()
 
     def is_site_seeding_info_exist(self, url):
         """

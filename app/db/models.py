@@ -455,12 +455,9 @@ class SITESTATISTICSHISTORY(Base):
 
 class SITEUSERINFOSTATS(Base):
     __tablename__ = 'SITE_USER_INFO_STATS'
-    __table_args__ = (
-        Index('INDX_SITE_USER_INFO_STATS_URL', 'URL'),
-    )
 
-    ID = Column(Integer, Sequence('ID'), primary_key=True)
-    SITE = Column(Text, index=True)
+    URL = Column(Text, primary_key=True)
+    SITE = Column(Text)
     USERNAME = Column(Text)
     USER_LEVEL = Column(Text)
     JOIN_AT = Column(Text)
@@ -472,7 +469,6 @@ class SITEUSERINFOSTATS(Base):
     LEECHING = Column(Integer)
     SEEDING_SIZE = Column(Integer)
     BONUS = Column(Float)
-    URL = Column(Text, unique=True)
     MSG_UNREAD = Column(Integer)
     EXT_INFO = Column(Text)
 
@@ -480,19 +476,18 @@ class SITEUSERINFOSTATS(Base):
 class SITEFAVICON(Base):
     __tablename__ = 'SITE_FAVICON'
 
-    SITE = Column(Text, primary_key=True)
-    URL = Column(Text)
+    URL = Column(Text, primary_key=True)
+    SITE = Column(Text)
     FAVICON = Column(Text)
 
 
 class SITEUSERSEEDINGINFO(Base):
     __tablename__ = 'SITE_USER_SEEDING_INFO'
 
-    ID = Column(Integer, Sequence('ID'), primary_key=True)
-    SITE = Column(Text, index=True)
+    URL = Column(Text, primary_key=True)
+    SITE = Column(Text)
     SEEDING_INFO = Column(Text, server_default=text("'[]'"))
     UPDATE_AT = Column(Text)
-    URL = Column(Text, unique=True)
 
 
 class SYNCHISTORY(Base):
