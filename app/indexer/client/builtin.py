@@ -4,6 +4,7 @@ import log
 from app.conf import SystemConfig
 from app.indexer.client import (
     MTorrentSpider,
+    TheRarbg,
     TNodeSpider,
     TorrentLeech,
     TorrentSpider,
@@ -176,7 +177,10 @@ class BuiltinIndexer(_IIndexClient):
             
             if indexer.parser == "MTorrentSpider":
                 return MTorrentSpider(indexer).search(keyword=search_word, mtype=mtype)
-            
+
+            if indexer.parser == "TheRarbg":
+                return TheRarbg(indexer).search(keyword=search_word)
+
             return TorrentSpider(indexer).search(keyword=search_word, mtype=mtype)
         
         except Exception as err:
