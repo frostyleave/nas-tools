@@ -406,9 +406,17 @@ def sites_page():
     # 按 URL 关联，统计表里的站名可能未随站点改名而更新
     statistic_dict = {obj.URL: obj for obj in site_user_statistics} if site_user_statistics else {}
 
+    # 站点图标：只使用已收录的有效图标，同样按 URL 关联
+    site_favicons = {
+        favicon.URL: favicon.FAVICON
+        for favicon in DbHelper().get_site_favicons()
+        if DbHelper.is_valid_site_favicon(favicon.FAVICON)
+    }
+
     enriched = []
     for it in cfg_sites:
         new_item = _site_view(it)
+        new_item['favicon'] = site_favicons.get(it.strict_url, '') if it.strict_url else ''
         enriched.append(new_item)
         # 填充统计数据
         statistic_info = statistic_dict.get(it.strict_url)
