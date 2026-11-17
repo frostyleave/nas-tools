@@ -3,7 +3,6 @@ import datetime
 import log
 from app.conf import SystemConfig
 from app.indexer.client import (
-    InterfaceSpider,
     MTorrentSpider,
     TNodeSpider,
     TorrentLeech,
@@ -174,9 +173,6 @@ class BuiltinIndexer(_IIndexClient):
             
             if indexer.parser == "TorrentLeech":
                 return TorrentLeech(indexer).search(keyword=search_word)
-            
-            if indexer.parser == "InterfaceSpider":
-                return InterfaceSpider(indexer).search(keyword=search_word, mtype=mtype)
             
             if indexer.parser == "MTorrentSpider":
                 return MTorrentSpider(indexer).search(keyword=search_word, mtype=mtype)

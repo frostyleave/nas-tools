@@ -104,10 +104,8 @@ class SiteSchema(Enum):
 # 解析器类型
 class Spider(Enum):
     TorrentSpider = ""
-    Rarbg = "Rarbg"
     TorrentLeech = "TorrentLeech"
     TNodeSpider = "TNodeSpider"
-    InterfaceSpider = "InterfaceSpider"
     MTorrentSpider = "MTorrentSpider"
 
 

@@ -28,8 +28,10 @@ class MTorrentSpider:
     _timeout = 15
 
     _host = None
+    # 站点 Web 源地址，用于 Origin 请求头
+    _origin = None
 
-    # 电影分类
+    # 分类
     _movie_category: ClassVar[list[str]] = ['401', '419', '420', '421', '439', '405', '404']
     _tv_category: ClassVar[list[str]] = ['403', '402', '435', '438', '404', '405']
 
@@ -55,7 +57,9 @@ class MTorrentSpider:
             self._indexerid = indexer.id
             self._url = indexer.domain
             self._domain = SiteUtils.get_url_domain(self._url)
-            self._host = SiteUtils.get_url_netloc(self._url)
+            scheme, netloc = SiteUtils.get_url_netloc(self._url)
+            self._host = netloc
+            self._origin = f"{scheme}://{netloc}/" if netloc else None
             self._search_url = self._search_url % self._domain
             self._subtitle_url = self._subtitle_url % self._domain
             self._name = indexer.name
@@ -86,14 +90,11 @@ class MTorrentSpider:
             "categories": categories,
             "pageNumber": int(page) + 1,
             "pageSize": self._size,
-            "visible": 1
+            "visible": 1,
+            "mode": "normal"
         }
         res = RequestUtils(
-            headers={
-                "Content-Type": "application/json",
-                "User-Agent": f"{self._ua}",
-                "x-api-key": self._apikey
-            },
+            headers=self.__get_api_headers(content_type="application/json"),
             proxies=self._proxy,
             timeout=self._timeout
         ).post_res(url=self._search_url, json=params)
@@ -122,7 +123,8 @@ class MTorrentSpider:
                         labels = []
 
                 status_info = result.get('status', {})
-                
+                downloadvolumefactor, uploadvolumefactor = self.__get_factors(status_info)
+
                 torrent = {
                     'title': result.get('name'),
                     'description': result.get('smallDescr'),
@@ -132,8 +134,8 @@ class MTorrentSpider:
                     'seeders': int(status_info.get("seeders") or '0'),
                     'peers': int(status_info.get("leechers") or '0'),
                     'grabs': int(status_info.get("timesCompleted") or '0'),
-                    'downloadvolumefactor': self.__get_downloadvolumefactor(status_info.get("discount")),
-                    'uploadvolumefactor': self.__get_uploadvolumefactor(status_info.get("discount")),
+                    'downloadvolumefactor': downloadvolumefactor,
+                    'uploadvolumefactor': uploadvolumefactor,
                     'page_url': self._pageurl % (self._url, result.get('id')),
                     'imdbid': self.__find_imdbid(result.get('imdb')),
                     'labels': "|".join(labels),
@@ -159,36 +161,56 @@ class MTorrentSpider:
                 return m.group(0)
         return ""
 
-    @staticmethod
-    def __get_downloadvolumefactor(discount: str) -> float:
+    @classmethod
+    def __get_factors(cls, status_info: dict) -> tuple[float, float]:
         """
-        获取下载系数
+        获取下载/上传系数
+        优先级：全站促销规则 promotionRule > 成人区限时免费 mallSingleFree > 普通促销折扣 discount
         """
-        discount_dict = {
-            "FREE": 0,
-            "PERCENT_50": 0.5,
-            "PERCENT_70": 0.3,
-            "_2X_FREE": 0,
-            "_2X_PERCENT_50": 0.5
-        }
-        if discount:
-            return discount_dict.get(discount, 1)
-        return 1
+        if not isinstance(status_info, dict):
+            return 1, 1
+        promotion_rule = status_info.get("promotionRule")
+        if isinstance(promotion_rule, dict):
+            return cls.__parse_discount(promotion_rule.get("discount") or "NORMAL")
+        if status_info.get("mallSingleFree"):
+            return 0, 1
+        return cls.__parse_discount(status_info.get("discount") or "NORMAL")
 
     @staticmethod
-    def __get_uploadvolumefactor(discount: str) -> float:
+    def __parse_discount(discount: str) -> tuple[float, float]:
         """
-        获取上传系数
+        将站点折扣枚举换算为下载/上传系数，与 Jackett 的 MTeamTp.cs 对齐：
+        FREE 下载 0、PERCENT_50 下载 0.5、PERCENT_70 下载 0.3（减免 70% 即按 30% 计费），
+        _2X 前缀表示双倍上传，其余（含 NORMAL）按正常 1 计
         """
-        uploadvolumefactor_dict = {
-            "_2X": 2.0,
-            "_2X_FREE": 2.0,
-            "_2X_PERCENT_50": 2.0
+        normalized = (discount or "NORMAL").upper()
+        upload = 2 if re.match(r"^_?2X", normalized) else 1
+        base = re.sub(r"^_?2X_?", "", normalized)
+        if base == "FREE":
+            download = 0
+        elif base == "PERCENT_50":
+            download = 0.5
+        elif base == "PERCENT_70":
+            download = 0.3
+        else:
+            download = 1
+        return download, upload
+
+    def __get_api_headers(self, content_type: str | None = None) -> dict:
+        """
+        构造 API 请求头
+        """
+        headers = {
+            "Accept": "application/json, text/plain, */*",
+            "User-Agent": f"{self._ua}",
+            "x-api-key": self._apikey
         }
-        if discount:
-            return uploadvolumefactor_dict.get(discount, 1)
-        return 1
-    
+        if self._origin:
+            headers["origin"] = self._origin
+        if content_type:
+            headers["Content-Type"] = content_type
+        return headers
+
     def __get_download_url(self, torrent_id: str) -> str:
         """
         获取下载链接，返回base64编码的json字符串及URL
@@ -200,13 +222,9 @@ class MTorrentSpider:
         """
         获取下载链接
         """
-        headers={
-            "Accept": "application/json, text/plain, */*",
-            "User-Agent": f"{self._ua}",
-            "x-api-key": self._apikey
-        }
+        headers = self.__get_api_headers()
 
-        res = RequestUtils(headers=headers, 
+        res = RequestUtils(headers=headers,
                            proxies=self._proxy,
                            timeout=self._timeout
                            ).post_res(url=url)
@@ -260,11 +278,7 @@ class MTorrentSpider:
         if not torrent_id:
             return None
 
-        headers = {
-            "Accept": "application/json, text/plain, */*",
-            "User-Agent": f"{self._ua}",
-            "x-api-key": self._apikey
-        }
+        headers = self.__get_api_headers()
         params = { "id": torrent_id }
 
         res = RequestUtils(headers=headers, 
@@ -284,11 +298,7 @@ class MTorrentSpider:
         """
         获取字幕下载链接
         """
-        headers = {
-            "Accept": "application/json, text/plain, */*",
-            "User-Agent": f"{self._ua}",
-            "x-api-key": self._apikey
-        }
+        headers = self.__get_api_headers()
         params = { "id": subtitle_id }
         url = self._subtitle_link % self._domain
         res = RequestUtils(headers=headers, 
