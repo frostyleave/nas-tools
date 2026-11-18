@@ -421,6 +421,22 @@
       this._renderCommitEmpty("success", "当前已是最新版本，无需更新");
     }
 
+    // 更新成功：保留刚拉取的提交列表，标明已应用，而不是回到“无需更新”
+    _renderApplied(info) {
+      const hash = info && info.short_commit ? info.short_commit : "—";
+      const msg = info && info.commit_msg ? info.commit_msg : "";
+      $("#git_panel_remote_ref").text("").removeAttr("title");
+      $("#git_panel_remote_hash")
+        .text(hash)
+        .attr("title", info && info.commit ? info.commit : "");
+      $("#git_panel_remote_meta").text("已合并到当前版本");
+      $("#git_panel_remote_msg").text(msg).attr("title", msg);
+      $("#git_panel_delta").text("已更新");
+      $("#git_panel_commit_count").text(
+        this._behind > 0 ? `已更新 ${this._behind} 个提交` : "已更新"
+      );
+    }
+
     _checkFailed(msg) {
       this._checking = false;
       this._hasUpdate = false;
@@ -713,7 +729,11 @@
       this._setStatus(updated ? "更新完成，重启后生效" : "当前已是最新版本", "success");
       this._expandLog(false);
       this._refreshInfo((info) => {
-        this._renderLatest(info);
+        if (updated) {
+          this._renderApplied(info);
+        } else {
+          this._renderLatest(info);
+        }
       });
     }
 
