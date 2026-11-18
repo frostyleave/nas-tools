@@ -2159,8 +2159,633 @@ div#main-info-container > * {
     }
 }
 
-/*
- * 注意：不要用 prefers-reduced-motion 关闭这两段动画。
- * Windows 关闭「动画效果」后浏览器会常驻 reduce，导致桌面端完全看不到过渡，
- * 这里按产品需求保持动画始终播放。
- */
+
+update-panel {
+    display: contents;
+    --update-accent-text: color-mix(in srgb, var(--tblr-primary) 78%, var(--tblr-body-color));
+    --update-success-text: color-mix(in srgb, var(--tblr-success) 70%, var(--tblr-body-color));
+}
+
+update-panel .modal-body {
+    padding: 20px;
+}
+
+update-panel .update-subtitle {
+    margin-top: 2px;
+    color: var(--tblr-secondary-color);
+    font-size: 12px;
+    line-height: 1.4;
+}
+
+update-panel .modal-header {
+    padding: 16px 56px 16px 20px;
+}
+
+update-panel .modal-header > .update-header-main {
+    flex: 1 1 0;
+    min-width: 0;
+}
+
+update-panel .modal-header .btn-close {
+    flex: none;
+}
+
+update-panel .update-compare {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 128px minmax(0, 1fr);
+    border: 1px solid var(--tblr-border-color);
+    border-radius: 8px;
+    background: var(--tblr-bg-surface-secondary);
+}
+
+update-panel .update-version {
+    min-width: 0;
+    padding: 14px 16px;
+}
+
+update-panel .update-version-label {
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+    color: var(--tblr-secondary-color);
+    font-size: 12px;
+    font-weight: 500;
+    line-height: 1.4;
+}
+
+update-panel .update-version-label > span:first-child {
+    flex: none;
+    white-space: nowrap;
+}
+
+update-panel .update-ref {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    color: var(--tblr-muted);
+    font-family: var(--tblr-font-monospace);
+    font-size: 12px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+update-panel .update-version-hash {
+    margin-top: 5px;
+    overflow: hidden;
+    color: var(--tblr-body-color);
+    font-family: var(--tblr-font-monospace);
+    font-size: 20px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    line-height: 1.25;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+}
+
+update-panel .update-version-meta {
+    display: flex;
+    gap: 6px;
+    margin-top: 3px;
+    overflow: hidden;
+    color: var(--tblr-secondary-color);
+    font-size: 12px;
+    line-height: 1.4;
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+}
+
+update-panel .update-version-meta > span:not(.update-sep) {
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+update-panel .update-sep {
+    color: var(--tblr-muted);
+}
+
+update-panel .update-version-msg {
+    margin-top: 8px;
+    overflow: hidden;
+    color: var(--tblr-body-color);
+    font-size: 14px;
+    line-height: 1.5;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+update-panel .update-arrow {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    border-right: 1px solid var(--tblr-border-color);
+    border-left: 1px solid var(--tblr-border-color);
+    color: var(--tblr-muted);
+    transition: color 180ms ease;
+}
+
+update-panel .update-arrow .ti {
+    font-size: 16.8px;
+    line-height: 1;
+}
+
+update-panel .update-arrow-done {
+    display: none;
+    color: var(--update-success-text);
+}
+
+update-panel .update-delta {
+    font-size: 12px;
+    font-weight: 500;
+    line-height: 1.4;
+    white-space: nowrap;
+    transition: color 180ms ease;
+}
+
+update-panel .modal.is-checking .update-arrow,
+update-panel .modal.is-update .update-arrow,
+update-panel .modal.is-updating .update-arrow {
+    color: var(--update-accent-text);
+}
+
+update-panel .modal.is-update .update-delta,
+update-panel .modal.is-checking .update-delta,
+update-panel .modal.is-updating .update-delta {
+    color: var(--update-accent-text);
+}
+
+update-panel .modal.is-latest .update-arrow-next,
+update-panel .modal.is-done .update-arrow-next {
+    display: none;
+}
+
+update-panel .modal.is-latest .update-arrow-done,
+update-panel .modal.is-done .update-arrow-done {
+    display: block;
+}
+
+update-panel .modal.is-latest .update-delta,
+update-panel .modal.is-done .update-delta {
+    color: var(--update-success-text);
+}
+
+update-panel .modal.is-error .update-arrow {
+    color: var(--tblr-danger-text);
+}
+
+update-panel .update-notice {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    margin-top: 12px;
+    padding: 9px 12px;
+    border-radius: 8px;
+    background: color-mix(in srgb, var(--tblr-warning) 10%, transparent);
+    color: var(--tblr-warning-text);
+    font-size: 12px;
+    line-height: 1.5;
+}
+
+update-panel .update-notice[hidden] {
+    display: none;
+}
+
+update-panel .update-notice .ti {
+    flex: none;
+    margin-top: 1px;
+    font-size: 14px;
+}
+
+update-panel .update-section {
+    margin-top: 20px;
+}
+
+update-panel .update-section-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 8px;
+}
+
+update-panel .update-section-title {
+    margin: 0;
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 1.4;
+}
+
+update-panel .update-count {
+    color: var(--tblr-secondary-color);
+    font-size: 12px;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
+update-panel .modal.is-update .update-count,
+update-panel .modal.is-updating .update-count {
+    color: var(--update-accent-text);
+    font-weight: 500;
+}
+
+update-panel .update-commit-list {
+    max-height: 240px;
+    margin: 0;
+    padding: 0;
+    overflow-y: auto;
+    border: 1px solid var(--tblr-border-color);
+    border-radius: 8px;
+    list-style: none;
+}
+
+update-panel .update-commit-item {
+    display: grid;
+    grid-template-columns: 82px minmax(0, 1fr) auto;
+    gap: 12px;
+    align-items: baseline;
+    padding: 9px 14px;
+    border-bottom: 1px solid var(--tblr-border-color);
+}
+
+update-panel .update-commit-item:last-child {
+    border-bottom: 0;
+}
+
+update-panel .update-commit-item:hover {
+    background: var(--tblr-bg-surface-secondary);
+}
+
+update-panel .update-commit-hash {
+    overflow: hidden;
+    color: var(--tblr-muted);
+    font-family: var(--tblr-font-monospace);
+    font-size: 12px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+}
+
+update-panel .update-commit-subject {
+    overflow: hidden;
+    color: var(--tblr-body-color);
+    font-size: 14px;
+    line-height: 1.45;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+update-panel .update-commit-date {
+    color: var(--tblr-secondary-color);
+    font-family: var(--tblr-font-monospace);
+    font-size: 12px;
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+}
+
+update-panel .update-commit-empty {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 18px 14px;
+    color: var(--tblr-secondary-color);
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+update-panel .update-commit-empty .ti {
+    flex: none;
+    font-size: 14px;
+}
+
+update-panel .update-commit-empty.is-success {
+    color: var(--update-success-text);
+}
+
+update-panel .update-commit-empty.is-danger {
+    color: var(--tblr-danger-text);
+}
+
+update-panel .update-commit-skeleton {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--tblr-border-color);
+}
+
+update-panel .update-commit-skeleton:last-child {
+    border-bottom: 0;
+}
+
+update-panel .update-skeleton-bar {
+    height: 10px;
+    border-radius: 4px;
+    background: color-mix(in srgb, var(--tblr-body-color) 9%, transparent);
+    animation: update-skeleton-pulse 1.6s ease-in-out infinite;
+}
+
+update-panel .update-log {
+    margin-top: 20px;
+    padding-top: 12px;
+    border-top: 1px solid var(--tblr-border-color);
+}
+
+update-panel .update-log-toggle {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    width: 100%;
+    min-height: 32px;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: var(--tblr-body-color);
+    font-size: 12px;
+    font-weight: 500;
+    line-height: 1.5;
+    text-align: left;
+}
+
+update-panel .update-log-toggle:hover {
+    color: var(--update-accent-text);
+}
+
+update-panel .update-log-chevron {
+    flex: none;
+    color: var(--tblr-secondary-color);
+    font-size: 14px;
+    transition: transform 180ms ease;
+}
+
+update-panel .update-log-toggle[aria-expanded="true"] .update-log-chevron {
+    transform: rotate(90deg);
+}
+
+update-panel .update-log-meta {
+    margin-left: auto;
+    color: var(--tblr-secondary-color);
+    font-size: 12px;
+    font-weight: 400;
+    font-variant-numeric: tabular-nums;
+}
+
+update-panel .update-log-body {
+    margin-top: 10px;
+}
+
+update-panel .update-log-body[hidden],
+update-panel .update-progress-row[hidden] {
+    display: none;
+}
+
+update-panel .update-progress-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 8px;
+}
+
+update-panel .update-progress {
+    flex: 1 1 auto;
+    height: 4px;
+    overflow: hidden;
+    border-radius: 999px;
+    background: var(--tblr-border-color);
+}
+
+update-panel .update-progress .progress-bar {
+    border-radius: 999px;
+    background: var(--tblr-primary);
+    transition: width 300ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+update-panel .update-progress-value {
+    min-width: 34px;
+    color: var(--tblr-secondary-color);
+    font-family: var(--tblr-font-monospace);
+    font-size: 12px;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+}
+
+update-panel .modal.is-error .update-progress .progress-bar {
+    background: var(--tblr-danger);
+}
+
+update-panel .modal.is-error .update-progress-value {
+    color: var(--tblr-danger-text);
+}
+
+update-panel .update-log-scroll {
+    height: 220px;
+    overflow-y: auto;
+    border: 1px solid var(--tblr-border-color);
+    border-radius: 8px;
+    background: var(--tblr-bg-surface-secondary);
+}
+
+update-panel .update-log-content {
+    padding: 8px 12px;
+    color: var(--tblr-body-color);
+    font-family: var(--tblr-font-monospace);
+    font-size: 12px;
+    line-height: 1.7;
+}
+
+update-panel .update-log-line {
+    display: flex;
+    gap: 8px;
+    align-items: baseline;
+}
+
+update-panel .update-log-time {
+    flex: none;
+    color: var(--tblr-secondary-color);
+    font-variant-numeric: tabular-nums;
+}
+
+update-panel .update-log-level {
+    flex: none;
+    padding: 0 5px;
+    border-radius: 4px;
+    font-family: var(--tblr-font-sans-serif);
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 1.5;
+}
+
+update-panel .update-log-line.is-warn .update-log-level {
+    background: color-mix(in srgb, var(--tblr-warning) 15%, transparent);
+    color: var(--tblr-warning-text);
+}
+
+update-panel .update-log-line.is-error .update-log-level {
+    background: color-mix(in srgb, var(--tblr-danger) 12%, transparent);
+    color: var(--tblr-danger-text);
+}
+
+update-panel .update-log-line.is-warn .update-log-text {
+    color: var(--tblr-warning-text);
+}
+
+update-panel .update-log-line.is-error .update-log-text {
+    color: var(--tblr-danger-text);
+}
+
+update-panel .update-log-line.is-muted .update-log-text {
+    color: var(--tblr-secondary-color);
+}
+
+update-panel .update-log-text {
+    min-width: 0;
+    white-space: pre-wrap;
+    word-break: break-all;
+}
+
+update-panel .update-log-empty {
+    color: var(--tblr-secondary-color);
+}
+
+update-panel .update-footer {
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 12px 20px;
+}
+
+update-panel #git_panel_action_btn:disabled {
+    border-color: transparent;
+    background: color-mix(in srgb, var(--tblr-primary) 12%, var(--tblr-bg-surface));
+    color: var(--update-accent-text);
+    opacity: 1;
+}
+
+update-panel .update-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    min-width: 0;
+    margin-right: auto;
+    overflow: hidden;
+    font-size: 12px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+update-panel .update-status::before {
+    content: "";
+    flex: none;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: currentColor;
+}
+
+update-panel .update-status.text-info {
+    color: var(--update-accent-text);
+}
+
+update-panel .update-status.text-success {
+    color: var(--update-success-text);
+}
+
+update-panel .update-status.text-warning {
+    color: var(--tblr-warning-text);
+}
+
+update-panel .update-status.text-danger {
+    color: var(--tblr-danger-text);
+}
+
+update-panel .update-status.text-muted {
+    color: var(--tblr-secondary-color);
+}
+
+update-panel :focus-visible {
+    outline: 2px solid var(--tblr-primary);
+    outline-offset: 2px;
+}
+
+@keyframes update-skeleton-pulse {
+    0%,
+    100% {
+        opacity: 0.45;
+    }
+    50% {
+        opacity: 1;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    update-panel .update-skeleton-bar {
+        animation: none;
+        opacity: 0.7;
+    }
+
+    update-panel .update-log-chevron,
+    update-panel .update-arrow,
+    update-panel .update-delta,
+    update-panel .update-progress .progress-bar {
+        transition: none;
+    }
+}
+
+@media (max-width: 991.98px) {
+    update-panel .update-compare {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    update-panel .update-arrow {
+        flex-direction: row;
+        gap: 8px;
+        padding: 8px 16px;
+        border-top: 1px solid var(--tblr-border-color);
+        border-right: 0;
+        border-bottom: 1px solid var(--tblr-border-color);
+        border-left: 0;
+    }
+
+    update-panel .update-arrow-next {
+        transform: rotate(90deg);
+    }
+}
+
+@media (max-width: 767.98px) {
+    update-panel .modal-body {
+        padding: 16px;
+    }
+
+    update-panel .modal-header {
+        padding: 14px 56px 14px 16px;
+    }
+
+    update-panel .update-commit-item {
+        grid-template-columns: 70px minmax(0, 1fr);
+        gap: 10px;
+    }
+
+    update-panel .update-commit-date {
+        display: none;
+    }
+
+    update-panel .update-commit-list {
+        max-height: 180px;
+    }
+
+    update-panel .update-log-scroll {
+        height: 180px;
+    }
+
+    update-panel .update-footer {
+        padding: 12px 16px;
+    }
+}
+
+@media (max-width: 575.98px) {
+    update-panel .update-status {
+        flex-basis: 100%;
+        margin-right: 0;
+        white-space: normal;
+    }
+}
