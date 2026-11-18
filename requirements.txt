@@ -31,7 +31,6 @@ jsonpath==0.82.2
 opencc==1.4.2
 parse==1.22.4
 parse-torrent-title==2.8.2
-plexapi==4.18.3
 psutil==7.2.2
 PyVirtualDisplay==3.0
 python-dateutil==2.9.0.post0

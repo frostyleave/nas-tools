@@ -162,6 +162,31 @@
     color: var(--tblr-secondary-color);
   }
 
+  .lib-field-help {
+    margin-top: 6px;
+    font-size: 12.5px;
+    line-height: 18px;
+    color: var(--tblr-secondary-color);
+  }
+
+  .lib-field-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    margin-top: 4px;
+    font-size: 12.5px;
+    line-height: 18px;
+    font-weight: 500;
+    color: var(--lib-accent-ink);
+    text-decoration: none;
+  }
+
+  .lib-field-link:hover {
+    color: var(--lib-accent-ink);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+
   .lib-switch-row {
     display: flex;
     align-items: center;
@@ -952,6 +977,19 @@
     });
   }
 
+  // 打开 Plex Web，便于获取 X-Plex-Token
+  function library_open_plex_web() {
+    let host = ($('#plex\\.host').val() || '').trim();
+    if (!host) {
+      show_fail_modal('请先填写 Plex 服务器地址');
+      return;
+    }
+    if (!/^https?:\/\//i.test(host)) {
+      host = 'http://' + host;
+    }
+    window.open(host.replace(/\/+$/, '') + '/web', '_blank', 'noopener');
+  }
+
   // 测试媒体服务器配置
   function test_mediaserver_config(type) {
     $("#" + type + "_test_btn").text("测试中...").attr("disabled", true);
@@ -975,7 +1013,7 @@
         $container.append($row);
       }
 
-      let colClass = (fieldAttr.type === "switch") ? "col-12" : "col-lg";
+      let colClass = (fieldAttr.type === "switch" || fieldAttr.help) ? "col-12" : "col-lg";
       let $col = $('<div class="' + colClass + '"><div class="mb-3"></div></div>');
       let $inner = $col.find(".mb-3");
 
@@ -1001,6 +1039,16 @@
           $inner.append(`
             <label class="form-label ${requiredClass}">${fieldAttr.title}</label>
             <input type="${fieldAttr.type}" id="${fieldAttr.id}" class="form-control" value="${value}" placeholder="${fieldAttr.placeholder || ""}">
+          `);
+        }
+        if (fieldAttr.help) {
+          $inner.append(`<div class="lib-field-help">${fieldAttr.help}</div>`);
+        }
+        if (type === "plex" && fieldId === "token") {
+          $inner.append(`
+            <a href="javascript:library_open_plex_web()" class="lib-field-link">
+              <i class="ti ti-external-link"></i> 打开 Plex Web 获取 Token
+            </a>
           `);
         }
       }

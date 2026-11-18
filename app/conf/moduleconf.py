@@ -782,32 +782,12 @@ class ModuleConf:
                 },
                 "token": {
                     "id": "plex.token",
-                    "required": False,
+                    "required": True,
                     "title": "X-Plex-Token",
-                    "tooltip": "Plex网页Url中的X-Plex-Token，通过浏览器F12->网络从请求URL中获取，如填写将优先使用；Token与服务器名称、用户名及密码 二选一，推荐使用Token，连接速度更快",
+                    "tooltip": "Plex网页Url中的X-Plex-Token，通过浏览器F12->网络从请求URL中获取",
+                    "help": "获取方式：用服务器所有者账号登录 Plex Web → 打开任意媒体 → 右上角 ⋯ → 获取信息 → 查看 XML，"
+                            "浏览器地址中 X-Plex-Token 的值即为 Token；也可按 F12 在网络请求中查找。",
                     "type": "text",
-                    "placeholder": "X-Plex-Token与其它认证信息二选一"
-                },
-                "servername": {
-                    "id": "plex.servername",
-                    "required": False,
-                    "title": "服务器名称",
-                    "tooltip": "配置Plex设置->左侧下拉框中看到的服务器名称；如填写了Token则无需填写服务器名称、用户名及密码",
-                    "type": "text",
-                    "placeholder": ""
-                },
-                "username": {
-                    "id": "plex.username",
-                    "required": False,
-                    "title": "用户名",
-                    "type": "text",
-                    "placeholder": ""
-                },
-                "password": {
-                    "id": "plex.password",
-                    "required": False,
-                    "title": "密码",
-                    "type": "password",
                     "placeholder": ""
                 },
                 "play_host": {

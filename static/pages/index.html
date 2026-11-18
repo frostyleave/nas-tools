@@ -549,12 +549,10 @@
     }
 
     // 更新统计数据
-    if (pageData.mediaCount) {
-      $("#movie-count").text(pageData.mediaCount.movieCount || 0);
-      $("#series-count").text(pageData.mediaCount.seriesCount || 0);
-      // 集数不显示千分位逗号
-      $("#episode-count").text((pageData.mediaCount.episodeCount || 0).toString().replace(/,/g, ''));
-    }
+    $("#movie-count").text(pageData.movieCount || 0);
+    $("#series-count").text(pageData.seriesCount || 0);
+    // 集数不显示千分位逗号
+    $("#episode-count").text((pageData.episodeCount || 0).toString().replace(/,/g, ''));
 
     if (pageData.totalSpace) {
       // 去掉单位尾缀 B，如 "12.5 TB" -> "12.5 T"

@@ -199,30 +199,25 @@ def index():
         server_sucess = True
         movie_count = "{:,}".format(media_counts.get('MovieCount'))
         series_count = "{:,}".format(media_counts.get('SeriesCount'))
-        song_count = "{:,}".format(media_counts.get('SongCount'))
         episode_count = "{:,}".format(media_counts.get('EpisodeCount')) if media_counts.get('EpisodeCount') else ""
     else:
         server_sucess = False
         movie_count = 0
         series_count = 0
-        song_count = 0
         episode_count = 0
 
     return response(data=
         {
-             "serverSucess": server_sucess,
-             "mediaCount": {
-                 'movieCount': movie_count,
-                 'seriesCount': series_count,
-                 'songCount': song_count,
-                 "episodeCount": episode_count
-                },
-             "totalSpace": library_spaces.get("TotalSpace"),
-             "usedPercent": library_spaces.get("UsedPercent"),
-             "mediaServerType": server_type,
-             "librarys": media_librarys,
-             "librarySyncConf": library_sync_conf,
-             "latests": latest_adds,
+            "serverSucess": server_sucess,
+            "movieCount": movie_count,
+            "seriesCount": series_count,
+            "episodeCount": episode_count,
+            "totalSpace": library_spaces.get("TotalSpace"),
+            "usedPercent": library_spaces.get("UsedPercent"),
+            "mediaServerType": server_type,
+            "librarys": media_librarys,
+            "librarySyncConf": library_sync_conf,
+            "latests": latest_adds,
         }
     )
 
