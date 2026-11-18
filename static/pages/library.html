@@ -414,8 +414,7 @@
           <h2 class="lib-section-title">媒体服务器</h2>
           <div class="lib-section-desc">连接 Emby、Jellyfin 或 Plex，用于媒体库状态与播放跳转</div>
         </div>
-        <button type="button" class="card-collapse" onclick="toggle_card_section('sys_media_server_config', this)"
-          data-section-label="媒体服务器" aria-label="折叠媒体服务器" aria-expanded="true">
+        <button type="button" class="card-collapse" onclick="toggle_card_section('sys_media_server_config', this)" data-section-label="媒体服务器" aria-label="折叠媒体服务器" aria-expanded="true">
           <i class="ti ti-chevron-right"></i>
         </button>
       </div>
@@ -427,18 +426,14 @@
           <div class="lib-inline-control">
             <label class="form-label" for="media.mediasync_interval">同步周期</label>
             <div class="input-group">
-              <input type="text" value="" class="form-control" id="media.mediasync_interval"
-                placeholder="留空不启用" autocomplete="off">
+              <input type="text" value="" class="form-control" id="media.mediasync_interval" placeholder="留空不启用" autocomplete="off">
               <span class="input-group-text">小时</span>
             </div>
           </div>
           <p class="lib-hint">定时同步媒体服务器数据，用于标记媒体是否已入库。留空则关闭同步。</p>
         </div>
         <div class="lib-footer">
-          <a id="sys_media_server_config_btn" href="javascript:save_basic_config('sys_media_server_config')"
-            class="btn btn-primary">
-            保存
-          </a>
+          <a id="sys_media_server_config_btn" href="javascript:save_basic_config('sys_media_server_config')" class="btn btn-primary">保存</a>
         </div>
       </div>
     </section>
@@ -448,104 +443,94 @@
           <h2 class="lib-section-title">存储与整理</h2>
           <div class="lib-section-desc">媒体文件的默认路径、转移规则、命名格式与刮削</div>
         </div>
-        <button type="button" class="card-collapse" onclick="toggle_card_section('sys_media_config', this)"
-          data-section-label="存储与整理" aria-label="折叠存储与整理" aria-expanded="true">
+        <button type="button" class="card-collapse" onclick="toggle_card_section('sys_media_config', this)" data-section-label="存储与整理" aria-label="折叠存储与整理" aria-expanded="true">
           <i class="ti ti-chevron-right"></i>
         </button>
       </div>
       <div class="card-body" id="sys_media_config">
         <div class="row g-4">
           <div class="col-12 col-md-6 col-xl-3">
-            <label class="form-label" for="media.media_default_path">文件管理默认路径 <span class="form-help"
-                title="文件管理、自定义识别等默认路径" data-bs-toggle="tooltip">?</span></label>
-            <input type="text" value="" class="form-control filetree-folders-only" id="media.media_default_path"
-              placeholder="/" autocomplete="off">
+            <label class="form-label" for="media.media_default_path">文件管理默认路径 
+              <span class="form-help" title="文件管理、自定义识别等默认路径" data-bs-toggle="tooltip">?</span>
+            </label>
+            <input type="text" value="" class="form-control filetree-folders-only" id="media.media_default_path" placeholder="/" autocomplete="off">
           </div>
           <div class="col-12 col-md-6 col-xl-3">
-            <label class="form-label" for="media.category">文件二级分类策略 <span class="form-help"
-                title="启用二级分类后会在电影/电视剧/动漫媒体库目录下按二级分类名建立子目录；此处配置分类的策略名，保存后会自动生成默认配置；如不需要启动分类，则该项配置为空"
-                data-bs-toggle="tooltip">?</span></label>
+            <label class="form-label" for="media.category">文件二级分类策略 
+              <span title="【二级分类开关】：<br>电影/电视剧/动漫是否需要二级分类<br>启用二级分类后，会在电影/电视剧/动漫 目录下按二级分类名建立子目录<br><br>此处配置分类的策略名，配置文件目录中需要有与策略名同名的.yaml配置文件<br><br>默认策略default-category<br>分类设置可参考default-category.yaml<br><br>如不需要启动分类，则该项配置为空"
+                class="form-help" data-bs-toggle="tooltip" data-bs-html="true">?</span>
+            </label>
             <div class="input-group">
-              <input type="text" value="" class="form-control" id="media.category"
-                placeholder="留空不启用" autocomplete="off" name="category_name">
-              <a href="javascript:show_category_config_modal()" class="input-group-text link-secondary"
-                title="编辑二级分类策略" data-bs-toggle="tooltip" aria-label="编辑二级分类策略">
+              <input type="text" value="" class="form-control" id="media.category" placeholder="留空不启用" autocomplete="off" name="category_name">
+              <a href="javascript:show_category_config_modal()" class="input-group-text link-secondary" title="编辑二级分类策略" data-bs-toggle="tooltip" aria-label="编辑二级分类策略">
                 <i class="ti ti-edit"></i>
               </a>
             </div>
           </div>
           <div class="col-12 col-md-6 col-xl-3">
-            <label class="form-label" for="media.default_rmt_mode">默认文件转移方式 <span class="lib-req"
-                title="必填">*</span><span class="form-help" title="手动识别等未指定转移方式的场景默认使用的转移方式"
-                data-bs-toggle="tooltip">?</span></label>
+            <label class="form-label" for="media.default_rmt_mode">默认文件转移方式 
+              <span class="lib-req" title="必填">*</span>
+              <span class="form-help" title="手动识别等未指定转移方式的场景默认使用的转移方式<br><br>移动：会直接移动原文件，会影响做种，请谨慎使用<br><br>Rclone：需要自行映射Rclone配置目录到容器中，或在容器内完成Rclone配置" data-bs-toggle="tooltip" data-bs-html="true">?</span>
+            </label>
             <select id="media.default_rmt_mode" class="form-select">
             </select>
           </div>
           <div class="col-12 col-md-6 col-xl-3">
-            <label class="form-label" for="media.min_filesize">转移最小文件大小（MB） <span class="lib-req"
-                title="必填">*</span><span class="form-help" title="小于该大小的文件将会忽略，不进行转移重命名"
-                data-bs-toggle="tooltip">?</span></label>
-            <input type="text" value="" class="form-control" id="media.min_filesize" placeholder="200"
-              autocomplete="off">
+            <label class="form-label" for="media.min_filesize">转移最小文件大小（MB） 
+              <span class="lib-req" title="必填">*</span><span class="form-help" title="小于该大小的文件将会忽略，不进行转移重命名" data-bs-toggle="tooltip">?</span>
+            </label>
+            <input type="text" value="" class="form-control" id="media.min_filesize" placeholder="200" autocomplete="off">
           </div>
           <div class="col-12 col-xl-6">
-            <label class="form-label" for="media.ignored_paths">文件路径转移忽略词 <span class="form-help"
-                title="文件路径包含忽略词的，忽略转移，支持正则表达式，注意特殊字符转义"
-                data-bs-toggle="tooltip">?</span></label>
-            <input type="text" value="" class="form-control" id="media.ignored_paths"
-              placeholder="支持正则表达式，使用 ; 分隔" autocomplete="off">
+            <label class="form-label" for="media.ignored_paths">文件路径转移忽略词 
+              <span class="form-help" title="文件路径包含忽略词的，忽略转移，支持正则表达式，注意特殊字符转义" data-bs-toggle="tooltip">?</span>
+            </label>
+            <input type="text" value="" class="form-control" id="media.ignored_paths" placeholder="支持正则表达式，使用 ; 分隔" autocomplete="off">
           </div>
           <div class="col-12 col-xl-6">
-            <label class="form-label" for="media.ignored_files">文件名转移忽略词 <span class="form-help"
-                title="文件名（包括扩展名）包含忽略词的，忽略转移，支持正则表达式，注意特殊字符转义"
-                data-bs-toggle="tooltip">?</span></label>
-            <input type="text" value="" class="form-control" id="media.ignored_files"
-              placeholder="支持正则表达式，使用 ; 分隔" autocomplete="off">
+            <label class="form-label" for="media.ignored_files">文件名转移忽略词 
+              <span class="form-help" title="文件名（包括扩展名）包含忽略词的，忽略转移，支持正则表达式，注意特殊字符转义" data-bs-toggle="tooltip">?</span>
+            </label>
+            <input type="text" value="" class="form-control" id="media.ignored_files" placeholder="支持正则表达式，使用 ; 分隔" autocomplete="off">
           </div>
           <div class="col-12 col-xl-6 lib-field-mono">
-            <label class="form-label" for="media.movie_name_format">电影重命名格式 <span class="lib-req"
-                title="必填">*</span><span class="form-help"
-                title="程序会按定义的命名格式对电影进行重命名；/代表上下级目录，{}内为占位符，转义为&#123;&#123;&#125;&#125;；占位符会使用文件识别出来的实际值替换；占位符外的字符会当成普通字符，直接体现在名称上。<br>电影占位符：<br>{title}：标题<br>{en_title}：英文标题<br>{original_title}：原语种标题<br>{original_name}：原文件名<br>{rev_name}：识别词处理后的原文件名<br>{year}：年份<br>{edition}：版本(Bluray/WEB-DL等)<br>{videoFormat}：分辨率(1080p/4k等)<br>{videoCodec}：视频编码<br>{audioCodec}：音频编码及声道<br>{tmdbid}：TMDB的ID<br>{imdbid}：IMDB的ID<br>{part}：part1/disc1/dvd1<br>{releaseGroup}：制作组/字幕组<br>{name}：识别名称（文件名中识别出的名称，可用自定义识别词替换）<br><br>重命名使用Python的format格式化，可进行指定格式输出"
-                data-bs-toggle="tooltip" data-bs-html="true">?</span></label>
-            <input type="text" value="" class="form-control" id="media.movie_name_format"
-              placeholder="{title} ({year})/{title}-{part} ({year}) - {videoFormat}" autocomplete="off">
+            <label class="form-label" for="media.movie_name_format">电影重命名格式 
+              <span class="lib-req" title="必填">*</span>
+              <span title="系统会按定义的命名格式对电影进行重命名<br>/代表上下级目录<br>{}内为占位符，转义为&#123;&#123;&#125;&#125;<br>占位符会使用文件识别出来的实际值替换；占位符外的字符会当成普通字符，直接体现在名称上<br><br>电影占位符：<br>{title}：标题<br>{en_title}：英文标题<br>{original_title}：原语种标题<br>{original_name}：原文件名<br>{rev_name}：识别词处理后的原文件名<br>{year}：年份<br>{edition}：版本(Bluray/WEB-DL等)<br>{videoFormat}：分辨率(1080p/4k等)<br>{videoCodec}：视频编码<br>{audioCodec}：音频编码及声道<br>{tmdbid}：TMDB的ID<br>{imdbid}：IMDB的ID<br>{part}：part1/disc1/dvd1<br>{releaseGroup}：制作组/字幕组<br>{name}：识别名称（文件名中识别出的名称，可用自定义识别词替换）<br><br>重命名使用Python的format格式化，可进行指定格式输出"
+                class="form-help" data-bs-toggle="tooltip" data-bs-html="true">?</span>
+            </label>
+            <input type="text" value="" class="form-control" id="media.movie_name_format" placeholder="{title} ({year})/{title}-{part} ({year}) - {videoFormat}" autocomplete="off">
           </div>
           <div class="col-12 col-xl-6 lib-field-mono">
-            <label class="form-label" for="media.tv_name_format">剧集重命名格式 <span class="lib-req"
-                title="必填">*</span><span class="form-help"
-                title="程序会按定义的命名格式对电视剧进行重命名；/代表上下级目录，{}内为占位符，转义为&#123;&#123;&#125;&#125;；占位符会使用文件识别出来的实际值替换，占位符外的字符会当成普通字符，直接体现在名称上。<br>电视剧占位符：<br>{title}：标题<br>{en_title}：英文标题<br>{original_title}：原语种标题<br>{original_name}：原文件名<br>{rev_name}：识别词处理后的原文件名<br>{year}：年份<br>{edition}：版本(Bluray/WEB-DL等)<br>{videoFormat}：分辨率(1080p/4k等)<br>{videoCodec}：视频编码<br>{audioCodec}：音频编码及声道<br>{tmdbid}：TMDB的ID<br>{imdbid}：IMDB的ID<br>{season}：季数<br>{episode}：集数<br>{season_episode}：剧集SxxExx<br>{part}：part1/disc1/dvd1<br>{releaseGroup}：制作组/字幕组<br>{name}：识别名称（文件名中识别出的名称，可用自定义识别词替换）<br><br>重命名使用Python的format格式化，可进行指定格式输出"
-                data-bs-toggle="tooltip" data-bs-html="true">?</span></label>
-            <input type="text" value="" class="form-control" id="media.tv_name_format"
-              placeholder="{title} ({year})/Season {season}/{title}-{part} - {season_episode} - 第 {episode} 集"
-              autocomplete="off">
+            <label class="form-label" for="media.tv_name_format">剧集重命名格式 
+              <span class="lib-req" title="必填">*</span>
+              <span title="系统会按定义的命名格式对电视剧进行重命名<br>/代表上下级目录<br>{}内为占位符，转义为&#123;&#123;&#125;&#125;<br>占位符会使用文件识别出来的实际值替换，占位符外的字符会当成普通字符，直接体现在名称上<br><br>电视剧占位符：<br>{title}：标题<br>{en_title}：英文标题<br>{original_title}：原语种标题<br>{original_name}：原文件名<br>{rev_name}：识别词处理后的原文件名<br>{year}：年份<br>{edition}：版本(Bluray/WEB-DL等)<br>{videoFormat}：分辨率(1080p/4k等)<br>{videoCodec}：视频编码<br>{audioCodec}：音频编码及声道<br>{tmdbid}：TMDB的ID<br>{imdbid}：IMDB的ID<br>{season}：季数<br>{episode}：集数<br>{season_episode}：剧集SxxExx<br>{part}：part1/disc1/dvd1<br>{releaseGroup}：制作组/字幕组<br>{name}：识别名称（文件名中识别出的名称，可用自定义识别词替换）<br><br>重命名使用Python的format格式化，可进行指定格式输出"
+                class="form-help"data-bs-toggle="tooltip" data-bs-html="true">?</span>
+            </label>
+            <input type="text" value="" class="form-control" id="media.tv_name_format" placeholder="{title} ({year})/Season {season}/{title}-{part} - {season_episode} - 第 {episode} 集" autocomplete="off">
           </div>
           <div class="col-12">
             <div class="lib-switch-row">
               <label class="form-check form-switch">
                 <input class="form-check-input" type="checkbox" id="media.filesize_cover">
-                <span class="form-check-label">高质量文件覆盖 <span class="form-help"
-                    title="开启后，如下载了更高质量的同名文件时，会覆盖媒体库中已有的文件，否则不会进行转移处理"
-                    data-bs-toggle="tooltip">?</span></span>
+                <span class="form-check-label">高质量文件覆盖 
+                  <span class="form-help" title="开启后，如下载了更高质量的同名文件时，会覆盖媒体库中已有的文件，否则不会进行转移处理" data-bs-toggle="tooltip">?</span>
+                </span>
               </label>
               <div class="lib-switch-group">
                 <label class="form-check form-switch">
                   <input class="form-check-input" type="checkbox" id="media.nfo_poster">
-                  <span class="form-check-label">刮削元数据及图片 <span class="form-help"
-                      title="开启后会自动生成nfo描述文件及图片，协助媒体服务器识别和刮削，在刮削设置中自定义刮削内容"
-                      data-bs-toggle="tooltip">?</span></span>
+                  <span class="form-check-label">刮削元数据及图片 
+                    <span class="form-help" title="开启后会自动生成nfo描述文件及图片，协助媒体服务器识别和刮削，在刮削设置中自定义刮削内容" data-bs-toggle="tooltip">?</span>
+                  </span>
                 </label>
-                <a href="javascript:void(0)" class="btn btn-outline-primary text-nowrap" data-bs-toggle="modal"
-                  data-bs-target="#modal-scraper">
-                  刮削设置
-                </a>
+                <a href="javascript:void(0)" class="btn btn-outline-primary text-nowrap" data-bs-toggle="modal" data-bs-target="#modal-scraper">刮削设置</a>
               </div>
             </div>
           </div>
         </div>
         <div class="lib-footer">
-          <a id="sys_media_config_btn" href="javascript:save_basic_config('sys_media_config')" class="btn btn-primary">
-            保存
-          </a>
+          <a id="sys_media_config_btn" href="javascript:save_basic_config('sys_media_config')" class="btn btn-primary">保存</a>
         </div>
       </div>
     </section>
@@ -565,9 +550,9 @@
       </div>
       <div class="modal-body">
         <div class="mb-3">
-          <label class="form-label">路径 <span class="form-help"
-              title="Emby/Jellyfin/Plex媒体库对应文件的路径，下载文件转移、目录同步未配置目的目录时，媒体文件将重命名转移到该目录"
-              data-bs-toggle="tooltip">?</span></label>
+          <label class="form-label">路径 
+            <span class="form-help" title="Emby/Jellyfin/Plex媒体库对应文件的路径，下载文件转移、目录同步未配置目的目录时，媒体文件将重命名转移到该目录" data-bs-toggle="tooltip">?</span>
+          </label>
           <input type="text" value="" id="path_str" class="form-control filetree-folders-only" autocomplete="off">
           <input type="hidden" value="" id="path_type" class="form-control">
         </div>
@@ -582,10 +567,8 @@
 
 <div class="modal modal-blur fade" id="modal-scraper" tabindex="-1" role="dialog" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
   <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
-    <div class="card modal-content"
-      style="border-top-left-radius:var(--tblr-modal-inner-border-radius) !important; border-top-right-radius:var(--tblr-modal-inner-border-radius) !important">
-      <div class="card-header"
-        style="border-top-left-radius:var(--tblr-modal-inner-border-radius) !important; border-top-right-radius:var(--tblr-modal-inner-border-radius) !important">
+    <div class="card modal-content" style="border-top-left-radius:var(--tblr-modal-inner-border-radius) !important; border-top-right-radius:var(--tblr-modal-inner-border-radius) !important">
+      <div class="card-header" style="border-top-left-radius:var(--tblr-modal-inner-border-radius) !important; border-top-right-radius:var(--tblr-modal-inner-border-radius) !important">
         <ul class="nav nav-fill card-header-tabs nav-tabs rounded-3" data-bs-toggle="tabs" role="tablist">
           <li class="nav-item" role="presentation">
             <a href="#tabs-scraper-nfo" class="nav-link active justify-content-center" data-bs-toggle="tab"

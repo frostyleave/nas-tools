@@ -179,6 +179,8 @@ class SystemConfigKey(Enum):
     UserScraperConf = "UserScraperConf"
     # 索引站点
     UserIndexerSites = "UserIndexerSites"
+    # 运行期配置
+    ConfigOverride = "ConfigOverride"
 
 
 class RssType(Enum):

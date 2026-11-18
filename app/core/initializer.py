@@ -18,6 +18,8 @@ def init_data():
     MediaDb().init_db()
     MainDb().init_db()
     log.console('数据库初始化完成, 开始初始化数据...')
+    # 需在 MainDb.init_data() 之前加载
+    init_db_config()
     MainDb().init_data()
     MainDb().ensure_config_users_level()
     log.console('数据初始化完成')
@@ -33,6 +35,17 @@ def init_data():
         log.console('数据库更新完成')
     except Exception as e:
         log.console(f'数据库更新失败：{e}')
+
+def init_db_config():
+    """
+    加载数据库配置
+    """
+    try:
+        from app.conf.db_config import DbConfig
+        DbConfig().init_config()
+    except Exception as e:
+        log.error(f'【Config】数据库配置加载失败：{e!s}')
+
 
 def check_config():
     """
@@ -217,7 +230,6 @@ def _get_config_handlers():
             "media.movie_name_format",
             "media.tv_name_format",
             "media.nfo_poster",
-            "pt.rmt_mode",
         }, lambda *_: FileTransfer().init_config()),
         ("MediaServer", {"media.media_server", "emby", "jellyfin", "plex"},
          lambda *_: MediaServer().init_config()),

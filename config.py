@@ -1,7 +1,6 @@
 import json
 import os
 import shutil
-import sys
 import time
 from threading import Lock
 
@@ -46,9 +45,8 @@ class Config:
         self._config_path = os.environ.get('NASTOOL_CONFIG')
         if not self._config_path:
             print("【Config】NASTOOL_CONFIG 环境变量未设置，使用config文件夹下默认配置文件")
-            separator = '\\' if os.name == "nt" else '/'
-            this_path = sys.argv[0]
-            dir_path = this_path[:this_path.rfind(separator)]
+            # 以 config.py 所在目录为根目录
+            dir_path = os.path.dirname(os.path.realpath(__file__))
             self._config_path = os.path.join(dir_path, "config", "config.yaml")
         if not os.environ.get('TZ'):
             os.environ['TZ'] = 'Asia/Shanghai'
@@ -108,10 +106,27 @@ class Config:
         return self._config.get(node, {})
 
     def save_config(self, new_cfg):
+        """
+        保存配置：由数据库管理的配置项写入数据库，其余写入 config.yaml
+        """
+        file_cfg = new_cfg
+        try:
+            from app.conf.db_config import DbConfig
+            DbConfig().save(new_cfg)
+            file_cfg = DbConfig().get_file_config(new_cfg)
+        except Exception as err:
+            # 数据库不可用时写入文件
+            print(f"【Config】保存数据库配置失败，配置将写入文件：{err!s}")
         self._config = new_cfg
+        return self._write_config_file(file_cfg)
+
+    def _write_config_file(self, cfg):
+        """
+        仅写入 config.yaml 文件（内部使用）
+        """
         with open(self._config_path, mode='w', encoding='utf-8') as sf:
             yaml = ruamel.yaml.YAML()
-            return yaml.dump(new_cfg, sf)
+            return yaml.dump(cfg, sf)
 
     def get_config_path(self):
         return os.path.dirname(self._config_path)

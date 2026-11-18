@@ -54,7 +54,7 @@ def get_run_config(app: FastAPI) -> uvicorn.Config:
     app_conf = Config().get_config('app')
 
     if app_conf:
-        _web_host = app_conf.get('_web_host', '0.0.0.0')
+        _web_host = app_conf.get('web_host', _web_host)
         _log_level = app_conf.get('loglevel', 'info')
 
     # 生成配置

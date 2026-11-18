@@ -755,7 +755,6 @@
 
         // 填充实验室配置数据
         if (data.Config && data.Config.laboratory) {
-          $('#laboratory\\.chatgpt_enable').prop('checked', data.Config.laboratory.chatgpt_enable || false);
           $('#laboratory\\.search_keyword').prop('checked', data.Config.laboratory.search_keyword || false);
           $('#laboratory\\.search_tmdbweb').prop('checked', data.Config.laboratory.search_tmdbweb || false);
           $('#laboratory\\.use_douban_titles').prop('checked', data.Config.laboratory.use_douban_titles || false);
