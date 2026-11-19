@@ -7,7 +7,7 @@ import os.path
 import re
 import threading
 import time
-from typing import Annotated
+from typing import Annotated, ClassVar
 
 from fastapi import APIRouter, BackgroundTasks, Body, Depends
 
@@ -180,6 +180,8 @@ class WebAction:
     _current_user : User | None = None
     _douBan = DouBan()
     _background_tasks : BackgroundTasks | None = None
+    _pt_depiler_version_cache: ClassVar[dict] = {"expire": 0.0, "version": None}
+    _PT_DEPILER_VERSION_TTL: ClassVar[int] = 600
 
     def __init__(self, current_user:User | None=None, background_tasks:BackgroundTasks | None=None):
         # WEB请求响应
@@ -328,6 +330,7 @@ class WebAction:
             "get_category_config": self.__get_category_config,
             "get_system_processes": self.__get_system_processes,
             "refresh_pt_statistics": self.__refresh_pt_statistics,
+            "pt_depiler_version": self.__pt_depiler_version,
             "get_jobs": self.__get_jobs
         }
         # 用户绑定
@@ -3939,3 +3942,61 @@ class WebAction:
         """
         result = JobCenter().get_jobs()
         return {"code": 0, "result": result }
+
+    def __pt_depiler_version(self):
+        """
+        获取 PT Depiler 最新版本号（标签+提交号），供统计分享图水印展示
+        """
+        now = time.time()
+        cached = self._pt_depiler_version_cache
+        if now >= cached["expire"]:
+            cached["version"] = self.__fetch_pt_depiler_version()
+            cached["expire"] = now + self._PT_DEPILER_VERSION_TTL
+
+        if not cached["version"]:
+            return {"code": -1, "msg": "fail to fetch PT Depiler release version "}
+        return {"code": 0, "msg": "success", "data": {"version": cached["version"]}}
+
+    @staticmethod
+    def __fetch_pt_depiler_version():
+        """
+        获取版本号+提交号
+        """
+        proxies = Config().get_proxies()
+        api_headers = {"Accept": "application/vnd.github+json"}
+        tag = None
+        commit = None
+
+        # 优先 GitHub API：releases/latest 取标签，commits/{tag} 取提交号
+        res = RequestUtils(headers=api_headers, proxies=proxies).get_res(
+            "https://api.github.com/repos/pt-plugins/PT-depiler/releases/latest")
+        if res is not None and res.status_code == 200:
+            try:
+                tag = str(res.json().get("tag_name") or "").strip() or None
+            except Exception:
+                tag = None
+
+        if tag:
+            res = RequestUtils(headers=api_headers, proxies=proxies).get_res(
+                f"https://api.github.com/repos/pt-plugins/PT-depiler/commits/{tag}")
+            if res is not None and res.status_code == 200:
+                try:
+                    commit = str(res.json().get("sha") or "").strip() or None
+                except Exception:
+                    commit = None
+
+        # API 被限流时，从 releases/latest 跳转后的标签页解析标签与提交号
+        if not tag or not commit:
+            res = RequestUtils(proxies=proxies).get_res(
+                "https://github.com/pt-plugins/PT-depiler/releases/latest")
+            if res is not None and res.status_code == 200:
+                if not tag:
+                    matched = re.search(r"/releases/tag/([^/?#]+)", res.url)
+                    tag = matched.group(1) if matched else None
+                if tag and not commit:
+                    matched = re.search(r"/commit/([0-9a-f]{7,40})", res.text)
+                    commit = matched.group(1) if matched else None
+
+        if not tag:
+            return None
+        return f"{tag}+{commit[:7]}" if commit else tag

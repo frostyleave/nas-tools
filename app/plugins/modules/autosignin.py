@@ -652,7 +652,7 @@ class AutoSignIn(_IPluginModule):
 
         browser = BrowserHelper()
         if not browser.available:
-            return False, f'[{site_name}]签到失败: {browser.unavailable_reason}'
+            return False, f'[{site_name}]签到失败: 检测到 Cloudflare 安全验证, {browser.unavailable_reason}'
 
         self.info(f'[{site_name}]检测到 Cloudflare 安全验证，使用浏览器仿真签到')
         profile_dir = os.path.join(Config().get_temp_path(), "signin-profile", str(site_info.id))

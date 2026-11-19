@@ -1198,7 +1198,6 @@
             <div class="mb-3">
               <label class="form-label" for="statistics-pic-watermark">水印</label>
               <select class="form-select" id="statistics-pic-watermark" onchange="render_statistics_picture()">
-                <option value="ptdepiler">PT Depiler（v0.0.6.2063+aa5778e）</option>
                 <option value="nastool">NASTool</option>
                 <option value="none">无水印</option>
               </select>
@@ -2122,29 +2121,24 @@
   var STATISTICS_PIC_DEFAULT_SETTING = { favicon_blur: 37.5, show_timeline: true, watermark: 'nastool' };
 
   var STATISTICS_PIC_WATERMARKS = {
-    ptdepiler: 'PT Depiler（v0.0.6.2063+aa5778e）',
     nastool: 'NAStool'
   };
 
-  function statistics_pic_get_setting() {
-    const setting = { ...STATISTICS_PIC_DEFAULT_SETTING };
-    try {
-      const saved = JSON.parse(localStorage.getItem("StatisticsPicSetting") || "{}");
-      if (Array.isArray(saved.sites)) {
-        setting.sites = saved.sites;
+  function load_statistics_pic_depiler_version() {
+    axios_post_do('pt_depiler_version', {}, function (ret) {
+      const tag = String((ret && ret.code === 0 && ret.data && ret.data.version) || '').trim();
+      if (!tag) {
+        return;
       }
-      if (saved.favicon_blur !== undefined && saved.favicon_blur !== null && isFinite(Number(saved.favicon_blur))) {
-        setting.favicon_blur = Math.min(100, Math.max(0, Number(saved.favicon_blur)));
+      const version = tag.charAt(0) === 'v' ? tag : 'v' + tag;
+      STATISTICS_PIC_WATERMARKS.ptdepiler = `PT Depiler（${version}）`;
+      $('#statistics-pic-watermark').prepend(
+        $('<option>').val('ptdepiler').text(STATISTICS_PIC_WATERMARKS.ptdepiler)
+      );
+      if ($('#modal-statistics-pic-setting').hasClass('show')) {
+        render_statistics_picture();
       }
-      if (typeof saved.show_timeline === 'boolean') {
-        setting.show_timeline = saved.show_timeline;
-      }
-      if (saved.watermark === 'none' || STATISTICS_PIC_WATERMARKS[saved.watermark]) {
-        setting.watermark = saved.watermark;
-      }
-    } catch (e) {
-    }
-    return setting;
+    }, false);
   }
 
   function statistics_pic_favicon_blur_percent() {
@@ -2152,7 +2146,7 @@
     if (input && isFinite(Number(input.value))) {
       return Math.min(100, Math.max(0, Number(input.value)));
     }
-    return statistics_pic_get_setting().favicon_blur;
+    return STATISTICS_PIC_DEFAULT_SETTING.favicon_blur;
   }
 
   function statistics_pic_show_timeline() {
@@ -2160,7 +2154,7 @@
     if (input) {
       return input.checked;
     }
-    return statistics_pic_get_setting().show_timeline;
+    return STATISTICS_PIC_DEFAULT_SETTING.show_timeline;
   }
 
   function statistics_pic_watermark_type() {
@@ -2168,7 +2162,7 @@
     if (select) {
       return select.value;
     }
-    return statistics_pic_get_setting().watermark;
+    return STATISTICS_PIC_DEFAULT_SETTING.watermark;
   }
 
   function statistics_pic_watermark_html(timestamp) {
@@ -2196,6 +2190,7 @@
   }
 
   function show_statistics_picture_modal() {
+
     const sites = statistics_pic_drawable_sites()
       .sort((a, b) => Number(b.seeding || 0) - Number(a.seeding || 0));
     if (!sites.length) {
@@ -2203,21 +2198,14 @@
       return;
     }
 
-    const setting = statistics_pic_get_setting();
-    const saved_sites = setting.sites || [];
-    // 无历史选择时默认勾选做种数大于 50 的站点；若都不满足则全选
+    // 默认勾选做种数大于 50 的站点；若都不满足则全选
     const default_hit = sites.some(item => Number(item.seeding || 0) > 50);
-    const is_checked = item => {
-      if (saved_sites.length) {
-        return saved_sites.includes(item.site);
-      }
-      return default_hit ? Number(item.seeding || 0) > 50 : true;
-    };
+    const is_checked = item => default_hit ? Number(item.seeding || 0) > 50 : true;
 
-    $('#statistics-pic-favicon-blur').val(setting.favicon_blur);
-    $('#statistics-pic-favicon-blur-value').text(statistics_pic_format_blur(setting.favicon_blur));
-    $('#statistics-pic-show-timeline').prop('checked', setting.show_timeline);
-    $('#statistics-pic-watermark').val(setting.watermark);
+    $('#statistics-pic-favicon-blur').val(STATISTICS_PIC_DEFAULT_SETTING.favicon_blur);
+    $('#statistics-pic-favicon-blur-value').text(statistics_pic_format_blur(STATISTICS_PIC_DEFAULT_SETTING.favicon_blur));
+    $('#statistics-pic-show-timeline').prop('checked', STATISTICS_PIC_DEFAULT_SETTING.show_timeline);
+    $('#statistics-pic-watermark').val(STATISTICS_PIC_DEFAULT_SETTING.watermark);
 
     $('#statistics-pic-sites').html(sites.map(item => `
       <label class="form-selectgroup-item">
@@ -2440,13 +2428,6 @@
       show_fail_modal('请先选择要展示的站点');
       return;
     }
-    localStorage.setItem("StatisticsPicSetting", JSON.stringify({
-      sites: selected,
-      favicon_blur: statistics_pic_favicon_blur_percent(),
-      show_timeline: statistics_pic_show_timeline(),
-      watermark: statistics_pic_watermark_type()
-    }));
-
     const width = poster.offsetWidth;
     const height = poster.offsetHeight;
 
@@ -2490,6 +2471,7 @@
     load_total_statistics();
     show_site_history_day(moment().format('YYYY-MM-DD'), 1);
     load_site_statistics();
+    load_statistics_pic_depiler_version();
 
     $('#modal-statistics-pic-setting').on('shown.bs.modal', function () {
       fit_statistics_picture_preview();
