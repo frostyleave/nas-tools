@@ -194,8 +194,6 @@ class IndexerManager:
                     result["source_type"] = site_base.extra.get('source_type').split(',')
                 if site_base.extra.get('proxy'):
                     result["proxy"] = site_base.extra.get('proxy', False)
-                if site_base.extra.get('render'):
-                    result["render"] = site_base.extra.get('render', False)
         elif site_conf:
             # 站点ID
             result["siteid"] = site_conf.id
@@ -213,8 +211,6 @@ class IndexerManager:
             result["pri"] = site_conf.pri if site_conf.pri else 0
             # 是否使用代理
             result["proxy"] = site_conf.proxy
-            # 是否启用渲染
-            result["render"] = site_conf.chrome
             # 网站资源类型
             if site_conf.source_type:
                 result["source_type"] = site_conf.source_type
@@ -323,7 +319,6 @@ class IndexerManager:
         构建extra字段的JSON字符串
         """
         extra_config = {
-            'render': data.get('render', False),
             'proxy': data.get('proxy', False),
             'en_expand': data.get('en_expand', False),
             'source_type': data.get('source_type', ''),

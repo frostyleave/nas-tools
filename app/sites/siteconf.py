@@ -127,7 +127,6 @@ class SiteConf:
         html_text = self.__get_site_page_html(url=torrent_url,
                                               cookie=cookie,
                                               ua=ua,
-                                              render=xpath_strs.get('RENDER'),
                                               proxy=proxy)
         if not html_text:
             return ret_attr
@@ -166,7 +165,7 @@ class SiteConf:
 
     @staticmethod
     @cached(cache=TTLCache(maxsize=512, ttl=300))
-    def __get_site_page_html(url, cookie, ua, render=False, proxy=False):
+    def __get_site_page_html(url, cookie, ua, proxy=False):
         res = RequestUtils(
             cookies=cookie,
             ua=ua,

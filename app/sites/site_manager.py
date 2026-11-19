@@ -240,7 +240,6 @@ class SitesManager:
                     "source_type": site_note.get("source_type").split(',') if site_note.get("source_type") else [],
                     "parse_detail": site_note.get("parse") == "Y",
                     "unread_msg_notify": site_note.get("message") == "Y",
-                    "chrome": site_note.get("chrome") == "Y",
                     "proxy": site_note.get("proxy") == "Y",
                     "subtitle": site_note.get("subtitle") == "Y"
                 }

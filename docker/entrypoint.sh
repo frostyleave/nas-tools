@@ -10,6 +10,7 @@ usermod -o -u "$PUID" nt
 
 # 创建目录、权限设置
 chown -R nt:nt "${WORKDIR}"  /etc/hosts /tmp
+[ -d /ms-playwright ] && chown -R nt:nt /ms-playwright
 # export PATH=${PATH}:/usr/lib/chromium
 # 执行扩展脚本
 exec "$@"

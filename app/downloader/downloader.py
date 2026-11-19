@@ -626,9 +626,9 @@ class Downloader:
         """根据下载链接所属的站点信息下载种子（委托给 TorrentDownloader）"""
         return self._torrent_downloader.get_torrent_info_with_site(url, indexer_info, page_url)
 
-    def get_torrent_info(self, url, cookie=None, ua=None, referer=None, proxy=False, render=False) -> TorrentDownloadResult:
+    def get_torrent_info(self, url, cookie=None, ua=None, referer=None, proxy=False) -> TorrentDownloadResult:
         """把种子下载到本地（委托给 TorrentDownloader）"""
-        return self._torrent_downloader.get_torrent_info(url, cookie, ua, referer, proxy, render)
+        return self._torrent_downloader.get_torrent_info(url, cookie, ua, referer, proxy)
 
     def save_torrent_file(self, url, cookie=None, ua=None, referer=None, proxy=False):
         """把种子下载到本地（委托给 TorrentDownloader）"""

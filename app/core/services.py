@@ -7,7 +7,7 @@ import log
 from app.core.jobcenter import JobCenter
 from app.core.scheduler import Scheduler
 from app.downloader import Downloader
-from app.helper import DisplayHelper, ThreadHelper
+from app.helper import BrowserHelper, ThreadHelper
 from app.indexer.manager import IndexerManager
 from app.modules.brushtaskv2 import BrushTaskV2 as BrushTask
 from app.modules.rsschecker import RssChecker
@@ -32,8 +32,8 @@ class ServiceManager:
         IndexerManager()
         # 加载站点配置
         SiteConf()
-        # 启动虚拟显示
-        DisplayHelper()
+        # 检测浏览器仿真环境
+        BrowserHelper()
         # 启动定时服务
         Scheduler()
         # 启动监控服务
@@ -58,8 +58,8 @@ class ServiceManager:
         Scheduler().stop_service()
         # 停止监控
         Sync().stop_service()
-        # 关闭虚拟显示
-        DisplayHelper().stop_service()
+        # 关闭浏览器仿真与虚拟显示
+        BrowserHelper().stop_service()
         # 关闭刷流
         BrushTask().stop_service()
         # 关闭自定义订阅

@@ -45,8 +45,6 @@ class UserSiteConf(BaseModel):
     passkey: str | None = None
     uid: str | None = None
 
-    chrome: bool
-    """ 是否开启开启浏览器仿真 """
     proxy: bool
     """ 是否使用代理服务 """
 
@@ -125,7 +123,6 @@ class IndexerInfo(BaseModel):
     rule: str | None= None
     pri: int = 0
     proxy: bool = False
-    render: bool = False
     timeout : int = 15
 
     @classmethod

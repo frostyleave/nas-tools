@@ -2066,7 +2066,6 @@ function do_update_indexer() {
   var search_param = $('#indexer-search-params').val();
   var source_type = select_GetSelectedVAL('indexer-source-type').join(',');
   var proxy = $('#indexer-proxy').prop('checked');
-  var render = $('#indexer-render').prop('checked');
   var downloader = $("#indexer-download-setting").val();
   var en_expand = $('#indexer-en-expand').prop('checked');
 
@@ -2079,7 +2078,6 @@ function do_update_indexer() {
     "category": zip_json(category_cfg),
 
     "proxy": proxy,
-    "render": render,
     "search_param": search_param,
     "source_type": source_type,
     "en_expand": en_expand,

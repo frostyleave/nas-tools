@@ -71,7 +71,6 @@ class TorrentSpider:
     # 代理
     proxies = None
     # 是否渲染
-    render = False
     # Referer
     referer = None
     # 页码
@@ -101,7 +100,6 @@ class TorrentSpider:
             self.category = indexer.category
             self.list_conf = indexer.torrents.get("list", {})
             self.fields_conf = indexer.torrents.get("fields")
-            self.render = indexer.render
             self.domain = indexer.domain
             if self.domain and not str(self.domain).endswith("/"):
                 self.domain = self.domain + "/"

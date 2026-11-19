@@ -259,16 +259,6 @@
           </div>
           <div class="col-lg-4">
             <div class="mb-3">
-              <label class="form-label required">开启浏览器仿真 <span class="form-help"
-                  title="开启后站点签到、数据统计可以兼容更多站点，但获取数据耗时会大幅增加；需要拉取含浏览器内核的镜像才能使用" data-bs-toggle="tooltip">?</span></label>
-              <select class="form-select" id="site_chrome">
-                <option value="Y">是</option>
-                <option value="N" selected>否</option>
-              </select>
-            </div>
-          </div>
-          <div class="col-lg-4">
-            <div class="mb-3">
               <label class="form-label">下载设置</label>
               <select class="form-select" id="site_download_setting">
                 <option value="">默认</option>
@@ -446,7 +436,6 @@
     $("#site_apikey").val('');
     $("#site_rule").val('');
     $("#site_ua").val('');
-    $("#site_chrome").val('N');
     $("#site_proxy").val('N');
     $("#site_parse").val('N');
     $("#site_subtitle").val('N');
@@ -483,11 +472,6 @@
           $("#site_parse").val("Y");
         } else {
           $("#site_parse").val("N");
-        }
-        if (ret.site.chrome) {
-          $("#site_chrome").val("Y");
-        } else {
-          $("#site_chrome").val("N");
         }
         if (ret.site.proxy) {
           $("#site_proxy").val("Y");
@@ -588,7 +572,6 @@
       $("#site_rssurl").removeClass("is-invalid");
     };
     let ua = $("#site_ua").val();
-    let chrome = $("#site_chrome").val();
     let proxy = $("#site_proxy").val();
     let subtitle = $("#site_subtitle").val();
     // 流控规则
@@ -631,7 +614,6 @@
         "download_setting": site_download_setting,
         "parse": site_parse,
         "ua": ua,
-        "chrome": chrome,
         "proxy": proxy,
         "message": site_unread_msg_notify,
         "subtitle": subtitle,
@@ -711,7 +693,6 @@
 
           // 生成特性标签
           let featureBadges = '';
-          if (site.render) featureBadges += '<span class="badge bg-yellow-lt mb-1 me-1">仿真</span>';
           if (site.proxy) featureBadges += '<span class="badge bg-lime-lt mb-1 me-1">代理</span>';
           if (site.en_expand) featureBadges += '<span class="badge bg-cyan-lt mb-1 me-1">扩展</span>';
 
@@ -865,7 +846,6 @@
           $('#indexer-search-params').val(extra_json.search_param ?? 'kw')
 
           $("#indexer-proxy").prop("checked", extra_json.proxy);
-          $("#indexer-render").prop("checked", extra_json.render);
           $("#indexer-en-expand").prop("checked", extra_json.en_expand);
 
         }
@@ -1037,7 +1017,6 @@
                         <small>
                           ${site.parse ? '<span class="badge bg-primary-lt text-google me-1">解析</span>' : ''}
                           ${site.unread_msg_notify ? '<span class="badge bg-primary-lt text-google me-1">消息</span>' : ''}
-                          ${site.chrome ? '<span class="badge bg-primary-lt text-teal me-1">仿真</span>' : ''}
                           ${site.proxy ? '<span class="badge bg-primary-lt text-teal me-1">代理</span>' : ''}
                         </small>
                       </div>

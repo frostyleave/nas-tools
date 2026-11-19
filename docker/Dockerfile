@@ -1,16 +1,24 @@
 #-------------------------------------------------------------------
+# 构建参数
+# EXT=true 时额外安装浏览器仿真依赖（requirements-ext.txt + Chromium）
+#-------------------------------------------------------------------
+ARG PYTHON_VERSION=3.14
+ARG EXT=false
+
+#-------------------------------------------------------------------
 # 阶段 1: 'builder' - 用于构建所有依赖和产物
 #-------------------------------------------------------------------
-FROM python:3.12-slim-bookworm AS builder
+FROM python:${PYTHON_VERSION}-slim-bookworm AS builder
+
+# 重新声明 ARG，供本阶段使用
+ARG BRANCH=dev_fastapi
+ARG EXT
 
 # 设置环境变量
 ENV DEBIAN_FRONTEND=noninteractive \
+    PLAYWRIGHT_BROWSERS_PATH=/ms-playwright \
     WORKDIR="/nas-tools" \
-    BRANCH=master \
     REPO_URL="https://github.com/frostyleave/nas-tools.git"
-
-# 允许在构建时覆盖 BRANCH
-ARG BRANCH
 
 # 定义构建时和运行时的 apt 依赖
 # 构建依赖 (BUILD_DEPS) 将不会进入最终镜像
@@ -35,6 +43,16 @@ RUN apt-get update -y \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
+# Rust 工具链（仅 builder 阶段，用于编译 fastbencode 的 Rust 扩展）
+ENV RUSTUP_HOME=/root/.rustup \
+    CARGO_HOME=/root/.cargo \
+    PATH=/root/.cargo/bin:${PATH}
+
+RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs \
+    | sh -s -- -y --profile minimal --default-toolchain stable --no-modify-path \
+    && rustc --version \
+    && cargo --version
+
 WORKDIR ${WORKDIR}
 
 # 1. 先克隆代码
@@ -43,9 +61,14 @@ RUN git config --global pull.ff only \
     && git config --global --add safe.directory ${WORKDIR}
 
 # 2. 再安装 Python 依赖 (使用本地文件)
-RUN pip install --no-cache-dir --upgrade pip setuptools==70.1.1 wheel \
+RUN mkdir -p ${PLAYWRIGHT_BROWSERS_PATH} \
+    && pip install --no-cache-dir --upgrade pip setuptools==80.9 wheel \
     && pip install --no-cache-dir cython \
     && pip install --no-cache-dir -r ${WORKDIR}/requirements.txt \
+    && if [ "$EXT" = "true" ]; then \
+         pip install --no-cache-dir -r ${WORKDIR}/requirements-ext.txt \
+         && python -m patchright install --no-shell chromium; \
+       fi \
     && rm -rf /root/.cache
 
 # 复制 rootfs (builder 阶段也需要，因为 final 阶段会从中复制)
@@ -55,10 +78,11 @@ COPY --chmod=755 ./rootfs /
 #-------------------------------------------------------------------
 # 阶段 2: 'final' - 最终的轻量级运行时镜像
 #-------------------------------------------------------------------
-FROM python:3.12-slim-bookworm AS final
+FROM python:${PYTHON_VERSION}-slim-bookworm AS final
 
-# 重新声明 ARG，以便在 ENV 中使用
-ARG BRANCH=master
+# 重新声明 ARG，以便在 ENV 和条件安装中使用
+ARG BRANCH=dev_fastapi
+ARG EXT
 
 # 设置环境变量 (这里不需要 REPO_URL，因为 clone 已在 builder 阶段完成)
 ENV DEBIAN_FRONTEND=noninteractive \
@@ -69,6 +93,7 @@ ENV DEBIAN_FRONTEND=noninteractive \
     S6_SYNC_DISKS=1 \
     HOME="/nt" \
     TERM="xterm" \
+    PLAYWRIGHT_BROWSERS_PATH=/ms-playwright \
     LANG="C.UTF-8" \
     TZ="Asia/Shanghai" \
     NASTOOL_CONFIG="/config/config.yaml" \
@@ -82,11 +107,14 @@ ENV DEBIAN_FRONTEND=noninteractive \
 # 定义运行时 apt 依赖 (必须与 builder 阶段的 RUNTIME_DEPS 一致)
 ENV RUNTIME_DEPS="bash gosu dumb-init ca-certificates libnss3 libxss1 libasound2 libxshmfence1 libxcomposite1 libxdamage1 libxrandr2 libfontconfig1 libgbm1 libdrm2 libx11-xcb1 libgtk-3-0 libappindicator3-1 git"
 
-# 只安装运行时依赖
-RUN apt-get update -y \
+# 只安装运行时依赖，启用 ext 时额外安装浏览器内核所需组件
+RUN EXT_DEPS=""; \
+    if [ "$EXT" = "true" ]; then \
+        EXT_DEPS="xvfb xauth fonts-liberation libatk1.0-0 libatk-bridge2.0-0 libatspi2.0-0 libcups2 libxfixes3 libxkbcommon0 libnspr4"; \
+    fi; \
+    apt-get update -y \
      && apt-get install -y --no-install-recommends \
-        $RUNTIME_DEPS \
-    # 清理
+        $RUNTIME_DEPS $EXT_DEPS \
     && apt-get clean -y \
     && rm -rf \
         /tmp/* \
@@ -99,6 +127,7 @@ WORKDIR ${WORKDIR}
 # 从 builder 阶段精确复制产物
 COPY --from=builder /usr/local/lib/ /usr/local/lib/
 COPY --from=builder /usr/local/bin/ /usr/local/bin/
+COPY --from=builder ${PLAYWRIGHT_BROWSERS_PATH} ${PLAYWRIGHT_BROWSERS_PATH}
 COPY --from=builder ${WORKDIR} ${WORKDIR}
 
 COPY --chmod=755 ./rootfs /

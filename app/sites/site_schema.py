@@ -43,7 +43,6 @@ class SitesschemaCenter:
         parser = site_info.parser
 
         ua = site_info.ua
-        emulate = site_info.chrome
 
         # 特定解析器
         if parser and parser == Spider.MTorrentSpider.value:
@@ -66,7 +65,7 @@ class SitesschemaCenter:
         success = False
         try:
             html_text = await self.__request_site_page(url=site_url, session=session, ua=ua,
-                                                       emulate=emulate, proxy=use_proxy)
+                                                       proxy=use_proxy)
             if not html_text:
                 return None
 
@@ -76,7 +75,7 @@ class SitesschemaCenter:
                 log.error(f"【Sites】站点 {site_name} 无法识别站点类型")
                 return None
             builder = site_schema(site_name, site_url, site_cookie, html_text,
-                                  session=session, ua=ua, emulate=emulate, proxy=use_proxy)
+                                  session=session, ua=ua, proxy=use_proxy)
             success = True
             return builder
         finally:
@@ -98,7 +97,6 @@ class SitesschemaCenter:
                                   url,
                                   session,
                                   ua=None,
-                                  emulate=None,
                                   proxy=False) -> str | None:
         """
         请求站点首页并解码

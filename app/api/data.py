@@ -331,7 +331,6 @@ def indexer(p: int = 1):
             "id": idx_site.id,
             "name": idx_site.name,
             "domain": idx_site.domain,
-            "render": idx_site.render,
             "source_type": idx_site.source_type,
             "search_param": idx_site.search_param,
             "search_param_name": SEARCH_PARAMS.get(idx_site.search_param, '关键字'),
@@ -361,7 +360,6 @@ SITE_PUBLIC_KEYS = (
     "rule",
     "download_setting",
     "unread_msg_notify",
-    "chrome",
     "proxy",
 )
 

@@ -55,15 +55,13 @@ class TorrentDownloader:
         cookie = indexer_info.cookie if indexer_info else None
         ua = indexer_info.ua if indexer_info else None
         proxy = bool(indexer_info.proxy)
-        render = bool(indexer_info.render)
 
         return self.get_torrent_info(
             url=url,
             cookie=cookie,
             ua=ua,
             referer=page_url,
-            proxy=proxy,
-            render=render
+            proxy=proxy
         )
 
     def get_torrent_info(self, 
@@ -71,8 +69,7 @@ class TorrentDownloader:
                          cookie=None, 
                          ua=None, 
                          referer=None,
-                         proxy=False, 
-                         render=False) -> TorrentDownloadResult:
+                         proxy=False) -> TorrentDownloadResult:
         """
         把种子下载到本地, 返回种子内容
         :param url: 种子链接
@@ -80,7 +77,6 @@ class TorrentDownloader:
         :param ua: 站点UserAgent
         :param referer: 关联地址
         :param proxy: 是否使用内置代理
-        :param render: 是否需要使用渲染
         :return: TorrentDownloadResult
         """
         if not url:

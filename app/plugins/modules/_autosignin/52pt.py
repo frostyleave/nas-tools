@@ -1,8 +1,8 @@
-from typing import ClassVar
 import json
 import os
 import random
 import re
+from typing import ClassVar
 from urllib.parse import urljoin
 
 from lxml import etree
@@ -21,7 +21,7 @@ class FWpt(_ISiteSigninHandler):
     否则随机
     """
     # 匹配的站点Url，每一个实现类都需要设置为自己的站点Url
-    site_url = "https://52pt.site"
+    site_url = "https://52pts.site"
 
     # 已签到
     _sign_regex: ClassVar[list[str]] = ['今天已经签过到了']

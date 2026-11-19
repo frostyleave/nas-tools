@@ -134,7 +134,7 @@ class _ISiteUserInfo(metaclass=ABCMeta):
     # 是否跳过图标抓取（已有图标数据时由统计中心置 True，懒更新）
     skip_favicon = False
 
-    def __init__(self, site_name, url, site_cookie, index_html, apikey=None, session=None, ua=None, emulate=False, proxy=None):
+    def __init__(self, site_name, url, site_cookie, index_html, apikey=None, session=None, ua=None, proxy=None):
         super().__init__()
         # 站点信息
         self.site_name = None
@@ -206,7 +206,6 @@ class _ISiteUserInfo(metaclass=ABCMeta):
 
         self.site_favicon = ""
 
-        self._emulate = emulate
         self._proxy = proxy
 
     def site_schema(self):

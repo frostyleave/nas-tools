@@ -1,4 +1,5 @@
 import base64
+import os
 from dataclasses import dataclass, field
 from datetime import timedelta
 from threading import Event
@@ -8,7 +9,12 @@ import requests
 from lxml import etree
 
 import log
-from app.helper import OcrHelper, SubmoduleHelper, ThreadHelper
+from app.helper import BrowserHelper, OcrHelper, SubmoduleHelper, ThreadHelper
+from app.helper.cloudflare_helper import (
+    TURNSTILE_SELECTOR,
+    under_turnstile,
+    wait_turnstile_token,
+)
 from app.helper.site_signin_helper import SiteSigninHelper, Verdict
 from app.models.model import UserSiteConf
 from app.modules.wallpaper import get_bing_wallpaper
@@ -54,8 +60,13 @@ class SignInResults:
 
 
 # 签到成功
-_SIGN_REGEX = ['签到已得', '簽到已得', '今日签到排名', '今日簽到排名', '签到成功', '簽到成功', '今天已签到', '今天已经签到']
+_SIGN_REGEX = ['签到已得', '簽到已得', '今日签到排名', '今日簽到排名', '签到成功', '簽到成功',
+               '今天已签到', '今天已经签到', '今日已签到', '今日已经签到']
 _SUCCESS_REGEX = ['今日签到排名', '今日簽到排名', '本次签到获得 \\d+ 个魔力值', '本次簽到獲得 \\d+ 個魔力值','\\d+点魔力']
+
+# 签到表单
+_ATTENDANCE_FORM = 'form[action$="attendance.php"]'
+_BROWSER_TIMEOUT = 120
 
 class AutoSignIn(_IPluginModule):
     # 插件名称
@@ -525,18 +536,20 @@ class AutoSignIn(_IPluginModule):
 
             home_url = SiteUtils.get_base_url(site_url)
             checkin_url = site_url if "pttime" in home_url else urljoin(home_url, "attendance.php")
-            ua = site_info.ua
-
             self.info(f"[{site_name}]开始签到: {checkin_url}")
 
             # 代理
             proxies = Config().get_proxies() if site_info.proxy else None
 
             session = requests.Session()
-            request_handler = RequestUtils(session=session, cookies=site_cookie, ua=ua, proxies=proxies, referer=checkin_url)
+            request_handler = RequestUtils(session=session, cookies=site_cookie, ua=site_info.ua, proxies=proxies, referer=checkin_url)
 
             # 访问链接
             res = request_handler.get_res(url=checkin_url)
+
+            # Cloudflare 验证无法由普通请求完成，转浏览器仿真
+            if self.__need_browser(res):
+                return self.__browser_sign_in(site_info, checkin_url)
 
             # 本次签到成功, 或是重新请求签到页
             sign_status = SiteSigninHelper.check_signin_result(res, _SIGN_REGEX)
@@ -612,6 +625,97 @@ class AutoSignIn(_IPluginModule):
         except Exception as e:
             log.exception(f"【自动签到】[{site_name}]签到出错: ")
             return False, f"[{site_name}]签到出错: {e!s}"
+
+    @staticmethod
+    def __need_browser(res):
+        """
+        页面是否需要浏览器仿真（Turnstile 组件或整页挑战）
+        """
+        if not res:
+            return False
+        return under_turnstile(getattr(res, "text", None))
+
+    @staticmethod
+    def __is_login_page(page):
+        """
+        当前页面是否为登录页
+        """
+        if "login.php" in (page.url or ""):
+            return True
+        return page.locator('form#login-form, form[action$="takelogin.php"]').count() > 0
+
+    def __browser_sign_in(self, site_info: UserSiteConf, checkin_url: str) -> tuple[bool, str]:
+        """
+        使用浏览器仿真完成 Cloudflare Turnstile 验证并提交签到
+        """
+        site_name = site_info.name
+
+        browser = BrowserHelper()
+        if not browser.available:
+            return False, f'[{site_name}]签到失败: {browser.unavailable_reason}'
+
+        self.info(f'[{site_name}]检测到 Cloudflare 安全验证，使用浏览器仿真签到')
+        profile_dir = os.path.join(Config().get_temp_path(), "signin-profile", str(site_info.id))
+
+        def _flow(page):
+            resp = page.goto(checkin_url, wait_until="domcontentloaded",
+                             timeout=_BROWSER_TIMEOUT * 1000)
+            if self.__is_login_page(page):
+                return False, f'[{site_name}]签到失败: cookie失效'
+
+            html_text = page.content()
+            if SiteSigninHelper.sign_in_result(html_text, _SIGN_REGEX):
+                return True, f'[{site_name}]今日已签到'
+
+            # 整页挑战或页面跳转中，等待签到表单出现
+            if page.locator(_ATTENDANCE_FORM).count() == 0:
+                try:
+                    page.wait_for_selector(_ATTENDANCE_FORM,
+                                           timeout=_BROWSER_TIMEOUT * 1000)
+                except Exception:
+                    status = resp.status if resp else "未知"
+                    return False, f'[{site_name}]签到失败: 未能通过 Cloudflare 验证(HTTP {status})'
+                if self.__is_login_page(page):
+                    return False, f'[{site_name}]签到失败: cookie失效'
+                html_text = page.content()
+                if SiteSigninHelper.sign_in_result(html_text, _SIGN_REGEX):
+                    return True, f'[{site_name}]今日已签到'
+
+            # 等待 Turnstile 生成 token
+            if page.locator(TURNSTILE_SELECTOR).count() > 0:
+                self.info(f'[{site_name}]等待 Cloudflare Turnstile 验证通过')
+                if not wait_turnstile_token(page, _BROWSER_TIMEOUT):
+                    return False, f'[{site_name}]签到失败: Cloudflare Turnstile 验证超时'
+
+            submit = page.locator(f'{_ATTENDANCE_FORM} input[type="submit"]')
+            if submit.count() == 0:
+                return False, f'[{site_name}]签到失败: 未找到签到按钮'
+            submit.first.click()
+            page.wait_for_load_state("domcontentloaded",
+                                     timeout=_BROWSER_TIMEOUT * 1000)
+
+            # 表单提交后页面可能延迟刷新，轮询几次结果
+            for _ in range(5):
+                result_html = page.content()
+                if "Captcha verification token is missing" in result_html:
+                    return False, f'[{site_name}]签到失败: Cloudflare 验证未通过'
+                if (SiteSigninHelper.sign_in_result(result_html, _SIGN_REGEX)
+                        or SiteSigninHelper.sign_in_result(result_html, _SUCCESS_REGEX)):
+                    return True, f'[{site_name}]签到成功'
+                if page.locator(_ATTENDANCE_FORM).count() == 0:
+                    break
+                page.wait_for_timeout(1000)
+            return False, f'[{site_name}]签到失败: 签到后页面未返回成功信息'
+
+        return browser.run(
+            url=checkin_url,
+            callback=_flow,
+            cookie=site_info.cookie,
+            ua=site_info.ua,
+            proxy=site_info.proxy,
+            profile_dir=profile_dir,
+            timeout=_BROWSER_TIMEOUT,
+        )
 
     def stop_service(self):
         """

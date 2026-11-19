@@ -33,9 +33,9 @@ class MTorrentUserInfo(_ISiteUserInfo):
 
     request_mode = "apikey"
 
-    def __init__(self, site_name, url, site_cookie, index_html, apikey=None, session=None, ua=None, emulate=False, proxy=None):
+    def __init__(self, site_name, url, site_cookie, index_html, apikey=None, session=None, ua=None, proxy=None):
         # 基类初始化
-        super().__init__(site_name, url, site_cookie, index_html, apikey, session, ua, emulate, proxy)
+        super().__init__(site_name, url, site_cookie, index_html, apikey, session, ua, proxy)
         # api地址
         self._base_url = f"https://api.{SiteUtils.get_url_domain(self.site_url)}"
         self._user_basic_page = "api/member/profile"
