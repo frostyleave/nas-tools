@@ -10,8 +10,9 @@ from typing import Annotated
 from urllib.parse import unquote, urljoin, urlparse, urlunparse
 
 import aiohttp
+from cachetools import TTLCache
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response
-from fastapi.responses import FileResponse, StreamingResponse
+from fastapi.responses import FileResponse
 from starlette.concurrency import run_in_threadpool
 from starlette.datastructures import UploadFile
 
@@ -42,6 +43,18 @@ MAX_UPLOAD_SIZE = 2 * 1024 * 1024 * 1024
 # 豆瓣图片域名，前端只会上送这类地址
 DOUBAN_IMG_HOST_RE = re.compile(r"^img\d+\.doubanio\.com$")
 DOUBAN_REFERER = "https://movie.douban.com/"
+
+# Bangumi 图片域名
+BANGUMI_IMG_HOST_RE = re.compile(r"^(?:[a-z0-9-]+\.)?bgm\.tv$")
+BANGUMI_REFERER = "https://bgm.tv/"
+
+# 站点图片中转的内存缓存：按总字节数限制，避免大图占满内存
+IMAGE_CACHE_MAX_BYTES = 64 * 1024 * 1024
+IMAGE_CACHE_TTL = 24 * 3600
+_image_cache = TTLCache(
+    maxsize=IMAGE_CACHE_MAX_BYTES,
+    ttl=IMAGE_CACHE_TTL,
+    getsizeof=lambda item: len(item[0]))
 
 
 # ------------------------
@@ -268,7 +281,7 @@ async def img(request: Request, url: str):
 
 
 # ------------------------
-# 豆瓣图片中转 /doubanimg
+# 站点图片中转 /doubanimg、/bangumiimg
 # ------------------------
 def _parse_host_port(url: str) -> tuple[str, int] | None:
     """解析 http(s) 地址，返回 (host, port) 或 None"""
@@ -325,52 +338,79 @@ def _force_webp(url: str) -> str:
     return urlunparse(parsed._replace(path=root + ".webp"))
 
 
-async def _limited_image_stream(resp):
+async def _read_limited_image(resp) -> bytes | None:
     """
-    边转发边限制响应大小，防止上游返回超大文件耗尽带宽/内存
+    读取完整图片并限制响应大小，超限返回 None
+
+    读完及时释放连接，便于把内容放入内存缓存。
     """
-    total = 0
+    content = bytearray()
     try:
         async for chunk in resp.content.iter_chunked(64 * 1024):
-            total += len(chunk)
-            if total > MAX_IMAGE_SIZE:
-                log.warn(f"【Security】图片代理响应超过大小上限，已截断: {resp.url}")
-                return
-            yield chunk
+            content.extend(chunk)
+            if len(content) > MAX_IMAGE_SIZE:
+                log.warn(f"【Security】图片代理响应超过大小上限: {resp.url}")
+                return None
+        return bytes(content)
     finally:
-        # 无论正常结束、超限还是客户端断开，都把连接归还连接池
         resp.release()
 
 
-@utility_router.get("/doubanimg")
-async def proxy_douban_image(
-    url: Annotated[str, Query(..., description="Douban image url")]
-):
-    """
-    豆瓣图片中转服务
+def _image_response(content: bytes, media_type: str) -> Response:
+    """构造带浏览器缓存头的图片响应"""
+    return Response(
+        content=content,
+        media_type=media_type,
+        headers={"Cache-Control": "public, max-age=86400"},
+    )
 
-    只允许豆瓣图片域名，并在转发前做 DNS 解析防止 SSRF。
+
+async def _proxy_site_image(
+    url: str,
+    host_re: re.Pattern,
+    referer: str,
+    force_webp: bool = False,
+    default_media_type: str = "image/jpeg",
+    use_proxy: bool = False
+) -> Response:
+    """
+    校验来源域名后转发图片
+
+    只允许配置过的图片域名，并在转发前做 DNS 解析防止 SSRF。
     """
     parsed = urlparse(url)
-    # 安全校验：只允许豆瓣图片域名
     if parsed.scheme != "https" \
             or not parsed.hostname \
-            or not DOUBAN_IMG_HOST_RE.match(parsed.hostname):
+            or not host_re.match(parsed.hostname):
         raise HTTPException(status_code=400, detail="Invalid url")
 
-    webp_url = _force_webp(url)
-    if not await _is_public_remote_url(webp_url):
+    target_url = _force_webp(url) if force_webp else url
+    if not await _is_public_remote_url(target_url):
         raise HTTPException(status_code=400, detail="Invalid url")
+
+    # 命中缓存时直接返回，避免重复回源
+    cached = _image_cache.get(target_url)
+    if cached:
+        return _image_response(*cached)
+
+    proxy = None
+    if use_proxy:
+        proxies = Config().get_proxies() or {}
+        proxy = proxies.get("https") or proxies.get("http")
+        # aiohttp 只支持 http(s) 代理
+        if proxy and not proxy.startswith(("http://", "https://")):
+            proxy = None
 
     session = get_async_session()
     headers = {
-        "Referer": DOUBAN_REFERER,
+        "Referer": referer,
         "User-Agent": Config().get_ua(),
     }
 
     try:
         # 不自动跟随重定向，避免被跳转到内网地址
-        resp = await session.get(webp_url, headers=headers, allow_redirects=False)
+        resp = await session.get(
+            target_url, headers=headers, proxy=proxy, allow_redirects=False)
     except (aiohttp.ClientError, TimeoutError) as err:
         raise HTTPException(status_code=502, detail="Upstream connection error") from err
 
@@ -386,8 +426,40 @@ async def proxy_douban_image(
         resp.release()
         raise HTTPException(status_code=413, detail="Upstream image too large")
 
-    return StreamingResponse(
-        _limited_image_stream(resp),
-        media_type=resp.headers.get("content-type", "image/webp"),
-        headers={"Cache-Control": "public, max-age=86400"},
-    )
+    content_type = resp.headers.get("content-type", default_media_type)
+    content = await _read_limited_image(resp)
+    if content is None:
+        raise HTTPException(status_code=413, detail="Upstream image too large")
+
+    _image_cache[target_url] = (content, content_type)
+    return _image_response(content, content_type)
+
+
+@utility_router.get("/doubanimg")
+async def proxy_douban_image(
+    url: Annotated[str, Query(..., description="Douban image url")]
+):
+    """
+    豆瓣图片中转服务
+
+    豆瓣图片统一转为 webp 以减小体积。
+    """
+    return await _proxy_site_image(
+        url, DOUBAN_IMG_HOST_RE, DOUBAN_REFERER,
+        force_webp=True, default_media_type="image/webp")
+
+
+# ------------------------
+# Bangumi 图片中转 /bangumiimg
+# ------------------------
+@utility_router.get("/bangumiimg")
+async def proxy_bangumi_image(
+    url: Annotated[str, Query(..., description="Bangumi image url")]
+):
+    """
+    Bangumi 图片中转服务
+
+    Bangumi 图片服务器在部分网络下无法直连，走配置的代理。
+    """
+    return await _proxy_site_image(
+        url, BANGUMI_IMG_HOST_RE, BANGUMI_REFERER, use_proxy=True)
