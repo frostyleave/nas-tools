@@ -2523,14 +2523,6 @@ update-panel .update-log-toggle[aria-expanded="true"] .update-log-chevron {
     transform: rotate(90deg);
 }
 
-update-panel .update-log-meta {
-    margin-left: auto;
-    color: var(--tblr-secondary-color);
-    font-size: 12px;
-    font-weight: 400;
-    font-variant-numeric: tabular-nums;
-}
-
 update-panel .update-log-body {
     margin-top: 10px;
 }
@@ -2544,7 +2536,7 @@ update-panel .update-progress-row {
     display: flex;
     align-items: center;
     gap: 10px;
-    margin-bottom: 8px;
+    margin-top: 10px;
 }
 
 update-panel .update-progress {

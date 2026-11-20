@@ -64,22 +64,21 @@
                 aria-controls="git_panel_log_body">
                 <i class="ti ti-chevron-right update-log-chevron"></i>
                 <span>更新日志</span>
-                <span class="update-log-meta" id="git_panel_log_meta">尚未开始</span>
               </button>
               <div class="update-log-body" id="git_panel_log_body" hidden>
-                <div class="update-progress-row" id="git_panel_progress_row" hidden>
-                  <div class="progress update-progress" id="git_panel_progress_track" role="progressbar"
-                    aria-label="更新进度" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
-                    <div class="progress-bar" id="git_panel_progress" style="width:0%"></div>
-                  </div>
-                  <span class="update-progress-value" id="git_panel_progress_value">0%</span>
-                </div>
                 <div class="update-log-scroll" id="git_panel_log_scroll" role="log" aria-live="off"
                   aria-label="更新过程日志">
                   <div class="update-log-content" id="git_panel_log_content">
                     <div class="update-log-empty">尚未开始</div>
                   </div>
                 </div>
+              </div>
+              <div class="update-progress-row" id="git_panel_progress_row" hidden>
+                <div class="progress update-progress" id="git_panel_progress_track" role="progressbar"
+                  aria-label="更新进度" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+                  <div class="progress-bar" id="git_panel_progress" style="width:0%"></div>
+                </div>
+                <span class="update-progress-value" id="git_panel_progress_value">0%</span>
               </div>
             </section>
           </div>
@@ -253,8 +252,12 @@
         return;
       }
       const bodyRect = body.getBoundingClientRect();
-      const logRect = log.getBoundingClientRect();
-      const delta = logRect.bottom - bodyRect.bottom;
+      let bottom = log.getBoundingClientRect().bottom;
+      const progress = this.querySelector("#git_panel_progress_row");
+      if (progress && !progress.hidden) {
+        bottom = Math.max(bottom, progress.getBoundingClientRect().bottom);
+      }
+      const delta = bottom - bodyRect.bottom;
       if (delta > 0) {
         body.scrollTop += delta + 8;
       }
@@ -269,7 +272,6 @@
       $("#git_panel_log_content").html(
         `<div class="update-log-empty">${this._escape(text || "尚未开始")}</div>`
       );
-      $("#git_panel_log_meta").text("尚未开始");
       this._setProgress(0, false);
     }
 
@@ -451,7 +453,6 @@
         content.html(
           `<div class="update-log-empty">检测失败：${this._escape(msg)}</div>`
         );
-        $("#git_panel_log_meta").text("无日志");
       }
       this._setState("error");
       this._setStatus(`检测失败：${msg}`, "danger");
@@ -482,7 +483,6 @@
           $("#git_panel_log_content").html(
             '<div class="update-log-empty">检测完成，没有过程日志</div>'
           );
-          $("#git_panel_log_meta").text("无日志");
         }
 
         if (!ret || ret.code !== 0) {
@@ -660,7 +660,6 @@
       if (atBottom && scrollEl) {
         scrollEl.scrollTop = scrollEl.scrollHeight;
       }
-      $("#git_panel_log_meta").text(`${lines.length} 条日志`);
     }
 
     _buildRow(record) {
@@ -727,7 +726,6 @@
       this._setProgress(100, true);
       this._setState(updated ? "done" : "latest");
       this._setStatus(updated ? "更新完成，重启后生效" : "当前已是最新版本", "success");
-      this._expandLog(false);
       this._refreshInfo((info) => {
         if (updated) {
           this._renderApplied(info);
