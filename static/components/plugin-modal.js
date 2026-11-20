@@ -36,7 +36,7 @@
 
   function renderNote(tooltip) {
     return tooltip
-      ? `<span class="form-help" data-bs-toggle="tooltip" title="${esc(tooltip)}">?</span>`
+      ? `<span class="form-help" data-bs-toggle="tooltip" data-bs-html="true" title="${esc(tooltip)}">?</span>`
       : '';
   }
 
@@ -240,6 +240,11 @@
       const page = fixedText(this.getAttribute('plugin-page'));
 
       this.innerHTML = renderModal(id, name, config, fields, prefix, page);
+
+      // 插件弹窗异步插入页面，fresh_tooltip() 执行时这些元素还不存在，需在此单独初始化
+      this.querySelectorAll('[data-bs-toggle="tooltip"]').forEach((el) => {
+        bootstrap.Tooltip.getOrCreateInstance(el);
+      });
 
       // 插件脚本在 modal 之后才 append，延后执行初始化
       const runInit = () => {

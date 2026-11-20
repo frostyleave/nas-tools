@@ -16,6 +16,7 @@ from app.conf import ModuleConf, SystemConfig
 from app.core.cmd_handler import CommandHandler
 from app.core.initializer import diff_config, reload_config
 from app.core.jobcenter import JobCenter
+from app.core.runtime_state import BOOT_ID
 from app.core.task_manager import TaskStore
 from app.downloader import Downloader
 from app.helper import FileHelper, MetaHelper, RssHelper, ThreadHelper, WordsHelper
@@ -3938,10 +3939,10 @@ class WebAction:
 
     def __get_jobs(self):
         """
-        获取所有已注册的定时任务
+        获取所有已注册的定时任务以及当前进程标识
         """
         result = JobCenter().get_jobs()
-        return {"code": 0, "result": result }
+        return {"code": 0, "result": result, "boot_id": BOOT_ID}
 
     def __pt_depiler_version(self):
         """

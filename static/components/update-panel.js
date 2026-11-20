@@ -741,10 +741,7 @@
       show_confirm_modal("重启系统以应用更新？", () => {
         // 先关闭更新面板，否则它和等待框的 z-index 相同、又在 DOM 后面，会盖住转圈动画
         $("#modal-git-update").modal("hide");
-        axios_post("/sys/restart", {}, function () {
-        }, false);
-        show_wait_modal(true);
-        setTimeout("check_system_online()", 5000);
+        restart_system_and_wait();
       });
     }
   }
