@@ -14,13 +14,15 @@ from app.utils.time_utils import TimeUtils
 class SchedulerUtils:
 
     @staticmethod
-    def add_job(scheduler:BackgroundScheduler, func, func_desc:str, cron:str, next_run_time=undefined) -> Job | None:
+    def add_job(scheduler:BackgroundScheduler, func, func_desc:str, cron:str, next_run_time=undefined,
+                jitter:int | None = None) -> Job | None:
         """
         解析任务的定时规则,启动定时服务
         :param func: 可调用的一个函数,在指定时间运行
         :param func_desc: 函数的描述,在日志中提现
         :param cron 时间表达式 三种配置方法：
         :param next_run_time: 下次运行时间
+        :param jitter: 每次触发时间的随机偏移秒数, 仅cron表达式、固定时间、间隔模式生效
           1、配置cron表达式, 只支持5位的cron表达式
           2、配置时间范围, 如08:00-09:00, 表示在该时间范围内随机执行一次
           3、配置固定时间, 如08:00
@@ -33,10 +35,11 @@ class SchedulerUtils:
         cron = cron.strip()
         if cron.count(" ") == 4:
             try:
-                return scheduler.add_job(func=func,
-                                         name=func_desc,
-                                         trigger=CronTrigger.from_crontab(cron),
-                                         next_run_time=next_run_time)
+                # from_crontab 不支持 jitter, 手工解析后构造 CronTrigger
+                minute, hour, day, month, day_of_week = cron.split()
+                trigger = CronTrigger(second=0, minute=minute, hour=hour, day=day,  month=month, day_of_week=day_of_week, jitter=jitter)
+                return scheduler.add_job(func=func, name=func_desc,
+                                         trigger=trigger, next_run_time=next_run_time)
             except Exception as e:
                 log.exception(f'[计划任务]{func_desc}创建失败, 时间cron表达式配置格式错误')
                 return None
@@ -86,7 +89,8 @@ class SchedulerUtils:
                                          name=func_desc,
                                          hour=hour,
                                          minute=minute,
-                                         next_run_time=next_run_time)
+                                         next_run_time=next_run_time,
+                                         jitter=jitter)
             return time_job
         # 小时间隔任务
         try:
@@ -99,7 +103,8 @@ class SchedulerUtils:
                                          "interval",
                                          name=func_desc,
                                          hours=hours,
-                                         next_run_time=next_run_time)
+                                         next_run_time=next_run_time,
+                                         jitter=jitter)
         return interval_job
 
     @staticmethod
