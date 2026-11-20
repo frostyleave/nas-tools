@@ -2,10 +2,6 @@
  * 公共变量区
  */
 
-// 刷新订阅站点列表
-let RssSitesLength = 0;
-// 刷新搜索站点列表
-let SearchSitesLength = 0;
 // 种子上传控件
 let TorrentDropZone;
 
@@ -29,20 +25,21 @@ if (window.location.protocol === "https:") {
 }
 // 页面加载的时间
 let PageLoadedTime = new Date();
+// 基础索引配置ID（站点匹配不到索引器时兜底，禁止修改）
+const BASE_INDEXER_ID = "_nexus_";
 
 
 /**
  * 公共函数区
  */
 
-// 搜索
-function media_search(tmdbid, title, type) {
+// 发起搜索任务并跳转到搜索结果页
+function start_media_search(api, param, title) {
 
-  const param = { "tmdbid": tmdbid, "search_word": title, "media_type": type };
   // 显示弹窗
   show_progress_modal("正在搜索 " + title + " ...", "search")
   // 发起请求
-  axios_post('/search', param, function(ret) {
+  axios_post(api, param, function(ret) {
 
     // 请求失败
     if (ret.code != 0) {
@@ -58,12 +55,24 @@ function media_search(tmdbid, title, type) {
           show_fail_modal('未搜索到任何资源');
           return;
         }
-        navmenu('search?s=' + title);
+        navmenu('search', { s: title });
 
       });
 
-  }, show_progress=false);
+  }, false); // 已有进度弹窗，不显示全局加载遮罩
 
+}
+
+// 搜索
+function media_search(tmdbid, title, type) {
+  const param = { "tmdbid": tmdbid, "search_word": title, "media_type": type };
+  start_media_search('/search', param, title);
+}
+
+// 按订阅配置搜索
+function media_search_rss(rssid, mtype, title) {
+  const param = { "rssid": rssid, "mtype": mtype };
+  start_media_search('/search_rss', param, title);
 }
 
 // 显示全局加载蒙版
@@ -74,6 +83,8 @@ function show_wait_modal(blur) {
     $('#modal-wait').removeClass('modal-blur');
   }
   $("#modal-wait").modal("show");
+  // 确保等待动画盖在其他已打开的弹窗之上
+  raise_modal_above_others($("#modal-wait"));
 }
 
 // 关闭全局加载蒙版
@@ -378,12 +389,52 @@ function logout() {
   });
 }
 
+//显示修改密码弹窗
+function show_change_password_modal() {
+  $("#change_old_password, #change_new_password, #change_confirm_password").val("");
+  $("#modal-change-password").modal("show");
+}
+
+//提交修改密码
+function change_password() {
+  const oldPassword = $("#change_old_password").val();
+  const newPassword = $("#change_new_password").val();
+  const confirmPassword = $("#change_confirm_password").val();
+
+  if (!oldPassword || !newPassword) {
+    show_fail_modal("原密码和新密码不能为空");
+    return;
+  }
+  if (newPassword !== confirmPassword) {
+    show_fail_modal("两次输入的新密码不一致");
+    return;
+  }
+  if (oldPassword === newPassword) {
+    show_fail_modal("新密码不能与原密码相同");
+    return;
+  }
+
+  axios_post_do("change_password", {
+    old_password: oldPassword,
+    new_password: newPassword
+  }, function (ret) {
+    if (ret && ret.code === 0) {
+      $("#modal-change-password").modal("hide");
+      show_success_modal("密码修改成功");
+    } else {
+      show_fail_modal((ret && ret.msg) || "密码修改失败");
+    }
+  });
+}
+
+$(document).on("click", "#change_password_btn", change_password);
+
 //重启
 function restart() {
   show_confirm_modal("立即重启系统？", function () {
     systemOnlineCheckCount = 0;
 
-    axios_post_do("restart", {}, function (ret) {
+    axios_post("/sys/restart", {}, function (ret) {
     }, false);
 
     show_wait_modal(true);
@@ -398,51 +449,6 @@ function showInitAlertModal() {
     GlobalModalAbort = true;
     navmenu('basic');
   });
-}
-
-function update_system() {
-  show_confirm_modal("更新系统版本，是否确认？", function () {
-    show_wait_modal(true);
-    // 显示实时日志
-    logger_select("UpdateSystem");
-    show_logging_modal();
-    axios_post_do("update_system", {}, function (ret) {
-      // 关闭浮层
-      hide_wait_modal();
-
-      // 更新已经结束，停止实时日志，避免结果已出但日志还在滚动
-      stopLogging(false);
-
-      // 把最终结果补到日志窗口（最后一条日志可能在关闭连接时丢失）
-      if (ret && ret.msg) {
-        render_logging({
-          text: `更新结束：${ret.msg}`,
-          source: "UpdateSystem",
-          time: new Date().toLocaleTimeString("zh-CN", { hour12: false }),
-          level: ret.code === 0 ? "INFO" : "ERROR"
-        });
-      }
-
-      if (!ret || ret.code !== 0) {
-        show_fail_modal((ret && ret.msg) || "更新失败，请查看日志");
-        return;
-      }
-      if (ret.updated) {
-        // 拉取到更新，提示重启
-        show_confirm_modal((ret.msg || "已拉取到新版本") + "，是否立即重启生效？", function () {
-          // 关闭日志窗口，避免遮挡重启等待框
-          $("#modal-logging").modal("hide");
-          axios_post_do("restart", {}, function () {
-          }, false);
-          show_wait_modal(true);
-          setTimeout("check_system_online()", 5000);
-        });
-      } else {
-        show_success_modal(ret.msg || "当前已是最新版本");
-      }
-      return ret;
-    });
-  })
 }
 
 // 停止刷新进度条
@@ -492,7 +498,6 @@ function render_progress(ret, callback) {
 // 显示全局进度框
 function show_progress_modal(title) {
   
-  hideLoading();
   if (title) {
     $("#modal_process_title").text(title);
   } else {
@@ -585,6 +590,39 @@ function show_warning_modal(title, func) {
   $modal.modal("show");
 }
 
+// 显示轻提示（Tabler Toast），不阻塞操作
+function show_toast(message, type = "success") {
+  let $container = $("#toast-container");
+  if ($container.length === 0) {
+    $container = $('<div id="toast-container" class="toast-container position-fixed top-50 start-50 translate-middle p-3"></div>');
+    $("body").append($container);
+  }
+
+  const icons = {
+    success: "ti-circle-check text-success",
+    error: "ti-alert-circle text-danger",
+    warning: "ti-alert-triangle text-warning",
+    info: "ti-info-circle text-blue"
+  };
+
+  const $toast = $('<div class="toast" role="alert" aria-live="assertive" aria-atomic="true"></div>');
+  const $body = $('<div class="toast-body d-flex align-items-center gap-2"></div>');
+  $body.append($('<i class="ti fs-2"></i>').addClass(icons[type] || icons.info));
+  $body.append($('<span class="flex-fill"></span>').text(message || ""));
+  $body.append('<button type="button" class="btn-close ms-2" data-bs-dismiss="toast" aria-label="关闭"></button>');
+  $toast.append($body);
+  $container.append($toast);
+
+  $toast.on("hidden.bs.toast", function () {
+    $toast.remove();
+    if ($container.children().length === 0) {
+      $container.remove();
+    }
+  });
+  $toast.toast({ delay: 2500 });
+  $toast.toast("show");
+}
+
 //隐藏媒体详情
 function hide_mediainfo_modal() {
   $("#system-media-modal").modal("hide");
@@ -636,16 +674,16 @@ function remove_rss_media(name, year, type, rssid, page, tmdbid, func) {
 function refresh_rss_media(type, rssid, page) {
   hide_mediainfo_modal();
   axios_post_do("refresh_rss", { "type": type, "rssid": rssid, "page": page }, function (ret) {
-    if (ret.page) {
+    if (ret.code !== 0) {
+      show_fail_modal(ret.msg || "刷新订阅失败");
+    } else if (ret.page) {
       window_history_refresh();
-    } else {
-
     }
   });
 }
 
 // 显示订阅季选择框
-function show_rss_seasons_modal(name, year, mediaid, seasons, trigger_card_id) {
+function show_rss_seasons_modal(name, year, mediaid, seasons, trigger_card_id, default_setting) {
   let system_rss_seasons_content = "";
   for (let season of seasons) {
     system_rss_seasons_content += `<label class="form-selectgroup-item">
@@ -658,7 +696,7 @@ function show_rss_seasons_modal(name, year, mediaid, seasons, trigger_card_id) {
     $("#system-rss-seasons").modal('hide');
     let rss_seasons = select_GetSelectedVAL("system_rss_season");
     if (rss_seasons.length > 0) {
-      show_add_rss_media_modal('TV', mediaid, name, year, rss_seasons, trigger_card_id);
+      show_add_rss_media_modal('TV', mediaid, name, year, rss_seasons, trigger_card_id, default_setting);
     }
   });
   $("#system-rss-seasons").modal('show');
@@ -679,7 +717,6 @@ function add_rss_manual() {
   const year = $("#rss_year").val();
   const keyword = $("#rss_keyword").val();
   const season = $("#rss_season").val();
-  const fuzzy_match = $("#fuzzy_match").prop("checked");
   const mediaid = $("#rss_tmdbid").val();
   const over_edition = $("#over_edition").prop("checked");
   const filter_restype = $("#rss_restype").val();
@@ -705,7 +742,7 @@ function add_rss_manual() {
   } else {
     $("#rss_year").removeClass("is-invalid");
   }
-  if (!fuzzy_match && !season && (mtype == "TV" || mtype == "电视剧")) {
+  if (!season && (mtype == "TV" || mtype == "电视剧")) {
     $("#rss_season").addClass("is-invalid");
     return;
   } else {
@@ -724,20 +761,14 @@ function add_rss_manual() {
   } else {
     $("#rss_current_ep").removeClass("is-invalid");
   }
-  // 订阅站点
-  let rss_sites = select_GetSelectedVAL("rss_sites");
-  if (rss_sites.length === RssSitesLength) {
-    rss_sites = [];
+  // 订阅站点、搜索站点：允许任意一个为空，但不能同时为空
+  const rss_sites = select_GetSelectedVAL("rss_sites");
+  const search_sites = select_GetSelectedVAL("search_sites");
+  if (rss_sites.length === 0 && search_sites.length === 0) {
+    show_fail_modal("订阅站点和搜索站点不能同时为空，请至少选择一项！");
+    return;
   }
-  // 搜索站点
-  let search_sites = [];
-  if (!fuzzy_match) {
-    search_sites = select_GetSelectedVAL("search_sites");
-    if (search_sites.length === SearchSitesLength) {
-      search_sites = [];
-    }
-  }
-  // 储存订阅设置
+  // 本次订阅设置（仅随新增请求提交，不再写入localStorage）
   const rss_setting = {
     "filter_restype": filter_restype,
     "filter_pix": filter_pix,
@@ -750,18 +781,12 @@ function add_rss_manual() {
     "rss_sites": rss_sites,
     "search_sites": search_sites
   };
-  if (mtype === "TV") {
-    localStorage.setItem("RssSettingTV", JSON.stringify(rss_setting));
-  } else if (mtype === "MOV") {
-    localStorage.setItem("RssSettingMOV", JSON.stringify(rss_setting));
-  }
   const data = {
     ...{
       "type": mtype,
       "name": name,
       "year": year,
       "season": season,
-      "fuzzy_match": fuzzy_match,
       "mediaid": mediaid,
       "over_edition": over_edition,
       "total_ep": total_ep,
@@ -798,24 +823,6 @@ function add_rss_manual() {
   });
 }
 
-// 选择模糊匹配
-function change_match_check(obj) {
-  if ($(obj).prop("checked")) {
-    $("#rss_search_sites_div").hide();
-    $("#over_edition").prop("checked", false);
-  } else {
-    $("#rss_search_sites_div").show();
-  }
-}
-
-// 选择洗版
-function change_over_edition_check(obj) {
-  if ($(obj).prop("checked")) {
-    $("#fuzzy_match").prop("checked", false);
-    $("#rss_search_sites_div").show();
-  }
-}
-
 function convert_mediaid(tmdbid) {
   if (typeof(tmdbid) === "number") {
     tmdbid = tmdbid + "";
@@ -830,7 +837,7 @@ function rss_love_click(event, title, year, media_type, tmdb_id, fav, remove_fun
   var trigger_card_id = '';
   if (event) {
     event.stopPropagation();
-    trigger_card_id = event.currentTarget.closest('normal-card')?.id
+    trigger_card_id = event.currentTarget.closest('normal-card, poster-card')?.id
   }
 
   // 取消订阅
@@ -844,17 +851,25 @@ function rss_love_click(event, title, year, media_type, tmdb_id, fav, remove_fun
   // 添加订阅
   show_ask_modal("是否确定订阅： " + title + "？", function () {
     const mediaid = convert_mediaid(tmdb_id); // 转字符串
-    // 电影订阅
+    // 电影订阅：先取电影默认设置，弹窗打开时直接回填
     if (media_type == "MOV" || media_type == "电影") {
-      show_add_rss_media_modal('MOV', mediaid, title, year, '', trigger_card_id);
+      axios_post_do("get_default_rss_setting", { mtype: "MOV" }, function (ret) {
+        show_add_rss_media_modal('MOV', mediaid, title, year, '', trigger_card_id,
+          (ret && ret.code === 0 && ret.data) ? ret.data : null);
+      }).catch(function () {
+        // 默认设置获取失败时仍然打开弹窗，由弹窗自行请求
+        show_add_rss_media_modal('MOV', mediaid, title, year, '', trigger_card_id);
+      });
       return;
-    } 
-    // 剧集订阅：查询季
+    }
+    // 剧集订阅：查询季，接口同时返回电视剧默认设置
     axios_post_do("get_tvseason_list", {tmdbid: mediaid, title: title}, function (ret) {
+      const default_setting = ret.default_setting;
       if (ret.seasons.length === 1) {
-        show_add_rss_media_modal('TV', mediaid, title, year, ret.seasons[0].num, trigger_card_id);
+        show_add_rss_media_modal('TV', mediaid, title, year, ret.seasons[0].num, trigger_card_id,
+          default_setting);
       } else if (ret.seasons.length > 1) {
-        show_rss_seasons_modal(title, year, mediaid, ret.seasons, trigger_card_id);
+        show_rss_seasons_modal(title, year, mediaid, ret.seasons, trigger_card_id, default_setting);
       } else {
         show_fail_modal(title + " 添加RSS订阅失败：未查询到季信息！");
       }
@@ -878,79 +893,86 @@ function remove_rss_manual(type, name, year, rssid) {
 }
 
 // 新增订阅
-function show_add_rss_media_modal(mtype, tmdbid, rss_name, rss_year, rss_season='', trigger_card_id='') {
+function show_add_rss_media_modal(mtype, tmdbid, rss_name, rss_year, rss_season='', trigger_card_id='', default_setting) {
 
   // 绑定触发卡片id
   $("#trigger_card_id").val(trigger_card_id || '');
 
-  // 刷新下拉框
-  refresh_rss_download_setting_dirs();
+  // 刷新下拉框，站点列表渲染完成后才能回显选中的站点
+  const sites_ready = refresh_rss_download_setting_dirs();
 
   // 界面初始化
   $("#rss_id").val("");
-  $("#rss_modal_title").text("新增订阅");
+  $("#rss_modal_title").text("新增订阅-" + (mtype === "TV" ? "电视剧" : "电影"));
   $("#rss_name").val(rss_name || '').attr("readonly", false);
   $("#rss_year").val(rss_year || '').attr("readonly", false);
   $("#rss_keyword").val("");
   $("#rss_tmdbid").val(tmdbid || '');
-  $("#fuzzy_match").prop("checked", false);
   $("#over_edition").prop("checked", false);
   $("#rss_season").val("");
   $("#rss_total_ep").val("");
   $("#rss_current_ep").val("");
 
-  let rss_setting;
   if (mtype === "TV") {
     $("#rss_type").val("TV");
     $("#rss_tv_season_div").show();
-    // 季
-    if (rss_season) {
-      if (typeof(rss_season) === "number") {
-        $("#rss_season").val(rss_season);
-      } else {
-        $("#rss_season").val(parseInt(rss_season.replace("S", "")));
-      }
+    // 季（0 为特别篇，不能用真假值判断；多选时取第一个）
+    if (Array.isArray(rss_season)) {
+      rss_season = rss_season.length > 0 ? rss_season[0] : '';
     }
-    rss_setting = localStorage.getItem("RssSettingTV");
+    if (rss_season !== '' && rss_season !== null && rss_season !== undefined) {
+      $("#rss_season").val(parseInt(String(rss_season).replace("S", "")));
+    }
   } else if (mtype === "MOV") {
     $("#rss_type").val("MOV");
     $("#rss_tv_season_div").hide();
-    rss_setting = localStorage.getItem("RssSettingMOV");
   }
 
-  if (rss_setting) {
-    rss_setting = JSON.parse(rss_setting);
-    $("#rss_restype").val(rss_setting.filter_restype);
-    $("#rss_pix").val(rss_setting.filter_pix);
-    $("#rss_team").val(rss_setting.filter_team);
-    $("#rss_rule").val(rss_setting.filter_rule);
-    $("#rss_include").val(rss_setting.filter_include);
-    $("#rss_exclude").val(rss_setting.filter_exclude);
-    $("#rss_download_setting").val(rss_setting.download_setting);
-    refresh_savepath_select('rss_save_path', false, rss_setting.download_setting);
-    check_manual_input_path("rss_save_path", "rss_save_path_manual", rss_setting.save_path);
-    if (rss_setting.search_sites.length === 0) {
-      select_SelectALL(true, 'search_sites');
-    } else {
-      select_SelectPart(rss_setting.search_sites, 'search_sites');
+  // 回填默认订阅设置
+  const apply_default_setting = function (rss_setting) {
+    // 请求返回前用户可能已打开其他类型的新增弹窗，避免错填
+    if ($("#rss_type").val() !== mtype) {
+      return;
     }
-    if (rss_setting.rss_sites.length === 0) {
-      select_SelectALL(true, 'rss_sites');
+    if (rss_setting) {
+      $("#rss_restype").val(rss_setting.restype || '');
+      $("#rss_pix").val(rss_setting.pix || '');
+      $("#rss_team").val(rss_setting.team || '');
+      $("#rss_rule").val(rss_setting.rule || '');
+      $("#rss_include").val(rss_setting.include || '');
+      $("#rss_exclude").val(rss_setting.exclude || '');
+      $("#rss_download_setting").val(rss_setting.download_setting || '');
+      $("#over_edition").prop("checked", String(rss_setting.over_edition) === "1");
+      refresh_savepath_select('rss_save_path', false, rss_setting.download_setting || '');
+      check_manual_input_path("rss_save_path", "rss_save_path_manual", "");
+      // 空列表表示不启用该渠道，按实际选中的站点回显
+      sites_ready.then(function () {
+        select_SelectPart(rss_setting.search_sites || [], 'search_sites');
+        select_SelectPart(rss_setting.rss_sites || [], 'rss_sites');
+      });
     } else {
-      select_SelectPart(rss_setting.rss_sites, 'rss_sites');
+      $("#rss_restype").val('');
+      $("#rss_pix").val('');
+      $("#rss_team").val('');
+      $("#rss_rule").val('');
+      $("#rss_include").val('');
+      $("#rss_exclude").val('');
+      $("#rss_save_path").val('');
+      $("#rss_save_path_manual").val('');
+      $("#rss_download_setting").val('');
+      $("#over_edition").prop("checked", false);
+      select_SelectALL(false, "rss_sites");
+      select_SelectALL(false, "search_sites");
     }
+  };
+
+  // 订阅按钮点击流程已随接口带回默认设置，直接回填；其他入口打开弹窗时再单独请求
+  if (default_setting !== undefined) {
+    apply_default_setting(default_setting || null);
   } else {
-    $("#rss_restype").val('');
-    $("#rss_pix").val('');
-    $("#rss_team").val('');
-    $("#rss_rule").val('');
-    $("#rss_include").val('');
-    $("#rss_exclude").val('');
-    $("#rss_save_path").val('');
-    $("#rss_save_path_manual").val('');
-    $("#rss_download_setting").val('');
-    select_SelectALL(false, "rss_sites");
-    select_SelectALL(false, "search_sites");
+    axios_post_do("get_default_rss_setting", { mtype: mtype }, function (ret) {
+      apply_default_setting((ret.code === 0 && ret.data) ? ret.data : null);
+    });
   }
 
   $("#rss_delete_btn").hide();
@@ -966,10 +988,11 @@ function show_edit_rss_media_modal(rssid, type) {
   $("#system-media-modal").modal('hide');
   $("#rss_id").val(rssid);
   $("#rss_type").val(type);
-  $("#rss_modal_title").text("编辑订阅");
+  const is_tv = type === "TV" || type === "电视剧";
+  $("#rss_modal_title").text("编辑订阅-" + (is_tv ? "电视剧" : "电影"));
 
-  // 刷新下拉框
-  refresh_rss_download_setting_dirs();
+  // 刷新下拉框，站点列表渲染完成后才能回显选中的站点
+  const sites_ready = refresh_rss_download_setting_dirs();
 
   // 获取订阅信息
   axios_post_do("rss_detail", { "rssid": rssid, "rsstype": type }, function (ret) {
@@ -1001,13 +1024,6 @@ function show_edit_rss_media_modal(rssid, type) {
           $("#rss_current_ep").val("");
         }
       }
-      if (!ret.detail.fuzzy_match) {
-        $("#fuzz_match").prop("checked", false);
-        $("#rss_search_sites_div").show();
-      } else {
-        $("#fuzzy_match").prop("checked", true);
-        $("#rss_search_sites_div").hide();
-      }
       if (ret.detail.over_edition) {
         $("#over_edition").prop("checked", true);
       } else {
@@ -1022,16 +1038,11 @@ function show_edit_rss_media_modal(rssid, type) {
       $("#rss_download_setting").val(ret.detail.download_setting);
       refresh_savepath_select('rss_save_path', false, ret.detail.download_setting);
       check_manual_input_path("rss_save_path", "rss_save_path_manual", ret.detail.save_path);
-      if (ret.detail.rss_sites.length === 0) {
-        select_SelectALL(true, 'rss_sites');
-      } else {
-        select_SelectPart(ret.detail.rss_sites, 'rss_sites')
-      }
-      if (ret.detail.search_sites.length === 0) {
-        select_SelectALL(true, 'search_sites');
-      } else {
-        select_SelectPart(ret.detail.search_sites, 'search_sites')
-      }
+      // 空列表表示不启用该渠道，按实际选中的站点回显
+      sites_ready.then(function () {
+        select_SelectPart(ret.detail.rss_sites || [], 'rss_sites');
+        select_SelectPart(ret.detail.search_sites || [], 'search_sites');
+      });
       $("[name='rss_add_btn']").hide();
       $("[name='rss_edit_btn']").show();
       $("#rss_delete_btn").attr("href",
@@ -1065,11 +1076,10 @@ function refresh_filter_select(obj_id, aync = true) {
 
 // 刷新RSS站点下拉框
 function refresh_rsssites_select(obj_id, item_name, aync = true) {
-  axios_post_do("get_sites", { rss: true, basic: true }, function (ret) {
+  return axios_post_do("get_sites", { rss: true, basic: true }, function (ret) {
     if (ret.code === 0) {
       let rsssites_select = $(`#${obj_id}`);
       let rsssites_select_content = "";
-      RssSitesLength = ret.sites.length;
       if (ret.sites.length > 0) {
         rsssites_select.parent().parent().show();
       } else {
@@ -1089,11 +1099,10 @@ function refresh_rsssites_select(obj_id, item_name, aync = true) {
 
 // 刷新搜索站点列表
 function refresh_searchsites_select(obj_id, item_name, aync = true) {
-  axios_post_do("get_indexers", { check: true, basic: true }, function (ret) {
+  return axios_post_do("get_indexers", { check: true, basic: true }, function (ret) {
     if (ret.code === 0) {
       let searchsites_select = $(`#${obj_id}`);
       let searchsites_select_content = "";
-      SearchSitesLength = ret.indexers.length;
       if (ret.indexers.length > 0) {
         searchsites_select.parent().parent().show();
       } else {
@@ -1200,11 +1209,17 @@ function refresh_downloadsetting_select(obj_id, aync = true, is_default = false)
 
 // 刷新订阅框的下载设置及目录等选项
 function refresh_rss_download_setting_dirs() {
-  refresh_rsssites_select("rss_sites_group", "rss_sites", false);
-  refresh_searchsites_select("rss_search_sites_group", "search_sites", false);
+  // 返回站点列表渲染完成的 Promise，供弹窗回显已选站点
+  const sites_ready = Promise.all([
+    refresh_rsssites_select("rss_sites_group", "rss_sites", false),
+    refresh_searchsites_select("rss_search_sites_group", "search_sites", false)
+  ]).catch(function () {
+    // 站点列表加载失败时不影响弹窗使用
+  });
   refresh_filter_select("rss_rule", false);
   refresh_downloadsetting_select("rss_download_setting", false);
   refresh_savepath_select("rss_save_path", false, $("#rss_download_setting").val());
+  return sites_ready;
 }
 
 // 刷新下载框的下载设置及目录选项
@@ -1296,9 +1311,20 @@ function quickSearchMedia() {
 
   var search_source = $('#icon-source-trigger').attr('data-id');
   if (search_source === "person") {
-    navmenu("discovery_person?title=演员搜索&subtitle=" + search_keyword + "&keyword=" + search_keyword);
+    navmenu("discovery_person", {
+      title: "演员搜索",
+      subtitle: search_keyword,
+      keyword: search_keyword
+    });
   } else {
-    navmenu("recommend?type=SEARCH&title=搜索结果&subtitle=" + search_keyword + "&keyword=" + search_keyword + "&source=" + search_source+ "&subtype=" + search_type);
+    navmenu("recommend", {
+      type: "SEARCH",
+      title: "搜索结果",
+      subtitle: search_keyword,
+      keyword: search_keyword,
+      source: search_source,
+      subtype: search_type
+    });
   }
 
 }
@@ -1367,7 +1393,7 @@ function search_media_advanced() {
       }
 
       // 切换到结果页
-      navmenu('search?s=' + keyword);
+      navmenu('search', { s: keyword });
 
     });
 
@@ -1436,16 +1462,6 @@ function openFileBrowser(el, root, filter, on_folders, on_files, close_on_select
   ft.slideDown('fast');
 }
 
-// 初始化目录选择控件
-function init_filetree_element() {
-  $('.filetree-folders-only').each(function () {
-    $(this).attr("onclick", "openFileBrowser(this,$(this).val(),'',true,false);");
-  });
-  $('.filetree-files-only').each(function () {
-    $(this).attr("onclick", "openFileBrowser(this,$(this).val(),'',false,true);");
-  });
-}
-
 // 名称识别测试
 function media_name_test(name, result_div, func, subtitle) {
   if (!name) {
@@ -1467,7 +1483,7 @@ function media_name_test_ui(data, result_div) {
   $(`#${result_div}`).empty();
   const sort_array = ["rev_string", "ignored_words", "replaced_words", "offset_words",
     "type", "category", "name", "title", "tmdbid", "year", "season_episode", "part",
-    "restype", "effect", "pix", "video_codec", "audio_codec", "team", "customization"]
+    "restype", "effect", "pix", "resource_frame", "video_codec", "audio_codec", "team", "customization"]
   // 调用组件实例的自定义方法.. 一次性添加chips
   document.querySelector(`#${result_div}`).add_chips_all(sort_array, data);
 }
@@ -1938,6 +1954,11 @@ function do_add_indexer() {
     return
   }
 
+  if (indexer_id == BASE_INDEXER_ID || indexer_id.startsWith(BASE_INDEXER_ID + '@')) {
+    show_fail_modal('基础索引配置ID不可使用');
+    return
+  }
+
   var indexer_name = $("#indexer-name").val().trim();
   if (!indexer_name || indexer_name == '' ) {
     show_fail_modal('站点名称不能为空');
@@ -2008,6 +2029,11 @@ function do_update_indexer() {
     return
   }
 
+  if (indexer_id == BASE_INDEXER_ID || indexer_id.startsWith(BASE_INDEXER_ID + '@')) {
+    show_fail_modal('基础索引配置不允许修改');
+    return
+  }
+
   var indexer_url = $("#indexer-url").val();
   if (!indexer_url || !isUrl(indexer_url)) {
     show_fail_modal('站点地址无效, 请重新编辑');
@@ -2040,7 +2066,6 @@ function do_update_indexer() {
   var search_param = $('#indexer-search-params').val();
   var source_type = select_GetSelectedVAL('indexer-source-type').join(',');
   var proxy = $('#indexer-proxy').prop('checked');
-  var render = $('#indexer-render').prop('checked');
   var downloader = $("#indexer-download-setting").val();
   var en_expand = $('#indexer-en-expand').prop('checked');
 
@@ -2053,7 +2078,6 @@ function do_update_indexer() {
     "category": zip_json(category_cfg),
 
     "proxy": proxy,
-    "render": render,
     "search_param": search_param,
     "source_type": source_type,
     "en_expand": en_expand,
@@ -2075,9 +2099,12 @@ function do_update_indexer() {
 };
 
 // 按需加载 Ace 编辑器（仅在打开相关编辑弹窗时加载）
+// libs 目录 URL 带内容版本，版本号由后端注入到 index.html 的 meta 中
+const LIBS_VERSION = (document.querySelector('meta[name="libs-version"]') || {}).content || '';
+const LIBS_VERSION_PATH = LIBS_VERSION ? LIBS_VERSION + '/' : '';
 const ACE_SCRIPT_URL = document.currentScript
-  ? new URL('../libs/ace/ace.js', document.currentScript.src).href
-  : '../static/libs/ace/ace.js';
+  ? new URL(`../libs/${LIBS_VERSION_PATH}ace/ace.js`, document.currentScript.src).href
+  : `../static/libs/${LIBS_VERSION_PATH}ace/ace.js`;
 
 let aceLoading = null;
 

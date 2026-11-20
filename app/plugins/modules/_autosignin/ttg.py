@@ -1,10 +1,10 @@
+from typing import ClassVar
 import re
 
 from app.helper.site_signin_helper import SiteSigninHelper, Verdict
-from app.plugins.modules._autosignin._base import _ISiteSigninHandler
 from app.models.model import UserSiteConf
-from app.utils import SiteUtils, RequestUtils
-
+from app.plugins.modules._autosignin._base import _ISiteSigninHandler
+from app.utils import RequestUtils, SiteUtils
 from config import Config
 
 
@@ -16,7 +16,7 @@ class TTG(_ISiteSigninHandler):
     site_url = "totheglory.im"
 
     # 已签到
-    _sign_regex = ['<b style="color:green;">已签到</b>']
+    _sign_regex: ClassVar[list[str]] = ['<b style="color:green;">已签到</b>']
     _sign_text = '亲，您今天已签到过，不要太贪哦'
 
     # 签到成功
@@ -29,7 +29,7 @@ class TTG(_ISiteSigninHandler):
         :param url: 站点Url
         :return: 是否匹配，如匹配则会调用该类的signin方法
         """
-        return True if SiteUtils.url_equal(url, cls.site_url) else False
+        return bool(SiteUtils.url_equal(url, cls.site_url))
 
     def signin(self, site_info: UserSiteConf):
         """
@@ -73,15 +73,15 @@ class TTG(_ISiteSigninHandler):
                                 ).post_res(url="https://totheglory.im/signed.php",
                                            data=data)
         if not sign_res or sign_res.status_code != 200:
-            self.error(f"签到失败，签到接口请求失败")
+            self.error("签到失败，签到接口请求失败")
             return False, f'[{site}]签到失败，签到接口请求失败'
 
         sign_res.encoding = "utf-8"
         if self._success_text in sign_res.text:
-            self.info(f"签到成功")
+            self.info("签到成功")
             return True, f'[{site}]签到成功'
         if self._sign_text in sign_res.text:
-            self.info(f"今日已签到")
+            self.info("今日已签到")
             return True, f'[{site}]今日已签到'
 
         self.warn(f"[{site}]签到失败，未知原因")

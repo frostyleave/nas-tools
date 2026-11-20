@@ -1,19 +1,16 @@
-import re
-
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from threading import Lock
 
 import log
-
 from app.downloader import Downloader
-from app.message import MessageService
-from app.models.model import UserSiteConf
-from app.modules.filter import Filter
 from app.helper import DbHelper, RssHelper
 from app.media import MediaService
 from app.media.meta import MetaInfo
-from app.sites import SitesManager, SiteConf
+from app.message import MessageService
+from app.models.model import UserSiteConf
+from app.modules.filter import Filter
 from app.modules.subscribe import Subscribe
+from app.sites import SiteConf, SitesManager
 from app.utils import TorrentUtils
 from app.utils.commons import singleton
 from app.utils.types import MediaType, SearchType
@@ -60,24 +57,27 @@ class Rss:
         with lock:
             log.info("【Rss】开始RSS订阅...")
 
-            # 读取电影订阅
-            rss_movies = self.subscribe.get_subscribe_movies(state='R')
+            # 读取电影订阅（暂停的订阅不主动搜索，但仍参与 RSS 匹配）
+            rss_movies = self.subscribe.get_subscribe_movies(state=['R', 'P'])
             if not rss_movies:
                 log.info("【Rss】没有正在订阅的电影")
             else:
-                log.info("【Rss】电影订阅清单：%s", " ".join('%s' % info.get("name") for _, info in rss_movies.items()))
-            # 读取电视剧订阅
-            rss_tvs = self.subscribe.get_subscribe_tvs(state='R')
+                log.info("【Rss】电影订阅清单：%s", " ".join('{}'.format(info.get("name")) for _, info in rss_movies.items()))
+            # 读取电视剧订阅（暂停的订阅不主动搜索，但仍参与 RSS 匹配）
+            rss_tvs = self.subscribe.get_subscribe_tvs(state=['R', 'P'])
             if not rss_tvs:
                 log.info("【Rss】没有正在订阅的电视剧")
             else:
-                log.info("【Rss】电视剧订阅清单：%s", " ".join('%s' % info.get("name") for _, info in rss_tvs.items()))
+                log.info("【Rss】电视剧订阅清单：%s", " ".join('{}'.format(info.get("name")) for _, info in rss_tvs.items()))
             # 没有订阅退出
             if not rss_movies and not rss_tvs:
                 return
 
             # 获取有订阅的站点范围
             check_sites = self._get_rss_check_sites(rss_movies, rss_tvs)
+            if not check_sites:
+                log.info("【Rss】所有订阅均未配置订阅站点，跳过RSS匹配")
+                return
 
             # 匹配到的资源列表
             rss_download_torrents = []
@@ -91,7 +91,7 @@ class Rss:
                 # 站点名称
                 site_name = site_info.name
                 # 没有订阅的站点中的不搜索
-                if check_sites and site_name not in check_sites:
+                if site_name not in check_sites:
                     continue
                 # 站点rss链接
                 rss_url = site_info.rssurl
@@ -112,7 +112,7 @@ class Rss:
                     log.warn("【Rss】站点 %s RSS链接已过期，请重新获取！", site_name)
                     # 发送消息
                     self.message.send_site_message(title="【RSS链接过期提醒】",
-                                                   text="站点：%s\n链接: %s" % (site_name, rss_url))
+                                                   text=f"站点：{site_name}\n链接: {rss_url}")
                     continue
 
                 if not rss_acticles:
@@ -176,8 +176,8 @@ class Rss:
                         if not match_flag:
                             continue
 
-                        # 非模糊匹配命中，检查本地情况，检查删除订阅
-                        should_skip, rss_no_exists = self._check_non_fuzzy_match(media_info, match_info, rss_no_exists)
+                        # 命中订阅后检查本地情况，检查是否需要跳过下载或删除订阅
+                        should_skip, rss_no_exists = self._check_rss_match(media_info, match_info, rss_no_exists)
                         if should_skip:
                             continue
 
@@ -237,7 +237,7 @@ class Rss:
         
         dt_naive = datetime.strptime(iso_str, TIME_FORMART)
         # 加上 UTC 时区，并去掉微秒，只保留到秒
-        return dt_naive.replace(tzinfo=timezone.utc, microsecond=0)
+        return dt_naive.replace(tzinfo=UTC, microsecond=0)
 
     def _try_resolve(self, rss_title) -> MetaInfo:
 
@@ -257,15 +257,11 @@ class Rss:
         # 重新查询TMDB
         return self.media.get_media_info(title=rss_title)
 
-    def _check_non_fuzzy_match(self, media_info:MetaInfo, match_info, rss_no_exists):
+    def _check_rss_match(self, media_info:MetaInfo, match_info, rss_no_exists):
         """
-        检查非模糊匹配的命中结果，包括本地是否存在、洗版过滤等
+        检查命中订阅的结果，包括本地是否存在、洗版过滤等
         返回 (should_skip, rss_no_exists)
         """
-        # 模糊匹配不做处理，直接下载
-        if match_info.get("fuzzy_match"):
-            return False, rss_no_exists
-
         # 匹配到订阅，如没有TMDB信息则重新查询
         if not media_info.tmdb_info and media_info.tmdb_id:
             tmdb_info = self.media.get_tmdb_info(mtype=media_info.type,tmdbid=media_info.tmdb_id)
@@ -302,36 +298,32 @@ class Rss:
         season = 1
         if match_info.get("season"):
             season = int(str(match_info.get("season")).replace("S", ""))
+        # 记录本次命中的订阅季，下载完成后据此判断该季是否已下全
+        media_info.rss_season = season
         # 设定的总集数
         total_ep = match_info.get("total")
         # 设定的开始集数
         current_ep = match_info.get("current_ep")
+        # 检查本地媒体库情况
+        exist_flag, library_no_exists, _ = self.downloader.check_exists_medias(
+            meta_info=media_info,
+            total_ep={season: total_ep}
+        )
+        # 本地已存在，不需要登记缺失季集
+        if exist_flag:
+            return True, rss_no_exists
         # 表登记的缺失集数
         episodes = self.subscribe.get_subscribe_tv_episodes(match_info.get("id"))
         if episodes is None:
             episodes = []
             if current_ep:
                 episodes = list(range(int(current_ep), int(total_ep) + 1))
-            rss_no_exists[media_info.tmdb_id] = [
-                {
-                    "season": season,
-                    "episodes": episodes,
-                    "total_episodes": total_ep
-                }
-            ]
-        else:
-            rss_no_exists[media_info.tmdb_id] = [
-                {
-                    "season": season,
-                    "episodes": episodes,
-                    "total_episodes": total_ep
-                }
-            ]
-        # 检查本地媒体库情况
-        exist_flag, library_no_exists, _ = self.downloader.check_exists_medias(
-            meta_info=media_info,
-            total_ep={season: total_ep}
-        )
+        # 同一 tmdb_id 存在多季订阅时按季合并，避免后命中的一季覆盖前一季
+        TorrentUtils.add_no_exists(target=rss_no_exists,
+                                   tmdb_id=media_info.tmdb_id,
+                                   season=season,
+                                   episodes=episodes,
+                                   total_episodes=total_ep)
         # 取交集做为缺失集
         rss_no_exists = TorrentUtils.get_intersection_episodes(target=rss_no_exists,
                                                                source=library_no_exists,
@@ -342,28 +334,13 @@ class Rss:
         return exist_flag, rss_no_exists
 
     def _get_rss_check_sites(self, rss_movies, rss_tvs):
+        """
+        获取需要监控RSS的站点清单，未配置订阅站点的订阅不参与RSS匹配
+        """
         check_sites = []
-        check_all = False
-        for rid, rinfo in rss_movies.items():
-            rss_sites = rinfo.get("rss_sites")
-            if not rss_sites:
-                check_all = True
-                break
-            else:
-                check_sites += rss_sites
-        if not check_all:
-            for rid, rinfo in rss_tvs.items():
-                rss_sites = rinfo.get("rss_sites")
-                if not rss_sites:
-                    check_all = True
-                    break
-                else:
-                    check_sites += rss_sites
-        if check_all:
-            check_sites = []
-        else:
-            check_sites = list(set(check_sites))
-        return check_sites
+        for rinfo in list(rss_movies.values()) + list(rss_tvs.values()):
+            check_sites += rinfo.get("rss_sites") or []
+        return list(set(check_sites))
 
     def _check_torrent_rss(self,
                           media_info,
@@ -400,38 +377,26 @@ class Rss:
 
         # 匹配电影
         if media_info.type == MediaType.MOVIE and rss_movies:
-            for rid, rss_info in rss_movies.items():
+            for rss_info in rss_movies.values():
                 rss_sites = rss_info.get('rss_sites')
-                # 过滤订阅站点
-                if rss_sites and media_info.site not in rss_sites:
+                # 未配置订阅站点时不参与RSS匹配，配置了则过滤站点
+                if not rss_sites or media_info.site not in rss_sites:
                     continue
                 # tmdbid或名称年份匹配
                 name = rss_info.get('name')
                 year = rss_info.get('year')
                 tmdbid = rss_info.get('tmdbid')
-                fuzzy_match = rss_info.get('fuzzy_match')
-                # 非模糊匹配
-                if not fuzzy_match:
-                    # 有tmdbid时使用tmdbid匹配
-                    if tmdbid and not tmdbid.startswith("DB:"):
-                        if str(media_info.tmdb_id) != str(tmdbid):
-                            continue
-                    else:
-                        # 豆瓣年份与tmdb取向不同
-                        if year and str(media_info.year) not in [str(year),
-                                                                 str(int(year) + 1),
-                                                                 str(int(year) - 1)]:
-                            continue
-                        if name != media_info.title:
-                            continue
-                # 模糊匹配
-                else:
-                    # 匹配年份
-                    if year and str(year) != str(media_info.year):
+                # 有tmdbid时使用tmdbid匹配
+                if tmdbid and not tmdbid.startswith("DB:"):
+                    if str(media_info.tmdb_id) != str(tmdbid):
                         continue
-                    # 匹配关键字或正则表达式
-                    search_title = "%s %s %s" % (media_info.rev_string, media_info.title, media_info.year)
-                    if not re.search(name, search_title, re.I) and name not in search_title:
+                else:
+                    # 豆瓣年份与tmdb取向不同
+                    if year and str(media_info.year) not in [str(year),
+                                                             str(int(year) + 1),
+                                                             str(int(year) - 1)]:
+                        continue
+                    if name != media_info.title:
                         continue
                 # 媒体匹配成功
                 match_flag = True
@@ -441,44 +406,29 @@ class Rss:
         # 匹配电视剧
         elif rss_tvs:
             # 匹配种子标题
-            for rid, rss_info in rss_tvs.items():
+            for rss_info in rss_tvs.values():
                 rss_sites = rss_info.get('rss_sites')
-                # 过滤订阅站点
-                if rss_sites and media_info.site not in rss_sites:
+                # 未配置订阅站点时不参与RSS匹配，配置了则过滤站点
+                if not rss_sites or media_info.site not in rss_sites:
                     continue
                 # 有tmdbid时精确匹配
                 name = rss_info.get('name')
                 year = rss_info.get('year')
                 season = rss_info.get('season')
                 tmdbid = rss_info.get('tmdbid')
-                fuzzy_match = rss_info.get('fuzzy_match')
-                # 非模糊匹配
-                if not fuzzy_match:
-                    if tmdbid and not tmdbid.startswith("DB:"):
-                        if str(media_info.tmdb_id) != str(tmdbid):
-                            continue
-                    else:
-                        # 匹配年份，年份可以为空
-                        if year and str(year) != str(media_info.year):
-                            continue
-                        # 匹配名称
-                        if name != media_info.title:
-                            continue
-                    # 匹配季，季可以为空
-                    if season and season != media_info.get_season_string():
+                if tmdbid and not tmdbid.startswith("DB:"):
+                    if str(media_info.tmdb_id) != str(tmdbid):
                         continue
-                # 模糊匹配
                 else:
-                    # 匹配季，季可以为空
-                    if season and season != "S00" and season != media_info.get_season_string():
-                        continue
-                    # 匹配年份
+                    # 匹配年份，年份可以为空
                     if year and str(year) != str(media_info.year):
                         continue
-                    # 匹配关键字或正则表达式
-                    search_title = "%s %s %s" % (media_info.rev_string, media_info.title, media_info.year)
-                    if not re.search(name, search_title, re.I) and name not in search_title:
+                    # 匹配名称
+                    if name != media_info.title:
                         continue
+                # 匹配季，季可以为空
+                if season and season != media_info.get_season_string():
+                    continue
                 # 媒体匹配成功
                 match_flag = True
                 match_rss_info = rss_info
@@ -528,11 +478,8 @@ class Rss:
                 match_msg.append(match_filter_msg)
                 return False, match_msg, match_rss_info
             else:
-                match_msg.append("%s 识别为 %s %s 匹配订阅成功" % (
-                    media_info.org_string,
-                    media_info.get_title_string(),
-                    media_info.get_season_episode_string()))
-                match_msg.append("种子描述：%s" % media_info.subtitle)
+                match_msg.append(f"{media_info.org_string} 识别为 {media_info.get_title_string()} {media_info.get_season_episode_string()} 匹配订阅成功")
+                match_msg.append(f"种子描述：{media_info.subtitle}")
                 match_rss_info.update({
                     "res_order": res_order,
                     "filter_rule": filter_rule,
@@ -540,10 +487,7 @@ class Rss:
                     "download_volume_factor": download_volume_factor})
                 return True, match_msg, match_rss_info
         else:
-            match_msg.append("%s 识别为 %s %s 不在订阅范围" % (
-                media_info.org_string,
-                media_info.get_title_string(),
-                media_info.get_season_episode_string()))
+            match_msg.append(f"{media_info.org_string} 识别为 {media_info.get_title_string()} {media_info.get_season_episode_string()} 不在订阅范围")
             return False, match_msg, match_rss_info
 
     def _download_rss_torrent(self, rss_download_torrents, rss_no_exists):
@@ -603,6 +547,22 @@ class Rss:
                                                          rssid=download_item.rssid,
                                                          media=download_item)
 
+        def __get_left_season(left_medias, download_item):
+            """
+            从剩余缺失信息中取出当前种子所命中订阅的季
+            同一剧集的其他季订阅不应影响本订阅的完成判断
+            """
+            if not left_medias or not left_medias.get(download_item.tmdb_id):
+                return None
+            season = getattr(download_item, "rss_season", None)
+            if season is None:
+                # 未登记命中季时保持原有整表行为（兼容旧数据）
+                return left_medias.get(download_item.tmdb_id)
+            season_info = TorrentUtils.get_no_exists_season(left_medias,
+                                                            download_item.tmdb_id,
+                                                            season)
+            return [season_info] if season_info else None
+
         # 去重择优后开始添加下载
         download_items, left_medias = self.downloader.batch_download(SearchType.RSS,
                                                                      rss_download_torrents,
@@ -616,12 +576,14 @@ class Rss:
                 if item.over_edition:
                     # 更新洗版订阅
                     __update_over_edition(item)
-                elif not left_medias or not left_medias.get(item.tmdb_id):
-                    # 删除电视剧订阅
-                    __finish_rss(item)
                 else:
-                    # 更新电视剧缺失剧集
-                    __update_tv_rss(item, left_medias.get(item.tmdb_id))
+                    left_season = __get_left_season(left_medias, item)
+                    if left_season:
+                        # 更新电视剧缺失剧集
+                        __update_tv_rss(item, left_season)
+                    else:
+                        # 删除电视剧订阅
+                        __finish_rss(item)
             log.info("【Rss】实际下载了 %s 个资源", len(download_items))
         else:
             log.info("【Rss】未下载到任何资源")

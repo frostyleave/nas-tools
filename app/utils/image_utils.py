@@ -1,5 +1,6 @@
-from PIL import Image
 from collections import Counter
+
+from PIL import Image
 
 
 class ImageUtils:

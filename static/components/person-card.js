@@ -34,7 +34,7 @@
 
     _build() {
       this.innerHTML = `
-        <div class="card card-sm lit-person-card rounded-3 overflow-hidden cursor-pointer ratio">
+        <div class="card card-sm lit-person-card rounded-3 overflow-hidden cursor-pointer ratio liquid-glass-panel">
           <div class="text-center p-4 pt-3 placeholder-glow">
             <div class="avatar-rounded overflow-hidden" style="position:relative;z-index:1;"></div>
             <h3 class="lh-sm text-white card-overview-text mt-3"><strong></strong></h3>

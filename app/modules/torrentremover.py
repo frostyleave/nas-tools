@@ -1,32 +1,32 @@
-import json
 from threading import Lock
-from typing import List
 
 from apscheduler.job import Job
+from apscheduler.jobstores.base import JobLookupError
 from apscheduler.schedulers.background import BackgroundScheduler
 
 import log
-
 from app.conf import ModuleConf
+from app.core.jobcenter import JobCenter
 from app.downloader import Downloader
 from app.helper import DbHelper
 from app.message import MessageService
+from app.utils import JsonUtils
 from app.utils.commons import singleton
-from app.core.jobcenter import JobCenter
 
 lock = Lock()
 
 
 @singleton
-class TorrentRemover(object):
+class TorrentRemover:
     message = None
     downloader = None
     dbhelper = None
 
-    scheduler_jobs : List[Job] = []
-    _remove_tasks = {}
+    scheduler_jobs : list[Job]
+    _remove_tasks: dict
 
     def __init__(self):
+        self.scheduler_jobs = []
         self.init_config()
 
     def init_config(self):
@@ -58,7 +58,7 @@ class TorrentRemover(object):
                 "onlynastool": task.ONLYNASTOOL,
                 "samedata": task.SAMEDATA,
                 "action": task.ACTION,
-                "config": json.loads(config) if config else {},
+                "config": JsonUtils.loads(config, default={}),
                 "interval": task.INTERVAL,
                 "enabled": task.ENABLED,
             }
@@ -248,7 +248,7 @@ class TorrentRemover(object):
             if qb_state:
                 for qb_state_item in qb_state:
                     if qb_state_item not in \
-                            ModuleConf.TORRENTREMOVER_DICT.get(downloader_type).get("torrent_state").keys():
+                            ModuleConf.TORRENTREMOVER_DICT.get(downloader_type).get("torrent_state"):
                         return False, "种子状态参数不合法"
             qb_category = data.get("qb_category")
             qb_category = qb_category.split(";") if qb_category else []
@@ -260,7 +260,7 @@ class TorrentRemover(object):
             if tr_state:
                 for tr_state_item in tr_state:
                     if tr_state_item not in \
-                            ModuleConf.TORRENTREMOVER_DICT.get(downloader_type).get("torrent_state").keys():
+                            ModuleConf.TORRENTREMOVER_DICT.get(downloader_type).get("torrent_state"):
                         return False, "种子状态参数不合法"
             tr_error_key = data.get("tr_error_key")
         config = {
@@ -322,11 +322,14 @@ class TorrentRemover(object):
         """
         停止服务
         """
-        try:
-            if not self.scheduler_jobs:
-                return
-            for job_item in self.scheduler_jobs:
+        if not self.scheduler_jobs:
+            return
+        for job_item in self.scheduler_jobs:
+            try:
                 self.get_scheduler().remove_job(job_item.id)
-            self.scheduler_jobs = []
-        except Exception as e:
-            print(str(e))
+            except JobLookupError:
+                # 任务已随配置重载被统一清理
+                pass
+            except Exception as e:
+                print(str(e))
+        self.scheduler_jobs = []

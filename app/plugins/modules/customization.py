@@ -88,7 +88,7 @@ class Customization(_IPluginModule):
                     self._custom_separator = custom_separator
 
     def get_state(self):
-        return True if self._customization or self._custom_separator else False
+        return bool(self._customization or self._custom_separator)
 
     def stop_service(self):
         """

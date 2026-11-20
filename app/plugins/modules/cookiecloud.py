@@ -1,16 +1,17 @@
 import json
-
 from collections import defaultdict
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from threading import Event
+from typing import ClassVar
 
 from app.helper import ThreadHelper
 from app.helper.dict_helper import DictHelper
 from app.indexer.manager import IndexerManager
 from app.plugins.modules._base import _IPluginModule
 from app.sites import SitesManager
-from app.utils import RequestUtils
+from app.utils import JsonUtils, RequestUtils, SiteUtils, TimeUtils
+
 
 @dataclass
 class CookieCloudSyncResult:
@@ -71,7 +72,7 @@ class CookieCloud(_IPluginModule):
     # 退出事件
     _event = Event()
     # 需要忽略的Cookie
-    _ignore_cookies = ['CookieAutoDeleteBrowsingDataCleanup']
+    _ignore_cookies: ClassVar[list[str]] = ['CookieAutoDeleteBrowsingDataCleanup']
 
     # 上次执行同步时CookieCloud数据的更新时间
     _cc_upd_time = None
@@ -198,12 +199,14 @@ class CookieCloud(_IPluginModule):
 
         # 停止现有任务
         self.stop_service()
+        # 重新开始，清除退出事件
+        self.reset_stop_event()
 
         # 启动服务
         if self._enabled:
             # 运行一次
             if self._onlyonce:
-                self.info(f"同步服务启动，立即运行一次")
+                self.info("同步服务启动，立即运行一次")
                 ThreadHelper().start_thread(self.__cookie_sync, ())
                 # 关闭一次性开关
                 self._onlyonce = False
@@ -237,18 +240,17 @@ class CookieCloud(_IPluginModule):
         self._notify = config.get("notify")
         self._onlyonce = config.get("onlyonce")
 
-        plugin_id = "plugin.%s" % self.__class__.__name__
+        plugin_id = f"plugin.{self.__class__.__name__}"
         extra = self.dicthelper.get_note("SystemConfig", plugin_id)
         if extra:
-            extra_data = json.loads(extra)
+            extra_data = JsonUtils.loads(extra, default={})
             if extra_data:
                 self._cc_upd_time = self.__parse_to_datetime(extra_data.get("cc_upd_time"))
 
         if not self._server.startswith("http"):
-            self._server = "http://%s" % self._server
+            self._server = f"http://{self._server}"
 
-        if self._server.endswith("/"):
-            self._server = self._server[:-1]
+        self._server = self._server.removesuffix("/")
 
         # 测试
         ret = self.__download_data()
@@ -268,13 +270,13 @@ class CookieCloud(_IPluginModule):
         if not self._server or not self._key or not self._password:
             return CookieCloudSyncResult(ret_msg="CookieCloud参数不正确")
         
-        req_url = "%s/get/%s" % (self._server, self._key)
+        req_url = f"{self._server}/get/{self._key}"
         ret = self.request_handler.post_res(url=req_url, json={"password": self._password})
         if not ret:
             return CookieCloudSyncResult(ret_msg="CookieCloud请求失败，请检查服务器地址、用户KEY及加密密码是否正确")
 
         if ret.status_code != 200:
-            return CookieCloudSyncResult(ret_msg="同步CookieCloud失败，错误码：%s" % ret.status_code)
+            return CookieCloudSyncResult(ret_msg=f"同步CookieCloud失败，错误码：{ret.status_code}")
         
         result = ret.json()
         if not result:
@@ -287,24 +289,30 @@ class CookieCloud(_IPluginModule):
         """
         同步站点Cookie
         """
+        # 捕获本次运行的事件对象，插件重载后旧线程仍能被旧的置位事件终止
+        event = self._event
         # 同步数据
         self.info("同步服务开始 ...")
         cloud_data = self.__download_data()
 
         if not cloud_data.success:
             self.error(cloud_data.ret_msg)
+            self.__save_history("failed", cloud_data.ret_msg)
             self.__send_message(cloud_data.ret_msg)
             return
 
         contents = cloud_data.content
         if not contents:
-            self.info("未从CookieCloud获取到数据")
+            msg = "未从CookieCloud获取到数据"
+            self.info(msg)
+            self.__save_history("failed", msg)
             self.__send_message(cloud_data.ret_msg)
             return
 
         if self._cc_upd_time and cloud_data.update_time and self._cc_upd_time >= cloud_data.update_time:
             msg = f"CookieCloud数据时间 {cloud_data.update_time} <= {self._cc_upd_time}, 不执行更新"
             self.info(msg)
+            self.__save_history("skipped", msg)
             self.__send_message(msg)
             return
 
@@ -312,22 +320,23 @@ class CookieCloud(_IPluginModule):
         update_sites = []
         add_sites = []
 
-        # 整理数据,使用domain域名的最后两级作为分组依据
+        # 整理数据,使用统一归一化后的主域名作为分组依据
         domain_groups = self.__sort_domain_cookies(contents)
         for domain, content_list in domain_groups.items():
 
-            if self._event.is_set():
-                self.info(f"同步服务停止")
+            if event.is_set():
+                self.info("同步服务停止")
+                self.__save_history("stopped", "同步服务停止")
                 return
             
             # 只有cf的cookie过滤掉
-            if not content_list or all(map(lambda c: c["name"] == "cf_clearance", content_list)):
+            if not content_list or all(c["name"] == "cf_clearance" for c in content_list):
                 continue
 
             # 拼接Cookie
             cookie_str = self.__join_cookie(content_list)
             # 域名
-            domain_url = ".".join(domain)
+            domain_url = domain
             # 查询站点
             site_info = self.sites_manager.get_sites_by_suffix(domain_url)
             if site_info:
@@ -365,7 +374,7 @@ class CookieCloud(_IPluginModule):
         if cloud_data.update_time:
             # 更新到DB
             self._cc_upd_time = cloud_data.update_time
-            plugin_id = "plugin.%s" % self.__class__.__name__
+            plugin_id = f"plugin.{self.__class__.__name__}"
             extra_data = {"cc_upd_time": self._cc_upd_time.strftime(TIME_FORMART)}
             self.dicthelper.update_note("SystemConfig", plugin_id, json.dumps(extra_data))
 
@@ -378,17 +387,43 @@ class CookieCloud(_IPluginModule):
         msg = '\n'.join(lines) if lines else "同步完成，但未更新任何站点数据！"
 
         self.info(msg)
+        self.__save_history("success", msg)
         # 发送消息
         self.__send_message(msg)
 
+    def __save_history(self, status, message):
+        """
+        记录本次同步结果，供插件运行历史查看
+        """
+        self.history(key=TimeUtils.now_str(TIME_FORMART), value={
+            "status": status,
+            "message": message,
+        })
+
+    def format_history(self, key, value):
+        """
+        同步历史转为用户友好的文本
+        """
+        if isinstance(value, dict) and "status" in value:
+            status_text = {
+                "success": "同步成功",
+                "failed": "同步失败",
+                "skipped": "跳过同步",
+                "stopped": "同步已停止",
+            }.get(value.get("status"), value.get("status") or "未知状态")
+            message = value.get("message")
+            return f"{status_text}\n{message}" if message else status_text
+        return super().format_history(key, value)
+
     def __sort_domain_cookies(self, contents):
-        # 整理数据,使用domain域名的最后两级作为分组依据
+        # 整理数据,使用统一归一化后的主域名作为分组依据
         domain_groups = defaultdict(list)
         for site, cookies in contents.items():
             self.debug(f"加载[{site}]站点cookie")
             for cookie in cookies:
-                domain_parts = cookie["domain"].split(".")[-2:]
-                domain_key = tuple(domain_parts)
+                domain_key = SiteUtils.get_url_domain(cookie["domain"])
+                if not domain_key:
+                    continue
                 domain_groups[domain_key].append(cookie)
         return domain_groups
 
@@ -415,6 +450,8 @@ class CookieCloud(_IPluginModule):
         """
         退出插件
         """
+        # 通知同步线程退出，避免重载后旧线程继续写配置
+        self.set_stop_event()
         try:
             self.remove_job(self._cron_job)
         except Exception as e:
@@ -431,7 +468,7 @@ class CookieCloud(_IPluginModule):
         fmt = "%Y-%m-%dT%H:%M:%S.%fZ"
         dt_naive = datetime.strptime(iso_str, fmt)
         # 加上 UTC 时区，并去掉微秒，只保留到秒
-        return dt_naive.replace(tzinfo=timezone.utc, microsecond=0)
+        return dt_naive.replace(tzinfo=UTC, microsecond=0)
 
     def __parse_to_datetime(self, time_str: str) -> datetime:
         """
@@ -441,4 +478,4 @@ class CookieCloud(_IPluginModule):
         if not time_str:
             return None
         dt_naive = datetime.strptime(time_str, TIME_FORMART)
-        return dt_naive.replace(tzinfo=timezone.utc)
+        return dt_naive.replace(tzinfo=UTC)

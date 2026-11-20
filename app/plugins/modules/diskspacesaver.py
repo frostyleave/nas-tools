@@ -1,10 +1,9 @@
-import datetime
 import hashlib
 import json
 import os
 
 from app.plugins.modules._base import _IPluginModule
-from app.utils import SystemUtils
+from app.utils import SystemUtils, TimeUtils
 
 
 class DiskSpaceSaver(_IPluginModule):
@@ -13,7 +12,7 @@ class DiskSpaceSaver(_IPluginModule):
     # 插件描述
     module_desc = "计算文件SHA1，同磁盘下相同SHA1的文件只保留一个，其他的用硬链接替换。"
     # 插件图标
-    module_icon = "diskusage.jpg"
+    module_icon = "diskusage.png"
     # 主题色
     module_color = "#FE9003"
     # 插件版本
@@ -137,7 +136,7 @@ class DiskSpaceSaver(_IPluginModule):
 
         # 如果没有配置信息， 则不处理
         if not path_list or not file_size or not ext_list or not result_path:
-            self.info(f"磁盘空间释放配置信息不完整，不进行处理")
+            self.info("磁盘空间释放配置信息不完整，不进行处理")
             return
 
         self.info(f"磁盘空间释放配置信息：{config}")
@@ -147,17 +146,17 @@ class DiskSpaceSaver(_IPluginModule):
             self.info(f"磁盘空间释放 开始处理目录：{path}")
             # 如果目录不存在， 则不处理
             if not os.path.exists(path):
-                self.info(f"磁盘空间释放 目录不存在，不进行处理")
+                self.info("磁盘空间释放 目录不存在，不进行处理")
                 continue
 
             # 如果目录不是文件夹， 则不处理
             if not os.path.isdir(path):
-                self.info(f"磁盘空间释放 目录不是文件夹，不进行处理")
+                self.info("磁盘空间释放 目录不是文件夹，不进行处理")
                 continue
 
             # 如果目录不是绝对路径， 则不处理
             if not os.path.isabs(path):
-                self.info(f"磁盘空间释放 目录不是绝对路径，不进行处理")
+                self.info("磁盘空间释放 目录不是绝对路径，不进行处理")
                 continue
 
             _last_result = self.load_last_result(result_path)
@@ -165,9 +164,9 @@ class DiskSpaceSaver(_IPluginModule):
             _duplicates = self.find_duplicates(path, ext_list, int(file_size), _last_result, fast)
             self.info(f"磁盘空间释放 找到 {len(_duplicates)} 个重复文件。")
             self.process_duplicates(_duplicates, dry_run)
-            self.info(f"磁盘空间释放 处理完毕。")
+            self.info("磁盘空间释放 处理完毕。")
             self.save_last_result(result_path, _last_result)
-            self.info(f"磁盘空间释放 保存处理结果。")
+            self.info("磁盘空间释放 保存处理结果。")
 
     def get_state(self):
         return False
@@ -226,7 +225,7 @@ class DiskSpaceSaver(_IPluginModule):
 
                 if os.path.getsize(file_path) < _file_size * 1024 * 1024:
                     continue
-                file_mtime = datetime.datetime.fromtimestamp(os.path.getmtime(file_path))
+                file_mtime = TimeUtils.timestamp_to_datetime(os.path.getmtime(file_path))
                 if file_group_by_size.get(file_size) is None:
                     file_group_by_size[file_size] = []
 
@@ -243,7 +242,7 @@ class DiskSpaceSaver(_IPluginModule):
                 continue
             for file_info in file_list:
                 file_path = file_info['filePath']
-                file_mtime = datetime.datetime.fromtimestamp(os.path.getmtime(file_path))
+                file_mtime = TimeUtils.timestamp_to_datetime(os.path.getmtime(file_path))
                 file_size = os.path.getsize(file_path)
                 sha1 = None
 
@@ -276,7 +275,7 @@ class DiskSpaceSaver(_IPluginModule):
         """
         处理重复的文件，保留一个文件，其他的用硬链接替换
         """
-        for sha1, files in duplicates.items():
+        for files in duplicates.values():
             if len(files) > 1:
 
                 for file_path in files[1:]:

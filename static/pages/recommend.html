@@ -19,41 +19,49 @@
 
 <script type="text/javascript">
 
-  // 获取URL参数
-  var [path, queryString] = window.location.hash.split("?");
-  if (!queryString || queryString == '') {
-      const container = document.getElementById("page-content");
-      queryString = $(container).data("queryString");
-  }
-  var urlParams = new URLSearchParams(queryString);
+  // 获取页面参数
+  var urlParams = getPageParams();
 
-  // 从URL参数中获取各种参数
+  // 从页面参数中获取各种参数
   // 当前页码
-  CurrentPage = parseInt(urlParams.get('page')) || 1;
+  CurrentPage = parseInt(urlParams.page) || 1;
   // 类型
   // MOV/TV/BANGUMI/SEARCH/DOWNLOADED/TRENDING/DISCOVER/DOUBANTAG
-  Type = urlParams.get('type') || '';
+  Type = urlParams.type || '';
   // 子类型
-  SubType = urlParams.get('subtype') || '';
+  SubType = urlParams.subtype || '';
   // 标题
-  Title = urlParams.get('title') || '';
+  Title = urlParams.title || '';
   // 子标题
-  SubTitle = urlParams.get('subtitle') || '';
+  SubTitle = urlParams.subtitle || '';
   // 星期
-  Week = urlParams.get('week') || '';
+  Week = urlParams.week || '';
   // TMDBID
-  TmdbId = urlParams.get('tmdbid') || '';
+  TmdbId = urlParams.tmdbid || '';
   // 演员ID
-  PersonId = urlParams.get('personid') || '';
+  PersonId = urlParams.personid || '';
   // 关键字
-  Keyword = urlParams.get('keyword') || '';
+  Keyword = urlParams.keyword || '';
   // 来源
-  Source = urlParams.get('source') || '';
+  Source = urlParams.source || '';
   // 过滤器
-  Filter = urlParams.get('filter') || '';
-  // 过滤参数
-  paramsStr = urlParams.get('params');
-  Params = JSON.parse(decodeURIComponent(paramsStr));
+  Filter = urlParams.filter || '';
+  // 过滤参数（新写法直接传对象，兼容旧地址中 JSON 字符串的形式）
+  var paramsStr = urlParams.params;
+  Params = {};
+  if (paramsStr && typeof paramsStr === 'object') {
+      Params = paramsStr;
+  } else if (paramsStr) {
+      try {
+          Params = JSON.parse(paramsStr);
+      } catch (e) {
+          try {
+              Params = JSON.parse(decodeURIComponent(paramsStr));
+          } catch (e2) {
+              Params = {};
+          }
+      }
+  }
 
   // 插入N个占位卡片 代替loading动画
   var page_card_num = 20;
@@ -150,7 +158,14 @@
   // 带过滤参数刷新页面
   function filter_refresh(filterkey, value) {
     Params[filterkey] = value;
-    navmenu(`recommend?type=${Type}&subtype=${SubType}&title=${Title}&subtitle=${SubTitle}&filter=${Filter}&params=${JSON.stringify(Params)}`)
+    navmenu('recommend', {
+      type: Type,
+      subtype: SubType,
+      title: Title,
+      subtitle: SubTitle,
+      filter: Filter,
+      params: Params
+    });
   }
 
   // 滚动加载事件

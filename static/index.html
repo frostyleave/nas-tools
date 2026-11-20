@@ -160,22 +160,24 @@
       <div id="loading-tips" style="display: none;">
         <loading-indicator></loading-indicator>
       </div>
-      <div id="page-content" hidden="">
+      <div id="page-content" style="display: none;">
       </div>
     </div>
   </div>
   <!-- 加载动画遮罩 -->
-  <div class="loading-wrap" id="loadingOverlay" style="display: none;">
-    <div class="cube-grid">
-      <div></div>
-      <div></div>
-      <div></div>
-      <div></div>
-      <div></div>
-      <div></div>
-      <div></div>
-      <div></div>
-      <div></div>
+  <div class="loading-wrap" id="loading-flip-cubes" style="display: none;">
+    <div class="flip-cubes"><i></i><i></i><i></i></div>
+  </div>
+  <div class="loading-wrap" id="loading-scan-grid" style="display: none;">
+    <div class="scan-grid">
+      <i style="--r:0;--c:0"></i><i style="--r:0;--c:1"></i><i style="--r:0;--c:2"></i>
+      <i style="--r:1;--c:0"></i><i style="--r:1;--c:1"></i><i style="--r:1;--c:2"></i>
+      <i style="--r:2;--c:0"></i><i style="--r:2;--c:1"></i><i style="--r:2;--c:2"></i>
+    </div>
+  </div>
+  <div class="loading-wrap" id="loading-elastic" style="visibility: hidden;">
+    <div class="elastic">
+      <i style="--d:0"></i><i style="--d:1"></i><i style="--d:2"></i><i style="--d:3"></i><i style="--d:4"></i>
     </div>
   </div>
   <button id="scrollToTop" class="scroll-to-top" aria-label="Back to top">
@@ -482,6 +484,38 @@
       </div>
     </div>
   </div>
+  <!-- Git 系统更新面板 -->
+  <update-panel></update-panel>
+
+  <!-- 修改密码 -->
+  <div class="modal modal-blur fade" id="modal-change-password" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" role="document">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">修改密码</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <div class="mb-3">
+            <label class="form-label required">原密码</label>
+            <input type="password" id="change_old_password" class="form-control" autocomplete="current-password">
+          </div>
+          <div class="mb-3">
+            <label class="form-label required">新密码</label>
+            <input type="password" id="change_new_password" class="form-control" autocomplete="new-password">
+          </div>
+          <div class="mb-3">
+            <label class="form-label required">确认新密码</label>
+            <input type="password" id="change_confirm_password" class="form-control" autocomplete="new-password">
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-link me-auto" data-bs-dismiss="modal">取消</button>
+          <button type="button" class="btn btn-primary" id="change_password_btn">确定</button>
+        </div>
+      </div>
+    </div>
+  </div>
   <!-- 订阅季 -->
   <div class="modal modal-blur fade" id="system-rss-seasons" tabindex="-1" role="dialog" aria-hidden="true"
     data-bs-backdrop="static" data-bs-keyboard="false">
@@ -512,7 +546,7 @@
     <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable" role="document">
       <div class="modal-content">
         <div class="modal-header">
-          <h5 class="modal-title">订阅默认设置 <span class="form-help"
+          <h5 class="modal-title"><span id="default_rss_setting_title">订阅默认设置</span> <span class="form-help"
               title="订阅默认设置，只适用于探索页面、交互消息、豆瓣、Jellyseerr/Overseerr等自动订阅场景" data-bs-toggle="tooltip">?</span></h5>
           <input type="hidden" id="default_rss_setting_mtype">
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"
@@ -672,18 +706,7 @@
             <div class="col-xl-4">
               <div class="mb-3">
                 <label class="form-check form-switch">
-                  <input class="form-check-input" type="checkbox" id="fuzzy_match" onclick="change_match_check(this)">
-                  <span class="form-check-label">模糊匹配 <span class="form-help"
-                      title="开启后不检查TMDB是否有媒体信息，只要种子名称、标题、年份任一匹配关键字即会下载，此时标题可以配置正则表达式实现模糊匹配"
-                      data-bs-toggle="tooltip">?</span></span>
-                </label>
-              </div>
-            </div>
-            <div class="col-xl-4">
-              <div class="mb-3">
-                <label class="form-check form-switch">
-                  <input class="form-check-input" type="checkbox" id="over_edition"
-                    onclick="change_over_edition_check(this)">
+                  <input class="form-check-input" type="checkbox" id="over_edition">
                   <span class="form-check-label">洗版 <span class="form-help"
                       title="开启洗版后不会检查本地是否已存在，满足订阅条件即会下载；除非匹配了对应的过滤规则中最高优先级的那条规则否则不会删除订阅（未明确过滤规则时使用默认规则），同一优先级的资源只下载一次；多个资源下载后如命名一致，则只会保留文件体积较大的，如需都保留则需要在文件重命名规则中增加相关要素以做区分"
                       data-bs-toggle="tooltip">?</span></span>
@@ -1117,15 +1140,6 @@
             </div>
             <div class="col-lg-4">
               <div class="mb-3">
-                  <span>开启浏览器仿真 
-                    <span class="form-help"
-                      title="开启后可以兼容更多站点，但获取数据耗时会大幅增加；需要拉取含浏览器内核的镜像才能使用" data-bs-toggle="tooltip">?</span>
-                    </span>
-                  <div class="form-switch d-inline-block ms-2"><input class="form-check-input" type="checkbox" id="indexer-render"></div>
-              </div>
-            </div>
-            <div class="col-lg-4">
-              <div class="mb-3">
                 <label>使用英文名进行扩展搜索</label>
                 <div class="form-switch d-inline-block ms-2"><input class="form-check-input" type="checkbox" id="indexer-en-expand"></div>
               </div>
@@ -1175,6 +1189,8 @@
 
   <!-- 认证管理和axios封装 -->
   <script src="../static/js/auth-manager.js"></script>
+  <!-- 全局加载遮罩需在axios封装之前加载 -->
+  <script src="../static/js/loading-overlay.js"></script>
   <script src="../static/js/axios-wrapper.js"></script>
   <!-- 载入业务脚本 -->
   <script src="../static/js/app.js"></script>
@@ -1186,6 +1202,7 @@
   <script src="../static/components/navbar-search.js"></script>
   <script src="../static/components/quick-search.js"></script>
   <script src="../static/components/plugin-modal.js"></script>
+  <script src="../static/components/update-panel.js"></script>
   <script src="../static/components/custom-chips.js"></script>
 
   <!-- 图片基础组件：person-card 依赖 custom-img -->
@@ -1195,6 +1212,7 @@
   <!-- 卡片组件：custom-slide 的占位符依赖 normal-card-placeholder -->
   <script src="../static/components/normal-card-placeholder.js"></script>
   <script src="../static/components/normal-card.js"></script>
+  <script src="../static/components/poster-card.js"></script>
 
   <!-- 依赖卡片/图片的视觉组件 -->
   <script src="../static/components/custom-slide.js"></script>
@@ -1208,6 +1226,74 @@
   <script src="../static/libs/modules/reconnecting-websocket.js"></script>
 
   <script type="text/javascript">
+
+    const clickPositions = new WeakMap();
+
+    // 记录鼠标点击位置
+    document.addEventListener('pointerdown', (e) => {
+        const trigger = e.target.closest(
+            '[data-bs-toggle="modal"], [data-modal-origin]'
+        );
+
+        if (trigger) {
+            clickPositions.set(trigger, {
+                x: e.clientX,
+                y: e.clientY
+            });
+        }
+    }, true);
+
+    // 在 Modal 开始显示时注册监听
+    document.addEventListener('show.bs.modal', (e) => {
+        const modal = e.target;
+        const dialog = modal.querySelector('.modal-dialog');
+
+        if (!dialog) return;
+
+        const trigger = e.relatedTarget;
+        const point = trigger && clickPositions.get(trigger);
+
+        if (trigger) {
+            clickPositions.delete(trigger);
+        }
+
+        // 监听 Bootstrap 添加 show 类
+        const observer = new MutationObserver(() => {
+            if (!modal.classList.contains('show')) return;
+
+            observer.disconnect();
+
+            // 此时 Modal 已经完成布局，但尚未绘制
+            const rect = dialog.getBoundingClientRect();
+
+            const x = point ? point.x - rect.left : rect.width / 2;
+            const y = point ? point.y - rect.top : rect.height / 2;
+
+            dialog.style.transformOrigin = `${x}px ${y}px`;
+            dialog.animate(
+                [
+                  {
+                    transform: 'scale(0.2)',
+                    opacity: 0.5
+                  },
+                  {
+                    transform: 'scale(1)',
+                    opacity: 1
+                  }
+                ],
+                {
+                  duration: 280,
+                  easing: 'cubic-bezier(0.16, 1, 0.3, 1)'
+                }
+            );
+        });
+
+        observer.observe(modal, {
+            attributes: true,
+            attributeFilter: ['class']
+        });
+        
+    });
 
     // 初始化DropZone
     function initDropzone() {
@@ -1233,7 +1319,7 @@
       submitBtn.prop('disabled', true).text('登录中...');
 
       // 调用登录API
-      window.axios_client.post("/auth/token", new URLSearchParams({username, password}), { headers: { "Content-Type": "application/x-www-form-urlencoded" } })
+      window.axios_client.post("/auth/token", new URLSearchParams({username, password}), { headers: { "Content-Type": "application/x-www-form-urlencoded" }, silent: true })
         .then(function (response) {
           // 恢复按钮状态
           submitBtn.prop('disabled', false).text(originalText);
@@ -1288,9 +1374,9 @@
       axios_post('/data/bing', {}, function (response) {
         if (response.code === 0 && response.data) {
           var data = response.data;
-          // 设置背景图片
+          // 壁纸设在根元素上，保证任何视口尺寸/安全区都有底图，模糊层再从变量取图
           if (data.imgUrl) {
-            $("body").css("background", `url(${data.imgUrl}) center / cover no-repeat fixed`);
+            document.documentElement.style.setProperty("--app-wallpaper", `url(${data.imgUrl})`);
           }
           // 显示图片信息
           $('#image-title').text(data.imgTitle);
@@ -1536,8 +1622,10 @@
       advancedSelect.empty();
       advancedSelect.append('<option value="" selected>全部</option>');
 
-      for (let i = 1; i <= 50; i++) {
-        var option = `<option value="${i}">第${i}季</option>`;
+      for (let i = 0; i <= 50; i++) {
+        var option = i == 0
+          ? '<option value="0">第0季(特别篇)</option>'
+          : `<option value="${i}">第${i}季</option>`;
         advancedSelect.append(option);
         rssSelect.append(option);
         renameSelect.append(option);

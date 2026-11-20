@@ -1,26 +1,27 @@
-import requests
-
-from typing import List, Optional
+import aiohttp
 
 import log
-
 from app.helper import SubmoduleHelper
 from app.models.model import UserSiteConf
-from app.sites.siteuserinfo._base import _ISiteUserInfo
+from app.sites.siteuserinfo._base import (
+    _ISiteUserInfo,
+    build_async_session,
+    resolve_proxy_url,
+)
 from app.sites.siteuserinfo.mTorrent import MTorrentUserInfo
+from app.utils.async_request import decode_bytes
+from app.utils.commons import mask_value, singleton
 from app.utils.types import Spider
-from app.utils.http_utils import RequestUtils
-from app.utils.commons import singleton
-
 from config import Config
 
+
 @singleton
-class SitesschemaCenter(object):
+class SitesschemaCenter:
     """
     站点解析中心单例
     """
 
-    _site_schema : List[_ISiteUserInfo] = []
+    _site_schema : list[_ISiteUserInfo]
 
     def __init__(self):
 
@@ -32,7 +33,7 @@ class SitesschemaCenter(object):
         log.debug(f"【Sites】加载站点解析: {self._site_schema}")
 
 
-    def build(self, site_info: UserSiteConf) -> _ISiteUserInfo:
+    async def build(self, site_info: UserSiteConf) -> _ISiteUserInfo:
 
         site_url = site_info.strict_url
         site_name = site_info.name
@@ -42,35 +43,45 @@ class SitesschemaCenter(object):
         parser = site_info.parser
 
         ua = site_info.ua
-        emulate = site_info.chrome
 
         # 特定解析器
         if parser and parser == Spider.MTorrentSpider.value:
-            return MTorrentUserInfo(site_name, site_url, site_cookie, '', apikey=site_appkey, proxy=use_proxy)
+            return MTorrentUserInfo(site_name, site_url, site_cookie, '', apikey=site_appkey,
+                                    session=build_async_session(), proxy=use_proxy)
 
         if not site_cookie:
             return None
-        
-        log.debug(f"【Sites】站点 {site_name} url={site_url} site_cookie={site_cookie} ua={ua}")
+
+        # Cookie 属于站点凭证，日志中不输出原文
+        log.debug(f"【Sites】站点 {site_name} url={site_url} cookie={mask_value(site_cookie)} ua={ua}")
 
         # 站点流控
         # site_id = site_info.id
         # if site_id != None and self.sites.check_ratelimit(site_id):
         #     return
 
-        # 请求网页
-        session = requests.Session()
-        html_text = self.__request_site_page(url=site_url, session=session, site_cookie=site_cookie, ua=ua, emulate=emulate, proxy=use_proxy)
-        if not html_text:
-            return None
+        # 请求网页（会话已携带站点 Cookie）
+        session = build_async_session(site_cookie)
+        success = False
+        try:
+            html_text = await self.__request_site_page(url=site_url, session=session, ua=ua,
+                                                       proxy=use_proxy)
+            if not html_text:
+                return None
 
-        # 解析站点类型
-        site_schema = self.__build_class(html_text)
-        if not site_schema:
-            log.error("【Sites】站点 %s 无法识别站点类型" % site_name)
-            return None
-        return site_schema(site_name, site_url, site_cookie, html_text, session=session, ua=ua, emulate=emulate, proxy=use_proxy)
-
+            # 解析站点类型
+            site_schema = self.__build_class(html_text)
+            if not site_schema:
+                log.error(f"【Sites】站点 {site_name} 无法识别站点类型")
+                return None
+            builder = site_schema(site_name, site_url, site_cookie, html_text,
+                                  session=session, ua=ua, proxy=use_proxy)
+            success = True
+            return builder
+        finally:
+            # 失败路径不能把会话泄漏出去；成功时会话归解析器持有
+            if not success:
+                await session.close()
 
     def __build_class(self, html_text):
         for site_schema in self._site_schema:
@@ -82,39 +93,41 @@ class SitesschemaCenter(object):
         return None
     
 
-    def __request_site_page(self, 
-                            url, 
-                            session, 
-                            site_cookie=None, 
-                            ua=None, 
-                            emulate=None, 
-                            proxy=False) -> Optional[str]:
-        
+    async def __request_site_page(self,
+                                  url,
+                                  session,
+                                  ua=None,
+                                  proxy=False) -> str | None:
+        """
+        请求站点首页并解码
+        """
+        headers = {"User-Agent": ua or Config().get_ua()}
+        proxy_url = resolve_proxy_url(proxy)
+
+        async def _get(target_url):
+            kwargs = {"headers": headers}
+            if proxy_url:
+                kwargs["proxy"] = proxy_url
+            try:
+                async with session.get(target_url, **kwargs) as res:
+                    return res.status, await res.read(), res.charset
+            except (aiohttp.ClientError, TimeoutError) as e:
+                log.exception(f"【Sites】请求 {target_url} 异常: {e!s}")
+                return None, b"", None
+
         # 直接请求
-        proxies = Config().get_proxies() if proxy else None
-        res = RequestUtils(cookies=site_cookie,
-                           session=session,
-                           ua=ua,
-                           proxies=proxies
-                           ).get_res(url=url)
-        
-        if res is None:
+        status, content, charset = await _get(url)
+        if status is None:
             log.error(f"【Sites】{url} 无法访问")
             return None
-        
+
         # 状态码异常
-        if res.status_code != 200:
-            log.error(f"【Sites】{url} 访问失败，状态码: {res.status_code}")
+        if status != 200:
+            log.error(f"【Sites】{url} 访问失败，状态码: {status}")
             return None
-        
+
         # 正常请求, 开始解析
-
-        if "charset=utf-8" in res.text or "charset=UTF-8" in res.text or 'charset="utf-8"' in res.text :
-            res.encoding = "UTF-8"
-        else:
-            res.encoding = res.apparent_encoding
-
-        html_text = res.text
+        html_text = decode_bytes(content, charset)
 
         # 第一次登录反爬
         if html_text.find("title") == -1:
@@ -123,40 +136,22 @@ class SitesschemaCenter(object):
                 return None
             tmp_url = url + html_text[i:html_text.find(";")] \
                 .replace("\"", "").replace("+", "").replace(" ", "").replace("window.location=", "")
-            
-            res = RequestUtils(cookies=site_cookie,
-                               session=session,
-                               ua=ua,
-                               proxies=proxies
-                               ).get_res(url=tmp_url)
-            
-            if res and res.status_code == 200:
-                if "charset=utf-8" in res.text or "charset=UTF-8" in res.text:
-                    res.encoding = "UTF-8"
-                else:
-                    res.encoding = res.apparent_encoding
-                html_text = res.text
+
+            status, content, charset = await _get(tmp_url)
+            if status == 200:
+                html_text = decode_bytes(content, charset)
                 if not html_text:
                     return None
             else:
-                log.error(f"【Sites】{url} 被反爬限制: 状态码: {res.status_code}")
+                log.error(f"【Sites】{url} 被反爬限制: 状态码: {status}")
                 return None
 
         # 兼容假首页情况，假首页通常没有 <link rel="search" 属性
         if '"search"' not in html_text and '"csrf-token"' not in html_text:
-            res = RequestUtils(cookies=site_cookie,
-                               session=session,
-                               ua=ua,
-                               proxies=proxies
-                               ).get_res(url=url + "/index.php")
-            
-            if res and res.status_code == 200:
-                if "charset=utf-8" in res.text or "charset=UTF-8" in res.text:
-                    res.encoding = "UTF-8"
-                else:
-                    res.encoding = res.apparent_encoding
-                html_text = res.text
+            status, content, charset = await _get(url + "/index.php")
+            if status == 200:
+                html_text = decode_bytes(content, charset)
                 if not html_text:
                     return None
-        
+
         return html_text

@@ -1,21 +1,25 @@
 from datetime import timedelta
+from typing import Annotated
 
-from fastapi import APIRouter, Request, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.responses import JSONResponse
 from fastapi.security import OAuth2PasswordRequestForm
 
-import log
-
-from app.middleware.security import ACCESS_TOKEN_EXPIRE_MINUTES, COOKIE_MAX_AGE, REFRESH_TOKEN_EXPIRE_DAYS, \
-    authenticate_user, create_access_token, validate_refresh_token
-
+from app.middleware.security import (
+    ACCESS_TOKEN_EXPIRE_MINUTES,
+    COOKIE_MAX_AGE,
+    REFRESH_TOKEN_EXPIRE_DAYS,
+    authenticate_user,
+    create_access_token,
+    validate_refresh_token,
+)
 
 # 鉴权路由
 auth_router = APIRouter(prefix="/auth")
 
 
 @auth_router.post("/token")
-async def login(request: Request, form_data: OAuth2PasswordRequestForm = Depends()):
+def login(request: Request, form_data: Annotated[OAuth2PasswordRequestForm, Depends()]):
     """
     登陆: 验证授权信息, 生成access_token和refresh_token
     """
@@ -52,14 +56,11 @@ async def login(request: Request, form_data: OAuth2PasswordRequestForm = Depends
 
 
 @auth_router.post("/refresh")
-async def refresh_token(request: Request):
+def refresh_token(request: Request):
     """
     刷新access_token
     """
-    ip = get_real_ip(request)
     refresh_token = request.cookies.get("refresh_token")
-
-    log.debug(f'[刷新授权]请求ip={ip}, refresh_token={refresh_token}')
 
     if not refresh_token:
         raise HTTPException(status_code=401, detail="缺少 refresh_token")
@@ -87,7 +88,7 @@ async def refresh_token(request: Request):
 
 
 @auth_router.post("/logout")
-async def logout():
+def logout():
     """
     退出登录：清除 Cookie
     """

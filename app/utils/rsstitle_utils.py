@@ -20,11 +20,11 @@ class RssTitleUtils:
                     if title_all and len(title_all) > 1:
                         torrent_name = title_all[-1]
                         torrent_desc = title.replace(f"[{torrent_name}]", "").strip()
-                        title = "%s %s" % (torrent_name, torrent_desc)
+                        title = f"{torrent_name} {torrent_desc}"
                 else:
                     torrent_name = title_search.group(1)
                     torrent_desc = title.replace(title_search.group(), "").strip()
-                    title = "%s %s" % (torrent_name, torrent_desc)
+                    title = f"{torrent_name} {torrent_desc}"
         except Exception as e:
             log.exception(f'[Rss]处理RSS标题[{title}]出错: ')
         return title

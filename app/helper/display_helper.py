@@ -2,9 +2,8 @@ import os
 
 from pyvirtualdisplay import Display
 
-from app.utils.commons import singleton
-
 import log
+from app.utils.commons import singleton
 
 # Xvfb虚拟显示路程
 XVFB_PATH = [
@@ -13,7 +12,7 @@ XVFB_PATH = [
 ]
 
 @singleton
-class DisplayHelper(object):
+class DisplayHelper:
     _display = None
 
     def __init__(self):

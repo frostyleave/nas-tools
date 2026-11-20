@@ -1,13 +1,12 @@
-# -*- coding: utf-8 -*-
 import re
+
 from lxml import etree
 
+import log
 from app.sites.siteuserinfo._base import SITE_BASE_ORDER
 from app.sites.siteuserinfo.nexus_php import NexusPhpSiteUserInfo
 from app.utils.string_utils import StringUtils
 from app.utils.types import SiteSchema
-
-import log
 
 
 class NexusPTTSiteUserInfo(NexusPhpSiteUserInfo):
@@ -40,12 +39,12 @@ class NexusPTTSiteUserInfo(NexusPhpSiteUserInfo):
                     self.bonus = StringUtils.str_float(bonus_match.group(1).replace(',', ''))
 
                 # 上传
-                uploaded_match = re.search(r'上传量[:：]?\s*([\d,.]+[KMGTP]?B)', td_text, flags=re.I)
+                uploaded_match = re.search(r'上传量[:：]?\s*([\d,.]+[KMGTP]?B)', td_text, flags=re.IGNORECASE)
                 if uploaded_match:
                     self.upload = StringUtils.num_filesize(uploaded_match.group(1))
                 
                 # 下载
-                downloaded_match = re.search(r'下载量[:：]?\s*([\d,.]+[KMGTP]?B)', td_text, flags=re.I)
+                downloaded_match = re.search(r'下载量[:：]?\s*([\d,.]+[KMGTP]?B)', td_text, flags=re.IGNORECASE)
                 self.download = StringUtils.num_filesize(downloaded_match.group(1))
 
                 # 分享率
@@ -65,7 +64,7 @@ class NexusPTTSiteUserInfo(NexusPhpSiteUserInfo):
         """
         html = etree.HTML(str(html_text).replace(r'\/', '/'))
         if not html:
-            return None
+            return
         
         # 1. 提取“共有…条记录”
         total_records_match = re.search(r'共有<b>(\d+)</b>条记录', html_text)
@@ -77,7 +76,7 @@ class NexusPTTSiteUserInfo(NexusPhpSiteUserInfo):
         if resource_total_match:
             self.seeding_size = StringUtils.num_filesize(resource_total_match.group(1))
     
-        return None
+        return
 
 
     def _parse_user_detail_info(self, html_text):

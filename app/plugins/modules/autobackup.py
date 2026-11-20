@@ -1,15 +1,13 @@
 import glob
 import os
-import time
-
 from threading import Event
 
 from app.helper import ThreadHelper
 from app.modules.system.backup import Backup
 from app.plugins.modules._base import _IPluginModule
-from app.utils import SystemUtils
-
+from app.utils import SystemUtils, TimeUtils
 from config import Config
+
 
 class AutoBackup(_IPluginModule):
     # 插件名称
@@ -145,13 +143,15 @@ class AutoBackup(_IPluginModule):
 
         # 停止现有任务
         self.stop_service()
+        # 重新开始，清除退出事件
+        self.reset_stop_event()
 
         # 启动服务
         if self._enabled or self._onlyonce:
             # 运行一次
             if self._onlyonce:
                 ThreadHelper().start_thread(self.__backup, ())
-                self.info(f"备份服务启动，立即运行一次")
+                self.info("备份服务启动，立即运行一次")
                 # 关闭一次性开关
                 self._onlyonce = False
                 self.update_config({
@@ -171,7 +171,12 @@ class AutoBackup(_IPluginModule):
         """
         自动备份、删除备份
         """
-        self.info(f"当前时间 {time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time()))} 开始备份")
+        # 捕获本次运行的事件对象，插件重载后旧线程仍能被旧的置位事件终止
+        event = self._event
+        if event.is_set():
+            self.info("备份服务已停止")
+            return
+        self.info(f"当前时间 {TimeUtils.now_str()} 开始备份")
 
         # docker用默认路径
         if SystemUtils.is_docker():
@@ -222,6 +227,8 @@ class AutoBackup(_IPluginModule):
         """
         退出插件
         """
+        # 通知备份线程退出，避免重载后旧线程继续备份
+        self.set_stop_event()
         try:
             self.remove_job(self._cron_job)
         except Exception as e:

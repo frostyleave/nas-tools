@@ -24,31 +24,6 @@ Date.prototype.format = function (format) {
   return format;
 }
 
-function menuSwithWait() {
-  $("#page-content").hide();
-  $("#loading-tips").show();
-}
-
-function hideLoading() {
-  $("#loading-tips").hide();
-  $("#page-content").show();
-}
-
-
-/**
- * 显示加载动画
- */
-function showLoadingWave() {
-  document.getElementById('loadingOverlay').style.display = 'flex';
-}
-
-/**
- * 隐藏加载动画
- */
-function hideLoadingWave() {
-  document.getElementById('loadingOverlay').style.display = 'none';
-}
-
 // 备份文件下载
 function ajax_backup(handler) {
   const downloadURL = "/backup";
@@ -396,7 +371,12 @@ function set_user_agent(id) {
 
 
 // 页面刷新
+// 页面注册了局部刷新函数时优先调用，避免整页重新注入
 function window_history_refresh() {
+  if (typeof window.pageRefreshHandler === "function") {
+    window.pageRefreshHandler();
+    return;
+  }
   var hash = window.location.hash;
   var page = hash.replace(/^#\//, "");
   if (page) {
@@ -508,11 +488,35 @@ function slideToggle(id) {
   $(`#${id}`).slideToggle();
 }
 
+// 展开/折叠卡片区段，同步箭头方向和无障碍状态
+function toggle_card_section(id, btn) {
+  const $body = $("#" + id);
+  const collapsed = $body.is(":visible");
+  $body.slideToggle(160);
+  const $btn = $(btn);
+  $btn.toggleClass("is-collapsed", collapsed)
+    .attr("aria-expanded", collapsed ? "false" : "true");
+  const label = $btn.attr("data-section-label");
+  if (label) {
+    $btn.attr("aria-label", (collapsed ? "展开" : "折叠") + label);
+  }
+}
+
 // 刷新tooltip
 function fresh_tooltip() {
   const tooltipTriggerList = Array.prototype.slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
   tooltipTriggerList.map(function (tooltipTriggerEl) {
     return new bootstrap.Tooltip(tooltipTriggerEl)
+  });
+}
+
+// 初始化目录选择控件
+function init_filetree_element() {
+  $('.filetree-folders-only').each(function () {
+    $(this).attr("onclick", "openFileBrowser(this,$(this).val(),'',true,false);");
+  });
+  $('.filetree-files-only').each(function () {
+    $(this).attr("onclick", "openFileBrowser(this,$(this).val(),'',false,true);");
   });
 }
 

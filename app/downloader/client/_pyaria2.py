@@ -1,6 +1,5 @@
-# -*- coding: utf-8 -*-
-
 import json
+
 import requests
 
 from app.utils import TorrentUtils
@@ -10,10 +9,10 @@ DEFAULT_PORT = 6800
 SERVER_URI_FORMAT = '%s:%s/jsonrpc'
 
 
-class PyAria2(object):
+class PyAria2:
     _secret = None
     _server_uri = None
-    _headers = {}
+    _headers: dict
     _id = None
 
     def __init__(self, secret=None, host=DEFAULT_HOST, port=DEFAULT_PORT):

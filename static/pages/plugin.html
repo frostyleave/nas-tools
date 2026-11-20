@@ -23,7 +23,7 @@
 <div class="page-body" id="plugins-container" style="display: none;">
   <!-- 组件展示 -->
   <div class="container-xl">
-    <div class="d-grid gap-3 grid-normal-card" id="plugins-list">
+    <div class="d-grid gap-3 grid-info-card plugin-grid" id="plugins-list">
     </div>
   </div>
 </div>
@@ -45,7 +45,21 @@
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
         <div class="modal-body" style="min-height:800px;">
-          <div class="d-grid gap-3 grid-normal-card align-items-start" id="plugin_apps_content" style="display:none;"></div>
+          <div class="d-grid gap-3 plugin-grid" id="plugin_apps_content" style="display:none;"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- 插件运行历史 -->
+  <div class="modal modal-blur fade" id="modal-plugin-history" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable" role="document">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="plugin_history_title">运行历史</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <div id="plugin_history_content"></div>
         </div>
       </div>
     </div>
@@ -71,6 +85,46 @@
 
 <!-- 插件业务函数 -->
 <script type="text/javascript">
+  // 插件卡片文本清理
+  function escape_plugin_text(value) {
+    return String(value == null ? '' : value)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
+  function strip_plugin_emoji(value) {
+    return String(value == null ? '' : value)
+      .replace(/[\u{1F000}-\u{1FAFF}\u{2600}-\u{27BF}\u{FE0F}]/gu, '')
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
+
+  function escape_plugin_js_arg(value) {
+    return String(value == null ? '' : value)
+      .replace(/\\/g, '\\\\')
+      .replace(/'/g, "\\'")
+      .replace(/\r?\n/g, ' ')
+      .replace(/&/g, '&amp;')
+      .replace(/"/g, '&quot;');
+  }
+
+  // 插件主题色：十六进制直接使用，bg-* 映射为对应的 Tabler 颜色变量
+  function get_plugin_color(color) {
+    if (!color) return '';
+    if (color.startsWith('#')) return color;
+    if (color.startsWith('bg-')) return `var(--tblr-${color.slice(3)})`;
+    return '';
+  }
+
+  // 插件图标背景样式（支持网络地址与内置图标名）
+  function get_plugin_icon_style(icon) {
+    if (!icon) return '';
+    let url = icon.startsWith('http') ? icon : `../static/img/plugins/${icon.split('/').pop()}`;
+    return `style="background-image: url('${escape_plugin_text(url)}')"`;
+  }
+
   // 保存配置
   function save_config_plugin(id, prefix, func) {
     let params = input_select_GetVal(`modal-plugin-${id}`, prefix);
@@ -84,7 +138,7 @@
       }
     })
     params = { ...params, ...selectgroup_config }
-    axios_post_do("update_plugin_config", { plugin: id, config: params }, func);
+    axios_post("/sys/update_plugin_config", { plugin: id, config: params }, func);
   }
 
   //保存配置、关闭和刷新页面
@@ -101,59 +155,67 @@
     load_plugin_apps_modal();
   }
 
-  // 绘制插件表格
+  // 生成插件市场单个卡片
+  function build_plugin_app_card(pid, plugin) {
+    var pluginColor = get_plugin_color(plugin.color);
+    var iconStyle = get_plugin_icon_style(plugin.icon);
+    var pluginName = escape_plugin_text(plugin.name);
+    var pluginDesc = escape_plugin_text(strip_plugin_emoji(plugin.desc));
+    var pluginInitials = escape_plugin_text((plugin.name || '').substring(0, 2));
+    var author = escape_plugin_text(plugin.author);
+    var authorHtml = plugin.author_url
+      ? `<a href="${escape_plugin_text(plugin.author_url)}" target="_blank" rel="noopener">${author}</a>`
+      : `<span>${author}</span>`;
+    var actionHtml = plugin.installed
+      ? `<a href="javascript:uninstall_plugin('${pid}', '${escape_plugin_js_arg(plugin.name)}')" class="plugin-action is-danger" title="卸载">
+           <i class="ti ti-trash"></i><span>卸载</span>
+         </a>`
+      : `<a href="javascript:install_plugin('${pid}', '${escape_plugin_js_arg(plugin.name)}')" class="plugin-action is-primary" title="安装">
+           <i class="ti ti-cloud-download"></i><span>安装</span>
+         </a>`;
+
+    return `
+      <div class="plugin-card" ${pluginColor ? `style="--plugin-color: ${pluginColor}"` : ''}>
+        <div class="plugin-card-body">
+          <span class="plugin-icon" ${iconStyle}>${!plugin.icon ? pluginInitials : ''}</span>
+          <div class="plugin-copy">
+            <div class="plugin-name">${pluginName}</div>
+            <div class="plugin-desc">${pluginDesc}</div>
+          </div>
+        </div>
+        <div class="plugin-card-footer">
+          <span class="plugin-author">作者：${authorHtml}</span>
+          ${actionHtml}
+        </div>
+      </div>
+      `;
+  }
+
+  // 绘制插件市场列表（未安装在上、已安装在下，中间用分界线隔开）
   function draw_plugin_table(plugin_query_result, is_external) {
 
     if (!plugin_query_result.result) {
       return;
     }
 
+    var uninstalledHtml = '';
+    var installedHtml = '';
     for (let pid in plugin_query_result.result) {
       let plugin = plugin_query_result.result[pid];
-
-      let plugin_html = `
-        <div class="card card-link-pop card-borderless p-0 shadow-sm rounded-3 overflow-hidden" href="javascript:void(0)">
-          <div class="card-cover card-cover-blurred text-center ${plugin.color.startsWith('bg-') ? plugin.color : ''}"
-            ${plugin.color.startsWith('#') ? `style="background-color: ${plugin.color}"` : ''}
-          >
-            <span class="avatar avatar-xl avatar-thumb avatar-rounded" style="background-image: url('../static/img/plugins/${plugin.icon.split('/').pop()}')">
-            </span>
-          </div>
-          <div class="card-body text-start">
-            <div class="card-title mb-1">${plugin.name}</div>
-            <div class="text-muted">${plugin.desc}</div>
-            <div class="text-muted mt-1">
-              <strong>作者：</strong>
-              ${plugin.author_url ? `<a href="${plugin.author_url}" target="_blank">${plugin.author}</a>` : `<span class="text-muted">${plugin.author}</span>`}
-            </div>
-          </div>
-          <div class="d-flex">
-      `;
-
-      plugin_html += `
-          ${plugin.installed ? `
-            <a href="javascript:uninstall_plugin('${pid}', '${plugin.name}')" class="card-btn text-danger">
-              <i class="ti ti-trash fs-2 me-1"></i>
-               卸载
-            </a>
-            ` : `
-            <a href="javascript:install_plugin('${pid}', '${plugin.name}')" class="card-btn">
-              <i class="ti ti-cloud-download fs-2 me-1"></i>
-               安装
-            </a>
-          `}
-      `;
-
-      plugin_html += `
-          </div>
-        </div>
-      `;
-
-      $("#plugin_apps_content").append(plugin_html);
-
+      if (plugin.installed) {
+        installedHtml += build_plugin_app_card(pid, plugin);
+      } else {
+        uninstalledHtml += build_plugin_app_card(pid, plugin);
+      }
     }
 
-    $("#plugin_apps_content").show();
+    var content = uninstalledHtml;
+    if (uninstalledHtml && installedHtml) {
+      content += `<div class="plugin-divider" role="separator">已安装</div>`;
+    }
+    content += installedHtml;
+
+    $("#plugin_apps_content").html(content).show();
   }
 
   // 加载官方插件
@@ -188,7 +250,7 @@
 
   // 安装插件
   function install_plugin(id, name) {
-    axios_post_do("install_plugin", { id: id }, function (ret) {
+    axios_post("/sys/install_plugin", { id: id }, function (ret) {
       $("#modal-plugin-apps").modal('hide');
       if (ret.code === 0) {
         show_success_modal(name + " 插件安装成功！", () => window_history_refresh());
@@ -202,7 +264,7 @@
 
   // 卸载插件
   function uninstall_plugin(id, name) {
-    axios_post_do("uninstall_plugin", { id: id }, function (ret) {
+    axios_post("/sys/uninstall_plugin", { id: id }, function (ret) {
       $("#modal-plugin-apps").modal('hide');
       if (ret.code === 0) {
         show_warning_modal(name + " 插件已卸载！", function () {
@@ -223,10 +285,81 @@
     });
   }
 
+  // 绘制插件运行历史
+  function render_plugin_history(history, pageData, pluginId, pluginName) {
+    if (!history.length) {
+      $("#plugin_history_content").html(`
+        <div class="empty">
+          <p class="empty-title">暂无运行记录</p>
+          <p class="empty-subtitle text-muted">该插件还没有写入过运行历史数据。</p>
+        </div>`);
+      return;
+    }
+
+    var html = '<div class="plugin-history-list">';
+    history.forEach(function (item) {
+      var key = escape_plugin_text(item.Key);
+      var text = escape_plugin_text(item.Text || '');
+      html += `
+        <div class="plugin-history-item">
+          <div class="plugin-history-head">
+            <span class="plugin-history-date">${escape_plugin_text(item.Date)}</span>
+            <span class="plugin-history-key" title="${key}">${key}</span>
+          </div>
+          <pre class="plugin-history-value">${text}</pre>
+        </div>`;
+    });
+    html += '</div>';
+
+    var totalCount = pageData.TotalCount || 0;
+    var currentPage = pageData.CurrentPage || 1;
+    var totalPage = pageData.TotalPage || 1;
+    var jsPluginId = escape_plugin_js_arg(pluginId);
+    var jsPluginName = escape_plugin_js_arg(pluginName);
+    if (totalPage > 1) {
+      html += `
+        <div class="plugin-history-pager">
+          <button type="button" class="btn btn-sm btn-outline-secondary"${currentPage <= 1 ? ' disabled' : ''}
+                  onclick="load_plugin_history('${jsPluginId}', '${jsPluginName}', ${currentPage - 1})">上一页</button>
+          <span>第 ${currentPage} / ${totalPage} 页 · 共 ${totalCount} 条</span>
+          <button type="button" class="btn btn-sm btn-outline-secondary"${currentPage >= totalPage ? ' disabled' : ''}
+                  onclick="load_plugin_history('${jsPluginId}', '${jsPluginName}', ${currentPage + 1})">下一页</button>
+        </div>`;
+    } else if (totalCount) {
+      html += `<div class="plugin-history-pager"><span>共 ${totalCount} 条</span></div>`;
+    }
+
+    $("#plugin_history_content").html(html);
+  }
+
+  // 分页加载插件运行历史
+  function load_plugin_history(pluginId, pluginName, page) {
+    page = page || 1;
+    $("#plugin_history_content").html('<div class="text-muted">加载中...</div>');
+    axios_post('/data/plugin_history', { plugin_id: pluginId, page: page }, function (ret) {
+      if (ret.code !== 0) {
+        $("#plugin_history_content").html(
+          `<div class="text-danger">${escape_plugin_text(ret.msg || '获取运行历史失败')}</div>`
+        );
+        return;
+      }
+      var history = (ret.data && ret.data.History) || [];
+      render_plugin_history(history, ret.data || {}, pluginId, pluginName);
+      $("#modal-plugin-history .modal-body").scrollTop(0);
+    }, false);
+  }
+
+  // 显示插件运行历史
+  function show_plugin_history(pluginId, pluginName) {
+    $("#plugin_history_title").text((pluginName || '插件') + ' · 运行历史');
+    $("#modal-plugin-history").modal('show');
+    load_plugin_history(pluginId, pluginName, 1);
+  }
+
   // 绘制已安装插件列表
   function drawPluginList(pluginList) {
 
-    if (!pluginList) {
+    if (!pluginList || !Object.keys(pluginList).length) {
       $('#plugins-container').hide();
       $('#no-plugins').show();
       return;
@@ -239,35 +372,34 @@
 
     $.each(pluginList, function (pluginId, pluginAttr) {
 
-      var cardBgcolor = pluginAttr.color.startsWith('#') ? `style="background-color: ${pluginAttr.color}"` : '';
-      var colorClass = pluginAttr.color.startsWith('bg-') ? pluginAttr.color : '';
-      var icon = ''
-      if (pluginAttr.icon) {
-        if (!pluginAttr.icon.startsWith('http')) {
-          icon = `style="background-image: url('../static/img/plugins/${pluginAttr.icon}')"`;
-        } else {
-          icon = `style="background-image: url('${pluginAttr.icon}')"`;
-        }
-      }
-
-      var stateBadge = pluginAttr.state ? '<div class="card-left-top-triangle bg-green"><span>启用</span></div>' : '<div class="card-left-top-triangle bg-red"><span>停用</span></div>';
-      // card
+      var icon = get_plugin_icon_style(pluginAttr.icon);
+      var pluginColor = get_plugin_color(pluginAttr.color);
+      var isOn = !!pluginAttr.state;
+      var pluginName = escape_plugin_text(pluginAttr.name);
+      var pluginDesc = escape_plugin_text(strip_plugin_emoji(pluginAttr.desc));
+      var pluginInitials = escape_plugin_text((pluginAttr.name || '').substring(0, 2));
+      // card：图标 + 名称/简介，底部为状态与卸载操作
       var html = `
-      <div class="card card-link-pop p-0 rounded-3 overflow-hidden">
-        ${stateBadge}
-        <div class="right-top-box">
-          <a href="javascript:uninstall_plugin_click('${pluginId}', '${pluginAttr.name}')" title="卸载" class="text-danger">
-            <i class="ti ti-trash fs-2"></i>
-          </a>
+      <div class="plugin-card" ${pluginColor ? `style="--plugin-color: ${pluginColor}"` : ''}>
+        <div class="plugin-card-body is-clickable" role="button" tabindex="0"
+             data-bs-toggle="modal" data-bs-target="#modal-plugin-${pluginId}"
+             onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click();}">
+          <span class="plugin-icon" ${icon}>${!pluginAttr.icon ? pluginInitials : ''}</span>
+          <div class="plugin-copy">
+            <div class="plugin-name">${pluginName}</div>
+            <div class="plugin-desc">${pluginDesc}</div>
+          </div>
         </div>
-        <div class="card-cover card-cover-blurred text-center ${colorClass}" ${cardBgcolor} data-bs-toggle="modal" data-bs-target="#modal-plugin-${pluginId}">
-          <span class="avatar avatar-xl avatar-thumb avatar-rounded" ${icon}>
-             ${!pluginAttr.icon ? pluginAttr.name : ''}
-          </span>
-        </div>
-        <div class="card-body text-center" data-bs-toggle="modal" data-bs-target="#modal-plugin-${pluginId}">
-          <div class="card-title mb-1">${pluginAttr.name}</div>
-          <div class="text-muted">${pluginAttr.desc}</div>
+        <div class="plugin-card-footer">
+          <span class="plugin-state${isOn ? '' : ' is-off'}"><span class="plugin-state-dot"></span>${isOn ? '运行中' : '已停用'}</span>
+          <div class="plugin-actions">
+            <a href="javascript:show_plugin_history('${pluginId}', '${escape_plugin_js_arg(pluginAttr.name)}')" class="plugin-action" title="运行历史">
+              <i class="ti ti-history"></i>
+            </a>
+            <a href="javascript:uninstall_plugin_click('${pluginId}', '${escape_plugin_js_arg(pluginAttr.name)}')" class="plugin-action is-danger" title="卸载">
+              <i class="ti ti-trash"></i>
+            </a>
+          </div>
         </div>
       </div>
       `;

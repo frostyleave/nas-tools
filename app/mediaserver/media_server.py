@@ -1,20 +1,16 @@
-import json
 import threading
 
-from typing import Tuple
-
 import log
-
 from app.conf import SystemConfig
 from app.core.task_manager import TaskStore
 from app.db.media_db import MediaDb
 from app.helper import SubmoduleHelper
 from app.media import MediaService
 from app.message import MessageService
+from app.utils import JsonUtils
 from app.utils.commons import singleton
 from app.utils.constants import Constants
 from app.utils.types import MediaServerType, SystemConfigKey
-
 from config import Config
 
 lock = threading.Lock()
@@ -23,7 +19,7 @@ server_lock = threading.Lock()
 
 @singleton
 class MediaServer:
-    _mediaserver_schemas = []
+    _mediaserver_schemas: list
 
     _server_type = None
     _server = None
@@ -65,7 +61,7 @@ class MediaServer:
                 self._server = self.__get_server(self._server_type)
             return self._server
 
-    def __get_server(self, ctype: Tuple[MediaServerType, str], conf=None):
+    def __get_server(self, ctype: tuple[MediaServerType, str], conf=None):
         return self.__build_class(ctype=ctype, conf=conf)
 
     def get_type(self):
@@ -73,6 +69,20 @@ class MediaServer:
         当前使用的媒体库服务器
         """
         return self.server.get_type()
+
+    def test_connection(self, ctype: str) -> bool:
+        """
+        测试指定媒体服务器的连通性（使用已保存的配置）
+        :param ctype: 媒体服务器类型，emby/jellyfin/plex
+        """
+        try:
+            server = self.__build_class(ctype=ctype, conf=None)
+            if not server:
+                return False
+            return bool(server.get_status())
+        except Exception:
+            log.exception(f"【MediaServer】测试媒体服务器 {ctype} 连通性出错: ")
+            return False
 
     def get_activity_log(self, limit):
         """
@@ -253,7 +263,7 @@ class MediaServer:
                 if str(library.get("id")) not in librarys:
                     continue
                 # 获取媒体库所有项目
-                __update_progress(message="正在获取 %s 数据..." % (library.get("name")))
+                __update_progress(message="正在获取 {} 数据...".format(library.get("name")))
                 for item in self.get_items(library.get("id")):
                     if not item:
                         continue
@@ -268,7 +278,7 @@ class MediaServer:
                     # 更新进度
                     if total_media_count:
                         __update_progress(progress=round(100 * total_count / total_media_count, 1),
-                                          message="正在同步 %s，已完成：%s / %s ..." % (
+                                          message="正在同步 {}，已完成：{} / {} ...".format(
                                               library.get("name"), total_count, total_media_count))
                     # 插入数据
                     self.mediadb.insert(server_type=self._server_type,
@@ -281,8 +291,8 @@ class MediaServer:
                                     movie_count=movie_count,
                                     tv_count=tv_count)
             __update_progress(progress=100,
-                              message="媒体库数据同步完成，同步数量：%s" % total_count)
-            log.info("【MediaServer】媒体库数据同步完成，同步数量：%s" % total_count)
+                              message=f"媒体库数据同步完成，同步数量：{total_count}")
+            log.info(f"【MediaServer】媒体库数据同步完成，同步数量：{total_count}")
 
     def check_item_exists(self,
                           mtype,
@@ -290,7 +300,8 @@ class MediaServer:
                           year=None,
                           tmdbid=None,
                           season=None,
-                          episode=None):
+                          episode=None,
+                          doubanid=None):
         """
         检查媒体库是否已存在某项目，非实时同步数据，仅用于展示
         :param mtype: 媒体类型
@@ -299,28 +310,26 @@ class MediaServer:
         :param tmdbid: TMDB ID
         :param season: 季号
         :param episode: 集号
+        :param doubanid: 豆瓣 ID
         :return: 媒体服务器中的ITEMID
         """
         media = self.mediadb.query(server_type=self._server_type,
                                    title=title,
                                    year=year,
-                                   tmdbid=tmdbid)
+                                   tmdbid=tmdbid,
+                                   doubanid=doubanid)
         if not media:
             return None
 
-        # 剧集没有季时默认为第1季
-        if mtype not in Constants.MOVIE_TYPES:
-            if not season:
-                season = 1
-        if season:
+        # 剧集没有季时默认为第1季，季号 0 为特别篇
+        if mtype not in Constants.MOVIE_TYPES and season in (None, ""):
+            season = 1
+        if season is not None and season != "":
             # 匹配剧集是否存在
-            seasoninfos = json.loads(media.JSON or "[]")
+            seasoninfos = JsonUtils.loads(media.JSON or "[]", default=[])
             for seasoninfo in seasoninfos:
-                if seasoninfo.get("season_num") == int(season):
-                    if not episode:
-                        return media.ITEM_ID
-                    elif seasoninfo.get("episode_num") == int(episode):
-                        return media.ITEM_ID
+                if seasoninfo.get("season_num") == int(season) and (not episode or seasoninfo.get("episode_num") == int(episode)):
+                    return media.ITEM_ID
             return None
         else:
             return media.ITEM_ID
@@ -367,11 +376,14 @@ class MediaServer:
         try:
             event_info = self.server.get_webhook_message(message)
         except Exception as e:
-            log.exception(f"【MediaServer】webhook 消息解析异常: ")
+            log.exception("【MediaServer】webhook 消息解析异常: ")
 
         if event_info:
             # 获取消息图片
-            if event_info.get("item_type") == "TV":
+            if event_info.get("event") == "library.deleted":
+                # 删除事件对应的媒体已不存在，无需再查询图片
+                image_url = None
+            elif event_info.get("item_type") == "TV":
                 # 根据返回的item_id、season_id、episode_id去调用媒体服务器获取
                 image_url = self.get_episode_image_by_id(item_id=event_info.get('item_id'),
                                                          season_id=event_info.get('season_id'),

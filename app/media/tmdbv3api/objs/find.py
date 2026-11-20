@@ -1,8 +1,9 @@
+from typing import ClassVar
 from app.media.tmdbv3api.tmdb import TMDb
 
 
 class Find(TMDb):
-    _urls = {
+    _urls: ClassVar[dict] = {
         "find": "/find/%s"
     }
 

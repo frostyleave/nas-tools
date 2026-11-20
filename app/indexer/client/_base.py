@@ -1,18 +1,16 @@
-import regex as re
 import datetime
-
 from abc import ABCMeta, abstractmethod
-from typing import List, Optional
+
+import regex as re
 
 import log
-
-from app.modules.filter import Filter
+from app.core.task_manager import TaskStore
 from app.media import MediaService
 from app.media.meta import MetaInfo
-from app.utils import StringUtils, MediaUtils
+from app.modules.filter import Filter
+from app.utils import MediaUtils, StringUtils
 from app.utils.constants import Constants
 from app.utils.types import MediaType, SearchType
-from app.core.task_manager import TaskStore
 
 
 class _IIndexClient(metaclass=ABCMeta):
@@ -79,7 +77,7 @@ class _IIndexClient(metaclass=ABCMeta):
                               search_media,
                               start_time,
                               in_from: SearchType,
-                              task_id=None) -> List[MetaInfo]:
+                              task_id=None) -> list[MetaInfo]:
         """
         从搜索结果中匹配符合资源条件的记录
         """
@@ -126,6 +124,8 @@ class _IIndexClient(metaclass=ABCMeta):
 
             imdbid = item.get("imdbid")
             labels = item.get("labels") if item.get("labels") else ''
+            # 种子进度
+            progress = item.get("progress") if item.get("progress") else ''
             # 描述
             description = item.get('description') if item.get('description') else ''
             # 识别种子名称
@@ -236,6 +236,7 @@ class _IIndexClient(metaclass=ABCMeta):
                                         size=size,
                                         seeders=seeders,
                                         peers=peers,
+                                        progress=progress,
                                         description=description,
                                         page_url=page_url,
                                         upload_volume_factor=uploadvolumefactor,
@@ -314,9 +315,9 @@ class _IIndexClient(metaclass=ABCMeta):
         if item_meta.subtitle:
             subtitle = item_meta.subtitle.replace(item_meta.labels, '').strip() if item_meta.labels else item_meta.subtitle
             if any(' ' in name for name in target_names):
-                splited_text = re.findall(r'[^%s]+' % Constants.SPLIT_CHARS_NO_BLANK_ESCAPED, subtitle)
+                splited_text = re.findall(rf'[^{Constants.SPLIT_CHARS_NO_BLANK_ESCAPED}]+', subtitle)
             else:
-                splited_text = re.findall(r'[^%s]+' % Constants.SPLIT_CHARS_ESCAPED, subtitle)
+                splited_text = re.findall(rf'[^{Constants.SPLIT_CHARS_ESCAPED}]+', subtitle)
             for splited_item in splited_text:
                 check_item = splited_item.strip()
                 if not check_item:
@@ -327,7 +328,7 @@ class _IIndexClient(metaclass=ABCMeta):
         return False
 
 
-    def match_tmdb_info_and_simple_filter(self, item_meta:MetaInfo, search_media:MetaInfo, target_years: List[str], target_names: List[str], indexer):
+    def match_tmdb_info_and_simple_filter(self, item_meta:MetaInfo, search_media:MetaInfo, target_years: list[str], target_names: list[str], indexer):
         """
         匹配tmdb信息并进行基础过滤
         """
@@ -362,7 +363,7 @@ class _IIndexClient(metaclass=ABCMeta):
         en_name = item_meta.get_en_name().strip()
         # 没有年份、但有英文名时, 结合英文名搜索
         if not item_meta.year and en_name and en_name != search_kw:
-            search_kw = '{} {}'.format(search_kw, en_name)
+            search_kw = f'{search_kw} {en_name}'
 
         # 查询tmdb数据
         file_tmdb_info = media.query_tmdb_info(search_kw,
@@ -389,7 +390,7 @@ class _IIndexClient(metaclass=ABCMeta):
         
         return target_info
 
-    def update_process(self, task_id:Optional[str], text:Optional[str]):
+    def update_process(self, task_id:str | None, text:str | None):
         """
         进度更新
         """

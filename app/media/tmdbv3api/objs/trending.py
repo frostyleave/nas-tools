@@ -1,8 +1,9 @@
+from typing import ClassVar
 from app.media.tmdbv3api.tmdb import TMDb
 
 
 class Trending(TMDb):
-    _urls = {"trending": "/trending/%s/%s"}
+    _urls: ClassVar[dict] = {"trending": "/trending/%s/%s"}
 
     def _trending(self, media_type="all", time_window="day", page=1):
         return self._get_obj(

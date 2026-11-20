@@ -1,10 +1,10 @@
 import hashlib
 import os.path
 import re
-import fastbencode
 import urllib
-
 from dataclasses import dataclass, field
+
+import fastbencode
 
 from app.utils.types import MediaType
 
@@ -65,7 +65,7 @@ class TorrentUtils:
                 else:
                     file_names.append(torrent.get(b"info", {}).get(b"name").decode('utf-8'))
         except Exception as err:
-            return TorrentDownloadResult(files_folder=file_folder, files=file_names, ret_msg="解析种子文件异常：%s" % str(err))
+            return TorrentDownloadResult(files_folder=file_folder, files=file_names, ret_msg=f"解析种子文件异常：{err!s}")
         return TorrentDownloadResult(files_folder=file_folder, files=file_names)
     
 
@@ -76,7 +76,7 @@ class TorrentUtils:
         :return: TorrentDownloadResult
         """
         if not path or not os.path.exists(path):
-            return TorrentDownloadResult(ret_msg="种子文件不存在：%s" % path)
+            return TorrentDownloadResult(ret_msg=f"种子文件不存在：{path}")
 
         content, retmsg, file_folder, files = None, "", "", []
 
@@ -90,7 +90,7 @@ class TorrentUtils:
             files = resolve_result.files
             retmsg = resolve_result.ret_msg
         except Exception as e:
-            retmsg = "读取种子文件出错：%s" % str(e)
+            retmsg = f"读取种子文件出错：{e!s}"
 
         return TorrentDownloadResult(file_path=path, content=content, files_folder=file_folder, files=files, ret_msg=retmsg)
 
@@ -131,6 +131,64 @@ class TorrentUtils:
             magnet_link += f"&tr={urllib.parse.quote(tracker)}"
 
         return magnet_link
+
+    @staticmethod
+    def add_no_exists(target, tmdb_id, season, episodes, total_episodes):
+        """
+        将某一季的缺失信息合并进缺失季集字典
+        同一 tmdb_id 下的多个季（如 S01、S02 订阅）合并保存，不会互相覆盖；
+        同一季重复命中时以最新的缺失集为准
+        :param target: 缺失季集字典 {tmdb_id: [{"season":..,"episodes":..,"total_episodes":..}]}
+        :param tmdb_id: TMDB ID
+        :param season: 季数
+        :param episodes: 缺失集数列表
+        :param total_episodes: 该季总集数
+        :return: 合并后的字典
+        """
+        if not tmdb_id:
+            return target
+        # 季号 0 为特别篇，空值才按第1季处理
+        try:
+            season = int(season)
+        except (TypeError, ValueError):
+            season = 1
+        season_list = target.setdefault(tmdb_id, [])
+        for no_item in season_list:
+            try:
+                item_season = int(no_item.get("season"))
+            except (TypeError, ValueError):
+                item_season = 1
+            if item_season == season:
+                no_item["episodes"] = episodes
+                no_item["total_episodes"] = total_episodes
+                return target
+        season_list.append({
+            "season": season,
+            "episodes": episodes,
+            "total_episodes": total_episodes
+        })
+        return target
+
+    @staticmethod
+    def get_no_exists_season(no_exists, tmdb_id, season):
+        """
+        从缺失季集字典中取出指定季的记录，不存在时返回 None
+        """
+        if not no_exists or not tmdb_id:
+            return None
+        # 季号 0 为特别篇，空值才按第1季处理
+        try:
+            season = int(season)
+        except (TypeError, ValueError):
+            season = 1
+        for no_item in no_exists.get(tmdb_id) or []:
+            try:
+                item_season = int(no_item.get("season"))
+            except (TypeError, ValueError):
+                item_season = 1
+            if item_season == season:
+                return no_item
+        return None
 
     @staticmethod
     def get_intersection_episodes(target, source, title):
@@ -182,8 +240,7 @@ class TorrentUtils:
         for t_item in media_list:
             # 控重的主链是名称、年份、季、集
             if t_item.type != MediaType.MOVIE:
-                media_name = "%s%s" % (t_item.get_title_string(),
-                                       t_item.get_season_episode_string())
+                media_name = f"{t_item.get_title_string()}{t_item.get_season_episode_string()}"
             else:
                 media_name = t_item.get_title_string()
             if media_name not in can_download_list:

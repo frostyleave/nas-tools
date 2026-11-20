@@ -1,20 +1,34 @@
 import asyncio
 import json
 import re
-import time
-from typing import Any, Dict, List
+import threading
+import uuid
+from typing import Annotated, Any
 
-from fastapi import APIRouter, Query, Request, WebSocket, WebSocketDisconnect
+from fastapi import (
+    APIRouter,
+    Body,
+    Depends,
+    Query,
+    Request,
+    WebSocket,
+    WebSocketDisconnect,
+)
 from fastapi.responses import StreamingResponse
+from starlette.concurrency import run_in_threadpool
 
 import log
-from log import log_buffer, active_sse_queues
-
 from app.core.cmd_handler import CommandHandler
+from app.core.system_update import run_system_update
 from app.core.task_manager import TaskStore
 from app.message.message_center import SysMessageCenter
-from app.middleware.security import get_current_user
+from app.middleware.security import auth_check, get_current_user
+from app.models.user import LEVEL_OPERATOR, LEVEL_SYSADMIN
+from app.modules.media_status import MediaStatusChecker
+from app.utils import JsonUtils
+from app.utils.time_utils import TimeUtils
 from app.utils.types import SearchType
+from log import active_sse_queues, log_buffer
 
 # 流式/实时路由
 streaming_router = APIRouter()
@@ -32,29 +46,40 @@ SSE_HEADERS = {
 }
 
 
-def _sse_event(records: List[Dict[str, Any]]) -> str:
+def _sse_event(records: list[dict[str, Any]]) -> str:
     """把一条或多条日志打包成一条 SSE 事件"""
     return f"data: {json.dumps(records, ensure_ascii=False)}\n\n"
 
 
+def _sse_json_event(payload: dict[str, Any]) -> str:
+    """把一个 JSON 对象打包成一条 SSE 事件"""
+    return f"data: {json.dumps(payload, ensure_ascii=False)}\n\n"
+
+
+# 系统更新互斥锁，避免并发执行 git pull
+_update_lock = threading.Lock()
+
+
 # WebSocket连接 - 消息中心
 @streaming_router.websocket("/message")
+@auth_check(LEVEL_OPERATOR)
 async def message_handler(websocket: WebSocket):
     """
     消息中心WebSocket
     """
+    # 先校验登录态，认证失败必须关闭连接
+    try:
+        user_info = await run_in_threadpool(get_current_user, websocket)
+    except Exception as e:
+        log.warn(f"[WebSocket-消息]认证失败，关闭连接: {e!s}")
+        await websocket.close(code=1008)
+        return
+
     await websocket.accept()
 
-    # 获取当前用户
-    user_id = None
-    try:
-        # 尝试从cookie中获取会话数据
-        user_info = await get_current_user(websocket)
-        if user_info:
-            user_id = user_info.id
-            log.debug(f"[WebSocket-消息]会话用户ID: {user_id}")
-    except Exception as e:
-        log.error("[WebSocket-消息]会话获取失败: ")
+    # 当前用户
+    user_id = user_info.id
+    log.debug(f"[WebSocket-消息]会话用户ID: {user_id}")
 
     try:
         while True:
@@ -63,10 +88,9 @@ async def message_handler(websocket: WebSocket):
                 if not data:
                     continue
 
-                try:
-                    msgbody = json.loads(data)
-                except Exception as err:
-                    log.warn("[WebSocket-消息]连接出错: " + str(err))
+                msgbody = JsonUtils.loads(data, silent=True)
+                if msgbody is None:
+                    log.warn("[WebSocket-消息]连接出错: 消息格式非 JSON")
                     continue
             except WebSocketDisconnect:
                 # WebSocket正常断开，直接退出循环
@@ -74,18 +98,19 @@ async def message_handler(websocket: WebSocket):
                 break
             except Exception as e:
                 # 其他异常，记录日志并退出
-                log.warn(f"[WebSocket-消息]接收消息异常: {str(e)}")
+                log.warn(f"[WebSocket-消息]接收消息异常: {e!s}")
                 break
 
             try:
 
                 if msgbody.get("text"):
-                    # 发送的消息
-                    CommandHandler().handle_message_job(
+                    # 发送的消息（同步业务放入线程池，避免阻塞事件循环）
+                    await run_in_threadpool(
+                        CommandHandler().handle_message_job,
                         msg=msgbody.get("text"),
                         in_from=SearchType.WEB,
-                        user_id=user_id or "anonymous",
-                        user_name=user_id or "anonymous"
+                        user_id=user_id,
+                        user_name=user_id
                     )
                     try:
                         await websocket.send_text(json.dumps({}))
@@ -134,12 +159,13 @@ async def message_handler(websocket: WebSocket):
                     break
 
     except Exception as e:
-        log.warn(f"[WebSocket-消息]连接异常: {str(e)}")
+        log.warn(f"[WebSocket-消息]连接异常: {e!s}")
         # 不要在连接异常时尝试发送消息
 
 
 # 实时日志SSE
 @streaming_router.get("/stream-logging")
+@auth_check(LEVEL_OPERATOR)
 async def stream_logging(request: Request, source: str = ""):
     """
     实时日志SSE
@@ -149,9 +175,9 @@ async def stream_logging(request: Request, source: str = ""):
     """
 
     # 创建此客户端专用的队列
-    my_queue: asyncio.Queue[Dict[str, Any]] = asyncio.Queue()
+    my_queue: asyncio.Queue[dict[str, Any]] = asyncio.Queue()
 
-    def match(log_data: Dict[str, Any]) -> bool:
+    def match(log_data: dict[str, Any]) -> bool:
         return bool(log_data) and (not source or log_data.get("source") == source)
 
     async def event_generator():
@@ -160,7 +186,7 @@ async def stream_logging(request: Request, source: str = ""):
             # 与历史重复的部分按 seq 去重, 做到不丢不重。
             active_sse_queues.append(my_queue)
 
-            pending: Dict[int, Dict[str, Any]] = {}
+            pending: dict[int, dict[str, Any]] = {}
             for log_data in list(log_buffer):
                 if match(log_data):
                     pending[log_data.get("seq")] = log_data
@@ -202,8 +228,8 @@ async def stream_logging(request: Request, source: str = ""):
                 "seq": 0,
                 "source": "System",
                 "level": "ERROR",
-                "time": time.strftime("%H:%M:%S"),
-                "text": f"实时日志连接异常: {str(e)}",
+                "time": TimeUtils.now_str("%H:%M:%S"),
+                "text": f"实时日志连接异常: {e!s}",
             }])
         finally:
             log.debug("Removing client queue from active SSE listeners.")
@@ -215,11 +241,165 @@ async def stream_logging(request: Request, source: str = ""):
     return StreamingResponse(event_generator(), media_type="text/event-stream", headers=SSE_HEADERS)
 
 
+# 系统更新：以 SSE 流式返回本次更新的日志和最终结果
+@streaming_router.post("/stream-update-system", dependencies=[Depends(get_current_user)])
+@auth_check(LEVEL_SYSADMIN)
+async def stream_update_system(request: Request):
+    """
+    执行一次系统更新，并把日志和结果以 SSE 的形式流式返回给前端。
+
+    每条 SSE 事件的 data 为一个 JSON 对象：
+      {"type": "logs", "records": [...]}
+      {"type": "progress", "value": 10, "text": "..."}
+      {"type": "done", "result": {...}}
+
+    日志与结果走同一个响应，顺序天然有保证，无需 TaskStore。
+    """
+    # 同一时间只允许一个更新任务
+    if not _update_lock.acquire(blocking=False):
+        async def busy_generator():
+            yield _sse_json_event({
+                "type": "done",
+                "result": {"code": -1, "msg": "已有更新任务正在执行，请稍后再试"},
+            })
+
+        return StreamingResponse(busy_generator(), media_type="text/event-stream", headers=SSE_HEADERS)
+
+    update_id = uuid.uuid4().hex
+    result_holder: dict[str, Any] = {}
+    done = threading.Event()
+    progress_state = {"value": 0, "text": "准备开始..."}
+    progress_lock = threading.Lock()
+
+    def report(value: int, text: str) -> None:
+        with progress_lock:
+            progress_state["value"] = value
+            progress_state["text"] = text
+
+    def worker():
+        # 把本次更新的日志归集到 update_id
+        token = log.bind_task_log(update_id)
+        try:
+            try:
+                result_holder["result"] = run_system_update(progress_cb=report)
+            except Exception as e:
+                log.exception("执行系统更新任务出错")
+                result_holder["result"] = {
+                    "code": 1,
+                    "updated": False,
+                    "msg": f"更新失败：{e!s}",
+                    "output": "",
+                }
+        finally:
+            log.unbind_task_log(token)
+            done.set()
+            _update_lock.release()
+
+    try:
+        threading.Thread(target=worker, daemon=True).start()
+    except Exception:
+        _update_lock.release()
+        raise
+
+    async def event_generator():
+        last_seq = 0
+        last_progress = None
+
+        def dump(event: dict[str, Any]) -> str:
+            return _sse_json_event(event)
+
+        def new_records() -> list[dict[str, Any]]:
+            # 只读取序号大于 last_seq 的增量日志，避免每 50ms 全量复制任务日志
+            return log.get_task_logs(update_id, after_seq=last_seq)
+
+        try:
+            while True:
+                pending = new_records()
+                if pending:
+                    last_seq = pending[-1].get("seq", last_seq)
+                    yield dump({"type": "logs", "records": pending})
+
+                with progress_lock:
+                    current = dict(progress_state)
+                if current != last_progress:
+                    last_progress = current
+                    yield dump({"type": "progress", **current})
+
+                if done.is_set():
+                    # 再取一次，确保 done 之前的日志全部发出
+                    pending = new_records()
+                    if pending:
+                        yield dump({"type": "logs", "records": pending})
+                    yield dump({"type": "done", "result": result_holder.get("result", {})})
+                    break
+
+                if await request.is_disconnected():
+                    log.debug("[SSE-更新] 客户端断开连接，任务在后台继续执行")
+                    break
+
+                await asyncio.sleep(0.05)
+
+        except asyncio.CancelledError:
+            log.debug("[SSE-更新] 连接已取消")
+        except Exception as e:
+            log.error(f"[SSE-更新] 连接异常: {e!s}")
+            yield dump({"type": "done", "result": {"code": -1, "msg": f"更新连接异常：{e!s}"}})
+
+    return StreamingResponse(event_generator(), media_type="text/event-stream", headers=SSE_HEADERS)
+
+
+# 第一阶段：Bangumi 条目 TMDB 匹配与 R18 标记
+@streaming_router.post("/stream-bangumi-tmdb", dependencies=[Depends(get_current_user)])
+def stream_bangumi_tmdb(data: Annotated[dict, Body(...)]):
+    """
+    Bangumi 条目 TMDB 信息 SSE
+
+    data: {"list": [{"id", "bgmid", "title", "year"}]}
+    每完成一条立即返回：{"item": {"id", "tmdbid", "r18", "image", "vote"}}
+    image 为 TMDB 封面地址，vote 为 TMDB 评分，前端用它们替换 Bangumi 原图与评分
+    结束时返回：{"type": "done"}
+    """
+    media_list = (data or {}).get("list") or []
+
+    def event_generator():
+        if not media_list:
+            yield _sse_json_event({"type": "done"})
+            return
+        for item in MediaStatusChecker().iter_bangumi_tmdb_info(media_list):
+            yield _sse_json_event({"item": item})
+        yield _sse_json_event({"type": "done"})
+
+    return StreamingResponse(event_generator(), media_type="text/event-stream", headers=SSE_HEADERS)
+
+
+# 第二阶段：批量查询订阅/在库状态
+@streaming_router.post("/stream-media-exists", dependencies=[Depends(get_current_user)])
+def stream_media_exists(data: Annotated[dict, Body(...)]):
+    """
+    订阅/在库状态 SSE
+
+    data: {"list": [{"id", "tmdbid", "type", "title", "year"}]}
+    每完成一条立即返回：{"item": {"id", "fav", "rssid", "item_url"}}
+    结束时返回：{"type": "done"}
+    """
+    media_list = (data or {}).get("list") or []
+
+    def event_generator():
+        if not media_list:
+            yield _sse_json_event({"type": "done"})
+            return
+        for item in MediaStatusChecker().iter_media_exists_info(media_list):
+            yield _sse_json_event({"item": item})
+        yield _sse_json_event({"type": "done"})
+
+    return StreamingResponse(event_generator(), media_type="text/event-stream", headers=SSE_HEADERS)
+
+
 # 进度SSE
-@streaming_router.get("/sse-progress")
+@streaming_router.get("/sse-progress", dependencies=[Depends(get_current_user)])
 async def sse_progress(
-    request: Request, 
-    task_id: str = Query(..., min_length=5, title="任务ID")
+    request: Request,
+    task_id: Annotated[str, Query(..., min_length=5, title="任务ID")]
 ):
     """
     进度SSE
@@ -264,7 +444,7 @@ async def sse_progress(
 
         except Exception as e:
             log.warn("[SSE-进度]连接异常: ")
-            yield f"data: {json.dumps({'code': -1, 'value': 0, 'text': f'进度连接异常: {str(e)}'})}\n\n"
+            yield f"data: {json.dumps({'code': -1, 'value': 0, 'text': f'进度连接异常: {e!s}'})}\n\n"
 
     return StreamingResponse(event_generator(), media_type="text/event-stream", headers=SSE_HEADERS)
 

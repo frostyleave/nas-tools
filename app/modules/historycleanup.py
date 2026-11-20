@@ -2,14 +2,16 @@ import datetime
 import os
 
 import log
-
 from app.helper import DbHelper
 from app.utils.commons import singleton
-
+from app.utils.time_utils import TimeUtils
 from config import Config
 
 # 单次最大删除数据量
 BATCH_SIZE = 500
+
+# 单表单次清理的最大批次数，避免删除失败时无限循环
+MAX_CLEANUP_BATCHES = 1000
 
 # 临时种子文件保留天数
 TORRENT_RETENTION_DAYS = 3
@@ -36,7 +38,7 @@ class HistoryCleanup:
         分批清理所有历史表中的过期记录
         """
 
-        cutoff_datetime = datetime.datetime.now() - datetime.timedelta(days=retention_days)
+        cutoff_datetime = TimeUtils.now() - datetime.timedelta(days=retention_days)
         cutoff_full = cutoff_datetime.strftime('%Y-%m-%d %H:%M:%S')
         cutoff_date = cutoff_datetime.strftime('%Y-%m-%d')
 
@@ -56,15 +58,21 @@ class HistoryCleanup:
         for query_func, name in tables:
             table_deleted = 0
             try:
-                while True:
+                for _ in range(MAX_CLEANUP_BATCHES):
                     ids = query_func(cutoff_full if name != 'SITE_STATISTICS_HISTORY' else cutoff_date,
                                      BATCH_SIZE)
                     if not ids:
                         break
                     deleted = self.dbhelper.delete_history_by_ids(name, ids)
-                    if deleted:
-                        table_deleted += deleted
-                        total_deleted += deleted
+                    if not deleted:
+                        # 删除失败（DbPersist 返回 False）或无记录被删除时必须跳出，否则会无限重查
+                        log.error(f"【HistoryCleanup】{name} 删除失败，停止本轮清理，下次任务重试")
+                        break
+                    table_deleted += deleted
+                    total_deleted += deleted
+                else:
+                    log.warn(f"【HistoryCleanup】{name} 达到单次清理批次上限 "
+                             f"({MAX_CLEANUP_BATCHES} × {BATCH_SIZE})，剩余记录留待下次任务")
 
                 if table_deleted:
                     log.info(f"【HistoryCleanup】{name} 清理完成，删除 {table_deleted} 条记录")
@@ -89,7 +97,7 @@ class HistoryCleanup:
             log.info(f"【HistoryCleanup】临时目录不存在，跳过种子文件清理: {temp_path}")
             return 0
 
-        cutoff_time = datetime.datetime.now() - datetime.timedelta(days=retention_days)
+        cutoff_time = TimeUtils.now() - datetime.timedelta(days=retention_days)
         deleted_count = 0
         try:
             for entry in os.scandir(temp_path):
@@ -97,7 +105,7 @@ class HistoryCleanup:
                 if not entry.is_file() or not entry.name.endswith('.torrent'):
                     continue
                 try:
-                    file_mtime = datetime.datetime.fromtimestamp(entry.stat().st_mtime)
+                    file_mtime = TimeUtils.timestamp_to_datetime(entry.stat().st_mtime)
                     if file_mtime < cutoff_time:
                         os.remove(entry.path)
                         deleted_count += 1

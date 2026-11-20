@@ -254,7 +254,7 @@
   function modify_media_file() {
     let path = $("#mediafile_modify_path").val();
     let name = $("#mediafile_modify_name").val();
-    axios_post_do("rename_file", {path: path, name: name}, function (ret) {
+    axios_post("/sys/rename_file", {path: path, name: name}, function (ret) {
       $("#modal-mediafile-modify").modal('hide');
       refresh_files();
     });
@@ -262,7 +262,7 @@
 
   // 文件删除
   function delete_files(files) {
-    axios_post_do("delete_files", {files: files}, function (ret) {
+    axios_post("/sys/delete_files", {files: files}, function (ret) {
       refresh_files();
     });
   }
@@ -498,8 +498,10 @@
 
       if (response.code === 0 && response.data) {
         const data = response.data;
+        const params = getPageParams();
 
-        var rootPath = data.Dir || '/';
+        // 优先使用其它页面带过来的目录参数（如转移记录、手动识别）
+        var rootPath = params.dir ? String(params.dir).replace(/\\/g, '/') : (data.Dir || '/');
 
         // 更新目录路径
         $('#mediafile_path').val(rootPath);

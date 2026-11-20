@@ -1,5 +1,7 @@
 // 页面正在加载中的标志
 let NavPageLoading = false;
+// 页面切换占用的加载遮罩令牌
+let PageLoadingToken = null;
 // 加载中页面的字柄
 let NavPageXhr;
 // 是否允许打断弹窗
@@ -14,6 +16,9 @@ let InitialPageLoadStarted = false;
 
 // 页面在菜单创建前已加载时，等待菜单就绪后再补执行菜单激活和页面后处理
 let PendingPageState = false;
+
+// 菜单切换序号：每次点击菜单自增，页面加载完成时仅最新一次切换播放淡入过渡
+let PageSwitchSeq = 0;
 
 // 轮询管理器：收集所有需要停止的函数
 const PollingManager = {
@@ -75,14 +80,161 @@ function startPolling(key, fn, interval) {
   PollingManager.start(key, fn, interval);
 }
 
+// 页面级流式请求管理器：页面切换时中止未完成的 fetch 流
+const PageStreamManager = {
+  _controllers: new Set(),
+
+  // 注册一个流式请求，返回 AbortController
+  register() {
+    const controller = new AbortController();
+    this._controllers.add(controller);
+    return controller;
+  },
+
+  // 请求结束（正常/异常）时释放
+  release(controller) {
+    this._controllers.delete(controller);
+  },
+
+  // 中止全部流式请求（用于路由切换）
+  abortAll() {
+    for (const controller of this._controllers) {
+      controller.abort();
+    }
+    this._controllers.clear();
+  }
+};
+window.PageStreamManager = PageStreamManager;
+
+// 导航参数仓库
+// 页面参数不再拼接到 hash 上，统一保存在内存和 sessionStorage 中：
+// - 内存用于常规页面跳转；
+// - sessionStorage 用于刷新后恢复（按页面路径分别保存，各标签页互不影响）；
+// - history.state 为每个历史条目保存一份，保证前进/后退能拿到对应参数。
+const NavParams = (() => {
+  const STORAGE_PREFIX = "nav_params:";
+  const mem = {};
+
+  return {
+    set(path, params) {
+      mem[path] = params || {};
+      try {
+        sessionStorage.setItem(STORAGE_PREFIX + path, JSON.stringify(mem[path]));
+      } catch (e) {
+        // 隐私模式或存储已满时忽略，仅使用内存
+      }
+    },
+
+    get(path) {
+      if (mem[path]) {
+        return mem[path];
+      }
+      let params = {};
+      try {
+        params = JSON.parse(sessionStorage.getItem(STORAGE_PREFIX + path) || "{}") || {};
+      } catch (e) {
+        params = {};
+      }
+      mem[path] = params;
+      return params;
+    }
+  };
+})();
+
+// 解析查询字符串为对象（键值自动解码）
+function parseQueryString(queryString) {
+  const params = {};
+  if (!queryString) {
+    return params;
+  }
+  new URLSearchParams(queryString).forEach((value, key) => {
+    params[key] = value;
+  });
+  return params;
+}
+
+// 读取当前页面参数
+// loadPage 已把菜单 html 中的静态参数与导航参数合并好，页面直接使用即可
+function getPageParams() {
+  return $("#page-content").data("params") || {};
+}
+window.getPageParams = getPageParams;
+
+// 更新当前页面参数（页面内局部刷新时使用）
+// 不触达路由、不新增历史条目，只替换当前历史条目，保证刷新/前进后退能恢复最新状态
+function setPageParams(params) {
+  const path = getMenuId(window.location.hash);
+  const next = Object.assign({}, $("#page-content").data("params") || {}, params || {});
+
+  NavParams.set(path, next);
+  $("#page-content").data("params", next);
+
+  try {
+    const state = Object.assign({}, history.state);
+    if (Object.keys(next).length > 0) {
+      state.navParams = next;
+    } else {
+      delete state.navParams;
+    }
+    history.replaceState(state, "");
+  } catch (e) {
+    // 部分环境禁止 replaceState，忽略即可
+  }
+}
+window.setPageParams = setPageParams;
+
+// 页面注册"局部刷新"函数：window_history_refresh() 会优先调用它，
+// 避免为了刷新表格而整页重新注入（会闪烁、丢滚动位置、重新请求页面片段）
+function setPageRefreshHandler(handler) {
+  window.pageRefreshHandler = typeof handler === "function" ? handler : null;
+}
+window.setPageRefreshHandler = setPageRefreshHandler;
+
+// 刷新后 history.state 仍会保留，先把参数同步到内存，供首次页面加载使用
+(function () {
+  if (history.state && history.state.navParams) {
+    NavParams.set(getMenuId(window.location.hash), history.state.navParams);
+  }
+})();
+
+// 前进/后退时浏览器已先更新好地址和 state，这里在 Navigo 处理之前把参数同步到内存，
+// 并清掉 Navigo 缓存的当前路由：
+// 同路径不同参数的历史条目在 URL 上完全相同，Navigo 会认为"路由未变化"而跳过 handler，
+// 清掉缓存可强制它完整走一次路由解析，保证页面按对应参数重新加载。
+// 本监听器必须先于 Navigo 注册（在其构造函数中注册），否则执行顺序不保证。
+window.addEventListener("popstate", function (event) {
+  if (event.state) {
+    NavParams.set(getMenuId(window.location.hash), event.state.navParams || {});
+  }
+  router._setCurrent(null);
+});
+
 // 初始化路由
 const router = new Navigo("/", { hash: true });
+
+// 已在下方以固定路由注册过的页面
+// registerRouter 按菜单再次注册同一路径时，Navigo 会保留两个 handler，
+// 导致同一次路由解析触发两次 loadPage（页面片段和接口都会重复请求）
+const FixedRoutePages = new Set([
+  "login", 
+  "index", 
+  "media_detail", 
+  "recommend", 
+  "discovery_person",
+  "rss_history", 
+  "rss_parser", 
+  "downloaders", 
+  "download_setting",
+  "download_history", 
+  "open"
+]);
 
 router
   // 切换页面，停掉所有轮询
   .hooks({
     before(done) {
       PollingManager.stopAll();
+      PageStreamManager.abortAll();
       done();
     }
   })
@@ -92,48 +244,50 @@ router
   })
   // 首页
   .on("/index", function (match) {
-    loadPage("/static/pages/index.html", match.queryString);
+    loadPage("/static/pages/index.html", match.queryString, match.url);
   })
   // 探索模块
   .on("/media_detail", function (match) {
-    loadPage("/static/pages/media_detail.html", match.queryString);
+    loadPage("/static/pages/media_detail.html", match.queryString, match.url);
   })
   .on("/recommend", function (match) {
-    loadPage("/static/pages/recommend.html", match.queryString);
+    loadPage("/static/pages/recommend.html", match.queryString, match.url);
   })
   .on("/discovery_person", function (match) {
-    loadPage("/static/pages/person.html", match.queryString);
+    loadPage("/static/pages/person.html", match.queryString, match.url);
   })
 
   // 订阅模块
   .on("/rss_history", function (match) {
-    loadPage("/static/pages/rss_history.html", match.queryString);
+    loadPage("/static/pages/rss_history.html", match.queryString, match.url);
   })
   .on("/rss_parser", function (match) {
-    loadPage("/static/pages/rss_parser.html", match.queryString);
+    loadPage("/static/pages/rss_parser.html", match.queryString, match.url);
   })
 
   // 下载器
   .on("/downloaders", function (match) {
-    loadPage("/static/pages/downloaders.html", match.queryString);
+    loadPage("/static/pages/downloaders.html", match.queryString, match.url);
   })
   // 下载配置
   .on("/download_setting", function (match) {
-    loadPage("/static/pages/download_setting.html", match.queryString);
+    loadPage("/static/pages/download_setting.html", match.queryString, match.url);
   })
   // 下载历史
   .on("/download_history", function (match) {
-    loadPage("/static/pages/download_history.html", match.queryString);
+    loadPage("/static/pages/download_history.html", match.queryString, match.url);
   })
 
   // 唤起App中转页面
   .on("/open", function (match) {
-    loadPage("/static/pages/openapp.html", match.queryString);
+    loadPage("/static/pages/openapp.html", match.queryString, match.url);
   })
 
   // 404处理
   .notFound(() => {
     $("#page-content").html(`<system-error title="404" text='没有找到这个页面，请检查是不是输错地址了...'></system-error>`);
+    // 未经过 loadPage 流程，需手动结束加载状态，否则提示会一直停留
+    hidePageLoading();
   })
   
 ;
@@ -147,43 +301,88 @@ function showLogin() {
   $('#login-container').removeClass('d-none');
   $("body").addClass("no-after");
 
-  if (typeof hideLoading != 'undefined') {
-    // 隐藏等待动画
-    hideLoading();
-    // 关闭加载标记
-    NavPageLoading = false;
-  }
+  // 隐藏等待动画并关闭加载标记
+  hidePageLoading();
 
 }
 
 // SPA页面加载
-function loadPage(htmlPath, queryString) {
+// navPath: 目标页面路径（来自路由 match.url）。Navigo 是先执行 handler 再更新 URL，
+//          因此跳转过程中不能直接读 window.location.hash，必须由调用方传入。
+function loadPage(htmlPath, queryString, navPath) {
 
   InitialPageLoadStarted = true;
+
+  // 上一页注册的局部刷新函数已失效，进入新页面时清掉
+  window.pageRefreshHandler = null;
 
   $('#login-container').addClass('d-none');
   $('#app-layout').removeClass('d-none');
   $("body").removeClass("no-after");
 
+  // 覆盖直接打开/刷新页面的场景；经 navmenu 进入时令牌已存在，不会重复显示
+  showPageLoading();
+
+  // 记录本次加载所属的菜单切换序号（0 表示首次加载/刷新等非菜单切换）
+  const switchSeq = PageSwitchSeq;
+
+  // 1. 页面片段自带的静态参数（来自菜单配置的 html，如 rss.html?t=TV）
   let params = {};
-  // 把htmlPath中的参数把参数挂到容器上
   const [path, paramString] = htmlPath.split("?");
   if (paramString) {
-    paramString.split("&").forEach(kv => {
-      let [k, v] = kv.split("=");
-      params[k] = v;
-    });
+    params = parseQueryString(paramString);
   }
+
+  // 目标页面路径：优先使用路由解析结果；没有时（直接调用）退回当前地址
+  const currentHashPath = getMenuId(window.location.hash);
+  const pagePath = getMenuId(navPath || currentHashPath);
+  // 地址栏是否已经指向本次要加载的页面（初始化/popstate/同页刷新为 true，跳转中为 false）
+  const hashIsCurrent = pagePath === currentHashPath;
+
+  // 2. 兼容旧版直接拼在 hash 上的地址，如 #/media_detail?type=movie&id=1
+  let legacyParams = {};
+  const hashQueryIndex = window.location.hash.indexOf("?");
+  if (hashIsCurrent && hashQueryIndex !== -1) {
+    legacyParams = parseQueryString(window.location.hash.substring(hashQueryIndex + 1));
+  }
+
+  // 3. 导航参数：navmenu 会写入内存，popstate/初始化时会从 history.state 同步，
+  //    旧地址自带的参数优先级更高（避免打开旧链接时被缓存参数覆盖）
+  const navParams = Object.assign({}, NavParams.get(pagePath), legacyParams);
+
+  // 合并后挂到页面容器上，页面通过 getPageParams() 读取
+  Object.assign(params, navParams);
   $("#page-content").data("params", params);
   $("#page-content").data("queryString", paramString);
+
+  // 参数同步到仓库，供刷新后恢复
+  NavParams.set(pagePath, navParams);
+
+  // 地址栏已指向当前页面时，把参数写入当前历史条目（跳转中的 URL 由 Navigo 更新）
+  if (hashIsCurrent) {
+    try {
+      const state = Object.assign({}, history.state);
+      if (Object.keys(navParams).length > 0) {
+        state.navParams = navParams;
+      } else {
+        delete state.navParams;
+      }
+      if (hashQueryIndex !== -1) {
+        // 旧地址：替换为干净路径，参数只保留在 state 中
+        history.replaceState(state, "", "#/" + pagePath);
+      } else {
+        history.replaceState(state, "");
+      }
+    } catch (e) {
+      // 部分环境禁止 replaceState，忽略即可
+    }
+  }
 
   // 直接加载HTML文件
   $("#page-content").load(htmlPath, function(_, status, xhr) {
 
-    // 隐藏等待动画
-    hideLoading();
-    // 关闭加载标记
-    NavPageLoading = false;
+    // 隐藏等待动画并关闭加载标记（菜单切换时顺带播放页面淡入）
+    hidePageLoading(switchSeq);
 
     if (status == "error") {
       $("#page-content").html(`<system-error title="${xhr.status}" text="${xhr.statusText || ''}"></system-error>`);
@@ -244,10 +443,31 @@ function initPendingPageState() {
 window.initPendingPageState = initPendingPageState;
 
 // 导航菜单点击
-function navmenu(page) {
- 
+// page: 页面名，如 "media_detail"
+// params: 页面参数对象，如 {type: "MOV", id: 123}；不再拼接到 URL 上
+// 向后兼容旧写法 navmenu("media_detail?type=MOV&id=123")，参数会被提取并隐藏
+function navmenu(page, params) {
+
+  if (typeof page === "string") {
+    const queryIndex = page.indexOf("?");
+    if (queryIndex !== -1) {
+      if (params === undefined) {
+        params = parseQueryString(page.substring(queryIndex + 1));
+      }
+      page = page.substring(0, queryIndex);
+    }
+  }
+
   // 修复空格问题
   page = page.replaceAll(" ", "%20");
+
+  // 参数存入仓库，loadPage 时再读取
+  if (params !== undefined) {
+    NavParams.set(getMenuId(page), params);
+  }
+
+  // 标记本次为菜单切换，加载完成后播放页面淡入
+  PageSwitchSeq++;
 
   // 解除滚动事件
   $(window).unbind('scroll');
@@ -257,37 +477,98 @@ function navmenu(page) {
     NavPageXhr.abort();
   }
   
-  // 显示等待动画
-  menuSwithWait();
-
-  // 加载新页面
-  NavPageLoading = true;
+  // 显示等待动画并标记加载中
+  showPageLoading();
 
   // 页面切换
-  navigateTo(page);
+  navigateTo(page, params);
 
 }
 
+// 页面切换：显示加载动画
+// 不隐藏当前页面内容：新片段返回后会整体替换，提前隐藏会让整个页面区域（含滚动条布局）
+// 先塌缩成空白，表现为切换到哪一页都先闪一下
+function showPageLoading() {
+  NavPageLoading = true;
+  if (PageLoadingToken === null) {
+    PageLoadingToken = LoadingOverlay.show();
+  }
+}
+
+// 页面切换完成：显示页面内容并释放页面加载动画
+// switchSeq 为触发本次加载的菜单切换序号，仅最新一次菜单切换才播放淡入
+function hidePageLoading(switchSeq) {
+  // 清理页面内自行使用的加载提示（如 ranking 页）
+  $("#loading-tips").hide();
+  $("#page-content").show();
+
+  if (switchSeq && switchSeq === PageSwitchSeq) {
+    playPageFadeIn(document.getElementById("page-content"));
+  }
+
+  NavPageLoading = false;
+  if (PageLoadingToken !== null) {
+    LoadingOverlay.hide(PageLoadingToken);
+    PageLoadingToken = null;
+  }
+}
+
+// 页面淡入：重挂 class 触发 CSS 动画，支持连续切换时反复播放
+function playPageFadeIn(el) {
+  if (!el) return;
+  el.classList.remove("page-fade-in");
+  void el.offsetWidth; // 强制回流，保证动画重新开始
+  el.classList.add("page-fade-in");
+
+  // 用定时器（略长于动画时长）清理，连续切换时重置，不依赖 animationend
+  if (el._pageFadeTimer) clearTimeout(el._pageFadeTimer);
+  el._pageFadeTimer = setTimeout(() => {
+    el.classList.remove("page-fade-in");
+    el._pageFadeTimer = null;
+  }, 600);
+}
+
+
 // 页面切换
-function navigateTo(target) {
+function navigateTo(target, params) {
 
   if (target) {
 
-    // 同页面, 只刷新内容, 不新增历史
+    // 同页面：只刷新内容
     if (pageNotChanged(target)) {
+      // 同页面但参数不同（如推荐页切换过滤条件）时新增一条历史记录，
+      // 保证浏览器前进/后退能回到对应的参数状态；传 null 表示重置参数，不新增历史
+      if (params !== undefined && params !== null) {
+        try {
+          history.pushState({ navParams: params }, "", "#/" + getMenuId(target));
+        } catch (e) {
+          // 忽略：部分环境禁止 pushState
+        }
+      } else if (params === null) {
+        // 重置参数：清掉当前历史条目里保存的参数，页面重新按默认状态加载
+        try {
+          const state = Object.assign({}, history.state);
+          delete state.navParams;
+          history.replaceState(state, "");
+        } catch (e) {
+          // 忽略
+        }
+      }
+
       var current = router.current && router.current[0];
       // 直接调用 handler, 传入当前页面的数据
       current.route.handler({
+        url: getMenuId(target),
         data: current.data,
         params: current.route.params || {},
-        queryString: current.queryString,
-        hashString: current.hashString
+        queryString: "",
+        hashString: window.location.hash
       });
       return;
-    } 
-    
-    // 正常跳转
-    router.navigate(target);
+    }
+
+    // 正常跳转：把参数写进新历史条目的 state，URL 中不出现参数
+    router.navigate(target, params != null ? { stateObj: { navParams: params } } : undefined);
   }
 
 }
@@ -421,7 +702,8 @@ function activeMenu(pageMenu) {
     aElement.href = 'javascript:void(0)';
     aElement.innerHTML = `<span class="tab-icon">${item.icon}</span><span class="tab-text">${item.name}</span>`;
     aElement.setAttribute('data-id', item.page);
-    aElement.onclick = () => navmenu(item.page);
+    // 菜单点击视为一次全新进入，传 null 清掉该页面残留的导航参数
+    aElement.onclick = () => navmenu(item.page, null);
 
     if (pageMenu == item.page) {
       aElement.classList.add('active');
@@ -550,15 +832,22 @@ function registerRouter(user_menus) {
     // 有二级菜单
     if (route.nav && route.nav.length > 0) {
       route.nav.forEach(nav => {
+        // 固定路由已注册的页面不再重复注册
+        if (FixedRoutePages.has(nav.page)) {
+          return;
+        }
         router.on(nav.page, (match) => {
-          loadPage(nav.html, match.queryString);
+          loadPage(nav.html, match.queryString, match.url);
         });
       });
       return;
     }
     // 一级菜单
+    if (FixedRoutePages.has(route.page)) {
+      return;
+    }
     router.on(route.page, (match) => {
-      loadPage(route.html, match.queryString);
+      loadPage(route.html, match.queryString, match.url);
     });
 
   });

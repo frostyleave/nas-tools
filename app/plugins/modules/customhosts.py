@@ -2,7 +2,7 @@ from python_hosts import Hosts, HostsEntry
 
 from app.plugins import EventHandler
 from app.plugins.modules._base import _IPluginModule
-from app.utils import SystemUtils, IpUtils
+from app.utils import IpUtils, SystemUtils
 from app.utils.types import EventType
 
 
@@ -29,7 +29,6 @@ class CustomHosts(_IPluginModule):
     auth_level = 1
 
     # 私有属性
-    _hosts = []
     _enable = False
 
     @staticmethod
@@ -83,6 +82,7 @@ class CustomHosts(_IPluginModule):
         ]
 
     def init_config(self, config=None):
+        self._hosts = []
         # 读取配置
         if config:
             self._enable = config.get("enable")

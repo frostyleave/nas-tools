@@ -1,18 +1,22 @@
 import datetime
 
-from typing import List, Optional, Tuple
-
 import log
-
 from app.conf import SystemConfig
-from app.models.model import IndexerInfo
+from app.indexer.client import (
+    MTorrentSpider,
+    TheRarbg,
+    TNodeSpider,
+    TorrentLeech,
+    TorrentSpider,
+)
 from app.indexer.client._base import _IIndexClient
-from app.indexer.client import TorrentSpider, TNodeSpider, TorrentLeech, InterfaceSpider, MTorrentSpider
 from app.indexer.manager import IndexerManager
 from app.media.meta.metainfo import MetaInfo
+from app.models.model import IndexerInfo
 from app.sites import SitesManager
+from app.utils.site_utils import SiteUtils
 from app.utils.string_utils import StringUtils
-from app.utils.types import MediaType, SearchType, IndexerType, SystemConfigKey
+from app.utils.types import IndexerType, MediaType, SearchType, SystemConfigKey
 
 
 class BuiltinIndexer(_IIndexClient):
@@ -26,7 +30,7 @@ class BuiltinIndexer(_IIndexClient):
 
     @classmethod
     def match(cls, ctype):
-        return True if ctype in [cls.client_id, cls.client_type, cls.client_name] else False
+        return ctype in [cls.client_id, cls.client_type, cls.client_name]
 
     def get_type(self):
         return self.client_type
@@ -38,7 +42,7 @@ class BuiltinIndexer(_IIndexClient):
         """
         return True
 
-    def get_indexers(self, check=True, public=True, filter_limit=False) -> List[IndexerInfo]:
+    def get_indexers(self, check=True, public=True, filter_limit=False) -> list[IndexerInfo]:
         """
         获取可用的索引站点数据
         :param check: 是否过滤未启用的站点
@@ -50,7 +54,8 @@ class BuiltinIndexer(_IIndexClient):
 
         # 选中站点配置
         indexer_sites = SystemConfig().get(SystemConfigKey.UserIndexerSites) or []
-        _indexer_domains = []
+        # 已加入的站点主机名，用于去重（兜底基础索引配置的域名是占位值，不能用于去重）
+        _indexer_hosts = []
 
         # PT站点
         sites_manager = SitesManager()
@@ -67,8 +72,9 @@ class BuiltinIndexer(_IIndexClient):
             if indexer_conf:
                 if check and (not indexer_sites or indexer_conf.id not in indexer_sites):
                     continue
-                if indexer_conf.domain not in _indexer_domains:
-                    _indexer_domains.append(indexer_conf.domain)
+                site_host = SiteUtils.get_url_host(pt_site.strict_url or url)
+                if site_host not in _indexer_hosts:
+                    _indexer_hosts.append(site_host)
                     indexer_conf.name = pt_site.name
                     ret_indexers.append(indexer_conf)
         # 公开站点
@@ -82,8 +88,9 @@ class BuiltinIndexer(_IIndexClient):
             if check and (not indexer_sites or base_item.id not in indexer_sites):
                 continue
 
-            if base_item.domain not in _indexer_domains:
-                _indexer_domains.append(base_item.domain)
+            base_host = SiteUtils.get_url_host(base_item.domain)
+            if base_host not in _indexer_hosts:
+                _indexer_hosts.append(base_host)
                 conf_data = IndexerManager().prepare_datas(site_base=base_item)
                 ret_indexers.append(IndexerInfo.from_datas(conf_data))
         
@@ -96,7 +103,7 @@ class BuiltinIndexer(_IIndexClient):
                filter_args: dict,
                match_media,
                in_from: SearchType,
-               task_id=None) -> List[MetaInfo]:
+               task_id=None) -> list[MetaInfo]:
         """
         根据关键字搜索资源并过滤
         """
@@ -129,7 +136,7 @@ class BuiltinIndexer(_IIndexClient):
         # 没有结果
         if result_count == 0:
             result_info = '搜索失败' if error_flag else '未搜索到数据'
-            summary_txt = "【索引器】%s %s, 用时: %s s" % (indexer.name, result_info, seconds)
+            summary_txt = f"【索引器】{indexer.name} {result_info}, 用时: {seconds} s"
             log.info(summary_txt)
             # 更新进度
             if SearchType.WEB == in_from:
@@ -137,7 +144,7 @@ class BuiltinIndexer(_IIndexClient):
             return []
         
         # 有搜索结果
-        summary_txt = "【索引器】%s 返回数据：%s, 用时: %s s, 开始进行过滤... "% (indexer.name, result_count, seconds)
+        summary_txt = f"【索引器】{indexer.name} 返回数据：{result_count}, 用时: {seconds} s, 开始进行过滤... "
         # 记录日志
         log.info(summary_txt)
         # 更新进度
@@ -156,7 +163,7 @@ class BuiltinIndexer(_IIndexClient):
                                           task_id=task_id)
 
 
-    def search_torrents(self, indexer: IndexerInfo, search_word: str='', mtype: Optional[MediaType]=None) -> Tuple[bool, list]:
+    def search_torrents(self, indexer: IndexerInfo, search_word: str='', mtype: MediaType | None=None) -> tuple[bool, list]:
         """
         根据关键字搜索资源
         """
@@ -168,12 +175,12 @@ class BuiltinIndexer(_IIndexClient):
             if indexer.parser == "TorrentLeech":
                 return TorrentLeech(indexer).search(keyword=search_word)
             
-            if indexer.parser == "InterfaceSpider":
-                return InterfaceSpider(indexer).search(keyword=search_word, mtype=mtype)
-            
             if indexer.parser == "MTorrentSpider":
                 return MTorrentSpider(indexer).search(keyword=search_word, mtype=mtype)
-            
+
+            if indexer.parser == "TheRarbg":
+                return TheRarbg(indexer).search(keyword=search_word)
+
             return TorrentSpider(indexer).search(keyword=search_word, mtype=mtype)
         
         except Exception as err:

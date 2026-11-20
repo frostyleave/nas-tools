@@ -1,26 +1,23 @@
-import json
 import re
 import xml.dom.minidom
 
-from fastapi import APIRouter, Request, Response
-from typing import Optional
+from fastapi import APIRouter, BackgroundTasks, Request, Response
+from starlette.concurrency import run_in_threadpool
 
+import log
 from app.conf.moduleconf import ModuleConf
 from app.core.cmd_handler import CommandHandler
-from app.helper import ThreadHelper, SecurityHelper
+from app.core.security_center import SecurityCenter
+from app.helper import ThreadHelper
 from app.media.meta.metainfo import MetaInfo
 from app.mediaserver.media_server import MediaServer
 from app.message import MessageService
-from app.plugins.event_manager import EventManager
-from app.modules.subscribe import Subscribe
-from app.utils import DomUtils
-from app.utils.types import EventType, MediaServerType, MediaType, RssType, SearchType
-
-import log
-
-from app.models.WXBizMsgCrypt3 import WXBizMsgCrypt
 from app.middleware.security import auth_required
-
+from app.models.WXBizMsgCrypt3 import WXBizMsgCrypt
+from app.modules.subscribe import Subscribe
+from app.plugins.event_manager import EventManager
+from app.utils import DomUtils, JsonUtils
+from app.utils.types import EventType, MediaServerType, MediaType, RssType, SearchType
 
 # 开放接口路由
 open_router = APIRouter()
@@ -30,7 +27,7 @@ def send_text_response(content: str, status_code: int = 200) -> Response:
 
 # 微信回调
 @open_router.get("/wechat")
-async def wechat(request: Request, appid: Optional[str] = None):
+async def wechat(request: Request, appid: str | None = None):
 
     # 当前在用的交互渠道
     interactive_clients = MessageService().get_interactive_client(SearchType.WX)
@@ -66,14 +63,14 @@ async def wechat(request: Request, appid: Optional[str] = None):
     log.info(f"收到微信验证请求: echostr= {sVerifyEchoStr}")
     ret, sEchoStr = wxcpt.VerifyURL(sVerifyMsgSig, sVerifyTimeStamp, sVerifyNonce, sVerifyEchoStr)
     if ret != 0:
-        log.error(f"微信请求验证失败 VerifyURL ret: {str(ret)}")
+        log.error(f"微信请求验证失败 VerifyURL ret: {ret!s}")
 
     return send_text_response(content=sEchoStr, status_code=200)
 
 
 @open_router.post("/wechat")
 @auth_required
-async def wechat_post(request: Request):
+async def wechat_post(request: Request, background_tasks: BackgroundTasks):
 
     try:
 
@@ -114,7 +111,7 @@ async def wechat_post(request: Request):
 
         ret, sMsg = wxcpt.DecryptMsg(req_bytes, sVerifyMsgSig, sVerifyTimeStamp, sVerifyNonce)
         if ret != 0:
-            log.error(f"解密微信消息失败 DecryptMsg ret = {str(ret)}")
+            log.error(f"解密微信消息失败 DecryptMsg ret = {ret!s}")
             return Response(content="ok", status_code=200)
 
         # 解析XML
@@ -134,7 +131,10 @@ async def wechat_post(request: Request):
             if conf.get("adminUser") and not any(
                 user_id == admin_user for admin_user in str(conf.get("adminUser")).split(";")
             ):
-                MessageService().send_channel_msg(channel=SearchType.WX, title="用户无权限执行菜单命令", user_id=user_id)
+                background_tasks.add_task(MessageService().send_channel_msg,
+                                          channel=SearchType.WX,
+                                          title="用户无权限执行菜单命令",
+                                          user_id=user_id)
                 return Response(content="", status_code=200)
 
             event_key = DomUtils.tag_value(root_node, "EventKey")
@@ -149,12 +149,12 @@ async def wechat_post(request: Request):
 
         if content:
             log.info(f"收到微信消息: userid={user_id}, text={content}")
-            CommandHandler().handle_message_job(msg=content,
-                                                in_from=SearchType.WX,
-                                                user_id=user_id,
-                                                user_name=user_id,
-                                                client_id = str(agent_client.get("id"))
-            )
+            background_tasks.add_task(CommandHandler().handle_message_job,
+                                      msg=content,
+                                      in_from=SearchType.WX,
+                                      user_id=user_id,
+                                      user_name=user_id,
+                                      client_id=str(agent_client.get("id")))
 
         return Response(content=content, status_code=200)
 
@@ -165,9 +165,9 @@ async def wechat_post(request: Request):
 # 微信发送消息
 @open_router.post("/sendwechat")
 @auth_required
-async def sendwechat(request: Request, appid: Optional[str] = None):
+async def sendwechat(request: Request, background_tasks: BackgroundTasks, appid: str | None = None):
     
-    if not SecurityHelper().check_mediaserver_ip(request.client.host):
+    if not SecurityCenter().check_mediaserver_ip(request.client.host):
         log.warn(f"非法IP地址的媒体服务器消息通知: {request.client.host}")
         return Response(content="不允许的IP地址请求", status_code=403)
 
@@ -191,12 +191,11 @@ async def sendwechat(request: Request, appid: Optional[str] = None):
     if not message:
         return Response(content="请填写消息内容", status_code=200)
 
-    MessageService().send_custom_message(
-        clients=[str(assign_app.get("id"))],
-        title=title,
-        text=message,
-        image=req_json.get("image")
-    )
+    background_tasks.add_task(MessageService().send_custom_message,
+                              clients=[str(assign_app.get("id"))],
+                              title=title,
+                              text=message,
+                              image=req_json.get("image"))
     return Response(content="ok", status_code=200)
 
 
@@ -204,12 +203,12 @@ async def sendwechat(request: Request, appid: Optional[str] = None):
 @open_router.post("/plex")
 @auth_required
 async def plex_webhook(request: Request):
-    if not SecurityHelper().check_mediaserver_ip(request.client.host):
+    if not SecurityCenter().check_mediaserver_ip(request.client.host):
         log.warn(f"非法IP地址的媒体服务器消息通知: {request.client.host}")
         return Response(content="不允许的IP地址请求", status_code=403)
 
     form = await request.form()
-    request_json = json.loads(form.get("payload", "{}"))
+    request_json = JsonUtils.loads(form.get("payload", "{}"), default={})
     log.debug("收到Plex Webhook报文: %s", request_json)
 
     event_match = request_json.get("event") in ["media.play", "media.stop", "library.new"]
@@ -227,7 +226,7 @@ async def plex_webhook(request: Request):
 @open_router.post("/jellyfin")
 @auth_required
 async def jellyfin_webhook(request: Request):
-    if not SecurityHelper().check_mediaserver_ip(request.client.host):
+    if not SecurityCenter().check_mediaserver_ip(request.client.host):
         log.warn(f"非法IP地址的媒体服务器消息通知: {request.client.host}")
         return Response(content="不允许的IP地址请求", status_code=403)
 
@@ -244,14 +243,14 @@ async def jellyfin_webhook(request: Request):
 @open_router.api_route("/emby", methods=["GET", "POST"])
 @auth_required
 async def emby_webhook(request: Request):
-    if not SecurityHelper().check_mediaserver_ip(request.client.host):
+    if not SecurityCenter().check_mediaserver_ip(request.client.host):
         log.warn(f"非法IP地址的媒体服务器消息通知: {request.client.host}")
         return Response(content="不允许的IP地址请求", status_code=403)
 
     if request.method == "POST":
         form = await request.form()
         log.debug("Emby Webhook data: %s", form.get("data", {}))
-        request_json = json.loads(form.get("data", "{}"))
+        request_json = JsonUtils.loads(form.get("data", "{}"), default={})
     else:
         query = dict(request.query_params)
         log.debug("Emby Webhook data: %s", query)
@@ -267,7 +266,7 @@ async def emby_webhook(request: Request):
 # Telegram消息响应
 @open_router.post("/telegram")
 @auth_required
-async def telegram(request: Request):
+async def telegram(request: Request, background_tasks: BackgroundTasks):
     interactive_clients = MessageService().get_interactive_client(SearchType.TG)
     if not interactive_clients:
         return Response(content="NAStool未启用Telegram交互", status_code=200)
@@ -275,7 +274,7 @@ async def telegram(request: Request):
     interactive_client = interactive_clients[0]
 
     msg_json = await request.json()
-    if not SecurityHelper().check_telegram_ip(request.client.host):
+    if not SecurityCenter().check_telegram_ip(request.client.host):
         log.error("收到来自 %s 的非法Telegram消息: %s", request.client.host, msg_json)
         return Response(content="不允许的IP地址请求", status_code=403)
 
@@ -289,28 +288,31 @@ async def telegram(request: Request):
             log.info(f"收到Telegram消息: userid={user_id}, username={user_name}, text={text}")
             if text.startswith("/"):
                 if str(user_id) not in interactive_client.get("client").get_admin():
-                    MessageService().send_channel_msg(channel=SearchType.TG,
-                                               title="只有管理员才有权限执行此命令",
-                                               user_id=user_id)
+                    background_tasks.add_task(MessageService().send_channel_msg,
+                                              channel=SearchType.TG,
+                                              title="只有管理员才有权限执行此命令",
+                                              user_id=user_id)
                     return Response(content="只有管理员才有权限执行此命令", status_code=200)
             else:
                 if str(user_id) not in interactive_client.get("client").get_users():
-                    MessageService().send_channel_msg(channel=SearchType.TG,
-                                               title="你不在用户白名单中，无法使用此机器人",
-                                               user_id=user_id)
+                    background_tasks.add_task(MessageService().send_channel_msg,
+                                              channel=SearchType.TG,
+                                              title="你不在用户白名单中，无法使用此机器人",
+                                              user_id=user_id)
                     return Response(content="你不在用户白名单中，无法使用此机器人", status_code=200)
 
-            CommandHandler().handle_message_job(msg=text,
-                                                in_from=SearchType.TG,
-                                                user_id=user_id,
-                                                user_name=user_name)
+            background_tasks.add_task(CommandHandler().handle_message_job,
+                                      msg=text,
+                                      in_from=SearchType.TG,
+                                      user_id=user_id,
+                                      user_name=user_name)
     return Response(content="Ok", status_code=200)
 
 
 # Synology Chat消息响应
 @open_router.post("/synology")
 @auth_required
-async def synology(request: Request):
+async def synology(request: Request, background_tasks: BackgroundTasks):
     interactive_clients = MessageService().get_interactive_client(SearchType.SYNOLOGY)
     if not interactive_clients:
         return Response(content="NAStool未启用Synology Chat交互", status_code=200)
@@ -318,7 +320,7 @@ async def synology(request: Request):
     interactive_client = interactive_clients[0]
 
     form = await request.form()
-    if not SecurityHelper().check_synology_ip(request.client.host):
+    if not SecurityCenter().check_synology_ip(request.client.host):
         log.error("收到来自 %s 的非法Synology Chat消息: %s", request.client.host, form)
         return Response(content="不允许的IP地址请求", status_code=403)
 
@@ -334,18 +336,19 @@ async def synology(request: Request):
 
         if text:
             log.info(f"收到Synology Chat消息: userid={user_id}, username={user_name}, text={text}")
-            CommandHandler().handle_message_job(msg=text,
-                                                in_from=SearchType.SYNOLOGY,
-                                                user_id=user_id,
-                                                user_name=user_name)
+            background_tasks.add_task(CommandHandler().handle_message_job,
+                                      msg=text,
+                                      in_from=SearchType.SYNOLOGY,
+                                      user_id=user_id,
+                                      user_name=user_name)
     return Response(content="Ok", status_code=200)
 
 
 # Slack消息响应
 @open_router.post("/slack")
 @auth_required
-async def slack(request: Request):
-    if not SecurityHelper().check_slack_ip(request.client.host):
+async def slack(request: Request, background_tasks: BackgroundTasks):
+    if not SecurityCenter().check_slack_ip(request.client.host):
         log.warn(f"非法IP地址的Slack消息通知: {request.client.host}")
         return Response(content="不允许的IP地址请求", status_code=403)
 
@@ -375,11 +378,21 @@ async def slack(request: Request):
             return Response(content="Error", status_code=400)
 
         log.info(f"收到Slack消息: userid={userid}, username={username}, text={text}")
-        CommandHandler().handle_message_job(msg=text,
-                                            in_from=SearchType.SLACK,
-                                            user_id=userid,
-                                            user_name=username)
+        background_tasks.add_task(CommandHandler().handle_message_job,
+                                  msg=text,
+                                  in_from=SearchType.SLACK,
+                                  user_id=userid,
+                                  user_name=username)
     return Response(content="Ok", status_code=200)
+
+
+def _add_subscribe(**kwargs):
+    """
+    在线程池中添加订阅
+
+    add_rss_subscribe 内含 TMDB 查询、DB 写入等同步 IO，不能直接跑在事件循环上。
+    """
+    return Subscribe().add_rss_subscribe(**kwargs)
 
 
 # Jellyseerr Overseerr订阅接口
@@ -405,7 +418,8 @@ async def subscribe(request: Request):
     user_name = req_json.get("request", {}).get("requestedBy_username")
 
     if media_type == MediaType.MOVIE:
-        code, msg, _ = Subscribe().add_rss_subscribe(
+        code, msg, _ = await run_in_threadpool(
+            _add_subscribe,
             mtype=media_type,
             name=meta_info.get_name(),
             year=meta_info.year,
@@ -421,7 +435,8 @@ async def subscribe(request: Request):
                 seasons = [int(str(sea).strip()) for sea in extra.get("value").split(", ") if str(sea).isdigit()]
                 break
         for season in seasons:
-            code, msg, _ = Subscribe().add_rss_subscribe(
+            code, msg, _ = await run_in_threadpool(
+                _add_subscribe,
                 mtype=media_type,
                 name=meta_info.get_name(),
                 year=meta_info.year,

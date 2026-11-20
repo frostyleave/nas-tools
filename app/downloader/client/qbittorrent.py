@@ -1,19 +1,14 @@
 import hashlib
-import json
 import os
 import re
 import time
-from datetime import datetime
-from typing import Optional, Tuple, Union
 
 import fastbencode
-
-
-import log
 import qbittorrentapi
 
+import log
 from app.downloader.client._base import _IDownloadClient
-from app.utils import StringUtils, SiteUtils
+from app.utils import JsonUtils, SiteUtils, StringUtils
 from app.utils.types import DownloaderType
 
 
@@ -26,7 +21,7 @@ class Qbittorrent(_IDownloadClient):
     client_name = DownloaderType.QB.value
 
     # 私有属性
-    _client_config = {}
+    _client_config: dict
     _torrent_management = False
 
     qbc = None
@@ -35,11 +30,11 @@ class Qbittorrent(_IDownloadClient):
     port = None
     username = None
     password = None
-    download_dir = []
     name = "测试"
 
     def __init__(self, config):
         self._client_config = config
+        self.download_dir = []
         self.init_config()
         self.connect()
         # 种子自动管理模式，根据下载路径设置为下载器设置分类
@@ -62,7 +57,7 @@ class Qbittorrent(_IDownloadClient):
 
     @classmethod
     def match(cls, ctype):
-        return True if ctype in [cls.client_id, cls.client_type, cls.client_name] else False
+        return ctype in [cls.client_id, cls.client_type, cls.client_name]
 
     def get_type(self):
         return self.client_type
@@ -98,7 +93,7 @@ class Qbittorrent(_IDownloadClient):
         if not self.qbc:
             return False
         try:
-            return True if self.qbc.transfer_info() else False
+            return bool(self.qbc.transfer_info())
         except Exception as err:
             log.exception(f"【{self.client_name}】{self.name} 获取状态出错：")
             return False
@@ -111,9 +106,8 @@ class Qbittorrent(_IDownloadClient):
         if self._torrent_management == "manual":
             return
         # 默认则查询当前下载器管理模式
-        if self._torrent_management == "default":
-            if not self.__get_qb_auto():
-                return
+        if self._torrent_management == "default" and not self.__get_qb_auto():
+            return
         # 获取下载器目前的分类信息
         categories = self.__get_qb_category()
         # 更新下载器中分类设置
@@ -290,8 +284,7 @@ class Qbittorrent(_IDownloadClient):
             content_path = torrent.get("content_path")
             if content_path:
                 trans_name = content_path.replace(path, "").replace("\\", "/")
-                if trans_name.startswith('/'):
-                    trans_name = trans_name[1:]
+                trans_name = trans_name.removeprefix('/')
             else:
                 trans_name = torrent.get('name')
             trans_tasks.append({
@@ -326,7 +319,7 @@ class Qbittorrent(_IDownloadClient):
         qb_category = config.get("qb_category")
         for torrent in torrents:
             date_done = torrent.completion_on if torrent.completion_on > 0 else torrent.added_on
-            date_now = int(time.mktime(datetime.now().timetuple()))
+            date_now = int(time.time())
             torrent_seeding_time = date_now - date_done if date_done else 0
             torrent_upload_avs = torrent.uploaded / torrent_seeding_time if torrent_seeding_time else 0
             if ratio and torrent.ratio <= ratio:
@@ -413,7 +406,7 @@ class Qbittorrent(_IDownloadClient):
                     ratio_limit=None,
                     seeding_time_limit=None,
                     cookie=None
-                    ) -> Tuple[bool, Optional[str]]:
+                    ) -> tuple[bool, str | None]:
         """
         添加种子
         :param content: 种子urls或文件
@@ -516,7 +509,7 @@ class Qbittorrent(_IDownloadClient):
                 log.warn(f"【{self.client_name}】{self.name} 添加种子错误：{qbc_ret}")
 
             if qbc_ret.find('added_torrent_ids') > 0:
-                ret_data = json.loads(qbc_ret)
+                ret_data = JsonUtils.loads(qbc_ret, default={})
                 # 添加成功
                 if ret_data and ret_data.get('success_count', 0) > 0:
                     # 优先取返回的id
@@ -526,7 +519,7 @@ class Qbittorrent(_IDownloadClient):
                     torrent_hash = self._get_torrent_hash(content)
                     return True, torrent_hash
             
-            success = True if str(qbc_ret).find("Ok") != -1 else False
+            success = str(qbc_ret).find("Ok") != -1
             if success:
                 torrent_hash = self._get_torrent_hash(content)
                 return True, torrent_hash
@@ -538,7 +531,7 @@ class Qbittorrent(_IDownloadClient):
             return False, None
         
     @staticmethod
-    def _get_torrent_hash(content: Union[str, bytes]) -> Optional[str]:
+    def _get_torrent_hash(content: str | bytes) -> str | None:
         """
         从磁力链接(str)或 .torrent 文件内容(bytes)中提取 v1 info hash。
         (这是我们上一轮中生成的辅助函数)
@@ -558,7 +551,7 @@ class Qbittorrent(_IDownloadClient):
                 hash_v1 = hashlib.sha1(info_bencoded).hexdigest()                
                 return hash_v1.lower()
             except Exception as e:
-                log.exception(f"[qbittorrent]解析 torrent 文件内容失败:")
+                log.exception("[qbittorrent]解析 torrent 文件内容失败:")
                 return None
         else:
             log.error(f"输入类型错误: 需要 str 或 bytes, 但收到了 {type(content)}")
@@ -672,7 +665,7 @@ class Qbittorrent(_IDownloadClient):
             progress = round(torrent.get('progress') * 100, 1)
             total_size = int(torrent.get('size'))
             downloaded = int(torrent.get('completed'))
-            sizeprogress = ("%sB / %sB" % (StringUtils.str_filesize(downloaded), StringUtils.str_filesize(total_size))).replace('BB', 'B')
+            sizeprogress = (f"{StringUtils.str_filesize(downloaded)}B / {StringUtils.str_filesize(total_size)}B").replace('BB', 'B')
             _dlspeed = '0'
             _upspeed = '0'
             if torrent.get('state') in ['pausedDL', 'stoppedDL']:
@@ -683,10 +676,10 @@ class Qbittorrent(_IDownloadClient):
                 _dlspeed = StringUtils.str_filesize(torrent.get('dlspeed'))
                 _upspeed = StringUtils.str_filesize(torrent.get('upspeed'))
                 if progress >= 100:
-                    speed = "%s%sB/s %s%sB/s" % (chr(8595), _dlspeed, chr(8593), _upspeed)
+                    speed = f"{chr(8595)}{_dlspeed}B/s {chr(8593)}{_upspeed}B/s"
                 else:
                     eta = StringUtils.str_timelong(torrent.get('eta'))
-                    speed = "%s%sB/s %s%sB/s %s" % (chr(8595), _dlspeed, chr(8593), _upspeed, eta)
+                    speed = f"{chr(8595)}{_dlspeed}B/s {chr(8593)}{_upspeed}B/s {eta}"
                 speed = speed.replace('BB', 'B')
             # 主键
             DispTorrents.append({

@@ -37,7 +37,7 @@ class CommandHandler:
             # 消息回应
             MessageService().send_channel_msg(
                 channel=in_from, 
-                title="正在运行 %s ..." % command.get("desc"), 
+                title="正在运行 {} ...".format(command.get("desc")), 
                 user_id=user_id, 
                 client_id=client_id)
             return
@@ -51,7 +51,7 @@ class CommandHandler:
                 # 消息回应
                 MessageService().send_channel_msg(
                     channel=in_from, 
-                    title="正在运行 %s ..." % command.get("desc"), 
+                    title="正在运行 {} ...".format(command.get("desc")), 
                     user_id=user_id, 
                     client_id=client_id)
                 return

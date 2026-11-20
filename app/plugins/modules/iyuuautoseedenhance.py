@@ -1,24 +1,21 @@
 import re
-import time
-
-from apscheduler.job import Job
 from copy import deepcopy
 from threading import Event
-from typing import Optional
+from typing import ClassVar
 
+from apscheduler.job import Job
 from jinja2 import Template
 from lxml import etree
 
 from app.downloader import Downloader
 from app.helper import ThreadHelper
 from app.media.meta import MetaInfo
+from app.models.model import UserSiteConf
 from app.plugins.modules._base import _IPluginModule
 from app.plugins.modules.iyuu.iyuu_helper import IyuuHelper
-from app.models.model import UserSiteConf
 from app.sites import Sites
-from app.utils import RequestUtils
+from app.utils import RequestUtils, TimeUtils
 from app.utils.types import DownloaderType
-
 from config import Config
 
 
@@ -41,6 +38,8 @@ class IYUUAutoSeedEnhance(_IPluginModule):
     module_config_prefix = "iyuuautoseedenhance_"
     # 加载顺序
     module_order = 21
+    # 插件额外页面标题
+    module_page_title = "配置插件"
     # 可使用的用户级别
     user_level = 2
 
@@ -54,31 +53,22 @@ class IYUUAutoSeedEnhance(_IPluginModule):
     _cron = None
     _onlyonce = False
     _token = None
-    _downloaders = []
-    _sites = []
     _notify = False
     _nolabels = None
     _clearcache = False
     # 退出事件
     _event = Event()
     # 种子链接xpaths
-    _torrent_xpaths = [
+    _torrent_xpaths: ClassVar[list[str]] = [
         "//form[contains(@action, 'download.php?id=')]/@action",
         "//a[contains(@href, 'download.php?hash=')]/@href",
         "//a[contains(@href, 'download.php?id=')]/@href",
         "//a[@class='index'][contains(@href, '/dl/')]/@href",
     ]
-    _torrent_tags = ["已整理", "辅种"]
+    _torrent_tags: ClassVar[list[str]] = ["已整理", "辅种"]
     # 待校全种子hash清单
-    _recheck_torrents = {}
+    _recheck_torrents: ClassVar[dict] = {}
     _is_recheck_running = False
-    # 辅种缓存，出错的种子不再重复辅种，可清除
-    _error_caches = []
-    # 辅种缓存，辅种成功的种子，可清除
-    _success_caches = []
-    # 辅种缓存，出错的种子不再重复辅种，且无法清除。种子被删除404等情况
-    _permanent_error_caches = []
-    _history_list = []
     # 辅种计数
     total = 0
     realtotal = 0
@@ -90,7 +80,7 @@ class IYUUAutoSeedEnhance(_IPluginModule):
     _version = "2.0.0"
     _api_base = "https://api.iyuu.cn/%s"
 
-    _check_job : Optional[Job] = None
+    _check_job : Job | None = None
 
     @staticmethod
     def get_fields():
@@ -218,6 +208,12 @@ class IYUUAutoSeedEnhance(_IPluginModule):
     def init_config(self, config=None):
         self.downloader = Downloader()
         self.sites = Sites()
+        self._downloaders = []
+        self._sites = []
+        self._error_caches = []
+        self._success_caches = []
+        self._permanent_error_caches = []
+        self._history_list = []
         # 读取配置
         if config:
             self._enable = config.get("enable")
@@ -236,6 +232,8 @@ class IYUUAutoSeedEnhance(_IPluginModule):
         self._history_list = self.get_history() or []
         # 停止现有任务
         self.stop_service()
+        # 重新开始，清除退出事件
+        self.reset_stop_event()
 
         # 启动定时任务 & 立即运行一次
         if self.get_state() or self._onlyonce:
@@ -243,7 +241,7 @@ class IYUUAutoSeedEnhance(_IPluginModule):
 
             # 立即运行一次
             if self._onlyonce:
-                self.info(f"辅种服务启动，立即运行一次")
+                self.info("辅种服务启动，立即运行一次")
                 ThreadHelper().start_thread(self.auto_seed, ())
                 # 关闭一次性开关
                 self._onlyonce = False
@@ -258,12 +256,12 @@ class IYUUAutoSeedEnhance(_IPluginModule):
             # 定时任务
             if self._cron:
                 # 注册定时任务(不立即启动)
-                self._cron_job = self.add_cron_job(self.auto_seed, self._cron, 'IYUU自动辅种', False)
+                self._cron_job = self.add_cron_job(self.auto_seed, self._cron, 'IYUU自动辅种')
                 if self._cron_job:
                     self._check_job = self.get_scheduler().add_job(self.check_recheck, 'interval', minutes=3, name='IYUU自动辅种校验')
 
     def get_state(self):
-        return True if self._enable and self._cron and self._token and self._downloaders else False
+        return bool(self._enable and self._cron and self._token and self._downloaders)
 
     def get_page(self):
         """
@@ -400,7 +398,7 @@ class IYUUAutoSeedEnhance(_IPluginModule):
             let site = $("#iyuu_enhance_site").val();
             let image = $("#iyuu_enhance_image").val();
 
-            axios_post_do("run_plugin_method", {"plugin_id": 'IYUUAutoSeedEnhance', 'method': 'add_image_site', "site": site, "image": image}, function (ret) {
+            axios_post("/sys/run_plugin_method", {"plugin_id": 'IYUUAutoSeedEnhance', 'method': 'add_image_site', "site": site, "image": image}, function (ret) {
                 $("#modal-plugin-page").modal('hide');
                 if (ret.result.code === 0) {
                     show_success_modal("添加成功！", function () {
@@ -416,7 +414,7 @@ class IYUUAutoSeedEnhance(_IPluginModule):
 
           // 删除镜像站
           function IYUUEnhance_delete_history(id, site) {
-            axios_post_do("run_plugin_method", {"plugin_id": 'IYUUAutoSeedEnhance', 'method': 'delete_iyuu_enhance_history', 'site': site}, function (ret) {
+            axios_post("/sys/run_plugin_method", {"plugin_id": 'IYUUAutoSeedEnhance', 'method': 'delete_iyuu_enhance_history', 'site': site}, function (ret) {
               $("#movie_iyuu_history_" + id).remove();
             });
           }
@@ -440,7 +438,7 @@ class IYUUAutoSeedEnhance(_IPluginModule):
                 $("#iyuuautoseedenhance_passkey").removeClass("is-invalid");
             }
             // 认证
-            axios_post_do("run_plugin_method", {"plugin_id": 'IYUUAutoSeedEnhance', 'method': 'iyuu_bind_site', "site": site, "uid": uid, "passkey": passkey}, function (ret) {
+            axios_post("/sys/run_plugin_method", {"plugin_id": 'IYUUAutoSeedEnhance', 'method': 'iyuu_bind_site', "site": site, "uid": uid, "passkey": passkey}, function (ret) {
                 $("#modal-plugin-page").modal('hide');
                 if (ret.result.code === 0) {
                     show_success_modal("IYUU用户认证成功！", function () {
@@ -466,6 +464,24 @@ class IYUUAutoSeedEnhance(_IPluginModule):
         self._history_list = self.get_history() or []
         return {"code": 0, "msg": "删除成功"}
 
+    def format_history(self, key, value):
+        """
+        辅种历史中的下载器ID转换为下载器名称，便于用户阅读
+        """
+        if isinstance(value, list) and value \
+                and all(isinstance(item, dict) and "downloader" in item for item in value):
+            downloaders = Downloader().get_downloader_conf_simple()
+            lines = []
+            for item in value:
+                downloader_id = str(item.get("downloader"))
+                downloader_name = (downloaders.get(downloader_id) or {}).get("name") or downloader_id
+                torrents = item.get("torrents") or []
+                if not isinstance(torrents, list):
+                    torrents = [torrents]
+                lines.append(f"下载器 {downloader_name}：{len(torrents)} 个辅种")
+            return "\n".join(lines)
+        return super().format_history(key, value)
+
     def add_image_site(self, site, image):
         if not site:
             return {"code": 1, "msg": "站点不能为空"}
@@ -476,7 +492,7 @@ class IYUUAutoSeedEnhance(_IPluginModule):
         if history:
             history["site"] = site
             history["image"] = image
-            history["time"] = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time()))
+            history["time"] = TimeUtils.now_str()
             self.update_history(site, history)
         else:
             history_list = self.get_history()
@@ -488,7 +504,7 @@ class IYUUAutoSeedEnhance(_IPluginModule):
                 "id": id,
                 "site": site,
                 "image": image,
-                "time": time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time()))
+                "time": TimeUtils.now_str()
             }
             self.history(site, data)
 
@@ -538,6 +554,8 @@ class IYUUAutoSeedEnhance(_IPluginModule):
         if not self.iyuuhelper:
             return
         self.info("开始辅种任务 ...")
+        # 捕获本次运行的事件对象，插件重载后旧线程仍能被旧的置位事件终止
+        event = self._event
         # 计数器初始化
         self.total = 0
         self.realtotal = 0
@@ -559,8 +577,8 @@ class IYUUAutoSeedEnhance(_IPluginModule):
                 continue
             hash_strs = []
             for torrent in torrents:
-                if self._event.is_set():
-                    self.info(f"辅种服务停止")
+                if event.is_set():
+                    self.info("辅种服务停止")
                     return
                 # 获取种子hash
                 hash_str = self.__get_hash(torrent, downloader_type)
@@ -596,21 +614,20 @@ class IYUUAutoSeedEnhance(_IPluginModule):
                 # 触发校验检查
                 self.check_recheck()
             else:
-                self.info(f"没有需要辅种的种子")
+                self.info("没有需要辅种的种子")
         # 保存缓存
         self.__update_config()
         # 发送消息
-        if self._notify:
-            if self.success or self.fail:
-                self.send_message(
-                    title="【IYUU自动辅种任务完成】",
-                    text=f"服务器返回可辅种总数：{self.total}\n"
-                         f"实际可辅种数：{self.realtotal}\n"
-                         f"已存在：{self.exist}\n"
-                         f"成功：{self.success}\n"
-                         f"失败：{self.fail}\n"
-                         f"{self.cached} 条失败记录已加入缓存"
-                )
+        if self._notify and (self.success or self.fail):
+            self.send_message(
+                title="【IYUU自动辅种任务完成】",
+                text=f"服务器返回可辅种总数：{self.total}\n"
+                     f"实际可辅种数：{self.realtotal}\n"
+                     f"已存在：{self.exist}\n"
+                     f"成功：{self.success}\n"
+                     f"失败：{self.fail}\n"
+                     f"{self.cached} 条失败记录已加入缓存"
+            )
         self.info("辅种任务执行完成")
 
     def check_recheck(self):
@@ -931,9 +948,7 @@ class IYUUAutoSeedEnhance(_IPluginModule):
                 return True
             if "hdcity.in" in url:
                 return True
-            if "totheglory.im" in url:
-                return True
-            return False
+            return "totheglory.im" in url
 
         try:
             if __is_special_site(site.strict_url):
@@ -1008,13 +1023,15 @@ class IYUUAutoSeedEnhance(_IPluginModule):
                 self.error(f"获取种子下载链接失败，请求失败：{page_url}，{res.status_code if res else ''}")
                 return None
         except Exception as e:
-            self.warn(f"获取种子下载链接失败：{str(e)}")
+            self.warn(f"获取种子下载链接失败：{e!s}")
             return None
 
     def stop_service(self):
         """
         退出插件
         """
+        # 通知辅种线程退出，避免重载后旧线程继续运行
+        self.set_stop_event()
         try:
             self.remove_job(self._cron_job)
             self.remove_job(self._check_job)
@@ -1050,7 +1067,7 @@ class IYUUAutoSeedEnhance(_IPluginModule):
         elif ret is not None:
             return None, f"请求IYUU失败，状态码：{ret.status_code}，错误原因：{ret.reason}"
         else:
-            return None, f"请求IYUU失败，未获取到返回信息"
+            return None, "请求IYUU失败，未获取到返回信息"
 
     def __get_sites(self):
         """
@@ -1085,7 +1102,5 @@ class IYUUAutoSeedEnhance(_IPluginModule):
             return {}
 
     def __get_user(self):
-        result, msg = self.__request_iyuu(url=self._api_base % 'App.Api.GetUser')
-        if result and result.get("user") and result.get("user").get("username"):
-            return True
-        return False
+        result, _msg = self.__request_iyuu(url=self._api_base % 'App.Api.GetUser')
+        return bool(result and result.get("user") and result.get("user").get("username"))

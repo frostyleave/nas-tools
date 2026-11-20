@@ -149,11 +149,13 @@ class LibraryScraper(_IPluginModule):
 
         # 停止现有任务
         self.stop_service()
+        # 重新开始，清除退出事件
+        self.reset_stop_event()
 
         # 启动定时任务 & 立即运行一次
         if self.get_state() or self._onlyonce:
             if self._onlyonce:
-                self.info(f"刮削服务启动，立即运行一次")
+                self.info("刮削服务启动，立即运行一次")
                 ThreadHelper().start_thread(self.__libraryscraper, ())
                 # 关闭一次性开关
                 self._onlyonce = False
@@ -170,7 +172,7 @@ class LibraryScraper(_IPluginModule):
 
 
     def get_state(self):
-        return True if self._cron else False
+        return bool(self._cron)
 
     @EventHandler.register(EventType.MediaScrapStart)
     def start_scrap(self, event):
@@ -194,24 +196,28 @@ class LibraryScraper(_IPluginModule):
         """
         开始刮削媒体库
         """
+        # 捕获本次运行的事件对象，插件重载后旧线程仍能被旧的置位事件终止
+        event = self._event
         # 已选择的目录
         self.info(f"开始刮削媒体库：{self._scraper_path} ...")
         for path in self._scraper_path:
             if not path:
                 continue
-            if self._event.is_set():
-                self.info(f"媒体库刮削服务停止")
+            if event.is_set():
+                self.info("媒体库刮削服务停止")
                 return
             # 刮削目录
             self._scraper.folder_scraper(path=path,
                                          exclude_path=self._exclude_path,
                                          mode=self._mode)
-        self.info(f"媒体库刮削完成")
+        self.info("媒体库刮削完成")
 
     def stop_service(self):
         """
         退出插件
         """
+        # 通知刮削线程退出，避免重载后旧线程继续运行
+        self.set_stop_event()
         try:
             self.remove_job(self._cron_job)
         except Exception as e:

@@ -1,20 +1,17 @@
 import random
-
-from datetime import datetime
 from threading import Event
 
 from jinja2 import Template
 
 import log
-
 from app.conf import ModuleConf
-from app.helper import RssHelper
-from app.helper import ThreadHelper
+from app.helper import RssHelper, ThreadHelper
 from app.media import MediaService
 from app.mediaserver import MediaServer
-from app.plugins.modules._base import _IPluginModule
 from app.modules.subscribe import Subscribe
-from app.utils.types import SearchType, RssType, MediaType
+from app.plugins.modules._base import _IPluginModule
+from app.utils.time_utils import TimeUtils
+from app.utils.types import MediaType, RssType, SearchType
 
 
 class MovieRandom(_IPluginModule):
@@ -36,6 +33,8 @@ class MovieRandom(_IPluginModule):
     module_config_prefix = "movierandom_"
     # 加载顺序
     module_order = 18
+    # 插件额外页面标题
+    module_page_title = "随机历史"
     # 可使用的用户级别
     auth_level = 2
 
@@ -249,14 +248,14 @@ class MovieRandom(_IPluginModule):
         return """
           // 删除随机电影历史记录
           function MovieRandom_delete_history(id){
-            axios_post_do("run_plugin_method", {"plugin_id": 'MovieRandom', 'method': 'delete_random_history', 'tmdb_id': id}, function (ret) {
+            axios_post("/sys/run_plugin_method", {"plugin_id": 'MovieRandom', 'method': 'delete_random_history', 'tmdb_id': id}, function (ret) {
               $("#movie_random_history_" + id).remove();
             });
 
           }
         """
 
-    def init_config(self, config: dict = None):
+    def init_config(self, config: dict | None = None):
         self.mediaserver = MediaServer()
         self.subscribe = Subscribe()
         self.rsshelper = RssHelper()
@@ -271,12 +270,14 @@ class MovieRandom(_IPluginModule):
 
         # 停止现有任务
         self.stop_service()
+        # 重新开始，清除退出事件
+        self.reset_stop_event()
 
         # 启动定时任务 & 立即运行一次
         if self.get_state() or self._onlyonce:
 
             if self._onlyonce:
-                self.info(f"电影随机服务启动，立即运行一次")
+                self.info("电影随机服务启动，立即运行一次")
                 ThreadHelper().start_thread(self.__random, ())
                 # 关闭一次性开关
                 self._onlyonce = False
@@ -298,6 +299,11 @@ class MovieRandom(_IPluginModule):
         """
         随机获取一部tmdb电影下载
         """
+        # 捕获本次运行的事件对象，插件重载后旧线程仍能被旧的置位事件终止
+        event = self._event
+        if event.is_set():
+            self.info("电影随机服务已停止")
+            return
         params = {}
         if self._date:
             params['primary_release_date.gte'] = f"{self._date}-01-01"
@@ -326,8 +332,7 @@ class MovieRandom(_IPluginModule):
         log.info(f"当前所选条件下获取到电影数据 {random_max_page} 页，开始随机订阅")
 
         # ['page must be less than or equal to 500']
-        if random_max_page > 500:
-            random_max_page = 500
+        random_max_page = min(random_max_page, 500)
 
         movie_list = []
         retry_time = 0
@@ -387,12 +392,12 @@ class MovieRandom(_IPluginModule):
             in_from=SearchType.PLUGIN
         )
         if not rss_media or code != 0:
-            self.warn("%s 添加订阅失败：%s" % (title, msg))
+            self.warn(f"{title} 添加订阅失败：{msg}")
             # 订阅已存在
             if code == 9:
                 self.__update_history(media=media_info, state="RSS")
         else:
-            self.info("%s 添加订阅成功" % title)
+            self.info(f"{title} 添加订阅成功")
             # 插入为已RSS状态
             self.__update_history(media=media_info, state="RSS")
 
@@ -448,7 +453,7 @@ class MovieRandom(_IPluginModule):
             "rating": media.get('vote')[0] if media.get('vote') else None,
             "image": media.get('image'),
             "state": state,
-            "add_time": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            "add_time": TimeUtils.now_str()
         }
         if self.get_history(key=media.get('tmdbid')):
             self.update_history(key=media.get('tmdbid'), value=value)
@@ -469,6 +474,8 @@ class MovieRandom(_IPluginModule):
         """
         停止服务
         """
+        # 通知随机任务退出，避免重载后旧线程继续处理
+        self.set_stop_event()
         try:
             self.remove_job(self._cron_job)
         except Exception as e:

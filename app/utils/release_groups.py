@@ -1,25 +1,31 @@
+from itertools import chain
+from typing import ClassVar
+
 import regex as re
 
 from app.utils.commons import singleton
 
 
 @singleton
-class ReleaseGroupsMatcher(object):
+class ReleaseGroupsMatcher:
     """
     识别制作组、字幕组
     """
     __release_groups = None
     custom_release_groups = None
     custom_separator = None
-    RELEASE_GROUPS = {
+    RELEASE_GROUPS: ClassVar[dict[str, list[str]]] = {
         "0ff": ['FF(?:(?:A|WE)B|CD|E(?:DU|B)|TV)'],
         "1pt": ['1PTBA'],
         "52pt": ['52pt'],
+        "AGSV": ['AGSV'],
         "audiences": ['Audies', 'AD(?:Audio|E(?:|book)|Music|Web)'],
+        "baozi": ['BAOZIWEB', 'Baozi'],
         "beitai": ['BeiTai'],
         "btschool": ['Bts(?:CHOOL|HD|PAD|TV)', 'Zone'],
         "BeyondHD": ['BYNDR'],
         "carpt": ['CarPT'],
+        "colapt": ['COLAWEB', 'COLAPT'],
         "cspt": ['CSWEB','CSPT','HSWEB','HSPT'],
         "chdbits": ['CHD(?:|Bits|PAD|(?:|HK)TV|WEB)', 'StBOX', 'OneHD', 'Lee', 'xiaopie'],
         "dstudio": ['DS','DStudio','DepWeb','DSAudio'],
@@ -40,6 +46,7 @@ class ReleaseGroupsMatcher(object):
         "keepfrds": ['FRDS', 'Yumi', 'cXcY'],
         "lemonhd": ['L(?:eague(?:(?:C|H)D|(?:M|T)V|NF|WEB)|HD)', 'i18n', 'CiNT'],
         "mteam": ['MTeam(?:|TV)', 'MPAD', 'MWeb'],
+        "novahd": ['NHDWeb', 'NDJWEB'],
         "ourbits": ['Our(?:Bits|TV)', 'FLTTH', 'Ao', 'PbK', 'MGs', 'iLove(?:HD|TV)'],
         "piggo": ['PiGo(?:NF|(?:H|WE)B)'],
         "panda": ['AilMWeb', 'Panda', 'AilME', 'AilMTV', 'AilMUpscale'],
@@ -54,18 +61,26 @@ class ReleaseGroupsMatcher(object):
         "ubits": ['UBWEB', 'UBits'],
         "xingyungept": ['StarfallWeb'],
         "zmpt": ['ZmWeb', 'ZmAudio'],
-        "others": ['B(?:MDru|eyondHD|TN)', 'C(?:fandora|trlhd|MRG)', 'DON', 'EVO', 'FLUX', 'HONE(?:|yG)',
-                   'N(?:oGroup|T(?:b|G))', 'PandaMoon', 'SMURF', 'T(?:EPES|aengoo|rollHD )'],
+        "others": ['B(?:MDru|eyondHD|TN)', 'C(?:fandora|trlhd|MRG)', 'DON', 'EVO', 'FLUX', 'FLIX', 'HONE(?:|yG)',
+                   'N(?:oGroup|T(?:b|G))', 'PandaMoon', 'SMURF', 'T(?:EPES|aengoo|rollHD )', 'Tasko', 'HYPERION',
+                   'Kitsune', 'SPWEB', 'SLOT', 'TMT', 'KyoGo', 'TeamSyndicate', 'MySiLU', 'FraMeSToR', 'ZoroSenpai'],
         "anime": ['ANi', 'HYSUB', 'KTXP', 'LoliHouse', 'MCE', 'Nekomoe kissaten', r'(\d|\w|[\u4e00-\u9fa5])+-Raws',
-                  '织梦字幕组', '豌豆字幕组&风之圣殿字幕组', '豌豆&风之圣殿字幕组', '风之圣殿字幕组', '豌豆字幕组']
+                  '织梦字幕组', '豌豆字幕组&风之圣殿字幕组', '豌豆&风之圣殿字幕组', '风之圣殿字幕组', '豌豆字幕组', '今晚月色真美']
     }
 
+    _GROUP_PATTERN = r"(?<=[-@\[￡【&])(?:{})(?=[@.\s\]\[】&])"
+
     def __init__(self):
-        release_groups = []
-        for site_groups in self.RELEASE_GROUPS.values():
-            for release_group in site_groups:
-                release_groups.append(release_group)
-        self.__release_groups = '|'.join(release_groups)
+        self.__release_groups = '|'.join(
+            chain.from_iterable(self.RELEASE_GROUPS.values())
+        )
+        # 预编译正则，避免每次匹配都重新编译
+        self.__release_groups_re = self.__compile_groups(self.__release_groups)
+        self.__custom_groups_re = None
+
+    @classmethod
+    def __compile_groups(cls, groups):
+        return re.compile(cls._GROUP_PATTERN.format(groups), re.I)
 
     def match(self, title=None, groups=None):
         """
@@ -87,13 +102,14 @@ class ReleaseGroupsMatcher(object):
         """
         if not title:
             return ""
-        if not groups:
-            if self.custom_release_groups:
-                groups = f"{self.__release_groups}|{self.custom_release_groups}"
-            else:
-                groups = self.__release_groups
+        if groups:
+            # 调用方显式传入制作组列表，只能临时编译
+            groups_re = self.__compile_groups(groups)
+        elif self.__custom_groups_re is not None:
+            groups_re = self.__custom_groups_re
+        else:
+            groups_re = self.__release_groups_re
         title = f"{title} "
-        groups_re = re.compile(r"(?<=[-@\[￡【&])(?:%s)(?=[@.\s\]\[】&])" % groups, re.I)
         # 处理一个制作组识别多次的情况，保留顺序
         unique_groups = []
         for match in re.finditer(groups_re, title):
@@ -109,3 +125,8 @@ class ReleaseGroupsMatcher(object):
         """
         self.custom_release_groups = release_groups
         self.custom_separator = separator
+        if release_groups:
+            self.__custom_groups_re = self.__compile_groups(
+                f"{self.__release_groups}|{release_groups}")
+        else:
+            self.__custom_groups_re = None

@@ -6,10 +6,17 @@
 
 import hashlib
 import hmac
+import re
 import secrets
 
 SALT_CHARS = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
 DEFAULT_PBKDF2_ITERATIONS = 1_000_000
+
+# 本模块生成的哈希格式：method$salt$hash
+_HASH_PATTERN = re.compile(r"^(scrypt:\d+:\d+:\d+|pbkdf2:\w+:\d+)\$[^$]+\$[0-9a-f]+$")
+
+# 允许校验的哈希方法前缀，其它历史/异常格式一律视为校验失败
+_ALLOWED_METHODS = ("scrypt", "pbkdf2")
 
 
 def gen_salt(length: int) -> str:
@@ -86,6 +93,32 @@ def _hash_internal(method: str, salt: str, password: str) -> tuple[str, str]:
     else:
         raise ValueError(f"Invalid hash method '{method}'.")
 
+def normalize_password_hash(value: str) -> str:
+    """
+    将配置中的密码值归一化为可直接存入数据库的哈希字符串。
+
+    兼容历史格式：[hash] 前缀（可能重复多层）与明文密码。
+    返回值不包含 [hash] 前缀。
+
+    参数:
+        value: 配置中的密码值
+
+    返回:
+        可直接用于 check_password_hash 的哈希字符串
+    """
+    if not value:
+        return generate_password_hash("password")
+
+    value = str(value)
+    while value.startswith("[hash]"):
+        value = value[len("[hash]"):]
+
+    if not _HASH_PATTERN.match(value):
+        value = generate_password_hash(value)
+
+    return value
+
+
 def check_password_hash(pwhash: str, password: str) -> bool:
     """Securely check that the given stored password hash, previously generated using
     :func:`generate_password_hash`, matches the given password.
@@ -100,10 +133,33 @@ def check_password_hash(pwhash: str, password: str) -> bool:
     .. versionchanged:: 2.3
         All plain hashes are deprecated and will not be supported in Werkzeug 3.0.
     """
+    # 空哈希、非法类型直接判定失败，避免登录接口抛异常
+    if not pwhash or not isinstance(pwhash, (str, bytes)):
+        return False
+    if isinstance(pwhash, bytes):
+        try:
+            pwhash = pwhash.decode()
+        except UnicodeDecodeError:
+            return False
+    if not password:
+        return False
+
     try:
         method, salt, hashval = pwhash.split("$", 2)
     except ValueError:
         return False
 
-    return hmac.compare_digest(_hash_internal(method, salt, password)[0], hashval)
+    # 只支持本模块及 werkzeug 生成过的 scrypt/pbkdf2 格式
+    if method.split(":", 1)[0].lower() not in _ALLOWED_METHODS:
+        return False
+    if not salt or not hashval:
+        return False
+
+    try:
+        expected = _hash_internal(method, salt, password)[0]
+    except (ValueError, TypeError, OverflowError):
+        # 非法迭代次数、未摘要方法等历史格式：按密码错误处理
+        return False
+
+    return hmac.compare_digest(expected, hashval)
 

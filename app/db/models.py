@@ -1,5 +1,14 @@
-# coding: utf-8
-from sqlalchemy import Column, Float, Index, Integer, String, Text, text, Sequence, Boolean
+from sqlalchemy import (
+    Boolean,
+    Column,
+    Float,
+    Index,
+    Integer,
+    Sequence,
+    String,
+    Text,
+    text,
+)
 from sqlalchemy.ext.declarative import declarative_base
 
 Base = declarative_base()
@@ -76,6 +85,7 @@ class CONFIGUSERS(Base):
     NAME = Column(Text, index=True)
     PASSWORD = Column(Text)
     PRIS = Column(Text)
+    LEVEL = Column(Integer, default=1, server_default='1')
 
 
 class CONFIGREFRESHTOKENS(Base):
@@ -89,6 +99,15 @@ class CONFIGREFRESHTOKENS(Base):
     EXPIRES_AT = Column(Text)  # 过期时间
     IS_ACTIVE = Column(Integer, default=1)  # 是否有效 1=有效 0=无效
     LAST_USED = Column(Text)  # 最后使用时间
+
+
+class CONFIGAPIKEY(Base):
+    __tablename__ = 'CONFIG_API_KEY'
+
+    ID = Column(Integer, Sequence('ID'), primary_key=True)
+    NAME = Column(Text)  # 密钥名称
+    API_KEY = Column(Text, unique=True)  # 密钥内容
+    CREATE_TIME = Column(Text)  # 创建时间
 
 
 class CONFIGUSERRSS(Base):
@@ -257,7 +276,6 @@ class RSSMOVIES(Base):
     FILTER_EXCLUDE = Column(Text)
     SAVE_PATH = Column(Text)
     DOWNLOAD_SETTING = Column(Integer)
-    FUZZY_MATCH = Column(Integer)
     STATE = Column(Text)
     DESC = Column(Text)
     NOTE = Column(Text)
@@ -304,7 +322,6 @@ class RSSTVS(Base):
     FILTER_EXCLUDE = Column(Text)
     SAVE_PATH = Column(Text)
     DOWNLOAD_SETTING = Column(Integer)
-    FUZZY_MATCH = Column(Integer)
     TOTAL_EP = Column(Integer)
     CURRENT_EP = Column(Integer)
     TOTAL = Column(Integer)
@@ -363,6 +380,7 @@ class SEARCHRESULTINFO(Base):
     SIZE = Column(Integer)
     SEEDERS = Column(Integer)
     PEERS = Column(Integer)
+    PROGRESS = Column(Text)
     SITE = Column(Text)
     SITE_ORDER = Column(Text)
     PAGEURL = Column(Text)
@@ -437,12 +455,9 @@ class SITESTATISTICSHISTORY(Base):
 
 class SITEUSERINFOSTATS(Base):
     __tablename__ = 'SITE_USER_INFO_STATS'
-    __table_args__ = (
-        Index('INDX_SITE_USER_INFO_STATS_URL', 'URL'),
-    )
 
-    ID = Column(Integer, Sequence('ID'), primary_key=True)
-    SITE = Column(Text, index=True)
+    URL = Column(Text, primary_key=True)
+    SITE = Column(Text)
     USERNAME = Column(Text)
     USER_LEVEL = Column(Text)
     JOIN_AT = Column(Text)
@@ -454,19 +469,25 @@ class SITEUSERINFOSTATS(Base):
     LEECHING = Column(Integer)
     SEEDING_SIZE = Column(Integer)
     BONUS = Column(Float)
-    URL = Column(Text, unique=True)
     MSG_UNREAD = Column(Integer)
     EXT_INFO = Column(Text)
+
+
+class SITEFAVICON(Base):
+    __tablename__ = 'SITE_FAVICON'
+
+    URL = Column(Text, primary_key=True)
+    SITE = Column(Text)
+    FAVICON = Column(Text)
 
 
 class SITEUSERSEEDINGINFO(Base):
     __tablename__ = 'SITE_USER_SEEDING_INFO'
 
-    ID = Column(Integer, Sequence('ID'), primary_key=True)
-    SITE = Column(Text, index=True)
+    URL = Column(Text, primary_key=True)
+    SITE = Column(Text)
     SEEDING_INFO = Column(Text, server_default=text("'[]'"))
     UPDATE_AT = Column(Text)
-    URL = Column(Text, unique=True)
 
 
 class SYNCHISTORY(Base):
@@ -587,6 +608,7 @@ class MEDIASYNCITEMS(BaseMedia):
     YEAR = Column(Text)
     TMDBID = Column(Text, index=True)
     IMDBID = Column(Text)
+    DOUBANID = Column(Text, index=True)
     PATH = Column(Text)
     NOTE = Column(Text)
     JSON = Column(Text)

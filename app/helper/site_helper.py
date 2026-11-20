@@ -1,12 +1,12 @@
-# -*- coding: utf-8 -*-
 import os
 import re
 
-from datetime import datetime
 from lxml import etree
 
-from app.utils import SystemUtils
+from app.utils import PathUtils, SystemUtils
 from app.utils.constants import Constants
+from app.utils.time_utils import TimeUtils
+
 
 class SiteHelper:
 
@@ -34,10 +34,7 @@ class SiteHelper:
             if html.xpath(xpath):
                 return True
         user_info_div = html.xpath('//div[@class="user-info-side"]')
-        if user_info_div:
-            return True
-
-        return False
+        return bool(user_info_div)
 
     @staticmethod
     def get_url_subtitle_name(disposition, url):
@@ -47,20 +44,20 @@ class SiteHelper:
         fname = re.findall(r"filename=\"?(.+)\"?", disposition or "")
         if fname:
             fname = str(fname[0].encode('ISO-8859-1').decode()).split(";")[0].strip()
-            if fname.endswith('"'):
-                fname = fname[:-1]
+            fname = fname.removesuffix('"')
         elif url and os.path.splitext(url)[-1] in (Constants.RMT_SUBEXT + ['.zip']):
             fname = url.split("/")[-1]
         else:
-            fname = str(datetime.now())
-        return fname
+            fname = str(TimeUtils.now())
+        # 站点返回的文件名不可信，只保留文件名，防止路径穿越
+        return PathUtils.safe_filename(fname)
 
     @staticmethod
     def transfer_subtitle(source_sub_file, media_file):
         """
         转移站点字幕
         """
-        new_sub_file = "%s%s" % (os.path.splitext(media_file)[0], os.path.splitext(source_sub_file)[-1])
+        new_sub_file = f"{os.path.splitext(media_file)[0]}{os.path.splitext(source_sub_file)[-1]}"
         if os.path.exists(new_sub_file):
             return 1
         else:

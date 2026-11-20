@@ -1,17 +1,16 @@
 import os
 import signal
 import warnings
-import uvicorn
 
+import uvicorn
 from fastapi import FastAPI
 
 from config import Config
-
 from log import setup_logging
+
 setup_logging()
 
 import log
-
 
 # 导入FastAPI应用
 from main import app
@@ -33,7 +32,7 @@ def sigal_handler(num, stack):
     """
     信号处理
     """
-    log.warn('捕捉到退出信号：%s, 开始退出...' % num)
+    log.warn(f'捕捉到退出信号：{num}, 开始退出...')
 
     # 退出主进程
     log.info('退出主进程...')
@@ -48,15 +47,14 @@ signal.signal(signal.SIGTERM, sigal_handler)
 # 生成运行配置
 def get_run_config(app: FastAPI) -> uvicorn.Config:
 
-    _web_host = "0.0.0.0"
+    _web_host = '0.0.0.0'
     _web_port = 3000
     _log_level = 'info'
 
     app_conf = Config().get_config('app')
 
     if app_conf:
-        _web_port_conf = app_conf.get('web_port', '')
-        _web_port = int(_web_port_conf) if str(_web_port_conf).isdigit() else 3000
+        _web_host = app_conf.get('web_host', _web_host)
         _log_level = app_conf.get('loglevel', 'info')
 
     # 生成配置
@@ -89,7 +87,7 @@ def set_git_proxy():
         # 设置 http.proxy
         result = subprocess.run(
             ['git', 'config', '--global', 'http.proxy', http_proxy],
-            capture_output=True, text=True
+            capture_output=True, text=True, check=False
         )
         if result.returncode != 0:
             log.error(f'❌ 设置Git HTTP代理失败: {result.stderr.strip()}')
@@ -99,24 +97,31 @@ def set_git_proxy():
         https_proxy = proxy_config.get('https', http_proxy)
         result = subprocess.run(
             ['git', 'config', '--global', 'https.proxy', https_proxy],
-            capture_output=True, text=True
+            capture_output=True, text=True, check=False
         )
         if result.returncode != 0:
             log.error(f'❌ 设置Git HTTPS代理失败: {result.stderr.strip()}')
 
         log.info('✅ Git 代理已设置')
     except Exception as e:
-        log.error(f'❌ 执行git config异常: {str(e)}')
+        log.error(f'❌ 执行git config异常: {e!s}')
 
 
 def init_system():
-    from app.core.initializer import init_data, update_config, check_config
+    from app.core.initializer import (
+        check_config,
+        init_admin_user,
+        init_data,
+        update_config,
+    )
     # 配置
-    log.debug('NAStool 当前版本号：%s' % APP_VERSION)
+    log.debug(f'NAStool 当前版本号：{APP_VERSION}')
     # 数据初始化
     init_data()
     # 升级配置文件
     update_config()
+    # 初始化系统管理员账号
+    init_admin_user()
     # 检查配置文件
     check_config()
     # 设置git代理

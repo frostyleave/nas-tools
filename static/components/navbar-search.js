@@ -33,21 +33,21 @@
         <a class="dropdown-item hide-theme-light" data-id="light" href="javascript:void(0)" onclick="theme_toggle(this)" role="button">明亮风格</a>
         <div class="dropdown-divider"></div>`;
 
-      if (sysInfo.admin) {
+      // 消息中心、实时日志与后端一致，仅管理员（level >= 9）可见
+      if (Number(sysInfo.level) >= 9) {
         html += `
           <a class="dropdown-item" href="javascript:show_message_modal()" role="button">消息中心</a>
           <a class="dropdown-item" href="javascript:show_logging_modal()" role="button">实时日志</a>
           <div class="dropdown-divider"></div>`;
+      }
 
-        if (sysInfo.systemFlag === 'Synology') {
-          html += `<a class="dropdown-item" href="javascript:restart()">重启</a>`;
-        } else if (sysInfo.systemFlag === 'Docker') {
-          html += `<a class="dropdown-item" href="javascript:update_system()">检查更新</a
-          ><a class="dropdown-item" href="javascript:restart()">重启</a>`;
-        }
+      // 重启仅系统管理员可用
+      if (sysInfo.admin && (sysInfo.systemFlag === 'Synology' || sysInfo.systemFlag === 'Docker')) {
+        html += `<a class="dropdown-item" href="javascript:restart()">重启</a>`;
       }
 
       html += `
+        <a class="dropdown-item" href="javascript:show_change_password_modal()">修改密码</a>
         <a class="dropdown-item" href="javascript:logout()"> 注销 <span class="text-muted mx-3"></span></a>
         <div class="dropdown-divider"></div>`;
 

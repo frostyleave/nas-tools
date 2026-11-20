@@ -1,15 +1,22 @@
 import xml.dom.minidom
-
+from datetime import UTC
+from typing import ClassVar
 from urllib.parse import urljoin
+
 from lxml import etree
 
-from app.db.main_db import MainDb, DbPersist
-from app.db.models import RSSTORRENTS
-from app.utils import RssTitleUtils, StringUtils, RequestUtils, DomUtils, SiteUtils
-
-from config import Config
-
 import log
+from app.db.main_db import DbPersist, MainDb
+from app.db.models import RSSTORRENTS
+from app.utils import (
+    DomUtils,
+    RequestUtils,
+    RssTitleUtils,
+    SiteUtils,
+    StringUtils,
+    TimeUtils,
+)
+from config import Config
 
 
 class RssHelper:
@@ -19,7 +26,7 @@ class RssHelper:
       RSS帮助类，解析RSS报文、获取RSS地址等
       """
     # 各站点RSS链接获取配置
-    rss_link_conf = {
+    rss_link_conf: ClassVar[dict] = {
         "default": {
             "xpath": "//a[@class='faqlink']/@href",
             "url": "getrss.php",
@@ -267,7 +274,7 @@ class RssHelper:
                     return str(rss_link[-1]), ""
             return "", f"获取RSS链接失败：{url}"
         except Exception as e:
-            return "", f"获取 {url} RSS链接失败：{str(e)}"
+            return "", f"获取 {url} RSS链接失败：{e!s}"
 
 
     @staticmethod
@@ -337,8 +344,13 @@ class RssHelper:
                         # 发布日期
                         pubdate = DomUtils.tag_value(item, "pubDate", default="")
                         if pubdate:
-                            # 转换为时间
+                            # 转换为时间；无时区的按本地时区补齐后统一转 UTC
                             pubdate = StringUtils.get_time_stamp(pubdate)
+                            if pubdate:
+                                if pubdate.tzinfo is None:
+                                    timezone = TimeUtils.get_timezone()
+                                    pubdate = pubdate.replace(tzinfo=timezone) if timezone else pubdate.astimezone()
+                                pubdate = pubdate.astimezone(UTC)
                         # 返回对象
                         tmp_dict = {'title': title,
                                     'enclosure': enclosure,
@@ -379,10 +391,8 @@ class RssHelper:
         """
         if not enclosure:
             return True
-        if self._db.query(RSSTORRENTS).filter(RSSTORRENTS.ENCLOSURE == enclosure).count() > 0:
-            return True
-        else:
-            return False
+        ret = self._db.query(RSSTORRENTS).filter(RSSTORRENTS.ENCLOSURE == enclosure).count()
+        return ret > 0
 
     def is_rssd_by_simple(self, torrent_name, enclosure):
         """
@@ -394,7 +404,7 @@ class RssHelper:
             ret = self._db.query(RSSTORRENTS).filter(RSSTORRENTS.ENCLOSURE == enclosure).count()
         else:
             ret = self._db.query(RSSTORRENTS).filter(RSSTORRENTS.TORRENT_NAME == torrent_name).count()
-        return True if ret > 0 else False
+        return ret > 0
 
     @DbPersist(_db)
     def simple_insert_rss_torrents(self, title, enclosure):

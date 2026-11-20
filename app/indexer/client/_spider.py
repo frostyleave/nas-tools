@@ -1,24 +1,62 @@
-import chardet
 import datetime
 import re
-
-from typing import Optional, Tuple
+from functools import lru_cache
 from urllib.parse import quote, urlencode
 
-from jinja2 import Template
+from charset_normalizer import from_bytes
+from jinja2 import Environment, Template
 from pyquery import PyQuery
 
 import log
-
 from app.models.model import IndexerInfo
 from app.sites.siteconf import SiteConf
-from app.utils import StringUtils, RequestUtils
+from app.utils import RequestUtils, StringUtils
 from app.utils.types import MediaType
-
-
 from config import Config
 
-class TorrentSpider(object):
+# 索引器配置中的模板字符串数量内容缓存
+_TEMPLATE_ENV = Environment()
+
+
+@lru_cache(maxsize=64)
+def _compile_template(text: str) -> Template:
+    return _TEMPLATE_ENV.from_string(text)
+
+
+# 站点搜索路径类型 -> 媒体类型匹配规则
+_PATH_TYPE_MATCHERS = {
+    "all": lambda mtype: not mtype,
+    "movie": lambda mtype: mtype == MediaType.MOVIE,
+    "tv": lambda mtype: mtype == MediaType.TV,
+    "anime": lambda mtype: mtype == MediaType.ANIME,
+}
+
+
+def _is_path_type_matched(path_type, mtype) -> bool:
+    """
+    判断站点搜索路径的类型是否匹配当前媒体类型
+    """
+    matcher = _PATH_TYPE_MATCHERS.get(path_type)
+    return bool(matcher and matcher(mtype))
+
+
+def _select_torrents_path(paths: list, mtype) -> str:
+    """
+    根据媒体类型从站点配置中选择种子搜索路径
+    """
+    if not paths:
+        return ""
+    # 只有一个路径时直接使用
+    if len(paths) == 1:
+        return paths[0].get("path", "")
+    # 多个路径时按类型匹配
+    for path in paths:
+        if _is_path_type_matched(path.get("type"), mtype):
+            return path.get("path")
+    return ""
+
+
+class TorrentSpider:
 
     # 索引器ID
     indexerid = None
@@ -33,25 +71,14 @@ class TorrentSpider(object):
     # 代理
     proxies = None
     # 是否渲染
-    render = False
     # Referer
     referer = None
-    # 搜索路径、方式配置
-    search_conf = {}
-    # 浏览配置
-    browse = {}
-    # 站点分类配置
-    category = {}
-    # 站点种子列表配置
-    list_conf = {}
-    # 站点种子字段配置
-    fields_conf = {}
     # 页码
     page = 0
     # 搜索条数
     result_num = 100
     # 种子列表
-    torrents_info_array = []
+    torrents_info_array: list
     # 超时时间
     timeout = 20
 
@@ -59,6 +86,11 @@ class TorrentSpider(object):
 
         self.torrents_info_array = []
         self.result_num = 100
+        self.browse = {}
+        self.search_conf = {}
+        self.category = {}
+        self.list_conf = {}
+        self.fields_conf = {}
         # 索引器
         if indexer:
             self._indexer = indexer
@@ -68,7 +100,6 @@ class TorrentSpider(object):
             self.category = indexer.category
             self.list_conf = indexer.torrents.get("list", {})
             self.fields_conf = indexer.torrents.get("fields")
-            self.render = indexer.render
             self.domain = indexer.domain
             if self.domain and not str(self.domain).endswith("/"):
                 self.domain = self.domain + "/"
@@ -88,7 +119,7 @@ class TorrentSpider(object):
         if referer:
             self.referer = referer
 
-    def search(self, keyword: str, page=None, mtype=None) -> Tuple[bool, list]:
+    def search(self, keyword: str, page=None, mtype=None) -> tuple[bool, list]:
         """
         页面查询
         :param keyword: 搜索关键字，如果数组则为批量搜索
@@ -112,24 +143,7 @@ class TorrentSpider(object):
         构建请求地址
         """
         # 种子搜索相对路径
-        paths = self.search_conf.get("paths", [])
-        torrentspath = ""
-        if len(paths) == 1:
-            torrentspath = paths[0].get("path", "")
-        else:
-            for path in paths:
-                if path.get("type") == "all" and not mtype:
-                    torrentspath = path.get("path")
-                    break
-                elif path.get("type") == "movie" and mtype == MediaType.MOVIE:
-                    torrentspath = path.get("path")
-                    break
-                elif path.get("type") == "tv" and mtype == MediaType.TV:
-                    torrentspath = path.get("path")
-                    break
-                elif path.get("type") == "anime" and mtype == MediaType.ANIME:
-                    torrentspath = path.get("path")
-                    break
+        torrentspath = _select_torrents_path(self.search_conf.get("paths"), mtype)
         
         searchurl = ''
 
@@ -152,7 +166,7 @@ class TorrentSpider(object):
                 }
                 # 额外参数
                 for key, value in self.search_conf.get("params").items():
-                    params.update({"%s" % key: str(value).format(**inputs_dict)})
+                    params.update({f"{key}": str(value).format(**inputs_dict)})
                 # 分类条件
                 if self.category:
                     if mtype == MediaType.MOVIE:
@@ -177,7 +191,7 @@ class TorrentSpider(object):
                                 params[field] = field+delimiter.join(cat_ids)
                         else:
                             for cat_id in cat_ids:
-                                params["cat%s" % cat_id] = 1
+                                params[f"cat{cat_id}"] = 1
                 searchurl = self.domain + torrentspath + "?" + urlencode(params, doseq=True)
             else:
                 # 变量字典
@@ -216,16 +230,17 @@ class TorrentSpider(object):
             log.warn(f"【Spider】[{self.indexername}] 请求失败: {searchurl}")
             return ''
         
-        # 使用chardet检测字符编码
+        # 使用 charset_normalizer 检测字符编码
         raw_data = ret.content
         if raw_data:
             try:
-                result = chardet.detect(raw_data)
-                encoding = result['encoding']
+                match = from_bytes(raw_data).best()
+                if not match:
+                    raise ValueError("未检测到字符编码")
                 # 解码为字符串
-                return raw_data.decode(encoding)
+                return raw_data.decode(match.encoding)
             except Exception as e:
-                log.debug(f"chardet解码失败: {str(e)}")
+                log.debug(f"charset_normalizer解码失败: {e!s}")
                 # 探测utf-8解码
                 if re.search(r"charset=\"?utf-8\"?", ret.text, re.IGNORECASE):
                     ret.encoding = "utf-8"
@@ -269,7 +284,7 @@ class TorrentSpider(object):
                 )
                 title_optional = self.__index(items, title_optional_selector)
                 render_dict.update({"title_optional": title_optional})
-            torrents_title = Template(selector.get("text")).render(
+            torrents_title = _compile_template(selector.get("text")).render(
                 fields=render_dict
             )
         return self.__filter_text(torrents_title, selector.get("filters"))
@@ -335,7 +350,7 @@ class TorrentSpider(object):
                 )
                 description_normal = self.__index(items, description_normal_selector)
                 render_dict.update({"description_normal": description_normal})
-            torrent_description = Template(selector.get("text")).render(
+            torrent_description = _compile_template(selector.get("text")).render(
                 fields=render_dict
             )
 
@@ -483,6 +498,31 @@ class TorrentSpider(object):
         else:
             return '0'
         
+    def _getprogress(self, torrent) -> str:
+        # torrent progress
+        if "progress" not in self.fields_conf:
+            return ''
+
+        selector = self.fields_conf.get("progress")
+        if not isinstance(selector, dict):
+            return ''
+
+        progress = torrent(selector.get("selector", "")).clone()
+        self.__remove(progress, selector)
+        items = self.__attribute_or_text(progress, selector)
+        item = self.__index(items, selector)
+        item = self.__filter_text(item, selector.get("filters"))
+        if not item:
+            return ''
+
+        # 统一提取百分比，兼容“100%”“seeding 100%”“100.00”等格式
+        match = re.search(r"(\d+(?:\.\d+)?)", str(item))
+        if not match:
+            return ''
+
+        value = float(match.group(1))
+        return f"{value:g}%"
+
     def _getpubdate(self, torrent) -> str:
         # torrent pubdate
         if "date_added" not in self.fields_conf:
@@ -509,7 +549,7 @@ class TorrentSpider(object):
         torrents_date_elapsed = self.__index(items, selector)
         return self.__filter_text(torrents_date_elapsed, selector.get("filters"))
 
-    def _getdownloadvolumefactor(self, torrent) -> Optional[float]:
+    def _getdownloadvolumefactor(self, torrent) -> float | None:
         # downloadvolumefactor
         selector = self.fields_conf.get("downloadvolumefactor")
         if not selector:
@@ -535,7 +575,7 @@ class TorrentSpider(object):
                     torrents_downloadvolumefactor = float(downloadvolumefactor.group(1))
         return torrents_downloadvolumefactor
 
-    def _getuploadvolumefactor(self, torrent) -> Optional[float]:
+    def _getuploadvolumefactor(self, torrent) -> float | None:
         # uploadvolumefactor
         selector = self.fields_conf.get("uploadvolumefactor")
         if not selector:
@@ -583,7 +623,7 @@ class TorrentSpider(object):
                 hr_tag = torrent(selector.get("selector", ""))
             else:
                 hr_tag = torrent(selector)
-            return False if hr_tag is None else True        
+            return not hr_tag is None        
         return False
 
     def _getinfo(self, torrent_html):
@@ -606,6 +646,7 @@ class TorrentSpider(object):
             torrents_info["pubdate"] = self._getpubdate(torrent_html)
             torrents_info["date_elapsed"] = self._getelapsed_date(torrent_html)
             torrents_info["labels"] = self._getlabels(torrent_html)
+            torrents_info["progress"] = self._getprogress(torrent_html)
             torrents_info["hr"] = self._checkhr(torrent_html)
         except Exception as err:
             log.exception(f"【Spider】{self.indexername} 搜索出现错误：")
@@ -626,19 +667,19 @@ class TorrentSpider(object):
                 method_name = filter_item.get("name")
                 args = filter_item.get("args")
                 if method_name == "re_search" and isinstance(args, list):
-                    re_search = re.search(r"%s" % args[0], text)
+                    re_search = re.search(rf"{args[0]}", text)
                     if re_search:
                         text = re_search.group(args[-1])
                 if method_name == "re_sub" and isinstance(args, list):
-                    text = re.sub(r"%s" % args[0], args[1], text)
+                    text = re.sub(rf"{args[0]}", args[1], text)
                 if method_name == "re_format" and isinstance(args, list):
                     text = self.__format_string(args[0], args[1], text)
                 elif method_name == "split" and isinstance(args, list):
-                    text = text.split(r"%s" % args[0])[args[-1]]
+                    text = text.split(rf"{args[0]}")[args[-1]]
                 elif method_name == "replace" and isinstance(args, list):
-                    text = text.replace(r"%s" % args[0], r"%s" % args[-1])
+                    text = text.replace(rf"{args[0]}", rf"{args[-1]}")
                 elif method_name == "dateparse" and isinstance(args, str):
-                    text = datetime.datetime.strptime(text, r"%s" % args)
+                    text = datetime.datetime.strptime(text, rf"{args}")
                 elif method_name == "strip":
                     text = text.strip()
                 elif method_name == "appendleft":

@@ -1,14 +1,13 @@
-import datetime
 import random
 import re
+from typing import ClassVar
 
 from lxml import etree
 
 from app.helper.site_signin_helper import SiteSigninHelper, Verdict
-from app.plugins.modules._autosignin._base import _ISiteSigninHandler
 from app.models.model import UserSiteConf
-from app.utils import SiteUtils, RequestUtils
-
+from app.plugins.modules._autosignin._base import _ISiteSigninHandler
+from app.utils import RequestUtils, SiteUtils, TimeUtils
 from config import Config
 
 
@@ -20,7 +19,7 @@ class U2(_ISiteSigninHandler):
     site_url = "u2.dmhy.org"
 
     # 已签到
-    _sign_regex = ['<a href="showup.php">已签到</a>',
+    _sign_regex: ClassVar[list[str]] = ['<a href="showup.php">已签到</a>',
                    '<a href="showup.php">Show Up</a>',
                    '<a href="showup.php">Показать</a>',
                    '<a href="showup.php">已簽到</a>',
@@ -49,10 +48,10 @@ class U2(_ISiteSigninHandler):
         ua = site_info.ua
         proxy = Config().get_proxies() if site_info.proxy else None
 
-        now = datetime.datetime.now()
+        now = TimeUtils.now()
         # 判断当前时间是否小于9点
         if now.hour < 9:
-            self.error(f"签到失败，9点前不签到")
+            self.error("签到失败，9点前不签到")
             return False, f'[{site}]签到失败，9点前不签到'
         
         # 获取页面html
@@ -99,13 +98,13 @@ class U2(_ISiteSigninHandler):
                                 ).post_res(url="https://u2.dmhy.org/showup.php?action=show",
                                            data=data)
         if not sign_res or sign_res.status_code != 200:
-            self.error(f"签到失败，签到接口请求失败")
+            self.error("签到失败，签到接口请求失败")
             return False, f'[{site}]签到失败，签到接口请求失败'
 
         # 判断是否签到成功
         # sign_res.text = "<script type="text/javascript">window.location.href = 'showup.php';</script>"
         if self._success_text in sign_res.text:
-            self.info(f"签到成功")
+            self.info("签到成功")
             return True, f'[{site}]签到成功'
         else:
             self.warn(f"[{site}]签到失败，未知原因")

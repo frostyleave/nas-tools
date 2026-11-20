@@ -1,12 +1,25 @@
 import re
-from typing import Tuple
+from typing import ClassVar
 
 import log
 from app.utils import RequestUtils, StringUtils
 from config import Config
 
 
-class TNodeSpider(object):
+class TNodeSpider:
+    # 站点标签枚举，对应搜索结果的 tags 字段
+    _tags_map: ClassVar[dict[int, str]] = {
+        601: "官方",
+        602: "禁转",
+        603: "国语",
+        604: "中字",
+        611: "杜比视界",
+        613: "HDR10",
+        614: "特效字幕",
+        621: "完结",
+        622: "分集",
+    }
+
     _indexerid = None
     _domain = None
     _name = ""
@@ -47,7 +60,7 @@ class TNodeSpider(object):
             if csrf_token:
                 self._token = csrf_token.group(1)
 
-    def search(self, keyword, page=0) -> Tuple[bool, list]:
+    def search(self, keyword, page=0) -> tuple[bool, list]:
         
         if not self._token:
             log.warn(f"【INDEXER】{self._name} 未获取到token, 无法搜索")
@@ -95,7 +108,9 @@ class TNodeSpider(object):
                     'downloadvolumefactor': result.get('downloadRate'),
                     'uploadvolumefactor': result.get('uploadRate'),
                     'page_url': self._pageurl % (self._domain, result.get('id')),
-                    'imdbid': result.get('imdb')
+                    'imdbid': result.get('imdb_id') or result.get('imdb'),
+                    'labels': self.__parse_labels(result),
+                    'progress': self.__parse_progress(result)
                 }
                 torrents.append(torrent)
         elif res is not None:
@@ -105,3 +120,44 @@ class TNodeSpider(object):
             log.warn(f"【INDEXER】{self._name} 搜索失败，无法连接 {self._domain}")
             return True, []
         return False, torrents
+
+    @classmethod
+    def __parse_labels(cls, result: dict) -> str:
+        """
+        生成标签：促销标签 + 站点数字标签
+        """
+        labels = []
+        if cls.__to_float(result.get('uploadRate')) == 2:
+            labels.append("2xUp")
+        if cls.__to_float(result.get('downloadRate')) == 0:
+            labels.append("Free")
+        for tag_id in result.get('tags') or []:
+            try:
+                tag_name = cls._tags_map.get(int(tag_id))
+            except (TypeError, ValueError):
+                tag_name = None
+            if tag_name:
+                labels.append(tag_name)
+        return "|".join(labels)
+
+    @classmethod
+    def __parse_progress(cls, result: dict) -> str:
+        """
+        下载状态枚举换算为进度：3 下载中按 0%，2 已完成、4 做种中按 100%，其余为空
+        """
+        progress = cls.__to_float(result.get('progress'))
+        if progress == 3:
+            return "0%"
+        if progress in (2, 4):
+            return "100%"
+        return ""
+
+    @staticmethod
+    def __to_float(value) -> float | None:
+        """
+        转为浮点数，无法转换时返回 None
+        """
+        try:
+            return float(value)
+        except (TypeError, ValueError):
+            return None

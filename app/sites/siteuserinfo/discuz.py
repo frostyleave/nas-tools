@@ -1,9 +1,8 @@
-# -*- coding: utf-8 -*-
 import re
 
 from lxml import etree
 
-from app.sites.siteuserinfo._base import _ISiteUserInfo, SITE_BASE_ORDER
+from app.sites.siteuserinfo._base import SITE_BASE_ORDER, _ISiteUserInfo
 from app.utils import StringUtils
 from app.utils.types import SiteSchema
 
@@ -30,7 +29,7 @@ class DiscuzUserInfo(_ISiteUserInfo):
             user_id_match = re.search(r"&uid=(\d+)", user_info[0].attrib['href'])
             if user_id_match and user_id_match.group().strip():
                 self.userid = user_id_match.group(1)
-                self._torrent_seeding_page = f"forum.php?&mod=torrents&cat_5up=on"
+                self._torrent_seeding_page = "forum.php?&mod=torrents&cat_5up=on"
                 self._user_detail_page = user_info[0].attrib['href']
                 self.username = user_info[0].text.strip()
 
@@ -46,7 +45,7 @@ class DiscuzUserInfo(_ISiteUserInfo):
         """
         html = etree.HTML(html_text)
         if not html:
-            return None
+            return
 
         # 用户等级
         user_levels_text = html.xpath('//a[contains(@href, "usergroup")]/text()')

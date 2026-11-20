@@ -1,12 +1,10 @@
 import json
 import os
 import shutil
-import sys
-
+import time
 from threading import Lock
 
 import ruamel.yaml
-
 
 # 收藏了的媒体的目录名，名字可以改，在Emby中点击红星则会自动将电影转移到此分类下，需要在Emby Webhook中配置用户行为通知
 RMT_FAVTYPE = '精选'
@@ -29,9 +27,8 @@ def singleconfig(cls):
 
 
 @singleconfig
-class Config(object):
+class Config:
     
-    _config = {}
     _config_path = None
     _user = None
 
@@ -48,12 +45,18 @@ class Config(object):
         self._config_path = os.environ.get('NASTOOL_CONFIG')
         if not self._config_path:
             print("【Config】NASTOOL_CONFIG 环境变量未设置，使用config文件夹下默认配置文件")
-            separator = '\\' if os.name == "nt" else '/'
-            this_path = sys.argv[0]
-            dir_path = this_path[:this_path.rfind(separator)]
+            # 以 config.py 所在目录为根目录
+            dir_path = os.path.dirname(os.path.realpath(__file__))
             self._config_path = os.path.join(dir_path, "config", "config.yaml")
         if not os.environ.get('TZ'):
             os.environ['TZ'] = 'Asia/Shanghai'
+        # 重新应用时区，确保 time.localtime / logging 等使用配置的时区（Windows 无 tzset）
+        if hasattr(time, "tzset"):
+            try:
+                time.tzset()
+            except Exception:
+                pass
+        self._config = {}
         self.init_config()
 
     def init_config(self):
@@ -69,26 +72,26 @@ class Config(object):
             with open(self._config_path, mode='r', encoding='utf-8') as cf:
                 try:
                     # 读取配置
-                    print("正在加载配置：%s" % self._config_path)
+                    print(f"正在加载配置：{self._config_path}")
                     self._config = ruamel.yaml.YAML().load(cf)
                 except Exception as e:
-                    print("【Config】配置文件 config.yaml 格式出现严重错误! 请检查：%s" % str(e))
+                    print(f"【Config】配置文件 config.yaml 格式出现严重错误! 请检查：{str(e)}")
                     self._config = {}
 
             with open(os.path.join(inner_cfg_path, "menu.json"), "rb") as f:
                 try:
                     self.menu = json.loads(f.read())
                 except Exception as e:
-                    print("menu.json解析出现严重错误! 请检查：%s" % str(e))
+                    print(f"menu.json解析出现严重错误! 请检查：{e!s}")
 
             with open(os.path.join(inner_cfg_path, "services.json"), "rb") as f:
                 try:
                     self.services = json.loads(f.read())
                 except Exception as e:
-                    print("services.json解析出现严重错误! 请检查：%s" % str(e))
+                    print(f"services.json解析出现严重错误! 请检查：{e!s}")
 
         except Exception as err:
-            print("【Config】加载 config.yaml 配置出错：%s" % str(err))
+            print(f"【Config】加载 config.yaml 配置出错：{err!s}")
             return False
 
     def get_proxies(self):
@@ -103,10 +106,27 @@ class Config(object):
         return self._config.get(node, {})
 
     def save_config(self, new_cfg):
+        """
+        保存配置：由数据库管理的配置项写入数据库，其余写入 config.yaml
+        """
+        file_cfg = new_cfg
+        try:
+            from app.conf.db_config import DbConfig
+            DbConfig().save(new_cfg)
+            file_cfg = DbConfig().get_file_config(new_cfg)
+        except Exception as err:
+            # 数据库不可用时写入文件
+            print(f"【Config】保存数据库配置失败，配置将写入文件：{err!s}")
         self._config = new_cfg
+        return self._write_config_file(file_cfg)
+
+    def _write_config_file(self, cfg):
+        """
+        仅写入 config.yaml 文件（内部使用）
+        """
         with open(self._config_path, mode='w', encoding='utf-8') as sf:
             yaml = ruamel.yaml.YAML()
-            return yaml.dump(new_cfg, sf)
+            return yaml.dump(cfg, sf)
 
     def get_config_path(self):
         return os.path.dirname(self._config_path)
@@ -146,7 +166,18 @@ class Config(object):
             RMT_FAVTYPE = favtype
 
     def get_tmdbapi_url(self):
-        return f"https://{self.get_config('app').get('tmdb_domain') or self.tmdb_api_domain}/3"
+        """
+        获取 TMDB API 地址
+
+        支持内置域名，也支持用户填写的自定义代理地址
+        """
+        domain = (self.get_config('app').get('tmdb_domain') or '').strip() or self.tmdb_api_domain
+        if "://" not in domain:
+            domain = f"https://{domain}"
+        domain = domain.rstrip("/")
+        if domain.endswith("/3"):
+            return domain
+        return f"{domain}/3"
 
     def get_tmdbimage_url(self, path, prefix="w500"):
         if not path:

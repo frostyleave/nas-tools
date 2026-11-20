@@ -1,19 +1,18 @@
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from functools import partial, wraps
-from typing import Optional
+from inspect import Parameter, isawaitable, iscoroutinefunction, signature
+from typing import Annotated
 
 import jwt
-
-from fastapi import HTTPException, Request, status
+from fastapi import Depends, HTTPException, Request, status
 from fastapi.requests import HTTPConnection
 from jwt.exceptions import InvalidTokenError
-from passlib.context import CryptContext
 
 import log
-
+from app.core.security_center import SecurityCenter
+from app.models.user import LEVEL_USER, User, UserManager
 from config import Config
 
-from app.models.user import User, UserManager
 
 def get_secret() -> str:
     """
@@ -26,13 +25,9 @@ ACCESS_TOKEN_EXPIRE_MINUTES = 10      # 访问 token 过期时间
 REFRESH_TOKEN_EXPIRE_DAYS = 7         # 刷新 token 过期时间
 COOKIE_MAX_AGE = REFRESH_TOKEN_EXPIRE_DAYS * 24 * 60 * 60  # cookie最大生存时间
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-
 # ------------------------
 # 密码与用户工具函数
 # ------------------------
-def verify_password(plain_password: str, hashed_password: str) -> bool:
-    return pwd_context.verify(plain_password, hashed_password)
 
 def authenticate_user(username: str, password: str) -> User:
     user = UserManager().get_user_by_name(username)
@@ -43,13 +38,13 @@ def authenticate_user(username: str, password: str) -> User:
 # ------------------------
 # JWT 工具函数
 # ------------------------
-def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
+def create_access_token(data: dict, expires_delta: timedelta | None = None) -> str:
     to_encode = data.copy()
-    expire = datetime.utcnow() + (expires_delta or timedelta(minutes=15))
+    expire = datetime.now(UTC) + (expires_delta or timedelta(minutes=15))
     to_encode.update({"exp": expire})
     return jwt.encode(to_encode, get_secret(), algorithm=ALGORITHM)
 
-def decode_access_token(token: str) -> Optional[str]:
+def decode_access_token(token: str) -> str | None:
     try:
         payload = jwt.decode(token, get_secret(), algorithms=[ALGORITHM])
         username: str = payload.get("sub")
@@ -59,7 +54,7 @@ def decode_access_token(token: str) -> Optional[str]:
     except InvalidTokenError:
         return None
     
-def validate_refresh_token(token: str) -> Optional[str]:
+def validate_refresh_token(token: str) -> str | None:
     try:
         payload = jwt.decode(token, get_secret(), algorithms=[ALGORITHM])
         if not payload or payload.get("type") != "refresh":
@@ -67,27 +62,53 @@ def validate_refresh_token(token: str) -> Optional[str]:
         username: str = payload.get("sub")
         if username is None:
             return None
+        user = UserManager().get_user_by_name(username)
+        if user is None:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid Token.",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
         return username
     except InvalidTokenError:
         return None
     
 
 # 解析http请求中的用户
-async def get_current_user(request: HTTPConnection) -> Optional[User]:
+# 同步依赖：FastAPI 会将其放到线程池执行，避免每次鉴权都在事件循环上同步查库
+def get_current_user(request: HTTPConnection) -> User | None:
     token = request.cookies.get("access_token")
     if not token:
-        raise HTTPException(status_code=401, detail="缺少 access_token")
+        raise HTTPException(status_code=401, detail="no access token")
     username = decode_access_token(token)
     if username is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="无效 token",
+            detail="Invalid Token",
             headers={"WWW-Authenticate": "Bearer"},
         )
     user = UserManager().get_user_by_name(username)
     if user is None:
-        raise HTTPException(status_code=404, detail="用户不存在")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid Token.",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
     return user
+
+
+# FastAPI 依赖注入类型别名
+CurrentUser = Annotated[User, Depends(get_current_user)]
+
+
+async def _call_endpoint(func, *args, **kwargs):
+    """
+    调用被装饰的接口：同时兼容同步函数与异步函数
+    """
+    result = func(*args, **kwargs)
+    if isawaitable(result):
+        return await result
+    return result
 
 
 def auth_required(func=None):
@@ -102,27 +123,70 @@ def auth_required(func=None):
 
         check_apikey = Config().get_config("security").get("check_apikey")
         if not check_apikey:
-            return func(*args, **kwargs)
-        
+            return await _call_endpoint(func, *args, **kwargs)
+
         log.debug(f"【Security】{func.__name__} 认证检查")
-        
-        setting_api_key = Config().get_config("security").get("api_key")
+
         request: Request = kwargs.get("request") or args[0]
 
         # 允许在请求头Authorization中添加apikey
         auth = request.headers.get("Authorization")
         if auth:
             auth = str(auth).split()[-1]
-            if auth == setting_api_key:
-                return await func(*args, **kwargs)
-            
+            if SecurityCenter().verify_api_key(auth):
+                return await _call_endpoint(func, *args, **kwargs)
+
         # 允许使用在api后面拼接 ?apikey=xxx 的方式进行验证
         auth = request.query_params.get("apikey")
-        if auth:
-            if auth == setting_api_key:
-                return await func(*args, **kwargs)
-            
+        if auth and SecurityCenter().verify_api_key(auth):
+            return await _call_endpoint(func, *args, **kwargs)
+
         log.warn(f"【Security】{func.__name__} 认证未通过, 请检查API Key")
         raise HTTPException(status_code=401, detail="安全认证未通过, 请检查ApiKey")
 
     return wrapper
+
+
+def auth_check(min_level: int = LEVEL_USER):
+    """
+    接口权限校验装饰器：仅允许 level >= min_level 的用户访问
+
+    用法：
+        @data_router.post("/users")
+        @auth_check(LEVEL_SYSADMIN)
+        async def users():
+            ...
+
+    """
+    def decorator(func):
+        async def checker(current_user: CurrentUser) -> User:
+            if current_user.level < min_level:
+                log.warn(
+                    f"【Security】{func.__name__} 权限不足: "
+                    f"user={current_user.username}, level={current_user.level}, required={min_level}"
+                )
+                raise HTTPException(status_code=403, detail="权限不足")
+            return current_user
+
+        # 向 FastAPI 解析的签名中追加依赖，接口无需显式声明 current_user
+        sig = signature(func)
+        params = list(sig.parameters.values())
+        params.append(Parameter("_auth_user", Parameter.KEYWORD_ONLY,
+                                annotation=Annotated[User, Depends(checker)]))
+
+        if iscoroutinefunction(func):
+            @wraps(func)
+            async def wrapper(*args, **kwargs):
+                # 依赖已在 FastAPI 解析阶段执行并校验，这里只需丢弃注入参数
+                kwargs.pop("_auth_user", None)
+                return await func(*args, **kwargs)
+        else:
+            @wraps(func)
+            def wrapper(*args, **kwargs):
+                kwargs.pop("_auth_user", None)
+                return func(*args, **kwargs)
+
+        wrapper.__signature__ = sig.replace(parameters=params)
+        return wrapper
+
+    return decorator

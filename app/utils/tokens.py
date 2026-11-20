@@ -6,7 +6,7 @@ from app.utils.constants import Constants
 class Tokens:
     _text = ""
     _index = 0
-    _tokens = []
+    _tokens: list
 
     def __init__(self, text):
         self._text = text
@@ -14,7 +14,7 @@ class Tokens:
         self.load_text(text)
 
     def load_text(self, text):
-        splited_text = re.split(r'%s' % Constants.SPLIT_CHARS, text)
+        splited_text = re.split(rf'{Constants.SPLIT_CHARS}', text)
         for sub_text in splited_text:
             if sub_text:
                 self._tokens.append(sub_text)

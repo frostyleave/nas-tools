@@ -1,4 +1,4 @@
-from app.db.main_db import MainDb, DbPersist
+from app.db.main_db import DbPersist, MainDb
 from app.db.models import SYSTEMDICT
 
 
@@ -73,10 +73,7 @@ class DictHelper:
             return False
         ret = self._db.query(SYSTEMDICT).filter(SYSTEMDICT.TYPE == dtype,
                                                 SYSTEMDICT.KEY == key).count()
-        if ret > 0:
-            return True
-        else:
-            return False
+        return ret > 0
 
     def list(self, dtype):
         """

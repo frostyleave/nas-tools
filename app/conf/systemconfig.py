@@ -1,6 +1,8 @@
+from typing import ClassVar
 import json
 
 from app.helper import DictHelper
+from app.utils import JsonUtils
 from app.utils.commons import singleton
 from app.utils.types import SystemConfigKey
 
@@ -8,7 +10,7 @@ from app.utils.types import SystemConfigKey
 @singleton
 class SystemConfig:
     # 系统设置
-    systemconfig = {}
+    systemconfig: ClassVar[dict] = {}
 
     def __init__(self):
         self.dicthelper = DictHelper()
@@ -22,13 +24,13 @@ class SystemConfig:
             if not item:
                 continue
             if self.__is_obj(item.VALUE):
-                self.systemconfig[item.KEY] = json.loads(item.VALUE)
+                self.systemconfig[item.KEY] = JsonUtils.loads(item.VALUE, default=item.VALUE)
             else:
                 self.systemconfig[item.KEY] = item.VALUE
 
     @staticmethod
     def __is_obj(obj):
-        if isinstance(obj, list) or isinstance(obj, dict):
+        if isinstance(obj, (list, dict)):
             return True
         else:
             return str(obj).startswith("{") or str(obj).startswith("[")

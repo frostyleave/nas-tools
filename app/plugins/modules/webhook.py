@@ -31,7 +31,7 @@ class Webhook(_IPluginModule):
     _webhook_url = None
     _method = None
 
-    def init_config(self, config: dict = None):
+    def init_config(self, config: dict | None = None):
         if config:
             self._webhook_url = config.get("webhook_url")
             self._method = config.get('method')
@@ -105,4 +105,4 @@ class Webhook(_IPluginModule):
         elif ret is not None:
             self.error(f"发送失败，状态码：{ret.status_code}，返回信息：{ret.text} {ret.reason}")
         else:
-            self.error(f"发送失败，未获取到返回信息")
+            self.error("发送失败，未获取到返回信息")

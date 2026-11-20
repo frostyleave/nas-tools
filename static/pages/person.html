@@ -24,15 +24,14 @@
         : value;
     }
 
-    // 获取URL参数
-    const [, queryString] = window.location.hash.split("?");
-    const urlParams = new URLSearchParams(queryString || "");
+    // 获取页面参数
+    const urlParams = getPageParams();
 
-    const title = fixedText(urlParams.get('title'));
-    const subtitle = fixedText(urlParams.get('subtitle'));
-    const tmdbId = fixedText(urlParams.get('tmdbid'));
+    const title = fixedText(urlParams.title);
+    const subtitle = fixedText(urlParams.subtitle);
+    const tmdbId = fixedText(urlParams.tmdbid);
     const mediaType = 'ALL';
-    const keyword = fixedText(urlParams.get('keyword'));
+    const keyword = fixedText(urlParams.keyword);
 
     const titleEl = document.getElementById('person_title');
     const subtitleEl = document.getElementById('person_subtitle');
@@ -72,9 +71,13 @@
         setAttr(card, 'person-role', item.role);
 
         card.addEventListener('click', () => {
-          navmenu('recommend?type=' + mediaType +
-            '&subtype=person&personid=' + item.id +
-            '&title=参演作品&subtitle=' + item.name);
+          navmenu('recommend', {
+            type: mediaType,
+            subtype: 'person',
+            personid: item.id,
+            title: '参演作品',
+            subtitle: item.name
+          });
         });
 
         grid.appendChild(card);

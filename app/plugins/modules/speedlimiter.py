@@ -1,13 +1,13 @@
 import time
+from typing import ClassVar
 
+import log
+from app.core.security_center import SecurityCenter
 from app.downloader import Downloader
-from app.helper.security_helper import SecurityHelper
 from app.mediaserver import MediaServer
 from app.plugins import EventHandler
 from app.plugins.modules._base import _IPluginModule
-from app.utils.types import MediaServerType, EventType
-
-import log
+from app.utils.types import EventType, MediaServerType
 
 
 class SpeedLimiter(_IPluginModule):
@@ -16,7 +16,7 @@ class SpeedLimiter(_IPluginModule):
     # 插件描述
     module_desc = "媒体服务器播状态改变时，根据设置对下载器进行限速。"
     # 插件图标
-    module_icon = "SpeedLimiter.jpg"
+    module_icon = "SpeedLimiter.png"
     # 主题色
     module_color = "#183883"
     # 插件版本
@@ -48,14 +48,12 @@ class SpeedLimiter(_IPluginModule):
     _download_unlimit = 0
     _upload_unlimit = 0
     # 不限速地址
-    _unlimited_ips = {"ipv4": "0.0.0.0/0", "ipv6": "::/0"}
+    _unlimited_ips: ClassVar[dict[str, str]] = {"ipv4": "0.0.0.0/0", "ipv6": "::/0"}
     # 智能上传限速标志
     _auto_limit = False
     # 总速宽
     _bandwidth = 0
     _allocation_ratio = 0
-    # 限速下载器
-    _limited_downloader_ids = []
     # 发送消息标志
     _notify = False
 
@@ -193,6 +191,7 @@ class SpeedLimiter(_IPluginModule):
     def init_config(self, config=None):
         self._downloader = Downloader()
         self._mediaserver = MediaServer()
+        self._limited_downloader_ids = []
 
         # 读取配置
         if config:
@@ -200,27 +199,27 @@ class SpeedLimiter(_IPluginModule):
                 # 总带宽
                 self._bandwidth = int(float(config.get("bandwidth") or 0)) * 1000000
             except Exception as e:
-                log.exception(f"【Limiter】总带宽读取失败:")
+                log.exception("【Limiter】总带宽读取失败:")
                 self._bandwidth = 0
             # 自动限速开关
-            self._auto_limit = True if self._bandwidth else False
+            self._auto_limit = bool(self._bandwidth)
 
             try:
                 # 播放下载限速
                 self._download_limit = int(float(config.get("download_limit") or 0))
             except Exception as e:
-                log.exception(f"【Limiter】下载限速配置读取失败:")
+                log.exception("【Limiter】下载限速配置读取失败:")
                 self._download_limit = 0
             
             try:
                 # 播放上传限速
                 self._upload_limit = int(float(config.get("upload_limit") or 0))
             except Exception as e:
-                log.exception(f"【Limiter】上传限速配置读取失败:")
+                log.exception("【Limiter】上传限速配置读取失败:")
                 self._upload_limit = 0
 
             # 限速服务开关
-            self._limit_enabled = True if self._download_limit or self._upload_limit or self._auto_limit else False
+            self._limit_enabled = bool(self._download_limit or self._upload_limit or self._auto_limit)
 
             # 下载器
             self._limited_downloader_ids = config.get("downloaders") or []
@@ -237,14 +236,14 @@ class SpeedLimiter(_IPluginModule):
                 # 未播放下载限速
                 self._download_unlimit = int(float(config.get("download_unlimit") or 0))
             except Exception as e:
-                log.exception(f"【Limiter】未播放下载限速 配置读取失败:")
+                log.exception("【Limiter】未播放下载限速 配置读取失败:")
                 self._download_unlimit = 0
 
             try:
                 # 未播放上传限速
                 self._upload_unlimit = int(float(config.get("upload_unlimit") or 0))
             except Exception as e:
-                log.exception(f"【Limiter】未播放上传限速 配置读取失败:")
+                log.exception("【Limiter】未播放上传限速 配置读取失败:")
                 self._upload_unlimit = 0
 
             # 任务时间间隔
@@ -256,14 +255,14 @@ class SpeedLimiter(_IPluginModule):
                 try:
                     self._allocation_ratio = [int(i) for i in self._allocation_ratio.split(":")]
                 except Exception as e:
-                    log.exception(f"【Limiter】下载器限速分配比例 配置解析失败:")
+                    log.exception("【Limiter】下载器限速分配比例 配置解析失败:")
                     self.warn("分配比例含有:外非数字字符，执行均分")
                     self._allocation_ratio = []
             else:
                 self._allocation_ratio = []
 
             # 发送消息
-            self._notify = True if config.get("notify") else False
+            self._notify = bool(config.get("notify"))
 
         else:
             # 限速关闭
@@ -303,8 +302,7 @@ class SpeedLimiter(_IPluginModule):
                     else:
                         upload_limit = int(self._upload_limit * allocation_ratio[i] / allocation_count)
                     # 不能为0
-                    if upload_limit < 10:
-                        upload_limit = 10
+                    upload_limit = max(upload_limit, 10)
                 # 非智能上传限速
                 else:
                     upload_limit = self._upload_limit
@@ -375,26 +373,26 @@ class SpeedLimiter(_IPluginModule):
         total_bit_rate = 0
         if _mediaserver_type == MediaServerType.EMBY:
             for session in playing_sessions:
-                if not SecurityHelper.allow_access(self._unlimited_ips, session.get("RemoteEndPoint")) \
+                if not SecurityCenter().allow_access(self._unlimited_ips, session.get("RemoteEndPoint")) \
                         and session.get("NowPlayingItem", {}).get("MediaType") == "Video":
                     total_bit_rate += int(session.get("NowPlayingItem", {}).get("Bitrate") or 0)
         elif _mediaserver_type == MediaServerType.JELLYFIN:
             for session in playing_sessions:
-                if not SecurityHelper.allow_access(self._unlimited_ips, session.get("RemoteEndPoint")) \
+                if not SecurityCenter().allow_access(self._unlimited_ips, session.get("RemoteEndPoint")) \
                         and session.get("NowPlayingItem", {}).get("MediaType") == "Video":
                     media_streams = session.get("NowPlayingItem", {}).get("MediaStreams") or []
                     for media_stream in media_streams:
                         total_bit_rate += int(media_stream.get("BitRate") or 0)
         elif _mediaserver_type == MediaServerType.PLEX:
             for session in playing_sessions:
-                if not SecurityHelper.allow_access(self._unlimited_ips, session.get("address")) \
+                if not SecurityCenter().allow_access(self._unlimited_ips, session.get("address")) \
                         and session.get("type") == "Video":
                     total_bit_rate += int(session.get("bitrate") or 0)
         else:
             return
 
         # 限速状态
-        _playing_flag = True if total_bit_rate else False
+        _playing_flag = bool(total_bit_rate)
         # 限速检查
         if _playing_flag:
             # 非定时检查，非智能上传限速，且进行过播放限速

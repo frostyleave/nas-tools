@@ -1,17 +1,6 @@
-# -*- coding: utf-8 -*-
-import time
+from cachetools import LRUCache
 
-from cacheout import CacheManager, LRUCache, Cache
-from functools import lru_cache, wraps
-
-CACHES = {
-    "tmdb_supply": {'maxsize': 200}
+# TMDB 搜索结果缓存：按名称缓存搜索结果，LRU 淘汰
+cacheman = {
+    "tmdb_supply": LRUCache(maxsize=200)
 }
-
-cacheman = CacheManager(CACHES, cache_class=LRUCache)
-
-TokenCache = Cache(maxsize=256, ttl=4*3600, timer=time.time, default=None)
-
-ConfigLoadCache = Cache(maxsize=1, ttl=10, timer=time.time, default=None)
-
-CategoryLoadCache = Cache(maxsize=2, ttl=3, timer=time.time, default=None)

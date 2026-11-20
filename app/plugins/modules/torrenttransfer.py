@@ -1,22 +1,25 @@
 import json
 import os.path
-
-from apscheduler.job import Job
 from copy import deepcopy
-from threading import Event
-from typing import Optional
+from datetime import timedelta
+from threading import Event, Lock
+from typing import ClassVar
 
 from fastbencode import bdecode, bencode
 
+import log
 from app.downloader import Downloader
 from app.helper import ThreadHelper
 from app.media.meta import MetaInfo
 from app.plugins.modules._base import _IPluginModule
-from app.utils import TorrentUtils
+from app.utils import TimeUtils, TorrentUtils
 from app.utils.types import DownloaderType
 from config import Config
 
-import log
+# 移转做种后校验任务的延迟执行时间（秒）
+RECHECK_DELAY_SECONDS = 180
+# 校验任务ID
+RECHECK_JOB_ID = "torrenttransfer_recheck"
 
 
 class TorrentTransfer(_IPluginModule):
@@ -25,7 +28,7 @@ class TorrentTransfer(_IPluginModule):
     # 插件描述
     module_desc = "定期转移下载器中的做种任务到另一个下载器。"
     # 插件图标
-    module_icon = "torrenttransfer.jpg"
+    module_icon = "torrenttransfer.png"
     # 主题色
     module_color = "#272636"
     # 插件版本
@@ -61,12 +64,13 @@ class TorrentTransfer(_IPluginModule):
     # 退出事件
     _event = Event()
     # 待检查种子清单
-    _recheck_torrents = {}
+    _recheck_torrents: ClassVar[dict] = {}
+    _recheck_lock = Lock()
     _is_recheck_running = False
+    # 校验执行期间又被触发时置位，由执行中的任务结束后补跑
+    _recheck_pending = False
     # 任务标签
-    _torrent_tags = ["已整理", "转移做种"]
-
-    _recheck_job : Optional[Job] = None
+    _torrent_tags: ClassVar[list[str]] = ["已整理", "转移做种"]
 
 
     @staticmethod
@@ -298,6 +302,8 @@ class TorrentTransfer(_IPluginModule):
 
         # 停止现有任务
         self.stop_service()
+        # 重新开始，清除退出事件
+        self.reset_stop_event()
 
         # 启动定时任务 & 立即运行一次
         if self.get_state() or self._onlyonce:
@@ -337,23 +343,32 @@ class TorrentTransfer(_IPluginModule):
                     "nopaths": self._nopaths,
                     "autostart": self._autostart
                 })
-            if self._cron_job:
-                if self._autostart:
-                    # 追加种子校验服务
-                    self._recheck_job = self.get_scheduler().add_job(self.check_recheck, 'interval', minutes=3, name='自动移转做种校验')
+            # 如仍有待校验的种子（如插件重新加载），恢复校验
+            self.__schedule_recheck()
 
 
     def get_state(self):
-        return True if self._enable \
-                       and self._cron \
-                       and self._fromdownloader \
-                       and self._todownloader \
-                       and self._fromtorrentpath else False
+        return bool(self._enable and self._cron and self._fromdownloader and self._todownloader and self._fromtorrentpath)
+
+    def format_history(self, key, value):
+        """
+        转种历史中的下载器ID转换为下载器名称，便于用户阅读
+        """
+        if isinstance(value, dict) and "to_download" in value:
+            downloader_id = str(value.get("to_download"))
+            downloaders = Downloader().get_downloader_conf_simple()
+            downloader_name = (downloaders.get(downloader_id) or {}).get("name") or downloader_id
+            source = "已删除源任务" if value.get("delete_source") else "保留源任务"
+            return (f"已转移至下载器 {downloader_name}，"
+                    f"任务ID：{value.get('to_download_id')}（{source}）")
+        return super().format_history(key, value)
 
     def transfer(self):
         """
         开始移转做种
         """
+        # 捕获本次运行的事件对象，插件重载后旧线程仍能被旧的置位事件终止
+        event = self._event
         if not self._enable \
                 or not self._fromdownloader \
                 or not self._todownloader \
@@ -379,7 +394,7 @@ class TorrentTransfer(_IPluginModule):
         # 过滤种子，记录保存目录
         hash_strs = []
         for torrent in torrents:
-            if self._event.is_set():
+            if event.is_set():
                 self.info("移转服务停止")
                 return
             # 获取种子hash
@@ -513,9 +528,10 @@ class TorrentTransfer(_IPluginModule):
                 else:
                     # 追加校验任务
                     self.info(f"添加校验检查任务：{download_id} ...")
-                    if not self._recheck_torrents.get(todownloader):
-                        self._recheck_torrents[todownloader] = []
-                    self._recheck_torrents[todownloader].append(download_id)
+                    with self._recheck_lock:
+                        if not self._recheck_torrents.get(todownloader):
+                            self._recheck_torrents[todownloader] = []
+                        self._recheck_torrents[todownloader].append(download_id)
                     # 下载成功
                     self.info(f"成功添加转移做种任务，种子文件：{torrent_file}")
                     # TR会自动校验
@@ -529,13 +545,16 @@ class TorrentTransfer(_IPluginModule):
                                                         delete_file=False)
                     success += 1
                     # 插入转种记录
-                    history_key = "%s-%s" % (int(self._fromdownloader[0]), hash_item.get('hash'))
+                    history_key = "{}-{}".format(int(self._fromdownloader[0]), hash_item.get('hash'))
                     self.history(key=history_key,
                                  value={
                                      "to_download": int(self._todownloader[0]),
                                      "to_download_id": download_id,
                                      "delete_source": self._deletesource,
                                  })
+            # 有实际转移任务时，安排做种校验
+            if success > 0:
+                self.__schedule_recheck()
             # 发送通知
             if self._notify:
                 self.send_message(
@@ -546,24 +565,75 @@ class TorrentTransfer(_IPluginModule):
             self.info("没有需要移转的种子")
         self.info("移转做种任务执行完成")
 
-    def check_recheck(self):
+    def __has_recheck_torrents(self) -> bool:
         """
-        定时检查下载器中种子是否校验完成，校验完成且完整的自动开始辅种
+        当前目的下载器是否有待校验的种子
         """
-        if not self._recheck_torrents:
-            return
         if not self._todownloader:
-            return
-        if self._is_recheck_running:
-            return
-        downloader = self._todownloader[0]
-        # 需要检查的种子
-        recheck_torrents = self._recheck_torrents.get(downloader, [])
-        if not recheck_torrents:
+            return False
+        with self._recheck_lock:
+            return bool(self._recheck_torrents.get(self._todownloader[0]))
+
+    def __schedule_recheck(self):
+        """
+        产生实际转移任务后，延迟发起一次校验任务；
+        已有待执行的校验任务时不重复添加
+        """
+        if not self._autostart or not self.__has_recheck_torrents():
             return
         try:
-            self.info(f"开始检查下载器 {downloader} 的校验任务: {json.dumps(recheck_torrents)}")
+            scheduler = self.get_scheduler()
+            # 已有待执行的校验任务，无需重复添加
+            if scheduler.get_job(RECHECK_JOB_ID):
+                return
+            scheduler.add_job(
+                self.__run_recheck,
+                'date',
+                run_date=TimeUtils.now() + timedelta(seconds=RECHECK_DELAY_SECONDS),
+                id=RECHECK_JOB_ID,
+                name='自动移转做种校验',
+                replace_existing=True
+            )
+            self.info(f"已安排做种校验任务，{RECHECK_DELAY_SECONDS // 60} 分钟后执行")
+        except Exception as err:
+            log.exception(f"【Plugin】自动转移做种 - 安排校验任务失败: {err}")
+
+    def __run_recheck(self):
+        """
+        执行一次校验检查，仍有待校验的种子时继续安排下一次
+        """
+        if self._is_recheck_running:
+            # 已有校验在执行，不能丢弃本次触发：标记后由执行中的任务结束后补跑；
+            # 同时安排一次兜底重试，避免执行者异常退出导致触发丢失
+            self._recheck_pending = True
+            self.info("做种校验任务正在执行中，本次触发将在当前校验结束后补跑")
+            self.__schedule_recheck()
+            return
+        self.check_recheck()
+        # 校验期间有新任务加入时，立即补跑一轮，不必再等一个周期
+        if self._recheck_pending:
+            self._recheck_pending = False
+            self.info("检测到校验期间新增的待校验任务，继续执行校验")
+            self.check_recheck()
+        self.__schedule_recheck()
+
+    def check_recheck(self):
+        """
+        检查下载器中种子是否校验完成，校验完成且完整的自动开始辅种
+        """
+        if not self._todownloader:
+            return
+        downloader = self._todownloader[0]
+        # 原子地判断/置位运行标记并取快照，避免并发触发时重复执行
+        with self._recheck_lock:
+            if self._is_recheck_running:
+                return
+            recheck_torrents = list(self._recheck_torrents.get(downloader, []))
+            if not recheck_torrents:
+                return
             self._is_recheck_running = True
+        try:
+            self.info(f"开始检查下载器 {downloader} 的校验任务: {json.dumps(recheck_torrents)}")
             # 下载器类型
             downloader_type = self.downloader.get_downloader_type(downloader_id=downloader)
             # 获取下载器中的种子
@@ -572,17 +642,27 @@ class TorrentTransfer(_IPluginModule):
                 can_seeding_torrents = self.filter_checked_seeds(downloader_type, torrents)
                 if can_seeding_torrents:
                     self.downloader.start_torrents(downloader_id=downloader, ids=can_seeding_torrents)
-                    # 去除已经处理过的种子
-                    left_torrents = list(set(recheck_torrents).difference(set(can_seeding_torrents)))
-                    self._recheck_torrents[downloader] = left_torrents
-                    self.info(f"共 {len(can_seeding_torrents)} 个任务校验完成，开始做种; 剩余任务 {len(left_torrents)} 个")
+                    # 只移除本批已处理完的种子，保留校验期间新追加的任务
+                    handled = set(can_seeding_torrents)
+                    with self._recheck_lock:
+                        current = self._recheck_torrents.get(downloader, [])
+                        self._recheck_torrents[downloader] = [
+                            torrent_id for torrent_id in current if torrent_id not in handled
+                        ]
+                        left_count = len(self._recheck_torrents[downloader])
+                    self.info(f"共 {len(can_seeding_torrents)} 个任务校验完成，开始做种; 剩余任务 {left_count} 个")
                 else:
                     self.info(f"下载器 {downloader} 没有可以开始做种的任务")
             elif torrents is None:
                 self.info(f"下载器 {downloader} 查询校验任务失败，将在下次继续查询 ...")
             else:
-                self.info(f"下载器 {downloader} 中没有需要检查的校验任务，清空待处理列表 ...")
-                self._recheck_torrents[downloader] = []
+                self.info(f"下载器 {downloader} 中没有需要检查的校验任务，移除本批待处理任务 ...")
+                handled = set(recheck_torrents)
+                with self._recheck_lock:
+                    current = self._recheck_torrents.get(downloader, [])
+                    self._recheck_torrents[downloader] = [
+                        torrent_id for torrent_id in current if torrent_id not in handled
+                    ]
         except Exception as ex:
             log.exception(f"【Plugin】自动转移做种 - 下载器 {downloader} 校验任务执行异常: ", ex)
         finally:
@@ -675,8 +755,11 @@ class TorrentTransfer(_IPluginModule):
         """
         退出插件
         """
+        # 通知转移线程退出，避免重载后旧线程继续运行
+        self.set_stop_event()
         try:
             self.remove_job(self._cron_job)
-            self.remove_job(self._recheck_job)
+            # 校验任务可能在执行后已被调度器移除，按ID判断后再移除
+            self.remove_job(self.get_scheduler().get_job(RECHECK_JOB_ID))
         except Exception as e:
             print(str(e))

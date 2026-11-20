@@ -1,8 +1,9 @@
+from typing import ClassVar
 from app.media.tmdbv3api.tmdb import TMDb
 
 
 class Episode(TMDb):
-    _urls = {
+    _urls: ClassVar[dict] = {
         "images": "/tv/%s/season/%s/episode/%s/images"
     }
 

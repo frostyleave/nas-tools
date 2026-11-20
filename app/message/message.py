@@ -1,34 +1,33 @@
-import json
 import re
-import time
-
 from enum import Enum
 
 import log
-
 from app.conf import ModuleConf
 from app.helper import DbHelper, SubmoduleHelper
 from app.message.message_center import SysMessageCenter
-from app.utils import StringUtils, IpUtils
+from app.utils import IpUtils, JsonUtils, StringUtils, TimeUtils
 from app.utils.commons import singleton
-from app.utils.types import SearchType, MediaType
-
+from app.utils.types import MediaType, SearchType
 from config import Config
 
 
 @singleton
-class MessageService(object):
+class MessageService:
     """
     消息服务
     """
 
     dbhelper = None
     sysMsgCenter = None
-    _message_schemas = []
-    _active_clients = []
-    _active_interactive_clients = {}
-    _client_configs = {}
-    _domain = None
+    _message_schemas: list
+    _active_clients: list
+    _active_interactive_clients: dict
+    _client_configs: dict
+
+    @property
+    def domain(self) -> str:
+        """消息中使用的跳转地址（实时读取配置）"""
+        return Config().get_domain()
 
     def __init__(self):
         self._message_schemas = SubmoduleHelper.import_submodules(
@@ -36,13 +35,13 @@ class MessageService(object):
             filter_func=lambda _, obj: hasattr(obj, 'schema')
         )
         log.debug(f"【Message】加载消息服务：{self._message_schemas}")
+        self._active_clients = []
         self.init_config()
 
     def init_config(self):
         self.dbhelper = DbHelper()
         self.sysMsgCenter = SysMessageCenter()
 
-        self._domain = Config().get_domain()
         # 停止旧服务
         if self._active_clients:
             for active_client in self._active_clients:
@@ -57,7 +56,7 @@ class MessageService(object):
         # 全量客户端配置
         self._client_configs = {}
         for client_config in self.dbhelper.get_message_client() or []:
-            config = json.loads(client_config.CONFIG) if client_config.CONFIG else {}
+            config = JsonUtils.loads(client_config.CONFIG, default={})
             config.update({
                 "interactive": client_config.INTERACTIVE
             })
@@ -66,7 +65,7 @@ class MessageService(object):
                 "name": client_config.NAME,
                 "type": client_config.TYPE,
                 "config": config,
-                "switchs": json.loads(client_config.SWITCHS) if client_config.SWITCHS else [],
+                "switchs": JsonUtils.loads(client_config.SWITCHS, default=[]),
                 "interactive": client_config.INTERACTIVE,
                 "enabled": client_config.ENABLED
             }
@@ -128,14 +127,14 @@ class MessageService(object):
         
         cname = client.get('name')
         log.info(f"【Message】发送消息 {cname}：title={title}, text={text}")
-        if self._domain:
+        if self.domain:
             if url:
                 # 唤起App
                 if '/open?url=' in url:
-                    url = "%s%s" % (self._domain, url)
+                    url = f"{self.domain}{url}"
                 # 跳转页面
                 elif not url.startswith("http"):
-                    url = "%s?next=%s" % (self._domain, url)
+                    url = f"{self.domain}?next={url}"
             else:
                 url = ""
         elif not StringUtils.is_public_url(url):
@@ -209,7 +208,7 @@ class MessageService(object):
         state, ret_msg = client.get('client').send_list_msg(medias=medias,
                                                             user_id=user_id,
                                                             title=title,
-                                                            url=self._domain)
+                                                            url=self.domain)
         if not state:
             log.error(f"【Message】{cname} 发送消息失败：%s" % ret_msg)
             
@@ -321,9 +320,8 @@ class MessageService(object):
             msg_str = f"{media_info.get_vote_string()}，类型：电影"
         else:
             msg_str = "类型：电影"
-        if media_info.category:
-            if category_flag:
-                msg_str = f"{msg_str}，类别：{media_info.category}"
+        if media_info.category and category_flag:
+            msg_str = f"{msg_str}，类别：{media_info.category}"
         if media_info.get_resource_type_string():
             msg_str = f"{msg_str}，质量：{media_info.get_resource_type_string()}"
         if StringUtils.is_string_and_not_empty(media_info.get_resource_team_string()):
@@ -414,9 +412,8 @@ class MessageService(object):
             msg_str = f"{msg_str}，{media_info.get_resource_type_string()}"
 
         # 获取类型，如：动漫
-        if media_info.category:
-            if category_flag:
-                msg_str = f"{msg_str}，类型：{media_info.category}"
+        if media_info.category and category_flag:
+            msg_str = f"{msg_str}，类型：{media_info.category}"
 
         if exist_filenum != 0:
             msg_str = f"{msg_str}，{exist_filenum}个文件已存在"
@@ -492,7 +489,7 @@ class MessageService(object):
         """
         发送下载失败的消息
         """
-        title = "添加下载任务失败：%s %s" % (item.get_title_string(), item.get_season_episode_string())
+        title = f"添加下载任务失败：{item.get_title_string()} {item.get_season_episode_string()}"
         text = f"站点：{item.site}\n种子名称：{item.org_string}\n种子链接：{item.enclosure}\n错误信息：{error_msg}"
         # 插入消息中心
         self.sysMsgCenter.insert_system_message(title=title, content=text)
@@ -687,6 +684,7 @@ class MessageService(object):
         # 拼装消息内容
         _webhook_actions = {
             "library.new": "新入库",
+            "library.deleted": "已删除",
             "system.webhooktest": "测试",
             "playback.start": "开始播放",
             "playback.stop": "停止播放",
@@ -730,7 +728,7 @@ class MessageService(object):
             message_texts.append(f"进度：{percentage}%")
         if event_info.get('overview'):
             message_texts.append(f"剧情：{event_info.get('overview')}")
-        message_texts.append(f"时间：{time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time()))}")
+        message_texts.append(f"时间：{TimeUtils.now_str()}")
 
         # 消息图片
         if not image_url:

@@ -1,10 +1,10 @@
+import html
 import re
 from urllib.parse import quote
 
 import log
-
 from app.mediaserver.client._base import _IMediaClient
-from app.utils import RequestUtils, SystemUtils, IpUtils
+from app.utils import IpUtils, RequestUtils, SystemUtils
 from app.utils.types import MediaServerType, MediaType
 from config import Config
 
@@ -18,7 +18,6 @@ class Jellyfin(_IMediaClient):
     client_name = MediaServerType.JELLYFIN.value
 
     # 私有属性
-    _client_config = {}
     _serverid = None
     _apikey = None
     _host = None
@@ -63,7 +62,7 @@ class Jellyfin(_IMediaClient):
 
     @classmethod
     def match(cls, ctype):
-        return True if ctype in [cls.client_id, cls.client_type, cls.client_name] else False
+        return ctype in [cls.client_id, cls.client_type, cls.client_name]
 
     def get_type(self):
         return self.client_type
@@ -72,7 +71,7 @@ class Jellyfin(_IMediaClient):
         """
         测试连通性
         """
-        return True if self.get_medias_count() else False
+        return bool(self.get_medias_count())
 
     def __get_jellyfin_librarys(self):
         """
@@ -285,10 +284,10 @@ class Jellyfin(_IMediaClient):
                 return []
             # 验证tmdbid是否相同
             item_tmdbid = self.get_iteminfo(item_id).get("ProviderIds", {}).get("Tmdb")
-            if tmdb_id and item_tmdbid:
-                if str(tmdb_id) != str(item_tmdbid):
-                    return []
-        if not season:
+            if tmdb_id and item_tmdbid and str(tmdb_id) != str(item_tmdbid):
+                return []
+        # 季号 0 为特别篇，只有空值才表示全部季
+        if season is None:
             season = ""
         req_url = f"{self._host}Shows/{item_id}/Episodes?season={season}&isMissing=false"
         try:
@@ -317,8 +316,8 @@ class Jellyfin(_IMediaClient):
         """
         if not self._host or not self._apikey:
             return None
-        # 没有季默认为和1季
-        if not season:
+        # 没有季默认为第1季，季号 0 为特别篇
+        if season is None or season == "":
             season = 1
         exists_episodes = self.get_tv_episodes(title=meta_info.title,
                                                year=meta_info.year,
@@ -354,7 +353,7 @@ class Jellyfin(_IMediaClient):
                         # 没查到tmdb图片则判断播放地址是不是外网，使用jellyfin刮削的图片（直接挂载网盘场景）
                         if not img_url and not IpUtils.is_internal(self._play_host) \
                                 and res_item.get('ImageTags', {}).get('Primary'):
-                            return "%sItems/%s/Images/Primary?maxHeight=225&maxWidth=400&tag=%s&quality=90" % (
+                            return "{}Items/{}/Images/Primary?maxHeight=225&maxWidth=400&tag={}&quality=90".format(
                                 self._play_host, res_item.get("Id"), res_item.get('ImageTags', {}).get('Primary'))
                         return img_url
         except Exception as e:
@@ -386,26 +385,25 @@ class Jellyfin(_IMediaClient):
             return None
         return None
 
-    def get_local_image_by_id(self, item_id, remote=True, inner=False):
+    def get_local_image_by_id(self, item_id, remote=True, inner=False, max_width=None):
         """
         根据ItemId从媒体服务器查询有声书图片地址
         :param: item_id: 在Emby中的ID
         :param: remote 是否远程使用，TG微信等客户端调用应为True
         :param: inner 是否NT内部调用，为True是会使用NT中转
+        :param: max_width 限制图片最大宽度，列表缩略图场景传 400，避免返回原始大图
         """
         if not self._host or not self._apikey:
             return None
+        query = f"?maxWidth={max_width}&quality=90" if max_width else ""
         if not remote:
-            image_url = f"{self._host}Items/{item_id}/Images/Primary"
+            image_url = f"{self._host}Items/{item_id}/Images/Primary{query}"
             if inner:
                 return self.get_nt_image_url(image_url)
             return image_url
         else:
-            host = self._play_host or self._host
-            image_url = f"{self._host}Items/{item_id}/Images/Primary"
-            if IpUtils.is_internal(host):
-                return self.get_nt_image_url(url=image_url, remote=True)
-            return image_url
+            image_url = f"{self._play_host or self._host}Items/{item_id}/Images/Primary{query}"
+            return self.get_nt_image_url(url=image_url, remote=True)
 
     def refresh_root_library(self):
         """
@@ -454,7 +452,7 @@ class Jellyfin(_IMediaClient):
             else:
                 library_type = MediaType.TV.value
 
-            image = self.get_local_image_by_id(library.get("Id"), remote=False, inner=True)
+            image = self.get_local_image_by_id(library.get("Id"), remote=False, inner=True, max_width=400)
             link = f"{self._play_host or self._host}web/index.html#!" \
                    f"/movies.html?topParentId={library.get('Id')}" \
                 if library_type == MediaType.MOVIE.value \
@@ -492,9 +490,7 @@ class Jellyfin(_IMediaClient):
             host = self._play_host or self._host
             image_url = f"{host}Items/{item_id}/" \
                         f"Images/Backdrop?tag={image_tag}&fillWidth=666&api_key={self._apikey}"
-            if IpUtils.is_internal(host):
-                return self.get_nt_image_url(url=image_url, remote=True)
-            return image_url
+            return self.get_nt_image_url(url=image_url, remote=True)
 
     def get_iteminfo(self, itemid):
         """
@@ -514,15 +510,22 @@ class Jellyfin(_IMediaClient):
             log.exception(f"【{self.client_name}】获取单个项目详情 出错: ")
             return {}
 
-    def get_items(self, parent):
+    def get_items(self, parent, depth=0):
         """
         获取媒体服务器所有媒体库列表
+        :param parent: 父级ID
+        :param depth: 当前递归深度，防止异常数据导致无限递归
         """
-        if not parent:
+        if not parent or not self._host or not self._apikey:
             yield {}
-        if not self._host or not self._apikey:
-            yield {}
-        req_url = f"{self._host}Items?ParentId={parent}"
+            return
+        if depth > 10:
+            log.warn(f"【{self.client_name}】媒体库目录层级超过 10 层，停止递归：{parent}")
+            return
+
+        # 一次请求带回需要的字段，避免逐条调用 get_iteminfo（N+1）
+        req_url = (f"{self._host}Items?ParentId={parent}"
+                   f"&Fields=ParentId,Path,ProviderIds,OriginalTitle,ProductionYear")
         try:
             res = RequestUtils(headers=self._auth_header).get_res(req_url)
             if res and res.status_code == 200:
@@ -530,21 +533,21 @@ class Jellyfin(_IMediaClient):
                 for result in results:
                     if not result:
                         continue
-                    if result.get("Type") in ["Movie", "Series"]:
-                        item_info = self.get_iteminfo(result.get("Id"))
+                    item_type = result.get("Type") or ""
+                    if item_type in ["Movie", "Series"]:
                         yield {"id": result.get("Id"),
-                               "library": item_info.get("ParentId"),
-                               "type": item_info.get("Type"),
-                               "title": item_info.get("Name"),
-                               "originalTitle": item_info.get("OriginalTitle"),
-                               "year": item_info.get("ProductionYear"),
-                               "tmdbid": item_info.get("ProviderIds", {}).get("Tmdb"),
-                               "imdbid": item_info.get("ProviderIds", {}).get("Imdb"),
-                               "path": item_info.get("Path"),
-                               "json": str(item_info)}
-                    elif "Folder" in result.get("Type"):
-                        for item in self.get_items(result.get("Id")):
-                            yield item
+                               "library": result.get("ParentId"),
+                               "type": item_type,
+                               "title": result.get("Name"),
+                               "originalTitle": result.get("OriginalTitle"),
+                               "year": result.get("ProductionYear"),
+                               "tmdbid": (result.get("ProviderIds") or {}).get("Tmdb"),
+                               "imdbid": (result.get("ProviderIds") or {}).get("Imdb"),
+                               "doubanid": (result.get("ProviderIds") or {}).get("DoubanID"),
+                               "path": result.get("Path"),
+                               "json": str(result)}
+                    elif "Folder" in item_type:
+                        yield from self.get_items(result.get("Id"), depth=depth + 1)
         except Exception as e:
             log.exception(f"【{self.client_name}】连接/Items出错: " + str(e))
         yield {}
@@ -579,12 +582,91 @@ class Jellyfin(_IMediaClient):
     def get_webhook_message(self, message):
         """
         解析Jellyfin报文
+
+        Jellyfin Webhook 插件默认模板为扁平JSON，主要字段：
+        NotificationType、ItemId、ItemType、Name、Year、Overview、
+        SeriesName、SeasonNumber、EpisodeNumber、NotificationUsername
         """
-        eventItem = {'event': message.get('NotificationType', ''),
-                     'item_name': message.get('Name'),
-                     'user_name': message.get('NotificationUsername'),
-                     'play_url': f"/open?url={quote(self.get_play_url(message.get('Id')))}&type=jellyfin"
-                     }
+        # 插件模板使用 {{xxx}}（双花括号）时会做 HTML 转义，中文等非 ASCII 字符
+        # 会被转成 &#29616; 这类实体，这里统一还原；复制一份避免改动同时传给
+        # 插件事件管理器的原始报文
+        message = {
+            key: html.unescape(value) if isinstance(value, str) else value
+            for key, value in message.items()
+        }
+
+        notification_type = message.get('NotificationType', '')
+        # 事件名归一化为NAStool通用事件名
+        event = {
+            'PlaybackStart': 'playback.start',
+            'PlaybackStop': 'playback.stop',
+            'ItemAdded': 'library.new',
+            'ItemDeleted': 'library.deleted'
+        }.get(notification_type, notification_type)
+
+        item_id = message.get('ItemId') or message.get('Id')
+        item_type = message.get('ItemType') or message.get('Type')
+
+        eventItem = {
+            'event': event,
+            'item_name': message.get('Name'),
+            'user_name': message.get('NotificationUsername')
+        }
+        # 删除事件对应的媒体已不存在，不再生成失效的播放链接
+        if item_id and event != 'library.deleted':
+            eventItem['play_url'] = f"/open?url={quote(self.get_play_url(item_id))}&type=jellyfin"
+
+        # 剧情简介，与Emby保持一致：超过100字截断
+        overview = message.get('Overview')
+        if overview and len(overview) > 100:
+            overview = str(overview)[:100] + "..."
+        eventItem['overview'] = overview
+
+        if item_type == 'Episode':
+            # 集：ItemId指向当前集，查询图片需要所属剧集的ID
+            try:
+                season_id = int(message.get('SeasonNumber'))
+            except (TypeError, ValueError):
+                season_id = None
+            try:
+                episode_id = int(message.get('EpisodeNumber'))
+            except (TypeError, ValueError):
+                episode_id = None
+            series_id = message.get('SeriesId')
+            if not series_id and notification_type == 'ItemAdded' and item_id:
+                # 默认模板不包含SeriesId，按集反查所属剧集，用于获取图片
+                series_id = (self.get_iteminfo(item_id) or {}).get('SeriesId')
+            eventItem.update({
+                'item_type': 'TV',
+                'item_name': "{} S{}E{} {}".format(
+                    message.get('SeriesName') or '',
+                    season_id if season_id is not None else '',
+                    episode_id if episode_id is not None else '',
+                    message.get('Name') or ''
+                ).strip(),
+                'item_id': series_id or item_id,
+                'season_id': season_id,
+                'episode_id': episode_id
+            })
+        elif item_type in ['Movie', 'Series']:
+            year = message.get('Year')
+            eventItem.update({
+                'item_type': 'MOV' if item_type == 'Movie' else 'SHOW',
+                'item_name': "{} {}".format(
+                    message.get('Name') or '',
+                    "(" + str(year) + ")" if year else ''
+                ).strip()
+            })
+        elif item_type in ['Audio', 'MusicAlbum']:
+            eventItem.update({
+                'item_type': 'AUD',
+                'item_name': message.get('Album') or message.get('Name'),
+                'overview': message.get('FileName') or overview
+            })
+        elif notification_type in ('ItemAdded', 'ItemDeleted'):
+            # Season/BoxSet等非媒体条目会被剧集、分集的入库/删除事件重复触发，忽略
+            return {}
+
         return eventItem
 
     def get_resume(self, user_name, num=12):
@@ -650,7 +732,7 @@ class Jellyfin(_IMediaClient):
                         continue
                     item_type = MediaType.MOVIE.value if item.get("Type") == "Movie" else '剧集'
                     link = self.get_play_url(item.get("Id"))
-                    image = self.get_local_image_by_id(item_id=item.get("Id"), remote=False, inner=True)
+                    image = self.get_local_image_by_id(item_id=item.get("Id"), remote=False, inner=True, max_width=400)
                     ret_latest.append({
                         "id": item.get("Id"),
                         "name": item.get("Name"),

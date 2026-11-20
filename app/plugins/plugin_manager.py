@@ -1,17 +1,20 @@
 import os.path
-
-from threading import Thread
+from concurrent.futures import ThreadPoolExecutor
+from threading import RLock, Semaphore, Thread
 
 import log
-
 from app.conf import SystemConfig
 from app.helper import SubmoduleHelper
 from app.plugins.event_manager import EventManager
-from app.utils import SystemUtils, PathUtils, ImageUtils
+from app.utils import ImageUtils, JsonUtils, PathUtils, SystemUtils
 from app.utils.commons import singleton
 from app.utils.types import SystemConfigKey
-
 from config import Config
+
+# 事件处理线程池大小：单个插件处理慢不再阻塞其它插件的同类事件
+EVENT_WORKERS = 4
+# 线程池最多排队任务数，超过后事件消费线程等待，形成背压
+EVENT_MAX_PENDING = EVENT_WORKERS * 5
 
 
 @singleton
@@ -28,13 +31,19 @@ class PluginManager:
     system_plugin_path = None
 
     # 插件列表
-    _plugins = {}
+    _plugins: dict
     # 运行态插件列表
-    _running_plugins = {}
+    _running_plugins: dict
     # 配置Key
     _config_key = "plugin.%s"
-    # 事件处理线程
+    # 事件消费线程
     _thread = None
+    # 事件处理线程池
+    _executor = None
+    # 在途/排队任务计数，用于背压
+    _inflight = None
+    # 每个插件的执行锁，保证同一插件的处理串行、不同插件并行
+    _plugin_locks: dict
     # 开关
     _active = False
 
@@ -50,6 +59,9 @@ class PluginManager:
         if os.path.exists(self.user_plugin_path):
             for plugin_file in PathUtils.get_dir_level1_files(self.user_plugin_path, [".py"]):
                 SystemUtils.copy(plugin_file, self.system_plugin_path)
+        self._plugins = {}
+        self._running_plugins = {}
+        self._plugin_locks = {}
         self.init_config()
 
     def init_config(self):
@@ -62,18 +74,46 @@ class PluginManager:
 
     def __run(self):
         """
-        事件处理线程
+        事件消费线程：只负责分发，具体处理交给线程池
         """
         while self._active:
             event, handlers = self.eventmanager.get_event()
-            if event:
-                log.info(f"处理事件：{event.event_type} - {handlers}")
-                for handler in handlers:
-                    try:
-                        names = handler.__qualname__.split(".")
-                        self.run_plugin(names[0], names[1], event)
-                    except Exception as e:
-                        log.exception(f"‼️ 事件处理出错: ")
+            if not event:
+                continue
+            log.info(f"处理事件：{event.event_type} - {handlers}")
+            for handler in handlers:
+                # 限制排队任务数，超出时阻塞消费线程，
+                # 由有界事件队列负责丢弃后续事件，避免内存无限增长
+                if not self._inflight.acquire(timeout=1):
+                    if not self._active:
+                        break
+                    self._inflight.acquire()
+                executor = self._executor
+                if not executor:
+                    # 服务正在停止
+                    self._inflight.release()
+                    break
+                try:
+                    executor.submit(self.__handle_event, handler, event)
+                except RuntimeError:
+                    # 线程池已关闭（服务正在停止）
+                    self._inflight.release()
+                    break
+                except Exception:
+                    self._inflight.release()
+                    log.exception("‼️ 提交事件处理任务出错: ")
+
+    def __handle_event(self, handler, event):
+        """
+        在线程池中执行单个事件处理函数
+        """
+        try:
+            names = handler.__qualname__.split(".")
+            self.run_plugin(names[0], names[1], event)
+        except Exception:
+            log.exception("‼️ 事件处理出错: ")
+        finally:
+            self._inflight.release()
 
     def start_service(self):
         """
@@ -83,7 +123,10 @@ class PluginManager:
         self.__load_plugins()
         # 将事件管理器设为启动
         self._active = True
-        self._thread = Thread(target=self.__run)
+        self._inflight = Semaphore(EVENT_MAX_PENDING)
+        self._executor = ThreadPoolExecutor(max_workers=EVENT_WORKERS,
+                                            thread_name_prefix="plugin-event")
+        self._thread = Thread(target=self.__run, name="plugin-event-queue")
         # 启动事件处理线程
         self._thread.start()
 
@@ -93,11 +136,18 @@ class PluginManager:
         """
         # 将事件管理器设为停止
         self._active = False
-        # 等待事件处理线程退出
-        if self._thread:
-            self._thread.join()
-        # 停止所有插件
+        # 先通知插件停止其后台任务（设置退出事件、移除定时任务）
         self.__stop_plugins()
+        # 等待事件处理线程退出（get_event 有 1s 超时，这里再兜底限制等待时间）
+        if self._thread and self._thread.is_alive():
+            self._thread.join(timeout=5)
+            if self._thread.is_alive():
+                log.warn("【Plugin】事件处理线程未在 5 秒内退出，继续后续关闭流程")
+        # 关闭线程池：取消尚未开始的任务，正在执行的任务自然结束
+        executor = self._executor
+        self._executor = None
+        if executor:
+            executor.shutdown(wait=False, cancel_futures=True)
 
     def __load_plugins(self):
         """
@@ -124,7 +174,7 @@ class PluginManager:
             self._running_plugins[module_id] = plugin()
             # 初始化配置
             self.reload_plugin(module_id)
-            log.info(f"✔️  已加载插件：{plugin}")
+            log.info(f"✔️  已加载插件：{plugin.__name__}")
 
     def run_plugin(self, pid, method, *args, **kwargs):
         """
@@ -134,14 +184,19 @@ class PluginManager:
             return None
         if not hasattr(self._running_plugins[pid], method):
             return
-        try:
-            return getattr(self._running_plugins[pid], method)(*args, **kwargs)
-        except Exception as err:
-            log.exception(f"‼️ 执行插件 {pid}-{method} 方法异常: ")
+        # 同一插件的处理串行执行，避免并发触发同一实例的内部状态；
+        # 不同插件之间由线程池并行，慢插件不再阻塞其它插件
+        plugin_lock = self._plugin_locks.setdefault(pid, RLock())
+        with plugin_lock:
+            try:
+                return getattr(self._running_plugins[pid], method)(*args, **kwargs)
+            except Exception as err:
+                log.exception(f"‼️ 执行插件 {pid}-{method} 方法异常: ")
 
     def reload_plugin(self, pid):
         """
         生效插件配置
+        :return: 初始化失败返回 False；未运行或成功返回 None
         """
         if not pid:
             return
@@ -153,6 +208,7 @@ class PluginManager:
                 log.debug(f"生效插件配置：{pid}")
             except Exception as err:
                 log.exception(f"‼️ 初始化插件{pid}配置出错: ")
+                return False
 
     def __stop_plugins(self):
         """
@@ -200,6 +256,25 @@ class PluginManager:
         if not hasattr(self._running_plugins[pid], "get_state"):
             return None
         return self._running_plugins[pid].get_state()
+
+    def format_plugin_history(self, pid, key, value):
+        """
+        调用插件把运行历史值转换为用户友好的文本
+        :param pid: 插件ID
+        :param key: 历史记录键
+        :param value: 历史记录原始值（JSON 字符串会自动解析）
+        """
+        if isinstance(value, str) and value[:1] in ("{", "["):
+            value = JsonUtils.loads(value, default=value, silent=True)
+        plugin = self._running_plugins.get(pid)
+        if plugin and hasattr(plugin, "format_history"):
+            try:
+                return plugin.format_history(key, value)
+            except Exception:
+                log.exception(f"‼️ 格式化插件 {pid} 运行历史出错: ")
+        # 插件未运行或格式化失败时，使用通用格式化
+        from app.plugins.modules._base import format_history_text
+        return format_history_text(key, value)
 
     def save_plugin_config(self, pid, conf):
         """
@@ -250,10 +325,9 @@ class PluginManager:
             # ID前缀
             if hasattr(plugin, "module_config_prefix"):
                 conf.update({"prefix": plugin.module_config_prefix})
-            # 插件额外的页面
+            # 插件额外的页面（只取标题，避免加载页面数据造成阻塞）
             if hasattr(plugin, "get_page"):
-                title, _, _ = plugin.get_page()
-                conf.update({"page": title})
+                conf.update({"page": plugin.get_page_title()})
             # 插件额外的脚本
             if hasattr(plugin, "get_script"):
                 conf.update({"script": plugin.get_script()})
@@ -323,7 +397,7 @@ class PluginManager:
         }]
         """
         ret_commands = []
-        for _, plugin in self._running_plugins.items():
+        for plugin in self._running_plugins.values():
             if hasattr(plugin, "get_command"):
                 ret_commands.append(plugin.get_command())
         return ret_commands
@@ -336,4 +410,7 @@ class PluginManager:
             return None
         if not hasattr(self._running_plugins[pid], method):
             return None
-        return getattr(self._running_plugins[pid], method)(*args, **kwargs)
+        # 与事件处理共用插件锁，避免前端操作与事件处理并发操作同一实例
+        plugin_lock = self._plugin_locks.setdefault(pid, RLock())
+        with plugin_lock:
+            return getattr(self._running_plugins[pid], method)(*args, **kwargs)

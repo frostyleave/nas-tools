@@ -1,11 +1,9 @@
-from typing import List, Tuple
-
 from app.core.task_manager import TaskStore
 from app.helper import DbHelper
+from app.indexer import Indexer
 from app.media import MediaService
 from app.media.meta.metainfo import MetaInfo
 from app.message import MessageService
-from app.indexer import Indexer
 from app.utils.commons import singleton
 from app.utils.constants import Constants
 from app.utils.types import SearchType
@@ -36,9 +34,9 @@ class Searcher:
                         filter_args: dict,
                         match_media=None,
                         in_from: SearchType = None,
-                        search_theme: str = None,
+                        search_theme: str | None = None,
                         task_id=None,
-                        ident_flag:bool=False) -> List[MetaInfo]:
+                        ident_flag:bool=False) -> list[MetaInfo]:
         """
         根据关键字调用索引器检查媒体
         :param key_word: 搜索的关键字，不能为空
@@ -53,18 +51,18 @@ class Searcher:
             return []
 
         if task_id:
-            TaskStore().update_task(task_id=task_id, progress=1, message="开始搜索 %s ..." % search_theme)
+            TaskStore().update_task(task_id=task_id, progress=1, message=f"开始搜索 {search_theme} ...")
 
         torrent_list = self.indexer.search_by_keyword(key_word, filter_args, match_media, in_from, task_id)
 
-        # 清空上次结果
-        self.delete_all_search_torrents()
-        # 排序, 入库
-        if torrent_list and (in_from == SearchType.WEB or in_from in self.message.get_search_types()):
-            # 排序
-            torrent_list = sorted(torrent_list, key=lambda x: x.get_sort_str(), reverse=True)
-            # 插入数据库
-            self.insert_search_results(media_items=torrent_list, ident_flag=ident_flag, title=search_theme)
+        # 只有网页/消息类搜索才维护搜索结果表，订阅定时搜索不能清空用户正在浏览的结果
+        if in_from == SearchType.WEB or in_from in self.message.get_search_types():
+            # 清空上次结果
+            self.delete_all_search_torrents()
+            # 排序, 入库
+            if torrent_list:
+                torrent_list = sorted(torrent_list, key=lambda x: x.get_sort_str(), reverse=True)
+                self.insert_search_results(media_items=torrent_list, ident_flag=ident_flag, title=search_theme)
 
         # 结束进度
         if task_id:
@@ -73,7 +71,7 @@ class Searcher:
         return torrent_list
 
 
-    def get_search_result_info_by_id(self, res_id) -> Tuple[MetaInfo, str]:
+    def get_search_result_info_by_id(self, res_id) -> tuple[MetaInfo, str]:
         """
         根据下载ID获取搜索结果
         :param res_id: 下载ID

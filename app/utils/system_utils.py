@@ -1,20 +1,23 @@
 import datetime
 import os
 import platform
-import psutil
 import shutil
 import subprocess
 
-
-from app.utils.path_utils import PathUtils
-from app.utils.types import OsType
-
-from version import APP_VERSION
+import psutil
 
 import log
+from app.utils.path_utils import PathUtils
+from app.utils.time_utils import TimeUtils
+from app.utils.types import OsType
+from version import APP_VERSION
 
 
 class SystemUtils:
+
+    # 操作系统类型与版本号缓存，避免每次请求都 spawn 子进程
+    _system_type = None
+    _current_version = None
 
     @staticmethod
     def __get_hidden_shell():
@@ -29,18 +32,30 @@ class SystemUtils:
     @staticmethod
     def get_system():
         """
-        获取操作系统类型
+        获取操作系统类型（结果缓存，首次调用后不再执行 uname 等命令）
         """
+        if SystemUtils._system_type is not None:
+            return SystemUtils._system_type
         if SystemUtils.is_windows():
-            return OsType.WINDOWS
+            system_type = OsType.WINDOWS
         elif SystemUtils.is_synology():
-            return OsType.SYNOLOGY
+            system_type = OsType.SYNOLOGY
         elif SystemUtils.is_docker():
-            return OsType.DOCKER
+            system_type = OsType.DOCKER
         elif SystemUtils.is_macos():
-            return OsType.MACOS
+            system_type = OsType.MACOS
         else:
-            return OsType.LINUX
+            system_type = OsType.LINUX
+        SystemUtils._system_type = system_type
+        return system_type
+
+    @staticmethod
+    def refresh_cache():
+        """
+        清除操作系统类型与版本号缓存（系统更新后调用）
+        """
+        SystemUtils._system_type = None
+        SystemUtils._current_version = None
 
     @staticmethod
     def get_local_time(utc_time_str):
@@ -48,8 +63,11 @@ class SystemUtils:
         通过UTC的时间字符串获取时间
         """
         try:
-            utc_date = datetime.datetime.strptime(utc_time_str.replace('0000', ''), '%Y-%m-%dT%H:%M:%S.%fZ')
-            local_date = utc_date + datetime.timedelta(hours=8)
+            utc_date = datetime.datetime.strptime(
+                utc_time_str.replace('0000', ''), '%Y-%m-%dT%H:%M:%S.%fZ'
+            ).replace(tzinfo=datetime.UTC)
+            timezone = TimeUtils.get_timezone()
+            local_date = utc_date.astimezone(timezone) if timezone else utc_date.astimezone()
             local_date_str = datetime.datetime.strftime(local_date, '%Y-%m-%d %H:%M:%S')
         except Exception as e:
             log.exception("[SYS]get_local_time error:")
@@ -88,15 +106,15 @@ class SystemUtils:
     def is_synology():
         if SystemUtils.is_windows():
             return False
-        return True if "synology" in SystemUtils.execute('uname -a') else False
+        return "synology" in SystemUtils.execute('uname -a')
         
     @staticmethod
     def is_windows():
-        return True if os.name == "nt" else False
+        return os.name == "nt"
 
     @staticmethod
     def is_macos():
-        return True if platform.system() == 'Darwin' else False
+        return platform.system() == 'Darwin'
 
     @staticmethod
     def copy(src, dest):
@@ -167,7 +185,7 @@ class SystemUtils:
             retcode = subprocess.run(['rclone', 'moveto',
                                       src,
                                       f'NASTOOL:{dest}'],
-                                     startupinfo=SystemUtils.__get_hidden_shell()).returncode
+                                     startupinfo=SystemUtils.__get_hidden_shell(), check=False).returncode
             return retcode, ""
         except Exception as err:
             log.exception("[SYS]rclone_move error:")
@@ -184,7 +202,7 @@ class SystemUtils:
             retcode = subprocess.run(['rclone', 'copyto',
                                       src,
                                       f'NASTOOL:{dest}'],
-                                     startupinfo=SystemUtils.__get_hidden_shell()).returncode
+                                     startupinfo=SystemUtils.__get_hidden_shell(), check=False).returncode
             return retcode, ""
         except Exception as err:
             log.exception("[SYS]rclone_copy error:")
@@ -198,13 +216,12 @@ class SystemUtils:
         try:
             src = os.path.normpath(src)
             dest = dest.replace("\\", "/")
-            if dest.startswith("/"):
-                dest = dest[1:]
+            dest = dest.removeprefix("/")
             retcode = subprocess.run(['mc', 'mv',
                                       '--recursive',
                                       src,
                                       f'NASTOOL/{dest}'],
-                                     startupinfo=SystemUtils.__get_hidden_shell()).returncode
+                                     startupinfo=SystemUtils.__get_hidden_shell(), check=False).returncode
             return retcode, ""
         except Exception as err:
             log.exception("[SYS]minio_move error:")
@@ -218,13 +235,12 @@ class SystemUtils:
         try:
             src = os.path.normpath(src)
             dest = dest.replace("\\", "/")
-            if dest.startswith("/"):
-                dest = dest[1:]
+            dest = dest.removeprefix("/")
             retcode = subprocess.run(['mc', 'cp',
                                       '--recursive',
                                       src,
                                       f'NASTOOL/{dest}'],
-                                     startupinfo=SystemUtils.__get_hidden_shell()).returncode
+                                     startupinfo=SystemUtils.__get_hidden_shell(), check=False).returncode
             return retcode, ""
         except Exception as err:
             log.exception("[SYS]minio_copy error:")
@@ -251,7 +267,8 @@ class SystemUtils:
             ret = subprocess.run(
                 ['fsutil', 'hardlink', 'list', file],
                 startupinfo=self.__get_hidden_shell(),
-                stdout=subprocess.PIPE
+                stdout=subprocess.PIPE,
+                check=False
             )
             if ret.returncode != 0:
                 return []
@@ -276,7 +293,8 @@ class SystemUtils:
                 fdir = os.path.dirname(file)
             stdout = subprocess.run(
                 ['find', fdir, '-inum', str(inode)],
-                stdout=subprocess.PIPE
+                stdout=subprocess.PIPE,
+                check=False
             ).stdout
             if stdout:
                 link_files = stdout.decode('utf-8').split('\n')
@@ -372,9 +390,12 @@ class SystemUtils:
     @staticmethod
     def get_current_version():
         """
-        获取当前版本号
+        获取当前版本号（结果缓存，避免每次请求都执行 git 命令）
         """
+        if SystemUtils._current_version is not None:
+            return SystemUtils._current_version
         commit_id = SystemUtils.execute('git rev-parse HEAD')
         if commit_id and len(commit_id) > 7:
             commit_id = commit_id[:7]
-        return "%s %s" % (APP_VERSION, commit_id)
+        SystemUtils._current_version = f"{APP_VERSION} {commit_id}"
+        return SystemUtils._current_version

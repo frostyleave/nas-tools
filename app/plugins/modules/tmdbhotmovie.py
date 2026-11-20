@@ -1,16 +1,16 @@
-from datetime import datetime
 from threading import Event
 
 from jinja2 import Template
 
-from app.helper import RssHelper
-from app.helper import ThreadHelper
+from app.helper import RssHelper, ThreadHelper
 from app.media.meta.metainfo import MetaInfo
 from app.media.tmdbv3api.objs.movie import Movie
 from app.mediaserver import MediaServer
-from app.plugins.modules._base import _IPluginModule
 from app.modules.subscribe import Subscribe
+from app.plugins.modules._base import _IPluginModule
+from app.utils.time_utils import TimeUtils
 from app.utils.types import MediaType, RssType
+
 
 class TmdbHotMovieRank(_IPluginModule):
     # 插件名称
@@ -18,7 +18,7 @@ class TmdbHotMovieRank(_IPluginModule):
     # 插件描述
     module_desc = "监控TMDB热门电影, 自动添加订阅。"
     # 插件图标
-    module_icon = "tmdb.png"
+    module_icon = "tmdb-logo.png"
     # 主题色
     module_color = "#01B3E3"
     # 插件版本
@@ -31,6 +31,8 @@ class TmdbHotMovieRank(_IPluginModule):
     module_config_prefix = "tmdb_hot_movie_"
     # 加载顺序
     module_order = 18
+    # 插件额外页面标题
+    module_page_title = "订阅历史"
     # 可使用的用户级别
     auth_level = 2
 
@@ -47,7 +49,7 @@ class TmdbHotMovieRank(_IPluginModule):
     _cron = ""
     _vote = 0
 
-    def init_config(self, config: dict = None):
+    def init_config(self, config: dict | None = None):
         self.mediaserver = MediaServer()
         self.subscribe = Subscribe()
         self.rsshelper = RssHelper()
@@ -60,6 +62,8 @@ class TmdbHotMovieRank(_IPluginModule):
 
         # 停止现有任务
         self.stop_service()
+        # 重新开始，清除退出事件
+        self.reset_stop_event()
 
         # 启动服务
         if self.get_state() or self._onlyonce:
@@ -232,7 +236,7 @@ class TmdbHotMovieRank(_IPluginModule):
         return """
           // 删除榜单订阅历史记录
           function TmdbHotMovie_delete_history(id){
-            axios_post_do("run_plugin_method", {"plugin_id": 'TmdbHotMovie', 'method': 'delete_rank_history', 'tmdb_id': id}, function (ret) {
+            axios_post("/sys/run_plugin_method", {"plugin_id": 'TmdbHotMovie', 'method': 'delete_rank_history', 'tmdb_id': id}, function (ret) {
               $("#movie_rank_history_" + id).remove();
             });
 
@@ -259,7 +263,7 @@ class TmdbHotMovieRank(_IPluginModule):
             "rating": media.vote_average or 0,
             "image": media.get_poster_image(),
             "state": state,
-            "add_time": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            "add_time": TimeUtils.now_str()
         }
         if self.get_history(key=media.tmdb_id):
             self.update_history(key=media.tmdb_id, value=value)
@@ -270,6 +274,8 @@ class TmdbHotMovieRank(_IPluginModule):
         """
         停止服务
         """
+        # 通知刷新线程退出，避免重载后旧线程继续运行
+        self.set_stop_event()
         try:
             self.remove_job(self._cron_job)
         except Exception as e:
@@ -279,16 +285,18 @@ class TmdbHotMovieRank(_IPluginModule):
         """
         刷新榜单
         """
+        # 捕获本次运行的事件对象，插件重载后旧线程仍能被旧的置位事件终止
+        event = self._event
         try:
             rank_list = self.movie.popular()
             if not rank_list:
-                self.error(f"未查TMDB热门电影询到数据")
+                self.error("未查TMDB热门电影询到数据")
                 return
             else:
                 self.info(f"TMDB热门电影 共 {len(rank_list)} 条数据")
             for tmdb_info in rank_list:
-                if self._event.is_set():
-                    self.info(f"订阅服务已停止")
+                if event.is_set():
+                    self.info("订阅服务已停止")
                     return
 
                 tmdb_id = tmdb_info.id
@@ -348,14 +356,14 @@ class TmdbHotMovieRank(_IPluginModule):
                     in_from='TMDB热门电影订阅'
                 )
                 if not rss_media or code != 0:
-                    self.warn("%s 添加订阅失败: %s" % (title, msg))
+                    self.warn(f"{title} 添加订阅失败: {msg}")
                     # 订阅已存在
                     if code == 9:
                         self.__update_history(media=media_info, state="RSS")
                 else:
-                    self.info("%s 添加订阅成功" % title)
+                    self.info(f"{title} 添加订阅成功")
                     self.__update_history(media=media_info, state="RSS")
         except Exception as e:
             self.error(str(e))
 
-        self.info(f"刷新完成")
+        self.info("刷新完成")

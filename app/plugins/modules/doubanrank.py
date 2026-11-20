@@ -1,19 +1,17 @@
 import re
 import xml.dom.minidom
-
-from datetime import datetime
 from threading import Event
+from typing import ClassVar
 
 from jinja2 import Template
 
-from app.helper import RssHelper
-from app.helper import ThreadHelper
+from app.helper import RssHelper, ThreadHelper
 from app.media import MediaService
 from app.mediaserver import MediaServer
-from app.plugins.modules._base import _IPluginModule
 from app.modules.subscribe import Subscribe
-from app.utils import RequestUtils, DomUtils
-from app.utils.types import MediaType, SearchType, RssType
+from app.plugins.modules._base import _IPluginModule
+from app.utils import DomUtils, RequestUtils, TimeUtils
+from app.utils.types import MediaType, RssType, SearchType
 from config import Config
 
 
@@ -36,6 +34,8 @@ class DoubanRank(_IPluginModule):
     module_config_prefix = "doubanrank_"
     # 加载顺序
     module_order = 16
+    # 插件额外页面标题
+    module_page_title = "订阅历史"
     # 可使用的用户级别
     auth_level = 2
 
@@ -46,7 +46,7 @@ class DoubanRank(_IPluginModule):
     subscribe = None
     rsshelper = None
     media = None
-    _douban_address = {
+    _douban_address: ClassVar[dict] = {
         'movie-real-time': { 'addr' : 'https://rsshub.app/douban/movie/weekly/subject_real_time_hotest', 'name' : '实时热门书影音' },
         'movie_weekly_best': { 'addr' : 'https://rsshub.app/douban/movie/movie_weekly_best', 'name' : '一周电影口碑榜' },
         'movie-hot-gaia': { 'addr' : 'https://rsshub.app/douban/movie/weekly/movie_hot_gaia', 'name' : '热门电影' },
@@ -58,17 +58,17 @@ class DoubanRank(_IPluginModule):
     _enable = False
     _onlyonce = False
     _cron = ""
-    _rss_addrs = []
-    _ranks = []
     _vote = 0
     _useproxy = False
 
         
-    def init_config(self, config: dict = None):
+    def init_config(self, config: dict | None = None):
         self.mediaserver = MediaServer()
         self.subscribe = Subscribe()
         self.rsshelper = RssHelper()
         self.media = MediaService()
+        self._rss_addrs = []
+        self._ranks = []
         if config:
             self._enable = config.get("enable")
             self._onlyonce = config.get("onlyonce")
@@ -87,6 +87,8 @@ class DoubanRank(_IPluginModule):
 
         # 停止现有任务
         self.stop_service()
+        # 重新开始，清除退出事件
+        self.reset_stop_event()
 
         # 启动服务
         if self.get_state() or self._onlyonce:
@@ -331,7 +333,7 @@ class DoubanRank(_IPluginModule):
         return """
           // 删除榜单订阅历史记录
           function DoubanRank_delete_history(id){
-            axios_post_do("run_plugin_method", {"plugin_id": 'DoubanRank', 'method': 'delete_rank_history', 'tmdb_id': id}, function (ret) {
+            axios_post("/sys/run_plugin_method", {"plugin_id": 'DoubanRank', 'method': 'delete_rank_history', 'tmdb_id': id}, function (ret) {
               $("#movie_rank_history_" + id).remove();
             });
 
@@ -358,7 +360,7 @@ class DoubanRank(_IPluginModule):
             "rating": media.vote_average or 0,
             "image": media.get_poster_image(),
             "state": state,
-            "add_time": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            "add_time": TimeUtils.now_str()
         }
         if self.get_history(key=media.tmdb_id):
             self.update_history(key=media.tmdb_id, value=value)
@@ -369,6 +371,8 @@ class DoubanRank(_IPluginModule):
         """
         停止服务
         """
+        # 通知刷新线程退出，避免重载后旧线程继续运行
+        self.set_stop_event()
         try:
             self.remove_job(self._cron_job)
         except Exception as e:
@@ -378,23 +382,26 @@ class DoubanRank(_IPluginModule):
         """
         刷新RSS
         """
-        self.info(f"开始刷新RSS ...")
+        self.info("开始刷新RSS ...")
+        # 捕获本次运行的事件对象，插件重载后旧线程仍能被旧的置位事件终止
+        event = self._event
 
         for rank_id in self._ranks:
             addr_info = self._douban_address.get(rank_id, {})
             if not addr_info or not addr_info.get('addr'):
                 continue
-            self.__try_do_rss_subscribe(addr_info.get('addr'), addr_info.get('name'))
+            self.__try_do_rss_subscribe(addr_info.get('addr'), addr_info.get('name'), event)
 
         if self._rss_addrs:
             for addr in self._rss_addrs:
                 if not addr:
                     continue
-                self.__try_do_rss_subscribe(addr, '榜单(自定义)')
+                self.__try_do_rss_subscribe(addr, '榜单(自定义)', event)
 
-        self.info(f"所有RSS刷新完成")
+        self.info("所有RSS刷新完成")
 
-    def __try_do_rss_subscribe(self, addr, rss_name=''):
+    def __try_do_rss_subscribe(self, addr, rss_name='', event=None):
+        event = event or self._event
         try:
             self.info(f"获取RSS: {addr} ...")
             rss_infos = self.__get_rss_info(addr)
@@ -404,8 +411,8 @@ class DoubanRank(_IPluginModule):
             else:
                 self.info(f"RSS地址: {addr} ，共 {len(rss_infos)} 条数据")
             for rss_info in rss_infos:
-                if self._event.is_set():
-                    self.info(f"订阅服务停止")
+                if event.is_set():
+                    self.info("订阅服务停止")
                     return
 
                 title = rss_info.get('title')
@@ -474,12 +481,12 @@ class DoubanRank(_IPluginModule):
                     in_from= rss_name if rss_name else SearchType.PLUGIN
                 )
                 if not rss_media or code != 0:
-                    self.warn("%s 添加订阅失败: %s" % (media_info.get_title_string(), msg))
+                    self.warn(f"{media_info.get_title_string()} 添加订阅失败: {msg}")
                     # 订阅已存在
                     if code == 9:
                         self.__update_history(media=media_info, state="RSS")
                 else:
-                    self.info("%s 添加订阅成功" % media_info.get_title_string())
+                    self.info(f"{media_info.get_title_string()} 添加订阅成功")
                     self.__update_history(media=media_info, state="RSS")
         except Exception as e:
             self.error(str(e))
@@ -508,7 +515,7 @@ class DoubanRank(_IPluginModule):
                     # 链接
                     link = DomUtils.tag_value(item, "link", default="")
                     if not title and not link:
-                        self.warn(f"条目标题和链接均为空，无法处理")
+                        self.warn("条目标题和链接均为空，无法处理")
                         continue
                     doubanid = re.findall(r"/(\d+)/", link)
                     if doubanid:

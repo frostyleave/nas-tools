@@ -1,8 +1,8 @@
 import datetime
-import time
 from collections import deque
 
 from app.utils.commons import singleton
+from app.utils.time_utils import TimeUtils
 
 
 @singleton
@@ -11,11 +11,9 @@ class SysMessageCenter:
     系统消息中心
     """
 
-    _message_queue = deque(maxlen=50)
-    _message_index = 0
-
     def __init__(self):
-        pass
+        self._message_queue = deque(maxlen=50)
+        self._message_index = 0
 
     def insert_system_message(self, title, content=None):
         """
@@ -33,7 +31,7 @@ class SysMessageCenter:
         """
         self._message_queue.appendleft({"title": title,
                                         "content": content,
-                                        "time": time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time()))})
+                                        "time": TimeUtils.now_str()})
 
     def get_system_messages(self, num=20, lst_time=None):
         """

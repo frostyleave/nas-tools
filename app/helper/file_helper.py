@@ -1,15 +1,13 @@
 import os
 import re
 import shutil
-
 from urllib.parse import unquote
 
 import log
-
+from app.utils.constants import Constants
 from app.utils.path_utils import PathUtils
 from app.utils.string_utils import StringUtils
 from app.utils.system_utils import SystemUtils
-from app.utils.constants import Constants
 from app.utils.types import OsType
 
 
@@ -49,7 +47,7 @@ class FileHelper:
             return True, f"{file} 删除成功"
         except Exception as e:
             log.exception(f"[act]{file} 删除失败:")
-            return True, f"{file} 删除失败"
+            return False, f"{file} 删除失败：{e!s}"
 
     @staticmethod
     def get_sub_path(path_filter, path_dir):

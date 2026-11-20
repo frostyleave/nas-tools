@@ -1,15 +1,9 @@
 import random
-import log
-
 from time import sleep
 
-from app.media.doubanapi import DoubanScaper
-from app.media.meta import MetaInfo
-from app.utils import StringUtils
-from app.utils import RequestUtils
-
-
 import log
+from app.media.doubanapi import DoubanScaper
+from app.utils import RequestUtils, StringUtils
 
 
 class DouBanUser:
@@ -27,7 +21,7 @@ class DouBanUser:
             if res:
                 self.cookie = StringUtils.str_from_cookiejar(res.cookies)
         except Exception as err:
-            log.exception(f"【Douban】获取cookie失败: ")
+            log.exception("【Douban】获取cookie失败: ")
 
     def get_latest_douban_interests(self, dtype, userid, wait=False):
         """
@@ -35,7 +29,7 @@ class DouBanUser:
         """
         if wait:
             time = round(random.uniform(1, 5), 1)
-            log.info("【Douban】随机休眠: %s 秒" % time)
+            log.info(f"【Douban】随机休眠: {time} 秒")
             sleep(time)
         if dtype == "do":
             web_infos = self.scaper.do_in_interests(userid=userid)
@@ -57,7 +51,7 @@ class DouBanUser:
         """
         if wait:
             time = round(random.uniform(1, 5), 1)
-            log.info("【Douban】随机休眠: %s 秒" % time)
+            log.info(f"【Douban】随机休眠: {time} 秒")
             sleep(time)
         if dtype == "do":
             web_infos = self.scaper.do(cookie=self.cookie, userid=userid, start=start)
@@ -74,6 +68,6 @@ class DouBanUser:
     def get_user_info(self, userid, wait=False):
         if wait:
             time = round(random.uniform(1, 5), 1)
-            log.info("【Douban】随机休眠: %s 秒" % time)
+            log.info(f"【Douban】随机休眠: {time} 秒")
             sleep(time)
         return self.scaper.user(cookie=self.cookie, userid=userid)

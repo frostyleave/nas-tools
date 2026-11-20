@@ -1,17 +1,17 @@
+from typing import ClassVar
 import datetime
+
 import requests
-
-from lxml import etree
 from cachetools import TTLCache, cached
+from lxml import etree
 
+import log
 from app.utils import RequestUtils
 from app.utils.commons import singleton
 
-import log
-
 
 @singleton
-class DoubanScaper(object):
+class DoubanScaper:
 
     _session = requests.Session()
 
@@ -21,7 +21,7 @@ class DoubanScaper(object):
     _page_limit = 50
     _timout = 5
 
-    _weburls = {
+    _weburls: ClassVar[dict] = {
         # 详情
         "detail": f"{_movie_base}/subject/%s",
         # 正在热映
@@ -44,7 +44,7 @@ class DoubanScaper(object):
         "rss": f"{_rss_base}/feed/people/%s/interests"
     }
 
-    _webparsers = {
+    _webparsers: ClassVar[dict] = {
         "detail": {
             "title": "//span[@property='v:itemreviewed']/text()",
             "year": "//div[@id='content']//span[@class='year']/text()",
@@ -125,7 +125,7 @@ class DoubanScaper(object):
         }
     }
 
-    _jsonurls = {
+    _jsonurls: ClassVar[dict] = {
         # 最新电影
         "movie_new": f"{_movie_base}/j/search_subjects?type=movie&tag=最新&page_limit={_page_limit}&page_start=%s",
         # 热门电影

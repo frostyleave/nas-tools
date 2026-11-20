@@ -27,7 +27,7 @@ class SearchType(Enum):
     WX = "微信"
     WEB = "WEB"
     DB = "豆瓣"
-    RSS = "电影/电视剧订阅"
+    RSS = "RSS订阅"
     USERRSS = "自定义订阅"
     OT = "手动下载"
     TG = "Telegram"
@@ -104,10 +104,8 @@ class SiteSchema(Enum):
 # 解析器类型
 class Spider(Enum):
     TorrentSpider = ""
-    Rarbg = "Rarbg"
     TorrentLeech = "TorrentLeech"
     TNodeSpider = "TNodeSpider"
-    InterfaceSpider = "InterfaceSpider"
     MTorrentSpider = "MTorrentSpider"
 
 
@@ -181,6 +179,8 @@ class SystemConfigKey(Enum):
     UserScraperConf = "UserScraperConf"
     # 索引站点
     UserIndexerSites = "UserIndexerSites"
+    # 运行期配置
+    ConfigOverride = "ConfigOverride"
 
 
 class RssType(Enum):

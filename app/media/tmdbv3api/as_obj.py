@@ -1,4 +1,3 @@
-# encoding: utf-8
 import sys
 
 from app.media.tmdbv3api.exceptions import TMDbException

@@ -1,34 +1,27 @@
 import os
-import time
+from collections.abc import Mapping
 
-from alembic.config import Config as AlembicConfig
 from alembic.command import upgrade as alembic_upgrade
-
-from watchdog.events import FileSystemEventHandler
-from watchdog.observers import Observer
-
-from app.db.main_db import MainDb
-from app.db.media_db import MediaDb
+from alembic.config import Config as AlembicConfig
 
 import log
-
-from app.media import Category
-from app.utils.cache_manager import ConfigLoadCache, CategoryLoadCache
-from app.utils.commons import INSTANCES
-from app.utils.password_hash import generate_password_hash
+from app.db.main_db import MainDb
+from app.db.media_db import MediaDb
+from app.utils.password_hash import generate_password_hash, normalize_password_hash
 from app.utils.string_utils import StringUtils
-
 from config import Config
 
-_observer = Observer(timeout=10)
 
 def init_data():
-    
+
     log.console('开始初始化数据库...')
     MediaDb().init_db()
     MainDb().init_db()
     log.console('数据库初始化完成, 开始初始化数据...')
+    # 需在 MainDb.init_data() 之前加载
+    init_db_config()
     MainDb().init_data()
+    MainDb().ensure_config_users_level()
     log.console('数据初始化完成')
     
     db_location = os.path.normpath(os.path.join(Config().get_config_path(), 'user.db'))
@@ -42,6 +35,17 @@ def init_data():
         log.console('数据库更新完成')
     except Exception as e:
         log.console(f'数据库更新失败：{e}')
+
+def init_db_config():
+    """
+    加载数据库配置
+    """
+    try:
+        from app.conf.db_config import DbConfig
+        DbConfig().init_config()
+    except Exception as e:
+        log.error(f'【Config】数据库配置加载失败：{e!s}')
+
 
 def check_config():
     """
@@ -65,32 +69,62 @@ def check_config():
             else:
                 log.info(f"日志将写入文件：{logpath}")
 
-        # 检查WEB端口
-        web_port = Config().get_config('app').get('web_port')
-        if not web_port:
-            log.warn("【Config】WEB服务端口未设置，将使用默认3000端口")
-
-        # 检查登录用户和密码
-        login_user = Config().get_config('app').get('login_user')
-        login_password = Config().get_config('app').get('login_password')
-        if not login_user or not login_password:
-            log.warn("【Config】WEB管理用户或密码未设置，将使用默认用户：admin，密码：password")
+        # 检查系统管理员账号（以数据库为准）
+        try:
+            from app.models.user import UserManager
+            admin_user = UserManager().get_admin_user()
+        except Exception as e:
+            admin_user = None
+            log.error(f"【Config】查询系统管理员失败：{e!s}")
+        if admin_user:
+            log.info(f"WEB管理页面用户：{admin_user.username}（系统管理员）")
         else:
-            log.info(f"WEB管理页面用户：{str(login_user)}")
+            log.warn("【Config】数据库中未找到系统管理员账号，请检查 config.yaml 中的 login_user / login_password")
 
-        # 检查HTTPS
-        ssl_cert = Config().get_config('app').get('ssl_cert')
-        ssl_key = Config().get_config('app').get('ssl_key')
-        if not ssl_cert or not ssl_key:
-            log.info(f"未启用https，请使用 http://IP:{str(web_port)} 访问管理页面")
-        else:
-            if not os.path.exists(ssl_cert):
-                log.warn(f"【Config】ssl_cert文件不存在：{ssl_cert}")
-            if not os.path.exists(ssl_key):
-                log.warn(f"【Config】ssl_key文件不存在：{ssl_key}")
-            log.info(f"已启用https，请使用 https://IP:{str(web_port)} 访问管理页面")
+        log.info("请使用 http://IP:3000 访问管理页面")
     else:
         log.error("【Config】配置文件格式错误，找不到app配置项！")
+
+
+def init_admin_user():
+    """
+    确保数据库中存在系统管理员账号（LEVEL=99）。
+
+    仅在 CONFIG_USERS 中没有任何系统管理员时，使用 config.yaml 中的
+    login_user / login_password 引导创建；初始化完成后管理员账号以数据库为准，
+    并移除配置文件中的 login_password，后续密码通过“修改密码”功能维护。
+    通过“基础设置”修改用户名会同步到数据库，直接编辑配置文件不会同步。
+    """
+    from app.helper import DbHelper
+    from app.models.user import LEVEL_SYSADMIN
+
+    dbhelper = DbHelper()
+    app_conf = Config().get_config('app') or {}
+
+    if not dbhelper.get_users_by_level(LEVEL_SYSADMIN):
+        if not app_conf.get('login_user') or not app_conf.get('login_password'):
+            log.warn("【Config】WEB管理用户或密码未设置，将使用默认用户：admin，密码：password")
+        login_user = app_conf.get('login_user') or 'admin'
+        password_hash = normalize_password_hash(app_conf.get('login_password'))
+        default_pris = ",".join(
+            menu.get('name') for menu in (Config().menu or []) if menu.get('name')
+        )
+
+        if dbhelper.is_user_exists(login_user):
+            # 同名用户已存在：只提升为系统管理员，不覆盖其密码
+            dbhelper.update_user_level(login_user, LEVEL_SYSADMIN)
+            log.warn(f"【Config】数据库中存在同名用户 {login_user}，已将其提升为系统管理员")
+        else:
+            dbhelper.insert_user(login_user, password_hash, default_pris, LEVEL_SYSADMIN)
+            log.info(f"【Config】已根据配置文件创建系统管理员：{login_user}")
+
+        if not dbhelper.get_users_by_level(LEVEL_SYSADMIN):
+            # 初始化失败时保留配置中的密码，避免丢失引导凭据
+            log.error("【Config】系统管理员初始化失败，保留配置文件中的登录密码")
+            return
+
+    # 移除配置文件中的 login_password
+    app_conf.pop('login_password', None)
 
 
 def update_config():
@@ -100,17 +134,20 @@ def update_config():
     _config = Config().get_config()
     overwrite_cofig = False
 
-    # 密码初始化
-    login_password = _config.get("app", {}).get("login_password") or "password"
-    if login_password and not login_password.startswith("[hash]"):
-        _config['app']['login_password'] = "[hash]%s" % generate_password_hash(
-            login_password)
+    # 密码初始化（仅处理配置文件中的明文密码；初始化完成后该配置会被移除）
+    login_password = _config.get("app", {}).get("login_password")
+    if login_password and not str(login_password).startswith("[hash]"):
+        _config['app']['login_password'] = "[hash]{}".format(generate_password_hash(
+            login_password))
         overwrite_cofig = True
 
-    # API密钥初始化
-    if not _config.get("security", {}).get("api_key"):
-        _config['security']['api_key'] = StringUtils.generate_random_str(32)
-        overwrite_cofig = True
+    # API密钥迁移：确保系统默认密钥 SYS_DEFAULT 存在，配置文件不再保存密钥
+    try:
+        from app.core.security_center import SecurityCenter
+        if SecurityCenter().ensure_default_api_key(_config):
+            overwrite_cofig = True
+    except Exception as e:
+        log.exception(f"【Config】API密钥初始化失败：{e!s}")
 
     # jwt_secret
     if not _config.get("security", {}).get("jwt_secret"):
@@ -130,64 +167,135 @@ def update_config():
         Config().save_config(_config)
 
 
-class ConfigMonitor(FileSystemEventHandler):
-    """
-    配置文件变化响应
-    """
-
-    def __init__(self):
-        FileSystemEventHandler.__init__(self)
-
-    def on_modified(self, event):
-        if event.is_directory:
-            return
-        src_path = event.src_path
-        file_name = os.path.basename(src_path)
-        file_head, file_ext = os.path.splitext(os.path.basename(file_name))
-        if file_ext != ".yaml":
-            return
-        # 配置文件10秒内只能加载一次
-        if file_name == "config.yaml" and not ConfigLoadCache.get(src_path):
-            ConfigLoadCache.set(src_path, True)
-            CategoryLoadCache.set("ConfigLoadBlock", True, ConfigLoadCache.ttl)
-            log.warn(f"【System】进程 {os.getpid()} 检测到系统配置文件已修改，正在重新加载...")
-            time.sleep(1)
-            # 重新加载配置
-            Config().init_config()
-            # 重载singleton服务
-            for instance in INSTANCES.values():
-                if hasattr(instance, "init_config"):
-                    instance.init_config()
-        # 正在使用的二级分类策略文件3秒内只能加载一次，配置文件加载时，二级分类策略文件不加载
-        elif file_name == os.path.basename(Config().category_path) \
-                and not CategoryLoadCache.get(src_path) \
-                and not CategoryLoadCache.get("ConfigLoadBlock"):
-            CategoryLoadCache.set(src_path, True)
-            log.warn(f"【System】进程 {os.getpid()} 检测到二级分类策略 {file_head} 配置文件已修改，正在重新加载...")
-            time.sleep(1)
-            # 重新加载二级分类策略
-            Category().init_config()
+# 日志输出相关配置项，变化后需要重建日志处理器
+_LOG_CONFIG_KEYS = {"app.loglevel", "app.logtype", "app.logpath", "app.logserver"}
 
 
-def start_config_monitor():
+def diff_config(old_cfg, new_cfg, prefix=""):
     """
-    启动服务
+    递归比对配置，返回发生变化的配置项（点号路径集合）
+
+    :param old_cfg: 变更前的配置
+    :param new_cfg: 变更后的配置
+    :param prefix: 当前比对节点的路径前缀
     """
-    global _observer
-    # 配置文件监听
-    _observer.schedule(ConfigMonitor(), path=Config().get_config_path(), recursive=False)
-    _observer.daemon = True
-    _observer.start()
+    changed = set()
+    if isinstance(old_cfg, Mapping) and isinstance(new_cfg, Mapping):
+        for key in set(old_cfg.keys()) | set(new_cfg.keys()):
+            path = f"{prefix}.{key}" if prefix else str(key)
+            changed |= diff_config(old_cfg.get(key), new_cfg.get(key), path)
+    elif old_cfg != new_cfg:
+        changed.add(prefix)
+    return changed
 
 
-def stop_config_monitor():
+def _get_config_handlers():
     """
-    停止服务
+    配置项与重载动作的映射（按需重载，顺序即执行顺序）
+
+    只列出会缓存 config.yaml 配置的服务/任务；其余均在使用时实时读取配置。
+    依赖写法：
+    - 精确配置项：media.category
+    - 整个节点：security（匹配 security 下任意配置项变更）
+    - 通配：media.transfer.*（匹配该前缀下的配置项）
     """
-    global _observer
+    # 延迟导入，避免启动阶段产生循环依赖
+    from app.core.scheduler import Scheduler
+    from app.core.security_center import SecurityCenter
+    from app.helper.meta_helper import MetaHelper
+    from app.media.category import Category
+    from app.media.media import MediaService
+    from app.mediaserver.media_server import MediaServer
+    from app.modules.filetransfer import FileTransfer
+
+    return [
+        ("日志", _LOG_CONFIG_KEYS, lambda *_: log.setup_logging()),
+        # 二级分类在文件转移初始化前加载
+        ("Category", {"media.category"}, lambda *_: Category().init_config()),
+        ("MediaService", {
+            "media.tmdb_language",
+            "laboratory.search_keyword",
+            "laboratory.search_tmdbweb",
+        }, lambda *_: MediaService().init_config()),
+        ("FileTransfer", {
+            "media.category",
+            "media.movie_path",
+            "media.tv_path",
+            "media.anime_path",
+            "media.unknown_path",
+            "media.min_filesize",
+            "media.ignored_paths",
+            "media.ignored_files",
+            "media.filesize_cover",
+            "media.movie_name_format",
+            "media.tv_name_format",
+            "media.nfo_poster",
+        }, lambda *_: FileTransfer().init_config()),
+        ("MediaServer", {"media.media_server", "emby", "jellyfin", "plex"},
+         lambda *_: MediaServer().init_config()),
+        ("SecurityCenter", {"security"}, lambda *_: SecurityCenter().init_config()),
+        ("MetaHelper", {"laboratory.tmdb_cache_expire"},
+         lambda *_: MetaHelper().init_config()),
+        # 定时任务精确到单个 job，避免无关任务被重建
+        ("Scheduler", {
+            "media.mediasync_interval",
+            "pt.ptrefresh_date_cron",
+            "pt.pt_check_interval",
+            "pt.search_rss_interval",
+        }, lambda keys: Scheduler().reload_jobs(keys)),
+    ]
+
+
+def _match_config_keys(dependencies, changed_keys):
+    """
+    判断变更项是否命中服务依赖的配置项
+    """
+    for dep in dependencies:
+        # 通配依赖：media.transfer.*
+        if dep.endswith(".*"):
+            prefix = dep[:-1]
+            if any(key.startswith(prefix) or key == dep[:-2] for key in changed_keys):
+                return True
+            continue
+        # 精确配置项
+        if dep in changed_keys:
+            return True
+        # 整个节点依赖；节点被整体替换/删除时也视为命中
+        if "." not in dep:
+            if any(key.split(".")[0] == dep for key in changed_keys):
+                return True
+        elif dep.split(".")[0] in changed_keys:
+            return True
+    return False
+
+
+def reload_config(changed_keys):
+    """
+    按配置变更项执行受影响的重载动作
+
+    :param changed_keys: 发生变化的配置项点号路径集合，由 diff_config 生成
+    :return: 已重新加载的服务/任务名称列表
+    """
+    changed_keys = set(changed_keys or [])
+    if not changed_keys:
+        return []
+
     try:
-        if _observer:
-            _observer.stop()
-            _observer.join()
-    except Exception as err:
-        print(str(err))
+        handlers = _get_config_handlers()
+    except Exception:
+        log.exception("【Config】加载配置依赖关系失败：")
+        return []
+
+    reloaded = []
+    for name, dependencies, handler in handlers:
+        if not _match_config_keys(dependencies, changed_keys):
+            continue
+        try:
+            handler(changed_keys)
+            reloaded.append(name)
+        except Exception:
+            log.exception(f"【Config】{name} 重新加载配置失败：")
+
+    if reloaded:
+        log.info(f"【Config】配置已更新，已重新加载：{'、'.join(reloaded)}")
+    return reloaded

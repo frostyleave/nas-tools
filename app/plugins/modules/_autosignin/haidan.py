@@ -1,8 +1,8 @@
+from typing import ClassVar
 from app.helper.site_signin_helper import SiteSigninHelper, Verdict
-from app.plugins.modules._autosignin._base import _ISiteSigninHandler
 from app.models.model import UserSiteConf
-from app.utils import SiteUtils, RequestUtils
-
+from app.plugins.modules._autosignin._base import _ISiteSigninHandler
+from app.utils import RequestUtils, SiteUtils
 from config import Config
 
 
@@ -14,7 +14,7 @@ class HaiDan(_ISiteSigninHandler):
     site_url = "haidan.cc"
 
     # 签到成功
-    _succeed_regex = ['(?<=value=")已经打卡(?=")']
+    _succeed_regex: ClassVar[list[str]] = ['(?<=value=")已经打卡(?=")']
 
     @classmethod
     def match(cls, url):
@@ -23,7 +23,7 @@ class HaiDan(_ISiteSigninHandler):
         :param url: 站点Url
         :return: 是否匹配，如匹配则会调用该类的signin方法
         """
-        return True if SiteUtils.url_equal(url, cls.site_url) else False
+        return bool(SiteUtils.url_equal(url, cls.site_url))
 
     def signin(self, site_info: UserSiteConf):
         """

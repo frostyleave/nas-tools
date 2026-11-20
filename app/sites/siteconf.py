@@ -2,20 +2,21 @@ import os
 import pickle
 import random
 import time
+from typing import ClassVar
 
 from cachetools import TTLCache, cached
 from lxml import etree
 
-from app.utils import SiteUtils, RequestUtils
+import log
+from app.utils import RequestUtils, SiteUtils
 from app.utils.commons import singleton
 from config import Config
-import log
 
 
 @singleton
 class SiteConf:
     # 站点签到支持的识别XPATH
-    _SITE_CHECKIN_XPATH = [
+    _SITE_CHECKIN_XPATH: ClassVar[list[str]] = [
         '//a[@id="signed"]',
         '//a[contains(@href, "attendance")]',
         '//a[contains(text(), "签到")]',
@@ -30,12 +31,12 @@ class SiteConf:
     ]
 
     # 站点详情页字幕下载链接识别XPATH
-    _SITE_SUBTITLE_XPATH = [
+    _SITE_SUBTITLE_XPATH: ClassVar[list[str]] = [
         '//td[@class="rowhead"][text()="字幕"]/following-sibling::td//a/@href',
     ]
 
     # 站点登录界面元素XPATH
-    _SITE_LOGIN_XPATH = {
+    _SITE_LOGIN_XPATH: ClassVar[dict] = {
         "username": [
             '//input[@name="username"]',
             '//input[@id="form_item_username"]',
@@ -74,7 +75,7 @@ class SiteConf:
     }
 
     # 促销/HR的匹配XPATH
-    _RSS_SITE_GRAP_CONF = {}
+    _RSS_SITE_GRAP_CONF: ClassVar[dict] = {}
 
     def __init__(self):
         self.init_config()
@@ -126,7 +127,6 @@ class SiteConf:
         html_text = self.__get_site_page_html(url=torrent_url,
                                               cookie=cookie,
                                               ua=ua,
-                                              render=xpath_strs.get('RENDER'),
                                               proxy=proxy)
         if not html_text:
             return ret_attr
@@ -165,7 +165,7 @@ class SiteConf:
 
     @staticmethod
     @cached(cache=TTLCache(maxsize=512, ttl=300))
-    def __get_site_page_html(url, cookie, ua, render=False, proxy=False):
+    def __get_site_page_html(url, cookie, ua, proxy=False):
         res = RequestUtils(
             cookies=cookie,
             ua=ua,

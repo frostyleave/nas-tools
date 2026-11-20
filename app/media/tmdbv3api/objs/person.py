@@ -1,3 +1,4 @@
+from typing import ClassVar
 from app.media.tmdbv3api.as_obj import AsObj
 from app.media.tmdbv3api.tmdb import TMDb
 
@@ -8,7 +9,7 @@ except ImportError:
 
 
 class Person(TMDb):
-    _urls = {
+    _urls: ClassVar[dict] = {
         "details": "/person/%s",
         "changes": "/person/%s/changes",
         "movie_credits": "/person/%s/movie_credits",

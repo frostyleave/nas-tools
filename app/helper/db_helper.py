@@ -1,15 +1,14 @@
+import base64
 import datetime
-import os.path
-import time
 import json
-
+import os.path
 from enum import Enum
-from typing import List
-from sqlalchemy import cast, func, and_
 
+from sqlalchemy import cast, func
+
+from app.db.main_db import DbPersist, MainDb
 from app.db.models import *
-from app.db.main_db import MainDb, DbPersist
-from app.utils import StringUtils
+from app.utils import JsonUtils, StringUtils, TimeUtils
 from app.utils.types import MediaType, RmtMode
 
 
@@ -49,6 +48,7 @@ class DbHelper:
                     OVERVIEW=media_item.overview,
                     RES_TYPE=json.dumps({
                         "respix": media_item.resource_pix,
+                        "resource_frame": media_item.resource_frame,
                         "restype": media_item.resource_type,
                         "reseffect": media_item.resource_effect,
                         "video_encode": media_item.video_encode
@@ -57,6 +57,7 @@ class DbHelper:
                     SIZE=StringUtils.str_filesize(int(media_item.size)),
                     SEEDERS=media_item.seeders,
                     PEERS=media_item.peers,
+                    PROGRESS=media_item.progress,
                     SITE=media_item.site,
                     SITE_ORDER=media_item.site_order,
                     PAGEURL=media_item.page_url,
@@ -68,7 +69,7 @@ class DbHelper:
                 ))
         self._db.insert(data_list)
 
-    def get_search_result_by_id(self, dl_id) -> List[SEARCHRESULTINFO]:
+    def get_search_result_by_id(self, dl_id) -> list[SEARCHRESULTINFO]:
         """
         根据ID从数据库中查询搜索结果的一条记录
         """
@@ -108,7 +109,7 @@ class DbHelper:
                                                      TRANSFERHISTORY.SOURCE_FILENAME == source_filename,
                                                      TRANSFERHISTORY.DEST_PATH == dest_path,
                                                      TRANSFERHISTORY.DEST_FILENAME == dest_filename).count()
-        return True if ret > 0 else False
+        return ret > 0
 
     @DbPersist(_db)
     def update_transfer_history_date(self, source_path, source_filename, dest_path, dest_filename, date):
@@ -147,7 +148,7 @@ class DbHelper:
             dest_filename = ""
             season_episode = media_info.get_season_string()
         title = media_info.title
-        timestr = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time()))
+        timestr = TimeUtils.now_str()
         if self.is_transfer_history_exists(source_path, source_filename, dest_path, dest_filename):
             # 更新历史转移记录的时间
             self.update_transfer_history_date(source_path, source_filename, dest_path, dest_filename, timestr)
@@ -225,10 +226,7 @@ class DbHelper:
         filename = os.path.basename(source_full_path)
         ret = self._db.query(TRANSFERHISTORY).filter(TRANSFERHISTORY.SOURCE_PATH == path,
                                                      TRANSFERHISTORY.SOURCE_FILENAME == filename).count()
-        if ret > 0:
-            return True
-        else:
-            return False
+        return ret > 0
 
     @DbPersist(_db)
     def delete_transfer_log_by_id(self, logid):
@@ -309,10 +307,7 @@ class DbHelper:
         if not path:
             return False
         ret = self._db.query(TRANSFERUNKNOWN).filter(TRANSFERUNKNOWN.PATH == os.path.normpath(path)).count()
-        if ret > 0:
-            return True
-        else:
-            return False
+        return ret > 0
 
     def is_need_insert_transfer_unknown(self, path):
         """
@@ -381,10 +376,7 @@ class DbHelper:
         if not path:
             return False
         ret = self._db.query(TRANSFERBLACKLIST).filter(TRANSFERBLACKLIST.PATH == os.path.normpath(path)).count()
-        if ret > 0:
-            return True
-        else:
-            return False
+        return ret > 0
 
     def is_transfer_notin_blacklist(self, path):
         """
@@ -429,7 +421,7 @@ class DbHelper:
         """
         self._db.query(RSSTVEPISODES).delete()
 
-    def get_config_site(self) -> List[CONFIGSITE]:
+    def get_config_site(self) -> list[CONFIGSITE]:
         """
         查询所有站点信息
         """
@@ -492,6 +484,19 @@ class DbHelper:
         )
 
     @DbPersist(_db)
+    def update_config_site_include(self, tid, include):
+        """
+        更新站点用途标记
+        """
+        if not tid:
+            return
+        self._db.query(CONFIGSITE).filter(CONFIGSITE.ID == int(tid)).update(
+            {
+                "INCLUDE": include
+            }
+        )
+
+    @DbPersist(_db)
     def update_site_cookie_ua(self, tid, cookie, token=None, ua=None):
         """
         更新站点Cookie和ua
@@ -500,7 +505,7 @@ class DbHelper:
             return
         rec = self._db.query(CONFIGSITE).filter(CONFIGSITE.ID == int(tid)).first()
         if rec.NOTE:
-            note = json.loads(rec.NOTE)
+            note = JsonUtils.loads(rec.NOTE, default={})
             if ua:
                 note['ua'] = ua
         else:
@@ -521,7 +526,7 @@ class DbHelper:
             return self._db.query(CONFIGFILTERGROUP).filter(CONFIGFILTERGROUP.ID == int(gid)).all()
         return self._db.query(CONFIGFILTERGROUP).all()
 
-    def get_config_filter_rule(self, groupid=None) -> List[CONFIGFILTERRULES]:
+    def get_config_filter_rule(self, groupid=None) -> list[CONFIGFILTERRULES]:
         """
         查询过滤规则
         """
@@ -533,7 +538,7 @@ class DbHelper:
                 CONFIGFILTERRULES.GROUP_ID == int(groupid)).order_by(CONFIGFILTERRULES.GROUP_ID,
                                                                      CONFIGFILTERRULES.PRIORITY).all()
 
-    def get_rss_movies(self, state=None, rssid=None) -> List[RSSMOVIES]:
+    def get_rss_movies(self, state=None, rssid=None) -> list[RSSMOVIES]:
         """
         查询订阅电影信息
         """
@@ -542,6 +547,8 @@ class DbHelper:
         else:
             if not state:
                 return self._db.query(RSSMOVIES).all()
+            elif isinstance(state, (list, tuple, set)):
+                return self._db.query(RSSMOVIES).filter(RSSMOVIES.STATE.in_(list(state))).all()
             else:
                 return self._db.query(RSSMOVIES).filter(RSSMOVIES.STATE == state).all()
 
@@ -640,10 +647,7 @@ class DbHelper:
         if not tmdbid:
             return False
         count = self._db.query(RSSMOVIES).filter(RSSMOVIES.TMDBID == tmdbid).count()
-        if count > 0:
-            return True
-        else:
-            return False
+        return count > 0
 
     @DbPersist(_db)
     def insert_rss_movie(self, media_info,
@@ -659,7 +663,6 @@ class DbHelper:
                          filter_exclude=None,
                          save_path=None,
                          download_setting=-1,
-                         fuzzy_match=0,
                          desc=None,
                          note=None,
                          keyword=None):
@@ -693,7 +696,6 @@ class DbHelper:
             FILTER_EXCLUDE=filter_exclude,
             SAVE_PATH=save_path,
             DOWNLOAD_SETTING=download_setting,
-            FUZZY_MATCH=fuzzy_match,
             STATE=state,
             DESC=desc,
             NOTE=note,
@@ -735,7 +737,7 @@ class DbHelper:
                     "STATE": state
                 })
 
-    def get_rss_tvs(self, state=None, rssid=None) -> List[RSSTVS]:
+    def get_rss_tvs(self, state=None, rssid=None) -> list[RSSTVS]:
         """
         查询订阅电视剧信息
         """
@@ -744,6 +746,8 @@ class DbHelper:
         else:
             if not state:
                 return self._db.query(RSSTVS).all()
+            elif isinstance(state, (list, tuple, set)):
+                return self._db.query(RSSTVS).filter(RSSTVS.STATE.in_(list(state))).all()
             else:
                 return self._db.query(RSSTVS).filter(RSSTVS.STATE == state).all()
 
@@ -825,10 +829,7 @@ class DbHelper:
                                                   RSSTVS.SEASON == season).count()
         else:
             count = self._db.query(RSSTVS).filter(RSSTVS.TMDBID == tmdbid).count()
-        if count > 0:
-            return True
-        else:
-            return False
+        return count > 0
 
     @DbPersist(_db)
     def insert_rss_tv(self,
@@ -849,7 +850,6 @@ class DbHelper:
                       download_setting=-1,
                       total_ep=None,
                       current_ep=None,
-                      fuzzy_match=0,
                       desc=None,
                       note=None,
                       keyword=None):
@@ -864,10 +864,7 @@ class DbHelper:
             return -1
         if not media_info.title:
             return -1
-        if fuzzy_match and media_info.begin_season is None:
-            season_str = ""
-        else:
-            season_str = media_info.get_season_string()
+        season_str = media_info.get_season_string()
 
         if self.is_exists_rss_tv(media_info.tmdb_id, season_str):
             return 9
@@ -889,7 +886,6 @@ class DbHelper:
             FILTER_EXCLUDE=filter_exclude,
             SAVE_PATH=save_path,
             DOWNLOAD_SETTING=download_setting,
-            FUZZY_MATCH=fuzzy_match,
             TOTAL_EP=total_ep,
             CURRENT_EP=current_ep,
             TOTAL=total,
@@ -948,10 +944,7 @@ class DbHelper:
         if not rid:
             return False
         count = self._db.query(RSSTVEPISODES).filter(RSSTVEPISODES.RSSID == int(rid)).count()
-        if count > 0:
-            return True
-        else:
-            return False
+        return count > 0
 
     @DbPersist(_db)
     def update_rss_tv_episodes(self, rid, episodes):
@@ -1025,10 +1018,7 @@ class DbHelper:
             return False
         count = self._db.query(SYNCHISTORY).filter(SYNCHISTORY.PATH == os.path.normpath(path),
                                                    SYNCHISTORY.DEST == os.path.normpath(dest)).count()
-        if count > 0:
-            return True
-        else:
-            return False
+        return count > 0
 
     @DbPersist(_db)
     def insert_sync_history(self, path, src, dest):
@@ -1044,14 +1034,38 @@ class DbHelper:
                 PATH=os.path.normpath(path),
                 SRC=os.path.normpath(src),
                 DEST=os.path.normpath(dest),
-                DATE=time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time())),
+                DATE=TimeUtils.now_str(),
             ))
 
     def get_users(self):
         """
         查询用户列表
         """
-        return self._db.query(CONFIGUSERS).all()
+        return self._db.query(CONFIGUSERS).order_by(CONFIGUSERS.ID).all()
+
+    def get_users_by_level(self, level):
+        """
+        按用户等级查询用户列表
+        """
+        return self._db.query(CONFIGUSERS).filter(
+            CONFIGUSERS.LEVEL == level
+        ).order_by(CONFIGUSERS.ID).all()
+
+    def get_user_by_name(self, name):
+        """
+        根据用户名查询用户
+        """
+        if not name:
+            return None
+        return self._db.query(CONFIGUSERS).filter(CONFIGUSERS.NAME == name).first()
+
+    def get_user_by_id(self, user_id):
+        """
+        根据用户ID查询用户
+        """
+        if user_id is None:
+            return None
+        return self._db.query(CONFIGUSERS).filter(CONFIGUSERS.ID == user_id).first()
 
     def is_user_exists(self, name):
         """
@@ -1060,13 +1074,10 @@ class DbHelper:
         if not name:
             return False
         count = self._db.query(CONFIGUSERS).filter(CONFIGUSERS.NAME == name).count()
-        if count > 0:
-            return True
-        else:
-            return False
+        return count > 0
 
     @DbPersist(_db)
-    def insert_user(self, name, password, pris):
+    def insert_user(self, name, password, pris, level=1):
         """
         新增用户
         """
@@ -1078,8 +1089,36 @@ class DbHelper:
             self._db.insert(CONFIGUSERS(
                 NAME=name,
                 PASSWORD=password,
-                PRIS=pris
+                PRIS=pris,
+                LEVEL=level
             ))
+
+    @DbPersist(_db)
+    def update_user_level(self, name, level):
+        """
+        更新用户等级
+        """
+        self._db.query(CONFIGUSERS).filter(
+            CONFIGUSERS.NAME == name
+        ).update({"LEVEL": level})
+
+    @DbPersist(_db)
+    def update_user_password(self, name, password):
+        """
+        更新用户密码
+        """
+        self._db.query(CONFIGUSERS).filter(
+            CONFIGUSERS.NAME == name
+        ).update({"PASSWORD": password})
+
+    @DbPersist(_db)
+    def rename_user(self, old_name, new_name):
+        """
+        修改用户名
+        """
+        return self._db.query(CONFIGUSERS).filter(
+            CONFIGUSERS.NAME == old_name
+        ).update({"NAME": new_name})
 
     @DbPersist(_db)
     def delete_user(self, name):
@@ -1088,6 +1127,51 @@ class DbHelper:
         """
         self._db.query(CONFIGUSERS).filter(CONFIGUSERS.NAME == name).delete()
 
+    def get_api_keys(self):
+        """
+        查询API密钥列表
+        """
+        return self._db.query(CONFIGAPIKEY).order_by(CONFIGAPIKEY.ID).all()
+
+    @DbPersist(_db)
+    def insert_api_key(self, name, api_key, create_time):
+        """
+        新增API密钥
+        """
+        if not name or not api_key:
+            return
+        self._db.insert(CONFIGAPIKEY(
+            NAME=name,
+            API_KEY=api_key,
+            CREATE_TIME=create_time
+        ))
+
+    @DbPersist(_db)
+    def update_api_key(self, key_id, api_key=None, name=None, create_time=None):
+        """
+        更新API密钥内容、名称或创建时间
+        """
+        if key_id is None:
+            return
+        values = {}
+        if api_key is not None:
+            values["API_KEY"] = api_key
+        if name is not None:
+            values["NAME"] = name
+        if create_time is not None:
+            values["CREATE_TIME"] = create_time
+        if not values:
+            return
+        self._db.query(CONFIGAPIKEY).filter(CONFIGAPIKEY.ID == int(key_id)).update(values)
+
+    @DbPersist(_db)
+    def delete_api_key(self, key_id):
+        """
+        删除API密钥
+        """
+        if key_id is None:
+            return
+        self._db.query(CONFIGAPIKEY).filter(CONFIGAPIKEY.ID == int(key_id)).delete()
 
     def get_refresh_tokens(self, user_id=None, token_hash=None, active_only=True):
         """
@@ -1152,7 +1236,7 @@ class DbHelper:
         """
         查询历史记录统计
         """
-        begin_date = (datetime.datetime.now() - datetime.timedelta(days=days)).strftime("%Y-%m-%d %H:%M:%S")
+        begin_date = (TimeUtils.now() - datetime.timedelta(days=days)).strftime("%Y-%m-%d %H:%M:%S")
         return self._db.query(TRANSFERHISTORY.TYPE,
                               func.substr(TRANSFERHISTORY.DATE, 1, 10),
                               func.count('*')
@@ -1161,13 +1245,15 @@ class DbHelper:
         ).order_by(TRANSFERHISTORY.DATE).all()
 
     @DbPersist(_db)
-    def update_site_user_statistics_site_name(self, new_name, old_name):
+    def update_site_user_statistics_site_name(self, url, name):
         """
-        更新站点用户数据中站点名称
+        按站点地址更新用户数据中的站点名称
         """
-        self._db.query(SITEUSERINFOSTATS).filter(SITEUSERINFOSTATS.SITE == old_name).update(
+        if not url:
+            return
+        self._db.query(SITEUSERINFOSTATS).filter(SITEUSERINFOSTATS.URL == url).update(
             {
-                "SITE": new_name
+                "SITE": name
             }
         )
 
@@ -1178,7 +1264,7 @@ class DbHelper:
         """
         if not site_user_infos:
             return
-        update_at = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time()))
+        update_at = TimeUtils.now_str()
         for site_user_info in site_user_infos:
             site = site_user_info.site_name
             username = site_user_info.username
@@ -1211,7 +1297,9 @@ class DbHelper:
                     MSG_UNREAD=msg_unread
                 ))
             else:
-                update_dic = {}
+                # 按 URL 命中旧记录时同步站名：站点改名（或新增站点复用了历史 URL）后，
+                # 统计表里的站名不会一直停留在旧值
+                update_dic = {'SITE': site}
 
                 if username:
                     update_dic['USERNAME'] = username
@@ -1236,9 +1324,7 @@ class DbHelper:
                     update_dic['BONUS'] = bonus
                 if msg_unread is not None:
                     update_dic['MSG_UNREAD'] = msg_unread
-                if not update_dic:
-                    return
-                
+
                 update_dic['UPDATE_AT'] = update_at
                 
                 self._db.query(SITEUSERINFOSTATS).filter(SITEUSERINFOSTATS.URL == url).update(update_dic)
@@ -1248,22 +1334,108 @@ class DbHelper:
         判断站点数据是滞存在
         """
         count = self._db.query(SITEUSERINFOSTATS).filter(SITEUSERINFOSTATS.URL == url).count()
-        if count > 0:
-            return True
-        else:
-            return False
+        return count > 0
 
     @DbPersist(_db)
-    def update_site_seed_info_site_name(self, new_name, old_name):
+    def update_site_favicon_site_name(self, url, name):
         """
-        更新站点做种数据中站点名称
-        :param new_name: 新的站点名称
-        :param old_name: 原始站点名称
+        按站点地址更新图标数据中的站点名称
+        """
+        if not url:
+            return
+        self._db.query(SITEFAVICON).filter(SITEFAVICON.URL == url).update(
+            {
+                "SITE": name
+            }
+        )
+
+    @staticmethod
+    def __favicon_data_uri(favicon: str) -> str:
+        """
+        根据图标内容生成 data URI（SVG/PNG 等需要正确的 MIME 才能正常显示）
+        """
+        mime = "image/x-icon"
+        try:
+            raw = base64.b64decode(favicon)
+            if raw.startswith(b"\x89PNG"):
+                mime = "image/png"
+            elif raw.startswith(b"GIF8"):
+                mime = "image/gif"
+            elif raw.startswith(b"\xff\xd8\xff"):
+                mime = "image/jpeg"
+            elif raw.startswith(b"RIFF") and raw[8:12] == b"WEBP":
+                mime = "image/webp"
+            elif b"<svg" in raw[:200]:
+                mime = "image/svg+xml"
+        except Exception:
+            pass
+        return f"data:{mime};base64,{favicon}"
+
+    @staticmethod
+    def is_valid_site_favicon(favicon: str | None) -> bool:
+        """
+        是否为可直接展示/导出的站点图标
+
+        历史遗留的远程地址无法在导出时内联，按无效处理
+        """
+        return bool(favicon) and favicon.startswith("data:image/")
+
+    @DbPersist(_db)
+    def update_site_favicon(self, site_user_infos: list):
+        """
+        更新站点图标数据
+
+        懒更新：当前地址已有有效图标的直接跳过，只补充缺失的图标
+        """
+        if not site_user_infos:
+            return
+        for site_user_info in site_user_infos:
+            # 只记录真正抓取到的图标，抓不到就不留记录
+            if not site_user_info.site_url or not site_user_info.site_favicon:
+                continue
+            # 图标按抓取地址关联，同一地址已有有效图标时保持原样
+            existing = self.get_site_favicons(site_user_info.site_url)
+            if existing and self.is_valid_site_favicon(existing[0].FAVICON):
+                continue
+            site_icon = self.__favicon_data_uri(site_user_info.site_favicon)
+            if existing:
+                self._db.query(SITEFAVICON).filter(
+                    SITEFAVICON.URL == site_user_info.site_url
+                ).update(
+                    {
+                        "SITE": site_user_info.site_name,
+                        "FAVICON": site_icon
+                    }
+                )
+            else:
+                self._db.insert(SITEFAVICON(
+                    URL=site_user_info.site_url,
+                    SITE=site_user_info.site_name,
+                    FAVICON=site_icon
+                ))
+
+    def get_site_favicons(self, url=None):
+        """
+        查询站点图标（按站点地址）
+        """
+        if url:
+            return self._db.query(SITEFAVICON).filter(SITEFAVICON.URL == url).all()
+        else:
+            return self._db.query(SITEFAVICON).all()
+
+    @DbPersist(_db)
+    def update_site_seed_info_site_name(self, url, name):
+        """
+        按站点地址更新做种数据中的站点名称
+        :param url: 站点地址
+        :param name: 新的站点名称
         :return:
         """
-        self._db.query(SITEUSERSEEDINGINFO).filter(SITEUSERSEEDINGINFO.SITE == old_name).update(
+        if not url:
+            return
+        self._db.query(SITEUSERSEEDINGINFO).filter(SITEUSERSEEDINGINFO.URL == url).update(
             {
-                "SITE": new_name
+                "SITE": name
             }
         )
 
@@ -1274,7 +1446,7 @@ class DbHelper:
         """
         if not site_user_infos:
             return
-        update_at = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time()))
+        update_at = TimeUtils.now_str()
         for site_user_info in site_user_infos:
             if not self.is_site_seeding_info_exist(url=site_user_info.site_url):
                 self._db.insert(SITEUSERSEEDINGINFO(
@@ -1299,23 +1471,20 @@ class DbHelper:
         if not url:
             return False
         count = self._db.query(SITEUSERINFOSTATS).filter(SITEUSERINFOSTATS.URL == url).count()
-        if count > 0:
-            return True
-        else:
-            return False
+        return count > 0
 
     def get_site_user_statistics(self, num=100, strict_urls=None):
         """
         查询站点数据历史
+
+        :param num: 查询条数上限
+        :param strict_urls: 需要查询的站点 URL 列表，只按 URL 过滤：
+                            站名在统计表里可能已过期，不能再用站名关联站点配置
         """
+        query = self._db.query(SITEUSERINFOSTATS)
         if strict_urls:
-            # 根据站点优先级排序
-            return self._db.query(SITEUSERINFOSTATS) \
-                .join(CONFIGSITE, SITEUSERINFOSTATS.SITE == CONFIGSITE.NAME) \
-                .filter(SITEUSERINFOSTATS.URL.in_(tuple(strict_urls + ["__DUMMY__"]))) \
-                .order_by(CONFIGSITE.PRI.asc()).limit(num).all()
-        else:
-            return self._db.query(SITEUSERINFOSTATS).limit(num).all()
+            query = query.filter(SITEUSERINFOSTATS.URL.in_(tuple(strict_urls + ["__DUMMY__"])))
+        return query.limit(num).all()
 
     def is_site_statistics_history_exists(self, url, date):
         """
@@ -1325,22 +1494,21 @@ class DbHelper:
             return False
         count = self._db.query(SITESTATISTICSHISTORY).filter(SITESTATISTICSHISTORY.URL == url,
                                                              SITESTATISTICSHISTORY.DATE == date).count()
-        if count > 0:
-            return True
-        else:
-            return False
+        return count > 0
 
     @DbPersist(_db)
-    def update_site_statistics_site_name(self, new_name, old_name):
+    def update_site_statistics_site_name(self, url, name):
         """
-        更新站点做种数据中站点名称
-        :param new_name: 新站点名称
-        :param old_name: 原始站点名称
+        按站点地址更新历史数据中的站点名称
+        :param url: 站点地址
+        :param name: 新的站点名称
         :return:
         """
-        self._db.query(SITESTATISTICSHISTORY).filter(SITESTATISTICSHISTORY.SITE == old_name).update(
+        if not url:
+            return
+        self._db.query(SITESTATISTICSHISTORY).filter(SITESTATISTICSHISTORY.URL == url).update(
             {
-                "SITE": new_name
+                "SITE": name
             }
         )
 
@@ -1351,7 +1519,7 @@ class DbHelper:
         """
         if not site_user_infos:
             return
-        date_now = time.strftime('%Y-%m-%d', time.localtime(time.time()))
+        date_now = TimeUtils.now_str('%Y-%m-%d')
         for site_user_info in site_user_infos:
             site = site_user_info.site_name
             upload = site_user_info.upload
@@ -1393,21 +1561,25 @@ class DbHelper:
                     }
                 )
 
-    def get_site_statistics_history(self, site, days=30):
+    def get_site_statistics_history(self, url, days=30):
         """
-        查询站点数据历史
+        查询站点数据历史（按站点地址）
         """
+        if not url:
+            return []
         return self._db.query(SITESTATISTICSHISTORY).filter(
-            SITESTATISTICSHISTORY.SITE == site).order_by(
+            SITESTATISTICSHISTORY.URL == url).order_by(
             SITESTATISTICSHISTORY.DATE.asc()
         ).limit(days).all()
 
-    def get_site_seeding_info(self, site):
+    def get_site_seeding_info(self, url):
         """
-        查询站点做种信息
+        查询站点做种信息（按站点地址）
         """
+        if not url:
+            return None
         return self._db.query(SITEUSERSEEDINGINFO.SEEDING_INFO).filter(
-            SITEUSERSEEDINGINFO.SITE == site).first()
+            SITEUSERSEEDINGINFO.URL == url).first()
 
     def is_site_seeding_info_exist(self, url):
         """
@@ -1415,10 +1587,7 @@ class DbHelper:
         """
         count = self._db.query(SITEUSERSEEDINGINFO).filter(
             SITEUSERSEEDINGINFO.URL == url).count()
-        if count > 0:
-            return True
-        else:
-            return False
+        return count > 0
 
     def get_site_statistics_recent_sites(self, days=7, end_day=None, strict_urls=None):
         """
@@ -1431,7 +1600,7 @@ class DbHelper:
         # 查询最大最小日期
         if strict_urls is None:
             strict_urls = []
-        end = datetime.datetime.now()
+        end = TimeUtils.now()
         if end_day:
             try:
                 end = datetime.datetime.strptime(end_day, "%Y-%m-%d")
@@ -1539,7 +1708,7 @@ class DbHelper:
                     "DOWNLOAD_ID": download_id,
                     "SAVE_PATH": save_dir,
                     "SE": media_info.get_season_episode_string(),
-                    "DATE": time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time())),
+                    "DATE": TimeUtils.now_str(),
                     "PAGE_URL": media_info.page_url,
                 }
             )
@@ -1554,7 +1723,7 @@ class DbHelper:
                 BACKDROP=media_info.get_backdrop_image(default=False, original=True),
                 ENCLOSURE=media_info.enclosure,
                 DESC=media_info.description,
-                DATE=time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time())),
+                DATE=TimeUtils.now_str(),
                 SITE=media_info.site,
                 DOWNLOADER=downloader,
                 DOWNLOAD_ID=download_id,
@@ -1610,7 +1779,7 @@ class DbHelper:
                 DOWNLOAD_SIZE=0,
                 UPLOAD_SIZE=0,
                 STATE=item.get('state'),
-                LST_MOD_DATE=time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time())),
+                LST_MOD_DATE=TimeUtils.now_str(),
                 SENDMESSAGE=item.get('sendmessage')
             ))
         else:
@@ -1629,7 +1798,7 @@ class DbHelper:
                     "SAVEPATH": item.get('savepath'),
                     "TRANSFER": item.get('transfer'),
                     "STATE": item.get('state'),
-                    "LST_MOD_DATE": time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time())),
+                    "LST_MOD_DATE": TimeUtils.now_str(),
                     "SENDMESSAGE": item.get('sendmessage')
                 }
             )
@@ -1642,7 +1811,7 @@ class DbHelper:
         self._db.query(SITEBRUSHTASK).filter(SITEBRUSHTASK.ID == int(brush_id)).delete()
         self._db.query(SITEBRUSHTORRENTS).filter(SITEBRUSHTORRENTS.TASK_ID == brush_id).delete()
 
-    def get_brushtasks(self) -> List[SITEBRUSHTASK]:
+    def get_brushtasks(self) -> list[SITEBRUSHTASK]:
         """
         查询刷流任务, 根据站点优先级排序
         """
@@ -1692,7 +1861,7 @@ class DbHelper:
         self._db.query(SITEBRUSHTASK).filter(SITEBRUSHTASK.ID == int(brush_id)).update(
             {
                 "DOWNLOAD_COUNT": SITEBRUSHTASK.DOWNLOAD_COUNT + 1,
-                "LST_MOD_DATE": time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time()))
+                "LST_MOD_DATE": TimeUtils.now_str()
             }
         )
 
@@ -1747,7 +1916,7 @@ class DbHelper:
             ENCLOSURE=enclosure,
             DOWNLOADER=downloader,
             DOWNLOAD_ID=download_id,
-            LST_MOD_DATE=time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time()))
+            LST_MOD_DATE=TimeUtils.now_str()
         ))
 
     def get_brushtask_torrents(self, brush_id, active=True):
@@ -1782,10 +1951,7 @@ class DbHelper:
         count = self._db.query(SITEBRUSHTORRENTS).filter(SITEBRUSHTORRENTS.TASK_ID == brush_id,
                                                          SITEBRUSHTORRENTS.TORRENT_NAME == title,
                                                          SITEBRUSHTORRENTS.ENCLOSURE == enclosure).count()
-        if count > 0:
-            return True
-        else:
-            return False
+        return count > 0
 
     @DbPersist(_db)
     def update_brushtask_torrent_state(self, ids: list):
@@ -1892,7 +2058,7 @@ class DbHelper:
                 NOTE=item.get("free")
             ))
 
-    def get_userrss_tasks(self, tid=None) -> List[CONFIGUSERRSS]:
+    def get_userrss_tasks(self, tid=None) -> list[CONFIGUSERRSS]:
         if tid:
             return self._db.query(CONFIGUSERRSS).filter(CONFIGUSERRSS.ID == int(tid)).all()
         else:
@@ -1911,8 +2077,7 @@ class DbHelper:
         self._db.query(CONFIGUSERRSS).filter(CONFIGUSERRSS.ID == int(tid)).update(
             {
                 "PROCESS_COUNT": CONFIGUSERRSS.PROCESS_COUNT + count,
-                "UPDATE_TIME": time.strftime('%Y-%m-%d %H:%M:%S',
-                                             time.localtime(time.time()))
+                "UPDATE_TIME": TimeUtils.now_str()
             }
         )
 
@@ -1929,7 +2094,7 @@ class DbHelper:
                     "INCLUDE": item.get("include"),
                     "EXCLUDE": item.get("exclude"),
                     "FILTER": item.get("filter_rule"),
-                    "UPDATE_TIME": time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time())),
+                    "UPDATE_TIME": TimeUtils.now_str(),
                     "STATE": item.get("state"),
                     "SAVE_PATH": item.get("save_path"),
                     "DOWNLOAD_SETTING": item.get("download_setting"),
@@ -1950,7 +2115,7 @@ class DbHelper:
                 INCLUDE=item.get("include"),
                 EXCLUDE=item.get("exclude"),
                 FILTER=item.get("filter_rule"),
-                UPDATE_TIME=time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time())),
+                UPDATE_TIME=TimeUtils.now_str(),
                 STATE=item.get("state"),
                 SAVE_PATH=item.get("save_path"),
                 DOWNLOAD_SETTING=item.get("download_setting"),
@@ -1986,7 +2151,7 @@ class DbHelper:
         taskinfo = self._db.query(CONFIGUSERRSS).filter(CONFIGUSERRSS.ID == int(tid)).all()
         if not taskinfo:
             return
-        mediainfos = json.loads(taskinfo[0].MEDIAINFOS) if taskinfo[0].MEDIAINFOS else []
+        mediainfos = JsonUtils.loads(taskinfo[0].MEDIAINFOS, default=[])
         tmdbid = str(mediainfo.tmdb_id)
         season = int(mediainfo.get_season_seq())
         for media in mediainfos:
@@ -2046,7 +2211,7 @@ class DbHelper:
             TASK_ID=task_id,
             TITLE=title,
             DOWNLOADER=downloader,
-            DATE=time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time()))
+            DATE=TimeUtils.now_str()
         ))
 
     def get_userrss_task_history(self, task_id):
@@ -2076,10 +2241,7 @@ class DbHelper:
         if not rssid:
             return False
         count = self._db.query(RSSHISTORY).filter(RSSHISTORY.RSSID == rssid).count()
-        if count > 0:
-            return True
-        else:
-            return False
+        return count > 0
 
     def check_rss_history(self, tmdbid, season):
         """
@@ -2089,10 +2251,7 @@ class DbHelper:
             RSSHISTORY.TMDBID == tmdbid,
             RSSHISTORY.SEASON == season
         ).count()
-        if count > 0:
-            return True
-        else:
-            return False
+        return count > 0
 
     @DbPersist(_db)
     def insert_rss_history(self, rssid, rtype, name, year, tmdbid, image, desc, season=None, total=None, start=None):
@@ -2111,8 +2270,7 @@ class DbHelper:
                 DESC=desc,
                 TOTAL=total,
                 START=start,
-                FINISH_TIME=time.strftime('%Y-%m-%d %H:%M:%S',
-                                          time.localtime(time.time()))
+                FINISH_TIME=TimeUtils.now_str()
             ))
 
     @DbPersist(_db)
@@ -2205,10 +2363,7 @@ class DbHelper:
                                                        CUSTOMWORDS.BACK == back).count()
         else:
             return False
-        if count > 0:
-            return True
-        else:
-            return False
+        return count > 0
 
     @DbPersist(_db)
     def insert_custom_word_groups(self, title, year, gtype, tmdbid, season_count, note=None):
@@ -2253,10 +2408,7 @@ class DbHelper:
             return False
         count = self._db.query(CUSTOMWORDGROUPS).filter(CUSTOMWORDGROUPS.TMDBID == int(tmdbid),
                                                         CUSTOMWORDGROUPS.TYPE == int(gtype)).count()
-        if count > 0:
-            return True
-        else:
-            return False
+        return count > 0
 
     @DbPersist(_db)
     def insert_config_sync_path(self, source, dest, unknown, mode, compatibility, rename, enabled, note=None):
@@ -2564,7 +2716,7 @@ class DbHelper:
                 }
             )
 
-    def get_indexers(self) -> List[INDEXERSITE]:
+    def get_indexers(self) -> list[INDEXERSITE]:
         """
         查询内置索引站点
         """
@@ -2635,6 +2787,9 @@ class DbHelper:
         """
         新增或更新站点订阅推进数据
         """
+        # 统一按 UTC 持久化（读取时也按 UTC 解析），避免带时区的 pubDate 丢失偏移
+        if last_pub_time.tzinfo is not None:
+            last_pub_time = last_pub_time.astimezone(datetime.timezone.utc)
         time_str = last_pub_time.strftime('%Y-%m-%d %H:%M:%S')
         # 尝试更新
         if self._db.query(SITERSSFORWARD).filter(SITERSSFORWARD.SITE_ID == site_id).update({"LAST_PUB_TIME": time_str}) > 0:
@@ -2661,7 +2816,7 @@ class DbHelper:
             PLUGIN_ID=plugin_id,
             KEY=key,
             VALUE=value,
-            DATE=time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time()))
+            DATE=TimeUtils.now_str()
         ))
 
     def get_plugin_history(self, plugin_id, key):
@@ -2675,6 +2830,19 @@ class DbHelper:
                                                         PLUGINHISTORY.KEY == key).first()
         else:
             return self._db.query(PLUGINHISTORY).filter(PLUGINHISTORY.PLUGIN_ID == plugin_id).all()
+
+    def get_plugin_history_records(self, plugin_id, page=1, page_size=10):
+        """
+        按记录ID倒序分页查询插件运行记录（最新的在前）
+        :return: (总记录数, 记录列表)
+        """
+        if not plugin_id:
+            return 0, []
+        query = self._db.query(PLUGINHISTORY).filter(PLUGINHISTORY.PLUGIN_ID == plugin_id)
+        total_count = query.count()
+        offset = max(page - 1, 0) * page_size
+        records = query.order_by(PLUGINHISTORY.ID.desc()).limit(page_size).offset(offset).all()
+        return total_count, records
 
     @DbPersist(_db)
     def update_plugin_history(self, plugin_id, key, value):

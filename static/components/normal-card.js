@@ -62,13 +62,12 @@
 
     _build() {
       this.innerHTML = `
-        <div class="card card-sm lit-normal-card rounded-3 cursor-pointer ratio shadow-sm">
+        <div class="card card-sm lit-normal-card zoom-hover rounded-3 cursor-pointer ratio shadow-sm liquid-glass-panel">
           <div class="placeholder-glow">
             <div class="ratio placeholder rounded-3" style="--tblr-aspect-ratio:150%;"></div>
           </div>
           <div class="rounded-3 normal-card-content" hidden>
-            <img class="card-img rounded-3" alt=""
-                 style="display: block; min-width: 100%; max-width: 100%; min-height: 100%; max-height: 100%; object-fit: cover;">
+            <img class="card-img rounded-3" alt="" >
             <div class="card-right-bottom-ribbon normal-card-fav-ribbon" hidden>
               <i class="ti ti-check"></i>
             </div>
@@ -324,12 +323,12 @@
     }
 
     _navigate() {
-      navmenu(
-        'media_detail?type=' + fixedText(this.getAttribute('card-mediatype')) +
-        '&id=' + fixedText(this.getAttribute('card-tmdbid')) +
-        '&title=' + fixedText(this.getAttribute('card-title')) +
-        '&year=' + fixedText(this.getAttribute('card-year'))
-      );
+      navmenu('media_detail', {
+        type: fixedText(this.getAttribute('card-mediatype')),
+        id: fixedText(this.getAttribute('card-tmdbid')),
+        title: fixedText(this.getAttribute('card-title')),
+        year: fixedText(this.getAttribute('card-year'))
+      });
     }
   }
 

@@ -1,24 +1,38 @@
 import bisect
-import cn2an
-import dateparser
 import hashlib
 import random
 import re
 import string
-
 from datetime import datetime, timedelta
-from dateutil.parser import parse as parse_date, isoparse
-from typing import Optional, Tuple
 
-import zhconv
-from zhon.hanzi import punctuation as zh_punc
+import cn2an
+import dateparser
+from dateutil.parser import isoparse
+from dateutil.parser import parse as parse_date
 
 import log
-
+from app.utils import zhconv_compat as zhconv
+from app.utils.time_utils import TimeUtils
 from app.utils.types import MediaType
+
+# 中文标点符号（内联自 zhon.hanzi.punctuation，避免额外依赖）
+ZH_PUNC = (
+    "＂＃＄％＆＇（）＊＋"
+    "，－／：；＜＝＞＠［"
+    "＼］＾＿｀｛｜｝～｟"
+    "｠｢｣､　、〃〈〉《"
+    "》「」『』【】〔〕〖"
+    "〗〘〙〚〛〜〝〞〟〰"
+    "〾〿–—‘’‛“”„"
+    "‟…‧﹏﹑﹔·．！？"
+    "｡。"
+)
 
 # 需要忽略的特殊字符
 CONVERT_EMPTY_CHARS = r"[、.。,，・·:：;；!！'’\"“”()（）\[\]【】「」\-——\+\|\\_/&#～~]"
+
+# 标题清理时去除的首尾字符集合（str.strip 的参数是字符集合，不是子串）
+DEFAULT_CHARS_TO_STRIP = r'.-/\\&#_'
 
 # 构建映射表（模块加载时执行一次）
 _FULL_TO_HALF_MAP = {
@@ -27,21 +41,21 @@ _FULL_TO_HALF_MAP = {
 }
 _FULL_TO_HALF_MAP[0x3000] = 0x20   # 全角空格 -> 半角空格
 
+CHINESE_TO_DIGIT = {
+    "零": 0, 
+    "一": 1, 
+    "二": 2, 
+    "三": 3, 
+    "四": 4, 
+    "五": 5, 
+    "六": 6, 
+    "七": 7, 
+    "八": 8, 
+    "九": 9
+}
 
 class StringUtils:
 
-    chinese_to_digit = {
-        "零": 0, 
-        "一": 1, 
-        "二": 2, 
-        "三": 3, 
-        "四": 4, 
-        "五": 5, 
-        "六": 6, 
-        "七": 7, 
-        "八": 8, 
-        "九": 9
-    }
 
     @staticmethod
     def num_filesize(text):
@@ -56,6 +70,8 @@ class StringUtils:
             return int(text)
         text = text.replace(",", "").replace(" ", "").upper()
         size = re.sub(r"[KMGTPI]*B?", "", text, flags=re.IGNORECASE)
+        if not size:
+            return 0
         try:
             size = float(size)
         except Exception as e:
@@ -116,10 +132,7 @@ class StringUtils:
         if isinstance(word, list):
             word = " ".join(word)
         chn = re.compile(r'[\u4e00-\u9fff]')
-        if chn.search(word):
-            return True
-        else:
-            return False
+        return bool(chn.search(word))
     
     @staticmethod
     def contain_traditional_chinese(text: str) -> bool:
@@ -133,18 +146,12 @@ class StringUtils:
     @staticmethod
     def is_japanese(word):
         jap = re.compile(r'[\u3040-\u309F\u30A0-\u30FF]')
-        if jap.search(word):
-            return True
-        else:
-            return False
+        return bool(jap.search(word))
 
     @staticmethod
     def is_korean(word):
         kor = re.compile(r'[\uAC00-\uD7FF]')
-        if kor.search(word):
-            return True
-        else:
-            return False
+        return bool(kor.search(word))
 
     @staticmethod
     def is_all_chinese(word):
@@ -180,10 +187,7 @@ class StringUtils:
         判断是否全是英文和数字
         """
         eng = re.compile(r'^[a-zA-Z0-9\s]+$')
-        if eng.search(word):
-            return True
-        else:
-            return False
+        return bool(eng.search(word))
 
     @staticmethod
     def is_alpha_numeric_punct(s):
@@ -208,8 +212,8 @@ class StringUtils:
         if not text:
             return False
 
-        # 英文标点（string.punctuation）+ 中文标点（zhon.hanzi.punctuation）
-        allowed_punct = re.escape(zh_punc + string.punctuation)
+        # 英文标点（string.punctuation）+ 中文标点（ZH_PUNC）
+        allowed_punct = re.escape(ZH_PUNC + string.punctuation)
 
         # 匹配规则：
         # \u4e00-\u9fff 是中文基本区（汉字）
@@ -278,7 +282,7 @@ class StringUtils:
         if not isinstance(text, list):
             text = re.sub(r"[\u200B-\u200D\uFEFF]",
                           "",
-                          re.sub(r"%s" % CONVERT_EMPTY_CHARS, replace_word, text),
+                          re.sub(rf"{CONVERT_EMPTY_CHARS}", replace_word, text),
                           flags=re.IGNORECASE)
             if not allow_space:
                 return re.sub(r"\s+", "", text).translate(_FULL_TO_HALF_MAP)
@@ -309,7 +313,7 @@ class StringUtils:
             except Exception as e:
                 log.exception('str_filesize error:')
                 return ""
-        if re.findall(r"[KMGTP]", size, re.I):
+        if re.findall(r"[KMGTP]", size, re.IGNORECASE):
             return size
         else:
             return size + "B"
@@ -326,7 +330,7 @@ class StringUtils:
         从搜索关键字中拆分中年份、季、集、类型
         """
         if not content:
-            return None, None, None, None, None
+            return None, None, None, None, None, None
         # 去掉查询中的电影或电视剧关键字
         if re.search(r'^电视剧|\s+电视剧|^动漫|\s+动漫', content):
             mtype = MediaType.TV
@@ -350,20 +354,19 @@ class StringUtils:
         year_re = re.search(r"[\s(]+(\d{4})[\s)]*", content)
         if year_re:
             year = year_re.group(1)
-        key_word = re.sub(
-            r'第\s*[0-9一二三四五六七八九十]+\s*季|第\s*[0-9一二三四五六七八九十百零]+\s*集|[\s(]+(\d{4})[\s)]*', '',
-            content,
-            flags=re.IGNORECASE).strip()
-        if key_word:
-            key_word = re.sub(r'\s+', ' ', key_word)
-        
+        # 去掉 "xxx篇" 后缀（如番剧名）
         season_name = re.sub(
             r'([\s|.].*)(篇){1}', '',
             content,
             flags=re.IGNORECASE).strip()
-        if season_name:
-            key_word = re.sub(r'\s+', ' ', season_name)
-            
+        base_content = season_name if season_name and season_name != content else content
+        # 去掉季、集、年份
+        key_word = re.sub(
+            r'第\s*[0-9一二三四五六七八九十]+\s*季|第\s*[0-9一二三四五六七八九十百零]+\s*集|[\s(]+(\d{4})[\s)]*', '',
+            base_content,
+            flags=re.IGNORECASE).strip()
+        if key_word:
+            key_word = re.sub(r'\s+', ' ', key_word)
         if not key_word:
             key_word = year
 
@@ -425,7 +428,7 @@ class StringUtils:
         if isinstance(timestamp, str) and not timestamp.isdigit():
             return timestamp
         try:
-            return datetime.fromtimestamp(int(timestamp)).strftime(date_format)
+            return TimeUtils.timestamp_to_datetime(int(timestamp)).strftime(date_format)
         except Exception as e:
             log.exception('timestamp_to_date error:')
             return timestamp
@@ -433,7 +436,7 @@ class StringUtils:
     @staticmethod
     def convert_chinese_to_digit(chinese_str):
         # 将中文数字转换为阿拉伯数字
-        digit_str = ''.join(str(StringUtils.chinese_to_digit.get(char, char)) for char in chinese_str)
+        digit_str = ''.join(str(CHINESE_TO_DIGIT.get(char, char)) for char in chinese_str)
         return int(digit_str) if digit_str.isdigit() else None
 
     @staticmethod
@@ -502,7 +505,7 @@ class StringUtils:
         if not time_str:
             return ''
 
-        now = datetime.now()
+        now = TimeUtils.now()
 
         # 优先处理相对时间格式
         relative_time = StringUtils.parse_relative_time(now, time_str)
@@ -538,11 +541,9 @@ class StringUtils:
             return default_val
         if isinstance(text, bool):
             return text
-        if isinstance(text, int) or isinstance(text, float):
-            return True if text > 0 else False
-        if isinstance(text, str) and text.lower() in ['y', 'true', '1']:
-            return True
-        return False
+        if isinstance(text, (int, float)):
+            return text > 0
+        return bool(isinstance(text, str) and text.lower() in ['y', 'true', '1'])
 
     @staticmethod
     def str_from_cookiejar(cj):
@@ -583,12 +584,12 @@ class StringUtils:
         hours = minutes // 60
         minutes = minutes % 60
         if hours:
-            return "%s小时%s分" % (hours, minutes)
+            return f"{hours}小时{minutes}分"
         else:
-            return "%s分钟" % minutes
+            return f"{minutes}分钟"
 
     @staticmethod
-    def str_to_datetime(date_str: str, formats: Optional[list[str]] = None) -> Optional[datetime]:
+    def str_to_datetime(date_str: str, formats: list[str] | None = None) -> datetime | None:
         """
         将字符串转换为 datetime 对象。
 
@@ -708,13 +709,10 @@ class StringUtils:
         # 将日期字符串解析为日期对象
         date_obj = datetime.strptime(date_str, '%Y-%m-%d')
         # 计算当前日期和一个月前的日期
-        today = datetime.today()
+        today = TimeUtils.now()
         one_month_ago = today - timedelta(days=30)
         # 比较日期对象，判断是否早于一个月前
-        if date_obj < one_month_ago:
-            return True
-        else:
-            return False
+        return date_obj < one_month_ago
 
     @staticmethod
     def adjust_en_name(en_name):
@@ -736,7 +734,7 @@ class StringUtils:
         rev_title = title.translate(trans_table)
         
         # 去除首尾指定字符
-        rev_title = rev_title.strip(r'.-/\\&#_')
+        rev_title = rev_title.strip(DEFAULT_CHARS_TO_STRIP)
         
         # 合并连续的点
         return re.sub(r"\.+", ".", rev_title).strip('.')\
@@ -747,7 +745,7 @@ class StringUtils:
         if symbols_to_dot is None:
             symbols_to_dot = {'[', ']', '「', '』'}
         if chars_to_strip is None:
-            chars_to_strip = r'.-/\\&#_'
+            chars_to_strip = DEFAULT_CHARS_TO_STRIP
         
         trans_table = str.maketrans({char: '.' for char in symbols_to_dot})
         cleaned = title.translate(trans_table).strip(chars_to_strip)
@@ -762,7 +760,7 @@ class StringUtils:
         return bool(re.match(r'.*\d$', s))
     
     @staticmethod
-    def remove_numbers_from_end(s) -> Tuple[str, Optional[int]]:
+    def remove_numbers_from_end(s) -> tuple[str, int | None]:
         """
         拆分字符串与末尾数字
         - 返回 (去掉尾数的字符串, 末尾数字 or None)
@@ -779,10 +777,7 @@ class StringUtils:
         """
         判断是否是字符串并且字符串是否为空
         """
-        if isinstance(word, str) and word.strip():
-            return True
-        else:
-            return False
+        return bool(isinstance(word, str) and word.strip())
         
     @staticmethod
     def is_public_url(url: str) -> bool:
@@ -812,6 +807,19 @@ class StringUtils:
         
         return False
     
+    @staticmethod
+    def split_and_strip(text: str, delimiter: str = "/") -> list:
+        """
+        将字符串按指定分隔符分割，对每个元素去除首尾空白，并丢弃去除后为空的元素。
+
+        :param text: 要处理的字符串
+        :param delimiter: 用于分割的分隔符
+        :return: 去除首尾空白且非空的列表
+        """
+        if not text:
+            return []
+        return [part for p in text.split(delimiter) if (part := p.strip())]
+
     @staticmethod
     def split_and_filter(text: str, delimiter: str) -> list:
         """

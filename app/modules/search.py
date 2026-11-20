@@ -1,19 +1,18 @@
-import json
 import re
 
 import log
-
+from app.core.task_manager import TaskStore
 from app.downloader.downloader import Downloader
-from app.media import MediaService, DouBan
+from app.media import DouBan, MediaService
 from app.media.meta import MetaInfo
 from app.message import MessageService
 from app.modules.searcher import Searcher
-
-from app.utils.string_utils import StringUtils
+from app.utils import JsonUtils
 from app.utils.media_utils import MediaUtils
+from app.utils.string_utils import StringUtils
 from app.utils.types import MediaType, SearchType
-
 from config import Config
+
 
 class SearchProxy:
 
@@ -23,20 +22,58 @@ class SearchProxy:
                                  filters=None,
                                  tmdbid=None,
                                  media_type=None,
+                                 keyword=None,
                                  task_id=None):
         """
-        WEB资源搜索
+        WEB资源搜索，统一保证搜索任务在任意分支都能结束
         :param content: 关键字文本，可以包括 类型、标题、季、集、年份等信息，使用 空格分隔，也支持种子的命名格式
         :param ident_flag: 是否进行媒体信息识别
         :param filters: 其它过滤条件
         :param tmdbid: TMDBID或DB:豆瓣ID
         :param media_type: 媒体类型, 配合tmdbid传入
+        :param keyword: 自定义搜索词，为空时使用媒体名称搜索
         :return: 错误码，错误原因，成功时直接插入数据库
+        """
+        task_finished = False
+        fail_msg = "搜索失败"
+        try:
+            code, msg = self._search_torrents_from_web(content=content,
+                                                       ident_flag=ident_flag,
+                                                       filters=filters,
+                                                       tmdbid=tmdbid,
+                                                       media_type=media_type,
+                                                       keyword=keyword,
+                                                       task_id=task_id)
+            if code == -1:
+                fail_msg = msg or fail_msg
+            else:
+                # Searcher 正常返回时已自行结束任务
+                task_finished = True
+            return code, msg
+        except Exception as e:
+            log.exception("【Web】搜索出错: %s", content)
+            fail_msg = str(e) or fail_msg
+            return -1, fail_msg
+        finally:
+            # 提前退出或异常时兜底结束任务，避免前端进度框一直等待
+            if task_id and not task_finished:
+                TaskStore().finish_task(task_id, message=fail_msg, result=0)
+
+    def _search_torrents_from_web(self,
+                                  content,
+                                  ident_flag=True,
+                                  filters=None,
+                                  tmdbid=None,
+                                  media_type=None,
+                                  keyword=None,
+                                  task_id=None):
+        """
+        WEB资源搜索
         """
         mtype, key_word, season_num, episode_num, year, content = StringUtils.get_keyword_from_string(content)
         if not key_word:
-            log.info("【Web】%s 搜索关键字有误！" % content)
-            return -1, "%s 未识别到搜索关键字！" % content
+            log.info(f"【Web】{content} 搜索关键字有误！")
+            return -1, f"{content} 未识别到搜索关键字！"
         
         # 类型
         if media_type:
@@ -55,7 +92,8 @@ class SearchProxy:
                 media_info = _media.get_media_info(mtype=media_type or mtype, title=content)
             # 整合集
             if media_info:
-                if season_num:
+                # 季号 0 为特别篇，需与未识别季（None）区分
+                if season_num is not None:
                     media_info.begin_season = int(season_num)
                 if episode_num:
                     media_info.begin_episode = int(episode_num)
@@ -76,9 +114,11 @@ class SearchProxy:
                     search_cn_name = media_info.cn_name
                 else:
                     search_cn_name = media_info.title
-                first_search_name = search_cn_name
+                # 订阅配置了自定义搜索词时优先使用
+                first_search_name = keyword or search_cn_name
                 season_name = None
-                if season_num and 1 < season_num <= len(media_info.tmdb_info.seasons):
+                if season_num is not None \
+                        and (season_num == 0 or 1 < season_num <= len(media_info.tmdb_info.seasons)):
                     match_season = next(filter(lambda x: x.season_number == season_num, media_info.tmdb_info.seasons), None)
                     if match_season and match_season.name:
                         season_name = match_season.name
@@ -92,7 +132,7 @@ class SearchProxy:
                 log.info("【Web】 未从TMDB匹配到媒体信息, 将使用快速搜索...", content)
                 ident_flag = False
                 media_info = None
-                first_search_name = key_word
+                first_search_name = keyword or key_word
                 filter_args = {
                     "season": season_num,
                     "episode": episode_num,
@@ -100,7 +140,7 @@ class SearchProxy:
                 }    
         else:
             # 快速搜索
-            first_search_name = key_word
+            first_search_name = keyword or key_word
             filter_args = {
                 "season": season_num,
                 "episode": episode_num,
@@ -123,10 +163,10 @@ class SearchProxy:
 
         result_count = len(media_list)
         if result_count == 0:
-            log.info("【Web】%s 未搜索到任何资源" % content)
-            return 1, "%s 未搜索到任何资源" % content
+            log.info(f"【Web】{content} 未搜索到任何资源")
+            return 1, f"{content} 未搜索到任何资源"
         else:
-            log.info("【Web】共搜索到 %s 个有效资源" % result_count)       
+            log.info(f"【Web】共搜索到 {result_count} 个有效资源")       
             return 0, ""
 
 
@@ -185,7 +225,7 @@ class SearchProxy:
             else:
                 search_name = media_info.title
 
-        log.info("【Searcher】开始搜索 %s ..." % search_name)
+        log.info(f"【Searcher】开始搜索 {search_name} ...")
 
         # 开始搜索
         media_list = Searcher().search_torrents(search_name, filter_args, media_info, in_from)
@@ -206,11 +246,11 @@ class SearchProxy:
                                                                   need_tvs=no_exists,
                                                                   user_name=user_name)
         if not download_items:
-            log.info("【Searcher】%s 未下载到资源" % media_info.title)
+            log.info(f"【Searcher】{media_info.title} 未下载到资源")
             return None, left_medias, len(media_list), 0
 
         # 统计下载情况
-        log.info("【Searcher】实际下载了 %s 个资源" % len(download_items))
+        log.info(f"【Searcher】实际下载了 {len(download_items)} 个资源")
         # 还有剩下的缺失，说明没下完，返回False
         if left_medias:
             return None, left_medias, len(media_list), len(download_items)
@@ -260,9 +300,9 @@ class SearchProxy:
                 if meta_info.type != MediaType.MOVIE and tmp_info.type == MediaType.MOVIE:
                     continue
                 if tmp_info.begin_season:
-                    tmp_info.title = "%s 第%s季" % (tmp_info.title, StringUtils.number_to_cn(meta_info.begin_season))
+                    tmp_info.title = f"{tmp_info.title} 第{StringUtils.number_to_cn(meta_info.begin_season)}季"
                 if tmp_info.begin_episode:
-                    tmp_info.title = "%s 第%s集" % (tmp_info.title, meta_info.begin_episode)
+                    tmp_info.title = f"{tmp_info.title} 第{meta_info.begin_episode}集"
                 medias.append(tmp_info)
 
         return medias
@@ -279,31 +319,33 @@ class SearchProxy:
         for item in res:
             # 质量(来源、效果)、分辨率
             if item.RES_TYPE:
-                try:
-                    res_mix = json.loads(item.RES_TYPE)
-                except Exception as err:
-                    log.exception("【Searcher】解析质量配置异常:")
+                res_mix = JsonUtils.loads(item.RES_TYPE)
+                if res_mix is None:
+                    log.error("【Searcher】解析质量配置异常:")
                     continue
                 respix = res_mix.get("respix") or ""
+                resource_frame = res_mix.get("resource_frame") or ""
                 video_encode = res_mix.get("video_encode") or ""
                 restype = res_mix.get("restype") or ""
                 reseffect = res_mix.get("reseffect") or ""
             else:
                 restype = ""
                 respix = ""
+                resource_frame = ""
                 reseffect = ""
                 video_encode = ""
 
-            # 分组标识 (来源，分辨率)
-            group_key = re.sub(r"[-.\s@|]", "", f"{respix}_{restype}").lower()
+            # 分组标识 (来源，分辨率，帧率)
+            group_key = re.sub(r"[-.\s@|]", "", f"{respix}_{restype}_{resource_frame}").lower()
             # 分组信息
             group_info = {
                 "respix": respix,
+                "resource_frame": resource_frame,
                 "restype": restype,
             }
             # 种子唯一标识 （大小，质量(来源、效果)，制作组组成）
             unique_key = re.sub(r"[-.\s@|]", "",
-                                f"{respix}_{restype}_{video_encode}_{reseffect}_{item.SIZE}_{item.OTHERINFO}").lower()
+                                f"{respix}_{restype}_{resource_frame}_{video_encode}_{reseffect}_{item.SIZE}_{item.OTHERINFO}").lower()
             # 标识信息
             unique_info = {
                 "video_encode": video_encode,
@@ -327,13 +369,13 @@ class SearchProxy:
                       if label in ["官方", "官组", "中字", "中配", "国语", "粤语", "特效", "特效字幕", "杜比视界"]]
 
             pubdate = item.PUBDATE or ''
-            if pubdate.endswith(' 00:00:00'):
-                pubdate = pubdate[:-9]
+            pubdate = pubdate.removesuffix(' 00:00:00')
 
             # 种子信息
             torrent_item = {
                 "id": item.ID,
                 "seeders": item.SEEDERS,
+                "progress": item.PROGRESS or '',
                 "enclosure": item.ENCLOSURE,
                 "site": item.SITE,
                 "torrent_name": item.TORRENT_NAME,
@@ -344,6 +386,7 @@ class SearchProxy:
                 "pubdate": pubdate,
                 "size": item.SIZE,
                 "respix": respix,
+                "resource_frame": resource_frame,
                 "restype": restype,
                 "reseffect": reseffect,
                 "releasegroup": item.OTHERINFO,
@@ -417,6 +460,9 @@ class SearchProxy:
                 if video_encode \
                         and video_encode not in torrent_filter.get("video"):
                     torrent_filter["video"].append(video_encode)
+                if resource_frame \
+                        and resource_frame not in torrent_filter.get("resource_frame"):
+                    torrent_filter["resource_frame"].append(resource_frame)
                 if filter_season \
                         and filter_season not in torrent_filter.get("season"):
                     torrent_filter["season"].append(filter_season)
@@ -454,6 +500,7 @@ class SearchProxy:
                         "free": [free_item],
                         "releasegroup": [releasegroup],
                         "video": [video_encode] if video_encode else [],
+                        "resource_frame": [resource_frame] if resource_frame else [],
                         "season": [filter_season] if filter_season else []
                     }
                 }
@@ -488,18 +535,44 @@ class SearchProxy:
             if re.match(r"^(E\d+)-E\d+$", k[1], flags=re.I):
                 parts = k[1].split('-')
                 if len(parts) == 2:
-                    return (k[0], '{}-{}'.format(parts[1], parts[0]))
+                    return (k[0], f'{parts[1]}-{parts[0]}')
             return (k[0], k[1])
 
-        for _, item in search_results.items():
+        def pix_sort_value(respix):
+            # 分辨率排序值，如 1920x1080 取高度，无法识别时排最后
+            if not respix:
+                return -1
+            m = re.search(r"\d{3,4}\s*[x×]\s*(\d{3,4})", respix, flags=re.I)
+            if m:
+                return int(m.group(1))
+            m = re.search(r"(\d{3,4})", respix)
+            return int(m.group(1)) if m else -1
+
+        def group_sort(k):
+            # 分组排序：先按分辨率倒序，同分辨率下有帧率的排前面且帧率倒序
+            group_info = k[1].get("group_info") or {}
+            frame = re.search(r"(\d+(?:\.\d+)?)",
+                              group_info.get("resource_frame") or "")
+            frame_value = float(frame.group(1)) if frame else 0
+            return (pix_sort_value(group_info.get("respix")),
+                    bool(frame),
+                    frame_value)
+
+        for item in search_results.values():
             # 排序筛选器: 季倒序
             item["filter"]["season"].sort(reverse=True)
             # 排序筛选器: 制作组/字幕组，未知放最后
             item["filter"]["releasegroup"] = sorted(
                 item["filter"]["releasegroup"], key=lambda x: (x == "未知", x))
-            # 排序种子列
-            item["torrent_dict"] = sorted(
-                item["torrent_dict"].items(), key=se_sort, reverse=True)
+            # 排序筛选器: 帧率倒序
+            item["filter"]["resource_frame"] = sorted(
+                item["filter"]["resource_frame"], key=lambda x: float(x[:-3]), reverse=True)
+            # 排序种子列及分组（分组按分辨率、帧率倒序）
+            item["torrent_dict"] = [
+                (se_key, dict(sorted(groups.items(), key=group_sort, reverse=True)))
+                for se_key, groups in sorted(
+                    item["torrent_dict"].items(), key=se_sort, reverse=True)
+            ]
             
             # 补充媒体存在标志
             tmdbid = item.get("tmdbid")

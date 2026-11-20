@@ -8,7 +8,7 @@ on:
       - version.py
       - .github/workflows/build-dev.yml
       - requirements.txt
-      - docker/dev.Dockerfile
+      - docker/Dockerfile
       - app/*
 
 jobs:
@@ -45,7 +45,7 @@ jobs:
         uses: docker/build-push-action@v2
         with:
           context: docker
-          file: docker/dev.Dockerfile
+          file: docker/Dockerfile
           platforms: |
             linux/amd64
             linux/arm64

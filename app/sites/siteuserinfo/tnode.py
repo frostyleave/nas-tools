@@ -1,9 +1,7 @@
-# -*- coding: utf-8 -*-
-import json
 import re
 
-from app.sites.siteuserinfo._base import _ISiteUserInfo, SITE_BASE_ORDER
-from app.utils import StringUtils
+from app.sites.siteuserinfo._base import SITE_BASE_ORDER, _ISiteUserInfo
+from app.utils import JsonUtils, StringUtils
 from app.utils.types import SiteSchema
 
 
@@ -41,8 +39,8 @@ class TNodeSiteUserInfo(_ISiteUserInfo):
         pass
 
     def _parse_user_detail_info(self, html_text):
-        detail = json.loads(html_text)
-        if detail.get("status") != 200:
+        detail = JsonUtils.loads(html_text)
+        if not detail or detail.get("status") != 200:
             return
 
         user_info = detail.get("data", {})
@@ -59,14 +57,13 @@ class TNodeSiteUserInfo(_ISiteUserInfo):
 
         self.message_unread = user_info.get("unreadAdmin", 0) + user_info.get("unreadInbox", 0) + user_info.get(
             "unreadSystem", 0)
-        pass
 
     def _parse_user_torrent_seeding_info(self, html_text, multi_page=False):
         """
         解析用户做种信息
         """
-        seeding_info = json.loads(html_text)
-        if seeding_info.get("status") != 200:
+        seeding_info = JsonUtils.loads(html_text)
+        if not seeding_info or seeding_info.get("status") != 200:
             return
 
         torrents = seeding_info.get("data", {}).get("torrents", [])

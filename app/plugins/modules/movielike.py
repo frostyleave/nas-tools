@@ -1,8 +1,8 @@
 import os
 
-from app.modules.filetransfer import FileTransfer
 from app.media import Category
 from app.mediaserver import MediaServer
+from app.modules.filetransfer import FileTransfer
 from app.plugins import EventHandler
 from app.plugins.modules._base import _IPluginModule
 from app.utils import SystemUtils
@@ -16,7 +16,7 @@ class MovieLike(_IPluginModule):
     # 插件描述
     module_desc = "媒体服务器中用户将电影设为最爱时，自动转移到精选文件夹。"
     # 插件图标
-    module_icon = "like.jpg"
+    module_icon = "like.png"
     # 主题色
     module_color = "#E4003F"
     # 插件版本
@@ -46,7 +46,7 @@ class MovieLike(_IPluginModule):
     filetransfer = None
     category = None
 
-    def init_config(self, config: dict = None):
+    def init_config(self, config: dict | None = None):
         self.mediaserver = MediaServer()
         self.filetransfer = FileTransfer()
         self.category = Category()

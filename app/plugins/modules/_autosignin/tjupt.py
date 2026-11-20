@@ -1,16 +1,16 @@
+from typing import ClassVar
 import json
 import os
 import time
-
 from io import BytesIO
 
-from PIL import Image
 from lxml import etree
+from PIL import Image
 
 from app.helper.site_signin_helper import SiteSigninHelper, Verdict
-from app.plugins.modules._autosignin._base import _ISiteSigninHandler
 from app.models.model import UserSiteConf
-from app.utils import SiteUtils, RequestUtils
+from app.plugins.modules._autosignin._base import _ISiteSigninHandler
+from app.utils import JsonUtils, RequestUtils, SiteUtils
 from config import Config
 
 
@@ -25,7 +25,7 @@ class Tjupt(_ISiteSigninHandler):
     _sign_in_url = 'https://www.tjupt.org/attendance.php'
 
     # 已签到
-    _sign_regex = ['<a href="attendance.php">今日已签到</a>']
+    _sign_regex: ClassVar[list[str]] = ['<a href="attendance.php">今日已签到</a>']
 
     # 签到成功
     _succeed_regex = ['这是您的首次签到，本次签到获得\\d+个魔力值。',
@@ -43,7 +43,7 @@ class Tjupt(_ISiteSigninHandler):
         :param url: 站点Url
         :return: 是否匹配，如匹配则会调用该类的signin方法
         """
-        return True if SiteUtils.url_equal(url, cls.site_url) else False
+        return bool(SiteUtils.url_equal(url, cls.site_url))
 
     def signin(self, site_info: UserSiteConf):
         """
@@ -115,7 +115,7 @@ class Tjupt(_ISiteSigninHandler):
         try:
             with open(self._answer_file, 'r') as f:
                 json_str = f.read()
-            exits_answers = json.loads(json_str)
+            exits_answers = JsonUtils.loads(json_str, default={})
             # 查询本地本次验证码hash答案
             captcha_answer = exits_answers[captcha_img_hash]
 
@@ -129,7 +129,7 @@ class Tjupt(_ISiteSigninHandler):
                                              ua=ua,
                                              proxy=proxy,
                                              site=site)
-        except (FileNotFoundError, IOError, OSError):
+        except Exception as ex:
             self.debug("查询本地已知答案失败，继续请求豆瓣查询")
 
         # 本地不存在正确答案则请求豆瓣查询匹配
@@ -142,7 +142,7 @@ class Tjupt(_ISiteSigninHandler):
                     continue
 
                 # 豆瓣返回结果
-                db_answers = json.loads(db_res.text)
+                db_answers = JsonUtils.loads(db_res.text, default=[])
                 if not isinstance(db_answers, list):
                     db_answers = [db_answers]
 
@@ -224,7 +224,7 @@ class Tjupt(_ISiteSigninHandler):
             formatted_data = json.dumps(exits_answers, indent=4)
             with open(self._answer_file, 'w') as f:
                 f.write(formatted_data)
-        except (FileNotFoundError, IOError, OSError):
+        except Exception as ex:
             self.debug("签到成功写入本地文件失败")
 
     @staticmethod

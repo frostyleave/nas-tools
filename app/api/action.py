@@ -1,55 +1,65 @@
 import base64
+import copy
 import datetime
-import importlib
 import inspect
 import json
 import os.path
 import re
-import shutil
-import subprocess
 import threading
 import time
-
-from typing import Optional
+from typing import Annotated, ClassVar
 
 from fastapi import APIRouter, BackgroundTasks, Body, Depends
 
 import log
-
-from app.conf import SystemConfig, ModuleConf
-from app.helper import ThreadHelper, MetaHelper, WordsHelper, RssHelper, FileHelper
-from app.utils import StringUtils, EpisodeFormat, RequestUtils, PathUtils, SystemUtils, MediaUtils
-
+from app.conf import ModuleConf, SystemConfig
 from app.core.cmd_handler import CommandHandler
+from app.core.initializer import diff_config, reload_config
 from app.core.jobcenter import JobCenter
-from app.core.services import ServiceManager
 from app.core.task_manager import TaskStore
 from app.downloader import Downloader
+from app.helper import FileHelper, MetaHelper, RssHelper, ThreadHelper, WordsHelper
 from app.indexer import Indexer
 from app.indexer.manager import IndexerManager
-from app.media import MediaService, Bangumi, DouBan, Scraper
+from app.media import Bangumi, Category, DouBan, MediaService, Scraper
 from app.media.meta import MetaInfo
 from app.mediaserver import MediaServer
 from app.message import MessageService
-from app.models.user import User, UserManager
-from app.middleware.security import get_current_user
+from app.middleware.security import CurrentUser, get_current_user
+from app.models.user import LEVEL_OPERATOR, User, UserManager
+from app.modules.brushtaskv2 import BrushTaskV2 as BrushTask
 from app.modules.filetransfer import FileTransfer
 from app.modules.filter import Filter
-from app.modules.brushtaskv2 import BrushTaskV2 as BrushTask
+from app.modules.media_status import MediaStatusChecker
 from app.modules.rss import Rss
 from app.modules.rsschecker import RssChecker
 from app.modules.search import SearchProxy
 from app.modules.searcher import Searcher
 from app.modules.subscribe import Subscribe
-from app.modules.media_status import MediaStatusChecker
 from app.modules.sync import Sync
 from app.modules.torrentremover import TorrentRemover
-from app.plugins import PluginManager, EventManager
-from app.sites import SitesManager, SitesDataStatisticsCenter, SiteConf
+from app.plugins import EventManager, PluginManager
+from app.sites import SiteConf, SitesDataStatisticsCenter, SitesManager
+from app.utils import (
+    EpisodeFormat,
+    JsonUtils,
+    MediaUtils,
+    PathUtils,
+    RequestUtils,
+    StringUtils,
+    SystemUtils,
+)
+from app.utils.commons import mask_sensitive
 from app.utils.constants import Constants
-from app.utils.types import MediaType, SyncType, SearchType, EventType, SystemConfigKey, RssType
 from app.utils.password_hash import generate_password_hash
-
+from app.utils.types import (
+    EventType,
+    MediaType,
+    RssType,
+    SearchType,
+    SyncType,
+    SystemConfigKey,
+)
 from config import Config
 
 # action接口路由
@@ -57,13 +67,14 @@ action_router = APIRouter(dependencies=[Depends(get_current_user)])
 
 # 事件响应
 @action_router.post("/do")
-def do(background_tasks: BackgroundTasks, content: dict = Body(...), current_user: User = Depends(get_current_user)):
+def do(background_tasks: BackgroundTasks, content: Annotated[dict, Body(...)], current_user: CurrentUser):
 
     start_time = time.time()
     try:
         cmd = content.get("cmd")
         data = content.get("data") or {}
-        log.debug("处理/do请求: cmd={%s}, data={%s}", cmd, data)
+        # 请求体可能包含密码/token/Cookie 等敏感信息，日志中统一脱敏
+        log.debug("处理/do请求: cmd={%s}, data={%s}", cmd, mask_sensitive(data))
         return WebAction(current_user, background_tasks).action(cmd, data)
     except Exception as e:
         log.exception("处理/do请求出错, cmd=" + content.get("cmd"))
@@ -71,18 +82,42 @@ def do(background_tasks: BackgroundTasks, content: dict = Body(...), current_use
     finally:
         cost_time = time.time()
         process_time = (cost_time - start_time) * 1000  # 转换为毫秒
-        log.debug("[%s] %s, 耗时: %s ms", str(threading.get_ident()), json.dumps(content), format(process_time, ".2f"))
+        log.debug("[%s] %s, 耗时: %s ms", str(threading.get_ident()),
+                  json.dumps(mask_sensitive(content), ensure_ascii=False), format(process_time, ".2f"))
+
+
+def _start_web_search(background_tasks: BackgroundTasks,
+                      content: str,
+                      ident_flag: bool = True,
+                      filters: dict | None = None,
+                      tmdbid=None,
+                      media_type=None,
+                      keyword=None):
+    """
+    创建网页搜索任务
+    """
+    task_id = TaskStore().create_task()
+    background_tasks.add_task(SearchProxy().search_torrents_from_web,
+                              content=content,
+                              ident_flag=ident_flag,
+                              filters=filters,
+                              tmdbid=tmdbid,
+                              media_type=media_type,
+                              keyword=keyword,
+                              task_id=task_id)
+    return task_id
+
 
 # search
 @action_router.post("/search")
-def search(background_tasks: BackgroundTasks, data: dict = Body(...)):
-    
+def search(background_tasks: BackgroundTasks, data: Annotated[dict, Body(...)]):
+
     try:
         search_word = data.get("search_word")
         if not search_word:
             return {"code": -1, "msg": '缺少搜索关键词'}
 
-        ident_flag = False if data.get("unident") else True
+        ident_flag = not data.get("unident")
         filters = data.get("filters")
         tmdbid = data.get("tmdbid")
         media_type = data.get("media_type")
@@ -93,31 +128,62 @@ def search(background_tasks: BackgroundTasks, data: dict = Body(...)):
             else:
                 media_type = MediaType.TV
 
-        task_id = TaskStore().create_task()
+        task_id = _start_web_search(background_tasks,
+                                    content=search_word,
+                                    ident_flag=ident_flag,
+                                    filters=filters,
+                                    tmdbid=tmdbid,
+                                    media_type=media_type)
 
-        background_tasks.add_task(SearchProxy().search_torrents_from_web,
-                                  content=search_word,
-                                  ident_flag=ident_flag,
-                                  filters=filters,
-                                  tmdbid=tmdbid,
-                                  media_type=media_type,
-                                  task_id=task_id)
-        
         return {"code": 0, "task_id": task_id}
-    
+
     except Exception as e:
         log.exception("处理/search请求出错")
         return {"code": -1, "msg": str(e)}
 
+
+# search rss 按订阅配置搜索
+@action_router.post("/search_rss")
+def search_rss(background_tasks: BackgroundTasks, data: Annotated[dict, Body(...)]):
+    try:
+        rssid = data.get("rssid")
+        if not rssid:
+            return {"code": -1, "msg": "缺少订阅ID"}
+
+        mtype = data.get("mtype")
+        if mtype in Constants.MOVIE_TYPES:
+            mtype = MediaType.MOVIE
+        elif mtype in Constants.TVT_YPES:
+            mtype = MediaType.TV
+        else:
+            mtype = None
+
+        search_args = Subscribe().get_web_search_args(rssid=rssid, mtype=mtype)
+        if not search_args:
+            return {"code": -1, "msg": "订阅不存在"}
+
+        task_id = _start_web_search(background_tasks,
+                                    content=search_args["content"],
+                                    filters=search_args["filters"],
+                                    tmdbid=search_args["tmdbid"],
+                                    media_type=search_args["media_type"],
+                                    keyword=search_args["keyword"])
+        return {"code": 0, "task_id": task_id}
+
+    except Exception as e:
+        log.exception("处理/search_rss请求出错")
+        return {"code": -1, "msg": str(e)}
+
 class WebAction:
     
-    _actions = {}
-    _commands = {}
-    _current_user : Optional[User] = None
-    _douBan : Optional[DouBan] =  None
-    _background_tasks : Optional[BackgroundTasks] = None
+    _actions: dict
+    _current_user : User | None = None
+    _douBan = DouBan()
+    _background_tasks : BackgroundTasks | None = None
+    _pt_depiler_version_cache: ClassVar[dict] = {"expire": 0.0, "version": None}
+    _PT_DEPILER_VERSION_TTL: ClassVar[int] = 600
 
-    def __init__(self, current_user:Optional[User]=None, background_tasks:Optional[BackgroundTasks]=None):
+    def __init__(self, current_user:User | None=None, background_tasks:BackgroundTasks | None=None):
         # WEB请求响应
         self._actions = {
             "sch": self.__sch,
@@ -135,10 +201,7 @@ class WebAction:
             "update_site": self.__update_site,
             "get_site": self.__get_site,
             "del_site": self.__del_site,
-            "restart": self.__restart,
-            "update_system": self.__update_system,
             "logout": self.__logout,
-            "update_config": self.__update_config,
             "update_directory": self.__update_directory,
             "add_or_edit_sync_path": self.__add_or_edit_sync_path,
             "get_sync_path": self.__get_sync_path,
@@ -148,9 +211,10 @@ class WebAction:
             "add_rss_media": self.__add_rss_media,
             "re_identification": self.__re_identification,
             "media_info": self.__media_info,
-            "test_connection": self.__test_connection,
-            "user_manager": self.__user_manager,
+            "test_mediaserver": self.__test_mediaserver,
+            "change_password": self.__change_password,
             "refresh_rss": self.__refresh_rss,
+            "set_rss_state": self.__set_rss_state,
             "delete_tmdb_cache": self.__delete_tmdb_cache,
             "movie_calendar_data": self.__movie_calendar_data,
             "tv_calendar_data": self.__tv_calendar_data,
@@ -173,13 +237,13 @@ class WebAction:
             "del_filterrule": self.__del_filterrule,
             "filterrule_detail": self.__filterrule_detail,
             "get_site_activity": self.__get_site_activity,
+            "get_activity_log": self.__get_activity_log,
             "get_site_history": self.__get_site_history,
             "get_recommend": self.__get_recommend,
             "batch_get_media_exists_info": self.__batch_get_media_exists_info,
             "get_site_seeding_info": self.__get_site_seeding_info,
             "clear_tmdb_cache": self.__clear_tmdb_cache,
             "check_site_attr": self.__check_site_attr,
-            "restory_backup": self.__restory_backup,
             "start_mediasync": self.__start_mediasync,
             "mediasync_state": self.__mediasync_state,
             "get_tvseason_list": self.__get_tvseason_list,
@@ -217,8 +281,6 @@ class WebAction:
             "get_downloading": self.__get_downloading,
             "test_site": self.__test_site,
             "get_sub_path": self.__get_sub_path,
-            "rename_file": self.__rename_file,
-            "delete_files": self.__delete_files,
             "download_subtitle": self.__download_subtitle,
             "get_download_setting": self.__get_download_setting,
             "update_download_setting": self.__update_download_setting,
@@ -229,6 +291,8 @@ class WebAction:
             "get_message_client": self.__get_message_client,
             "test_message_client": self.__test_message_client,
             "get_sites": self.__get_sites,
+            "get_site_statistic_sites": self.__get_site_statistic_sites,
+            "save_site_statistic_sites": self.__save_site_statistic_sites,
             "get_indexers": self.__get_indexers,
             "get_download_dirs": self.__get_download_dirs,
             "find_hardlinks": self.__find_hardlinks,
@@ -248,7 +312,6 @@ class WebAction:
             "media_person": self.__media_person,
             "person_medias": self.__person_medias,
             "run_directory_sync": self.__run_directory_sync,
-            "update_plugin_config": self.__update_plugin_config,
             "get_season_episodes": self.__get_season_episodes,
             "update_downloader": self.__update_downloader,
             "del_downloader": self.__del_downloader,
@@ -261,23 +324,19 @@ class WebAction:
             "delete_indexer": self.__delete_indexer,
             "media_path_scrap": self.__media_path_scrap,
             "get_default_rss_setting": self.__get_default_rss_setting,
-            "install_plugin": self.__install_plugin,
-            "uninstall_plugin": self.__uninstall_plugin,
             "get_plugin_apps": self.__get_plugin_apps,
             "get_plugin_page": self.__get_plugin_page,
             "update_category_config": self.__update_category_config,
             "get_category_config": self.__get_category_config,
             "get_system_processes": self.__get_system_processes,
-            "run_plugin_method": self.__run_plugin_method,
             "refresh_pt_statistics": self.__refresh_pt_statistics,
+            "pt_depiler_version": self.__pt_depiler_version,
             "get_jobs": self.__get_jobs
         }
         # 用户绑定
         self._current_user = current_user
         # 后台任务(用于将耗时操作放入后台执行)
         self._background_tasks = background_tasks
-        # 豆瓣实例
-        self._douBan = DouBan()
 
     def action(self, cmd, data):
         """
@@ -289,52 +348,7 @@ class WebAction:
         elif inspect.signature(func).parameters:
             return func(data)
         else:
-            return func(**{})
-
-    def set_config_value(self, cfg, cfg_key, cfg_value):
-        """
-        根据Key设置配置值
-        """
-        # 密码
-        if cfg_key == "app.login_password":
-            if cfg_value and not cfg_value.startswith("[hash]"):
-                password_hash = "[hash]%s" % generate_password_hash(cfg_value)
-                cfg['app']['login_password'] = "[hash]%s" % password_hash
-            else:
-                cfg['app']['login_password'] = cfg_value or "password"
-            return cfg
-        # 代理
-        if cfg_key == "app.proxies":
-            if cfg_value:
-                if not cfg_value.startswith("http") and not cfg_value.startswith("sock"):
-                    cfg['app']['proxies'] = {
-                        "https": "http://%s" % cfg_value, "http": "http://%s" % cfg_value}
-                else:
-                    cfg['app']['proxies'] = {"https": "%s" %
-                                                      cfg_value, "http": "%s" % cfg_value}
-            else:
-                cfg['app']['proxies'] = {"https": None, "http": None}
-            return cfg
-        # 最大支持三层赋值
-        keys = cfg_key.split(".")
-        if keys:
-            if len(keys) == 1:
-                cfg[keys[0]] = cfg_value
-            elif len(keys) == 2:
-                if not cfg.get(keys[0]):
-                    cfg[keys[0]] = {}
-                cfg[keys[0]][keys[1]] = cfg_value
-            elif len(keys) == 3:
-                if cfg.get(keys[0]):
-                    if not cfg[keys[0]].get(keys[1]) or isinstance(cfg[keys[0]][keys[1]], str):
-                        cfg[keys[0]][keys[1]] = {}
-                    cfg[keys[0]][keys[1]][keys[2]] = cfg_value
-                else:
-                    cfg[keys[0]] = {}
-                    cfg[keys[0]][keys[1]] = {}
-                    cfg[keys[0]][keys[1]][keys[2]] = cfg_value
-
-        return cfg
+            return func()
 
     def set_config_directory(self, cfg, oper, cfg_key, cfg_value, update_value=None):
         """
@@ -645,7 +659,7 @@ class WebAction:
                                   episode_part=episode_part,
                                   episode_offset=episode_offset,
                                   need_fix_all=need_fix_all,
-                                  update_unknown_state=True if (not need_fix_all and not logid) else False,
+                                  update_unknown_state=bool(not need_fix_all and not logid),
                                   min_filesize=min_filesize,
                                   tmdbid=tmdbid,
                                   season=season)
@@ -715,7 +729,7 @@ class WebAction:
             return False, "输入路径不存在"
         
         outpath = os.path.normpath(outpath) if outpath else None
-        is_dir_specified = True if outpath else False
+        is_dir_specified = bool(outpath)
         episode_conf = (EpisodeFormat(episode_format, episode_details, episode_part, episode_offset), need_fix_all)
         
         if tmdbid:
@@ -810,7 +824,7 @@ class WebAction:
         except Exception as e:
             log.exception("手工转移任务执行出错, task_id=%s", task_id)
             TaskStore().finish_task(task_id=task_id,
-                                            message=f"转移失败：{str(e)}",
+                                            message=f"转移失败：{e!s}",
                                             result={"code": 2, "msg": str(e)})
 
     def __delete_history(self, data):
@@ -866,8 +880,8 @@ class WebAction:
                                      note=note,
                                      rss_uses=rss_uses)
             if ret and (name != old_name):
-                # 更新历史站点数据信息
-                SitesDataStatisticsCenter().update_site_name(name, old_name)
+                # 按站点地址更新历史统计数据中的站点名称
+                SitesDataStatisticsCenter().update_site_name(site_data.strict_url, name)
 
         else:
             ret = _sites.add_site(name=name,
@@ -908,10 +922,10 @@ class WebAction:
         """
         查询多个站点信息
         """
-        rss = True if data.get("rss") else False
-        brush = True if data.get("brush") else False
-        statistic = True if data.get("statistic") else False
-        basic = True if data.get("basic") else False
+        rss = bool(data.get("rss"))
+        brush = bool(data.get("brush"))
+        statistic = bool(data.get("statistic"))
+        basic = bool(data.get("basic"))
         if basic:
             sites = SitesManager().get_site_dict(rss=rss,
                                                  brush=brush,
@@ -921,6 +935,26 @@ class WebAction:
                                              brush=brush,
                                              statistic=statistic)
         return {"code": 0, "sites": sites}
+
+    def __get_site_statistic_sites(self):
+        """
+        查询所有站点的数据统计开关
+        """
+        return {"code": 0, "sites": SitesManager().get_site_statistic_sites()}
+
+    def __save_site_statistic_sites(self, data):
+        """
+        保存站点的数据统计开关
+        """
+        if not self._current_user or self._current_user.level < LEVEL_OPERATOR:
+            return {"code": 1, "msg": "权限不足"}
+
+        sites = data.get("sites")
+        if not isinstance(sites, dict):
+            return {"code": 1, "msg": "参数错误"}
+
+        SitesManager().save_site_statistic_sites(sites)
+        return {"code": 0, "msg": "保存成功"}
 
     def __del_site(self, data):
         """
@@ -933,138 +967,10 @@ class WebAction:
         
         return {"code": 0}
 
-    def __restart(self):
-        """
-        重启
-        """
-        # 退出主进程
-        self._add_background_task(self.__delayed_restart)
-        return {"code": 0, "msg": "系统即将重启"}
-    
-    @staticmethod
-    def __delayed_restart():
-        time.sleep(1)
-        ServiceManager.restart_server()
-
-    def __update_system(self):
-        """
-        更新
-        """
-        if not SystemUtils.is_docker():
-            log.warn('【UpdateSystem】当前环境不支持在线更新，仅支持Docker环境')
-            return {
-                "code": 1, 
-                "updated": False,
-                "msg": "仅支持在Docker环境中执行系统更新", 
-                "output": ""
-            }
-
-        root_path = Config().get_root_path()
-        log.info('【UpdateSystem】----------------------------检查更新----------------------------')
-        log.info(f'【UpdateSystem】获取系统根目录: {root_path}')
-
-        def run_git(*args):
-            """执行git命令，返回(返回码, stdout, 合并输出)"""
-            cmd = ["git", "-C", root_path] + list(args)
-            log.info(f'【UpdateSystem】执行：git {" ".join(args)}')
-            try:
-                ret = subprocess.run(cmd, capture_output=True, text=True, timeout=300,
-                                     env={**os.environ, "GIT_TERMINAL_PROMPT": "0"})
-            except Exception as err:
-                log.error(f'【UpdateSystem】执行 git {" ".join(args)} 异常：{str(err)}')
-                return 1, "", str(err)
-            stdout = (ret.stdout or "").strip()
-            output = "\n".join([x for x in [stdout, (ret.stderr or "").strip()] if x])
-            for line in output.splitlines():
-                log.info(f'【UpdateSystem】>>> {line}')
-            return ret.returncode, stdout, output
-
-        # 当前分支
-        code, stdout, _ = run_git("rev-parse", "--abbrev-ref", "HEAD")
-        branch = stdout if code == 0 and stdout else os.getenv("NASTOOL_VERSION", "master")
-        log.info(f'【UpdateSystem】当前分支：{branch}')
-
-        # 更新前的提交
-        code, old_commit, _ = run_git("rev-parse", "HEAD")
-        if code != 0:
-            return {"code": 1, "updated": False,
-                    "msg": "获取当前版本失败，请查看日志", "output": ""}
-
-        # 默认执行 git pull
-        log.info(f'【UpdateSystem】正在拉取当前分支 {branch} ...')
-        code, _, pull_output = run_git("pull")
-        outputs = [pull_output]
-        mode = "pull"
-
-        if code != 0:
-            # pull 冲突或失败时，强制以远程分支覆盖本地
-            log.warn('【UpdateSystem】git pull 失败，尝试强制覆盖本地...')
-            code, _, fetch_output = run_git("fetch", "origin")
-            outputs.append(fetch_output)
-            if code != 0:
-                return {"code": 1, "updated": False,
-                        "msg": "拉取更新失败，请查看日志",
-                        "output": "\n".join([x for x in outputs if x])}
-
-            code, _, reset_output = run_git("reset", "--hard", f"origin/{branch}")
-            outputs.append(reset_output)
-            if code != 0:
-                return {"code": 1, "updated": False,
-                        "msg": "强制覆盖本地失败，请查看日志",
-                        "output": "\n".join([x for x in outputs if x])}
-            mode = "force-reset"
-
-        # 更新后的提交
-        code, new_commit, _ = run_git("rev-parse", "HEAD")
-        if code != 0:
-            return {"code": 1, "updated": False,
-                    "msg": "获取更新后版本失败，请查看日志",
-                    "output": "\n".join([x for x in outputs if x])}
-
-        updated = old_commit != new_commit
-        # 修复权限
-        os.system(f"chown -R nt:nt {root_path}")
-
-        if updated:
-            if mode == "force-reset":
-                msg = f"本地存在冲突，已强制覆盖为 {branch} 分支最新版本 {new_commit[:8]}"
-            else:
-                msg = f"已更新到 {branch} 分支最新版本 {new_commit[:8]}"
-        elif mode == "force-reset":
-            msg = "已强制覆盖本地修改，当前已是最新版本"
-        else:
-            msg = "当前已是最新版本"
-        log.info(f'【UpdateSystem】>>> {msg}')
-        return {"code": 0, "updated": updated, "msg": msg, "branch": branch,
-                "old_commit": old_commit, "new_commit": new_commit, "mode": mode,
-                "output": "\n".join([x for x in outputs if x])}
-
     def __logout(self):
         """
         注销
         """
-        return {"code": 0}
-
-    def __update_config(self, data):
-        """
-        更新配置信息
-        """
-        cfg = Config().get_config()
-        cfgs = dict(data).items()
-        # 仅测试不保存
-        config_test = False
-        # 修改配置
-        for key, value in cfgs:
-            if key == "test" and value:
-                config_test = True
-                continue
-            # 生效配置
-            cfg = self.set_config_value(cfg, key, value)
-
-        # 保存配置
-        if not config_test:
-            Config().save_config(cfg)
-
         return {"code": 0}
 
     def __add_or_edit_sync_path(self, data):
@@ -1202,7 +1108,6 @@ class WebAction:
         year = data.get("year")
         keyword = data.get("keyword")
         season = data.get("season")
-        fuzzy_match = data.get("fuzzy_match")
         mediaid = data.get("mediaid")
         rss_sites = data.get("rss_sites")
         search_sites = data.get("search_sites")
@@ -1221,6 +1126,13 @@ class WebAction:
         page = data.get("page")
         mtype = MediaType.MOVIE if data.get(
             "type") in Constants.MOVIE_TYPES else MediaType.TV
+        # 编辑订阅时保持原有的暂停状态
+        state = "D"
+        if rssid:
+            rssinfo = _subscribe.get_subscribe_movies(rid=rssid) if mtype == MediaType.MOVIE \
+                else _subscribe.get_subscribe_tvs(rid=rssid)
+            if rssinfo and next(iter(rssinfo.values())).get("state") == 'P':
+                state = "P"
 
         media_info = None
         if isinstance(season, list):
@@ -1233,7 +1145,6 @@ class WebAction:
                                                                      channel=channel,
                                                                      keyword=keyword,
                                                                      season=sea,
-                                                                     fuzzy_match=fuzzy_match,
                                                                      mediaid=mediaid,
                                                                      rss_sites=rss_sites,
                                                                      search_sites=search_sites,
@@ -1246,6 +1157,7 @@ class WebAction:
                                                                      filter_exclude=filter_exclude,
                                                                      save_path=save_path,
                                                                      download_setting=download_setting,
+                                                                     state=state,
                                                                      rssid=rssid)
                 if code != 0:
                     break
@@ -1256,7 +1168,6 @@ class WebAction:
                                                                  channel=channel,
                                                                  keyword=keyword,
                                                                  season=season,
-                                                                 fuzzy_match=fuzzy_match,
                                                                  mediaid=mediaid,
                                                                  rss_sites=rss_sites,
                                                                  search_sites=search_sites,
@@ -1271,6 +1182,7 @@ class WebAction:
                                                                  download_setting=download_setting,
                                                                  total_ep=total_ep,
                                                                  current_ep=current_ep,
+                                                                 state=state,
                                                                  rssid=rssid)
         if not rssid and media_info:
             rssid = _subscribe.get_subscribe_id(mtype=mtype,
@@ -1388,61 +1300,40 @@ class WebAction:
             "seasons": seasons
         }
 
-    def __test_connection(self, data):
+    def __test_mediaserver(self, data):
         """
-        测试连通性
+        测试媒体服务器连通性
+        :param data: {"type": "emby/jellyfin/plex"}
         """
-        # 支持两种传入方式：命令数组或单个命令，单个命令时xx|xx模式解析为模块和类，进行动态引入
-        command = data.get("command")
-        ret = None
-        if command:
-            try:
-                module_obj = None
-                if isinstance(command, list):
-                    for cmd_str in command:
-                        ret = eval(cmd_str)
-                        if not ret:
-                            break
-                else:
-                    if command.find("|") != -1:
-                        module = command.split("|")[0]
-                        class_name = command.split("|")[1]
-                        module_obj = getattr(
-                            importlib.import_module(module), class_name)()
-                        if hasattr(module_obj, "init_config"):
-                            module_obj.init_config()
-                        ret = module_obj.get_status()
-                    else:
-                        ret = eval(command)
-                # 重载配置
-                Config().init_config()
-                if module_obj:
-                    if hasattr(module_obj, "init_config"):
-                        module_obj.init_config()
-            except Exception as e:
-                ret = None
-                log.exception("[act]测试连通性出错:")
-            return {"code": 0 if ret else 1}
-        return {"code": 0}
+        server_type = (data or {}).get("type")
+        if not server_type or server_type not in ModuleConf.MEDIASERVER_CONF:
+            return {"code": 1, "msg": "不支持的媒体服务器类型"}
 
-    def __user_manager(self, data):
-        """
-        用户管理
-        """
-        oper = data.get("oper")
-        name = data.get("name")
-        if oper == "add":
-            password = generate_password_hash(str(data.get("password")))
-            pris = data.get("pris")
-            if isinstance(pris, list):
-                pris = ",".join(pris)
-            ret = UserManager().add_user(name, password, pris)
-        else:
-            ret = UserManager().delete_user(name)
+        ret = MediaServer().test_connection(server_type)
+        return {"code": 0 if ret else 1}
 
-        if ret == 1 or ret:
-            return {"code": 0, "success": False}
-        return {"code": -1, "success": False, 'message': '操作失败'}
+    def __change_password(self, data):
+        """
+        修改当前登录用户的密码
+        """
+        if not self._current_user:
+            return {"code": -1, "msg": "未登录"}
+
+        old_password = str(data.get("old_password") or "")
+        new_password = str(data.get("new_password") or "")
+        if not old_password or not new_password:
+            return {"code": -1, "msg": "原密码和新密码不能为空"}
+        if old_password == new_password:
+            return {"code": -1, "msg": "新密码不能与原密码相同"}
+        if not self._current_user.verify_password(old_password):
+            return {"code": -1, "msg": "原密码错误"}
+
+        password_hash = generate_password_hash(new_password)
+        if not UserManager().update_user_password(self._current_user.username, password_hash):
+            return {"code": -1, "msg": "密码修改失败"}
+
+        log.info(f"用户 {self._current_user.username} 修改了登录密码")
+        return {"code": 0, "msg": "密码修改成功"}
 
     def __refresh_rss(self, data):
         """
@@ -1451,11 +1342,34 @@ class WebAction:
         mtype = data.get("type")
         rssid = data.get("rssid")
         page = data.get("page")
-        if mtype == "MOV":
-            ThreadHelper().start_thread(Subscribe().subscribe_search_movie, (rssid,))
+        # 暂停的订阅不进行搜索
+        _subscribe = Subscribe()
+        if mtype in Constants.MOVIE_TYPES:
+            rssinfo = _subscribe.get_subscribe_movies(rid=rssid)
+            search_func = _subscribe.subscribe_search_movie
         else:
-            ThreadHelper().start_thread(Subscribe().subscribe_search_tv, (rssid,))
+            rssinfo = _subscribe.get_subscribe_tvs(rid=rssid)
+            search_func = _subscribe.subscribe_search_tv
+        if rssinfo and next(iter(rssinfo.values())).get("state") == 'P':
+            return {"code": 1, "msg": "订阅已暂停，请先恢复订阅"}
+        ThreadHelper().start_thread(search_func, (rssid,))
         return {"code": 0, "page": page}
+
+    def __set_rss_state(self, data):
+        """
+        暂停/恢复订阅
+        """
+        rssid = data.get("rssid")
+        state = data.get("state")
+        if not rssid or state not in ("R", "P"):
+            return {"code": 1, "msg": "参数错误"}
+        mtype = MediaType.MOVIE if data.get("type") in Constants.MOVIE_TYPES else MediaType.TV
+        Subscribe().update_rss_state(rtype=mtype, rssid=rssid, state=state)
+        if state == "P":
+            log.info(f"【Subscribe】暂停订阅：{mtype.value} {rssid}")
+            return {"code": 0, "msg": "订阅已暂停"}
+        log.info(f"【Subscribe】恢复订阅：{mtype.value} {rssid}")
+        return {"code": 0, "msg": "订阅已恢复"}
 
     def __delete_tmdb_cache(self, data):
         """
@@ -1575,11 +1489,11 @@ class WebAction:
             for episode in tmdb_info.get("episodes"):
                 episode_events.append({
                     "type": "剧集",
-                    "title": "%s 第%s季第%s集" % (
+                    "title": "{} 第{}季第{}集".format(
                         name,
                         season,
                         episode.get("episode_number")
-                    ) if season != 1 else "%s 第%s集" % (
+                    ) if season != 1 else "{} 第{}集".format(
                         name,
                         episode.get("episode_number")
                     ),
@@ -1599,13 +1513,13 @@ class WebAction:
             rssdetail = Subscribe().get_subscribe_movies(rid=rid)
             if not rssdetail:
                 return {"code": 1}
-            rssdetail = list(rssdetail.values())[0]
+            rssdetail = next(iter(rssdetail.values()))
             rssdetail["type"] = "MOV"
         else:
             rssdetail = Subscribe().get_subscribe_tvs(rid=rid)
             if not rssdetail:
                 return {"code": 1}
-            rssdetail = list(rssdetail.values())[0]
+            rssdetail = next(iter(rssdetail.values()))
             rssdetail["type"] = "TV"
         return {"code": 0, "detail": rssdetail}
 
@@ -1773,7 +1687,7 @@ class WebAction:
             return {"code": -1}
         meta_info = MetaInfo(title=title, subtitle=subtitle)
         meta_info.size = float(size) * 1024 ** 3 if size else 0
-        match_flag, res_order, match_msg = \
+        match_flag, res_order, _match_msg = \
             Filter().check_torrent_filter(meta_info=meta_info,
                                           filter_args={"rule": rulegroup})
         return {
@@ -1802,11 +1716,20 @@ class WebAction:
         seconds = int((datetime.datetime.now() -
                        start_time).microseconds / 1000)
         if not res:
-            return {"res": False, "time": "%s 毫秒" % seconds}
+            return {"res": False, "time": f"{seconds} 毫秒"}
         elif res.ok:
-            return {"res": True, "time": "%s 毫秒" % seconds}
+            return {"res": True, "time": f"{seconds} 毫秒"}
         else:
-            return {"res": False, "time": "%s 毫秒" % seconds}
+            return {"res": False, "time": f"{seconds} 毫秒"}
+
+    def __get_activity_log(self):
+        """
+        查询首页播放记录
+        """
+        return {
+            "code": 0,
+            "activitys": MediaServer().get_activity_log(30)
+        }
 
     def __get_site_activity(self, data):
         """
@@ -2158,27 +2081,6 @@ class WebAction:
             site_hr = True
         return {"code": 0, "site_free": site_free, "site_2xfree": site_2xfree, "site_hr": site_hr}
        
-    def __restory_backup(self, data):
-        """
-        解压恢复备份文件
-        """
-        filename = data.get("file_name")
-        if filename:
-            config_path = Config().get_config_path()
-            temp_path = Config().get_temp_path()
-            file_path = os.path.join(temp_path, filename)
-            try:
-                shutil.unpack_archive(file_path, config_path, format='zip')
-                return {"code": 0, "msg": ""}
-            except Exception as e:
-                log.exception("[act]解压恢复备份文件出错:")
-                return {"code": 1, "msg": str(e)}
-            finally:
-                if os.path.exists(file_path):
-                    os.remove(file_path)
-
-        return {"code": 1, "msg": "文件不存在"}
-
     def __start_mediasync(self, data):
         """
         开始媒体库同步
@@ -2213,10 +2115,9 @@ class WebAction:
         if not status:
             return {"code": 0, "text": "未同步"}
         else:
-            return {"code": 0, "text": "电影：%s，电视剧：%s，同步时间：%s" %
-                                       (status.get("movie_count"),
-                                        status.get("tv_count"),
-                                        status.get("time"))}
+            return {"code": 0, 
+                    "text": "电影：{}，电视剧：{}，同步时间：{}".format(status.get("movie_count"), status.get("tv_count"), status.get("time"))
+                }
 
     def __get_tvseason_list(self, data):
         """
@@ -2236,16 +2137,19 @@ class WebAction:
         else:
             season_infos = _media.get_tmdb_tv_seasons_byid(tmdbid=tmdbid)
 
-        if title_season:
+        # 季号 0 为特别篇，需要与未识别季（None）区分
+        if title_season is not None:
             seasons = [
                 {
-                    "text": "第%s季" % title_season,
+                    "text": "第0季(特别篇)" if title_season == 0 else f"第{title_season}季",
                     "num": title_season
                 }
             ]
         else:
             seasons = MediaUtils.batch_convert_ch_season_info(season_infos)
-        return {"code": 0, "seasons": seasons}
+        # 同时返回电视剧的默认订阅设置，前端新增订阅弹窗可直接回填
+        return {"code": 0, "seasons": seasons,
+                "default_setting": Subscribe().default_rss_setting_tv or {}}
 
     def __get_userrss_task(self, data):
         """
@@ -2299,9 +2203,12 @@ class WebAction:
                 "recognization": data.get("recognization")
             })
         elif uses == "R":
+            sites = data.get("sites") or {}
+            if not sites.get("rss_sites") and not sites.get("search_sites"):
+                return {"code": 1, "msg": "订阅站点和搜索站点不能同时为空，请至少选择一项"}
             params.update({
                 "over_edition": data.get("over_edition"),
-                "sites": data.get("sites"),
+                "sites": sites,
                 "filter_args": {
                     "restype": data.get("restype"),
                     "pix": data.get("pix"),
@@ -2520,7 +2427,16 @@ class WebAction:
             if wtype in ["3", "4"]:
                 if not re.findall(r'EP', offset):
                     return {"code": 1, "msg": "偏移集数格式有误"}
-                if re.findall(r'(?!-|\+|\*|/|[0-9]).', re.sub(r'EP', "", offset)):
+                # 仅允许数字、EP 及 + - * / % ( ) 和空白，防止 eval 注入
+                if re.findall(r'[^0-9+\-*/%()\s]', re.sub(r'EP', "", offset)):
+                    return {"code": 1, "msg": "偏移集数格式有误"}
+                # 禁止幂运算，避免超大指数导致 eval 卡死
+                if "**" in offset:
+                    return {"code": 1, "msg": "偏移集数格式有误"}
+                # 试算校验，确保表达式能正常运算
+                try:
+                    int(eval(offset.replace("EP", "1")))
+                except Exception:
                     return {"code": 1, "msg": "偏移集数格式有误"}
             if wid:
                 _wordshelper.delete_custom_word(wid=wid)
@@ -2543,7 +2459,7 @@ class WebAction:
                                                     whelp=whelp if whelp else "")
                     return {"code": 0, "msg": ""}
                 else:
-                    return {"code": 1, "msg": "识别词已存在\n（被替换词：%s）" % replaced}
+                    return {"code": 1, "msg": f"识别词已存在\n（被替换词：{replaced}）"}
             # 替换
             elif wtype == "2":
                 if not _wordshelper.is_custom_words_existed(replaced=replaced):
@@ -2560,7 +2476,7 @@ class WebAction:
                                                     whelp=whelp if whelp else "")
                     return {"code": 0, "msg": ""}
                 else:
-                    return {"code": 1, "msg": "识别词已存在\n（被替换词：%s）" % replaced}
+                    return {"code": 1, "msg": f"识别词已存在\n（被替换词：{replaced}）"}
             # 集偏移
             elif wtype == "4":
                 if not _wordshelper.is_custom_words_existed(front=front, back=back):
@@ -2577,7 +2493,7 @@ class WebAction:
                                                     whelp=whelp if whelp else "")
                     return {"code": 0, "msg": ""}
                 else:
-                    return {"code": 1, "msg": "识别词已存在\n（前后定位词：%s@%s）" % (front, back)}
+                    return {"code": 1, "msg": f"识别词已存在\n（前后定位词：{front}@{back}）"}
             # 替换+集偏移
             elif wtype == "3":
                 if not _wordshelper.is_custom_words_existed(replaced=replaced):
@@ -2594,7 +2510,7 @@ class WebAction:
                                                     whelp=whelp if whelp else "")
                     return {"code": 0, "msg": ""}
                 else:
-                    return {"code": 1, "msg": "识别词已存在\n（被替换词：%s）" % replaced}
+                    return {"code": 1, "msg": f"识别词已存在\n（被替换词：{replaced}）"}
             else:
                 return {"code": 1, "msg": ""}
         except Exception as e:
@@ -2726,7 +2642,7 @@ class WebAction:
             string = base64.b64decode(import_code.encode(
                 "utf-8")).decode('utf-8').split("@@@@@@")
             note_string = string[1]
-            import_dict = json.loads(string[0])
+            import_dict = JsonUtils.loads(string[0], default={})
             groups = []
             for group in import_dict.values():
                 wid = group.get('id')
@@ -2737,12 +2653,12 @@ class WebAction:
                 season_count = group.get("season_count") or ""
                 words = group.get("words")
                 if tmdbid:
-                    link = "https://www.themoviedb.org/%s/%s" % (
+                    link = "https://www.themoviedb.org/{}/{}".format(
                         "movie" if int(wtype) == 1 else "tv", tmdbid)
                 else:
                     link = ""
                 groups.append({"id": wid,
-                               "name": "%s（%s）" % (title, year) if year else title,
+                               "name": f"{title}（{year}）" if year else title,
                                "link": link,
                                "type": wtype,
                                "seasons": season_count,
@@ -2759,7 +2675,7 @@ class WebAction:
             ids_info = data.get('ids_info')
             string = base64.b64decode(import_code.encode(
                 "utf-8")).decode('utf-8').split("@@@@@@")
-            import_dict = json.loads(string[0])
+            import_dict = JsonUtils.loads(string[0], default={})
             import_group_ids = [id_info.split("_")[0] for id_info in ids_info]
             group_id_dict = {}
             for import_group_id in import_group_ids:
@@ -2801,11 +2717,10 @@ class WebAction:
                 # 屏蔽, 替换, 替换+集偏移
                 if wtype in [1, 2, 3]:
                     if _wordshelper.is_custom_words_existed(replaced=replaced):
-                        return {"code": 1, "msg": "识别词已存在\n（被替换词：%s）" % replaced}
+                        return {"code": 1, "msg": f"识别词已存在\n（被替换词：{replaced}）"}
                 # 集偏移
-                elif wtype == 4:
-                    if _wordshelper.is_custom_words_existed(front=front, back=back):
-                        return {"code": 1, "msg": "识别词已存在\n（前后定位词：%s@%s）" % (front, back)}
+                elif wtype == 4 and _wordshelper.is_custom_words_existed(front=front, back=back):
+                        return {"code": 1, "msg": f"识别词已存在\n（前后定位词：{front}@{back}）"}
                 _wordshelper.insert_custom_word(replaced=replaced,
                                                 replace=replace,
                                                 front=front,
@@ -2829,28 +2744,32 @@ class WebAction:
 
     def __re_rss_history(self, data):
         rssid = data.get("rssid")
-        rtype = data.get("type")
-        rssinfo = Rss().get_rss_history(rtype=rtype, rid=rssid)
-        if rssinfo:
-            if rtype == "MOV":
-                mtype = MediaType.MOVIE
-            else:
-                mtype = MediaType.TV
-            if rssinfo[0].SEASON:
-                season = int(str(rssinfo[0].SEASON).replace("S", ""))
-            else:
-                season = None
-            code, msg, _ = Subscribe().add_rss_subscribe(mtype=mtype,
-                                                         name=rssinfo[0].NAME,
-                                                         year=rssinfo[0].YEAR,
-                                                         channel=RssType.Auto,
-                                                         season=season,
-                                                         mediaid=rssinfo[0].TMDBID,
-                                                         total_ep=rssinfo[0].TOTAL,
-                                                         current_ep=rssinfo[0].START)
-            return {"code": code, "msg": msg}
-        else:
+        if not rssid:
+            return {"code": 1, "msg": "订阅历史id不能为空"}
+        
+        rssinfo_lst = Rss().get_rss_history(rid=rssid)
+        if not rssinfo_lst:
             return {"code": 1, "msg": "订阅历史记录不存在"}
+
+        rssinfo = rssinfo_lst[0]
+        if rssinfo.TYPE == "MOV":
+            mtype = MediaType.MOVIE
+        else:
+            mtype = MediaType.TV
+        if rssinfo.SEASON:
+            season = int(str(rssinfo.SEASON).replace("S", ""))
+        else:
+            season = None
+        code, msg, _ = Subscribe().add_rss_subscribe(mtype=mtype,
+                                                     name=rssinfo.NAME,
+                                                     year=rssinfo.YEAR,
+                                                     channel=RssType.Auto,
+                                                     season=season,
+                                                     mediaid=rssinfo.TMDBID,
+                                                     total_ep=rssinfo.TOTAL,
+                                                     current_ep=rssinfo.START)
+        return {"code": code, "msg": msg}
+
 
     def __share_filtergroup(self, data):
         gid = data.get("id")
@@ -2886,7 +2805,7 @@ class WebAction:
 
             json_str = base64.b64decode(
                 str(content).encode("utf-8")).decode('utf-8')
-            json_obj = json.loads(json_str)
+            json_obj = JsonUtils.loads(json_str, default={})
             if json_obj:
                 if not json_obj.get("name"):
                     return {"code": 1, "msg": "数据格式不正确"}
@@ -2909,7 +2828,7 @@ class WebAction:
             return {"code": 0, "msg": ""}
         except Exception as err:
             log.exception("[act]导入过滤规则失败:")
-            return {"code": 1, "msg": "数据格式不正确，%s" % str(err)}
+            return {"code": 1, "msg": f"数据格式不正确，{err!s}"}
 
     def __get_transfer_statistics(self):
         """
@@ -2977,7 +2896,7 @@ class WebAction:
                 poster_path = download_info.POSTER
                 backdrop = download_info.BACKDROP
                 se = download_info.SE
-                title = "%s(%s)" % (name, year) if year and download_info.TYPE == '电影' else name
+                title = f"{name}({year})" if year and download_info.TYPE == '电影' else name
                 tpye_str = 'MOV' if download_info.TYPE == '电影' else 'TV'
                 vote = download_info.VOTE
 
@@ -3009,13 +2928,16 @@ class WebAction:
         """
         维护媒体库目录
         """
-        cfg = self.set_config_directory(Config().get_config(),
+        old_cfg = Config().get_config()
+        cfg = self.set_config_directory(copy.deepcopy(old_cfg),
                                         data.get("oper"),
                                         data.get("key"),
                                         data.get("value"),
                                         data.get("replace_value"))
         # 保存配置
         Config().save_config(cfg)
+        # 按变更内容重新初始化受影响的服务
+        reload_config(diff_config(old_cfg, cfg))
         return {"code": 0}
 
     def __test_site(self, data):
@@ -3036,36 +2958,6 @@ class WebAction:
             "count": len(r),
             "data": r
         }
-
-    def __rename_file(self, data):
-        """
-        文件重命名
-        """
-        path = data.get("path")
-        name = data.get("name")
-        if path and name:
-            try:
-                shutil.move(path, os.path.join(os.path.dirname(path), name))
-            except Exception as e:
-                log.exception("[act]文件重命名 异常:")
-                return {"code": -1, "msg": str(e)}
-        return {"code": 0}
-
-    def __delete_files(self, data):
-        """
-        删除文件
-        """
-        files = data.get("files")
-        if files:
-            # 删除文件
-            for file in files:
-                del_flag, del_msg = FileHelper.delete_media_file(filedir=os.path.dirname(file),
-                                                           filename=os.path.basename(file))
-                if not del_flag:
-                    log.error(del_msg)
-                else:
-                    log.info(del_msg)
-        return {"code": 0}
 
     def __download_subtitle(self, data):
         """
@@ -3203,7 +3095,7 @@ class WebAction:
         测试消息设置
         """
         ctype = data.get("type")
-        config = json.loads(data.get("config"))
+        config = JsonUtils.loads(data.get("config"), default={})
         res = MessageService().get_status(ctype=ctype, config=config)
         if res:
             return {"code": 0}
@@ -3328,24 +3220,60 @@ class WebAction:
         """
         设置索引站点（数据库）
         """
-        site_id = data.get("site_id")
-        if not site_id:
-            return {"code": 1, "msg": "site_id为空, 请检查索引器是否匹配站点索引模板"}
-        
+        checked = data.get("checked")
+        site_db_id = data.get("site_db_id")
+        site = None
+
+        if site_db_id:
+            try:
+                site_db_id = int(site_db_id)
+            except (TypeError, ValueError):
+                return {"code": 1, "msg": "站点ID无效"}
+            site = SitesManager().get_site(siteid=site_db_id)
+            if not site:
+                return {"code": 1, "msg": "站点不存在"}
+            # 站点卡片：未匹配索引器的站点在启用前需校验站点架构
+            if checked:
+                if site.indexer_id:
+                    site_id = site.indexer_id
+                else:
+                    success, msg, site_id = SitesManager().verify_default_indexer(site_db_id)
+                    if not success:
+                        return {"code": 1, "msg": msg}
+            else:
+                site_id = site.indexer_id
+            # 未启用且未匹配索引器的站点无需记录
+            if not site_id:
+                return {"code": 0}
+        else:
+            # 公共索引器：site_id 即索引器ID
+            site_id = data.get("site_id")
+            if not site_id:
+                return {"code": 1, "msg": "site_id为空, 请检查索引器是否匹配站点索引模板"}
+
         try:
             indexer_sites = SystemConfig().get(SystemConfigKey.UserIndexerSites) or []
-            checked = data.get("checked")
+            changed = False
             if checked:
-                if site_id in indexer_sites:
-                    return {"code": 0}
-                indexer_sites.append(site_id)
-            else:
                 if site_id not in indexer_sites:
-                    return {"code": 0}
+                    indexer_sites.append(site_id)
+                    changed = True
+            elif site_id in indexer_sites:
                 indexer_sites.remove(site_id)
-            SystemConfig().set(key=SystemConfigKey.UserIndexerSites, value=indexer_sites)
-            return {"code": 0}
-        except Exception as e:
+                changed = True
+
+            if changed:
+                SystemConfig().set(key=SystemConfigKey.UserIndexerSites,
+                                   value=indexer_sites)
+            if checked and site and not site.indexer_id:
+                # 启用记录写入成功后再关联默认索引器，避免写库失败时内存状态先行
+                SitesManager().attach_default_indexer(site.id)
+            elif not checked and site and IndexerManager().is_base_indexer_id(site_id):
+                # 默认索引器按站点派生，停用后解除关联，重新启用时需重新校验站点架构
+                site.indexer_id = ''
+                site.parser = ''
+            return {"code": 0, "indexer_id": site_id}
+        except Exception:
             log.exception("[act]设置索引站点 异常:")
             return {"code": 1}
 
@@ -3455,7 +3383,9 @@ class WebAction:
 
             if douban_info:
                 # 名称解析
-                title = self.__try_get_ch_title_from_douban(doubanId, douban_info)
+                title = data.get("title")
+                if not title or not StringUtils.is_all_chinese_and_mark(title):
+                    title = self.__try_get_ch_title_from_douban(doubanId, douban_info)
                 # 根据媒体类型赋值
                 if mtype != MediaType.MOVIE:
                     overview = douban_info.get('intro')
@@ -3515,6 +3445,9 @@ class WebAction:
             
             if not media_info or not media_info.tmdb_info:
                 return { "code": 1, "msg": "无法查询到Bangumi资源的TMDB信息" }
+
+            tmdb_info = media_info.tmdb_info
+            tmdb_info.seasons = media_handler.get_tmdb_tv_seasons(tmdb_info)
             
         else:
             info = media_handler.get_tmdb_info(tmdbid=tmdbid, mtype=mtype, append_to_response="all")
@@ -3580,6 +3513,9 @@ class WebAction:
             "background": media_handler.get_tmdb_backdrops(tmdbinfo=media_info.tmdb_info),
             "crews": crews,
             "link": media_info.get_detail_url(),
+            "overview" : media_info.overview,
+            "vote": round(float(media_info.vote_average or 0), 1),
+            "douban_vote": media_info.douban_vote
         }
 
         # 解析季信息
@@ -3628,14 +3564,8 @@ class WebAction:
         media_server = MediaServer()
 
         for season in seasons:
-            season.update({
-                "state": True if media_server.check_item_exists(
-                    mtype=mtype,
-                    title=media_info.title,
-                    year=media_info.year,
-                    tmdbid=media_info.tmdb_id,
-                    season=season.get("season_number")) else False
-            })
+            exist_status = bool(media_server.check_item_exists(mtype=mtype, title=media_info.title, year=media_info.year, tmdbid=media_info.tmdb_id, season=season.get("season_number")))
+            season.update({"state": exist_status})
         return seasons
 
     def __try_get_ch_title_from_douban(self, douban_id, douban_info):
@@ -3648,18 +3578,17 @@ class WebAction:
             return title
         
         if douban_info.get('alt_title'):
-            alt_title = douban_info.get('alt_title').split('/')
-            if len(alt_title) == 1:
-                title = alt_title[0]
-                if StringUtils.is_all_chinese_and_mark(title):
-                    return title
-            else:
-                cn_title = next(filter(lambda t: StringUtils.is_all_chinese_and_mark(t), alt_title), None)
+            alt_titles = StringUtils.split_and_strip(douban_info.get('alt_title'))
+            if alt_titles:
+                cn_title = next(filter(StringUtils.is_all_chinese_and_mark, alt_titles), None)
                 if cn_title:
-                    return cn_title.strip()
+                    return cn_title
         
         douban_info = self._douBan.get_douban_detail(douban_id)
-        return douban_info.get("title")
+        if douban_info:
+            return douban_info.get("title")
+        
+        return title
 
     def __media_similar(self, data):
         """
@@ -3733,18 +3662,6 @@ class WebAction:
         ThreadHelper().start_thread(Sync().transfer_sync, (data.get("sid"),))
         return {"code": 0, "msg": "执行成功"}
 
-    def __update_plugin_config(self, data):
-        """
-        保存插件配置
-        """
-        plugin_id = data.get("plugin")
-        config = data.get("config")
-        if not plugin_id:
-            return {"code": 1, "msg": "数据错误"}
-        PluginManager().save_plugin_config(pid=plugin_id, conf=config)
-        PluginManager().reload_plugin(plugin_id)
-        return {"code": 0, "msg": "保存成功"}
-
     def __get_season_episodes(self, data=None):
         """
         查询TMDB剧集情况
@@ -3759,15 +3676,8 @@ class WebAction:
         episodes = MediaService().get_tmdb_season_episodes(tmdbid=tmdbid, season=season)
         MediaServerHandler = MediaServer()
         for episode in episodes:
-            episode.update({
-                "state": True if MediaServerHandler.check_item_exists(
-                    mtype=MediaType.TV,
-                    title=title,
-                    year=year,
-                    tmdbid=tmdbid,
-                    season=season,
-                    episode=episode.get("episode_number")) else False
-            })
+            ep_exists = bool(MediaServerHandler.check_item_exists(mtype=MediaType.TV, title=title, year=year, tmdbid=tmdbid, season=season, episode=episode.get("episode_number")))
+            episode.update({"state": ep_exists})
         return {
             "code": 0,
             "episodes": episodes
@@ -3848,7 +3758,7 @@ class WebAction:
         测试下载器
         """
         dtype = data.get("type")
-        config = json.loads(data.get("config"))
+        config = JsonUtils.loads(data.get("config"), default={})
         res = Downloader().get_status(dtype=dtype, config=config)
         if res:
             return {"code": 0}
@@ -3864,6 +3774,9 @@ class WebAction:
             return {"code": 1, "msg": "站点url为空"}
 
         site = IndexerManager().get_indexer_base(url=url, public=True)
+        if not site:
+            # 匹配不到时返回基础索引配置，允许查看/复制，保存由更新接口拦截
+            site = IndexerManager().get_base_indexer()
         if not site:
             return {"code": 1, "msg": "索引站点查询失败"}
 
@@ -3889,6 +3802,8 @@ class WebAction:
         return {"code": 1, "msg": msg}
 
     def __update_indexer(self, data):
+        if IndexerManager().is_base_indexer_id(data.get('id')):
+            return {"code": 1, "msg": "基础索引配置不允许修改"}
         success = IndexerManager().update_indexer(data)
         if success:
             return {"code": 0, "msg": "更新成功"}
@@ -3898,7 +3813,10 @@ class WebAction:
         indexer_id = data.get('id')
         if indexer_id is None:
              return {"code": 1, "msg": "索引id为空"}
-        
+
+        if IndexerManager().is_base_indexer_id(indexer_id):
+            return {"code": 1, "msg": "基础索引配置不允许删除"}
+
         IndexerManager().delete_indexer(indexer_id)
         return {"code": 0, "msg": "更新成功"}
 
@@ -3908,16 +3826,44 @@ class WebAction:
         """
         if not self._current_user:
             return {"code": 1, "msg": "未登录"}
-        
-         # 刷新站点数据
-        if data.get('site'):
-            SitesDataStatisticsCenter().refresh_site_data_now(specify_sites=data.get('site'))
-        else:
-            CommandHandler().handle_message_job("/sta", 
-                                                in_from=SearchType.WEB, 
-                                                user_id=self._current_user.id, 
-                                                user_name=self._current_user.username)
 
+        site_name = data.get('site')
+        if site_name:
+            # 单站点刷新为同步执行，接口返回时刷新已完成，直接返回本次刷新结果
+            result = SitesDataStatisticsCenter().refresh_site_data_now(specify_sites=site_name)
+            if not result:
+                return {"code": 1, "msg": "刷新失败，请查看日志"}
+
+            site_results = result.get("sites") or []
+            if not site_results:
+                return {"code": 1, "msg": result.get("msg") or "站点不存在或未启用站点统计"}
+
+            failed = [item for item in site_results if not item.get("success")]
+            if failed:
+                return {
+                    "code": 1,
+                    "msg": "；".join(f"【{item['site']}】刷新失败：{item.get('msg') or '解析失败'}"
+                                    for item in failed)
+                }
+
+            missing = [item for item in site_results if item.get("missing")]
+            if missing:
+                # 刷新成功但有字段未解析到，交给前端提示
+                return {
+                    "code": 0,
+                    "msg": "刷新完成，但" + "；".join(
+                        f"【{item['site']}】以下字段未解析到：{'、'.join(item['missing'])}"
+                        for item in missing),
+                    "missing": missing
+                }
+
+            return {"code": 0, "msg": "刷新完成", "result": site_results}
+
+        # 全部站点刷新耗时较长，仍走后台任务
+        CommandHandler().handle_message_job("/sta",
+                                            in_from=SearchType.WEB,
+                                            user_id=self._current_user.id,
+                                            user_name=self._current_user.username)
         return {"code": 0, "msg": "已提交"}
 
     def __get_default_rss_setting(self, data):
@@ -3934,41 +3880,6 @@ class WebAction:
         if default_rss_setting:
             return {"code": 0, "data": default_rss_setting}
         return {"code": 1}
-
-    def __install_plugin(self, data, reload=True):
-        """
-        安装插件
-        """
-        module_id = data.get("id")
-        if not module_id:
-            return {"code": -1, "msg": "参数错误"}
-        # 用户已安装插件列表
-        user_plugins = SystemConfig().get(SystemConfigKey.UserInstalledPlugins) or []
-        if module_id not in user_plugins:
-            user_plugins.append(module_id)
-        # 保存配置
-        SystemConfig().set(SystemConfigKey.UserInstalledPlugins, user_plugins)
-        # 重新加载插件
-        if reload:
-            PluginManager().init_config()
-        return {"code": 0, "msg": "插件安装成功"}
-
-    def __uninstall_plugin(self, data):
-        """
-        卸载插件
-        """
-        module_id = data.get("id")
-        if not module_id:
-            return {"code": -1, "msg": "参数错误"}
-        # 用户已安装插件列表
-        user_plugins = SystemConfig().get(SystemConfigKey.UserInstalledPlugins) or []
-        if module_id in user_plugins:
-            user_plugins.remove(module_id)
-        # 保存配置
-        SystemConfig().set(SystemConfigKey.UserInstalledPlugins, user_plugins)
-        # 重新加载插件
-        PluginManager().init_config()
-        return {"code": 0, "msg": "插件卸载功"}
 
     def __get_plugin_apps(self, data=None):
         """
@@ -3998,6 +3909,8 @@ class WebAction:
         if category_path:
             with open(category_path, "w", encoding="utf-8") as f:
                 f.write(text)
+            # 二级分类配置不经过 config.yaml，直接重新加载
+            Category().init_config()
         return {"code": 0, "msg": "保存成功"}
 
     def __get_category_config(self, data):
@@ -4023,22 +3936,67 @@ class WebAction:
         """
         return {"code": 0, "data": SystemUtils.get_all_processes()}
 
-    def __run_plugin_method(self, data):
-        """
-        运行插件方法
-        """
-        plugin_id = data.get("plugin_id")
-        method = data.get("method")
-        if not plugin_id or not method:
-            return {"code": 1, "msg": "参数错误"}
-        data.pop("plugin_id")
-        data.pop("method")
-        result = PluginManager().run_plugin_method(pid=plugin_id, method=method, **data)
-        return {"code": 0, "result": result}
-
     def __get_jobs(self):
         """
         获取所有已注册的定时任务
         """
         result = JobCenter().get_jobs()
         return {"code": 0, "result": result }
+
+    def __pt_depiler_version(self):
+        """
+        获取 PT Depiler 最新版本号（标签+提交号），供统计分享图水印展示
+        """
+        now = time.time()
+        cached = self._pt_depiler_version_cache
+        if now >= cached["expire"]:
+            cached["version"] = self.__fetch_pt_depiler_version()
+            cached["expire"] = now + self._PT_DEPILER_VERSION_TTL
+
+        if not cached["version"]:
+            return {"code": -1, "msg": "fail to fetch PT Depiler release version "}
+        return {"code": 0, "msg": "success", "data": {"version": cached["version"]}}
+
+    @staticmethod
+    def __fetch_pt_depiler_version():
+        """
+        获取版本号+提交号
+        """
+        proxies = Config().get_proxies()
+        api_headers = {"Accept": "application/vnd.github+json"}
+        tag = None
+        commit = None
+
+        # 优先 GitHub API：releases/latest 取标签，commits/{tag} 取提交号
+        res = RequestUtils(headers=api_headers, proxies=proxies).get_res(
+            "https://api.github.com/repos/pt-plugins/PT-depiler/releases/latest")
+        if res is not None and res.status_code == 200:
+            try:
+                tag = str(res.json().get("tag_name") or "").strip() or None
+            except Exception:
+                tag = None
+
+        if tag:
+            res = RequestUtils(headers=api_headers, proxies=proxies).get_res(
+                f"https://api.github.com/repos/pt-plugins/PT-depiler/commits/{tag}")
+            if res is not None and res.status_code == 200:
+                try:
+                    commit = str(res.json().get("sha") or "").strip() or None
+                except Exception:
+                    commit = None
+
+        # API 被限流时，从 releases/latest 跳转后的标签页解析标签与提交号
+        if not tag or not commit:
+            res = RequestUtils(proxies=proxies).get_res(
+                "https://github.com/pt-plugins/PT-depiler/releases/latest")
+            if res is not None and res.status_code == 200:
+                if not tag:
+                    matched = re.search(r"/releases/tag/([^/?#]+)", res.url)
+                    tag = matched.group(1) if matched else None
+                if tag and not commit:
+                    matched = re.search(r"/commit/([0-9a-f]{7,40})", res.text)
+                    commit = matched.group(1) if matched else None
+
+        if not tag:
+            return None
+        return f"{tag}+{commit[:7]}" if commit else tag

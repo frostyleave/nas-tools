@@ -1,7 +1,7 @@
 import base64
-import re
+import os
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta
+from datetime import timedelta
 from threading import Event
 from urllib.parse import urljoin
 
@@ -9,7 +9,12 @@ import requests
 from lxml import etree
 
 import log
-from app.helper import OcrHelper, SubmoduleHelper, ThreadHelper
+from app.helper import BrowserHelper, OcrHelper, SubmoduleHelper, ThreadHelper
+from app.helper.cloudflare_helper import (
+    TURNSTILE_SELECTOR,
+    under_turnstile,
+    wait_turnstile_token,
+)
 from app.helper.site_signin_helper import SiteSigninHelper, Verdict
 from app.models.model import UserSiteConf
 from app.modules.wallpaper import get_bing_wallpaper
@@ -17,7 +22,7 @@ from app.plugins import EventHandler
 from app.plugins.modules._base import _IPluginModule
 from app.sites.site_manager import SitesManager
 from app.sites.siteconf import SiteConf
-from app.utils import RequestUtils, SchedulerUtils, SiteUtils
+from app.utils import RequestUtils, SchedulerUtils, SiteUtils, TimeUtils
 from app.utils.types import EventType
 from config import Config
 
@@ -29,9 +34,7 @@ class SignInResults:
     """
     success_names: list[str] = field(default_factory=list)
     failed_info: list[str] = field(default_factory=list)  # 格式: '站点名:失败信息'
-    retry_names: list[str] = field(default_factory=list)
-    retry_ids: list[str] = field(default_factory=list)
-    
+
     # 跟踪所有最终签到成功的站点ID（包括本次成功和历史已成功）
     all_signed_site_ids: list[str] = field(default_factory=list)
 
@@ -49,22 +52,27 @@ class SignInResults:
             self.failed_info.append(f'❌{sign_msg}')
         else:
             self.failed_info.append(f'❌{site_name}签到失败: {sign_msg}')
-    
-    def add_retry(self, site_name: str, site_id: str):
-        """记录一个需要重试的签到"""
-        self.retry_names.append(site_name)
-        self.retry_ids.append(site_id)
-        
+
     def add_script_error(self, site_name: str):
         """记录一个签到脚本执行时的意外错误"""
         self.failed_info.append(f'🛑{site_name}:签到时发生脚本错误')
 
 
+
+# 签到成功
+_SIGN_REGEX = ['签到已得', '簽到已得', '今日签到排名', '今日簽到排名', '签到成功', '簽到成功',
+               '今天已签到', '今天已经签到', '今日已签到', '今日已经签到']
+_SUCCESS_REGEX = ['今日签到排名', '今日簽到排名', '本次签到获得 \\d+ 个魔力值', '本次簽到獲得 \\d+ 個魔力值','\\d+点魔力']
+
+# 签到表单
+_ATTENDANCE_FORM = 'form[action$="attendance.php"]'
+_BROWSER_TIMEOUT = 120
+
 class AutoSignIn(_IPluginModule):
     # 插件名称
     module_name = "站点自动签到"
     # 插件描述
-    module_desc = "站点自动签到保号，支持重试。"
+    module_desc = "站点自动签到保号。"
     # 插件图标
     module_icon = "signin.png"
     # 主题色
@@ -88,14 +96,12 @@ class AutoSignIn(_IPluginModule):
     # 设置开关
     _enabled = False
     # 任务执行间隔
-    _site_schema = []
     _cron = None
     """
     配置需要签到的站点id
     """
     _config_sites = None
     _queue_cnt = None
-    _retry_keyword = None
     _special_sites = None
     _onlyonce = False
     _notify = False
@@ -103,10 +109,6 @@ class AutoSignIn(_IPluginModule):
     
     # 退出事件
     _event = Event()
-
-    # 签到成功
-    _sign_regex = ['签到已得', '簽到已得', '今日签到排名', '今日簽到排名', '签到成功', '簽到成功', '今天已签到', '今天已经签到']
-    _success_regex = ['今日签到排名', '今日簽到排名', '本次签到获得 \\d+ 个魔力值', '本次簽到獲得 \\d+ 個魔力值','\\d+点魔力']
 
     @staticmethod
     def get_fields():
@@ -177,18 +179,6 @@ class AutoSignIn(_IPluginModule):
                                 }
                             ]
                         },
-                        {
-                            'title': '重试关键词',
-                            'required': "",
-                            'tooltip': '重新签到关键词，支持正则表达式；每天首次全签，后续如果设置了重试词则只签到命中重试词的站点，否则全签。',
-                            'type': 'text',
-                            'content': [
-                                {
-                                    'id': 'retry_keyword',
-                                    'placeholder': '失败|错误',
-                                }
-                            ]
-                        },
                     ]
                 ]
             },
@@ -210,7 +200,7 @@ class AutoSignIn(_IPluginModule):
             {
                 'type': 'details',
                 'summary': '特殊站点',
-                'tooltip': '选中的站点无论是否匹配重试关键词都会进行重签（如无需要可不设置）',
+                'tooltip': '选中的站点即使今日已签到也会重新签到（如无需要可不设置）',
                 'content': [
                     # 同一行
                     [
@@ -227,13 +217,13 @@ class AutoSignIn(_IPluginModule):
     def init_config(self, config=None):
         self.siteconf = SiteConf()
         self.sites = SitesManager()
+        self._site_schema = []
 
         # 读取配置
         if config:
             self._enabled = config.get("enabled")
             self._cron = config.get("cron")
-            self._retry_keyword = config.get("retry_keyword")
-            self._config_sites = config.get("sign_sites")
+            self._config_sites = config.get("sign_sites") or []
             self._special_sites = config.get("special_sites") or []
             self._notify = config.get("notify")
             self._queue_cnt = config.get("queue_cnt")
@@ -242,6 +232,8 @@ class AutoSignIn(_IPluginModule):
 
         # 停止现有任务
         self.stop_service()
+        # 重新开始，清除退出事件
+        self.reset_stop_event()
 
         # 启动服务
         if self._enabled or self._onlyonce:
@@ -252,7 +244,7 @@ class AutoSignIn(_IPluginModule):
 
             # 清理缓存即今日历史
             if self._clean:
-                self.delete_history(key=datetime.today().strftime('%Y-%m-%d'))
+                self.delete_history(key=TimeUtils.now_str('%Y-%m-%d'))
 
             # 运行一次
             if self._onlyonce:
@@ -266,7 +258,6 @@ class AutoSignIn(_IPluginModule):
                 self.update_config({
                     "enabled": self._enabled,
                     "cron": self._cron,
-                    "retry_keyword": self._retry_keyword,
                     "sign_sites": self._config_sites,
                     "special_sites": self._special_sites,
                     "notify": self._notify,
@@ -301,6 +292,8 @@ class AutoSignIn(_IPluginModule):
         自动签到
         """
         self.info("自动签到任务开始")
+        # 捕获本次运行的事件对象，插件重载后旧线程仍能被旧的置位事件终止
+        event = self._event
         try:
             # 1. 准备工作：获取日期并清理昨日历史
             today_str, yesterday_str = self._setup_dates()
@@ -321,13 +314,13 @@ class AutoSignIn(_IPluginModule):
             # 4. 执行签到：遍历并处理每个站点
             self.info("开始执行签到任务")
             # 传入已签到列表，以便追加本次成功的站点
-            results = self._batch_sign_in(site_list, already_signed_ids)
+            results = self._batch_sign_in(site_list, already_signed_ids, event)
             
             # 5. 将本次结果更新到历史记录
             self._save_sign_in_history(
                 today_str,
                 results.all_signed_site_ids,
-                results.retry_ids,
+                results.failed_info,
                 history_exists
             )
             
@@ -341,7 +334,7 @@ class AutoSignIn(_IPluginModule):
 
     def _setup_dates(self) -> tuple[str, str]:
         """获取今天和昨天的日期字符串"""
-        today_dt = datetime.today()
+        today_dt = TimeUtils.now()
         yesterday_dt = today_dt - timedelta(days=1)
         return today_dt.strftime('%Y-%m-%d'), yesterday_dt.strftime('%Y-%m-%d')
 
@@ -353,39 +346,39 @@ class AutoSignIn(_IPluginModule):
             (待签到站点ID列表, 已签到站点ID列表, 今日历史是否存在)
         """
         today_history = self.get_history(key=today_str)
-        
+        # 未配置站点时按全部站点签到
+        all_site_ids = [str(site.id) for site in self.sites.get_sites()]
+        config_sites = [str(site_id) for site_id in (self._config_sites or all_site_ids)]
+
         if not today_history:
             self.info(f"今日 {today_str} 未签到，开始签到已选站点")
-            wait_sign_sites = self._config_sites
+            wait_sign_sites = config_sites
             already_sign_sites = []
             history_exists = False
         else:
-            self.info(f"今日 {today_str} 已有签到记录，检查重试/未签站点")
-            # 使用 .get 增加代码健壮性，防止 'sign' 或 'retry' 键不存在
+            self.info(f"今日 {today_str} 已有签到记录，检查未签站点")
             already_sign_sites = today_history.get('sign', [])
-            wait_retry_sites = today_history.get('retry', [])
-            
-            # 使用集合(set)可以更高效、更清晰地处理列表逻辑
-            config_set = set(self._config_sites)
+
+            config_set = set(config_sites)
             already_set = set(already_sign_sites)
             special_set = set(self._special_sites)
-            retry_set = set(wait_retry_sites)
 
             # 未签站点 = 配置中 - 已签到
             no_sign_sites = config_set - already_set
-            
-            # 待签站点 = 重试 + 未签 + 特殊（集合会自动去重）
-            wait_sign_set = retry_set | no_sign_sites | special_set
+
+            # 待签站点 = 未签 + 特殊（集合会自动去重）
+            wait_sign_set = no_sign_sites | special_set
             wait_sign_sites = list(wait_sign_set)
-            
+
             if wait_sign_sites:
-                self.info("开始重签重试站点、特殊站点、未签站点")
-            
+                self.info("开始重签特殊站点、未签站点")
+
             history_exists = True
 
         return wait_sign_sites, already_sign_sites, history_exists
 
-    def _batch_sign_in(self, sites_to_sign_info: list[UserSiteConf], already_signed_sites: list[str]) -> SignInResults:
+    def _batch_sign_in(self, sites_to_sign_info: list[UserSiteConf], already_signed_sites: list[str],
+                       event: Event) -> SignInResults:
         """
         遍历站点执行签到，并收集结果
         """
@@ -393,6 +386,9 @@ class AutoSignIn(_IPluginModule):
         results = SignInResults(all_signed_site_ids=list(already_signed_sites))
 
         for site_info in sites_to_sign_info:
+            if event.is_set():
+                self.info("签到任务已停止")
+                break
             site_name = site_info.name
             site_id = str(site_info.id)
             
@@ -404,12 +400,6 @@ class AutoSignIn(_IPluginModule):
                     self.info(sign_msg)
                     continue
 
-                # 失败重试检查
-                if self._retry_keyword and re.search(self._retry_keyword, sign_msg):
-                    self.info(f"{sign_msg}, 命中重试关键词 {self._retry_keyword}")
-                    results.add_retry(site_name, site_id)
-                    continue
-                    
                 # 记录失败
                 results.add_fail(site_name, sign_msg)
                 self.warn(sign_msg)
@@ -421,17 +411,56 @@ class AutoSignIn(_IPluginModule):
         
         return results
 
-    def _save_sign_in_history(self, today_str: str, all_signed_ids: list[str], retry_ids: list[str], history_exists: bool):
+    def _save_sign_in_history(self, today_str: str, all_signed_ids: list[str],
+                              failed_info: list[str], history_exists: bool):
         """
         将签到结果存入历史。
         """
-        history = {"sign": all_signed_ids, "retry": retry_ids}
-        
+        history = {"sign": all_signed_ids, "fail": failed_info}
+
         if not history_exists:
             self.history(key=today_str, value=history)
         else:
             self.update_history(key=today_str, value=history)
         self.info(f"今日 {today_str} 签到历史已更新")
+
+    def format_history(self, key, value):
+        """
+        签到历史中的站点ID转换为站点名称，便于用户阅读
+        """
+        if isinstance(value, dict) and ("sign" in value or "fail" in value):
+            signed = value.get("sign") or []
+            failed = value.get("fail") or []
+            text = f"已签到 {len(signed)} 个站点"
+            if signed:
+                text += "：" + self.__history_site_names(signed)
+            if failed:
+                text += f"\n签到失败 {len(failed)} 个站点：\n" + self.__history_fail_lines(failed)
+            return text
+        return super().format_history(key, value)
+
+    def __history_fail_lines(self, failed_items):
+        """展示失败信息；兼容旧记录中只保存站点ID的情况"""
+        lines = []
+        for item in failed_items:
+            item_text = str(item)
+            if item_text.isdigit():
+                lines.append(self.__history_site_names([item_text]))
+            else:
+                lines.append(item_text)
+        return "\n".join(lines)
+
+    def __history_site_names(self, site_ids):
+        """把站点ID列表转换为站点名称列表，查询失败时回退为ID"""
+        try:
+            sites = getattr(self, "sites", None)
+            names = []
+            for site_id in site_ids:
+                site = sites.get_site(siteid=site_id) if sites else None
+                names.append(site.name if site else str(site_id))
+            return "、".join(names)
+        except Exception:
+            return "、".join(str(site_id) for site_id in site_ids)
 
     def _send_notification(self, today_str: str, results: SignInResults):
 
@@ -474,7 +503,7 @@ class AutoSignIn(_IPluginModule):
                 return site_module().signin(site_info) or (False, f"[{site_info.name}]签到函数未返回明确结果")
             except Exception as e:
                 log.exception(f"【自动签到】[{site_info.name}]签到失败: ")
-                return False, f"[{site_info.name}]签到失败：{str(e)}"
+                return False, f"[{site_info.name}]签到失败：{e!s}"
         else:
             return self.__base_sign_in(site_info)
 
@@ -507,21 +536,23 @@ class AutoSignIn(_IPluginModule):
 
             home_url = SiteUtils.get_base_url(site_url)
             checkin_url = site_url if "pttime" in home_url else urljoin(home_url, "attendance.php")
-            ua = site_info.ua
-
             self.info(f"[{site_name}]开始签到: {checkin_url}")
 
             # 代理
             proxies = Config().get_proxies() if site_info.proxy else None
 
             session = requests.Session()
-            request_handler = RequestUtils(session=session, cookies=site_cookie, ua=ua, proxies=proxies, referer=checkin_url)
+            request_handler = RequestUtils(session=session, cookies=site_cookie, ua=site_info.ua, proxies=proxies, referer=checkin_url)
 
             # 访问链接
             res = request_handler.get_res(url=checkin_url)
 
+            # Cloudflare 验证无法由普通请求完成，转浏览器仿真
+            if self.__need_browser(res):
+                return self.__browser_sign_in(site_info, checkin_url)
+
             # 本次签到成功, 或是重新请求签到页
-            sign_status = SiteSigninHelper.check_signin_result(res, self._sign_regex)
+            sign_status = SiteSigninHelper.check_signin_result(res, _SIGN_REGEX)
             if sign_status.verdict == Verdict.SUCCESS:
                 # self.info(f'[{site_name}]今日已签到')
                 return True, f'[{site_name}]今日已签到'
@@ -530,7 +561,7 @@ class AutoSignIn(_IPluginModule):
                 # self.warn(f'[{site_name}]签到失败: {sign_status.reason}')
                 return False, f'[{site_name}]签到失败: {sign_status.reason}'
 
-            if SiteSigninHelper.sign_in_result(res.text, self._success_regex):
+            if SiteSigninHelper.sign_in_result(res.text, _SUCCESS_REGEX):
                 return True, f'[{site_name}]签到成功'
 
             html_tree = etree.HTML(res.text)
@@ -582,7 +613,7 @@ class AutoSignIn(_IPluginModule):
                 if not sign_res or sign_res.status_code != 200:
                     return False, f'[FORM][{site_name}]签到失败: form提交失败'
 
-                if SiteSigninHelper.sign_in_result(sign_res.text, self._success_regex):
+                if SiteSigninHelper.sign_in_result(sign_res.text, _SUCCESS_REGEX):
                     return True, f'[FORM][{site_name}]签到成功'
 
                 self.warn(f'[FORM][{site_name}]签到失败，未知原因: {sign_res.text}')
@@ -593,12 +624,105 @@ class AutoSignIn(_IPluginModule):
             
         except Exception as e:
             log.exception(f"【自动签到】[{site_name}]签到出错: ")
-            return False, f"[{site_name}]签到出错: {str(e)}"
+            return False, f"[{site_name}]签到出错: {e!s}"
+
+    @staticmethod
+    def __need_browser(res):
+        """
+        页面是否需要浏览器仿真（Turnstile 组件或整页挑战）
+        """
+        if not res:
+            return False
+        return under_turnstile(getattr(res, "text", None))
+
+    @staticmethod
+    def __is_login_page(page):
+        """
+        当前页面是否为登录页
+        """
+        if "login.php" in (page.url or ""):
+            return True
+        return page.locator('form#login-form, form[action$="takelogin.php"]').count() > 0
+
+    def __browser_sign_in(self, site_info: UserSiteConf, checkin_url: str) -> tuple[bool, str]:
+        """
+        使用浏览器仿真完成 Cloudflare Turnstile 验证并提交签到
+        """
+        site_name = site_info.name
+
+        browser = BrowserHelper()
+        if not browser.available:
+            return False, f'[{site_name}]签到失败: 检测到 Cloudflare 安全验证, {browser.unavailable_reason}'
+
+        self.info(f'[{site_name}]检测到 Cloudflare 安全验证，使用浏览器仿真签到')
+        profile_dir = os.path.join(Config().get_temp_path(), "signin-profile", str(site_info.id))
+
+        def _flow(page):
+            resp = page.goto(checkin_url, wait_until="domcontentloaded",
+                             timeout=_BROWSER_TIMEOUT * 1000)
+            if self.__is_login_page(page):
+                return False, f'[{site_name}]签到失败: cookie失效'
+
+            html_text = page.content()
+            if SiteSigninHelper.sign_in_result(html_text, _SIGN_REGEX):
+                return True, f'[{site_name}]今日已签到'
+
+            # 整页挑战或页面跳转中，等待签到表单出现
+            if page.locator(_ATTENDANCE_FORM).count() == 0:
+                try:
+                    page.wait_for_selector(_ATTENDANCE_FORM,
+                                           timeout=_BROWSER_TIMEOUT * 1000)
+                except Exception:
+                    status = resp.status if resp else "未知"
+                    return False, f'[{site_name}]签到失败: 未能通过 Cloudflare 验证(HTTP {status})'
+                if self.__is_login_page(page):
+                    return False, f'[{site_name}]签到失败: cookie失效'
+                html_text = page.content()
+                if SiteSigninHelper.sign_in_result(html_text, _SIGN_REGEX):
+                    return True, f'[{site_name}]今日已签到'
+
+            # 等待 Turnstile 生成 token
+            if page.locator(TURNSTILE_SELECTOR).count() > 0:
+                self.info(f'[{site_name}]等待 Cloudflare Turnstile 验证通过')
+                if not wait_turnstile_token(page, _BROWSER_TIMEOUT):
+                    return False, f'[{site_name}]签到失败: Cloudflare Turnstile 验证超时'
+
+            submit = page.locator(f'{_ATTENDANCE_FORM} input[type="submit"]')
+            if submit.count() == 0:
+                return False, f'[{site_name}]签到失败: 未找到签到按钮'
+            submit.first.click()
+            page.wait_for_load_state("domcontentloaded",
+                                     timeout=_BROWSER_TIMEOUT * 1000)
+
+            # 表单提交后页面可能延迟刷新，轮询几次结果
+            for _ in range(5):
+                result_html = page.content()
+                if "Captcha verification token is missing" in result_html:
+                    return False, f'[{site_name}]签到失败: Cloudflare 验证未通过'
+                if (SiteSigninHelper.sign_in_result(result_html, _SIGN_REGEX)
+                        or SiteSigninHelper.sign_in_result(result_html, _SUCCESS_REGEX)):
+                    return True, f'[{site_name}]签到成功'
+                if page.locator(_ATTENDANCE_FORM).count() == 0:
+                    break
+                page.wait_for_timeout(1000)
+            return False, f'[{site_name}]签到失败: 签到后页面未返回成功信息'
+
+        return browser.run(
+            url=checkin_url,
+            callback=_flow,
+            cookie=site_info.cookie,
+            ua=site_info.ua,
+            proxy=site_info.proxy,
+            profile_dir=profile_dir,
+            timeout=_BROWSER_TIMEOUT,
+        )
 
     def stop_service(self):
         """
         退出插件
         """
+        # 通知签到线程退出，避免重载后旧线程继续签到
+        self.set_stop_event()
         try:
             self.remove_job(self._cron_job)
         except Exception as e:

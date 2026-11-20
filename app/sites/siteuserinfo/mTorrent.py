@@ -1,43 +1,41 @@
 # author: https://github.com/jxxghp/MoviePilot/blob/v2/app/modules/indexer/parser/mtorrent.py
-import json
-
-from typing import Optional, Tuple
 from urllib.parse import urljoin
 
 import log as logger
-
 from app.sites.siteuserinfo._base import _ISiteUserInfo
+from app.utils import JsonUtils, StringUtils
 from app.utils.site_utils import SiteUtils
+from config import Config
+
+# 用户级别字典
+_USER_LEVEL_DICT = {
+    "1": "User",
+    "2": "Power User",
+    "3": "Elite User",
+    "4": "Crazy User",
+    "5": "Insane User",
+    "6": "Veteran User",
+    "7": "Extreme User",
+    "8": "Ultimate User",
+    "9": "Nexus Master",
+    "10": "VIP",
+    "11": "Retiree",
+    "12": "Uploader",
+    "13": "Moderator",
+    "14": "Administrator",
+    "15": "Sysop",
+    "16": "Staff",
+    "17": "Offer memberStaff",
+    "18": "Bet memberStaff",
+}
 
 class MTorrentUserInfo(_ISiteUserInfo):
 
     request_mode = "apikey"
 
-    # 用户级别字典
-    _user_level_dict = {
-        "1": "User",
-        "2": "Power User",
-        "3": "Elite User",
-        "4": "Crazy User",
-        "5": "Insane User",
-        "6": "Veteran User",
-        "7": "Extreme User",
-        "8": "Ultimate User",
-        "9": "Nexus Master",
-        "10": "VIP",
-        "11": "Retiree",
-        "12": "Uploader",
-        "13": "Moderator",
-        "14": "Administrator",
-        "15": "Sysop",
-        "16": "Staff",
-        "17": "Offer memberStaff",
-        "18": "Bet memberStaff",
-    }
-
-    def __init__(self, site_name, url, site_cookie, index_html, apikey=None, session=None, ua=None, emulate=False, proxy=None):
+    def __init__(self, site_name, url, site_cookie, index_html, apikey=None, session=None, ua=None, proxy=None):
         # 基类初始化
-        super().__init__(site_name, url, site_cookie, index_html, apikey, session, ua, emulate, proxy)
+        super().__init__(site_name, url, site_cookie, index_html, apikey, session, ua, proxy)
         # api地址
         self._base_url = f"https://api.{SiteUtils.get_url_domain(self.site_url)}"
         self._user_basic_page = "api/member/profile"
@@ -69,7 +67,24 @@ class MTorrentUserInfo(_ISiteUserInfo):
             logger.warn(f"{self.site_name} 未设置apikey，跳过后续操作")
             return False
         return True
-    
+
+    async def _parse_favicon(self, _html_text):
+        """
+        接口解析器没有站点首页内容，先请求站点首页，再交给基类解析图标
+        """
+        page_content = ""
+        try:
+            page_content, _ = await self._get_page_content(
+                url=self.site_url,
+                headers={"User-Agent": self._ua or Config().get_ua()},
+                with_api_headers=False
+            )
+        except Exception as e:
+            logger.warn(f"【Sites】{self.site_name} 获取站点首页失败: {e!s}")
+        # 首页不可用（如 Cloudflare 521/522）时仍会回退到 /favicon.ico 抓取图标
+        await super()._parse_favicon(page_content)
+
+
     def _parse_site_page(self, html_text):
         """
         获取站点页面地址
@@ -79,13 +94,13 @@ class MTorrentUserInfo(_ISiteUserInfo):
         self._sys_mail_unread_page = None
 
 
-    def _parse_user_base_info(self, response_text: str):
+    async def _parse_user_base_info(self, response_text: str):
         """
         解析用户基本信息
         """
-        response_text, _ = self.visit_base_info()
-        
-        detail = json.loads(response_text)
+        response_text, _ = await self.visit_base_info()
+
+        detail = JsonUtils.loads(response_text)
         if not detail or detail.get("code") != "0":
             return
         
@@ -94,11 +109,12 @@ class MTorrentUserInfo(_ISiteUserInfo):
         self.userid = user_info.get("id")
         self.username = user_info.get("username")
         self.join_at = user_info.get("memberStatus", {}).get("createdDate")
-        self.user_level = self._user_level_dict.get(user_info.get("role") or "1")
+        self.user_level = _USER_LEVEL_DICT.get(user_info.get("role") or "1")
 
         self.upload = int(user_info.get("memberCount", {}).get("uploaded") or '0')
         self.download = int(user_info.get("memberCount", {}).get("downloaded") or '0')
-        self.ratio = user_info.get("memberCount", {}).get("shareRate") or 0
+        # 接口返回的 shareRate 可能是字符串（如 "1.234"），统一转成数值
+        self.ratio = StringUtils.str_float(user_info.get("memberCount", {}).get("shareRate"))
         self.bonus = user_info.get("memberCount", {}).get("bonus") or 0
         self.message_read_force = True
         self._torrent_seeding_params = {
@@ -108,12 +124,13 @@ class MTorrentUserInfo(_ISiteUserInfo):
             "userid": self.userid
         }
 
-    def visit_base_info(self):
+
+    async def visit_base_info(self):
         """
         访问基础信息页
         """
         url = urljoin(self._base_url, self._user_basic_page)
-        return self._get_page_content(
+        return await self._get_page_content(
                         url=url,
                         params=self._user_basic_params,
                         headers=self._user_basic_headers
@@ -132,13 +149,13 @@ class MTorrentUserInfo(_ISiteUserInfo):
         """
         pass
 
-    def _parse_user_torrent_seeding_info(self, html_text: str, multi_page: Optional[bool] = False) -> Optional[str]:
+    async def _parse_user_torrent_seeding_info(self, html_text: str, multi_page: bool | None = False) -> str | None:
         """
         解析用户做种信息
         """
         if not html_text:
             return None
-        seeding_info = json.loads(html_text)
+        seeding_info = JsonUtils.loads(html_text)
         if not seeding_info or seeding_info.get("code") != "0":
             return None
         torrents = seeding_info.get("data", {}).get("data", [])
@@ -158,15 +175,15 @@ class MTorrentUserInfo(_ISiteUserInfo):
         # 查询总做种数
         seeder_count = 0
         try:
-            result, _ = self._get_page_content(
+            result, _ = await self._get_page_content(
                 url=urljoin(self._base_url, "api/tracker/myPeerStatus"),
                 params={"uid": self.userid},
             )
             if result:
-                seeder_info = json.loads(result)
+                seeder_info = JsonUtils.loads(result) or {}
                 seeder_count = int(seeder_info.get("data", {}).get("seeder") or 0)
         except Exception as e:
-            logger.error(f"获取做种数失败: {str(e)}")
+            logger.error(f"获取做种数失败: {e!s}")
         if not seeder_count:
             return None
         if self.seeding >= seeder_count:
@@ -175,13 +192,13 @@ class MTorrentUserInfo(_ISiteUserInfo):
         self._torrent_seeding_params["pageNumber"] += 1
         return ""
 
-    def _parse_message_unread_links(self, html_text: str, msg_links: list) -> Optional[str]:
+    async def _parse_message_unread_links(self, html_text: str, msg_links: list) -> str | None:
         """
         解析未读消息链接，这里直接读出详情
         """
         if not html_text:
             return None
-        messages_info = json.loads(html_text)
+        messages_info = JsonUtils.loads(html_text)
         if not messages_info or messages_info.get("code") != "0":
             return None
         messages = messages_info.get("data", {}).get("data", [])
@@ -194,14 +211,14 @@ class MTorrentUserInfo(_ISiteUserInfo):
             if head and date and content:
                 self.message_unread_contents.append((head, date, content))
                 # 设置已读
-                self._get_page_content(
-                    url=urljoin(self._base_url, f"api/msg/markRead"),
+                await self._get_page_content(
+                    url=urljoin(self._base_url, "api/msg/markRead"),
                     params={"msgId": message.get("id")}
                 )
         # 是否存在下页数据
         return None
 
-    def _parse_message_content(self, html_text) -> Tuple[Optional[str], Optional[str], Optional[str]]:
+    def _parse_message_content(self, html_text) -> tuple[str | None, str | None, str | None]:
         """
         解析消息内容
         """

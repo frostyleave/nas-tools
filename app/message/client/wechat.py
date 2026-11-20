@@ -1,10 +1,9 @@
 import json
 from datetime import datetime
 
+import log
 from app.message.client._base import _IMessageClient
 from app.utils import RequestUtils
-
-import log
 
 
 class WeChat(_IMessageClient):
@@ -16,7 +15,7 @@ class WeChat(_IMessageClient):
     _access_token_time = None
     _default_proxy = False
     _default_proxy_url = 'https://wechat.nastool.org'
-    _client_config = {}
+    _client_config: dict
     _corpid = None
     _corpsecret = None
     _agent_id = None
@@ -48,7 +47,7 @@ class WeChat(_IMessageClient):
 
     @classmethod
     def match(cls, ctype):
-        return True if ctype == cls.schema else False
+        return ctype == cls.schema
 
     def __get_access_token(self, force=False):
         """
@@ -74,7 +73,9 @@ class WeChat(_IMessageClient):
                 res = RequestUtils().get_res(token_url)
                 if res:
                     ret_json = res.json()
-                    log.info("[微信]获取微信Token: " + json.dumps(ret_json))
+                    # 响应中包含 access_token，不能整体打印
+                    log.info("[微信]获取微信Token: errcode=%s, errmsg=%s",
+                             ret_json.get('errcode'), ret_json.get('errmsg'))
                     if ret_json.get('errcode') == 0:
                         self._access_token = ret_json.get('access_token')
                         self._expires_in = ret_json.get('expires_in')
@@ -99,7 +100,7 @@ class WeChat(_IMessageClient):
         
         message_url = self._send_msg_url % access_token
         if text:
-            conent = "%s\n%s" % (title, text.replace("\n\n", "\n"))
+            conent = "{}\n{}".format(title, text.replace("\n\n", "\n"))
         else:
             conent = title
         if url:

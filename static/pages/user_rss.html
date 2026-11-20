@@ -690,7 +690,7 @@
   }
 
   // 设置自定义订阅
-  function set_userrss_setting(detail) {
+  function set_userrss_setting(detail, sites_ready) {
     if (detail.uses === "D") {
       $("#userrss_download_rule").val(detail.filter);
       $("#userrss_download_download_setting").val(detail.download_setting);
@@ -706,16 +706,11 @@
       refresh_savepath_select('userrss_rss_save_path', false, detail.download_setting)
       check_manual_input_path("userrss_rss_save_path", "userrss_rss_save_path_manual", detail.save_path)
       $("#userrss_rss_over_edition").val(detail.over_edition);
-      if (detail.sites.rss_sites.length === 0) {
-        select_SelectALL(true, 'userrss_rss_rss_sites')
-      } else {
-        select_SelectPart(detail.sites.rss_sites, 'userrss_rss_rss_sites');
-      }
-      if (detail.sites.search_sites.length === 0) {
-        select_SelectALL(true, 'userrss_rss_search_sites')
-      } else {
-        select_SelectPart(detail.sites.search_sites, 'userrss_rss_search_sites');
-      }
+      // 空列表表示不启用该渠道，站点列表渲染完成后再回显
+      (sites_ready || Promise.resolve()).then(function () {
+        select_SelectPart(detail.sites.rss_sites || [], 'userrss_rss_rss_sites');
+        select_SelectPart(detail.sites.search_sites || [], 'userrss_rss_search_sites');
+      });
     }
   }
   // 显示新增任务
@@ -762,8 +757,8 @@
       $("#userrss_proxy").prop("checked", detail.proxy);
       $("#userrss_include").val(detail.include);
       $("#userrss_exclude").val(detail.exclude);
-      show_userrss_uses(detail.uses);
-      set_userrss_setting(detail)
+      const sites_ready = show_userrss_uses(detail.uses);
+      set_userrss_setting(detail, sites_ready)
       $("#modal-userrss").modal('show');
       }
     });
@@ -825,11 +820,16 @@
     } else if (uses === "R") {
       userrss_detail = input_select_GetVal('userrss_rss_div', 'userrss_rss_');
       userrss_detail.save_path = get_savepath('userrss_rss_save_path', 'userrss_rss_save_path_manual');
-      let rss_sites = select_GetSelectedVAL('userrss_rss_rss_sites');
-      let search_sites = select_GetSelectedVAL('userrss_rss_search_sites');
+      const rss_sites = select_GetSelectedVAL('userrss_rss_rss_sites');
+      const search_sites = select_GetSelectedVAL('userrss_rss_search_sites');
+      // 订阅站点、搜索站点：允许任意一个为空，但不能同时为空
+      if (rss_sites.length === 0 && search_sites.length === 0) {
+        show_fail_modal("订阅站点和搜索站点不能同时为空，请至少选择一项！");
+        return;
+      }
       userrss_detail.sites = {
-        rss_sites: (rss_sites.length === RssSitesLength) ? [] : rss_sites,
-        search_sites: (search_sites.length === SearchSitesLength) ? [] : search_sites
+        rss_sites: rss_sites,
+        search_sites: search_sites
       }
     } else {
       return;
@@ -843,9 +843,13 @@
     };
     $("#add_or_edit_userrss_btn").text("保存中").attr("disabled", true);
     axios_post_do("update_userrss_task", params, function (ret) {
-      $("#modal-userrss").modal('hide');
-      $("#add_or_edit_userrss_btn").attr("disabled", false);
-      window_history_refresh();
+      if (ret.code === 0) {
+        $("#modal-userrss").modal('hide');
+        window_history_refresh();
+      } else {
+        show_fail_modal(ret.msg || "保存自定义订阅失败");
+      }
+      $("#add_or_edit_userrss_btn").text("保存").attr("disabled", false);
     });
   }
 
@@ -1071,8 +1075,8 @@
         for (let i=0; i<address_parser; i++) {
           add_address_parser(detail.address[i], detail.parser[i]);
         }
-        show_userrss_uses(detail.uses);
-        set_userrss_setting(detail);
+        const sites_ready = show_userrss_uses(detail.uses);
+        set_userrss_setting(detail, sites_ready);
       }
     });
   }
@@ -1088,13 +1092,20 @@
       $("#userrss_download_div").show();
       $("#userrss_rss_div").hide();
       $("#use_D").prop("checked", true);
+      return Promise.resolve();
     }
     else if (use === 'R') {
-      refresh_rsssites_select("userrss_rss_rss_sites_group", "userrss_rss_rss_sites", false);
-      refresh_searchsites_select("userrss_rss_search_sites_group", "userrss_rss_search_sites", false);
+      // 返回站点列表渲染完成的 Promise，供回显已选站点
+      const sites_ready = Promise.all([
+        refresh_rsssites_select("userrss_rss_rss_sites_group", "userrss_rss_rss_sites", false),
+        refresh_searchsites_select("userrss_rss_search_sites_group", "userrss_rss_search_sites", false)
+      ]).catch(function () {
+        // 站点列表加载失败时不影响弹窗使用
+      });
       $("#userrss_download_div").hide();
       $("#userrss_rss_div").show();
       $("#use_R").prop("checked", true);
+      return sites_ready;
     }
   }
 

@@ -52,22 +52,16 @@
   {
     "name": "订阅",
     "level": 1,
-    "page": "tv_rss",
+    "page": "rss",
     "group": "任务",
     "icon": "<i class=\"ti ti-rss fs-2 \"></i>",
     "html": "/static/pages/rss.html?t=TV",
     "nav": [
       {
-        "name": "剧集订阅",
-        "page": "tv_rss",
-        "icon": "<i class=\"ti ti-device-tv fs-2 \"></i>",
-        "html": "/static/pages/rss.html?t=TV"
-      },
-      {
-        "name": "电影订阅",
-        "page": "movie_rss",
-        "icon": "<i class=\"ti ti-movie fs-2 \"></i>",
-        "html": "/static/pages/rss.html?t=MOV"
+        "name": "订阅任务",
+        "page": "rss",
+        "icon": "<i class=\"ti ti-rss fs-2 \"></i>",
+        "html": "/static/pages/rss.html"
       },
       {
         "name": "自定义订阅",
@@ -85,19 +79,11 @@
   },
   {
     "name": "下载",
-    "level": 1,
+    "level": 9,
     "page": "downloading",
     "group": "任务",
     "icon": "<i class=\"ti ti-download fs-2 \"></i>",
     "html": "/static/pages/downloading.html"
-  },  
-  {
-    "name": "服务",
-    "level": 9,
-    "page": "service",
-    "group": "任务",
-    "icon": "<i class=\"ti ti-stack-2 fs-2 \"></i>",
-    "html": "/static/pages/service.html"
   },
   {
     "name": "文件",
@@ -120,19 +106,13 @@
         "html": "/static/pages/unidentification.html"
       },
       {
-        "name": "自动删种",
-        "page": "torrent_remove",
-        "icon": "<i class=\"ti ti-http-delete fs-2 \"></i>",
-        "html": "/static/pages/torrent_remove.html"
-      },
-      {
         "name": "转移记录",
         "page": "history",
         "icon": "<i class=\"ti ti-history fs-2 \"></i>",
         "html": "/static/pages/history.html"
       },
       {
-        "name": "缓存",
+        "name": "TMDB缓存",
         "page": "tmdbcache",
         "icon": "<i class=\"ti ti-keyframes fs-2 \"></i>",
         "html": "/static/pages/tmdbcache.html"
@@ -154,9 +134,10 @@
     "html": "/static/pages/site.html",
     "nav": [
       {
-        "name": "站点维护",
+        "name": "站点管理",
         "page": "site",
-        "icon": "<i class=\"ti ti-settings-search fs-2 \"></i>",
+        "level": 99,
+        "icon": "<i class=\"ti ti-sitemap fs-2 \"></i>",
         "html": "/static/pages/site.html"
       },
       {
@@ -166,10 +147,16 @@
         "html": "/static/pages/statistics.html"
       },
       {
-        "name": "PT刷流",
+        "name": "站点刷流",
         "page": "brushtask",
         "icon": "<i class=\"ti ti-list-check fs-2 \"></i>",
         "html": "/static/pages/brushtask.html"
+      },
+      {
+        "name": "自动删种",
+        "page": "torrent_remove",
+        "icon": "<i class=\"ti ti-stack-x fs-2 \"></i>",
+        "html": "/static/pages/torrent_remove.html"
       }
     ]
   },
@@ -183,7 +170,7 @@
   },
   {
     "name": "设置",
-    "level": 9,
+    "level": 99,
     "page": "basic",
     "group": "管理",
     "icon": "<i class=\"ti ti-settings fs-2 \"></i>",
@@ -221,11 +208,18 @@
       },
       {
         "name": "用户管理",
-        "level": 99,
         "page": "users",
         "icon": "<i class=\"ti ti-users fs-2 \"></i>",
         "html": "/static/pages/users.html"
       }
     ]
+  },
+  {
+    "name": "系统",
+    "level": 99,
+    "page": "service",
+    "group": "管理",
+    "icon": "<i class=\"ti ti-stack-2 fs-2 \"></i>",
+    "html": "/static/pages/service.html"
   }
 ]
