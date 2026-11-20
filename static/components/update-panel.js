@@ -104,6 +104,7 @@
       this._hasUpdate = false;
       this._isDocker = false;
       this._needsRestart = false;
+      this._needsReload = false;
       this._dirty = false;
       this._ahead = 0;
       this._behind = 0;
@@ -185,6 +186,10 @@
         btn.text("立即重启生效");
         return;
       }
+      if (this._needsReload) {
+        btn.text("刷新页面");
+        return;
+      }
       if (this._hasUpdate) {
         btn.text("开始更新");
         if (!this._isDocker) {
@@ -201,6 +206,10 @@
       }
       if (this._needsRestart) {
         this._restart();
+        return;
+      }
+      if (this._needsReload) {
+        window.location.reload(true);
         return;
       }
       if (this._hasUpdate) {
@@ -524,6 +533,7 @@
       }
       this._running = true;
       this._needsRestart = false;
+      this._needsReload = false;
       this._setState("updating");
       this._syncButtons();
       this._abortStream();
@@ -701,8 +711,9 @@
         this._hasUpdate = false;
       }
       this._abort = null;
-      // 更新成功且有实际变更时，切换为“立即重启生效”
-      this._needsRestart = ok && updated;
+      // 只有前端文件变化时刷新页面即可，其余改动需要重启进程
+      this._needsRestart = ok && updated && !ret.frontend_only;
+      this._needsReload = ok && updated && !!ret.frontend_only;
       this._syncButtons();
 
       // 先把还在缓冲的日志写完，再展示结果
@@ -725,7 +736,13 @@
 
       this._setProgress(100, true);
       this._setState(updated ? "done" : "latest");
-      this._setStatus(updated ? "更新完成，重启后生效" : "当前已是最新版本", "success");
+      if (!updated) {
+        this._setStatus("当前已是最新版本", "success");
+      } else if (this._needsReload) {
+        this._setStatus("前端文件已更新，刷新页面生效", "success");
+      } else {
+        this._setStatus("更新完成，重启后生效", "success");
+      }
       this._refreshInfo((info) => {
         if (updated) {
           this._renderApplied(info);
