@@ -25,7 +25,13 @@
 <script type="text/javascript">
 
   // 计算各分组的种子数量
+  // 季集标识用于元素 id 时把空格换成 '-'，HTML id 不能含空白，选择器也才能命中
+  function season_id(label) {
+    return String(label || "").replace(/\s+/g, "-");
+  }
+
   function sub_group_total(group, key, se) {
+    se = season_id(se);
     let total_obj = $(`#search_results_group_total_${group}_${key}_${se}`)
     let current_num = parseInt(total_obj.text());
     if (current_num < 1) {
@@ -142,9 +148,11 @@
     }
     if (filter_season) {
       $(season_obj).each(function () {
-        let season = $(this).attr("data-season").split(" ")[0];
-        let se_key = $(this).attr("data-season").replace(" ", "");
-        if ( season !== filter_season) {
+        let se_attr = $(this).attr("data-season") || "";
+        // data-season 保留后端原始值（如 S04 E01），取空格前的季标识参与比较
+        let season = se_attr.split(" ")[0];
+        let se_key = season_id(se_attr);
+        if (season !== filter_season) {
           $(this).hide();
           $(`#search_se_accordion_${se_key}_${key}`).hide();
         }else{
@@ -450,13 +458,13 @@
     var html = '';
     $.each(item.torrent_dict, function (i, pair) {
 
-      var seKey = pair[0].replace(' ', '');   // 真实 key，比如 "S01"、"MOV"
+      var seKey = pair[0];          // 展示和 data-season 保持后端原始值，比如 "S04 E01"
+      var seId = season_id(seKey);  // 元素 id 用，比如 "S04-E01"
       var seDict = pair[1];  // 真实 value，对应的 dict
-      var seId = seKey.replace(/\s+/g, "");
 
       if (seKey != 'MOV') {
         html += `
-          <a href="javascript:$('#search_se_accordion_${seKey}_${item.key}').slideToggle()"
+          <a href="javascript:$('#search_se_accordion_${seId}_${item.key}').slideToggle()"
             class="search_results_season_${item.key}" data-season="${seKey}">
             <div class="row mt-2">
               <h3 class="mb-0">
@@ -468,31 +476,31 @@
       }
 
       html += `
-        <div id="search_se_accordion_${seKey}_${item.key}">
+        <div id="search_se_accordion_${seId}_${item.key}">
           <div class="accordion mt-2" id="search_results_accordion_${item.key}">`;
 
       var loopIndex = 0;
       $.each(seDict, function (group_key, group) {
         html += `
-          <div class="accordion-item" id="search_results_accordion_item_${group_key}_${item.key}_${seKey}">
+          <div class="accordion-item" id="search_results_accordion_item_${group_key}_${item.key}_${seId}">
             <h2 class="accordion-header">
               <button
                               class="accordion-button p-2 pb-1 ${loopIndex != 0 ? 'collapsed' : ''}"
                               type="button"
                               data-bs-toggle="collapse"
-                              data-bs-target="#search_results_group_${group_key}_${item.key}_${seKey}"
+                              data-bs-target="#search_results_group_${group_key}_${item.key}_${seId}"
                               aria-expanded="true">
                               <span class="text-red">${group.group_info.restype || '其他'}</span>
                                 &nbsp;/&nbsp;
                               <span class="text-orange">${group.group_info.respix || "未知分辨率"}</span>
                                 ${group.group_info.resource_frame ? `&nbsp;/&nbsp;<span class="text-green">${group.group_info.resource_frame}</span>` : ''}
                                 &nbsp;/&nbsp;
-                              <span class="text">共 <span id="search_results_group_total_${group_key}_${item.key}_${seKey}"
+                              <span class="text">共 <span id="search_results_group_total_${group_key}_${item.key}_${seId}"
                                                        class="search_results_group_total"
                                                        data-total="${group.group_total}">${group.group_total}</span> 个种子 </span>
                           </button>
             </h2>
-            <div id="search_results_group_${group_key}_${item.key}_${seKey}"
+            <div id="search_results_group_${group_key}_${item.key}_${seId}"
                  class="accordion-collapse collapse ${loopIndex == 0 ? 'show' : ''}"
                  data-bs-parent="#search_results_accordion_${item.key}">
               <div class="accordion-body p-1">
