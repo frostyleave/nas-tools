@@ -9,11 +9,8 @@
       aria-labelledby="modal-git-update-title" data-bs-backdrop="static" data-bs-keyboard="false">
       <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable" role="document">
         <div class="modal-content">
-          <div class="modal-header align-items-start">
-            <div class="update-header-main">
-              <h5 class="modal-title" id="modal-git-update-title">系统更新</h5>
-              <div class="update-subtitle">更新完成后需重启生效</div>
-            </div>
+          <div class="modal-header">
+            <h5 class="modal-title" id="modal-git-update-title">系统更新</h5>
             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="关闭"></button>
           </div>
           <div class="modal-body">
@@ -31,7 +28,8 @@
               <div class="update-arrow" aria-hidden="true">
                 <i class="ti ti-chevrons-right update-arrow-next"></i>
                 <i class="ti ti-circle-check update-arrow-done"></i>
-                <span class="update-delta" id="git_panel_delta">待检测</span>
+                <i class="ti ti-reload update-arrow-spin"></i>
+                <span class="update-delta" id="git_panel_delta">—</span>
               </div>
               <section class="update-version">
                 <div class="update-version-label">
@@ -39,26 +37,15 @@
                   <span class="update-ref" id="git_panel_remote_ref"></span>
                 </div>
                 <div class="update-version-hash" id="git_panel_remote_hash">—</div>
-                <div class="update-version-meta" id="git_panel_remote_meta">尚未检测</div>
-                <div class="update-version-msg" id="git_panel_remote_msg">点击「检测更新」获取远程分支的最新提交</div>
+                <div class="update-version-meta" id="git_panel_remote_meta"></div>
+                <div class="update-version-msg" id="git_panel_remote_msg">—</div>
               </section>
             </div>
             <div class="update-notice" id="git_panel_notice" hidden>
               <i class="ti ti-alert-triangle"></i>
               <span id="git_panel_notice_text"></span>
             </div>
-            <section class="update-section">
-              <div class="update-section-head">
-                <h6 class="update-section-title">更新内容</h6>
-                <span class="update-count" id="git_panel_commit_count">尚未检测</span>
-              </div>
-              <ul class="update-commit-list" id="git_panel_commit_list">
-                <li class="update-commit-empty">
-                  <i class="ti ti-list-check"></i>
-                  <span>检测后可查看远程新增的提交</span>
-                </li>
-              </ul>
-            </section>
+            <ul class="update-commit-list" id="git_panel_commit_list" aria-label="远程新增提交" hidden></ul>
             <section class="update-log">
               <button type="button" class="update-log-toggle" id="git_panel_log_toggle" aria-expanded="false"
                 aria-controls="git_panel_log_body">
@@ -83,8 +70,7 @@
             </section>
           </div>
           <div class="modal-footer update-footer">
-            <span class="update-status text-muted" id="git_panel_status" role="status"
-              aria-live="polite">尚未检测远程更新</span>
+            <span class="update-status" id="git_panel_status" role="status" aria-live="polite" hidden></span>
             <button type="button" class="btn btn-ghost-secondary" data-bs-dismiss="modal">关闭</button>
             <button type="button" class="btn btn-primary" id="git_panel_action_btn">检测更新</button>
           </div>
@@ -138,6 +124,17 @@
       $(this).on("click", "#git_panel_log_toggle", () => {
         this._expandLog($("#git_panel_log_toggle").attr("aria-expanded") !== "true");
       });
+      // 提交说明过长时被截断，点击整行展开查看完整内容
+      $(this).on("click", "#git_panel_commit_list .update-commit-item", function () {
+        const expanded = this.classList.toggle("is-expanded");
+        this.setAttribute("aria-expanded", expanded ? "true" : "false");
+      });
+      $(this).on("keydown", "#git_panel_commit_list .update-commit-item", function (event) {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          this.click();
+        }
+      });
     }
 
     // 面板状态统一挂在弹窗根节点，样式据此切换版本对比与箭头
@@ -151,13 +148,13 @@
     _renderNotice() {
       const parts = [];
       if (!this._isDocker) {
-        parts.push("当前为本地运行环境，仅 Docker 容器内支持在线更新");
+        parts.push("本地环境不支持在线更新，仅 Docker 容器可用");
       }
       if (this._dirty) {
-        parts.push("检测到未提交的本地修改，更新时可能被强制覆盖");
+        parts.push("本地有未提交修改，更新可能强制覆盖");
       }
       if (this._ahead > 0) {
-        parts.push(`本地有 ${this._ahead} 个提交领先远程分支`);
+        parts.push(`本地领先远程 ${this._ahead} 个提交`);
       }
       const notice = $("#git_panel_notice");
       if (!parts.length) {
@@ -175,11 +172,11 @@
       }
       btn.prop("disabled", false).removeAttr("title");
       if (this._running) {
-        btn.prop("disabled", true).text("更新中…");
+        btn.prop("disabled", true).html('<span class="spinner-border"></span>更新中');
         return;
       }
       if (this._checking) {
-        btn.prop("disabled", true).text("检测中…");
+        btn.prop("disabled", true).html('<span class="spinner-border"></span>检测中');
         return;
       }
       if (this._needsRestart) {
@@ -219,7 +216,7 @@
       this._checkUpdate();
     }
 
-    // 状态栏统一入口：状态与结果共用一处，通过文字颜色区分
+    // 状态栏只承载操作过程与异常；版本差异由对比区自身表达
     _setStatus(text, type) {
       const el = $("#git_panel_status");
       if (!el.length) {
@@ -231,10 +228,12 @@
         warning: "text-warning",
         danger: "text-danger"
       };
+      const message = text || "";
       el.removeClass("text-muted text-info text-success text-warning text-danger")
         .addClass(colors[type] || "text-muted")
-        .text(text || "")
-        .attr("title", text || "");
+        .text(message)
+        .attr("title", message)
+        .prop("hidden", !message);
     }
 
     _setProgress(value, visible) {
@@ -321,18 +320,9 @@
       }, false);
     }
 
-    _renderCommitEmpty(kind, text) {
-      const icons = {
-        idle: "ti-list-check",
-        success: "ti-circle-check",
-        danger: "ti-alert-triangle"
-      };
-      $("#git_panel_commit_list").html(
-        `<li class="update-commit-empty is-${kind}">
-           <i class="ti ${icons[kind] || icons.idle}"></i>
-           <span>${this._escape(text)}</span>
-         </li>`
-      );
+    // 没有提交可展示时收起列表，不留说明性占位
+    _hideCommits() {
+      $("#git_panel_commit_list").prop("hidden", true).empty();
     }
 
     _renderSkeleton() {
@@ -344,16 +334,15 @@
             <span class="update-skeleton-bar" style="width:66px"></span>
           </li>`);
       }
-      $("#git_panel_commit_list").html(rows.join(""));
+      $("#git_panel_commit_list").prop("hidden", false).html(rows.join(""));
     }
 
     _renderChecking() {
       $("#git_panel_remote_ref").text("").removeAttr("title");
-      $("#git_panel_remote_hash").text("…").removeAttr("title");
-      $("#git_panel_remote_meta").text("正在获取远程分支");
-      $("#git_panel_remote_msg").text("正在比较本地与远程提交").removeAttr("title");
-      $("#git_panel_delta").text("检测中");
-      $("#git_panel_commit_count").text("检测中");
+      $("#git_panel_remote_hash").text("—").removeAttr("title");
+      $("#git_panel_remote_meta").text("");
+      $("#git_panel_remote_msg").text("").removeAttr("title");
+      $("#git_panel_delta").text("");
       this._renderSkeleton();
     }
 
@@ -393,57 +382,53 @@
       $("#git_panel_remote_hash")
         .text(first.hash || "—")
         .attr("title", first.hash || "");
-      $("#git_panel_remote_meta").text(first.date || "远程最新提交");
+      $("#git_panel_remote_meta").text(first.date || "");
       $("#git_panel_remote_msg")
-        .text(first.subject || "远程分支有新的提交")
+        .text(first.subject || "")
         .attr("title", first.subject || "");
       $("#git_panel_delta").text(`${behind} 个新提交`);
-      $("#git_panel_commit_count").text(`${behind} 个新提交`);
 
       if (!commits.length) {
-        this._renderCommitEmpty("idle", "远程有新提交，但没有返回提交列表");
+        this._hideCommits();
         return;
       }
 
       const rows = commits.map((item) => {
-        return `<li class="update-commit-item">
+        return `<li class="update-commit-item" role="button" tabindex="0" aria-expanded="false">
             <span class="update-commit-hash" title="${this._escape(item.hash)}">${this._escape(item.hash || "—")}</span>
-            <span class="update-commit-subject" title="${this._escape(item.subject)}">${this._escape(item.subject || "（无提交说明）")}</span>
+            <span class="update-commit-subject">${this._escape(item.subject || "（无提交说明）")}</span>
             <span class="update-commit-date" title="${this._escape(item.author)}">${this._escape(item.date || "")}</span>
+            <i class="ti ti-chevron-right update-commit-expand" aria-hidden="true"></i>
           </li>`;
       });
       if (commits.length < behind) {
         rows.push(`<li class="update-commit-empty">仅显示最近 ${commits.length} 个提交</li>`);
       }
-      $("#git_panel_commit_list").html(rows.join(""));
+      $("#git_panel_commit_list").prop("hidden", false).html(rows.join(""));
     }
 
     _renderLatest(info) {
       const hash = info && info.short_commit ? info.short_commit : "—";
-      const msg = info && info.commit_msg ? info.commit_msg : "远程没有新的提交";
       $("#git_panel_remote_ref").text("").removeAttr("title");
       $("#git_panel_remote_hash")
         .text(hash)
         .attr("title", info && info.commit ? info.commit : "");
-      $("#git_panel_remote_meta").text("与当前版本相同");
-      $("#git_panel_remote_msg").text(msg).attr("title", msg);
+      $("#git_panel_remote_meta").text("");
+      $("#git_panel_remote_msg").text("").removeAttr("title");
       $("#git_panel_delta").text("已最新");
-      $("#git_panel_commit_count").text("无新提交");
-      this._renderCommitEmpty("success", "当前已是最新版本，无需更新");
+      this._hideCommits();
     }
 
     // 更新成功：保留刚拉取的提交列表，标明已应用，而不是回到“无需更新”
     _renderApplied(info) {
       const hash = info && info.short_commit ? info.short_commit : "—";
-      const msg = info && info.commit_msg ? info.commit_msg : "";
       $("#git_panel_remote_ref").text("").removeAttr("title");
       $("#git_panel_remote_hash")
         .text(hash)
         .attr("title", info && info.commit ? info.commit : "");
-      $("#git_panel_remote_meta").text("已合并到当前版本");
-      $("#git_panel_remote_msg").text(msg).attr("title", msg);
-      $("#git_panel_delta").text("已更新");
-      $("#git_panel_commit_count").text(
+      $("#git_panel_remote_meta").text((info && info.commit_time) || "");
+      $("#git_panel_remote_msg").text("").removeAttr("title");
+      $("#git_panel_delta").text(
         this._behind > 0 ? `已更新 ${this._behind} 个提交` : "已更新"
       );
     }
@@ -452,11 +437,10 @@
       this._checking = false;
       this._hasUpdate = false;
       $("#git_panel_remote_hash").text("—").removeAttr("title");
-      $("#git_panel_remote_meta").text("检测失败");
-      $("#git_panel_remote_msg").text("请展开更新日志查看原因").removeAttr("title");
+      $("#git_panel_remote_meta").text("");
+      $("#git_panel_remote_msg").text("").removeAttr("title");
       $("#git_panel_delta").text("检测失败");
-      $("#git_panel_commit_count").text("检测失败");
-      this._renderCommitEmpty("danger", "检测失败，请展开更新日志查看原因");
+      this._hideCommits();
       const content = $("#git_panel_log_content");
       if (content.find(".update-log-empty").length) {
         content.html(
@@ -479,7 +463,8 @@
       this._ahead = 0;
       this._setState("checking");
       this._renderChecking();
-      this._setStatus("正在检测更新…", "info");
+      this._renderNotice();
+      this._setStatus("", "info");
       this._expandLog(false);
       this._resetLog("正在检测更新…");
       this._syncButtons();
@@ -504,10 +489,9 @@
         if (this._hasUpdate) {
           this._setState("update");
           this._renderUpdate(ret);
-          this._setStatus(`发现 ${ret.behind} 个新提交`, "info");
         } else {
           this._setState("latest");
-          this._setStatus("没有更新内容，当前已是最新版本", "success");
+          this._setStatus("", "success");
         }
         this._renderNotice();
         this._syncButtons();
@@ -542,7 +526,7 @@
       this._expandLog(true);
       this._resetLog("正在启动更新…");
       this._setProgress(0, true);
-      $("#git_panel_commit_count").text("正在更新");
+      $("#git_panel_delta").text("更新中");
 
       this._abort = new AbortController();
       fetch("stream-update-system", {
@@ -725,24 +709,16 @@
 
       if (!ok) {
         this._setState("error");
+        $("#git_panel_delta").text("更新失败");
         this._setStatus(ret.msg || "更新失败，请查看日志", "danger");
-        if (this._hasUpdate) {
-          $("#git_panel_commit_count").text(`${this._behind} 个新提交`);
-        }
         this._expandLog(true);
         this._refreshInfo();
         return;
       }
 
-      this._setProgress(100, true);
+      this._setProgress(100, false);
       this._setState(updated ? "done" : "latest");
-      if (!updated) {
-        this._setStatus("当前已是最新版本", "success");
-      } else if (this._needsReload) {
-        this._setStatus("前端文件已更新，刷新页面生效", "success");
-      } else {
-        this._setStatus("更新完成，重启后生效", "success");
-      }
+      this._setStatus(updated ? "更新完成" : "", "success");
       this._refreshInfo((info) => {
         if (updated) {
           this._renderApplied(info);
