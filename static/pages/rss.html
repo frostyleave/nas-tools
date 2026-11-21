@@ -1,10 +1,19 @@
 <style>
+  .rss-type-dropdown {
+    display: inline-block;
+  }
   .rss-type-filter {
-    width: auto;
-    min-width: 6.5rem;
-    padding-left: 0.75rem;
-    text-align: center;
-    text-align-last: center;
+    padding-inline-start: 1.5rem;
+    font-weight: 500;
+  }
+  .rss-type-menu {
+    width: 100%;
+    min-width: 0;
+  }
+  .rss-type-menu .dropdown-item {
+    min-width: 0;
+    justify-content: center;
+    padding: .375rem 0;
     font-weight: 500;
   }
 </style>
@@ -13,12 +22,18 @@
   <div class="page-header d-print-none mt-2">
     <div class="row align-items-center">
       <div class="col">
-        <select class="form-select rss-type-filter" aria-label="订阅类型"
-          onchange="filter_rss(this.value)">
-          <option value="ALL">全部</option>
-          <option value="TV">剧集</option>
-          <option value="MOV">电影</option>
-        </select>
+        <div class="dropdown rss-type-dropdown">
+          <button type="button" class="form-select rss-type-filter" id="rss-type-filter-btn"
+            data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true" aria-label="订阅类型">
+            <span id="rss-type-filter-label">全部</span>
+          </button>
+          <ul class="dropdown-menu rss-type-menu" id="rss-type-filter-menu"
+            aria-labelledby="rss-type-filter-btn">
+            <li><button type="button" class="dropdown-item active" data-type="ALL">全部</button></li>
+            <li><button type="button" class="dropdown-item" data-type="TV">剧集</button></li>
+            <li><button type="button" class="dropdown-item" data-type="MOV">电影</button></li>
+          </ul>
+        </div>
       </div>
       <div class="col-auto ms-auto d-print-none">
         <div class="btn-list">
@@ -60,6 +75,14 @@
 <script type="text/javascript">
 
   $(document).ready(function() {
+    // 订阅类型筛选：同步按钮文案与选中状态后按类型过滤
+    $("#rss-type-filter-menu").on("click", ".dropdown-item", function() {
+      const type = $(this).attr("data-type");
+      $("#rss-type-filter-label").text($(this).text());
+      $("#rss-type-filter-menu .dropdown-item").removeClass("active");
+      $(this).addClass("active");
+      filter_rss(type);
+    });
     loadPageData();
   });
 

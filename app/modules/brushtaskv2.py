@@ -192,10 +192,9 @@ class BrushTaskV2:
             log.error(f"【Brush】刷流站点 {site_name} 的站索引器匹配失败, 无法刷流!")
             return
         
-        # 站点属性
-        site_brush_enable = site_info.brush_enable
-        if not site_brush_enable:
-            log.error(f"【Brush】站点 {site_name} 未开启刷流功能, 无法刷流!")
+        # rss地址
+        if not site_info.rssurl:
+            log.error(f"【Brush】站点 {site_name} 未配置 RSS 地址, 无法刷流!")
             return
                
         # 下载器参数

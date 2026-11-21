@@ -6,12 +6,6 @@
       font-variant-numeric: tabular-nums;
   }
 
-  .hx-card {
-      background-color: var(--tblr-bg-surface);
-      border: 1px solid var(--tblr-border-color);
-      border-radius: var(--tblr-border-radius-lg);
-  }
-
   #tr-batch-retry:disabled,
   #tr-batch-delete:disabled {
       opacity: 1;
@@ -362,8 +356,8 @@
       color: var(--tblr-body-color);
   }
 
-  .hx-card a:focus-visible,
-  .hx-card button:focus-visible {
+  #hx-card a:focus-visible,
+  #hx-card button:focus-visible {
       outline: 2px solid var(--tblr-primary);
       outline-offset: 2px;
   }
@@ -510,7 +504,7 @@
 
 <div class="page-body">
   <div class="container-xl">
-    <div class="hx-card" id="hx-card">
+    <div class="card rounded-3 shadow-none" id="hx-card">
       <div class="hx-toolbar">
         <label class="hx-search" id="hx-search-wrap">
           <i class="ti ti-search"></i>

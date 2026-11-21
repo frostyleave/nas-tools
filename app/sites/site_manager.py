@@ -186,21 +186,14 @@ class SitesManager:
             site_cookie = site.COOKIE
             site_token = site.TOKEN
             site_apikey = site.API_KEY
-            # 站点用途：Q签到、D订阅、S刷流
+            # 站点用途：D订阅、S刷流、T数据统计
             site_note = self.__get_site_note_items(site.NOTE)
             site_uses = site.INCLUDE or ''
             uses = []
-            if site_uses:
-                rss_enable = bool("D" in site_uses and site_rssurl)
-                brush_enable = bool("S" in site_uses and site_rssurl)
-                statistic_enable = bool("T" in site_uses and (site_rssurl or site_signurl))
-                uses.append("D") if rss_enable else None
-                uses.append("S") if brush_enable else None
-                uses.append("T") if statistic_enable else None
-            else:
-                rss_enable = False
-                brush_enable = False
-                statistic_enable = False
+            rss_enable = bool("D" in site_uses and site_rssurl)
+            statistic_enable = bool("T" in site_uses and (site_rssurl or site_signurl))
+            uses.append("D") if rss_enable else None
+            uses.append("T") if statistic_enable else None
 
             site_parser = ''
             indexer_id = ''
@@ -232,7 +225,6 @@ class SitesManager:
                     "apikey": site_apikey,
                     "passkey": passkey,
                     "rss_enable": rss_enable,
-                    "brush_enable": brush_enable,
                     "statistic_enable": statistic_enable,
                     "uses": uses,
                     "ua": site_note.get("ua"),
@@ -350,7 +342,7 @@ class SitesManager:
         for site in self._siteByIds.values():
             if rss and not site.rss_enable:
                 continue
-            if brush and not site.brush_enable:
+            if brush and not site.rssurl:
                 continue
             if statistic and not site.statistic_enable:
                 continue

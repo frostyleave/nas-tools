@@ -91,7 +91,7 @@ class Scheduler:
             SchedulerUtils.add_job(
                 scheduler=self.get_scheduler(),
                 func=SitesDataStatisticsCenter().refresh_site_data_now,
-                func_desc="数据统计",
+                func_desc="站点数据统计",
                 cron=str(ptrefresh_date_cron)
             )
         )
@@ -108,7 +108,7 @@ class Scheduler:
             try:
                 pt_check_interval = round(float(pt_check_interval))
             except Exception as e:
-                log.error(f"RSS订阅周期 配置格式错误：{e!s}")
+                log.error(f"[订阅]RSS检索-周期配置格式错误：{e!s}")
                 return
         pt_check_interval = max(pt_check_interval, 300)
         self.__track_job(
@@ -117,7 +117,7 @@ class Scheduler:
                 Rss().rssdownload,
                 "interval",
                 seconds=pt_check_interval,
-                name='RSS订阅'
+                name='[订阅]RSS检索'
             )
         )
 
@@ -133,7 +133,7 @@ class Scheduler:
             try:
                 search_rss_interval = round(float(search_rss_interval))
             except Exception as e:
-                log.error(f"订阅定时搜索周期 配置格式错误：{e!s}")
+                log.error(f"[订阅]定时搜索-周期配置格式错误：{e!s}")
                 return
         search_rss_interval = max(search_rss_interval, 3)
         self.__track_job(
@@ -142,7 +142,7 @@ class Scheduler:
                 Subscribe().subscribe_search_all,
                 "interval",
                 hours=search_rss_interval,
-                name='订阅定时搜索'
+                name='[订阅]定时搜索'
             )
         )
 
@@ -169,7 +169,7 @@ class Scheduler:
                 MediaServer().sync_mediaserver,
                 "interval",
                 hours=mediasync_interval,
-                name='媒体库同步'
+                name='媒体库数据同步'
             )
         )
 
@@ -193,7 +193,7 @@ class Scheduler:
                 Subscribe().subscribe_search,
                 "interval",
                 seconds=RSS_CHECK_INTERVAL,
-                name='订阅进度检查'
+                name='[订阅]进度检查'
             )
         )
 
@@ -204,7 +204,7 @@ class Scheduler:
                 Subscribe().refresh_rss_metainfo,
                 "interval",
                 hours=RSS_REFRESH_TMDB_INTERVAL,
-                name='刷新订阅TMDB数据'
+                name='[订阅]TMDB数据刷新'
             )
         )
 

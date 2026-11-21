@@ -374,7 +374,6 @@ def _site_view(site: UserSiteConf) -> dict:
     item["parse"] = site.parse_detail
     # 功能徽标：是否已配置可用的 RSS / 签到地址
     item["subscribe_enabled"] = bool(site.rss_enable and site.rssurl)
-    item["brush_enabled"] = bool(site.brush_enable and site.rssurl)
     item["statistic_enabled"] = bool(site.statistic_enable and (site.signurl or site.rssurl))
     return item
 
