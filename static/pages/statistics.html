@@ -16,67 +16,6 @@
     font-weight: 500;
   }
 
-  .st-btn i {
-    font-size: 16px;
-  }
-
-  .st-btn-quiet {
-    border-color: transparent;
-    background-color: transparent;
-    box-shadow: none;
-  }
-
-  .st-btn-quiet:hover {
-    border-color: transparent;
-    background-color: var(--tblr-bg-surface-secondary);
-  }
-
-  .st-btn:focus-visible {
-    outline: 2px solid var(--tblr-primary);
-    outline-offset: 2px;
-  }
-
-  #modal-indexer-history .st-range {
-    display: inline-flex;
-    gap: 2px;
-    padding: 3px;
-    border: 1px solid var(--tblr-border-color);
-    border-radius: 9px;
-    background: var(--tblr-bg-surface-secondary);
-  }
-
-  #modal-indexer-history .btn-site-history {
-    padding: 5px 12px;
-    border: 0;
-    border-radius: 7px;
-    background: transparent;
-    font-size: 12.5px;
-    line-height: 1.4;
-    color: var(--tblr-secondary);
-  }
-
-  #modal-indexer-history .btn-site-history:hover {
-    color: var(--tblr-body-color);
-  }
-
-  #modal-indexer-history .btn-site-history.active {
-    background: var(--tblr-bg-surface);
-    color: var(--tblr-body-color);
-    box-shadow: 0 1px 2px rgba(0, 0, 0, .06);
-  }
-
-  @media (max-width: 575.98px) {
-    .st-head-actions .st-btn {
-      width: 36px;
-      padding: 0;
-      justify-content: center;
-    }
-
-    .st-head-actions .st-btn span {
-      display: none;
-    }
-  }
-
   #day-traffic-list .progress-bar {
     transition: width .6s ease !important;
   }
@@ -96,24 +35,20 @@
         </div>
         <div class="st-head-actions" id="st-total-actions">
           <a href="javascript:show_history()" class="btn st-btn" aria-label="历史数据" title="查看最近一周、一月或一年的总流量">
-            <i class="ti ti-history"></i><span>历史数据</span>
+            <i class="ti ti-history"></i><span class="d-none d-sm-block">历史数据</span>
           </a>
           <a href="javascript:show_statistic_sites_modal()" class="btn st-btn" aria-label="统计站点" title="选择要参与统计的站点">
-            <i class="ti ti-adjustments"></i><span>统计站点</span>
+            <i class="ti ti-adjustments"></i><span class="d-none d-sm-block">统计站点</span>
           </a>
           <a href="javascript:ask_refresh_statistics()" class="btn btn-primary st-btn" aria-label="刷新数据" title="立即重新抓取所有站点的数据">
-            <i class="ti ti-refresh"></i><span>刷新数据</span>
+            <i class="ti ti-refresh"></i><span class="d-none d-sm-block">刷新数据</span>
           </a>
         </div>
         <div class="st-head-actions" id="st-sites-actions" style="display: none;">
           <a href="javascript:show_statistics_picture_modal()" class="btn st-btn st-btn-quiet"
             id="share-btn-container" style="display: none;" aria-label="生成分享图片" title="把站点数据生成一张分享图">
-            <i class="ti ti-share"></i><span>分享图</span>
+            <i class="ti ti-share"></i><span class="d-none d-sm-block">分享</span>
           </a>
-          <button type="button" class="btn st-btn st-btn-quiet" onclick="reload_page_data()"
-            aria-label="重新读取" title="重新读取已经保存的统计数据">
-            <i class="ti ti-reload"></i><span>重新读取</span>
-          </button>
         </div>
       </header>
 
@@ -143,7 +78,7 @@
                       <div class="text-secondary fs-5">总下载量</div>
                       <div class="display-6 fw-medium" id="total-download">0 B</div>
                     </div>
-                    <div class="ms-auto text-end">
+                    <div class="ms-auto d-none d-sm-block text-end">
                       <div class="text-secondary fs-5">分享率</div>
                       <div class="display-6 fw-medium text-primary" id="total-ratio">—</div>
                     </div>
@@ -152,9 +87,13 @@
                     <div class="progress-bar" id="total-upload-bar"></div>
                     <div class="progress-bar bg-secondary" id="total-download-bar"></div>
                   </div>
-                  <div class="d-flex gap-3 mt-2 fs-5 text-secondary">
+                  <div class="d-flex align-items-baseline gap-3 mt-2 fs-5 text-secondary">
                     <span><span class="status-dot bg-primary me-1"></span>上传</span>
                     <span><span class="status-dot bg-secondary me-1"></span>下载</span>
+                    <div class="ms-auto d-sm-none d-flex align-items-baseline gap-2">
+                      <span>分享率</span>
+                      <span class="fs-2 fw-medium text-primary" id="total-ratio-mobile">—</span>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -174,16 +113,16 @@
           </section>
 
           <section class="card mt-2 rounded-4 shadow-none" aria-labelledby="day-traffic-title">
-            <div class="card-header d-flex align-items-center gap-3 flex-wrap">
-              <div>
+            <div class="card-header d-flex align-items-center flex-wrap column-gap-3">
+              <div class="order-1 me-auto me-sm-0 mb-2 mb-sm-0">
                 <h3 class="card-title mb-0" id="day-traffic-title">每日流量</h3>
                 <div class="text-secondary fs-5 mt-1" id="day-traffic-date">今日</div>
               </div>
-              <div class="ms-auto d-flex align-items-center gap-3 fs-5 text-secondary">
+              <div class="order-4 order-sm-2 ms-sm-auto d-flex align-items-center flex-wrap column-gap-3 fs-5 text-secondary">
                 <span><span class="status-dot bg-primary me-1"></span>上传 <strong class="text-body fw-medium" id="day-upload-total">0 B</strong></span>
                 <span><span class="status-dot bg-secondary me-1"></span>下载 <strong class="text-body fw-medium" id="day-download-total">0 B</strong></span>
               </div>
-              <div class="btn-list">
+              <div class="btn-list order-2 order-sm-3">
                 <button type="button" class="btn btn-icon btn-ghost-secondary" id="day-prev" onclick="switch_date(-1)" aria-label="前一天" title="前一天">
                   <i class="ti ti-chevron-left"></i>
                 </button>
@@ -191,6 +130,7 @@
                   <i class="ti ti-chevron-right"></i>
                 </button>
               </div>
+              <div class="order-3 d-sm-none w-100"></div>
             </div>
             <div id="day-traffic-list">
               <div class="d-flex align-items-center gap-2 text-secondary p-4">
@@ -201,11 +141,9 @@
         </div>
 
         <section id="st-view-sites" hidden>
-          <header class="d-flex align-items-center gap-3 flex-wrap mb-2">
-            <p class="text-secondary mb-0" id="site-count">正在读取站点数据…</p>
-            <div class="ms-auto d-flex align-items-center gap-2">
-              <label class="form-label mb-0 text-secondary d-none d-sm-block" for="site-sort">排序</label>
-              <select class="form-select w-auto" id="site-sort" onchange="apply_site_sort()">
+          <header class="d-flex align-items-center gap-3 flex-wrap my-2">
+            <div class="d-flex align-items-center">
+              <select class="form-select py-1 w-auto" id="site-sort" onchange="apply_site_sort()">
                 <option value="upload">上传量</option>
                 <option value="download">下载量</option>
                 <option value="ratio">分享率</option>
@@ -214,7 +152,7 @@
                 <option value="bonus">魔力值</option>
                 <option value="update_at">最近更新</option>
               </select>
-              <button type="button" class="btn btn-icon btn-ghost-secondary" id="site-sort-order" onclick="toggle_site_sort_order()"
+              <button type="button" class="btn bg-transparent border-0" id="site-sort-order" onclick="toggle_site_sort_order()"
                 aria-label="当前降序，点击改为升序" title="切换排序方向">
                 <i class="ti ti-arrow-down"></i>
               </button>
@@ -337,12 +275,12 @@
       </div>
       <div class="modal-body">
         <div class="d-flex justify-content-end mb-3">
-          <div class="st-range" role="group" aria-label="统计范围">
-            <button id="btn-history-one-week" class="btn-site-history active"
+          <div class="lit-segment" role="group" aria-label="统计范围">
+            <button id="btn-history-one-week" class="btn lit-segment-option active"
               onclick="show_site_history(this, 7)">最近一周</button>
-            <button class="btn-site-history"
+            <button class="btn lit-segment-option"
               onclick="show_site_history(this, 30)">最近一月</button>
-            <button class="btn-site-history"
+            <button class="btn lit-segment-option"
               onclick="show_site_history(this, 365)">最近一年</button>
           </div>
         </div>
@@ -686,6 +624,9 @@
     // 两个 Tab 各自显示自己的工具按钮
     document.getElementById('st-total-actions').style.display = show_sites ? 'none' : '';
     document.getElementById('st-sites-actions').style.display = show_sites ? '' : 'none';
+    if (show_sites) {
+      load_site_statistics();
+    }
   }
 
   function switch_date(date_offset) {
@@ -808,7 +749,9 @@
       $('#statistics-content').show();
       $('#total-upload').text(statistics_size_text(upload));
       $('#total-download').text(statistics_size_text(download));
-      $('#total-ratio').text(statistics_ratio_value(upload, download));
+      const ratio_text = statistics_ratio_value(upload, download);
+      $('#total-ratio').text(ratio_text);
+      $('#total-ratio-mobile').text(ratio_text);
       $('#total-seeding').text(statistics_count_text(total_statistics.seeding));
       $('#total-seeding-size').text(statistics_size_text(total_statistics.seeding_size));
       $('#total-upload-bar').css('width', traffic_total > 0 ? (upload / traffic_total * 100).toFixed(2) + '%' : '0%');
@@ -816,11 +759,7 @@
     });
   }
 
-  function load_site_statistics(force) {
-    if (force !== true && site_statistics_data.length) {
-      return;
-    }
-
+  function load_site_statistics() {
     const list = $('#site-statistics-list');
     list.html(`
       <div class="col-12 d-flex align-items-center gap-2 text-secondary py-4">
@@ -832,7 +771,7 @@
         list.html(`
           <div class="col-12 d-flex align-items-center gap-2 text-secondary py-4">
             <span>站点数据读取失败。</span>
-            <button type="button" class="btn st-btn" onclick="load_site_statistics(true)">重试</button>
+            <button type="button" class="btn st-btn" onclick="load_site_statistics()">重试</button>
           </div>`);
         return;
       }
@@ -878,12 +817,9 @@
     if (!site_statistics_data.length) {
       list.html('<div class="col-12 text-center text-secondary py-4">没有站点数据</div>');
       $('#share-btn-container').hide();
-      $('#site-count').text('没有站点数据');
       return;
     }
 
-    const with_data = site_statistics_data.filter(item => item.has_data !== false).length;
-    $('#site-count').text('共 ' + site_statistics_data.length + ' 个站点，' + with_data + ' 个有统计数据');
     $('#share-btn-container').show();
 
     const desc = site_statistics_sort_order === 'desc';
@@ -1020,7 +956,9 @@
   function reload_page_data() {
     load_total_statistics();
     show_site_history_day(current_date || moment().format('YYYY-MM-DD'), 1);
-    load_site_statistics(true);
+    if (!document.getElementById('st-view-sites').hidden) {
+      load_site_statistics();
+    }
   }
 
   function show_statistic_sites_modal() {
@@ -1085,7 +1023,7 @@
   }
 
   function show_site_history(obj, days) {
-    $('.btn-site-history').removeClass('active');
+    $('#modal-indexer-history .lit-segment-option').removeClass('active');
     $(obj).addClass('active');
 
     axios_post_do("get_site_history", { "days": days }, function (ret) {
@@ -1557,7 +1495,6 @@
   $(document).ready(function () {
     load_total_statistics();
     show_site_history_day(moment().format('YYYY-MM-DD'), 1);
-    load_site_statistics();
     load_statistics_pic_depiler_version();
 
     $('#modal-statistics-pic-setting').on('shown.bs.modal', function () {

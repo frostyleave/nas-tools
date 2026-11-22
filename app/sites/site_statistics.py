@@ -214,7 +214,7 @@ class SitesDataStatisticsCenter:
         results = await asyncio.gather(*(_fetch(site) for site in sites), return_exceptions=True)
         return [result for result in results if result and not isinstance(result, BaseException)]
 
-    def refresh_site_data_now(self, specify_sites=None):
+    def refresh_site_data_now(self, specify_site=None):
         """
         强制刷新站点数据
 
@@ -223,7 +223,7 @@ class SitesDataStatisticsCenter:
         """
         log.info("【Sites】开始执行站点数据统计...")
         try:
-            result = asyncio.run(self.__refresh_all_site_data(force=True, specify_sites=specify_sites))
+            result = asyncio.run(self.__refresh_all_site_data(force=True, specify_site_name=specify_site))
         except Exception:
             # 命令线程/线程池会吞掉异常，这里必须显式记录，否则统计失败时无任何日志
             log.exception("【Sites】站点数据统计执行失败: ")
@@ -263,7 +263,7 @@ class SitesDataStatisticsCenter:
         # 返回本次刷新的逐站点结果（成功/失败/未解析到的字段），供调用方（如单站点刷新接口）使用
         return result
 
-    async def __refresh_all_site_data(self, force=False, specify_sites=None):
+    async def __refresh_all_site_data(self, force=False, specify_site_name=None):
         """
         并发刷新站点下载上传量，默认间隔6小时
         """
@@ -272,25 +272,18 @@ class SitesDataStatisticsCenter:
 
         with lock:
 
-            if not force \
-                    and not specify_sites \
-                    and self._last_update_time:
+            if not force and not specify_site_name and self._last_update_time:
                 return
 
-            if specify_sites \
-                    and not isinstance(specify_sites, list):
-                specify_sites = [specify_sites]
-
             # 没有指定站点，默认使用全部站点
-            if not specify_sites:
+            if not specify_site_name:
                 refresh_sites = self.sites.get_sites(statistic=True)
             else:
-                refresh_sites = [site for site in self.sites.get_sites(statistic=True) if
-                                 site.name in specify_sites]
+                refresh_sites = self.sites.get_sites_by_name(specify_site_name)
 
             if not refresh_sites:
-                if specify_sites:
-                    msg = f"指定刷新的站点不存在或未启用站点统计：{'、'.join(specify_sites)}"
+                if specify_site_name:
+                    msg = f"指定刷新的站点不存：{'、'.join(specify_site_name)}"
                     log.warn(f"【Sites】{msg}")
                 else:
                     msg = "没有启用站点统计的站点，跳过站点数据统计"

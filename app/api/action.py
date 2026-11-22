@@ -3831,7 +3831,7 @@ class WebAction:
         site_name = data.get('site')
         if site_name:
             # 单站点刷新为同步执行，接口返回时刷新已完成，直接返回本次刷新结果
-            result = SitesDataStatisticsCenter().refresh_site_data_now(specify_sites=site_name)
+            result = SitesDataStatisticsCenter().refresh_site_data_now(specify_site=site_name)
             if not result:
                 return {"code": 1, "msg": "刷新失败，请查看日志"}
 
