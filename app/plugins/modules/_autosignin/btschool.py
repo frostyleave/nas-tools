@@ -13,7 +13,7 @@ class BTSchool(_ISiteSigninHandler):
     # 匹配的站点Url, 每一个实现类都需要设置为自己的站点Url
     site_url = "pt.btschool.club"
     index_url = 'https://pt.btschool.club/index.php'
-    sign_url = 'https://pt.btschool.club/index.php?action=addbonu'
+    sign_url = 'https://pt.btschool.club/index.php?action=addbonus'
 
     # 已签到
     _sign_text = '每日签到'
