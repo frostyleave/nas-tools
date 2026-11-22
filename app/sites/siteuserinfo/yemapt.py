@@ -159,15 +159,9 @@ class YemaUserInfo(_ISiteUserInfo):
         if level is not None:
             self.user_level = self._level_names.get(level) or f"Level {level}"
 
-        # 开放 API 与站内接口都以实际上传/下载量为准，保证两种鉴权方式口径一致
-        upload = user_info.get("uploadSize")
-        download = user_info.get("downloadSize")
-        if upload is None:
-            upload = user_info.get("promotionUploadSize")
-        if download is None:
-            download = user_info.get("promotionDownloadSize")
-        self.upload = self._to_int(upload)
-        self.download = self._to_int(download)
+        # 取促销后的上传/下载量
+        self.upload = self._to_int(user_info.get("promotionUploadSize"))
+        self.download = self._to_int(user_info.get("promotionDownloadSize"))
         self.ratio = round(self.upload / self.download, 3) if self.download > 0 else 0
         self.bonus = user_info.get("bonus") or 0
 
