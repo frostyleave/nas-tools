@@ -19,6 +19,7 @@ from starlette.concurrency import run_in_threadpool
 
 import log
 from app.core.cmd_handler import CommandHandler
+from app.core.runtime_state import is_shutdown_requested
 from app.core.system_update import run_system_update
 from app.core.task_manager import TaskStore
 from app.message.message_center import SysMessageCenter
@@ -205,8 +206,14 @@ async def stream_logging(request: Request, source: str = ""):
                 await asyncio.sleep(0)
 
             while True:
+                # 进程关闭时主动结束，避免服务端优雅关闭一直等这个连接
+                if is_shutdown_requested():
+                    break
                 # 取到一条后, 把队列中已积压的全部取出合并成一批发送
-                log_data = await my_queue.get()
+                try:
+                    log_data = await asyncio.wait_for(my_queue.get(), timeout=1)
+                except TimeoutError:
+                    continue
                 batch = [log_data] if match(log_data) else []
                 while len(batch) < LOG_BATCH_SIZE:
                     try:
@@ -355,8 +362,7 @@ def stream_bangumi_tmdb(data: Annotated[dict, Body(...)]):
     Bangumi 条目 TMDB 信息 SSE
 
     data: {"list": [{"id", "bgmid", "title", "year"}]}
-    每完成一条立即返回：{"item": {"id", "tmdbid", "r18", "image", "vote"}}
-    image 为 TMDB 封面地址，vote 为 TMDB 评分，前端用它们替换 Bangumi 原图与评分
+    每完成一条立即返回：{"item": {"id", "tmdbid", "r18"}}
     结束时返回：{"type": "done"}
     """
     media_list = (data or {}).get("list") or []
@@ -408,6 +414,9 @@ async def sse_progress(
     async def event_generator():
         try:
             while True:
+
+                if is_shutdown_requested():
+                    break
 
                 if await request.is_disconnected():
                     log.info(f"[SSE-进度] 客户端断开连接: {task_id}")

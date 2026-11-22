@@ -12,7 +12,7 @@ from urllib.parse import unquote
 from fastbencode import bdecode
 
 import log
-from app.indexer.client import MTorrentSpider
+from app.indexer.client import MTorrentSpider, YemaSpider
 from app.indexer.manager import IndexerManager
 from app.models.model import IndexerInfo, UserSiteConf
 from app.utils import PathUtils, RequestUtils, SiteUtils, TorrentUtils
@@ -49,7 +49,7 @@ class TorrentDownloader:
             return self.get_torrent_info(url=url)
 
         parser = indexer_info.parser
-        if parser == "MTorrentSpider":
+        if parser in ("MTorrentSpider", "YemaSpider"):
             return self._get_torrent_file_with_spider(url, indexer_info, parser)
 
         cookie = indexer_info.cookie if indexer_info else None
@@ -181,8 +181,11 @@ class TorrentDownloader:
         通过爬虫把种子下载到本地
         :return: TorrentDownloadResult
         """
-        req = MTorrentSpider(indexer_info).get_torrent(url)
-        
+        if parser == "MTorrentSpider":
+            req = MTorrentSpider(indexer_info).get_torrent(url)
+        else:
+            req = YemaSpider(indexer_info).get_torrent(url)
+
         if req and req.status_code == 200:
             if not req.content:
                 return TorrentDownloadResult(ret_msg="未下载到种子数据")

@@ -14,6 +14,7 @@ from app.message import MessageService
 from app.models.model import SiteBaseModel, UserSiteConf
 from app.sites import SiteRateLimiter
 from app.sites.siteuserinfo.mTorrent import MTorrentUserInfo
+from app.sites.siteuserinfo.yemapt import YemaUserInfo
 from app.utils import JsonUtils, RequestUtils, SiteUtils
 from app.utils.commons import singleton
 from app.utils.types import Spider, SystemConfigKey
@@ -185,21 +186,14 @@ class SitesManager:
             site_cookie = site.COOKIE
             site_token = site.TOKEN
             site_apikey = site.API_KEY
-            # 站点用途：Q签到、D订阅、S刷流
+            # 站点用途：D订阅、S刷流、T数据统计
             site_note = self.__get_site_note_items(site.NOTE)
             site_uses = site.INCLUDE or ''
             uses = []
-            if site_uses:
-                rss_enable = bool("D" in site_uses and site_rssurl)
-                brush_enable = bool("S" in site_uses and site_rssurl)
-                statistic_enable = bool("T" in site_uses and (site_rssurl or site_signurl))
-                uses.append("D") if rss_enable else None
-                uses.append("S") if brush_enable else None
-                uses.append("T") if statistic_enable else None
-            else:
-                rss_enable = False
-                brush_enable = False
-                statistic_enable = False
+            rss_enable = bool("D" in site_uses and site_rssurl)
+            statistic_enable = bool("T" in site_uses and (site_rssurl or site_signurl))
+            uses.append("D") if rss_enable else None
+            uses.append("T") if statistic_enable else None
 
             site_parser = ''
             indexer_id = ''
@@ -231,7 +225,6 @@ class SitesManager:
                     "apikey": site_apikey,
                     "passkey": passkey,
                     "rss_enable": rss_enable,
-                    "brush_enable": brush_enable,
                     "statistic_enable": statistic_enable,
                     "uses": uses,
                     "ua": site_note.get("ua"),
@@ -349,7 +342,7 @@ class SitesManager:
         for site in self._siteByIds.values():
             if rss and not site.rss_enable:
                 continue
-            if brush and not site.brush_enable:
+            if brush and not site.rssurl:
                 continue
             if statistic and not site.statistic_enable:
                 continue
@@ -533,7 +526,10 @@ class SitesManager:
 
             if site_info.parser and site_info.parser == Spider.MTorrentSpider.value:
                 return self._test_mteam_connection(site_info)
-            
+
+            if site_info.parser and site_info.parser == Spider.YemaSpider.value:
+                return self._test_yema_connection(site_info)
+
             return self.__test_connection_basic(site_info)
             
         except Exception as e:
@@ -567,6 +563,51 @@ class SitesManager:
             return False, f"连接失败，状态码：{status_code}", seconds
 
         return False, "无法打开网站", seconds
+
+    def _test_yema_connection(self, site_info: UserSiteConf):
+
+        url = site_info.strict_url
+        site_name = site_info.name
+        site_cookie = site_info.cookie
+        # API Auth Key 优先取 API Key 字段，其次取 Authorization 字段
+        site_appkey = site_info.apikey or site_info.token
+        proxy = site_info.proxy
+
+        if not site_cookie and not site_appkey:
+            return False, "未配置站点Cookie或API Auth Key", 0
+
+        # 计时
+        start_time = datetime.now()
+
+        yema_proxy = YemaUserInfo(site_name, url, site_cookie, '', apikey=site_appkey,
+                                  ua=site_info.ua, proxy=proxy)
+        response_text, status_code = asyncio.run(yema_proxy.visit_base_info())
+
+        # 计算耗时
+        seconds = int((datetime.now() - start_time).total_seconds() * 1000)
+
+        detail = JsonUtils.loads(response_text, default=None, silent=True)
+        if not isinstance(detail, dict):
+            detail = {}
+        if detail.get("success"):
+            return True, "连接成功", seconds
+
+        error_code = detail.get("errorCode")
+        if site_appkey:
+            messages = {
+                400: "API Auth Key无效或已过期",
+                403: "API Auth Key无效或已删除",
+                1402: "需要先完成邮箱验证"
+            }
+            if error_code in messages:
+                return False, messages[error_code], seconds
+        elif error_code in (400, 401):
+            return False, "Cookie失效", seconds
+
+        if status_code and status_code != 200:
+            return False, f"连接失败，状态码：{status_code}", seconds
+
+        return False, detail.get("errorMessage") or "无法打开网站", seconds
 
     def __test_connection_basic(self, site_info: UserSiteConf):
             

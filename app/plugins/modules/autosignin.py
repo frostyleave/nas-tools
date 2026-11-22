@@ -101,7 +101,6 @@ class AutoSignIn(_IPluginModule):
     配置需要签到的站点id
     """
     _config_sites = None
-    _queue_cnt = None
     _special_sites = None
     _onlyonce = False
     _notify = False
@@ -158,24 +157,12 @@ class AutoSignIn(_IPluginModule):
                         {
                             'title': '签到周期',
                             'required': "",
-                            'tooltip': '自动签到时间，四种配置方法：1、配置间隔，单位小时，比如23.5；2、配置固定时间，如08:00；3、配置时间范围，如08:00-09:00，表示在该时间范围内随机执行一次；4、配置5位cron表达式，如：0 */6 * * *；配置为空则不启用自动签到功能。',
+                            'tooltip': '配置为空则不启用自动签到<br>四种配置方法：<br>1、配置间隔，单位小时，比如23.5；<br>2、配置固定时间，如08:00；<br>3、配置时间范围，如08:00-09:00，表示在该时间范围内随机执行一次；<br>4、配置5位cron表达式，如：0 */6 * * *；<br><br>系统会在定时配置基础上，随机偏移15分钟',
                             'type': 'text',
                             'content': [
                                 {
                                     'id': 'cron',
                                     'placeholder': '0 0 0 ? *',
-                                }
-                            ]
-                        },
-                        {
-                            'title': '签到队列',
-                            'required': "",
-                            'tooltip': '同时并行签到的站点数量，默认10（根据机器性能，缩小队列数量会延长签到时间，但可以提升成功率）',
-                            'type': 'text',
-                            'content': [
-                                {
-                                    'id': 'queue_cnt',
-                                    'placeholder': '10',
                                 }
                             ]
                         },
@@ -226,7 +213,6 @@ class AutoSignIn(_IPluginModule):
             self._config_sites = config.get("sign_sites") or []
             self._special_sites = config.get("special_sites") or []
             self._notify = config.get("notify")
-            self._queue_cnt = config.get("queue_cnt")
             self._onlyonce = config.get("onlyonce")
             self._clean = config.get("clean")
 
@@ -262,16 +248,14 @@ class AutoSignIn(_IPluginModule):
                     "special_sites": self._special_sites,
                     "notify": self._notify,
                     "onlyonce": self._onlyonce,
-                    "queue_cnt": self._queue_cnt,
                     "clean": self._clean
                 })
 
             # 周期运行
             if self._cron:
                 self._cron_job = SchedulerUtils.add_job(scheduler=self.get_scheduler(),
-                                                        func=self.sign_in,
-                                                        func_desc="自动签到",
-                                                        cron=str(self._cron))
+                                                        func=self.sign_in, func_desc="自动签到",
+                                                        cron=str(self._cron), jitter=900) # 随机偏移 ±900 秒（15 分钟）
                     
     @staticmethod
     def get_command():

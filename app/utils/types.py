@@ -99,6 +99,7 @@ class SiteSchema(Enum):
     FileList = "FileList"
     TNode = "TNode"
     MTorrent = "MTorrent"
+    YemaPT = "YemaPT"
 
 
 # 解析器类型
@@ -107,6 +108,7 @@ class Spider(Enum):
     TorrentLeech = "TorrentLeech"
     TNodeSpider = "TNodeSpider"
     MTorrentSpider = "MTorrentSpider"
+    YemaSpider = "YemaSpider"
 
 
 # 可监听事件

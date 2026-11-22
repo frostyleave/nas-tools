@@ -16,6 +16,7 @@ from app.conf import ModuleConf, SystemConfig
 from app.core.cmd_handler import CommandHandler
 from app.core.initializer import diff_config, reload_config
 from app.core.jobcenter import JobCenter
+from app.core.runtime_state import BOOT_ID
 from app.core.task_manager import TaskStore
 from app.downloader import Downloader
 from app.helper import FileHelper, MetaHelper, RssHelper, ThreadHelper, WordsHelper
@@ -3830,7 +3831,7 @@ class WebAction:
         site_name = data.get('site')
         if site_name:
             # 单站点刷新为同步执行，接口返回时刷新已完成，直接返回本次刷新结果
-            result = SitesDataStatisticsCenter().refresh_site_data_now(specify_sites=site_name)
+            result = SitesDataStatisticsCenter().refresh_site_data_now(specify_site=site_name)
             if not result:
                 return {"code": 1, "msg": "刷新失败，请查看日志"}
 
@@ -3938,10 +3939,10 @@ class WebAction:
 
     def __get_jobs(self):
         """
-        获取所有已注册的定时任务
+        获取所有已注册的定时任务以及当前进程标识
         """
         result = JobCenter().get_jobs()
-        return {"code": 0, "result": result }
+        return {"code": 0, "result": result, "boot_id": BOOT_ID}
 
     def __pt_depiler_version(self):
         """

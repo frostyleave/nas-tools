@@ -346,6 +346,29 @@ function get_message(lst_time) {
 
 //检查系统是否在线
 let systemOnlineCheckCount = 0;
+// 重启前记录的进程标识，用于确认服务已经换成新进程
+let systemBootId = null;
+
+// 查询当前服务进程标识，失败时返回 null
+function fetch_system_boot_id() {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 3000);
+  return fetch(`do?random=${Math.random()}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ cmd: 'get_jobs', data: {} }),
+    credentials: 'same-origin',
+    cache: 'no-store',
+    signal: controller.signal
+  }).then((response) => {
+    clearTimeout(timeoutId);
+    return response.ok ? response.json() : null;
+  }).then((ret) => (ret && ret.boot_id) || null)
+    .catch(() => {
+      clearTimeout(timeoutId);
+      return null;
+    });
+}
 
 function check_system_online() {
   if (systemOnlineCheckCount >= 60) {
@@ -369,16 +392,39 @@ function check_system_online() {
   }).then((response) => {
     clearTimeout(timeoutId);
 
-    // 200 表示服务已恢复；401 也说明 Web 服务已经起来了
-    if (response.ok || response.status === 401) {
+    // 401 说明 Web 服务已经起来，只是登录状态失效
+    if (response.status === 401) {
       show_success_modal("已重启", () => window.location.reload(true));
       return;
     }
+    if (!response.ok) {
+      throw new Error('HTTP ' + response.status);
+    }
 
-    throw new Error('HTTP ' + response.status);
+    return response.json().then((ret) => {
+      // 没能记录旧进程标识时无法比对，按服务已恢复处理
+      if (!systemBootId || (ret && ret.boot_id && ret.boot_id !== systemBootId)) {
+        show_success_modal("已重启", () => window.location.reload(true));
+        return;
+      }
+      // 还是重启前的进程，继续等待
+      throw new Error('旧进程仍在运行');
+    });
   }).catch(() => {
     clearTimeout(timeoutId);
     setTimeout(check_system_online, 2000);
+  });
+}
+
+// 记录当前进程标识并请求重启，随后轮询直到新进程上线
+function restart_system_and_wait() {
+  systemOnlineCheckCount = 0;
+  systemBootId = null;
+  fetch_system_boot_id().then((boot_id) => {
+    systemBootId = boot_id;
+    axios_post("/sys/restart", {}, function () {}, false);
+    show_wait_modal(true);
+    setTimeout(check_system_online, 5000);
   });
 }
 
@@ -431,15 +477,7 @@ $(document).on("click", "#change_password_btn", change_password);
 
 //重启
 function restart() {
-  show_confirm_modal("立即重启系统？", function () {
-    systemOnlineCheckCount = 0;
-
-    axios_post("/sys/restart", {}, function (ret) {
-    }, false);
-
-    show_wait_modal(true);
-    setTimeout(check_system_online, 5000);
-  });
+  show_confirm_modal("立即重启系统？", restart_system_and_wait);
 }
 
 // 显示配置不完整提示

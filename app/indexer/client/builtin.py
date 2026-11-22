@@ -8,6 +8,7 @@ from app.indexer.client import (
     TNodeSpider,
     TorrentLeech,
     TorrentSpider,
+    YemaSpider,
 )
 from app.indexer.client._base import _IIndexClient
 from app.indexer.manager import IndexerManager
@@ -177,6 +178,9 @@ class BuiltinIndexer(_IIndexClient):
             
             if indexer.parser == "MTorrentSpider":
                 return MTorrentSpider(indexer).search(keyword=search_word, mtype=mtype)
+
+            if indexer.parser == "YemaSpider":
+                return YemaSpider(indexer).search(keyword=search_word, mtype=mtype)
 
             if indexer.parser == "TheRarbg":
                 return TheRarbg(indexer).search(keyword=search_word)

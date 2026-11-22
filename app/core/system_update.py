@@ -16,7 +16,8 @@ def run_system_update(
     执行一次 Git 系统更新。
 
     :param progress_cb: 可选进度回调 progress_cb(percent, message)
-    :return: 结果字典 {code, updated, msg, branch, old_commit, new_commit, mode, output}
+    :return: 结果字典 {code, updated, msg, branch, old_commit, new_commit, mode, output,
+             changed_files, frontend_only}
     """
 
     def report(percent: int, message: str) -> None:
@@ -37,10 +38,11 @@ def run_system_update(
     log.info('【UpdateSystem】----------------------------检查更新----------------------------')
     log.info(f'【UpdateSystem】获取系统根目录: {root_path}')
 
-    def run_git(*args: str) -> tuple[int, str, str]:
-        """执行git命令，返回(返回码, stdout, 合并输出)"""
+    def run_git(*args: str, quiet: bool = False) -> tuple[int, str, str]:
+        """执行git命令，返回(返回码, stdout, 合并输出)；quiet 为真时不记录命令与输出"""
         cmd = ["git", "-C", root_path, *args]
-        log.info(f'【UpdateSystem】执行：git {" ".join(args)}')
+        if not quiet:
+            log.info(f'【UpdateSystem】执行：git {" ".join(args)}')
         try:
             ret = subprocess.run(
                 cmd,
@@ -57,8 +59,9 @@ def run_system_update(
             return 1, "", str(err)
         stdout = (ret.stdout or "").strip()
         output = "\n".join([x for x in [stdout, (ret.stderr or "").strip()] if x])
-        for line in output.splitlines():
-            log.info(f'【UpdateSystem】>>> {line}')
+        if not quiet:
+            for line in output.splitlines():
+                log.info(f'【UpdateSystem】>>> {line}')
         return ret.returncode, stdout, output
 
     # 当前分支
@@ -108,9 +111,24 @@ def run_system_update(
                 "output": "\n".join([x for x in outputs if x])}
 
     updated = old_commit != new_commit
+
+    changed_files: list[str] = []
     if updated:
         # 版本号可能已变化，清掉缓存以便下次请求重新读取
         SystemUtils.refresh_cache()
+        code, changed_text, _ = run_git(
+            "diff", "--name-only", old_commit, new_commit, quiet=True
+        )
+        if code == 0:
+            changed_files = [
+                line.strip() for line in changed_text.splitlines() if line.strip()
+            ]
+
+    # 只改了 static/ 且没动 static/libs/ 时，刷新页面即可拿到新资源
+    frontend_only = bool(changed_files) and all(
+        path.startswith("static/") and not path.startswith("static/libs/")
+        for path in changed_files
+    )
 
     if updated:
         if mode == "force-reset":
@@ -133,6 +151,8 @@ def run_system_update(
         "new_commit": new_commit,
         "mode": mode,
         "output": "\n".join([x for x in outputs if x]),
+        "changed_files": changed_files,
+        "frontend_only": frontend_only,
     }
 
 

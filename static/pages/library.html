@@ -11,33 +11,12 @@
     --lib-accent-ink: #a9abff;
   }
 
-  .lib-stack {
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
-  }
-
-  .lib-section > .card-header {
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    gap: 16px;
-    padding: 16px 24px;
-  }
-
   .lib-section-title {
     margin: 0;
     font-size: 15px;
     font-weight: 500;
     line-height: 22px;
     color: var(--tblr-emphasis-color);
-  }
-
-  .lib-section-desc {
-    margin-top: 2px;
-    font-size: 12.5px;
-    line-height: 18px;
-    color: var(--tblr-secondary-color);
   }
 
   .lib-section > .card-body {
@@ -64,7 +43,7 @@
   }
 
   .lib-server:hover {
-    border-color: var(--tblr-secondary-color);
+    border-color: rgba(var(--lib-accent-rgb), 0.5);
     color: inherit;
   }
 
@@ -74,7 +53,7 @@
   }
 
   .lib-server.is-active {
-    border-color: rgba(var(--lib-accent-rgb), 0.5);
+    border-color: rgb(var(--lib-accent-rgb));
     background: rgba(var(--lib-accent-rgb), 0.05);
   }
 
@@ -115,29 +94,22 @@
     color: var(--tblr-emphasis-color);
   }
 
-  .lib-server-state {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    font-size: 12px;
-    line-height: 16px;
+  .lib-server .lit-status {
     color: var(--tblr-secondary-color);
+    line-height: 16px;
   }
 
-  .lib-dot {
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
+  .lib-server .lit-status-dot {
     background: var(--tblr-secondary-color);
     opacity: 0.45;
   }
 
-  .lib-server.is-active .lib-dot {
+  .lib-server.is-active .lit-status-dot {
     background: rgb(var(--lib-accent-rgb));
     opacity: 1;
   }
 
-  .lib-server.is-active .lib-server-state {
+  .lib-server.is-active .lit-status {
     color: var(--lib-accent-ink);
   }
 
@@ -217,11 +189,6 @@
     border-top: 1px solid var(--lib-hairline);
   }
 
-  .lib-icon-btn:focus-visible {
-    outline: 2px solid rgba(var(--lib-accent-rgb), 0.55);
-    outline-offset: 2px;
-  }
-
   [data-bs-theme="dark"] .lib-page .form-label {
     color: var(--tblr-emphasis-color);
   }
@@ -239,25 +206,6 @@
   .lib-field-mono input {
     font-family: var(--lib-mono);
     font-size: 12.5px;
-  }
-
-  .lib-count {
-    flex: 0 0 auto;
-    padding-top: 2px;
-    font-family: var(--lib-mono);
-    font-size: 12px;
-    color: var(--tblr-secondary-color);
-  }
-
-  .lib-section-actions {
-    display: flex;
-    flex: 0 0 auto;
-    align-items: flex-start;
-    gap: 16px;
-  }
-
-  .lib-dir-body {
-    padding-top: 16px;
   }
 
   .lib-dir-grid {
@@ -357,38 +305,6 @@
     color: var(--tblr-secondary-color);
   }
 
-  .lib-icon-btn {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    flex: 0 0 28px;
-    width: 28px;
-    height: 28px;
-    padding: 0;
-    border: 0;
-    border-radius: 6px;
-    background: transparent;
-    color: var(--tblr-secondary-color);
-  }
-
-  .lib-icon-btn i {
-    font-size: 16px;
-  }
-
-  .lib-icon-btn:hover {
-    background: var(--tblr-tertiary-bg);
-    color: var(--tblr-body-color);
-  }
-
-  .lib-icon-danger:hover {
-    background: rgba(220, 38, 38, 0.08);
-    color: #dc2626;
-  }
-
-  [data-bs-theme="dark"] .lib-icon-danger:hover {
-    color: #e5484d;
-  }
-
   @media (max-width: 575.98px) {
     .lib-section > .card-header,
     .lib-section > .card-body {
@@ -399,20 +315,15 @@
     .lib-dir-grid {
       grid-template-columns: 1fr;
     }
-
-    .lib-count {
-      display: none;
-    }
   }
 </style>
 
 <div class="page-body lib-page">
-  <div class="container-xl lib-stack">
+  <div class="container-xl d-flex flex-column gap-3">
     <section class="card lib-section">
-      <div class="card-header">
+      <div class="card-header d-flex align-items-start justify-content-between gap-3">
         <div>
           <h2 class="lib-section-title">媒体服务器</h2>
-          <div class="lib-section-desc">连接 Emby、Jellyfin 或 Plex，用于媒体库状态与播放跳转</div>
         </div>
         <button type="button" class="card-collapse" onclick="toggle_card_section('sys_media_server_config', this)" data-section-label="媒体服务器" aria-label="折叠媒体服务器" aria-expanded="true">
           <i class="ti ti-chevron-right"></i>
@@ -438,10 +349,9 @@
       </div>
     </section>
     <section class="card lib-section">
-      <div class="card-header">
+      <div class="card-header d-flex align-items-start justify-content-between gap-3">
         <div>
           <h2 class="lib-section-title">存储与整理</h2>
-          <div class="lib-section-desc">媒体文件的默认路径、转移规则、命名格式与刮削</div>
         </div>
         <button type="button" class="card-collapse" onclick="toggle_card_section('sys_media_config', this)" data-section-label="存储与整理" aria-label="折叠存储与整理" aria-expanded="true">
           <i class="ti ti-chevron-right"></i>
@@ -1078,7 +988,7 @@
           <span class="lib-server-logo"><img src="${server.img_url}" alt=""></span>
           <span class="lib-server-body">
             <span class="lib-server-name">${server.name}</span>
-            <span class="lib-server-state"><span class="lib-dot"></span>${stateText}</span>
+            <span class="lit-status"><span class="lit-status-dot"></span>${stateText}</span>
           </span>
         </a>
       `);
@@ -1342,24 +1252,12 @@
     let $list = $("#library-list");
     $list.empty();
 
-    let totalDirs = 0;
-    let configuredCats = 0;
-    $.each(types, function (type) {
-      const count = (mediaConfig[type + "_path"] || []).length;
-      totalDirs += count;
-      if (count > 0) {
-        configuredCats++;
-      }
-    });
-
     $list.append(`
-      <div class="card-header">
+      <div class="card-header d-flex align-items-start justify-content-between gap-3">
         <div>
           <h2 class="lib-section-title">媒体库目录</h2>
-          <div class="lib-section-desc">转移后的媒体文件按分类写入这些目录</div>
         </div>
-        <div class="lib-section-actions">
-          <div class="lib-count">${configuredCats} 个分类 · ${totalDirs} 个目录</div>
+        <div class="d-flex flex-shrink-0 align-items-start gap-3">
           <button type="button" class="card-collapse${libraryListCollapsed ? " is-collapsed" : ""}"
             onclick="lib_toggle_libraries(this)" data-section-label="媒体库目录"
             aria-label="${libraryListCollapsed ? "展开" : "折叠"}媒体库目录"
@@ -1370,7 +1268,7 @@
       </div>
     `);
 
-    const $body = $('<div class="card-body lib-dir-body" id="library-list-body"></div>');
+    const $body = $('<div class="card-body pt-3" id="library-list-body"></div>');
     if (libraryListCollapsed) {
       $body.hide();
     }
@@ -1380,7 +1278,7 @@
       const paths = mediaConfig[type + "_path"] || [];
       const $card = $('<div class="lib-dir-card"></div>');
 
-      const $add = $('<button type="button" class="lib-icon-btn" title="添加目录"><i class="ti ti-plus"></i></button>')
+      const $add = $('<button type="button" class="lit-icon-btn" title="添加目录"><i class="ti ti-plus"></i></button>')
         .attr({
           "data-lib-action": "add",
           "data-lib-type": type,
@@ -1403,7 +1301,7 @@
           $label.append('<i class="ti ti-folders"></i>');
           $label.append($('<span class="lib-path-text"></span>').text(path).attr("title", path));
 
-          const $del = $('<button type="button" class="lib-icon-btn lib-icon-danger" title="删除目录"><i class="ti ti-trash"></i></button>')
+          const $del = $('<button type="button" class="lit-icon-btn is-danger" title="删除目录"><i class="ti ti-trash"></i></button>')
             .attr({
               "data-lib-action": "remove",
               "data-lib-type": type,

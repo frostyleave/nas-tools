@@ -1,5 +1,5 @@
 from typing import ClassVar
-from urllib.parse import urlsplit, urlunsplit
+from urllib.parse import quote, urlsplit, urlunsplit
 
 import requests
 from cachetools import TTLCache, cached
@@ -99,6 +99,16 @@ class Bangumi:
         return url
 
     @staticmethod
+    def __proxy_image(url):
+        """
+        通过后端中转 Bangumi 图片
+        :param url: 图片地址
+        """
+        if not url:
+            return ""
+        return "/bangumiimg?url=" + quote(url, safe="")
+
+    @staticmethod
     def __dict_item(item, weekday, media_type=MediaType.ANIME):
         """
         转换为字典
@@ -119,8 +129,8 @@ class Bangumi:
             image = Bangumi.__resize_image(large_image)
         else:
             image = images.get("common", "")
-        # 统一升级为 https，避免 iOS Safari 拦截 http 混合内容
-        image = Bangumi.__to_https(image)
+        # 统一升级为 https 后交给后端中转，避免混合内容与图片域名直连问题
+        image = Bangumi.__proxy_image(Bangumi.__to_https(image))
         summary = item.get("summary")
         return {
             'id': f"BG:{bid}",

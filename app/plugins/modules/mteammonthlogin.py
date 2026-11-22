@@ -1,6 +1,7 @@
 import base64
 import hashlib
 import hmac
+import json
 import re
 import struct
 import time
@@ -140,6 +141,49 @@ class _MTeamClient:
             self._api = base
             return self._json(resp)
         raise last_error or RuntimeError("M-Team 账号信息查询失败")
+
+    def cookie_header(self) -> str:
+        """
+        当前会话的 cookie，格式可直接粘贴到站点配置或请求头
+        """
+        return "; ".join(f"{morsel.name}={morsel.value}"
+                         for morsel in self._session.cookies.jar)
+
+    def cookie_export_json(self) -> str:
+        """
+        导出 Cookie-Editor 扩展可导入的 JSON
+        """
+        items = []
+        for morsel in self._session.cookies.jar:
+            domain = getattr(morsel, "domain", "") or getattr(morsel, "hostname", "") or ""
+            expires = getattr(morsel, "expires", None)
+            items.append({
+                "domain": domain,
+                "expirationDate": int(expires) if expires else None,
+                "hostOnly": not domain.startswith("."),
+                "httpOnly": self._is_http_only_cookie(morsel),
+                "name": morsel.name,
+                "path": getattr(morsel, "path", "") or "/",
+                "sameSite": "unspecified",
+                "secure": bool(getattr(morsel, "secure", False)),
+                "session": not bool(expires),
+                "storeId": "0",
+                "value": morsel.value,
+            })
+        return json.dumps(items, ensure_ascii=False, indent=2)
+
+    @staticmethod
+    def _is_http_only_cookie(morsel) -> bool:
+        """
+        兼容 curl_cffi 与标准库两种 cookie 对象
+        """
+        if getattr(morsel, "http_only", False):
+            return True
+        checker = getattr(morsel, "has_nonstandard_attr", None)
+        try:
+            return bool(checker and checker("HttpOnly"))
+        except Exception:
+            return False
 
     def refresh_secret(self):
         """
@@ -455,7 +499,7 @@ class MTeamMonthLogin(_IPluginModule):
                 return
 
             self.info("模拟登录成功，登录凭证仅记录到历史，不持久化复用")
-            self._record("success", f"{reason}，模拟登录成功，token={new_token}")
+            self._record("success", self._success_message(reason, new_token, client))
             self._notify_result("M-Team每月登录成功", f"模拟登录成功（{reason}）")
         except Exception as err:
             log.exception("【M-Team每月登录】执行异常: ")
@@ -487,6 +531,21 @@ class MTeamMonthLogin(_IPluginModule):
         reason = f"API Key 读取账号信息失败（{body.get('message') or body.get('code')}）"
         self.warn(reason)
         return None, reason
+
+    def _success_message(self, reason: str, token: str, client: _MTeamClient) -> str:
+        """
+        生成登录成功的历史记录：token、cookie，以及可复制到浏览器的凭证
+        """
+        lines = [f"{reason}，模拟登录成功",
+                 f"token={token}",
+                 "",
+                 "网页端登录凭证保存在 localStorage 的 auth 中，打开 kp.m-team.cc 后在控制台执行：",
+                 f"localStorage.setItem('auth', '{token}'); location.href = '/';"]
+        cookie = client.cookie_header()
+        if cookie:
+            lines.extend(["", f"cookie={cookie}", "", "Cookie-Editor 扩展可导入的 JSON：",
+                          client.cookie_export_json()])
+        return "\n".join(lines)
 
     def _get_proxies(self):
         if not self._use_proxy:

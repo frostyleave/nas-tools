@@ -4,6 +4,7 @@ import contextlib
 from fastapi import FastAPI
 
 import log
+from app.core.runtime_state import request_shutdown
 from app.core.services import ServiceManager
 from app.core.task_manager import task_processor_start, task_processor_stop
 from app.utils.async_request import close_async_client, init_async_client
@@ -48,7 +49,12 @@ async def lifespan(app: FastAPI):
         log.critical('❌ FastAPI 应用启动时异常', exc_info=True)
     finally:
         log.info('FastAPI 应用开始关闭...')
-        ServiceManager.stop_service()
+        request_shutdown()
+        if ServiceManager.is_restarting():
+            # 重启流程已负责服务清理，避免在事件循环里重复执行可能阻塞的清理
+            log.info('重启流程已负责服务清理，跳过重复清理')
+        else:
+            ServiceManager.stop_service_bounded()
 
         # 关闭任务管理器
         task_processor_stop()

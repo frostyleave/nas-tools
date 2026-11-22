@@ -3,4 +3,5 @@ from ._rarbg import TheRarbg
 from ._spider import TorrentSpider
 from ._tnode import TNodeSpider
 from ._torrentleech import TorrentLeech
+from ._yema import YemaSpider
 from .builtin import BuiltinIndexer

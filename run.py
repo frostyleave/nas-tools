@@ -5,6 +5,7 @@ import warnings
 import uvicorn
 from fastapi import FastAPI
 
+from app.core.runtime_state import request_shutdown
 from config import Config
 from log import setup_logging
 
@@ -33,11 +34,15 @@ def sigal_handler(num, stack):
     信号处理
     """
     log.warn(f'捕捉到退出信号：{num}, 开始退出...')
+    request_shutdown()
 
-    # 退出主进程
+    # 退出主进程；非 0 退出码可让 restart: on-failure 策略也重新拉起容器
+    try:
+        exit_code = 128 + int(num)
+    except (TypeError, ValueError):
+        exit_code = 1
     log.info('退出主进程...')
-    server.should_exit = True
-    os._exit(0)
+    os._exit(exit_code)
 
 
 # 事件绑定
@@ -64,7 +69,7 @@ def get_run_config(app: FastAPI) -> uvicorn.Config:
                                     reload=False,
                                     log_level=_log_level,
                                     workers=1,
-                                    timeout_graceful_shutdown=60)
+                                    timeout_graceful_shutdown=10)
 
     return uvicorn_config
 
@@ -131,6 +136,18 @@ def init_system():
 # uvicorn服务
 server_conf = get_run_config(app)
 server = uvicorn.Server(server_conf)
+
+# uvicorn 会用自身的 handle_exit 覆盖进程信号处理，这里先标记关闭状态，
+# 让日志等常驻 SSE 在等待连接关闭之前就主动结束
+_uvicorn_handle_exit = server.handle_exit
+
+
+def _handle_exit(sig, frame):
+    request_shutdown()
+    _uvicorn_handle_exit(sig, frame)
+
+
+server.handle_exit = _handle_exit
 
 
 # 本地运行

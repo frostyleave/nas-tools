@@ -51,8 +51,6 @@ class UserSiteConf(BaseModel):
     uses: list[str]
     rss_enable: bool
     """ 是否启用-RSS订阅 """
-    brush_enable: bool
-    """ 是否启用-刷流 """
     statistic_enable: bool
     """ 是否启用-数据统计 """
 

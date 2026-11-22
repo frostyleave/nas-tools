@@ -94,7 +94,11 @@ class MTorrentSpider:
             "mode": "normal"
         }
         res = RequestUtils(
-            headers=self.__get_api_headers(content_type="application/json"),
+            headers={
+                "Content-Type": "application/json",
+                "User-Agent": f"{self._ua}",
+                "x-api-key": self._apikey
+            },
             proxies=self._proxy,
             timeout=self._timeout
         ).post_res(url=self._search_url, json=params)
