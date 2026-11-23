@@ -1,5 +1,6 @@
 import base64
 import os
+import time
 from dataclasses import dataclass, field
 from datetime import timedelta
 from threading import Event
@@ -624,9 +625,13 @@ class AutoSignIn(_IPluginModule):
         """
         当前页面是否为登录页
         """
-        if "login.php" in (page.url or ""):
-            return True
-        return page.locator('form#login-form, form[action$="takelogin.php"]').count() > 0
+        try:
+            if "login.php" in (page.url or ""):
+                return True
+            return page.locator('form#login-form, form[action$="takelogin.php"]').count() > 0
+        except Exception:
+            # 页面跳转过程中读取 DOM 可能失败，按非登录页处理，下一轮再判断
+            return False
 
     def __browser_sign_in(self, site_info: UserSiteConf, checkin_url: str) -> tuple[bool, str]:
         """
@@ -644,52 +649,70 @@ class AutoSignIn(_IPluginModule):
         def _flow(page):
             resp = page.goto(checkin_url, wait_until="domcontentloaded",
                              timeout=_BROWSER_TIMEOUT * 1000)
-            if self.__is_login_page(page):
-                return False, f'[{site_name}]签到失败: cookie失效'
+            deadline = time.time() + _BROWSER_TIMEOUT
+            clicked = False
+            turnstile_waited = False
 
-            html_text = page.content()
-            if SiteSigninHelper.sign_in_result(html_text, _SIGN_REGEX):
-                return True, f'[{site_name}]今日已签到'
-
-            # 整页挑战或页面跳转中，等待签到表单出现
-            if page.locator(_ATTENDANCE_FORM).count() == 0:
+            def _text():
                 try:
-                    page.wait_for_selector(_ATTENDANCE_FORM,
-                                           timeout=_BROWSER_TIMEOUT * 1000)
+                    return page.content()
                 except Exception:
-                    status = resp.status if resp else "未知"
-                    return False, f'[{site_name}]签到失败: 未能通过 Cloudflare 验证(HTTP {status})'
+                    return ""
+
+            def _count(selector):
+                try:
+                    return page.locator(selector).count()
+                except Exception:
+                    return 0
+
+            while True:
                 if self.__is_login_page(page):
                     return False, f'[{site_name}]签到失败: cookie失效'
-                html_text = page.content()
-                if SiteSigninHelper.sign_in_result(html_text, _SIGN_REGEX):
-                    return True, f'[{site_name}]今日已签到'
 
-            # 等待 Turnstile 生成 token
-            if page.locator(TURNSTILE_SELECTOR).count() > 0:
-                self.info(f'[{site_name}]等待 Cloudflare Turnstile 验证通过')
-                if not wait_turnstile_token(page, _BROWSER_TIMEOUT):
-                    return False, f'[{site_name}]签到失败: Cloudflare Turnstile 验证超时'
-
-            submit = page.locator(f'{_ATTENDANCE_FORM} input[type="submit"]')
-            if submit.count() == 0:
-                return False, f'[{site_name}]签到失败: 未找到签到按钮'
-            submit.first.click()
-            page.wait_for_load_state("domcontentloaded",
-                                     timeout=_BROWSER_TIMEOUT * 1000)
-
-            # 表单提交后页面可能延迟刷新，轮询几次结果
-            for _ in range(5):
-                result_html = page.content()
-                if "Captcha verification token is missing" in result_html:
+                html_text = _text()
+                if "Captcha verification token is missing" in html_text:
                     return False, f'[{site_name}]签到失败: Cloudflare 验证未通过'
-                if (SiteSigninHelper.sign_in_result(result_html, _SIGN_REGEX)
-                        or SiteSigninHelper.sign_in_result(result_html, _SUCCESS_REGEX)):
+                if (SiteSigninHelper.sign_in_result(html_text, _SIGN_REGEX)
+                        or SiteSigninHelper.sign_in_result(html_text, _SUCCESS_REGEX)):
                     return True, f'[{site_name}]签到成功'
-                if page.locator(_ATTENDANCE_FORM).count() == 0:
-                    break
-                page.wait_for_timeout(1000)
-            return False, f'[{site_name}]签到失败: 签到后页面未返回成功信息'
+
+                if _count(_ATTENDANCE_FORM) == 0:
+                    # 挑战页或跳转中；部分站点通过挑战后会自动完成签到
+                    if time.time() >= deadline:
+                        if clicked:
+                            return False, f'[{site_name}]签到失败: 签到后页面未返回成功信息'
+                        status = resp.status if resp else "未知"
+                        if under_turnstile(html_text):
+                            return False, f'[{site_name}]签到失败: 未能通过 Cloudflare 验证(HTTP {status})'
+                        return False, f'[{site_name}]签到失败: 未出现签到表单(HTTP {status})'
+                    page.wait_for_timeout(1000)
+                    continue
+
+                if clicked:
+                    if time.time() >= deadline:
+                        return False, f'[{site_name}]签到失败: 签到后页面未返回成功信息'
+                    page.wait_for_timeout(1000)
+                    continue
+
+                # token 生成后部分站点会自动提交签到，先等页面结果再决定是否点击
+                if _count(TURNSTILE_SELECTOR) > 0 and not turnstile_waited:
+                    turnstile_waited = True
+                    self.info(f'[{site_name}]等待 Cloudflare Turnstile 验证通过')
+                    if not wait_turnstile_token(page, _BROWSER_TIMEOUT):
+                        return False, f'[{site_name}]签到失败: Cloudflare Turnstile 验证超时'
+                    page.wait_for_timeout(2000)
+                    continue
+
+                submit = page.locator(f'{_ATTENDANCE_FORM} input[type="submit"]')
+                if submit.count() == 0:
+                    return False, f'[{site_name}]签到失败: 未找到签到按钮'
+                submit.first.click()
+                clicked = True
+                try:
+                    page.wait_for_load_state("domcontentloaded",
+                                             timeout=_BROWSER_TIMEOUT * 1000)
+                except Exception as err:
+                    log.debug(f"【自动签到】[{site_name}]等待签到页加载超时: {err!s}")
 
         return browser.run(
             url=checkin_url,
