@@ -108,6 +108,7 @@ class Spider(Enum):
     TorrentSpider = ""
     TorrentLeech = "TorrentLeech"
     TNodeSpider = "TNodeSpider"
+    TheRarbg = "TheRarbg"
     MTorrentSpider = "MTorrentSpider"
     YemaSpider = "YemaSpider"
     ColaPTSpider = "ColaPTSpider"

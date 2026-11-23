@@ -17,6 +17,7 @@ from app.indexer.manager import IndexerManager
 from app.models.model import IndexerInfo, UserSiteConf
 from app.utils import PathUtils, RequestUtils, SiteUtils, TorrentUtils
 from app.utils.torrent import TorrentDownloadResult
+from app.utils.types import Spider
 from config import Config
 
 
@@ -49,7 +50,7 @@ class TorrentDownloader:
             return self.get_torrent_info(url=url)
 
         parser = indexer_info.parser
-        if parser in ("MTorrentSpider", "YemaSpider", "ColaPTSpider"):
+        if parser in (Spider.MTorrentSpider.value, Spider.YemaSpider.value, Spider.ColaPTSpider.value):
             return self._get_torrent_file_with_spider(url, indexer_info, parser)
 
         cookie = indexer_info.cookie if indexer_info else None
@@ -181,9 +182,9 @@ class TorrentDownloader:
         通过爬虫把种子下载到本地
         :return: TorrentDownloadResult
         """
-        if parser == "MTorrentSpider":
+        if parser == Spider.MTorrentSpider.value:
             req = MTorrentSpider(indexer_info).get_torrent(url)
-        elif parser == "ColaPTSpider":
+        elif parser == Spider.ColaPTSpider.value:
             req = ColaPTSpider(indexer_info).get_torrent(url)
         else:
             req = YemaSpider(indexer_info).get_torrent(url)

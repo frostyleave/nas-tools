@@ -410,6 +410,8 @@ class NexusPhpSiteUserInfo(_ISiteUserInfo):
             self.upload = self.__parse_labeled_filesize(html, "上传量")
         if not self.download:
             self.download = self.__parse_labeled_filesize(html, "下载量")
+        if not self.ratio:
+            self.ratio = self.__parse_labeled_ratio(html)
 
         # 做种体积 & 做种数
         # seeding 页面获取不到的话，此处再获取一次
@@ -461,7 +463,8 @@ class NexusPhpSiteUserInfo(_ISiteUserInfo):
         if not self.seeding:
             seeding = html.xpath('.//img[@alt="Torrents seeding"]/following-sibling::text()')
             seeding = self.clean_text_list(seeding)
-            self.seeding = StringUtils.str_int(seeding[0].strip())
+            if seeding:
+                self.seeding = StringUtils.str_int(seeding[0].strip())
         if not self.seeding_size:
             seeding_size_text = html.xpath('//tr/td[text()="做种大小"]/following-sibling::td[1]/text()')
             if seeding_size_text:
@@ -500,6 +503,22 @@ class NexusPhpSiteUserInfo(_ISiteUserInfo):
             if size_match:
                 return StringUtils.num_filesize(size_match.group())
 
+        return 0
+
+    @staticmethod
+    def __parse_labeled_ratio(html):
+        """
+        从“分享率: 2.625（实际分享率：0.138）”中取站点分享率
+
+        数值可能在标签后的文本节点，也可能在紧跟的元素里，取标签所在单元格的完整文本匹配
+        """
+        labels = html.xpath(
+            '//*[self::strong or self::b or self::span][normalize-space(text())="分享率"]'
+        )
+        for label in labels:
+            match = re.search(r"(?<!实际)分享率\s*[:：]\s*([\d,.]+)", label.xpath("string(..)"))
+            if match:
+                return StringUtils.str_float(match.group(1))
         return 0
 
     def extract_seed_info(html_tree):

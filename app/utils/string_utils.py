@@ -238,19 +238,22 @@ class StringUtils:
     @staticmethod
     def str_int(text):
         """
-        web字符串转int
+        web字符串转int，文本中带标签时取其中的数字
         :param text:
         :return:
         """
-        int_val = 0
         if not text:
-            return int_val
+            return 0
+        value = str(text).strip().replace(',', '')
         try:
-            int_val = int(text.strip().replace(',', ''))
-        except Exception as e:
-            log.exception('str_int error:')
-
-        return int_val
+            return int(value)
+        except ValueError:
+            # 页面文本可能带标签，如“做种数:2”
+            match = re.search(r"[-+]?\d+", value)
+            if match:
+                return int(match.group())
+            log.debug(f"字符串转整数失败: {text!r}")
+            return 0
 
     @staticmethod
     def str_float(text):

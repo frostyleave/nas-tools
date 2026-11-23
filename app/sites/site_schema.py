@@ -3,17 +3,14 @@ import aiohttp
 import log
 from app.helper import SubmoduleHelper
 from app.models.model import UserSiteConf
+from app.sites.site_parser_factory import build_api_site_user_info, is_api_site_parser
 from app.sites.siteuserinfo._base import (
     _ISiteUserInfo,
     build_async_session,
     resolve_proxy_url,
 )
-from app.sites.siteuserinfo.colapt import ColaPTUserInfo
-from app.sites.siteuserinfo.mTorrent import MTorrentUserInfo
-from app.sites.siteuserinfo.yemapt import YemaUserInfo
 from app.utils.async_request import decode_bytes
 from app.utils.commons import mask_value, singleton
-from app.utils.types import Spider
 from config import Config
 
 
@@ -40,32 +37,13 @@ class SitesschemaCenter:
         site_url = site_info.strict_url
         site_name = site_info.name
         site_cookie = site_info.cookie
-        site_appkey = site_info.apikey
         use_proxy = site_info.proxy
-        parser = site_info.parser
 
         ua = site_info.ua
 
-        # 特定解析器
-        if parser and parser == Spider.MTorrentSpider.value:
-            return MTorrentUserInfo(site_name, site_url, site_cookie, '', apikey=site_appkey,
-                                    session=build_async_session(), proxy=use_proxy)
-
-        if parser and parser == Spider.ColaPTSpider.value:
-            if not site_appkey:
-                log.warn(f"【Sites】站点 {site_name} 未配置ColaPT API Key，无法解析")
-                return None
-            return ColaPTUserInfo(site_name, site_url, site_cookie, '', apikey=site_appkey,
-                                  session=build_async_session(), ua=ua, proxy=use_proxy)
-
-        if parser and parser == Spider.YemaSpider.value:
-            # API Auth Key 优先取 API Key 字段，其次取 Authorization 字段
-            yema_apikey = site_appkey or site_info.token
-            if not site_cookie and not yema_apikey:
-                log.warn(f"【Sites】站点 {site_name} 未配置Cookie或API Auth Key，无法解析")
-                return None
-            return YemaUserInfo(site_name, site_url, site_cookie, '', apikey=yema_apikey,
-                                session=build_async_session(site_cookie), ua=ua, proxy=use_proxy)
+        # 接口鉴权解析器
+        if is_api_site_parser(site_info.parser):
+            return build_api_site_user_info(site_info, session_factory=build_async_session)
 
         if not site_cookie:
             return None

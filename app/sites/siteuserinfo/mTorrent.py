@@ -136,6 +136,23 @@ class MTorrentUserInfo(_ISiteUserInfo):
                         headers=self._user_basic_headers
                     )
 
+    async def test_connection(self) -> tuple[bool, str]:
+        """
+        使用会员信息接口验证 API Key
+        """
+        response_text, status_code = await self.visit_base_info()
+
+        if response_text and status_code == 200:
+            detail = JsonUtils.loads(response_text)
+            if not detail or detail.get("code") != "0":
+                return False, "apikey失效"
+            return True, "连接成功"
+
+        if status_code:
+            return False, f"连接失败，状态码：{status_code}"
+
+        return False, "无法打开网站"
+
 
     def _parse_user_traffic_info(self, html_text: str):
         """

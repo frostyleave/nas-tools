@@ -13,11 +13,9 @@ from app.indexer.manager import IndexerManager
 from app.message import MessageService
 from app.models.model import SiteBaseModel, UserSiteConf
 from app.sites import SiteRateLimiter
-from app.sites.siteuserinfo.mTorrent import MTorrentUserInfo
-from app.sites.siteuserinfo.yemapt import YemaUserInfo
 from app.utils import JsonUtils, RequestUtils, SiteUtils
 from app.utils.commons import singleton
-from app.utils.types import Spider, SystemConfigKey
+from app.utils.types import SystemConfigKey
 from config import Config
 
 # NexusPHP 站点页脚特征
@@ -524,131 +522,21 @@ class SitesManager:
             if not site_info:
                 return False, "站点不存在", 0
 
-            if site_info.parser and site_info.parser == Spider.MTorrentSpider.value:
-                return self._test_mteam_connection(site_info)
+            # 延迟导入，避免站点模块初始化时反向依赖索引器模块
+            from app.sites.site_parser_factory import build_api_site_user_info
+            parser = build_api_site_user_info(site_info, require_credentials=False)
+            if not parser:
+                return self.__test_connection_basic(site_info)
 
-            if site_info.parser and site_info.parser == Spider.ColaPTSpider.value:
-                return self._test_colapt_connection(site_info)
-
-            if site_info.parser and site_info.parser == Spider.YemaSpider.value:
-                return self._test_yema_connection(site_info)
-
-            return self.__test_connection_basic(site_info)
+            # 计时
+            start_time = datetime.now()
+            success, message = asyncio.run(parser.test_connection())
+            seconds = int((datetime.now() - start_time).total_seconds() * 1000)
+            return success, message, seconds
             
         except Exception as e:
             log.exception('【Sites】测试站点连通性异常: ')
             return False, "测试站点连通性异常", 0
-
-    def _test_mteam_connection(self, site_info: UserSiteConf):
-
-        url = site_info.strict_url
-        site_name = site_info.name
-        site_cookie = site_info.cookie
-        site_appkey = site_info.apikey
-        proxy = site_info.proxy
-
-        # 计时
-        start_time = datetime.now()
-
-        mteam_proxy = MTorrentUserInfo(site_name, url, site_cookie, '', apikey=site_appkey, proxy=proxy)
-        response_text, status_code = asyncio.run(mteam_proxy.visit_base_info())
-
-        # 计算耗时
-        seconds = int((datetime.now() - start_time).microseconds / 1000)
-
-        if response_text and status_code == 200:
-            detail = JsonUtils.loads(response_text)
-            if not detail or detail.get("code") != "0":
-                return False, "apikey失效", seconds
-            return True, "连接成功", seconds
-
-        if status_code:
-            return False, f"连接失败，状态码：{status_code}", seconds
-
-        return False, "无法打开网站", seconds
-
-    def _test_colapt_connection(self, site_info: UserSiteConf):
-
-        # 延迟导入，避免站点模块初始化时反向依赖索引器模块
-        from app.indexer.client._colapt import integer, response_data
-        from app.sites.siteuserinfo.colapt import ColaPTUserInfo
-
-        site_appkey = str(site_info.apikey or "").strip()
-        if not site_appkey:
-            return False, "未配置ColaPT API Key", 0
-
-        # 计时
-        start_time = datetime.now()
-
-        colapt_proxy = ColaPTUserInfo(site_info.name, site_info.strict_url, '', '',
-                                      apikey=site_appkey, ua=site_info.ua, proxy=site_info.proxy)
-        response_text, status_code = asyncio.run(colapt_proxy.visit_base_info())
-
-        # 计算耗时
-        seconds = int((datetime.now() - start_time).total_seconds() * 1000)
-
-        if status_code == -1:
-            return False, "ColaPT API Key 已失效或无效", seconds
-
-        detail = JsonUtils.loads(response_text, default=None, silent=True)
-        if isinstance(detail, dict):
-            try:
-                response_data(status_code, detail, site_appkey)
-                user = detail.get("user")
-                integer(user.get("id") if isinstance(user, dict) else None, minimum=1)
-                return True, "连接成功", seconds
-            except (TypeError, ValueError) as err:
-                return False, str(err), seconds
-
-        if status_code and status_code != 200:
-            return False, f"连接失败，状态码：{status_code}", seconds
-
-        return False, "ColaPT API 响应结构无效", seconds
-
-    def _test_yema_connection(self, site_info: UserSiteConf):
-
-        url = site_info.strict_url
-        site_name = site_info.name
-        site_cookie = site_info.cookie
-        # API Auth Key 优先取 API Key 字段，其次取 Authorization 字段
-        site_appkey = site_info.apikey or site_info.token
-        proxy = site_info.proxy
-
-        if not site_cookie and not site_appkey:
-            return False, "未配置站点Cookie或API Auth Key", 0
-
-        # 计时
-        start_time = datetime.now()
-
-        yema_proxy = YemaUserInfo(site_name, url, site_cookie, '', apikey=site_appkey,
-                                  ua=site_info.ua, proxy=proxy)
-        response_text, status_code = asyncio.run(yema_proxy.visit_base_info())
-
-        # 计算耗时
-        seconds = int((datetime.now() - start_time).total_seconds() * 1000)
-
-        detail = JsonUtils.loads(response_text, default=None, silent=True)
-        if not isinstance(detail, dict):
-            detail = {}
-        if detail.get("success"):
-            return True, "连接成功", seconds
-
-        error_code = detail.get("errorCode")
-        if site_appkey:
-            messages = {
-                400: "API Auth Key无效或已过期",
-                403: "API Auth Key无效或已删除",
-                1402: "需要先完成邮箱验证"
-            }
-            if error_code in messages:
-                return False, messages[error_code], seconds
-        elif error_code in (400, 401):
-            return False, "Cookie失效", seconds
-
-        if status_code and status_code != 200:
-            return False, f"连接失败，状态码：{status_code}", seconds
-
-        return False, detail.get("errorMessage") or "无法打开网站", seconds
 
     def __test_connection_basic(self, site_info: UserSiteConf):
             

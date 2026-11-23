@@ -260,6 +260,14 @@ class _ISiteUserInfo(metaclass=ABCMeta):
             # 关闭连接
             await self.close()
 
+    async def test_connection(self) -> tuple[bool, str]:
+        """
+        测试站点连通性，默认不支持；使用接口鉴权的解析器覆盖为轻量的凭证校验
+
+        :return: 是否连通、错误信息
+        """
+        return False, "当前解析器不支持连通性测试"
+
     @staticmethod
     async def _maybe_await(value):
         """
@@ -299,24 +307,40 @@ class _ISiteUserInfo(metaclass=ABCMeta):
 
     async def _parse_seeding_pages(self):
 
-        if self._torrent_seeding_page:
-            page_url = urljoin(self._base_url, self._torrent_seeding_page)
-            refer_url = urljoin(self._base_url, self._user_detail_page)
-            if self._torrent_seeding_headers:
-                self._torrent_seeding_headers.update({'Referer' : refer_url})
-            else:
-                self._torrent_seeding_headers = {'Referer' : refer_url}
+        if not self._torrent_seeding_page:
+            return
 
-            page_conent, _ = await self._get_page_content(page_url, self._torrent_seeding_params, self._torrent_seeding_headers)
-            # 第一页
-            next_page = await self._maybe_await(self._parse_user_torrent_seeding_info(page_conent))
+        page_url = urljoin(self._base_url, self._torrent_seeding_page)
+        refer_url = urljoin(self._base_url, self._user_detail_page)
+        if self._torrent_seeding_headers:
+            self._torrent_seeding_headers.update({'Referer' : refer_url})
+        else:
+            self._torrent_seeding_headers = {'Referer' : refer_url}
 
-            # 其他页处理
-            while next_page:
-                page_conent, _ = await self._get_page_content(urljoin(page_url, next_page),
-                                           self._torrent_seeding_params,
-                                           self._torrent_seeding_headers)
-                next_page = await self._maybe_await(self._parse_user_torrent_seeding_info(page_conent, multi_page=True))
+        page_conent, _ = await self._get_page_content(page_url, self._torrent_seeding_params, self._torrent_seeding_headers)
+        if not page_conent:
+            # 列表页请求失败时保留前置解析得到的汇总值
+            return
+
+        # 解析器按页累加做种数据，先清空汇总值，避免和前置解析的结果重复计算
+        summary = (self.seeding, self.seeding_size, self.seeding_info)
+        self.seeding = 0
+        self.seeding_size = 0
+        self.seeding_info = []
+
+        # 第一页
+        next_page = await self._maybe_await(self._parse_user_torrent_seeding_info(page_conent))
+        if not next_page and not self.seeding and not self.seeding_size \
+                and not self.seeding_info and any(summary):
+            # 列表页没有解析出数据时回退，避免丢失前置解析结果
+            self.seeding, self.seeding_size, self.seeding_info = summary
+
+        # 其他页处理
+        while next_page:
+            page_conent, _ = await self._get_page_content(urljoin(page_url, next_page),
+                                       self._torrent_seeding_params,
+                                       self._torrent_seeding_headers)
+            next_page = await self._maybe_await(self._parse_user_torrent_seeding_info(page_conent, multi_page=True))
 
     @staticmethod
     def _prepare_html_text(html_text):

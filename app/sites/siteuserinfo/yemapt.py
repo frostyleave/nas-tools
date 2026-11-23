@@ -140,6 +140,35 @@ class YemaUserInfo(_ISiteUserInfo):
             headers=self._user_basic_headers
         )
 
+    async def test_connection(self) -> tuple[bool, str]:
+        """
+        使用用户详情接口验证 Cookie 或 API Auth Key
+        """
+        if not self._has_cookie and not self._use_apikey:
+            return False, "未配置站点Cookie或API Auth Key"
+
+        response_text, status_code = await self.visit_base_info()
+        detail = self._load_json(response_text)
+        if detail.get("success"):
+            return True, "连接成功"
+
+        error_code = detail.get("errorCode")
+        if self._use_apikey:
+            messages = {
+                400: "API Auth Key无效或已过期",
+                403: "API Auth Key无效或已删除",
+                1402: "需要先完成邮箱验证"
+            }
+            if error_code in messages:
+                return False, messages[error_code]
+        elif error_code in (400, 401):
+            return False, "Cookie失效"
+
+        if status_code and status_code != 200:
+            return False, f"连接失败，状态码：{status_code}"
+
+        return False, detail.get("errorMessage") or "无法打开网站"
+
     async def _parse_user_base_info(self, response_text: str):
         response_text, _ = await self.visit_base_info()
         detail = self._load_json(response_text)

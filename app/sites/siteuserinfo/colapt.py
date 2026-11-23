@@ -55,6 +55,32 @@ class ColaPTUserInfo(_ISiteUserInfo):
             headers={"User-Agent": self._ua}
         )
 
+    async def test_connection(self) -> tuple[bool, str]:
+        """
+        使用会员数据接口验证 API Key 的「读取」范围和账号身份
+        """
+        if not self._apikey:
+            return False, KEY_REQUIRED
+
+        response_text, status_code = await self.visit_base_info()
+        if status_code == -1:
+            return False, "ColaPT API Key 已失效或无效"
+
+        detail = JsonUtils.loads(response_text, default=None, silent=True)
+        if isinstance(detail, dict):
+            try:
+                response_data(status_code, detail, self._apikey)
+                user = detail.get("user")
+                integer(user.get("id") if isinstance(user, dict) else None, minimum=1)
+                return True, "连接成功"
+            except (TypeError, ValueError) as err:
+                return False, str(err)
+
+        if status_code and status_code != 200:
+            return False, f"连接失败，状态码：{status_code}"
+
+        return False, "ColaPT API 响应结构无效"
+
     def _parse_site_page(self, html_text):
         # 会员数据接口已提供全部统计，不再读取任何网页
         self._user_detail_page = None

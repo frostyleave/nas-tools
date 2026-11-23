@@ -18,7 +18,7 @@ from app.models.model import IndexerInfo
 from app.sites import SitesManager
 from app.utils.site_utils import SiteUtils
 from app.utils.string_utils import StringUtils
-from app.utils.types import IndexerType, MediaType, SearchType, SystemConfigKey
+from app.utils.types import IndexerType, MediaType, SearchType, Spider, SystemConfigKey
 
 
 class BuiltinIndexer(_IIndexClient):
@@ -171,22 +171,22 @@ class BuiltinIndexer(_IIndexClient):
         """
         try:
 
-            if indexer.parser == "TNodeSpider":
+            if indexer.parser == Spider.TNodeSpider.value:
                 return TNodeSpider(indexer).search(keyword=search_word)
-            
-            if indexer.parser == "TorrentLeech":
+
+            if indexer.parser == Spider.TorrentLeech.value:
                 return TorrentLeech(indexer).search(keyword=search_word)
-            
-            if indexer.parser == "MTorrentSpider":
+
+            if indexer.parser == Spider.MTorrentSpider.value:
                 return MTorrentSpider(indexer).search(keyword=search_word, mtype=mtype)
 
-            if indexer.parser == "YemaSpider":
+            if indexer.parser == Spider.YemaSpider.value:
                 return YemaSpider(indexer).search(keyword=search_word, mtype=mtype)
 
-            if indexer.parser == "ColaPTSpider":
+            if indexer.parser == Spider.ColaPTSpider.value:
                 return ColaPTSpider(indexer).search(keyword=search_word, mtype=mtype)
 
-            if indexer.parser == "TheRarbg":
+            if indexer.parser == Spider.TheRarbg.value:
                 return TheRarbg(indexer).search(keyword=search_word)
 
             return TorrentSpider(indexer).search(keyword=search_word, mtype=mtype)
