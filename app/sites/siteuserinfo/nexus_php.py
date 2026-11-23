@@ -666,7 +666,7 @@ class NexusPhpSiteUserInfo(_ISiteUserInfo):
 
     def __fixup_traffic_info(self, html):
         # fixup bonus
-        if not self.bonus:
+        if not self.bonus or self.bonus < 1000:
             bonus_text = html.xpath('//tr/td[text()="魔力值" or text()="猫粮"]/following-sibling::td[1]/text()')
             if bonus_text:
                 self.bonus = StringUtils.str_float(bonus_text[0].strip())
