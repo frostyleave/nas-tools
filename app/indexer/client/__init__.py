@@ -1,3 +1,4 @@
+from ._colapt import ColaPTSpider
 from ._mtorrent import MTorrentSpider
 from ._rarbg import TheRarbg
 from ._spider import TorrentSpider

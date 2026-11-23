@@ -3,6 +3,7 @@ import datetime
 import log
 from app.conf import SystemConfig
 from app.indexer.client import (
+    ColaPTSpider,
     MTorrentSpider,
     TheRarbg,
     TNodeSpider,
@@ -181,6 +182,9 @@ class BuiltinIndexer(_IIndexClient):
 
             if indexer.parser == "YemaSpider":
                 return YemaSpider(indexer).search(keyword=search_word, mtype=mtype)
+
+            if indexer.parser == "ColaPTSpider":
+                return ColaPTSpider(indexer).search(keyword=search_word, mtype=mtype)
 
             if indexer.parser == "TheRarbg":
                 return TheRarbg(indexer).search(keyword=search_word)

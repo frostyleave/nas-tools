@@ -8,6 +8,7 @@ from app.sites.siteuserinfo._base import (
     build_async_session,
     resolve_proxy_url,
 )
+from app.sites.siteuserinfo.colapt import ColaPTUserInfo
 from app.sites.siteuserinfo.mTorrent import MTorrentUserInfo
 from app.sites.siteuserinfo.yemapt import YemaUserInfo
 from app.utils.async_request import decode_bytes
@@ -49,6 +50,13 @@ class SitesschemaCenter:
         if parser and parser == Spider.MTorrentSpider.value:
             return MTorrentUserInfo(site_name, site_url, site_cookie, '', apikey=site_appkey,
                                     session=build_async_session(), proxy=use_proxy)
+
+        if parser and parser == Spider.ColaPTSpider.value:
+            if not site_appkey:
+                log.warn(f"【Sites】站点 {site_name} 未配置ColaPT API Key，无法解析")
+                return None
+            return ColaPTUserInfo(site_name, site_url, site_cookie, '', apikey=site_appkey,
+                                  session=build_async_session(), ua=ua, proxy=use_proxy)
 
         if parser and parser == Spider.YemaSpider.value:
             # API Auth Key 优先取 API Key 字段，其次取 Authorization 字段

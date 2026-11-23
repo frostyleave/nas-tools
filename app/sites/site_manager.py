@@ -527,6 +527,9 @@ class SitesManager:
             if site_info.parser and site_info.parser == Spider.MTorrentSpider.value:
                 return self._test_mteam_connection(site_info)
 
+            if site_info.parser and site_info.parser == Spider.ColaPTSpider.value:
+                return self._test_colapt_connection(site_info)
+
             if site_info.parser and site_info.parser == Spider.YemaSpider.value:
                 return self._test_yema_connection(site_info)
 
@@ -563,6 +566,44 @@ class SitesManager:
             return False, f"连接失败，状态码：{status_code}", seconds
 
         return False, "无法打开网站", seconds
+
+    def _test_colapt_connection(self, site_info: UserSiteConf):
+
+        # 延迟导入，避免站点模块初始化时反向依赖索引器模块
+        from app.indexer.client._colapt import integer, response_data
+        from app.sites.siteuserinfo.colapt import ColaPTUserInfo
+
+        site_appkey = str(site_info.apikey or "").strip()
+        if not site_appkey:
+            return False, "未配置ColaPT API Key", 0
+
+        # 计时
+        start_time = datetime.now()
+
+        colapt_proxy = ColaPTUserInfo(site_info.name, site_info.strict_url, '', '',
+                                      apikey=site_appkey, ua=site_info.ua, proxy=site_info.proxy)
+        response_text, status_code = asyncio.run(colapt_proxy.visit_base_info())
+
+        # 计算耗时
+        seconds = int((datetime.now() - start_time).total_seconds() * 1000)
+
+        if status_code == -1:
+            return False, "ColaPT API Key 已失效或无效", seconds
+
+        detail = JsonUtils.loads(response_text, default=None, silent=True)
+        if isinstance(detail, dict):
+            try:
+                response_data(status_code, detail, site_appkey)
+                user = detail.get("user")
+                integer(user.get("id") if isinstance(user, dict) else None, minimum=1)
+                return True, "连接成功", seconds
+            except (TypeError, ValueError) as err:
+                return False, str(err), seconds
+
+        if status_code and status_code != 200:
+            return False, f"连接失败，状态码：{status_code}", seconds
+
+        return False, "ColaPT API 响应结构无效", seconds
 
     def _test_yema_connection(self, site_info: UserSiteConf):
 

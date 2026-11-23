@@ -12,7 +12,7 @@ from urllib.parse import unquote
 from fastbencode import bdecode
 
 import log
-from app.indexer.client import MTorrentSpider, YemaSpider
+from app.indexer.client import ColaPTSpider, MTorrentSpider, YemaSpider
 from app.indexer.manager import IndexerManager
 from app.models.model import IndexerInfo, UserSiteConf
 from app.utils import PathUtils, RequestUtils, SiteUtils, TorrentUtils
@@ -49,7 +49,7 @@ class TorrentDownloader:
             return self.get_torrent_info(url=url)
 
         parser = indexer_info.parser
-        if parser in ("MTorrentSpider", "YemaSpider"):
+        if parser in ("MTorrentSpider", "YemaSpider", "ColaPTSpider"):
             return self._get_torrent_file_with_spider(url, indexer_info, parser)
 
         cookie = indexer_info.cookie if indexer_info else None
@@ -183,6 +183,8 @@ class TorrentDownloader:
         """
         if parser == "MTorrentSpider":
             req = MTorrentSpider(indexer_info).get_torrent(url)
+        elif parser == "ColaPTSpider":
+            req = ColaPTSpider(indexer_info).get_torrent(url)
         else:
             req = YemaSpider(indexer_info).get_torrent(url)
 

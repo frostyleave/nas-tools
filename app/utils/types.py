@@ -100,6 +100,7 @@ class SiteSchema(Enum):
     TNode = "TNode"
     MTorrent = "MTorrent"
     YemaPT = "YemaPT"
+    ColaPT = "ColaPT"
 
 
 # 解析器类型
@@ -109,6 +110,7 @@ class Spider(Enum):
     TNodeSpider = "TNodeSpider"
     MTorrentSpider = "MTorrentSpider"
     YemaSpider = "YemaSpider"
+    ColaPTSpider = "ColaPTSpider"
 
 
 # 可监听事件
