@@ -1,3 +1,4 @@
+import asyncio
 import threading
 
 import log
@@ -54,15 +55,64 @@ class MediaServer:
                 log.exception("【MediaServer】实例化媒体服务器对象 出错: ")
         return None
 
-    @property
-    def server(self):
+    def __get_server_cached(self):
         with server_lock:
             if not self._server:
                 self._server = self.__get_server(self._server_type)
             return self._server
 
+    @property
+    def server(self):
+        server = self.__get_server_cached()
+        if server and hasattr(server, "ensure_ready"):
+            server.ensure_ready()
+        return server
+
     def __get_server(self, ctype: tuple[MediaServerType, str], conf=None):
         return self.__build_class(ctype=ctype, conf=conf)
+
+    @staticmethod
+    async def __call_async(func, default):
+        """
+        执行异步方法，异常时返回默认值
+        """
+        try:
+            return await func()
+        except Exception:
+            log.exception("【MediaServer】获取首页媒体数据出错: ")
+            return default
+
+    def __get_index_data_sync(self, server):
+        """
+        按顺序获取首页媒体数据，供没有异步接口的媒体服务器使用
+        """
+        def _call(func, default):
+            try:
+                return func()
+            except Exception:
+                log.exception("【MediaServer】获取首页媒体数据出错: ")
+                return default
+
+        return (_call(server.get_libraries, []),
+                _call(server.get_latest, []),
+                _call(server.get_medias_count, None))
+
+    async def get_index_data_async(self):
+        """
+        异步获取首页媒体数据：媒体库、最近添加、媒体统计
+        """
+        # 实例化媒体服务器可能带上同步网络请求（Plex），放到线程中执行
+        server = await asyncio.to_thread(self.__get_server_cached)
+        if not server:
+            return [], [], None
+        if hasattr(server, "ensure_ready_async") and hasattr(server, "get_libraries_async"):
+            await server.ensure_ready_async()
+            return await asyncio.gather(
+                self.__call_async(server.get_libraries_async, []),
+                self.__call_async(server.get_latest_async, []),
+                self.__call_async(server.get_medias_count_async, None),
+            )
+        return await asyncio.to_thread(self.__get_index_data_sync, server)
 
     def get_type(self):
         """

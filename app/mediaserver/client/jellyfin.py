@@ -1,10 +1,12 @@
+import asyncio
 import html
 import re
+import threading
 from urllib.parse import quote
 
 import log
 from app.mediaserver.client._base import _IMediaClient
-from app.utils import IpUtils, RequestUtils, SystemUtils
+from app.utils import AsyncRequestUtils, IpUtils, RequestUtils, SystemUtils
 from app.utils.types import MediaServerType, MediaType
 from config import Config
 
@@ -26,6 +28,11 @@ class Jellyfin(_IMediaClient):
     _auth_header = None
 
     def __init__(self, config=None):
+        # 初始化只解析配置，网络请求延迟到 ensure_ready / ensure_ready_async
+        self._ready = False
+        self._ready_lock = threading.Lock()
+        self._async_ready_locks: dict = {}
+        self._config_generation = 0
         if config:
             self._client_config = config
         else:
@@ -33,6 +40,11 @@ class Jellyfin(_IMediaClient):
         self.init_config()
 
     def init_config(self):
+        self._ready = False
+        self._config_generation += 1
+        self._admin_user = None
+        self._serverid = None
+        self._auth_header = None
         if not self._client_config:
             return
         self._host = self._client_config.get('host')
@@ -57,8 +69,49 @@ class Jellyfin(_IMediaClient):
               'Authorization': f'MediaBrowser Token="{self._apikey}"',
               'X-Emby-Token': self._apikey
               }
-            self._admin_user = self.get_admin_user()
-            self._serverid = self.get_server_id()
+
+    def ensure_ready(self):
+        """
+        同步补齐初始化数据：管理员、服务器ID
+        """
+        if self._ready or not self._host or not self._apikey:
+            return
+        with self._ready_lock:
+            if self._ready:
+                return
+            generation = self._config_generation
+            admin_user = self.get_admin_user()
+            server_id = self.get_server_id()
+            if generation != self._config_generation:
+                return
+            self._admin_user = admin_user
+            self._serverid = server_id
+            self._ready = True
+
+    async def ensure_ready_async(self):
+        """
+        异步补齐初始化数据，两个请求并发执行
+        """
+        if self._ready or not self._host or not self._apikey:
+            return
+        loop = asyncio.get_running_loop()
+        lock = self._async_ready_locks.get(loop)
+        if lock is None:
+            lock = asyncio.Lock()
+            self._async_ready_locks[loop] = lock
+        async with lock:
+            if self._ready:
+                return
+            generation = self._config_generation
+            admin_user, server_id = await asyncio.gather(
+                self.get_admin_user_async(),
+                self.get_server_id_async(),
+            )
+            if generation != self._config_generation:
+                return
+            self._admin_user = admin_user
+            self._serverid = server_id
+            self._ready = True
 
     @classmethod
     def match(cls, ctype):
@@ -90,6 +143,22 @@ class Jellyfin(_IMediaClient):
         except Exception as e:
             log.exception(f"【{self.client_name}】连接Users/Views 出错: ")
             return []
+
+    async def __get_jellyfin_librarys_async(self):
+        """
+        异步获取Jellyfin媒体库的信息
+        """
+        if not self._host or not self._apikey:
+            return []
+        req_url = f"{self._host}Library/MediaFolders"
+        try:
+            res = await AsyncRequestUtils(headers=self._auth_header).get_res(req_url)
+            if res:
+                return (res.json() or {}).get("Items")
+            log.error(f"【{self.client_name}】Library/MediaFolders 未获取到返回数据")
+        except Exception:
+            log.exception(f"【{self.client_name}】连接Library/MediaFolders 出错: ")
+        return []
 
     def get_user_count(self):
         """
@@ -130,6 +199,25 @@ class Jellyfin(_IMediaClient):
             log.exception(f"【{self.client_name}】连接Users出错: ")
         return None
 
+    async def get_admin_user_async(self):
+        """
+        异步获得管理员用户
+        """
+        if not self._host or not self._apikey:
+            return None
+        req_url = f"{self._host}Users"
+        try:
+            res = await AsyncRequestUtils(headers=self._auth_header).get_res(req_url)
+            if res:
+                users = res.json()
+                for user in users:
+                    if user.get("Policy", {}).get("IsAdministrator"):
+                        return user.get("Id")
+            log.error(f"【{self.client_name}】Users 未获取到返回数据")
+        except Exception:
+            log.exception(f"【{self.client_name}】连接Users出错: ")
+        return None
+
     def get_server_id(self):
         """
         获得服务器信息
@@ -144,6 +232,22 @@ class Jellyfin(_IMediaClient):
             else:
                 log.error(f"【{self.client_name}】System/Info 未获取到返回数据")
         except Exception as e:
+            log.exception(f"【{self.client_name}】连接System/Info出错: ")
+        return None
+
+    async def get_server_id_async(self):
+        """
+        异步获得服务器信息
+        """
+        if not self._host or not self._apikey:
+            return None
+        req_url = f"{self._host}System/Info/Public"
+        try:
+            res = await AsyncRequestUtils().get_res(req_url)
+            if res:
+                return res.json().get("Id")
+            log.error(f"【{self.client_name}】System/Info 未获取到返回数据")
+        except Exception:
             log.exception(f"【{self.client_name}】连接System/Info出错: ")
         return None
 
@@ -208,6 +312,22 @@ class Jellyfin(_IMediaClient):
         except Exception as e:
             log.exception(f"【{self.client_name}】连接Items/Counts出错: ")
             return {}
+
+    async def get_medias_count_async(self):
+        """
+        异步获得电影、电视剧、动漫媒体数量
+        """
+        if not self._host or not self._apikey:
+            return {}
+        try:
+            req_url = f"{self._host}Items/Counts"
+            res = await AsyncRequestUtils(headers=self._auth_header).get_res(req_url)
+            if res:
+                return res.json()
+            log.error(f"【{self.client_name}】Items/Counts 未获取到返回数据")
+        except Exception:
+            log.exception(f"【{self.client_name}】连接Items/Counts出错: ")
+        return {}
 
     def __get_jellyfin_series_id_by_name(self, name, year):
         """
@@ -441,8 +561,26 @@ class Jellyfin(_IMediaClient):
         """
         if not self._host or not self._apikey:
             return []
+        self.ensure_ready()
+        return self._build_libraries(self.__get_jellyfin_librarys() or [])
+
+    async def get_libraries_async(self):
+        """
+        异步获取媒体服务器所有媒体库列表
+        """
+        if not self._host or not self._apikey:
+            return []
+        await self.ensure_ready_async()
+        items = await self.__get_jellyfin_librarys_async()
+        # 图片地址里可能包含域名解析，放到线程中处理，避免阻塞事件循环
+        return await asyncio.to_thread(self._build_libraries, items or [])
+
+    def _build_libraries(self, items):
+        """
+        将媒体库接口返回的数据转换为首页展示结构
+        """
         libraries = []
-        for library in self.__get_jellyfin_librarys() or []:
+        for library in items:
             collection_type = library.get("CollectionType")
             # 合集、播放列表 跳过
             if collection_type == 'boxsets' or collection_type == 'playlists':
@@ -498,9 +636,12 @@ class Jellyfin(_IMediaClient):
         """
         if not itemid:
             return {}
-        if not self._host or not self._apikey or not self._admin_user:
+        if not self._host or not self._apikey:
             return {}
-        
+        self.ensure_ready()
+        if not self._admin_user:
+            return {}
+
         req_url = f"{self._host}Users/{self._admin_user}/Items/{itemid}"
         try:
             res = RequestUtils(headers=self._auth_header).get_res(req_url)
@@ -557,6 +698,7 @@ class Jellyfin(_IMediaClient):
         拼装媒体播放链接
         :param item_id: 媒体的的ID
         """
+        self.ensure_ready()
         return f"{self._play_host or self._host}web/index.html#!/details?id={item_id}&serverId={self._serverid}"
 
     def get_playing_sessions(self):
@@ -721,28 +863,56 @@ class Jellyfin(_IMediaClient):
         """
         if not self._host or not self._apikey:
             return None
+        self.ensure_ready()
+        if not self._admin_user:
+            return []
         req_url = f"{self._host}Users/{self._admin_user}/Items/Latest?Limit={num}&MediaTypes=Video&api_key={self._apikey}"
         try:
             res = RequestUtils(headers=self._auth_header).get_res(req_url)
             if res:
-                result = res.json() or []
-                ret_latest = []
-                for item in result:
-                    if item.get("Type") not in ["Movie", "Series"]:
-                        continue
-                    item_type = MediaType.MOVIE.value if item.get("Type") == "Movie" else '剧集'
-                    link = self.get_play_url(item.get("Id"))
-                    image = self.get_local_image_by_id(item_id=item.get("Id"), remote=False, inner=True, max_width=400)
-                    ret_latest.append({
-                        "id": item.get("Id"),
-                        "name": item.get("Name"),
-                        "type": item_type,
-                        "image": image,
-                        "link": link
-                    })
-                return ret_latest
-            else:
-                log.error(f"【{self.client_name}】Users/Items/Latest 未获取到返回数据")
+                return self._build_latest(res.json() or [])
+            log.error(f"【{self.client_name}】Users/Items/Latest 未获取到返回数据")
         except Exception as e:
             log.exception(f"【{self.client_name}】连接Users/Items/Latest出错: ")
         return []
+
+    async def get_latest_async(self, num=20):
+        """
+        异步获得最近更新
+        """
+        if not self._host or not self._apikey:
+            return None
+        await self.ensure_ready_async()
+        if not self._admin_user:
+            return []
+        req_url = f"{self._host}Users/{self._admin_user}/Items/Latest?Limit={num}&MediaTypes=Video&api_key={self._apikey}"
+        try:
+            res = await AsyncRequestUtils(headers=self._auth_header).get_res(req_url)
+            if res:
+                result = res.json() or []
+                # 图片地址里可能包含域名解析，放到线程中处理，避免阻塞事件循环
+                return await asyncio.to_thread(self._build_latest, result)
+            log.error(f"【{self.client_name}】Users/Items/Latest 未获取到返回数据")
+        except Exception as e:
+            log.exception(f"【{self.client_name}】连接Users/Items/Latest出错: ")
+        return []
+
+    def _build_latest(self, result):
+        """
+        将最近更新接口返回的数据转换为首页展示结构
+        """
+        ret_latest = []
+        for item in result:
+            if item.get("Type") not in ["Movie", "Series"]:
+                continue
+            item_type = MediaType.MOVIE.value if item.get("Type") == "Movie" else '剧集'
+            link = self.get_play_url(item.get("Id"))
+            image = self.get_local_image_by_id(item_id=item.get("Id"), remote=False, inner=True, max_width=400)
+            ret_latest.append({
+                "id": item.get("Id"),
+                "name": item.get("Name"),
+                "type": item_type,
+                "image": image,
+                "link": link
+            })
+        return ret_latest

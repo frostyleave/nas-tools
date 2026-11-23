@@ -1,10 +1,12 @@
+import asyncio
 import os
 import re
+import threading
 from urllib.parse import quote
 
 import log
 from app.mediaserver.client._base import _IMediaClient
-from app.utils import IpUtils, RequestUtils, SystemUtils
+from app.utils import AsyncRequestUtils, IpUtils, RequestUtils, SystemUtils
 from app.utils.types import MediaServerType, MediaType
 from config import Config
 
@@ -25,14 +27,24 @@ class Emby(_IMediaClient):
     _admin_user = None
 
     def __init__(self, config=None):
+        # 初始化只解析配置，网络请求延迟到 ensure_ready / ensure_ready_async
+        self._folders = []
+        self._ready = False
+        self._ready_lock = threading.Lock()
+        self._async_ready_locks: dict = {}
+        self._config_generation = 0
         if config:
             self._client_config = config
         else:
             self._client_config = Config().get_config('emby')
-        self._folders = []
         self.init_config()
 
     def init_config(self):
+        self._ready = False
+        self._config_generation += 1
+        self._folders = []
+        self._admin_user = None
+        self._serverid = None
         if self._client_config:
             self._host = self._client_config.get('host')
             if self._host:
@@ -49,10 +61,53 @@ class Emby(_IMediaClient):
                 if not self._play_host.endswith('/'):
                     self._play_host = self._play_host + "/"
             self._apikey = self._client_config.get('api_key')
-            if self._host and self._apikey:
-                self._folders = self.__get_emby_folders()
-                self._admin_user = self.get_admin_user()
-                self._serverid = self.get_server_id()
+
+    def ensure_ready(self):
+        """
+        同步补齐初始化数据：媒体库目录、管理员、服务器ID
+        """
+        if self._ready or not self._host or not self._apikey:
+            return
+        with self._ready_lock:
+            if self._ready:
+                return
+            generation = self._config_generation
+            folders = self.__get_emby_folders()
+            admin_user = self.get_admin_user()
+            server_id = self.get_server_id()
+            if generation != self._config_generation:
+                return
+            self._folders = folders or []
+            self._admin_user = admin_user
+            self._serverid = server_id
+            self._ready = True
+
+    async def ensure_ready_async(self):
+        """
+        异步补齐初始化数据，三个请求并发执行
+        """
+        if self._ready or not self._host or not self._apikey:
+            return
+        loop = asyncio.get_running_loop()
+        lock = self._async_ready_locks.get(loop)
+        if lock is None:
+            lock = asyncio.Lock()
+            self._async_ready_locks[loop] = lock
+        async with lock:
+            if self._ready:
+                return
+            generation = self._config_generation
+            folders, admin_user, server_id = await asyncio.gather(
+                self.__get_emby_folders_async(),
+                self.get_admin_user_async(),
+                self.get_server_id_async(),
+            )
+            if generation != self._config_generation:
+                return
+            self._folders = folders or []
+            self._admin_user = admin_user
+            self._serverid = server_id
+            self._ready = True
 
     @classmethod
     def match(cls, ctype):
@@ -85,6 +140,22 @@ class Emby(_IMediaClient):
             log.exception(f"【{self.client_name}】连接Library/SelectableMediaFolders 出错: ")
             return []
 
+    async def __get_emby_folders_async(self):
+        """
+        异步获取Emby媒体库路径列表
+        """
+        if not self._host or not self._apikey:
+            return []
+        req_url = f"{self._host}emby/Library/SelectableMediaFolders?api_key={self._apikey}"
+        try:
+            res = await AsyncRequestUtils().get_res(req_url)
+            if res:
+                return res.json()
+            log.error(f"【{self.client_name}】Library/SelectableMediaFolders 未获取到返回数据")
+        except Exception:
+            log.exception(f"【{self.client_name}】连接Library/SelectableMediaFolders 出错: ")
+        return []
+
     def __get_emby_librarys(self):
         """
         获取Emby媒体库列表
@@ -104,6 +175,23 @@ class Emby(_IMediaClient):
             log.exception(f"【{self.client_name}】连接User/Views 出错: ")
             return []
 
+    async def __get_emby_librarys_async(self):
+        """
+        异步获取Emby媒体库列表
+        """
+        if not self._host or not self._apikey:
+            return []
+        req_url = f"{self._host}emby/Library/MediaFolders"
+        try:
+            headers = {'X-Emby-Token': self._apikey}
+            res = await AsyncRequestUtils(headers=headers).get_res(req_url)
+            if res:
+                return (res.json() or {}).get("Items")
+            log.error(f"【{self.client_name}】User/Views 未获取到返回数据")
+        except Exception:
+            log.exception(f"【{self.client_name}】连接User/Views 出错: ")
+        return []
+
     def get_admin_user(self):
         """
         获得管理员用户
@@ -122,6 +210,25 @@ class Emby(_IMediaClient):
             else:
                 log.error(f"【{self.client_name}】Users 未获取到返回数据")
         except Exception as e:
+            log.exception(f"【{self.client_name}】连接Users出错: ")
+        return None
+
+    async def get_admin_user_async(self):
+        """
+        异步获得管理员用户
+        """
+        if not self._host or not self._apikey:
+            return None
+        req_url = f"{self._host}Users?api_key={self._apikey}"
+        try:
+            res = await AsyncRequestUtils().get_res(req_url)
+            if res:
+                users = res.json()
+                for user in users:
+                    if user.get("Policy", {}).get("IsAdministrator"):
+                        return user.get("Id")
+            log.error(f"【{self.client_name}】Users 未获取到返回数据")
+        except Exception:
             log.exception(f"【{self.client_name}】连接Users出错: ")
         return None
 
@@ -163,6 +270,22 @@ class Emby(_IMediaClient):
             else:
                 log.error(f"【{self.client_name}】System/Info 未获取到返回数据")
         except Exception as e:
+            log.exception(f"【{self.client_name}】连接System/Info出错: ")
+        return None
+
+    async def get_server_id_async(self):
+        """
+        异步获得服务器信息
+        """
+        if not self._host or not self._apikey:
+            return None
+        req_url = f"{self._host}System/Info?api_key={self._apikey}"
+        try:
+            res = await AsyncRequestUtils().get_res(req_url)
+            if res:
+                return res.json().get("Id")
+            log.error(f"【{self.client_name}】System/Info 未获取到返回数据")
+        except Exception:
             log.exception(f"【{self.client_name}】连接System/Info出错: ")
         return None
 
@@ -236,6 +359,22 @@ class Emby(_IMediaClient):
         except Exception as e:
             log.exception(f"【{self.client_name}】连接Items/Counts出错: ")
             return {}
+
+    async def get_medias_count_async(self):
+        """
+        异步获得电影、电视剧、动漫媒体数量
+        """
+        if not self._host or not self._apikey:
+            return {}
+        req_url = f"{self._host}emby/Items/Counts?api_key={self._apikey}"
+        try:
+            res = await AsyncRequestUtils().get_res(req_url)
+            if res:
+                return res.json()
+            log.error(f"【{self.client_name}】Items/Counts 未获取到返回数据")
+        except Exception:
+            log.exception(f"【{self.client_name}】连接Items/Counts出错: ")
+        return {}
 
     def __get_emby_series_id_by_name(self, name, year):
         """
@@ -479,6 +618,7 @@ class Emby(_IMediaClient):
         """
         if not items:
             return
+        self.ensure_ready()
         # 收集要刷新的媒体库信息
         log.info(f"【{self.client_name}】开始刷新Emby媒体库...")
         library_ids = []
@@ -547,8 +687,26 @@ class Emby(_IMediaClient):
         """
         if not self._host or not self._apikey:
             return []
+        self.ensure_ready()
+        return self._build_libraries(self.__get_emby_librarys() or [])
+
+    async def get_libraries_async(self):
+        """
+        异步获取媒体服务器所有媒体库列表
+        """
+        if not self._host or not self._apikey:
+            return []
+        await self.ensure_ready_async()
+        items = await self.__get_emby_librarys_async()
+        # 图片地址里可能包含域名解析，放到线程中处理，避免阻塞事件循环
+        return await asyncio.to_thread(self._build_libraries, items or [])
+
+    def _build_libraries(self, items):
+        """
+        将媒体库接口返回的数据转换为首页展示结构
+        """
         libraries = []
-        for library in self.__get_emby_librarys() or []:
+        for library in items:
             collection_type = library.get("CollectionType")
             # 合集、播放列表 跳过
             if collection_type == 'boxsets' or collection_type == 'playlists':
@@ -577,6 +735,7 @@ class Emby(_IMediaClient):
             return {}
         if not self._host or not self._apikey:
             return {}
+        self.ensure_ready()
         req_url = f"{self._host}emby/Users/{self._admin_user}/Items/{itemid}?api_key={self._apikey}"
         try:
             res = RequestUtils().get_res(req_url)
@@ -591,6 +750,7 @@ class Emby(_IMediaClient):
         拼装媒体播放链接
         :param item_id: 媒体的的ID
         """
+        self.ensure_ready()
         return f"{self._play_host or self._host}web/index.html#!/item?id={item_id}&context=home&serverId={self._serverid}"
 
     def get_items(self, parent, depth=0):
@@ -766,28 +926,51 @@ class Emby(_IMediaClient):
         """
         if not self._host or not self._apikey:
             return None
+        self.ensure_ready()
         req_url = f"{self._host}Users/{self._admin_user}/Items/Latest?Limit={num}&MediaTypes=Video&api_key={self._apikey}"
         try:
             res = RequestUtils().get_res(req_url)
             if res:
-                result = res.json() or []
-                ret_latest = []
-                for item in result:
-                    if item.get("Type") not in ["Movie", "Series"]:
-                        continue
-                    item_type = MediaType.MOVIE.value if item.get("Type") == "Movie" else MediaType.TV.value
-                    link = self.get_play_url(item.get("Id"))
-                    image = self.get_local_image_by_id(item_id=item.get("Id"), remote=False, inner=True, max_width=400)
-                    ret_latest.append({
-                        "id": item.get("Id"),
-                        "name": item.get("Name"),
-                        "type": item_type,
-                        "image": image,
-                        "link": link
-                    })
-                return ret_latest
+                return self._build_latest(res.json() or [])
             else:
                 log.error(f"【{self.client_name}】Users/Items/Latest 未获取到返回数据")
         except Exception as e:
             log.exception(f"【{self.client_name}】连接Users/Items/Latest出错: ")
         return []
+
+    async def get_latest_async(self, num=20):
+        """
+        异步获得最近更新
+        """
+        if not self._host or not self._apikey:
+            return []
+        await self.ensure_ready_async()
+        req_url = f"{self._host}Users/{self._admin_user}/Items/Latest?Limit={num}&MediaTypes=Video&api_key={self._apikey}"
+        try:
+            res = await AsyncRequestUtils().get_res(req_url)
+            if res:
+                return await asyncio.to_thread(self._build_latest, res.json() or [])
+            log.error(f"【{self.client_name}】Users/Items/Latest 未获取到返回数据")
+        except Exception:
+            log.exception(f"【{self.client_name}】连接Users/Items/Latest出错: ")
+        return []
+
+    def _build_latest(self, result):
+        """
+        将最近更新接口返回的数据转换为首页展示结构
+        """
+        ret_latest = []
+        for item in result:
+            if item.get("Type") not in ["Movie", "Series"]:
+                continue
+            item_type = MediaType.MOVIE.value if item.get("Type") == "Movie" else MediaType.TV.value
+            link = self.get_play_url(item.get("Id"))
+            image = self.get_local_image_by_id(item_id=item.get("Id"), remote=False, inner=True, max_width=400)
+            ret_latest.append({
+                "id": item.get("Id"),
+                "name": item.get("Name"),
+                "type": item_type,
+                "image": image,
+                "link": link
+            })
+        return ret_latest

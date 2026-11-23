@@ -1,3 +1,4 @@
+import asyncio
 import copy
 import os
 import threading
@@ -178,23 +179,23 @@ def basic():
 
 # 开始页面
 @data_router.post("/index")
-def index():
+async def index():
 
-    # 磁盘空间
-    library_spaces = _get_library_spacesize()
+    # 磁盘空间统计与媒体服务器查询并发执行
+    try:
+        library_spaces, (media_librarys, latest_adds, media_counts) = await asyncio.gather(
+            asyncio.to_thread(_get_library_spacesize),
+            MediaServer().get_index_data_async(),
+        )
+    except Exception:
+        log.exception("【首页】获取媒体数据失败")
+        library_spaces, media_librarys, latest_adds, media_counts = {}, [], [], None
+
     # 媒体库配置
     library_sync_conf = SystemConfig().get(SystemConfigKey.SyncLibrary) or []
     # 媒体服务器类型
     server_type = Config().get_config('media').get('media_server')
 
-    # 媒体库
-    media_server = MediaServer()
-
-    media_librarys = media_server.get_libraries()
-    latest_adds = media_server.get_latest()
-
-    # 获取媒体数量
-    media_counts = media_server.get_medias_count()
     if media_counts:
         server_sucess = True
         movie_count = "{:,}".format(media_counts.get('MovieCount'))
