@@ -147,7 +147,7 @@
       }
 
       json_editor = ace.edit(el);
-      localStorage.getItem("theme") === "dark"
+      document.documentElement.getAttribute('data-bs-theme') === "dark"
         ? json_editor.setTheme("ace/theme/one_dark")
         : json_editor.setTheme("ace/theme/xcode");
       json_editor.session.setMode("ace/mode/json");

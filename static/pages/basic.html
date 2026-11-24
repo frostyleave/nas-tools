@@ -568,7 +568,7 @@
 
 <script type="text/javascript">
 
-  var target_theme = localStorage.getItem("theme") === "dark" ? "ace/theme/one_dark" : "ace/theme/xcode";
+  var target_theme = document.documentElement.getAttribute('data-bs-theme') === "dark" ? "ace/theme/one_dark" : "ace/theme/xcode";
 
   // 重新渲染部分元素
   function render_part(element_id) {

@@ -1197,7 +1197,7 @@
       }
 
       category_editor = ace.edit(el);
-      const target_theme = localStorage.getItem("theme") === "dark"
+      const target_theme = document.documentElement.getAttribute('data-bs-theme') === "dark"
         ? "ace/theme/one_dark"
         : "ace/theme/xcode";
       category_editor.setTheme(target_theme);

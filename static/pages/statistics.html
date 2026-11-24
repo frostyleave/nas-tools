@@ -309,7 +309,7 @@
 
   // 图表配色跟随页面主题，强调色只用于上传与主指标
   function statistics_chart_palette() {
-    const styles = getComputedStyle(document.documentElement);
+    const styles = getComputedStyle(document.body);
     const read = (name, fallback) => {
       const value = (styles.getPropertyValue(name) || '').trim();
       return value || fallback;
@@ -318,10 +318,10 @@
     return {
       accent: read('--tblr-primary', '#696cff'),
       secondary: read('--tblr-secondary', '#616876'),
-      muted: dark ? '#8b98ad' : '#9aa4b2',
-      axis: dark ? '#cbd5e1' : '#475569',
-      hairline: dark ? '#313c52' : '#e6e7e9',
-      grid: dark ? 'rgba(148, 163, 184, .16)' : 'rgba(148, 163, 184, .22)'
+      muted: read('--tblr-secondary-color', '#9aa4b2'),
+      axis: read(dark ? '--tblr-secondary' : '--tblr-body-color', '#475569'),
+      hairline: read('--tblr-border-color', dark ? '#313c52' : '#e6e7e9'),
+      grid: dark ? 'rgba(148, 163, 184, .14)' : 'rgba(148, 163, 184, .22)'
     };
   }
 

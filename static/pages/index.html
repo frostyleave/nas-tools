@@ -647,23 +647,38 @@
         useDirtyRect: false
       });
 
+      // 图表配色跟随主题变量，暗色下使用浅色文字与更弱的网格线
+      const styles = getComputedStyle(document.body);
+      const readVar = (name, fallback) => (styles.getPropertyValue(name) || '').trim() || fallback;
+      const dark = document.documentElement.getAttribute('data-bs-theme') === 'dark';
+      const chartText = dark ? '#9a9aab' : '#616876';
+      const chartHairline = readVar('--tblr-border-color', dark ? '#313c52' : '#e6e7e9');
+      const chartGrid = dark ? 'rgba(148, 163, 184, 0.14)' : 'rgba(148, 163, 184, 0.22)';
+      const seriesColors = ['#3b82f6', '#22c55e', '#ec4899'];
+
       const option = {
         title: {
           text: ''
         },
+        color: seriesColors,
         tooltip: {
           trigger: 'axis',
+          backgroundColor: dark ? '#191920' : '#ffffff',
+          borderColor: dark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(15, 23, 42, 0.1)',
+          textStyle: {
+            color: dark ? '#ededf3' : '#1d273b'
+          },
           axisPointer: {
             type: 'cross',
             label: {
-              backgroundColor: '#6a7985'
+              backgroundColor: dark ? '#8b5cf6' : '#6a7985'
             }
           }
         },
         legend: {
           data: ['电影', '电视剧', '动漫'],
           textStyle: {
-            color: '#206bc4'
+            color: chartText
           }
         },
         toolbox: {
@@ -681,12 +696,31 @@
           {
             type: 'category',
             boundaryGap: false,
-            data: ret.Labels
+            data: ret.Labels,
+            axisLine: {
+              lineStyle: {
+                color: chartHairline
+              }
+            },
+            axisLabel: {
+              color: chartText
+            }
           }
         ],
         yAxis: [
           {
-            type: 'value'
+            type: 'value',
+            axisLine: {
+              show: false
+            },
+            axisLabel: {
+              color: chartText
+            },
+            splitLine: {
+              lineStyle: {
+                color: chartGrid
+              }
+            }
           }
         ],
         series: [

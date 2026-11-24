@@ -1953,16 +1953,25 @@ function theme_toggle(element) {
 // 主题设置
 function applyTheme(targetTheme) {
 
-  // 先移除旧的 class
-  document.body.classList.remove("theme-dark", "theme-light");
-  // 加上新的 class
-  document.body.classList.add("theme-" + targetTheme);
-  // 保存到 localStorage
-  localStorage.setItem("theme", targetTheme);
-  // 绑定
-  document.documentElement.setAttribute('data-bs-theme', targetTheme);
+  const theme = ["light", "dark", "midnight"].includes(targetTheme) ? targetTheme : "light";
+  // 午夜紫基于暗色主题，需同时挂上 theme-dark，复用既有的暗色样式规则
+  const bsTheme = theme === "midnight" ? "dark" : theme;
 
-  $("html").attr("data-bs-theme", targetTheme);
+  document.body.classList.remove("theme-dark", "theme-light", "theme-midnight");
+  document.body.classList.add("theme-" + theme);
+  if (theme === "midnight") {
+    document.body.classList.add("theme-dark");
+  }
+
+  document.documentElement.classList.remove("theme-dark", "theme-light", "theme-midnight");
+  document.documentElement.classList.add("theme-" + theme);
+
+  // 保存到 localStorage
+  localStorage.setItem("theme", theme);
+  // 绑定
+  document.documentElement.setAttribute('data-bs-theme', bsTheme);
+
+  $("html").attr("data-bs-theme", bsTheme);
 
 }
 

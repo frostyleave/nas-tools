@@ -29,8 +29,9 @@
       const sysInfo = this._userMenuData;
 
       let html = `
-        <a class="dropdown-item hide-theme-dark" data-id="dark" href="javascript:void(0)" onclick="theme_toggle(this)" role="button">暗黑风格</a>
-        <a class="dropdown-item hide-theme-light" data-id="light" href="javascript:void(0)" onclick="theme_toggle(this)" role="button">明亮风格</a>
+        <a class="dropdown-item theme-menu-item" data-id="light" href="javascript:void(0)" onclick="theme_toggle(this)" role="button">明亮<i class="ti ti-check theme-menu-check"></i></a>
+        <a class="dropdown-item theme-menu-item" data-id="dark" href="javascript:void(0)" onclick="theme_toggle(this)" role="button">暗黑<i class="ti ti-check theme-menu-check"></i></a>
+        <a class="dropdown-item theme-menu-item" data-id="midnight" href="javascript:void(0)" onclick="theme_toggle(this)" role="button">午夜紫<i class="ti ti-check theme-menu-check"></i></a>
         <div class="dropdown-divider"></div>`;
 
       // 消息中心、实时日志与后端一致，仅管理员（level >= 9）可见
