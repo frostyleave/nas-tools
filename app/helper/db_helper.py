@@ -1308,22 +1308,19 @@ class DbHelper:
                 if join_at is not None:
                     update_dic['JOIN_AT'] = join_at
 
-                if upload:
-                    update_dic['UPLOAD'] = upload
-                if download:
-                    update_dic['DOWNLOAD'] = download
-                if ratio:
-                    update_dic['RATIO'] = ratio
-                if seeding:
-                    update_dic['SEEDING'] = seeding
-                if leeching:
-                    update_dic['LEECHING'] = leeching
-                if seeding_size:
-                    update_dic['SEEDING_SIZE'] = seeding_size
-                if bonus:
-                    update_dic['BONUS'] = bonus
-                if msg_unread is not None:
-                    update_dic['MSG_UNREAD'] = msg_unread
+                # 能进入本方法的都是解析成功的站点，数值字段（含 0）必须整体覆盖，
+                # 否则某个值归零后会一直保留上一次的非零值（如下载中的种子数、分享率）
+                for key, value in (
+                        ('UPLOAD', upload),
+                        ('DOWNLOAD', download),
+                        ('RATIO', ratio),
+                        ('SEEDING', seeding),
+                        ('LEECHING', leeching),
+                        ('SEEDING_SIZE', seeding_size),
+                        ('BONUS', bonus),
+                        ('MSG_UNREAD', msg_unread),
+                ):
+                    update_dic[key] = 0 if value is None else value
 
                 update_dic['UPDATE_AT'] = update_at
                 

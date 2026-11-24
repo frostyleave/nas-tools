@@ -257,40 +257,53 @@ class Jellyfin(_IMediaClient):
         """
         if not self._host or not self._apikey:
             return []
-
-        ret_array = []
+        req_url = f"{self._host}System/ActivityLog/Entries?Limit={num}"
         try:
-            req_url = f"{self._host}System/ActivityLog/Entries?Limit={num}"
             res = RequestUtils(headers=self._auth_header).get_res(req_url)
             if res:
-                ret_json = res.json()
-                items = ret_json.get('Items')
-                for item in items:
-                    item_name = item.get("Name")
-                    item_type = item.get("Type")
-                    if item_type == "SessionStarted":
-                        event_type = "LG"
-                        event_date = re.sub(r'\dZ', 'Z', item.get("Date"))
-                        event_str = f'{item_name}, {item.get("ShortOverview")}'
-                        activity = {"type": event_type, 
-                                    "event": event_str,
-                                    "date": SystemUtils.get_local_time(event_date)
-                                }
-                        ret_array.append(activity)
-                    if item_type in ["VideoPlayback", "VideoPlaybackStopped"]:
-                        event_type = "PL"
-                        event_date = re.sub(r'\dZ', 'Z', item.get("Date"))
-                        activity = {"type": event_type, 
-                                    "event": item_name,
-                                    "date": SystemUtils.get_local_time(event_date)
-                                }
-                        ret_array.append(activity)
-            else:
-                log.error(f"【{self.client_name}】System/ActivityLog/Entries 未获取到返回数据")
-                return []
-        except Exception as e:
+                return self._build_activity_log(res.json())
+            log.error(f"【{self.client_name}】System/ActivityLog/Entries 未获取到返回数据")
+        except Exception:
             log.exception(f"【{self.client_name}】连接System/ActivityLog/Entries出错: ")
+        return []
+
+    async def get_activity_log_async(self, num):
+        """
+        异步获取Jellyfin活动记录
+        """
+        if not self._host or not self._apikey:
             return []
+        req_url = f"{self._host}System/ActivityLog/Entries?Limit={num}"
+        try:
+            res = await AsyncRequestUtils(headers=self._auth_header).get_res(req_url)
+            if res:
+                return self._build_activity_log(res.json())
+            log.error(f"【{self.client_name}】System/ActivityLog/Entries 未获取到返回数据")
+        except Exception:
+            log.exception(f"【{self.client_name}】连接System/ActivityLog/Entries出错: ")
+        return []
+
+    def _build_activity_log(self, ret_json):
+        """
+        将活动记录转换为首页展示结构
+        """
+        ret_array = []
+        for item in (ret_json or {}).get('Items') or []:
+            item_name = item.get("Name")
+            item_type = item.get("Type")
+            if item_type == "SessionStarted":
+                event_type = "LG"
+                event_date = re.sub(r'\dZ', 'Z', item.get("Date"))
+                event_str = f'{item_name}, {item.get("ShortOverview")}'
+                ret_array.append({"type": event_type,
+                                  "event": event_str,
+                                  "date": SystemUtils.get_local_time(event_date)})
+            if item_type in ["VideoPlayback", "VideoPlaybackStopped"]:
+                event_type = "PL"
+                event_date = re.sub(r'\dZ', 'Z', item.get("Date"))
+                ret_array.append({"type": event_type,
+                                  "event": item_name,
+                                  "date": SystemUtils.get_local_time(event_date)})
         return ret_array
 
     def get_medias_count(self):

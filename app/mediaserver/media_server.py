@@ -72,14 +72,14 @@ class MediaServer:
         return self.__build_class(ctype=ctype, conf=conf)
 
     @staticmethod
-    async def __call_async(func, default):
+    async def __call_async(func, default, *args, **kwargs):
         """
         执行异步方法，异常时返回默认值
         """
         try:
-            return await func()
+            return await func(*args, **kwargs)
         except Exception:
-            log.exception("【MediaServer】获取首页媒体数据出错: ")
+            log.exception("【MediaServer】获取媒体服务器数据出错: ")
             return default
 
     def __get_index_data_sync(self, server):
@@ -142,6 +142,23 @@ class MediaServer:
         if not self.server:
             return []
         return self.server.get_activity_log(limit)
+
+    async def get_activity_log_async(self, limit):
+        """
+        异步获取媒体服务器的活动日志
+        :param limit: 条数限制
+        """
+        server = await asyncio.to_thread(self.__get_server_cached)
+        if not server:
+            return []
+        if hasattr(server, "get_activity_log_async"):
+            return await self.__call_async(server.get_activity_log_async, [], limit)
+        # 没有异步接口的客户端放到线程中执行
+        try:
+            return await asyncio.to_thread(server.get_activity_log, limit)
+        except Exception:
+            log.exception("【MediaServer】获取媒体服务器活动日志出错: ")
+            return []
 
     def get_user_count(self):
         """

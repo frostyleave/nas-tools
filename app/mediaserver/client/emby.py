@@ -314,31 +314,47 @@ class Emby(_IMediaClient):
         if not self._host or not self._apikey:
             return []
         req_url = f"{self._host}emby/System/ActivityLog/Entries?api_key={self._apikey}&"
-        ret_array = []
         try:
             res = RequestUtils().get_res(req_url)
             if res:
-                ret_json = res.json()
-                items = ret_json.get('Items')
-                for item in items:
-                    if item.get("Type") == "AuthenticationSucceeded":
-                        event_type = "LG"
-                        event_date = SystemUtils.get_local_time(item.get("Date"))
-                        event_str = "{}, {}".format(item.get("Name"), item.get("ShortOverview"))
-                        activity = {"type": event_type, "event": event_str, "date": event_date}
-                        ret_array.append(activity)
-                    if item.get("Type") in ["VideoPlayback", "VideoPlaybackStopped"]:
-                        event_type = "PL"
-                        event_date = SystemUtils.get_local_time(item.get("Date"))
-                        event_str = item.get("Name")
-                        activity = {"type": event_type, "event": event_str, "date": event_date}
-                        ret_array.append(activity)
-            else:
-                log.error(f"【{self.client_name}】System/ActivityLog/Entries 未获取到返回数据")
-                return []
-        except Exception as e:
+                return self._build_activity_log(res.json(), num)
+            log.error(f"【{self.client_name}】System/ActivityLog/Entries 未获取到返回数据")
+        except Exception:
             log.exception(f"【{self.client_name}】连接System/ActivityLog/Entries出错: ")
+        return []
+
+    async def get_activity_log_async(self, num):
+        """
+        异步获取Emby活动记录
+        """
+        if not self._host or not self._apikey:
             return []
+        req_url = f"{self._host}emby/System/ActivityLog/Entries?api_key={self._apikey}&"
+        try:
+            res = await AsyncRequestUtils().get_res(req_url)
+            if res:
+                return self._build_activity_log(res.json(), num)
+            log.error(f"【{self.client_name}】System/ActivityLog/Entries 未获取到返回数据")
+        except Exception:
+            log.exception(f"【{self.client_name}】连接System/ActivityLog/Entries出错: ")
+        return []
+
+    def _build_activity_log(self, ret_json, num):
+        """
+        将活动记录转换为首页展示结构
+        """
+        ret_array = []
+        for item in (ret_json or {}).get('Items') or []:
+            if item.get("Type") == "AuthenticationSucceeded":
+                event_type = "LG"
+                event_date = SystemUtils.get_local_time(item.get("Date"))
+                event_str = "{}, {}".format(item.get("Name"), item.get("ShortOverview"))
+                ret_array.append({"type": event_type, "event": event_str, "date": event_date})
+            if item.get("Type") in ["VideoPlayback", "VideoPlaybackStopped"]:
+                event_type = "PL"
+                event_date = SystemUtils.get_local_time(item.get("Date"))
+                event_str = item.get("Name")
+                ret_array.append({"type": event_type, "event": event_str, "date": event_date})
         return ret_array[:num]
 
     def get_medias_count(self):

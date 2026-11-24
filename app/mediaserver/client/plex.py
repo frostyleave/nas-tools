@@ -1,13 +1,15 @@
+import asyncio
 import os
+import threading
 from datetime import datetime
 from urllib.parse import quote
 
-from cachetools import TTLCache, cached
+from cachetools import TTLCache
 from lxml import etree
 
 import log
 from app.mediaserver.client._base import _IMediaClient
-from app.utils import RequestUtils
+from app.utils import AsyncRequestUtils, RequestUtils
 from app.utils.types import MediaServerType, MediaType
 from config import Config
 
@@ -38,6 +40,13 @@ class Plex(_IMediaClient):
     _connected = False
 
     def __init__(self, config=None):
+        # 初始化只解析配置，连接延迟到 ensure_ready / ensure_ready_async
+        self._ready = False
+        self._ready_lock = threading.Lock()
+        self._async_ready_locks: dict = {}
+        self._config_generation = 0
+        # 媒体库图片列表缓存，同步与异步接口共用
+        self._image_cache = TTLCache(maxsize=512, ttl=3600)
         if config:
             self._client_config = config
         else:
@@ -48,15 +57,16 @@ class Plex(_IMediaClient):
         self.init_config()
 
     def init_config(self):
+        self._ready = False
+        self._config_generation += 1
         self._connected = False
         self._machine_identifier = None
         self._libraries = []
+        self._image_cache.clear()
         if not self._client_config:
             return
         self._host = self.__format_host(self._client_config.get('host'))
         self._token = self._client_config.get('token')
-        if self._host and self._token:
-            self._connected = self.__connect(self._host, self._token)
         self.__init_play_host()
 
     @staticmethod
@@ -85,6 +95,43 @@ class Plex(_IMediaClient):
             self._play_host = play_host + "desktop/"
         else:
             self._play_host = play_host + "web/index.html"
+
+    def ensure_ready(self):
+        """
+        同步建立连接，首次使用时执行一次
+        """
+        if self._ready or not self._host or not self._token:
+            return
+        with self._ready_lock:
+            if self._ready:
+                return
+            generation = self._config_generation
+            connected = self.__connect(self._host, self._token)
+            if generation != self._config_generation:
+                return
+            self._connected = connected
+            self._ready = True
+
+    async def ensure_ready_async(self):
+        """
+        异步建立连接，首次使用时执行一次
+        """
+        if self._ready or not self._host or not self._token:
+            return
+        loop = asyncio.get_running_loop()
+        lock = self._async_ready_locks.get(loop)
+        if lock is None:
+            lock = asyncio.Lock()
+            self._async_ready_locks[loop] = lock
+        async with lock:
+            if self._ready:
+                return
+            generation = self._config_generation
+            connected = await self.__connect_async(self._host, self._token)
+            if generation != self._config_generation:
+                return
+            self._connected = connected
+            self._ready = True
 
     @staticmethod
     def __headers(token=None):
@@ -148,6 +195,33 @@ class Plex(_IMediaClient):
             log.exception(f"【{self.client_name}】请求 {path} 出错: ")
             return None
 
+    async def __query_async(self, path, params=None, container_start=None, container_size=None):
+        """
+        异步请求 Plex 接口，返回 MediaContainer 节点
+        """
+        if not self._host or not self._token:
+            return None
+        url = path if str(path).startswith("http") else f"{self._host.rstrip('/')}{path}"
+        headers = self.__headers(self._token)
+        if container_start is not None:
+            headers["X-Plex-Container-Start"] = str(container_start)
+        if container_size is not None:
+            headers["X-Plex-Container-Size"] = str(container_size)
+        try:
+            res = await AsyncRequestUtils(headers=headers, timeout=30).get_res(url, params=params)
+            if res is None:
+                log.error(f"【{self.client_name}】请求 {path} 无返回数据")
+                return None
+            if res.status_code not in (200, 201, 204):
+                log.error(f"【{self.client_name}】请求 {path} 失败，状态码：{res.status_code}")
+                return None
+            if not res.content:
+                return etree.Element("MediaContainer")
+            return etree.fromstring(res.content)
+        except Exception:
+            log.exception(f"【{self.client_name}】请求 {path} 出错: ")
+            return None
+
     def __fetch_items(self, path, params=None, container_size=100, max_items=None):
         """
         分页获取 Plex 媒体条目
@@ -172,6 +246,30 @@ class Plex(_IMediaClient):
                 break
         return items
 
+    async def __fetch_items_async(self, path, params=None, container_size=100, max_items=None):
+        """
+        异步分页获取 Plex 媒体条目
+        """
+        items = []
+        container_start = 0
+        while True:
+            container = await self.__query_async(path,
+                                                 params=params,
+                                                 container_start=container_start,
+                                                 container_size=container_size)
+            if container is None:
+                break
+            page_items = self.__children(container, *PLEX_MEDIA_TAGS)
+            items.extend(page_items)
+            if max_items and len(items) >= max_items:
+                return items[:max_items]
+            total_size = self.__to_int(container.get("totalSize") or container.get("size")) \
+                or len(page_items)
+            container_start += container_size
+            if not page_items or container_start >= total_size:
+                break
+        return items
+
     def __get_sections(self, section_id=None):
         """
         获取媒体库节点列表
@@ -182,6 +280,13 @@ class Plex(_IMediaClient):
             return sections
         # /library/sections/{id} 返回的是筛选器列表，分区信息需从分区列表中过滤
         return [section for section in sections if str(section.get("key")) == str(section_id)]
+
+    async def __get_sections_async(self):
+        """
+        异步获取媒体库节点列表
+        """
+        container = await self.__query_async("/library/sections")
+        return self.__children(container, "Directory")
 
     def __get_section_total(self, section_key, libtype=None, include_collections=False):
         """
@@ -194,6 +299,21 @@ class Plex(_IMediaClient):
                                  params=params,
                                  container_start=0,
                                  container_size=0)
+        if container is None:
+            return 0
+        return self.__to_int(container.get("totalSize") or container.get("size"))
+
+    async def __get_section_total_async(self, section_key, libtype=None, include_collections=False):
+        """
+        异步获取媒体库条目总数
+        """
+        params = {"includeCollections": int(bool(include_collections))}
+        if libtype:
+            params["type"] = PLEX_SEARCH_TYPE.get(libtype, libtype)
+        container = await self.__query_async(f"/library/sections/{section_key}/all",
+                                             params=params,
+                                             container_start=0,
+                                             container_size=0)
         if container is None:
             return 0
         return self.__to_int(container.get("totalSize") or container.get("size"))
@@ -245,6 +365,26 @@ class Plex(_IMediaClient):
             log.exception(f"【{self.client_name}】Plex服务器连接失败: ")
             return False
 
+    async def __connect_async(self, host, token):
+        """
+        异步连接 Plex 服务器
+        """
+        host = self.__format_host(host)
+        try:
+            res = await AsyncRequestUtils(headers=self.__headers(token), timeout=30).get_res(host)
+            if res is None or res.status_code != 200:
+                log.info(f"【{self.client_name}】连接服务器失败：{host}，"
+                         f"状态码：{res.status_code if res else '无响应'}")
+                return False
+            container = etree.fromstring(res.content)
+            self._host = host
+            self._token = token
+            self._machine_identifier = container.get("machineIdentifier")
+            return True
+        except Exception:
+            log.exception(f"【{self.client_name}】Plex服务器连接失败: ")
+            return False
+
     @classmethod
     def match(cls, ctype):
         return ctype in [cls.client_id, cls.client_type, cls.client_name]
@@ -256,6 +396,7 @@ class Plex(_IMediaClient):
         """
         测试连通性
         """
+        self.ensure_ready()
         return bool(self._connected)
 
     @staticmethod
@@ -269,9 +410,11 @@ class Plex(_IMediaClient):
         """
         获取Plex活动记录
         """
+        if not self._host or not self._token:
+            return []
+        self.ensure_ready()
         if not self._connected:
             return []
-        ret_array = []
         try:
             # type的含义: 1 电影 4 剧集单集，详见 Plex API 的 type 参数
             # 根据最后播放时间倒序获取数据
@@ -280,32 +423,59 @@ class Plex(_IMediaClient):
                                                   "limit": num,
                                                   "type": "1,4"},
                                           max_items=num)
-            for item in historys:
-                last_viewed = item.get("lastViewedAt")
-                # 过滤掉最后播放时间为空的
-                if not last_viewed:
-                    continue
-                if item.get("type") == "episode":
-                    event_title = "{} {}{} {}".format(
-                        item.get("grandparentTitle"),
-                        "S" + str(item.get("parentIndex")),
-                        "E" + str(item.get("index")),
-                        item.get("title")
-                    )
-                    event_str = f"开始播放剧集 {event_title}"
-                else:
-                    event_title = "{} {}".format(item.get("title"), "(" + str(item.get("year")) + ")")
-                    event_str = f"开始播放电影 {event_title}"
-
-                event_type = "PL"
-                event_date = datetime.fromtimestamp(self.__to_int(last_viewed)).strftime('%Y-%m-%d %H:%M:%S')
-                activity = {"type": event_type, "event": event_str, "date": event_date}
-                ret_array.append(activity)
-        except Exception as e:
+            return self._build_activity_log(historys)
+        except Exception:
             log.exception(f"【{self.client_name}】获取播放记录出错: ")
             return []
+
+    async def get_activity_log_async(self, num):
+        """
+        异步获取Plex活动记录
+        """
+        if not self._host or not self._token:
+            return []
+        await self.ensure_ready_async()
+        if not self._connected:
+            return []
+        try:
+            historys = await self.__fetch_items_async("/library/all",
+                                                      params={"sort": "lastViewedAt:desc",
+                                                              "limit": num,
+                                                              "type": "1,4"},
+                                                      max_items=num)
+            return self._build_activity_log(historys)
+        except Exception:
+            log.exception(f"【{self.client_name}】获取播放记录出错: ")
+            return []
+
+    def _build_activity_log(self, historys):
+        """
+        将 Plex 播放记录转换为首页展示结构
+        """
+        ret_array = []
+        for item in historys:
+            last_viewed = item.get("lastViewedAt")
+            # 过滤掉最后播放时间为空的
+            if not last_viewed:
+                continue
+            if item.get("type") == "episode":
+                event_title = "{} {}{} {}".format(
+                    item.get("grandparentTitle"),
+                    "S" + str(item.get("parentIndex")),
+                    "E" + str(item.get("index")),
+                    item.get("title")
+                )
+                event_str = f"开始播放剧集 {event_title}"
+            else:
+                event_title = "{} {}".format(item.get("title"), "(" + str(item.get("year")) + ")")
+                event_str = f"开始播放电影 {event_title}"
+
+            event_type = "PL"
+            event_date = datetime.fromtimestamp(self.__to_int(last_viewed)).strftime('%Y-%m-%d %H:%M:%S')
+            activity = {"type": event_type, "event": event_str, "date": event_date}
+            ret_array.append(activity)
         if ret_array:
-            ret_array = sorted(ret_array, key=lambda x: x['date'], reverse=True)
+            ret_array.sort(key=lambda x: x['date'], reverse=True)
         return ret_array
 
     def get_medias_count(self):
@@ -313,6 +483,9 @@ class Plex(_IMediaClient):
         获得电影、电视剧、动漫媒体数量
         :return: MovieCount SeriesCount SongCount
         """
+        if not self._host or not self._token:
+            return {}
+        self.ensure_ready()
         if not self._connected:
             return {}
         sections = self.__get_sections()
@@ -331,6 +504,34 @@ class Plex(_IMediaClient):
             "SongCount": SongCount,
             "EpisodeCount": EpisodeCount
         }
+
+    async def get_medias_count_async(self):
+        """
+        异步获得电影、电视剧、动漫媒体数量
+        """
+        if not self._host or not self._token:
+            return {}
+        await self.ensure_ready_async()
+        if not self._connected:
+            return {}
+        sections = await self.__get_sections_async()
+        # 各媒体库的计数请求并发执行
+        requests = []
+        for sec in sections:
+            if sec.get("type") == "movie":
+                requests.append(("MovieCount", self.__get_section_total_async(sec.get("key"), "movie")))
+            if sec.get("type") == "show":
+                requests.append(("SeriesCount", self.__get_section_total_async(sec.get("key"), "show")))
+                requests.append(("EpisodeCount", self.__get_section_total_async(
+                    sec.get("key"), "episode", include_collections=True)))
+            if sec.get("type") == "artist":
+                requests.append(("SongCount", self.__get_section_total_async(sec.get("key"), "artist")))
+        counts = {"MovieCount": 0, "SeriesCount": 0, "SongCount": 0, "EpisodeCount": 0}
+        if requests:
+            values = await asyncio.gather(*(coro for _, coro in requests))
+            for (field, _), value in zip(requests, values):
+                counts[field] += value
+        return counts
 
     def get_movies(self, title, year=None):
         """
@@ -523,22 +724,64 @@ class Plex(_IMediaClient):
         """
         获取媒体服务器所有媒体库列表
         """
+        if not self._host or not self._token:
+            return []
+        self.ensure_ready()
         if not self._connected:
             return []
         try:
             self._libraries = self.__get_sections()
-        except Exception as err:
+        except Exception:
             log.exception(f"【{self.client_name}】尝试初始化媒体库连接失败: ")
             return []
-        libraries = []
+        image_map = {}
         for library in self._libraries:
             match library.get("type"):
                 case "movie":
+                    image_map[library.get("key")] = self.get_libraries_image(library.get("key"), 1)
+                case "show":
+                    image_map[library.get("key")] = self.get_libraries_image(library.get("key"), 2)
+        return self._build_libraries(self._libraries, image_map)
+
+    async def get_libraries_async(self):
+        """
+        异步获取媒体服务器所有媒体库列表
+        """
+        if not self._host or not self._token:
+            return []
+        await self.ensure_ready_async()
+        if not self._connected:
+            return []
+        try:
+            self._libraries = await self.__get_sections_async()
+        except Exception:
+            log.exception(f"【{self.client_name}】尝试初始化媒体库连接失败: ")
+            return []
+        # 各媒体库的图片列表并发获取
+        keys = []
+        tasks = []
+        for library in self._libraries:
+            if library.get("type") == "movie":
+                keys.append(library.get("key"))
+                tasks.append(self.get_libraries_image_async(library.get("key"), 1))
+            elif library.get("type") == "show":
+                keys.append(library.get("key"))
+                tasks.append(self.get_libraries_image_async(library.get("key"), 2))
+        images = await asyncio.gather(*tasks) if tasks else []
+        # 拼接展示结构时包含域名解析，放到线程中处理
+        return await asyncio.to_thread(self._build_libraries, self._libraries, dict(zip(keys, images)))
+
+    def _build_libraries(self, sections, image_map):
+        """
+        将 Plex 媒体库节点转换为首页展示结构
+        """
+        libraries = []
+        for library in sections:
+            match library.get("type"):
+                case "movie":
                     library_type = MediaType.MOVIE.value
-                    image_list_str = self.get_libraries_image(library.get("key"), 1)
                 case "show":
                     library_type = MediaType.TV.value
-                    image_list_str = self.get_libraries_image(library.get("key"), 2)
                 case _:
                     continue
             libraries.append({
@@ -547,13 +790,12 @@ class Plex(_IMediaClient):
                 "paths": [location.get("path") for location in library.findall("Location")
                           if location.get("path")],
                 "type": library_type,
-                "image_list": image_list_str,
+                "image_list": image_map.get(library.get("key"), ""),
                 "link": f"{self._play_host or self._host}#!/media/{self._machine_identifier}"
                         f"/com.plexapp.plugins.library?source={library.get('key')}"
             })
         return libraries
 
-    @cached(cache=TTLCache(maxsize=512, ttl=3600))
     def get_libraries_image(self, library_key, type):
         """
         获取媒体服务器最近添加的媒体的图片列表
@@ -562,6 +804,10 @@ class Plex(_IMediaClient):
         """
         if not self._connected:
             return ""
+        cache_key = (library_key, type)
+        cached = self._image_cache.get(cache_key)
+        if cached is not None:
+            return cached
         # 返回结果
         poster_urls = {}
         # 页码计数
@@ -590,9 +836,53 @@ class Plex(_IMediaClient):
             if len(items) < total_size:
                 break
             container_start += total_size
-        image_list_str = ", ".join(
-            [self._get_image_url(url) for url in list(poster_urls.keys())[:total_size]])
+        image_list_str = ", ".join(self.__build_image_urls(list(poster_urls.keys())[:total_size]))
+        self._image_cache[cache_key] = image_list_str
         return image_list_str
+
+    async def get_libraries_image_async(self, library_key, type):
+        """
+        异步获取媒体服务器最近添加的媒体的图片列表
+        """
+        if not self._connected:
+            return ""
+        cache_key = (library_key, type)
+        cached = self._image_cache.get(cache_key)
+        if cached is not None:
+            return cached
+        poster_urls = {}
+        container_start = 0
+        total_size = 4
+
+        while len(poster_urls) < total_size:
+            container = await self.__query_async("/hubs/home/recentlyAdded",
+                                                 params={"type": type, "sectionID": library_key},
+                                                 container_start=container_start,
+                                                 container_size=total_size)
+            items = self.__children(container, *PLEX_MEDIA_TAGS)
+            for item in items:
+                if item.get("type") == 'episode':
+                    thumb = item.get("parentThumb")
+                else:
+                    thumb = item.get("thumb")
+                if thumb is not None:
+                    poster_urls[thumb] = None
+                if len(poster_urls) == total_size:
+                    break
+            if len(items) < total_size:
+                break
+            container_start += total_size
+        # 图片地址拼接包含域名解析，放到线程中处理
+        paths = list(poster_urls.keys())[:total_size]
+        image_list_str = ", ".join(await asyncio.to_thread(self.__build_image_urls, paths))
+        self._image_cache[cache_key] = image_list_str
+        return image_list_str
+
+    def __build_image_urls(self, paths):
+        """
+        批量拼接图片完整地址
+        """
+        return [self._get_image_url(url) for url in paths]
 
     def _get_image_url(self, path):
         """
@@ -784,9 +1074,33 @@ class Plex(_IMediaClient):
         """
         获取最近添加媒体
         """
+        if not self._host or not self._token:
+            return []
+        self.ensure_ready()
         if not self._connected:
             return []
         items = self.__fetch_items('/library/recentlyAdded', container_size=num, max_items=num)
+        return self._build_latest(items)
+
+    async def get_latest_async(self, num=20):
+        """
+        异步获取最近添加媒体
+        """
+        if not self._host or not self._token:
+            return []
+        await self.ensure_ready_async()
+        if not self._connected:
+            return []
+        items = await self.__fetch_items_async('/library/recentlyAdded',
+                                               container_size=num,
+                                               max_items=num)
+        # 图片地址拼接包含域名解析，放到线程中处理
+        return await asyncio.to_thread(self._build_latest, items)
+
+    def _build_latest(self, items):
+        """
+        将 Plex 最近添加条目转换为首页展示结构
+        """
         ret_resume = []
         for item in items:
             item_type = MediaType.MOVIE.value if item.get("type") == "movie" else MediaType.TV.value
