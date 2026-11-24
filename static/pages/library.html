@@ -886,7 +886,7 @@
   // 测试媒体服务器配置
   function test_mediaserver_config(type) {
     $("#" + type + "_test_btn").text("测试中...").attr("disabled", true);
-    axios_post_do("test_mediaserver", { "type": type }, function (ret) {
+    axios_post_do_async("test_mediaserver", { "type": type }, function (ret) {
       if (ret.code === 0) {
         $("#" + type + "_test_btn").text("测试成功").attr("disabled", false);
       } else {

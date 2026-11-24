@@ -122,6 +122,12 @@ class Emby(_IMediaClient):
         """
         return bool(self.get_medias_count())
 
+    async def get_status_async(self):
+        """
+        异步测试连通性
+        """
+        return bool(await self.get_medias_count_async())
+
     def __get_emby_folders(self):
         """
         获取Emby媒体库路径列表

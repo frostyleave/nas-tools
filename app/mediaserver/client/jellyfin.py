@@ -126,6 +126,12 @@ class Jellyfin(_IMediaClient):
         """
         return bool(self.get_medias_count())
 
+    async def get_status_async(self):
+        """
+        异步测试连通性
+        """
+        return bool(await self.get_medias_count_async())
+
     def __get_jellyfin_librarys(self):
         """
         获取Jellyfin媒体库的信息

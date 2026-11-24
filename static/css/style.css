@@ -4,10 +4,6 @@
 
     --tblr-body-bg: #F5F5F9;
 
-    /* --lit-navbar-hover: #f2f3f3;
-    --lit-navbar-active: #e7e7ff;
-    --lit-navbar-active-color: var(--tblr-primary); */
-
     --lit-navbar-hover: #e7e7ff;
     --lit-navbar-active: #757BF4;
     --lit-navbar-active-color: var(--tblr-body-bg);
@@ -54,13 +50,11 @@
     box-shadow: 0 12px 20px 0 rgba(var(--tblr-primary-rgb), 0.1);
 }
 
-/* 激活项底色改由 .lit-navbar-liquid 液态胶囊承担，才能做出滑动过渡 */
 .lit-navbar-accordion-item-active {
     background-color: transparent !important;
     transform: scale(1.02);
 }
 
-/* 液态胶囊：在菜单项之间滑动，移动时拉伸回弹 */
 layout-navbar .accordion {
     position: relative;
 }
@@ -2874,10 +2868,41 @@ update-panel :focus-visible {
 
 
 .lit-segment {
-    display: inline-flex;
+    display: inline-grid;
+    grid-auto-flow: column;
+    grid-auto-columns: 1fr;
+    width: max-content;
     align-items: stretch;
     border-radius: 8px;
     overflow: hidden;
+}
+
+.lit-segment > .nav-item {
+    display: flex;
+}
+
+.lit-segment > .nav-item + .nav-item {
+    margin-left: -20px;
+}
+
+.lit-segment > .nav-item > .lit-segment-option {
+    flex: 1 1 auto;
+}
+
+.lit-segment > .nav-item > .lit-segment-option.is-trailing {
+    margin-left: 0;
+}
+
+.lit-segment > .nav-item:first-child > .lit-segment-option,
+.lit-segment > .lit-segment-option:first-child {
+    margin-left: -1px;
+    padding-left: 21px;
+}
+
+.lit-segment > .nav-item:last-child > .lit-segment-option,
+.lit-segment > .lit-segment-option:last-child {
+    margin-right: -1px;
+    padding-right: 21px;
 }
 
 .lit-segment .lit-segment-option {
@@ -2894,7 +2919,7 @@ update-panel :focus-visible {
     font-size: 13.5px;
     font-weight: 500;
     text-decoration: none;
-    transition: background-color .18s ease, color .18s ease;
+    transition: color .18s ease;
 }
 
 .lit-segment .lit-segment-option:hover {
@@ -2913,8 +2938,8 @@ update-panel :focus-visible {
     color: var(--tblr-primary-fg);
 }
 
-.lit-segment .btn-check:focus-visible + .lit-segment-option,
 .lit-segment .lit-segment-option:focus-visible {
+    outline: 0;
     box-shadow: inset 0 0 0 2px var(--tblr-primary);
 }
 
@@ -3416,6 +3441,10 @@ body.theme-midnight .lit-segment .lit-segment-option.active {
     background-image: linear-gradient(135deg, #8b5cf6, #a855f7);
     background-color: #8b5cf6;
     color: #ffffff;
+}
+
+body.theme-midnight .lit-segment > .nav-item:first-child > .lit-segment-option.active {
+    clip-path: polygon(0 0, 100% 0, calc(100% - 20px) 100%, 0 100%);
 }
 
 body.theme-midnight .scroll-to-top {

@@ -134,6 +134,22 @@ class MediaServer:
             log.exception(f"【MediaServer】测试媒体服务器 {ctype} 连通性出错: ")
             return False
 
+    async def test_connection_async(self, ctype: str) -> bool:
+        """
+        异步测试指定媒体服务器的连通性（使用已保存的配置）
+        :param ctype: 媒体服务器类型，emby/jellyfin/plex
+        """
+        try:
+            server = await asyncio.to_thread(self.__build_class, ctype=ctype, conf=None)
+            if not server:
+                return False
+            if hasattr(server, "get_status_async"):
+                return bool(await server.get_status_async())
+            return bool(await asyncio.to_thread(server.get_status))
+        except Exception:
+            log.exception(f"【MediaServer】测试媒体服务器 {ctype} 连通性出错: ")
+            return False
+
     def get_activity_log(self, limit):
         """
         获取媒体服务器的活动日志

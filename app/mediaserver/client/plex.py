@@ -399,6 +399,13 @@ class Plex(_IMediaClient):
         self.ensure_ready()
         return bool(self._connected)
 
+    async def get_status_async(self):
+        """
+        异步测试连通性
+        """
+        await self.ensure_ready_async()
+        return bool(self._connected)
+
     @staticmethod
     def get_user_count(**kwargs):
         """

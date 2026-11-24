@@ -235,9 +235,28 @@ class SitesDataStatisticsCenter:
             # 命令线程/线程池会吞掉异常，这里必须显式记录，否则统计失败时无任何日志
             log.exception("【Sites】站点数据统计执行失败: ")
             return
-        # 刷完发送消息
-        string_list = []
+        self.__notify_refresh_result()
+        # 返回本次刷新的逐站点结果（成功/失败/未解析到的字段），供调用方（如单站点刷新接口）使用
+        return result
 
+    async def refresh_site_data_now_async(self, specify_site=None):
+        """
+        异步强制刷新站点数据
+        """
+        log.info("【Sites】开始执行站点数据统计...")
+        try:
+            result = await self.__refresh_all_site_data(force=True, specify_site_name=specify_site)
+        except Exception:
+            log.exception("【Sites】站点数据统计执行失败: ")
+            return
+        # 消息发送为同步阻塞调用，放到线程中执行
+        await asyncio.to_thread(self.__notify_refresh_result)
+        return result
+
+    def __notify_refresh_result(self):
+        """
+        刷新完成后汇总并发送站点数据统计消息
+        """
         # 增量数据
         incUploads = 0
         incDownloads = 0
@@ -247,6 +266,7 @@ class SitesDataStatisticsCenter:
         data_list = list(zip(site, upload, download))
         data_list = sorted(data_list, key=lambda x: x[1], reverse=True)
 
+        string_list = []
         for data in data_list:
             site = data[0]
             upload = int(data[1])
@@ -267,8 +287,6 @@ class SitesDataStatisticsCenter:
 
             self.message.send_user_statistics_message(string_list)
         log.info("【Sites】站点数据统计执行完成")
-        # 返回本次刷新的逐站点结果（成功/失败/未解析到的字段），供调用方（如单站点刷新接口）使用
-        return result
 
     async def __refresh_all_site_data(self, force=False, specify_site_name=None):
         """
@@ -277,7 +295,10 @@ class SitesDataStatisticsCenter:
         if not self.sites.get_sites():
             return {"total": 0, "sites": [], "msg": "没有配置站点"}
 
-        with lock:
+        # 与其他刷新任务共用同一把锁：非阻塞获取，等待期间不阻塞事件循环
+        while not lock.acquire(blocking=False):
+            await asyncio.sleep(0.2)
+        try:
 
             if not force and not specify_site_name and self._last_update_time:
                 return
@@ -360,6 +381,8 @@ class SitesDataStatisticsCenter:
             self._last_update_time = datetime.now()
 
             return {"total": len(refresh_sites), "sites": site_results}
+        finally:
+            lock.release()
 
     def get_pt_site_statistics_history(self, days=7, end_day=None):
         """

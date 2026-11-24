@@ -799,7 +799,7 @@
       return;
     }
     let url = $(`#nettest_item_url_${url_name}`).val();
-    axios_post_do("net_test", decodeURI(url), function (ret) {
+    axios_post_do_async("net_test", decodeURI(url), function (ret) {
       if (ret.res) {
         $(`#nettest_item_res_${url_name}`).html('<span class="badge bg-green me-1 mb-1">是</span>');
         $(`#nettest_item_res_time_${url_name}`).html(`<span class="text-green">${ret.time}</span>`);

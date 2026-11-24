@@ -666,7 +666,7 @@
     if (!siteid) {
       return;
     }
-    axios_post_do("test_site", { id: siteid }, function (ret) {
+    axios_post_do_async("test_site", { id: siteid }, function (ret) {
       if (ret.code === 0) {
         $(`#sitetest_item${siteid}`).html('<span class="badge bg-green me-1 mb-1">是</span>');
         $(`#sitetest_item${siteid}_time`).html(`<span class="text-green">${ret.time} 毫秒</span>`);

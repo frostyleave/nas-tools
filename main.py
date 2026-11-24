@@ -1,3 +1,4 @@
+import asyncio
 import os
 
 from fastapi import FastAPI, HTTPException, Request
@@ -7,6 +8,7 @@ from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
 
 from app.api.action import action_router
+from app.api.action_async import action_async_router
 from app.api.auth import auth_router
 from app.api.data import data_router
 from app.api.open import open_router
@@ -42,6 +44,7 @@ app.include_router(open_router)
 app.include_router(data_router)
 app.include_router(auth_router)
 app.include_router(action_router)
+app.include_router(action_async_router)
 app.include_router(streaming_router)
 app.include_router(sys_router)
 app.include_router(utility_router)
@@ -97,8 +100,9 @@ def home_page():
 
 # bing
 @app.post("/data/bing")
-def bing():
-    img_url, img_title, img_link = get_login_wallpaper()
+async def bing():
+    # 缓存未命中时会请求 TMDB/Bing，放到线程池中执行，避免阻塞事件循环
+    img_url, img_title, img_link = await asyncio.to_thread(get_login_wallpaper)
     data = {
         "imgTitle" : img_title,
         "imgLink" : img_link,

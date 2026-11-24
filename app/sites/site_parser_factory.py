@@ -9,6 +9,7 @@ from app.models.model import UserSiteConf
 from app.sites.siteuserinfo._base import _ISiteUserInfo
 from app.sites.siteuserinfo.colapt import ColaPTUserInfo
 from app.sites.siteuserinfo.mTorrent import MTorrentUserInfo
+from app.sites.siteuserinfo.tnode import TNodeSiteUserInfo
 from app.sites.siteuserinfo.yemapt import YemaUserInfo
 from app.utils.types import Spider
 
@@ -66,6 +67,23 @@ _BUILDERS = {
 }
 
 
+def _build_tnode(site_info: UserSiteConf):
+    """
+    TNode 使用 Cookie 鉴权，首页为 SPA，连通性测试通过用户信息接口验证
+    """
+    return TNodeSiteUserInfo(
+        site_info.name, site_info.strict_url, site_info.cookie, "",
+        ua=site_info.ua,
+        proxy=site_info.proxy,
+    )
+
+
+# Cookie 鉴权、但需要通过站点接口验证登录状态的解析器（仅用于连通性测试）
+_CONNECTION_TEST_BUILDERS = {
+    Spider.TNodeSpider.value: _build_tnode,
+}
+
+
 def is_api_site_parser(parser: str | None) -> bool:
     """
     是否为使用接口鉴权的站点解析器
@@ -91,3 +109,16 @@ def build_api_site_user_info(site_info: UserSiteConf,
     if not builder:
         return None
     return builder(site_info, session_factory, require_credentials)
+
+
+def build_connection_test_site_user_info(site_info: UserSiteConf) -> _ISiteUserInfo | None:
+    """
+    构造支持接口连通性测试的 Cookie 鉴权解析器
+
+    :param site_info: 站点配置
+    :return: 解析器实例；站点解析器不支持接口测试或未配置 Cookie 时返回 None
+    """
+    builder = _CONNECTION_TEST_BUILDERS.get(site_info.parser)
+    if not builder or not site_info.cookie:
+        return None
+    return builder(site_info)

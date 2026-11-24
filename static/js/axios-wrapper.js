@@ -160,6 +160,22 @@ function axios_post(req_url, params, handler, show_progress = true) {
 }
 
 
+/**
+ * axios_post_do_async方法 - /do 的异步命令入口
+ * @param {string} cmd - 命令
+ * @param {object} params - 参数
+ * @param {function} handler - 成功回调
+ * @param {boolean} show_progress - 是否显示全局加载动画，默认true
+ */
+function axios_post_do_async(cmd, params, handler, show_progress = true) {
+
+    return axios_post("/do_async", {
+        cmd: cmd,
+        data: params
+    }, handler, show_progress);
+}
+
+
 // 导出方法到全局作用域
 window.axios_post = axios_post;
 window.axios_client = apiClient;

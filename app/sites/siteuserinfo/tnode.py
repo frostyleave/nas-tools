@@ -1,6 +1,7 @@
 import re
+from urllib.parse import urljoin
 
-from app.sites.siteuserinfo._base import SITE_BASE_ORDER, _ISiteUserInfo
+from app.sites.siteuserinfo._base import SITE_BASE_ORDER, _ISiteUserInfo, build_async_session
 from app.utils import JsonUtils, StringUtils
 from app.utils.types import SiteSchema
 
@@ -12,6 +13,48 @@ class TNodeSiteUserInfo(_ISiteUserInfo):
     @classmethod
     def match(cls, html_text):
         return 'Powered By TNode' in html_text
+
+    async def test_connection(self) -> tuple[bool, str]:
+        """
+        使用用户信息接口验证 Cookie 是否有效
+
+        TNode 站点首页是 SPA 外壳，页面里没有登出/用户面板链接，
+        无法通过首页 HTML 判断登录状态，需要请求鉴权接口验证。
+        """
+        if not self._site_cookie:
+            return False, "未配置站点Cookie"
+
+        # 连通性测试可能不传会话，这里临时创建一个并在结束时关闭
+        original_session = self._session
+        if original_session is None:
+            self._session = build_async_session(self._site_cookie)
+        try:
+            # 首页用于获取 CSRF Token
+            index_html, status = await self._get_page_content(self.site_url)
+            if not index_html or status != 200:
+                return False, "无法打开网站"
+
+            self._parse_site_page(index_html)
+            if not self._addition_headers:
+                return False, "无法获取站点Token"
+
+            detail_page, status = await self._get_page_content(
+                urljoin(self._base_url, self._user_detail_page))
+            if status == -1:
+                return False, "无法访问站点接口"
+            if status != 200:
+                return False, "Cookie失效"
+
+            detail = JsonUtils.loads(detail_page, silent=True)
+            if not detail or detail.get("status") != 200:
+                return False, "Cookie失效"
+            return True, "连接成功"
+        finally:
+            if original_session is None:
+                await self._session.close()
+                self._session = None
+            else:
+                self._session = original_session
 
     def _parse_site_page(self, html_text):
         html_text = self._prepare_html_text(html_text)

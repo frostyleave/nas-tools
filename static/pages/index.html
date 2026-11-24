@@ -520,7 +520,7 @@
     const container = $("#activity-list");
     container.html('<div class="text-center text-muted py-3">加载中...</div>');
 
-    axios_post_do("get_activity_log", {}, function (ret) {
+    axios_post_do_async("get_activity_log", {}, function (ret) {
       if (ret.code !== 0) {
         container.html(`<div class="text-center text-muted py-3">加载失败：${ret.msg || '未知错误'}</div>`);
         return;

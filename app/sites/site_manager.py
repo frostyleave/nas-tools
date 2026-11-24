@@ -13,7 +13,7 @@ from app.indexer.manager import IndexerManager
 from app.message import MessageService
 from app.models.model import SiteBaseModel, UserSiteConf
 from app.sites import SiteRateLimiter
-from app.utils import JsonUtils, RequestUtils, SiteUtils
+from app.utils import AsyncRequestUtils, JsonUtils, RequestUtils, SiteUtils
 from app.utils.commons import singleton
 from app.utils.types import SystemConfigKey
 from config import Config
@@ -523,8 +523,14 @@ class SitesManager:
                 return False, "站点不存在", 0
 
             # 延迟导入，避免站点模块初始化时反向依赖索引器模块
-            from app.sites.site_parser_factory import build_api_site_user_info
+            from app.sites.site_parser_factory import (
+                build_api_site_user_info,
+                build_connection_test_site_user_info,
+            )
             parser = build_api_site_user_info(site_info, require_credentials=False)
+            if not parser:
+                # Cookie 鉴权的 SPA 站点（如 TNode）通过接口验证
+                parser = build_connection_test_site_user_info(site_info)
             if not parser:
                 return self.__test_connection_basic(site_info)
 
@@ -537,6 +543,72 @@ class SitesManager:
         except Exception as e:
             log.exception('【Sites】测试站点连通性异常: ')
             return False, "测试站点连通性异常", 0
+
+    async def test_connection_async(self, site_id) -> tuple[bool, str, int]:
+        """
+        异步测试站点连通性
+        :param site_id: 站点编号
+        :return: 是否连通、错误信息、耗时
+        """
+        try:
+            site_info = self.get_site(siteid=site_id)
+            if not site_info:
+                return False, "站点不存在", 0
+
+            # 延迟导入，避免站点模块初始化时反向依赖索引器模块
+            from app.sites.site_parser_factory import (
+                build_api_site_user_info,
+                build_connection_test_site_user_info,
+            )
+            parser = await asyncio.to_thread(build_api_site_user_info,
+                                             site_info,
+                                             require_credentials=False)
+            if not parser:
+                # Cookie 鉴权的 SPA 站点（如 TNode）通过接口验证
+                parser = await asyncio.to_thread(build_connection_test_site_user_info, site_info)
+            if not parser:
+                return await self.__test_connection_basic_async(site_info)
+
+            # 计时
+            start_time = datetime.now()
+            success, message = await parser.test_connection()
+            seconds = int((datetime.now() - start_time).total_seconds() * 1000)
+            return success, message, seconds
+
+        except Exception:
+            log.exception('【Sites】测试站点连通性异常: ')
+            return False, "测试站点连通性异常", 0
+
+    async def __test_connection_basic_async(self, site_info: UserSiteConf):
+        """
+        异步基础连通性测试：访问站点首页并检查登录状态
+        """
+        site_cookie = site_info.cookie
+        if not site_cookie:
+            return False, "未配置站点Cookie", 0
+
+        ua = site_info.ua or Config().get_ua()
+        site_url = site_info.strict_url
+
+        # 计时
+        start_time = datetime.now()
+
+        res = await AsyncRequestUtils(cookies=site_cookie,
+                                      ua=ua,
+                                      proxies=Config().get_proxies() if site_info.proxy else None
+                                      ).get_res(url=site_url)
+
+        seconds = int((datetime.now() - start_time).total_seconds() * 1000)
+
+        if res and res.status_code == 200:
+            if not SiteHelper.is_logged_in(res.text):
+                return False, "Cookie失效", seconds
+            return True, "连接成功", seconds
+
+        if res:
+            return False, f"连接失败，状态码：{res.status_code}", seconds
+
+        return False, "无法打开网站", seconds
 
     def __test_connection_basic(self, site_info: UserSiteConf):
             

@@ -25,14 +25,16 @@
   <div class="container-xl">
     <div class="page-body mt-2 pb-4">
       <header class="d-flex align-items-center gap-3 flex-wrap pt-1">
-        <div class="lit-segment" id="st-view-switch" role="group" aria-label="统计视图">
-          <input type="radio" class="btn-check" name="statistics-view" id="st-tab-total" value="total"
-            autocomplete="off" checked onchange="switch_statistics_view('total')">
-          <label class="btn lit-segment-option" for="st-tab-total">总量信息</label>
-          <input type="radio" class="btn-check" name="statistics-view" id="st-tab-sites" value="sites"
-            autocomplete="off" onchange="switch_statistics_view('sites')">
-          <label class="btn lit-segment-option is-trailing" for="st-tab-sites">站点明细</label>
-        </div>
+        <ul class="nav lit-segment m-0" id="st-view-switch" role="tablist" aria-label="统计视图">
+          <li class="nav-item" role="presentation">
+            <a href="javascript:void(0)" class="nav-link lit-segment-option active" data-view="total" role="tab"
+              aria-selected="true" onclick="switch_statistics_view('total')">总量信息</a>
+          </li>
+          <li class="nav-item" role="presentation">
+            <a href="javascript:void(0)" class="nav-link lit-segment-option is-trailing" data-view="sites" role="tab"
+              aria-selected="false" onclick="switch_statistics_view('sites')">站点明细</a>
+          </li>
+        </ul>
         <div class="st-head-actions" id="st-total-actions">
           <a href="javascript:show_history()" class="btn st-btn" aria-label="历史数据" title="查看最近一周、一月或一年的总流量">
             <i class="ti ti-history"></i><span class="d-none d-sm-block">历史数据</span>
@@ -619,6 +621,11 @@
   // 顶部视图切换：总量信息 / 站点明细
   function switch_statistics_view(view) {
     const show_sites = view === 'sites';
+    document.querySelectorAll('#st-view-switch .lit-segment-option').forEach(function (tab) {
+      const active = tab.dataset.view === view;
+      tab.classList.toggle('active', active);
+      tab.setAttribute('aria-selected', active ? 'true' : 'false');
+    });
     document.getElementById('st-view-total').hidden = show_sites;
     document.getElementById('st-view-sites').hidden = !show_sites;
     // 两个 Tab 各自显示自己的工具按钮
@@ -1150,7 +1157,7 @@
   };
 
   function load_statistics_pic_depiler_version() {
-    axios_post_do('pt_depiler_version', {}, function (ret) {
+    axios_post_do_async('pt_depiler_version', {}, function (ret) {
       const tag = String((ret && ret.code === 0 && ret.data && ret.data.version) || '').trim();
       if (!tag) {
         return;
@@ -1473,7 +1480,7 @@
     var target = site_name ? '是否立即刷新【' + site_name + '】站点数据?' : "是否立即刷新所有站点的数据?";
 
     show_ask_modal(target, function () {
-      axios_post_do("refresh_pt_statistics", { 'site': site_name }, function (ret) {
+      axios_post_do_async("refresh_pt_statistics", { 'site': site_name }, function (ret) {
         if (ret.code !== 0) {
           show_fail_modal(ret.msg);
           return;

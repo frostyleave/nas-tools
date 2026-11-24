@@ -1,3 +1,4 @@
+import asyncio
 import copy
 import os
 import shutil
@@ -28,16 +29,16 @@ sys_router = APIRouter(dependencies=[Depends(get_current_user)])
 
 @sys_router.post("/sys/git_info")
 @auth_check(LEVEL_SYSADMIN)
-def git_info():
+async def git_info():
     """获取当前 Git 仓库信息"""
-    return get_git_info()
+    return await asyncio.to_thread(get_git_info)
 
 
 @sys_router.post("/sys/git_check")
 @auth_check(LEVEL_SYSADMIN)
-def git_check():
+async def git_check():
     """检查远程是否有可用更新（只 fetch，不修改本地代码）"""
-    return check_system_update()
+    return await asyncio.to_thread(check_system_update)
 
 
 @sys_router.post("/sys/restart")
