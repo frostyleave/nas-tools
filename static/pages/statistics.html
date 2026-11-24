@@ -361,7 +361,7 @@
 
   function statistics_ratio_text(value) {
     const num = Number(value || 0);
-    return (num === 0 || num > 10000) ? '∞' : num.toFixed(2);
+    return num > 10000 ? '∞' : num.toFixed(2);
   }
 
   // 把更新时间写成“3 分钟前”，比一串完整时间更好扫读
@@ -783,7 +783,7 @@
 
   function site_statistics_sort_value(item) {
     if (site_statistics_sort_by === 'ratio') {
-      return (item.ratio == 0.0 || item.ratio > 10000) ? Infinity : Number(item.ratio || 0);
+      return item.ratio > 10000 ? Infinity : Number(item.ratio || 0);
     }
     return Number(item[site_statistics_sort_by] || 0);
   }
@@ -1124,12 +1124,12 @@
 
   function statistics_pic_ratio(value) {
     const num = Number(value || 0);
-    return (num === 0 || num > 10000) ? '∞' : num.toFixed(2);
+    return num > 10000 ? '∞' : num.toFixed(2);
   }
 
   function statistics_pic_record_value(key, value) {
     const num = Number(value || 0);
-    if (key === 'ratio' && (num === 0 || num > 10000)) {
+    if (key === 'ratio' && num > 10000) {
       return Infinity;
     }
     return num;
@@ -1302,7 +1302,7 @@
     const total_seeding = sites.reduce((sum, item) => sum + Number(item.seeding || 0), 0);
     const total_seeding_size = sites.reduce((sum, item) => sum + Number(item.seeding_size || 0), 0);
     const total_bonus = sites.reduce((sum, item) => sum + Number(item.bonus || 0), 0);
-    const total_ratio = total_download > 0 ? total_upload / total_download : 0;
+    const total_ratio = total_download > 0 ? total_upload / total_download : (total_upload > 0 ? Infinity : 0);
     const join_times = sites
       .map(item => item.join_at ? new Date(String(item.join_at).replace(/-/g, '/')).getTime() : NaN)
       .filter(time => !isNaN(time));

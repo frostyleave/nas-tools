@@ -18,6 +18,11 @@ from config import Config
 
 SITE_BASE_ORDER = 1000
 
+# 下载量为 0 且有上传量时，站点显示的分享率为“∞”。
+# 入库统一使用固定哨兵值，与“上传、下载都为 0”的真实空账号（ratio=0）区分；
+# 前端把 >10000 的分享率显示为 ∞。
+RATIO_INFINITY = 999999.0
+
 
 def resolve_proxy_url(use_proxy: bool) -> str | None:
     """
@@ -151,6 +156,8 @@ class _ISiteUserInfo(metaclass=ABCMeta):
         self.upload = 0
         self.download = 0
         self.ratio = 0
+        # 是否成功读取到流量区块：用于区分“解析失败”和“账号真实 0 流量”
+        self.traffic_parsed = False
 
         # 种子信息
         self.seeding = 0

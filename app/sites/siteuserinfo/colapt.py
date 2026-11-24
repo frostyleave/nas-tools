@@ -154,6 +154,7 @@ class ColaPTUserInfo(_ISiteUserInfo):
         }
         for name, value in values.items():
             setattr(self, name, value)
+        self.traffic_parsed = True
         self.userid = user_id
 
     def _parse_user_traffic_info(self, html_text):

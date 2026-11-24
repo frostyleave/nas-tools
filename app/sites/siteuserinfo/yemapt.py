@@ -193,6 +193,7 @@ class YemaUserInfo(_ISiteUserInfo):
         self.download = self._to_int(user_info.get("promotionDownloadSize"))
         self.ratio = round(self.upload / self.download, 3) if self.download > 0 else 0
         self.bonus = user_info.get("bonus") or 0
+        self.traffic_parsed = True
 
         # 未读消息没有开放接口，仅在配置了 Cookie 时读取
         if self._has_cookie:

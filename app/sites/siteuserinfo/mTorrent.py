@@ -116,6 +116,7 @@ class MTorrentUserInfo(_ISiteUserInfo):
         # 接口返回的 shareRate 可能是字符串（如 "1.234"），统一转成数值
         self.ratio = StringUtils.str_float(user_info.get("memberCount", {}).get("shareRate"))
         self.bonus = user_info.get("memberCount", {}).get("bonus") or 0
+        self.traffic_parsed = True
         self.message_read_force = True
         self._torrent_seeding_params = {
             "pageNumber": 1,

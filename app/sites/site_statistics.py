@@ -10,7 +10,7 @@ from app.message import MessageService
 from app.models.model import UserSiteConf
 from app.sites import SitesManager
 from app.sites.site_schema import SitesschemaCenter
-from app.sites.siteuserinfo._base import fetch_site_favicon
+from app.sites.siteuserinfo._base import RATIO_INFINITY, fetch_site_favicon
 from app.utils import JsonUtils, StringUtils
 from app.utils.commons import singleton
 
@@ -42,7 +42,8 @@ def _get_missing_fields(site_user_info) -> list[str]:
 
     数值为 0 往往是页面的真实值（无下载量时分享率显示“无限”、未做种时做种数为 0、
     新账号上传/下载为 0 等），不能按 0 直接判定缺失；这里只检查互相矛盾的情况：
-    - 上传量、下载量同时为 0：流量数据大概率未解析到
+    - 上传量、下载量同时为 0 且未确认读到流量区块：流量数据大概率未解析到
+      （解析器已读到流量区块时，双 0 是账号真实值，如从未下载/做种的空账号）
     - 上传量、下载量都不为 0 而分享率为 0：分享率未解析到
     - 做种数不为 0 而做种体积为 0：做种体积未解析到
     """
@@ -60,7 +61,8 @@ def _get_missing_fields(site_user_info) -> list[str]:
     seeding = _to_float(getattr(site_user_info, "seeding", 0))
     seeding_size = _to_float(getattr(site_user_info, "seeding_size", 0))
 
-    if upload <= 0 and download <= 0:
+    # 解析器已确认读到流量区块时，0 是账号真实值（如从未下载/做种的空账号），不是缺失
+    if upload <= 0 and download <= 0 and not getattr(site_user_info, "traffic_parsed", False):
         missing.append("上传量/下载量")
     elif upload > 0 and download > 0 and ratio <= 0:
         missing.append("分享率")
@@ -137,6 +139,11 @@ class SitesDataStatisticsCenter:
             if site_user_info.err_msg:
                 log.warn(f'【Sites】 {site_name} 解析出错: {site_user_info.err_msg}')
                 return None, site_user_info.err_msg
+
+            # 下载量为 0 时站点分享率显示为 ∞，统一存哨兵值；
+            # 上传、下载都为 0 表示账号没有流量，保持 0，供前端区分
+            if _to_float(site_user_info.download) <= 0:
+                site_user_info.ratio = RATIO_INFINITY if _to_float(site_user_info.upload) > 0 else 0
 
             # 发送通知，存在未读消息（同步网络发送，放到线程池避免阻塞事件循环）
             unread_msg_notify = site_info.unread_msg_notify

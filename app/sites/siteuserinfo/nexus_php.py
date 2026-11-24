@@ -131,6 +131,8 @@ class NexusPhpSiteUserInfo(_ISiteUserInfo):
         download_match = re.search(r"[^总子影力]下[载載]量?[:：_<>/a-zA-Z-=\"'\s#;]+([\d,.\s]+[KMGTPI]*B)", html_text,
                                    re.IGNORECASE)
         self.download = StringUtils.num_filesize(download_match.group(1).strip()) if download_match else 0
+        # 命中“上传量/下载量”标签即视为流量区块可读，数值为 0 也属正常结果
+        self.traffic_parsed = bool(upload_match or download_match)
 
         # 分享率
         ratio_match = re.search(r"分享率[:：_<>/a-zA-Z-=\"'\s#;]+([\d,.\s]+)", html_text)
@@ -169,6 +171,8 @@ class NexusPhpSiteUserInfo(_ISiteUserInfo):
 
     def __parse_user_infopanel(self, panel):
 
+        self.traffic_parsed = True
+
         # 分享率
         share_ratio = panel.xpath('.//div[contains(text(), "[分享率]")]/text()')
         share_ratio = self.clean_text_list(share_ratio)
@@ -202,6 +206,8 @@ class NexusPhpSiteUserInfo(_ISiteUserInfo):
             self.bonus = StringUtils.str_float(beans[0].strip())
 
     def __parse_user_pannl(self, panel):
+
+        self.traffic_parsed = True
 
         # 分享率
         share_ratio = panel.xpath('.//svg/title[text()="分享率"]/../following-sibling::a/text()')
@@ -364,6 +370,21 @@ class NexusPhpSiteUserInfo(_ISiteUserInfo):
         html = etree.HTML(html_text)
         if not html:
             return
+
+        # 详情页“传输”区块是上传/下载/分享率的权威来源：
+        # 首页可能混入活动流（如“上传量 10 GB”），或把数值放在标签前、单位拆到其它节点，
+        # 通用正则在整页匹配时容易取错；这里按纯文本重新读取并覆盖
+        text = re.sub(r"[\r\n\t ]+", " ", " ".join(html.itertext()))
+        text = re.sub(r"\s+", " ", text)
+        up_match = re.search(r"(?<!总)(?<!实际)上传量\s*[:：]\s*([\d,.\s]+[KMGTPI]*B)", text, re.IGNORECASE)
+        down_match = re.search(r"(?<!总)(?<!实际)下载量\s*[:：]\s*([\d,.\s]+[KMGTPI]*B)", text, re.IGNORECASE)
+        if up_match and down_match and 0 <= down_match.start() - up_match.end() <= 200:
+            self.upload = StringUtils.num_filesize(up_match.group(1))
+            self.download = StringUtils.num_filesize(down_match.group(1))
+            ratio_match = re.search(r"(?<!总)(?<!实际)分享率\s*[:：]\s*([\d,.]+)", text)
+            if ratio_match:
+                self.ratio = StringUtils.str_float(ratio_match.group(1))
+            self.traffic_parsed = True
 
         # 用户名：部分模板的详情页标题（<h1><span class="nowrap"><b>用户名</b></span></h1>）
         username = html.xpath('//h1//span[contains(@class, "nowrap")]//b//text()')

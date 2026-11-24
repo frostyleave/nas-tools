@@ -54,6 +54,7 @@ class TNodeSiteUserInfo(_ISiteUserInfo):
         self.download = user_info.get("download")
         self.ratio = 0 if self.download <= 0 else round(self.upload / self.download, 3)
         self.bonus = user_info.get("bonus")
+        self.traffic_parsed = True
 
         self.message_unread = user_info.get("unreadAdmin", 0) + user_info.get("unreadInbox", 0) + user_info.get(
             "unreadSystem", 0)

@@ -879,7 +879,7 @@
         </thead>
         <tbody class="fw-bold">
           <tr>
-            <td class="p-0 text-azure">${site.ratio == 0.0 || site.ratio > 10000 ? 'Infinity' : site.ratio.toFixed(2)}</td>
+            <td class="p-0 text-azure">${site.ratio > 10000 ? 'Infinity' : site.ratio.toFixed(2)}</td>
             <td class="p-0 text-indigo">${formatFileSize(site.upload)}</td>
             <td class="p-0 text-purple">${formatFileSize(site.download)}</td>
           </tr>
@@ -894,7 +894,7 @@
         <span title="上传量"><i class="ti ti-arrow-up text-indigo"></i> ${formatFileSize(site.upload)}</span>
         <span class="ms-1" title="下载量"><i class="ti ti-arrow-down text-purple"></i> ${formatFileSize(site.download)}</span>
         <span class="ms-1" title="做种数"><i class="ti ti-seedling text-orange"></i> ${site.seeding}</span>
-        <span class="ms-1" title="分享率"><i class="ti ti-share text-azure"></i> ${site.ratio == 0.0 || site.ratio > 10000 ? 'Infinity' : site.ratio.toFixed(2)}</span>
+        <span class="ms-1" title="分享率"><i class="ti ti-share text-azure"></i> ${site.ratio > 10000 ? 'Infinity' : site.ratio.toFixed(2)}</span>
         <span class="ms-1" title="魔力值"><i class="ti ti-diamond"></i> ${formatNumber(site.bonus)}</span>
       </div>
     `;
