@@ -93,12 +93,15 @@ class TransferManager:
                     continue
 
                 log.info(f"【Downloader】下载器 {downloader_name} 开始转移下载文件...")
+                # 批量查询本批任务的下载历史，避免逐个任务查库
+                download_infos = self._downloader.get_download_histories_by_downloader(
+                    downloader=item_id,
+                    download_ids=[task.get("id") for task in trans_tasks])
                 for task in trans_tasks:
                     media_type = None
                     tmdb_info = None
                     season = None
-                    download_info = self._downloader.get_download_history_by_downloader(
-                        downloader=item_id, download_id=task.get("id"))
+                    download_info = download_infos.get(task.get("id"))
                     if download_info:
                         media_type = MediaType.MOVIE if download_info.TYPE in Constants.MOVIE_TYPES else MediaType.TV
                         tmdb_info = self._downloader.media.get_tmdb_info(mtype=media_type, tmdbid=download_info.TMDBID)

@@ -1,15 +1,18 @@
+import base64
 import hashlib
 import os
 import re
 import time
+from urllib.parse import urlparse, urlunparse
 
 import fastbencode
 import qbittorrentapi
 
 import log
 from app.downloader.client._base import _IDownloadClient
-from app.utils import JsonUtils, SiteUtils, StringUtils
+from app.utils import AsyncRequestUtils, JsonUtils, SiteUtils, StringUtils
 from app.utils.types import DownloaderType
+from config import Config
 
 
 class Qbittorrent(_IDownloadClient):
@@ -23,8 +26,11 @@ class Qbittorrent(_IDownloadClient):
     # 私有属性
     _client_config: dict
     _torrent_management = False
+    # 异步请求使用的会话 Cookie
+    _async_cookie_jar = None
+    # 客户端实例，首次使用时建立连接
+    _qbc = None
 
-    qbc = None
     ver = None
     host = None
     port = None
@@ -36,11 +42,6 @@ class Qbittorrent(_IDownloadClient):
         self._client_config = config
         self.download_dir = []
         self.init_config()
-        self.connect()
-        # 种子自动管理模式，根据下载路径设置为下载器设置分类
-        self.init_torrent_management()
-        # 设置未完成种子添加!qb后缀
-        self.qbc.app_set_preferences({"incomplete_files_ext": True})
 
     def init_config(self):
         if self._client_config:
@@ -62,9 +63,31 @@ class Qbittorrent(_IDownloadClient):
     def get_type(self):
         return self.client_type
 
+    @property
+    def qbc(self):
+        """
+        获取客户端实例，未连接或连接失败时先建立连接
+        """
+        if not self._qbc:
+            self.connect()
+        return self._qbc
+
     def connect(self):
-        if self.host and self.port:
-            self.qbc = self.__login_qbittorrent()
+        """
+        连接 qbittorrent，登录失败时保留空实例，下次访问再重试
+        """
+        if self._qbc or not (self.host and self.port):
+            return
+        self._qbc = self.__login_qbittorrent()
+        if not self._qbc:
+            return
+        try:
+            # 种子自动管理模式，根据下载路径设置为下载器设置分类
+            self.init_torrent_management()
+            # 设置未完成种子添加!qb后缀
+            self._qbc.app_set_preferences({"incomplete_files_ext": True})
+        except Exception:
+            log.exception(f"【{self.client_name}】{self.name} 初始化种子管理出错：")
 
     def __login_qbittorrent(self):
         """
@@ -82,8 +105,9 @@ class Qbittorrent(_IDownloadClient):
             try:
                 qbt.auth_log_in()
                 self.ver = qbt.app_version()
-            except qbittorrentapi.LoginFailed as e:
+            except qbittorrentapi.LoginFailed:
                 log.exception(f"【{self.client_name}】{self.name} 登录出错：")
+                return None
             return qbt
         except Exception as err:
             log.exception(f"【{self.client_name}】{self.name} 连接出错：")
@@ -175,6 +199,18 @@ class Qbittorrent(_IDownloadClient):
                 return category_name
         return None
 
+    @staticmethod
+    def __match_tags(tags, required):
+        """
+        按 qb 返回的逗号分隔标签串做精确匹配
+        """
+        if not required:
+            return True
+        if not isinstance(required, list):
+            required = [required]
+        current = {t.strip() for t in (tags or "").split(",") if t.strip()}
+        return all(t in current for t in required if t)
+
     def get_torrents(self, ids=None, status=None, tag=None):
         """
         获取种子列表
@@ -186,31 +222,124 @@ class Qbittorrent(_IDownloadClient):
             torrents = self.qbc.torrents_info(torrent_hashes=ids,
                                               status_filter=status)
             if tag:
-                results = []
-                if not isinstance(tag, list):
-                    tag = [tag]
-                for torrent in torrents:
-                    include_flag = True
-                    for t in tag:
-                        if t and t not in torrent.get("tags"):
-                            include_flag = False
-                            break
-                    if include_flag:
-                        results.append(torrent)
+                results = [torrent for torrent in torrents
+                           if self.__match_tags(torrent.get("tags"), tag)]
                 return results or [], False
             return torrents or [], False
         except Exception as err:
             log.exception(f"【{self.client_name}】{self.name} 获取种子列表出错：")
             return [], True
 
+    def _async_base_url(self):
+        """
+        拼接 Web API 基地址，port 未包含在 host 中时补上
+        """
+        host = (self.host or "").strip().rstrip("/")
+        if not host:
+            return ""
+        if not host.startswith(("http://", "https://")):
+            host = "http://" + host
+        parsed = urlparse(host)
+        netloc = parsed.netloc
+        if self.port and not parsed.port:
+            netloc = f"{netloc}:{self.port}"
+        return urlunparse((parsed.scheme, netloc, parsed.path, "", "", ""))
+
+    def _async_cookies(self):
+        """
+        异步请求携带的登录 Cookie
+        """
+        return dict(self._async_cookie_jar) if self._async_cookie_jar else None
+
+    async def _async_login(self):
+        """
+        异步登录，成功后保存会话 Cookie 供后续请求使用
+        """
+        base_url = self._async_base_url()
+        if not base_url:
+            return False
+        try:
+            res = await AsyncRequestUtils(headers={
+                "User-Agent": Config().get_ua(),
+                "Referer": base_url
+            }).request("post",
+                       f"{base_url}/api/v2/auth/login",
+                       data={"username": self.username, "password": self.password})
+            if res is None:
+                return False
+            # 各版本登录成功返回 204 空响应，或 200 + "Ok."
+            success = res.status_code == 204 \
+                or (res.status_code == 200 and res.text.strip() in ("", "Ok.", "Ok"))
+            if not success:
+                log.warn(f"【{self.client_name}】{self.name} 异步登录失败，状态码: {res.status_code}")
+                return False
+            # 会话 Cookie 名称随版本变化（SID、QBT_SID_端口），统一解析全部 Cookie
+            cookies = {}
+            for cookie in res.headers.getall("Set-Cookie", []):
+                matched = re.match(r"\s*([^=;]+)=([^;]*)", cookie)
+                if matched:
+                    cookies[matched.group(1).strip()] = matched.group(2).strip()
+            self._async_cookie_jar = cookies or None
+            return True
+        except Exception:
+            log.exception(f"【{self.client_name}】{self.name} 异步登录出错：")
+            return False
+
+    async def _async_torrents_info(self, params):
+        """
+        异步查询种子列表，未登录时先登录再重试
+        """
+        base_url = self._async_base_url()
+        if not base_url:
+            return None
+        url = f"{base_url}/api/v2/torrents/info"
+        req = AsyncRequestUtils(headers={
+            "User-Agent": Config().get_ua(),
+            "Referer": base_url
+        })
+        try:
+            res = await req.get_res(url, params=params or None, cookies=self._async_cookies())
+            if res is not None and res.status_code in (401, 403):
+                self._async_cookie_jar = None
+                if await self._async_login():
+                    res = await req.get_res(url, params=params or None, cookies=self._async_cookies())
+            if res is None or res.status_code != 200:
+                return None
+            return res.json()
+        except Exception:
+            log.exception(f"【{self.client_name}】{self.name} 异步获取种子列表出错：")
+            return None
+
+    async def get_torrents_async(self, ids=None, status=None, tag=None):
+        """
+        异步获取种子列表
+        return: 种子列表, 是否发生异常
+        """
+        params = {}
+        if ids:
+            params["hashes"] = "|".join(str(x) for x in ids) if isinstance(ids, list) else str(ids)
+        if status:
+            params["filter"] = status
+        torrents = await self._async_torrents_info(params)
+        if torrents is None:
+            return [], True
+        if tag:
+            if not isinstance(tag, list):
+                tag = [tag]
+            results = [torrent for torrent in torrents
+                       if self.__match_tags(torrent.get("tags"), tag)]
+            return results, False
+        return torrents, False
+
     def get_completed_torrents(self, ids=None, tag=None):
         """
-        获取已完成的种子
+        获取已完成的种子（下载进度 100%，与是否暂停/做种状态无关）
         return: 种子列表, 如发生异常则返回None
         """
         if not self.qbc:
             return None
-        torrents, error = self.get_torrents(status="seeding", ids=ids, tag=tag)
+        # completed 过滤按下载进度判断，qB 各版本语义一致
+        torrents, error = self.get_torrents(status="completed", ids=ids, tag=tag)
         return None if error else torrents or []
 
     def get_downloading_torrents(self, ids=None, tag=None):
@@ -232,7 +361,7 @@ class Qbittorrent(_IDownloadClient):
         :param tag: 标签内容
         """
         try:
-            return self.qbc.torrents_delete_tags(torrent_hashes=ids, tags=tag)
+            return self.qbc.torrents_remove_tags(tags=tag, torrent_hashes=ids)
         except Exception as err:
             log.exception(f"【{self.client_name}】{self.name} 移除种子tag出错: ")
             return False
@@ -268,10 +397,10 @@ class Qbittorrent(_IDownloadClient):
         for torrent in torrents:
             torrent_tags = torrent.get("tags") or ""
             # 含"已整理"tag的不处理
-            if "已整理" in torrent_tags:
+            if self.__match_tags(torrent_tags, "已整理"):
                 continue
             # 开启标签隔离，未包含指定标签的不处理
-            if tag and tag not in torrent_tags:
+            if tag and not self.__match_tags(torrent_tags, tag):
                 continue
             path = torrent.get("save_path")
             # 无法获取下载路径的不处理
@@ -382,16 +511,15 @@ class Qbittorrent(_IDownloadClient):
         通过标签多次尝试获取刚添加的种子ID，并移除标签
         """
         torrent_id = None
-        # QB添加下载后需要时间，重试5次每次等待5秒
-        for i in range(1, 6):
-            time.sleep(5)
+        # QB添加下载后需要时间，最多重试5次，每次间隔5秒
+        for i in range(5):
             torrent_id = self.__get_last_add_torrentid_by_tag(tag=tag,
                                                               status=status)
-            if torrent_id is None:
-                continue
-            else:
+            if torrent_id:
                 self.remove_torrents_tag(torrent_id, tag)
                 break
+            if i < 4:
+                time.sleep(5)
         return torrent_id
 
     def add_torrent(self,
@@ -423,7 +551,7 @@ class Qbittorrent(_IDownloadClient):
         :return: bool
         """
         if not self.qbc or not content:
-            return False
+            return False, None
         if isinstance(content, str):
             urls = content
             torrent_files = None
@@ -533,24 +661,30 @@ class Qbittorrent(_IDownloadClient):
     @staticmethod
     def _get_torrent_hash(content: str | bytes) -> str | None:
         """
-        从磁力链接(str)或 .torrent 文件内容(bytes)中提取 v1 info hash。
-        (这是我们上一轮中生成的辅助函数)
+        从磁力链接(str)或 .torrent 文件内容(bytes)中提取 v1 info hash
         """
         if isinstance(content, str):
-            match = re.search(r'xt=urn:btih:([a-fA-F0-9]{40})', content, re.IGNORECASE)
-            if match:
-                return match.group(1).lower()
-            else:
+            match = re.search(r'xt=urn:btih:([a-fA-F0-9]{40}|[a-zA-Z2-7]{32})', content)
+            if not match:
                 log.warn("在磁力链接字符串中未找到 v1 (btih) hash")
                 return None
+            value = match.group(1)
+            # base32 编码的 hash 需要转换为十六进制
+            if len(value) == 32:
+                try:
+                    return base64.b32decode(value.upper()).hex()
+                except Exception:
+                    log.exception("[qbittorrent]转换 base32 hash 失败:")
+                    return None
+            return value.lower()
         elif isinstance(content, bytes):
             try:
                 torrent_data = fastbencode.bdecode(content)
                 info_dict = torrent_data[b'info']
                 info_bencoded = fastbencode.bencode(info_dict)
-                hash_v1 = hashlib.sha1(info_bencoded).hexdigest()                
+                hash_v1 = hashlib.sha1(info_bencoded).hexdigest()
                 return hash_v1.lower()
-            except Exception as e:
+            except Exception:
                 log.exception("[qbittorrent]解析 torrent 文件内容失败:")
                 return None
         else:
@@ -654,11 +788,10 @@ class Qbittorrent(_IDownloadClient):
         """
         pass
 
-    def get_downloading_progress(self, tag=None, ids=None):
+    def __format_progress(self, Torrents):
         """
-        获取正在下载的种子进度
+        格式化下载进度
         """
-        Torrents = self.get_downloading_torrents(tag=tag, ids=ids) or []
         DispTorrents = []
         for torrent in Torrents:
             # 进度
@@ -693,6 +826,19 @@ class Qbittorrent(_IDownloadClient):
                 'sizeprogress': sizeprogress
             })
         return DispTorrents
+
+    def get_downloading_progress(self, tag=None, ids=None):
+        """
+        获取正在下载的种子进度
+        """
+        return self.__format_progress(self.get_downloading_torrents(tag=tag, ids=ids) or [])
+
+    async def get_downloading_progress_async(self, tag=None, ids=None):
+        """
+        异步获取正在下载的种子进度
+        """
+        torrents, _ = await self.get_torrents_async(ids=ids, status="downloading", tag=tag)
+        return self.__format_progress(torrents or [])
 
     def set_speed_limit(self, download_limit=None, upload_limit=None):
         """

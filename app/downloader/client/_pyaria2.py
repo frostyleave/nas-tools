@@ -7,6 +7,7 @@ from app.utils import TorrentUtils
 DEFAULT_HOST = 'localhost'
 DEFAULT_PORT = 6800
 SERVER_URI_FORMAT = '%s:%s/jsonrpc'
+REQUEST_TIMEOUT = (15, 60)
 
 
 class PyAria2:
@@ -49,6 +50,7 @@ class PyAria2:
             data=json.dumps(payload),
             headers=self._headers,
             auth=(self._secret, ""),
+            timeout=REQUEST_TIMEOUT,
         )
         response_data = response.json()
         if "error" in response_data:
@@ -92,7 +94,7 @@ class PyAria2:
 
         return: This method returns GID of registered download.
         """
-        return self._send_request("aria2.addTorrent", [torrent])
+        return self._send_request("aria2.addTorrent", [torrent, uris or [], options or {}])
 
     def addMetalink(self, metalink, options=None, position=None):
         """

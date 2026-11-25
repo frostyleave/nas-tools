@@ -1,21 +1,14 @@
-"""
-/do 的异步命令入口。
-
-同步命令仍由 app/api/action.py 的 /do 处理；这里只登记已经有异步实现的命令，
-避免异步路由里执行阻塞调用。新增命令时在 WebAsyncAction 的 _actions 中注册一个
-async 方法即可，请求体与 /do 保持一致：{"cmd": ..., "data": {...}}。
-"""
-
+import asyncio
 import re
 import time
-from typing import Annotated
+from typing import Annotated, ClassVar
 
 from fastapi import APIRouter, Body, Depends
 
 import log
-from app.api.action import WebAction
 from app.conf import ModuleConf
 from app.core.cmd_handler import CommandHandler
+from app.downloader import Downloader
 from app.mediaserver import MediaServer
 from app.middleware.security import CurrentUser, get_current_user
 from app.sites import SitesDataStatisticsCenter, SitesManager
@@ -26,6 +19,43 @@ from config import Config
 
 # 异步命令路由
 action_async_router = APIRouter(dependencies=[Depends(get_current_user)])
+
+
+def build_downloading_result(downloader_handler, downloader_id, torrents):
+    """
+    在下载进度中补充下载历史里的媒体信息
+    """
+    torrents = torrents or []
+    download_infos = downloader_handler.get_download_histories_by_downloader(
+        downloader=downloader_id,
+        download_ids=[torrent.get("id") for torrent in torrents if torrent.get("id")]
+    )
+    for torrent in torrents:
+        # 先查询下载记录，没有再识别
+        download_info = download_infos.get(torrent.get("id"))
+        if not download_info:
+            continue
+        name = download_info.TITLE
+        year = download_info.YEAR
+        poster_path = download_info.POSTER
+        backdrop = download_info.BACKDROP
+        se = download_info.SE
+        title = f"{name}({year})" if year and download_info.TYPE == '电影' else name
+        tpye_str = 'MOV' if download_info.TYPE == '电影' else 'TV'
+        vote = download_info.VOTE
+
+        torrent.update({
+            "tmdbid": download_info.TMDBID,
+            "title": title,
+            "se": se,
+            "image": poster_path or "",
+            "backdrop" : backdrop or "",
+            "type": tpye_str,
+            "vote": vote,
+            "site": download_info.SITE
+        })
+
+    return {"code": 0, "result": torrents}
 
 
 @action_async_router.post("/do_async")
@@ -53,10 +83,14 @@ class WebAsyncAction:
     /do_async 的命令分发器，只承载异步实现
     """
 
+    _pt_depiler_version_cache: ClassVar[dict] = {"expire": 0.0, "version": None}
+    _PT_DEPILER_VERSION_TTL: ClassVar[int] = 600
+
     def __init__(self, current_user=None):
         self._current_user = current_user
         self._actions = {
             "get_activity_log": self.__get_activity_log,
+            "get_downloading": self.__get_downloading,
             "test_mediaserver": self.__test_mediaserver,
             "test_site": self.__test_site,
             "net_test": self.__net_test,
@@ -78,6 +112,17 @@ class WebAsyncAction:
         首页播放记录
         """
         return {"code": 0, "activitys": await MediaServer().get_activity_log_async(30)}
+
+    async def __get_downloading(self, data):
+        """
+        查询正在下载的任务
+        """
+        downloader_id = (data or {}).get("downloader_id")
+        downloader_handler = Downloader()
+        torrents = await downloader_handler.get_downloading_progress_async(
+            downloader_id=downloader_id)
+        return await asyncio.to_thread(
+            build_downloading_result, downloader_handler, downloader_id, torrents)
 
     async def __test_mediaserver(self, data):
         """
@@ -124,9 +169,9 @@ class WebAsyncAction:
         """
         获取 PT Depiler 最新版本号（标签+提交号）
         """
-        # 与同步命令共用进程级缓存
-        cache = WebAction._pt_depiler_version_cache
-        ttl = WebAction._PT_DEPILER_VERSION_TTL
+        # 进程级缓存
+        cache = self._pt_depiler_version_cache
+        ttl = self._PT_DEPILER_VERSION_TTL
         now = time.time()
         if now >= cache["expire"]:
             cache["version"] = await self.__fetch_pt_depiler_version_async()

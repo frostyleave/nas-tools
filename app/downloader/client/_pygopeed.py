@@ -5,6 +5,7 @@ import requests
 DEFAULT_HOST = 'http://127.0.0.1'
 DEFAULT_PORT = 9999
 SERVER_URI_FORMAT = '%s:%s/api/v1/tasks'
+REQUEST_TIMEOUT = (15, 60)
 
 
 class PyGopeed:
@@ -22,16 +23,15 @@ class PyGopeed:
         """
         if host:
             if not host.startswith('http'):
-                host = "http://" + self.host
+                host = "http://" + host
             if host.endswith('/'):
-                host = self.host[:-1]
+                host = host[:-1]
 
         self._server_uri = SERVER_URI_FORMAT % (host, port)
         self._secret = secret
-        self._headers = {
-            "Content-Type": "application/json",
-            "x-api-token": f"{self._secret}" if self._secret else None
-        }
+        self._headers = {"Content-Type": "application/json"}
+        if self._secret:
+            self._headers["x-api-token"] = self._secret
 
     def resolveResponse(self, response):
 
@@ -61,7 +61,8 @@ class PyGopeed:
 
         response = requests.get(
             url,
-            headers=self._headers
+            headers=self._headers,
+            timeout=REQUEST_TIMEOUT
         )
         
         return self.resolveResponse(response)
@@ -78,7 +79,8 @@ class PyGopeed:
         response = requests.post(
             self._server_uri,
             data=json.dumps(payload),
-            headers=self._headers
+            headers=self._headers,
+            timeout=REQUEST_TIMEOUT
         )
 
         return self.resolveResponse(response)
@@ -93,7 +95,7 @@ class PyGopeed:
         """
         url = f'{self._server_uri}/{gid}'
 
-        response = requests.delete(url,headers=self._headers)
+        response = requests.delete(url, headers=self._headers, timeout=REQUEST_TIMEOUT)
 
         return self.resolveResponse(response)
 
@@ -107,7 +109,7 @@ class PyGopeed:
         """
         url = f'{self._server_uri}/{gid}?force=true'
 
-        response = requests.delete(url,headers=self._headers)
+        response = requests.delete(url, headers=self._headers, timeout=REQUEST_TIMEOUT)
 
         return self.resolveResponse(response)
 
@@ -122,7 +124,7 @@ class PyGopeed:
         
         url = f'{self._server_uri}/{gid}/pause'
 
-        response = requests.put(url,headers=self._headers)
+        response = requests.put(url, headers=self._headers, timeout=REQUEST_TIMEOUT)
 
         return self.resolveResponse(response)
 
@@ -134,7 +136,7 @@ class PyGopeed:
         """
         url = f'{self._server_uri}/pause'
 
-        response = requests.put(url,headers=self._headers)
+        response = requests.put(url, headers=self._headers, timeout=REQUEST_TIMEOUT)
         
         return self.resolveResponse(response)
 
@@ -148,7 +150,7 @@ class PyGopeed:
         """
         url = f'{self._server_uri}/{gid}/continue'
 
-        response = requests.put(url,headers=self._headers)
+        response = requests.put(url, headers=self._headers, timeout=REQUEST_TIMEOUT)
         
         return self.resolveResponse(response)
 
@@ -160,6 +162,6 @@ class PyGopeed:
         """
         url = f'{self._server_uri}/continue'
 
-        response = requests.put(url,headers=self._headers)
+        response = requests.put(url, headers=self._headers, timeout=REQUEST_TIMEOUT)
         
         return self.resolveResponse(response)

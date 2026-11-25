@@ -1,19 +1,17 @@
 import base64
 import copy
-import datetime
 import inspect
 import json
 import os.path
 import re
 import threading
 import time
-from typing import Annotated, ClassVar
+from typing import Annotated
 
 from fastapi import APIRouter, BackgroundTasks, Body, Depends
 
 import log
 from app.conf import ModuleConf, SystemConfig
-from app.core.cmd_handler import CommandHandler
 from app.core.initializer import diff_config, reload_config
 from app.core.jobcenter import JobCenter
 from app.core.runtime_state import BOOT_ID
@@ -46,7 +44,6 @@ from app.utils import (
     JsonUtils,
     MediaUtils,
     PathUtils,
-    RequestUtils,
     StringUtils,
     SystemUtils,
 )
@@ -175,14 +172,13 @@ def search_rss(background_tasks: BackgroundTasks, data: Annotated[dict, Body(...
         log.exception("处理/search_rss请求出错")
         return {"code": -1, "msg": str(e)}
 
+
 class WebAction:
     
     _actions: dict
     _current_user : User | None = None
     _douBan = DouBan()
     _background_tasks : BackgroundTasks | None = None
-    _pt_depiler_version_cache: ClassVar[dict] = {"expire": 0.0, "version": None}
-    _PT_DEPILER_VERSION_TTL: ClassVar[int] = 600
 
     def __init__(self, current_user:User | None=None, background_tasks:BackgroundTasks | None=None):
         # WEB请求响应
@@ -212,7 +208,6 @@ class WebAction:
             "add_rss_media": self.__add_rss_media,
             "re_identification": self.__re_identification,
             "media_info": self.__media_info,
-            "test_mediaserver": self.__test_mediaserver,
             "change_password": self.__change_password,
             "refresh_rss": self.__refresh_rss,
             "set_rss_state": self.__set_rss_state,
@@ -229,7 +224,6 @@ class WebAction:
             "update_brushtask_state": self.__update_brushtask_state,
             "name_test": self.__name_test,
             "rule_test": self.__rule_test,
-            "net_test": self.__net_test,
             "add_filtergroup": self.__add_filtergroup,
             "restore_filtergroup": self.__restore_filtergroup,
             "set_default_filtergroup": self.__set_default_filtergroup,
@@ -238,7 +232,6 @@ class WebAction:
             "del_filterrule": self.__del_filterrule,
             "filterrule_detail": self.__filterrule_detail,
             "get_site_activity": self.__get_site_activity,
-            "get_activity_log": self.__get_activity_log,
             "get_site_history": self.__get_site_history,
             "get_recommend": self.__get_recommend,
             "batch_get_media_exists_info": self.__batch_get_media_exists_info,
@@ -279,8 +272,6 @@ class WebAction:
             "get_transfer_statistics": self.__get_transfer_statistics,
             "search_media_infos": self.__search_media_infos,
             "get_filterrules": self.__get_filterrules,
-            "get_downloading": self.__get_downloading,
-            "test_site": self.__test_site,
             "get_sub_path": self.__get_sub_path,
             "download_subtitle": self.__download_subtitle,
             "get_download_setting": self.__get_download_setting,
@@ -330,8 +321,6 @@ class WebAction:
             "update_category_config": self.__update_category_config,
             "get_category_config": self.__get_category_config,
             "get_system_processes": self.__get_system_processes,
-            "refresh_pt_statistics": self.__refresh_pt_statistics,
-            "pt_depiler_version": self.__pt_depiler_version,
             "get_jobs": self.__get_jobs
         }
         # 用户绑定
@@ -1301,18 +1290,6 @@ class WebAction:
             "seasons": seasons
         }
 
-    def __test_mediaserver(self, data):
-        """
-        测试媒体服务器连通性
-        :param data: {"type": "emby/jellyfin/plex"}
-        """
-        server_type = (data or {}).get("type")
-        if not server_type or server_type not in ModuleConf.MEDIASERVER_CONF:
-            return {"code": 1, "msg": "不支持的媒体服务器类型"}
-
-        ret = MediaServer().test_connection(server_type)
-        return {"code": 0 if ret else 1}
-
     def __change_password(self, data):
         """
         修改当前登录用户的密码
@@ -1696,40 +1673,6 @@ class WebAction:
             "flag": match_flag,
             "text": "匹配" if match_flag else "未匹配",
             "order": 100 - res_order if res_order else 0
-        }
-
-    def __net_test(self, data):
-        target = data
-        if target == "image.tmdb.org":
-            target = target + "/t/p/w500/wwemzKWzjKYJFfCeiB57q3r4Bcm.png"
-        if target == "qyapi.weixin.qq.com":
-            target = target + "/cgi-bin/message/send"
-        target = "https://" + target
-        start_time = datetime.datetime.now()
-        if target.find("themoviedb") != -1 \
-                or target.find("telegram") != -1 \
-                or target.find("fanart") != -1 \
-                or target.find("tmdb") != -1:
-            res = RequestUtils(proxies=Config().get_proxies(),
-                               timeout=5).get_res(target)
-        else:
-            res = RequestUtils(timeout=5).get_res(target)
-        seconds = int((datetime.datetime.now() -
-                       start_time).microseconds / 1000)
-        if not res:
-            return {"res": False, "time": f"{seconds} 毫秒"}
-        elif res.ok:
-            return {"res": True, "time": f"{seconds} 毫秒"}
-        else:
-            return {"res": False, "time": f"{seconds} 毫秒"}
-
-    def __get_activity_log(self):
-        """
-        查询首页播放记录
-        """
-        return {
-            "code": 0,
-            "activitys": MediaServer().get_activity_log(30)
         }
 
     def __get_site_activity(self, data):
@@ -2876,44 +2819,6 @@ class WebAction:
 
         return {"code": 0, "result": [media.to_dict() for media in medias]}
 
-    def __get_downloading(self, data):
-        """
-        查询正在下载的任务
-        """
-        downloader_id = data.get("downloader_id")
-
-        downloaderHandler = Downloader()
-        torrents = downloaderHandler.get_downloading_progress(downloader_id=downloader_id)
-        for torrent in torrents:
-            # 先查询下载记录，没有再识别
-            name = torrent.get("name")
-            download_info = downloaderHandler.get_download_history_by_downloader(
-                downloader=downloader_id,
-                download_id=torrent.get("id")
-            )
-            if download_info:
-                name = download_info.TITLE
-                year = download_info.YEAR
-                poster_path = download_info.POSTER
-                backdrop = download_info.BACKDROP
-                se = download_info.SE
-                title = f"{name}({year})" if year and download_info.TYPE == '电影' else name
-                tpye_str = 'MOV' if download_info.TYPE == '电影' else 'TV'
-                vote = download_info.VOTE
-
-                torrent.update({
-                    "tmdbid": download_info.TMDBID,
-                    "title": title,
-                    "se": se,
-                    "image": poster_path or "",
-                    "backdrop" : backdrop or "",
-                    "type": tpye_str,
-                    "vote": vote,
-                    "site": download_info.SITE
-                })
-
-        return {"code": 0, "result": torrents}
-
     def __get_filterrules(self):
         """
         查询所有过滤规则
@@ -2940,14 +2845,6 @@ class WebAction:
         # 按变更内容重新初始化受影响的服务
         reload_config(diff_config(old_cfg, cfg))
         return {"code": 0}
-
-    def __test_site(self, data):
-        """
-        测试站点连通性
-        """
-        flag, msg, times = SitesManager().test_connection(data.get("id"))
-        code = 0 if flag else -1
-        return {"code": code, "msg": msg, "time": times}
 
     def __get_sub_path(self, data):
         """
@@ -3821,52 +3718,6 @@ class WebAction:
         IndexerManager().delete_indexer(indexer_id)
         return {"code": 0, "msg": "更新成功"}
 
-    def __refresh_pt_statistics(self, data):
-        """
-        刷新站点数据
-        """
-        if not self._current_user:
-            return {"code": 1, "msg": "未登录"}
-
-        site_name = data.get('site')
-        if site_name:
-            # 单站点刷新为同步执行，接口返回时刷新已完成，直接返回本次刷新结果
-            result = SitesDataStatisticsCenter().refresh_site_data_now(specify_site=site_name)
-            if not result:
-                return {"code": 1, "msg": "刷新失败，请查看日志"}
-
-            site_results = result.get("sites") or []
-            if not site_results:
-                return {"code": 1, "msg": result.get("msg") or "站点不存在或未启用站点统计"}
-
-            failed = [item for item in site_results if not item.get("success")]
-            if failed:
-                return {
-                    "code": 1,
-                    "msg": "；".join(f"【{item['site']}】刷新失败：{item.get('msg') or '解析失败'}"
-                                    for item in failed)
-                }
-
-            missing = [item for item in site_results if item.get("missing")]
-            if missing:
-                # 刷新成功但有字段未解析到，交给前端提示
-                return {
-                    "code": 0,
-                    "msg": "刷新完成，但" + "；".join(
-                        f"【{item['site']}】以下字段未解析到：{'、'.join(item['missing'])}"
-                        for item in missing),
-                    "missing": missing
-                }
-
-            return {"code": 0, "msg": "刷新完成", "result": site_results}
-
-        # 全部站点刷新耗时较长，仍走后台任务
-        CommandHandler().handle_message_job("/sta",
-                                            in_from=SearchType.WEB,
-                                            user_id=self._current_user.id,
-                                            user_name=self._current_user.username)
-        return {"code": 0, "msg": "已提交"}
-
     def __get_default_rss_setting(self, data):
         """
         获取默认订阅设置
@@ -3943,61 +3794,3 @@ class WebAction:
         """
         result = JobCenter().get_jobs()
         return {"code": 0, "result": result, "boot_id": BOOT_ID}
-
-    def __pt_depiler_version(self):
-        """
-        获取 PT Depiler 最新版本号（标签+提交号），供统计分享图水印展示
-        """
-        now = time.time()
-        cached = self._pt_depiler_version_cache
-        if now >= cached["expire"]:
-            cached["version"] = self.__fetch_pt_depiler_version()
-            cached["expire"] = now + self._PT_DEPILER_VERSION_TTL
-
-        if not cached["version"]:
-            return {"code": -1, "msg": "fail to fetch PT Depiler release version "}
-        return {"code": 0, "msg": "success", "data": {"version": cached["version"]}}
-
-    @staticmethod
-    def __fetch_pt_depiler_version():
-        """
-        获取版本号+提交号
-        """
-        proxies = Config().get_proxies()
-        api_headers = {"Accept": "application/vnd.github+json"}
-        tag = None
-        commit = None
-
-        # 优先 GitHub API：releases/latest 取标签，commits/{tag} 取提交号
-        res = RequestUtils(headers=api_headers, proxies=proxies).get_res(
-            "https://api.github.com/repos/pt-plugins/PT-depiler/releases/latest")
-        if res is not None and res.status_code == 200:
-            try:
-                tag = str(res.json().get("tag_name") or "").strip() or None
-            except Exception:
-                tag = None
-
-        if tag:
-            res = RequestUtils(headers=api_headers, proxies=proxies).get_res(
-                f"https://api.github.com/repos/pt-plugins/PT-depiler/commits/{tag}")
-            if res is not None and res.status_code == 200:
-                try:
-                    commit = str(res.json().get("sha") or "").strip() or None
-                except Exception:
-                    commit = None
-
-        # API 被限流时，从 releases/latest 跳转后的标签页解析标签与提交号
-        if not tag or not commit:
-            res = RequestUtils(proxies=proxies).get_res(
-                "https://github.com/pt-plugins/PT-depiler/releases/latest")
-            if res is not None and res.status_code == 200:
-                if not tag:
-                    matched = re.search(r"/releases/tag/([^/?#]+)", res.url)
-                    tag = matched.group(1) if matched else None
-                if tag and not commit:
-                    matched = re.search(r"/commit/([0-9a-f]{7,40})", res.text)
-                    commit = matched.group(1) if matched else None
-
-        if not tag:
-            return None
-        return f"{tag}+{commit[:7]}" if commit else tag

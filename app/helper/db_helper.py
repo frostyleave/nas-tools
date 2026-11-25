@@ -1743,14 +1743,25 @@ class DbHelper:
             DOWNLOADHISTORY.SAVE_PATH == os.path.normpath(path)
         ).order_by(DOWNLOADHISTORY.DATE.desc()).first()
 
-    def get_download_history_by_downloader(self, downloader, download_id) -> DOWNLOADHISTORY:
+    def get_download_histories_by_downloader(self, downloader, download_ids) -> dict:
         """
-        根据下载器查找下载历史
+        根据下载器批量查找下载历史，按种子ID返回最新一条
         """
-        return self._db.query(DOWNLOADHISTORY).filter(
-            DOWNLOADHISTORY.DOWNLOADER == downloader,
-            DOWNLOADHISTORY.DOWNLOAD_ID == download_id
-        ).order_by(DOWNLOADHISTORY.DATE.desc()).first()
+        download_ids = list(dict.fromkeys(item for item in (download_ids or []) if item))
+        if not download_ids:
+            return {}
+        histories = {}
+        # 分批查询，避免 IN 子句的参数数量超过 SQLite 上限
+        batch_size = 500
+        for index in range(0, len(download_ids), batch_size):
+            batch = download_ids[index:index + batch_size]
+            for item in self._db.query(DOWNLOADHISTORY).filter(
+                    DOWNLOADHISTORY.DOWNLOADER == downloader,
+                    DOWNLOADHISTORY.DOWNLOAD_ID.in_(batch)).all():
+                current = histories.get(item.DOWNLOAD_ID)
+                if not current or (item.DATE or "") > (current.DATE or ""):
+                    histories[item.DOWNLOAD_ID] = item
+        return histories
 
     @DbPersist(_db)
     def update_brushtask(self, brush_id, item):

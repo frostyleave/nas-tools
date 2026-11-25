@@ -1399,7 +1399,7 @@ layout-navbar {
     background-size: cover;
     background-position: center;
     background-repeat: no-repeat;
-    border-radius: 8px;
+    border-radius: var(--tblr-card-border-radius);
 }
 
 .media-box::before {
@@ -1410,11 +1410,7 @@ layout-navbar {
     right: 0;
     bottom: 0;
     background: linear-gradient(to right, rgba(0, 0, 0, 0.8) 0%, rgba(0, 0, 0, 0.4) 50%, rgba(0, 0, 0, 0.8) 100%);
-    border-radius: 8px;
-}
-
-.media-box-progress:last-child {
-    border-radius: 0 0 8px 8px;
+    border-radius: var(--tblr-card-border-radius);
 }
 
 .media-content {
@@ -1719,7 +1715,6 @@ a:hover {
     width: 45px;
     height: 45px;
     clip-path: polygon(0 0, 100% 0, 0 100%);
-    border-radius: 4px;
     z-index: 9;
 }
 
@@ -3521,10 +3516,8 @@ body.theme-midnight .login-container {
         radial-gradient(30rem 24rem at 72% 86%, rgba(217, 70, 239, 0.08), transparent 65%);
 }
 
-@media (min-width: 576px) {
-    body.theme-midnight .index-stat-row .card-progress {
-        background-color: rgba(255, 255, 255, 0.07);
-    }
+body.theme-midnight .index-stat-row .card-progress {
+    background-color: rgba(255, 255, 255, 0.07);
 }
 
 body.theme-midnight .used-space-bar {

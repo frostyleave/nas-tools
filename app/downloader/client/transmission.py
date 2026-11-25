@@ -1,15 +1,29 @@
+import base64
 import os.path
 import re
 import time
 from collections.abc import Iterable
 from typing import ClassVar
+from urllib.parse import urlparse, urlunparse
 
 import transmission_rpc
 
 import log
 from app.downloader.client._base import _IDownloadClient
-from app.utils import StringUtils
+from app.utils import AsyncRequestUtils, StringUtils
 from app.utils.types import DownloaderType
+from config import Config
+
+# RPC 数字状态码与状态名对应关系
+TR_STATUS_CODES = {
+    "stopped": {0},
+    "check_pending": {1},
+    "checking": {2},
+    "download_pending": {3},
+    "downloading": {4},
+    "seed_pending": {5},
+    "seeding": {6},
+}
 
 
 class Transmission(_IDownloadClient):
@@ -32,20 +46,21 @@ class Transmission(_IDownloadClient):
     # 私有属性
     _client_config: dict
 
-    trc = None
+    # 客户端实例，首次使用时建立连接
+    _trc = None
+
     host = None
     port = None
     username = None
     password = None
     name = "测试"
+    # 异步 RPC 使用的 Session ID
+    _async_session_id = None
 
     def __init__(self, config):
         self._client_config = config
         self.download_dir = []
         self.init_config()
-        self.connect()
-        # 设置未完成种子添加!part后缀
-        self.trc.set_session(rename_partial_files=True)
 
     def init_config(self):
         if self._client_config:
@@ -63,19 +78,57 @@ class Transmission(_IDownloadClient):
     def get_type(self):
         return self.client_type
 
+    @property
+    def trc(self):
+        """
+        获取客户端实例，未连接或连接失败时先建立连接
+        """
+        if not self._trc:
+            self.connect()
+        return self._trc
+
     def connect(self):
-        if self.host and self.port:
-            self.trc = self.__login_transmission()
+        """
+        连接 transmission，登录失败时保留空实例，下次访问再重试
+        """
+        if self._trc or not (self.host and self.port):
+            return
+        self._trc = self.__login_transmission()
+        if not self._trc:
+            return
+        try:
+            # 设置未完成种子添加!part后缀
+            self._trc.set_session(rename_partial_files=True)
+        except Exception:
+            log.exception(f"【{self.client_name}】{self.name} 设置种子文件后缀出错：")
+
+    def __parse_host(self):
+        """
+        解析 host 中的协议和端口，返回 (主机名, 协议, 端口)
+        """
+        host = (self.host or "").strip().rstrip("/")
+        protocol = "http"
+        if host.startswith("https://"):
+            protocol = "https"
+            host = host[len("https://"):]
+        elif host.startswith("http://"):
+            host = host[len("http://"):]
+        parsed = urlparse("//" + host)
+        return parsed.hostname or host, protocol, parsed.port or self.port
 
     def __login_transmission(self):
         """
         连接transmission
         :return: transmission对象
         """
+        host, protocol, port = self.__parse_host()
+        if not host:
+            return None
         try:
             # 登录
-            trt = transmission_rpc.Client(host=self.host,
-                                          port=self.port,
+            trt = transmission_rpc.Client(protocol=protocol,
+                                          host=host,
+                                          port=port,
                                           username=self.username,
                                           password=self.password,
                                           timeout=60)
@@ -85,7 +138,14 @@ class Transmission(_IDownloadClient):
             return None
 
     def get_status(self):
-        return bool(self.trc)
+        if not self.trc:
+            return False
+        try:
+            self.trc.get_session(timeout=10)
+            return True
+        except Exception:
+            log.exception(f"【{self.client_name}】{self.name} 获取状态出错：")
+            return False
 
     @staticmethod
     def __parse_ids(ids):
@@ -171,6 +231,114 @@ class Transmission(_IDownloadClient):
             log.exception(f"【{self.client_name}】{self.name} 获取正在下载的种子列表异常：")
             return None
 
+    def _async_rpc_url(self):
+        """
+        拼接 RPC 地址
+        """
+        host = (self.host or "").strip().rstrip("/")
+        if not host:
+            return ""
+        if not host.startswith(("http://", "https://")):
+            host = "http://" + host
+        parsed = urlparse(host)
+        netloc = parsed.netloc
+        if self.port and not parsed.port:
+            netloc = f"{netloc}:{self.port}"
+        return urlunparse((parsed.scheme, netloc, "/transmission/rpc", "", "", ""))
+
+    def _async_headers(self):
+        """
+        构造 RPC 请求头，包含 Basic 认证和 Session ID
+        """
+        headers = {
+            "User-Agent": Config().get_ua(),
+            "Content-Type": "application/json"
+        }
+        if self.username or self.password:
+            token = base64.b64encode(
+                f"{self.username or ''}:{self.password or ''}".encode()).decode()
+            headers["Authorization"] = f"Basic {token}"
+        if self._async_session_id:
+            headers["X-Transmission-Session-Id"] = self._async_session_id
+        return headers
+
+    async def _async_rpc(self, method, arguments=None):
+        """
+        异步调用 RPC，收到 409 时更新 Session ID 后重试一次
+        """
+        url = self._async_rpc_url()
+        if not url:
+            return None
+        payload = {"method": method, "arguments": arguments or {}}
+        for _ in range(2):
+            try:
+                res = await AsyncRequestUtils(headers=self._async_headers()).request(
+                    "post", url, json=payload)
+            except Exception:
+                log.exception(f"【{self.client_name}】{self.name} 异步 RPC 调用出错：")
+                return None
+            if res is None:
+                return None
+            if res.status_code == 409:
+                session_id = res.headers.get("X-Transmission-Session-Id")
+                if not session_id:
+                    return None
+                self._async_session_id = session_id
+                continue
+            if res.status_code != 200:
+                return None
+            try:
+                data = res.json()
+            except Exception:
+                return None
+            if data.get("result") != "success":
+                return None
+            return data.get("arguments") or {}
+        return None
+
+    async def get_torrents_async(self, ids=None, status=None, tag=None):
+        """
+        异步获取种子列表
+        返回结果 种子列表, 是否有错误
+        """
+        ids = self.__parse_ids(ids)
+        arguments = {"fields": self._trarg}
+        if ids is not None:
+            arguments["ids"] = ids
+        result = await self._async_rpc("torrent-get", arguments)
+        if result is None:
+            return [], True
+
+        filter_download_pause = False
+        status_codes = None
+        if status:
+            if not isinstance(status, list):
+                status = [status]
+            names = {str(item).replace(" ", "_") for item in status}
+            status_codes = set()
+            for name in names:
+                status_codes |= TR_STATUS_CODES.get(name, set())
+            # 被暂停的下载也会被标记为 stopped
+            if "downloading" in names and "stopped" not in names:
+                status_codes.add(0)
+                filter_download_pause = True
+        if tag and not isinstance(tag, list):
+            tag = [tag]
+
+        ret_torrents = []
+        for torrent in result.get("torrents") or []:
+            if status_codes is not None and torrent.get("status") not in status_codes:
+                continue
+            # 过滤暂停做种的文件
+            if filter_download_pause and torrent.get("status") == 0 \
+                    and (torrent.get("percentDone") or 0) >= 1:
+                continue
+            labels = torrent.get("labels") or []
+            if tag and not all(t in labels for t in tag if t):
+                continue
+            ret_torrents.append(torrent)
+        return ret_torrents, False
+
     def set_torrents_status(self, ids, tags=None):
         """
         设置种子为已整理状态
@@ -178,17 +346,13 @@ class Transmission(_IDownloadClient):
         if not self.trc:
             return
         ids = self.__parse_ids(ids)
-        # 合成标签
-        if tags:
-            if not isinstance(tags, list):
-                tags = [tags, "已整理"]
-            else:
-                tags.append("已整理")
-        else:
-            tags = ["已整理"]
+        # 合成标签，避免修改调用方传入的列表
+        labels = list(tags) if isinstance(tags, list) else ([tags] if tags else [])
+        if "已整理" not in labels:
+            labels.append("已整理")
         # 打标签
         try:
-            self.trc.change_torrent(labels=tags, ids=ids)
+            self.trc.change_torrent(labels=labels, ids=ids)
             log.info(f"【{self.client_name}】{self.name} 设置种子标签成功")
         except Exception as err:
             log.exception(f"【{self.client_name}】{self.name} 设置种子为已整理状态异常：")
@@ -335,7 +499,7 @@ class Transmission(_IDownloadClient):
         for torrent in torrents:
             date_done = torrent.date_done or torrent.date_added
             date_now = int(time.time())
-            torrent_seeding_time = date_now - int(time.mktime(date_done.timetuple())) if date_done else 0
+            torrent_seeding_time = date_now - int(date_done.timestamp()) if date_done else 0
             torrent_uploaded = torrent.ratio * torrent.total_size
             torrent_upload_avs = torrent_uploaded / torrent_seeding_time if torrent_seeding_time else 0
             if ratio and torrent.ratio <= ratio:
@@ -505,7 +669,20 @@ class Transmission(_IDownloadClient):
         """
         获取正在下载的种子进度
         """
-        Torrents = self.get_downloading_torrents(tag=tag, ids=ids) or []
+        return self.__format_progress(self.get_downloading_torrents(tag=tag, ids=ids) or [])
+
+    async def get_downloading_progress_async(self, tag=None, ids=None):
+        """
+        异步获取正在下载的种子进度
+        """
+        torrents, _ = await self.get_torrents_async(
+            ids=ids, status=["downloading", "download_pending"], tag=tag)
+        return self.__format_progress_async(torrents or [])
+
+    def __format_progress(self, Torrents):
+        """
+        格式化下载进度
+        """
         DispTorrents = []
         for torrent in Torrents:
             _dlspeed = '0'
@@ -527,12 +704,52 @@ class Transmission(_IDownloadClient):
             # 进度
             progress = torrent.progress
             left_until_done = torrent.left_until_done
-            total_size = int(left_until_done / (1 - progress / 100.0))
+            if progress < 100:
+                total_size = int(left_until_done / (1 - progress / 100.0))
+            else:
+                total_size = int(torrent.total_size)
             sizeprogress = (f"{StringUtils.str_filesize(total_size - left_until_done)}B / {StringUtils.str_filesize(total_size)}B").replace('BB', 'B')
 
             DispTorrents.append({
                 'id': torrent.hashString,
                 'name': torrent.name,
+                'speed': speed,
+                'dlspeed': _dlspeed,
+                'upspeed': _upspeed,
+                'state': state,
+                'progress': progress,
+                'sizeprogress': sizeprogress
+            })
+        return DispTorrents
+
+    def __format_progress_async(self, Torrents):
+        """
+        格式化异步查询到的下载进度
+        """
+        DispTorrents = []
+        for torrent in Torrents:
+            _dlspeed = '0'
+            _upspeed = '0'
+            if torrent.get("status") == 0:
+                state = "Stoped"
+                speed = "已暂停"
+            else:
+                state = "Downloading"
+                _dlspeed = StringUtils.str_filesize(torrent.get("rateDownload") or 0)
+                _upspeed = StringUtils.str_filesize(torrent.get("rateUpload") or 0)
+                speed = (f"{chr(8595)}{_dlspeed}B/s {chr(8593)}{_upspeed}B/s").replace('BB', 'B')
+            # 进度
+            progress = round((torrent.get("percentDone") or 0) * 100, 2)
+            left_until_done = int(torrent.get("leftUntilDone") or 0)
+            if progress < 100:
+                total_size = int(left_until_done / (1 - progress / 100.0))
+            else:
+                total_size = int(torrent.get("totalSize") or 0)
+            sizeprogress = (f"{StringUtils.str_filesize(total_size - left_until_done)}B / {StringUtils.str_filesize(total_size)}B").replace('BB', 'B')
+
+            DispTorrents.append({
+                'id': torrent.get("hashString"),
+                'name': torrent.get("name"),
                 'speed': speed,
                 'dlspeed': _dlspeed,
                 'upspeed': _upspeed,

@@ -190,7 +190,7 @@
           class="text-white" id="pause_btn_${type}_${id}"><i class="ti ti-player-pause fs-2"></i></a>`;
 
     return `
-      <div class="card p-0 glass-card" data-rss-type="${type}">
+      <div class="card p-0 glass-card overflow-hidden" data-rss-type="${type}">
         <div class="card-body media-box" style="background-image: url(${rssAttr.image});">
           <div class="ribbon ribbon-top ribbon-left ribbon-bookmark ${voteBg}">${voteText}</div>
           <div class="right-top-box rss-card-actions">
@@ -209,17 +209,13 @@
                   ${title}
                 </a>
               </h3>
-              <div class="card-body text-center border-bottom" style="padding: 0;flex-grow: 1;">
-                <div class="${badges ? 'text-muted pt-1 mt-1' : 'text-muted'}">
-                  <small>
-                    ${badges}
-                  </small>
-                </div>
-                <div class="text-muted site-badge-list">
-                  <small>
-                    ${siteBadges}
-                  </small>
-                </div>
+              <div class="text-center border-bottom" style="flex-grow: 1;">
+                <small class="text-muted d-block${badges ? ' pt-1 mt-1' : ''}">
+                  ${badges}
+                </small>
+                <small class="text-muted site-badge-list">
+                  ${siteBadges}
+                </small>
               </div>
               <div class="space-between-box rss-card-toolbar" onclick="event.stopPropagation();">
                 <div>

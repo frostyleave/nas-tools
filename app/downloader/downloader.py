@@ -660,6 +660,28 @@ class Downloader:
             log.exception("【Downloader】下获取种子信息: ")
             return None
 
+    async def get_torrents_async(self, downloader_id=None, ids=None, tag=None):
+        """
+        异步获取种子信息
+        :param downloader_id: 下载器ID
+        :param ids: 种子ID
+        :param tag: 种子标签
+        :return: 种子信息列表
+        """
+        if not downloader_id:
+            downloader_id = self.default_downloader_id
+        _client = self.__get_client(downloader_id)
+        if not _client:
+            return None
+        try:
+            torrents, error_flag = await _client.get_torrents_async(tag=tag, ids=ids)
+            if error_flag:
+                return None
+            return torrents
+        except Exception as err:
+            log.exception("【Downloader】异步获取种子信息: ")
+            return None
+
     def get_remove_torrents(self, downloader_id=None, config=None):
         """
         查询符合删种策略的种子信息
@@ -721,6 +743,32 @@ class Downloader:
         except:  # noqa: E722
             return []
 
+    async def get_downloading_progress_async(self, downloader_id=None, ids=None):
+        """
+        异步查询正在下载中的进度信息
+        """
+        if not downloader_id:
+            downloader_id = self.default_downloader_id
+
+        _client = self.__get_client(downloader_id)
+        if not _client:
+            return []
+
+        # 查询配置
+        downloader_conf = self.get_downloader_conf(downloader_id)
+        if not downloader_conf:
+            return []
+        # 仅下载指定标签
+        only_nastool = downloader_conf.only_nastool
+        if only_nastool:
+            tag = [PT_TAG]
+        else:
+            tag = None
+        try:
+            return await _client.get_downloading_progress_async(tag=tag, ids=ids)
+        except Exception:
+            log.exception("【Downloader】异步查询正在下载中的进度信息异常: ")
+            return []
 
     def get_completed_torrents(self, downloader_id=None, ids=None, tag=None):
         """
@@ -1019,13 +1067,13 @@ class Downloader:
         """
         return self.dbhelper.get_download_history_by_title(title=title) or []
 
-    def get_download_history_by_downloader(self, downloader, download_id):
+    def get_download_histories_by_downloader(self, downloader, download_ids):
         """
-        根据下载器和下载ID查询下载历史记录
-        :return:
+        根据下载器批量查询下载历史记录
+        :return: 按下载ID索引的下载历史字典
         """
-        return self.dbhelper.get_download_history_by_downloader(downloader=downloader,
-                                                                download_id=download_id)
+        return self.dbhelper.get_download_histories_by_downloader(downloader=downloader,
+                                                                  download_ids=download_ids)
 
     def update_downloader(self,
                           did,
