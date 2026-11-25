@@ -192,7 +192,7 @@
             <div class="flex-shrink-0">
               <h1 class="text-center my-3">
                 <img src="../static/favicon.ico"
-                     style="vertical-align: bottom;border: 1px solid var(--tblr-navbar-toggler-border-color);border-radius: 5px;">
+                     style="vertical-align: bottom;border: 1px solid var(--tblr-navbar-toggler-border-color);border-radius: 10px;">
                 <label style="font-size: xx-large;color: var(--tblr-body-color);">nastool</label>
               </h1>
             </div>

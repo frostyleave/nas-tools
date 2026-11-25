@@ -6,6 +6,12 @@
   .index-stat-icon {
     font-size: 2.5rem;
     line-height: 1;
+    flex: 0 0 2.75rem;
+    width: 2.75rem;
+    height: 2.75rem;
+    align-self: center;
+    align-items: center !important;
+    border-radius: 50%;
   }
 
   .index-stat-value {
@@ -27,6 +33,9 @@
 
     .index-stat-icon {
       font-size: 1.75rem;
+      flex-basis: 2rem;
+      width: 2rem;
+      height: 2rem;
     }
 
     .index-stat-row .subheader {
@@ -45,6 +54,21 @@
 
     .index-stat-value {
       font-size: 0.72rem;
+    }
+  }
+
+  @media (min-width: 576px) {
+    .index-stat-row .card-progress {
+      left: 1rem;
+      right: 1rem;
+      bottom: 0.85rem;
+      width: auto;
+      height: 6px;
+      border-radius: 999px;
+    }
+
+    .index-stat-row .card-progress .progress-bar {
+      border-radius: 999px;
     }
   }
 </style>

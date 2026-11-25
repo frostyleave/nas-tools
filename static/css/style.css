@@ -1164,6 +1164,11 @@ layout-navbar {
     padding-left: env(safe-area-inset-left) !important;
 }
 
+.nav-search-bar .input-group-flat {
+    padding: 0 4px;
+    border-radius: 12px;
+}
+
 .lit-navbar-fixed {
     position: fixed;
     top: 0;
@@ -1880,10 +1885,10 @@ h1.login_title>label {
 
 .container-xl .page-header .row .col h2.page-title::before {
     content: "";
-    width: 4px;
+    width: 3px;
     height: 1.5rem;
     background-color: var(--tblr-primary);
-    border-radius: 2px;
+    border-radius: 3px;
 }
 
 .card-collapse {
@@ -3132,7 +3137,6 @@ body.theme-midnight .lit-navbar-canvas {
 
 body.theme-midnight layout-navbar h1 img {
     border-color: rgba(255, 255, 255, 0.1) !important;
-    border-radius: 10px !important;
 }
 
 body.theme-midnight layout-navbar h1 label {
@@ -3184,10 +3188,7 @@ body.theme-midnight .lit-navbar-liquid {
 }
 
 body.theme-midnight .nav-search-bar .input-group-flat {
-    height: 42px;
-    padding: 0 4px;
     border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 12px;
     background-color: rgba(255, 255, 255, 0.035);
     transition: border-color 180ms ease, background-color 180ms ease;
 }
@@ -3250,8 +3251,6 @@ body.theme-midnight .navbar-secondary .nav-link.active::after {
 }
 
 body.theme-midnight .container-xl .page-header .row .col h2.page-title::before {
-    width: 3px;
-    border-radius: 3px;
     background: linear-gradient(180deg, #a855f7, #7c5cfc);
 }
 
@@ -3510,20 +3509,10 @@ body.theme-midnight .form-help[aria-describedby] {
     color: #ffffff;
 }
 
-body.theme-midnight .components-div {
-    border-radius: 16px;
-}
-
 body.theme-midnight .index-stat-icon {
-    flex: 0 0 2.75rem;
-    width: 2.75rem;
-    height: 2.75rem;
-    align-self: center;
     border: 1px solid color-mix(in srgb, currentColor 24%, transparent);
-    border-radius: 50%;
     background-color: color-mix(in srgb, currentColor 16%, transparent);
     font-size: 1.35rem;
-    align-items: center !important;
 }
 
 body.theme-midnight .login-container {
@@ -3534,17 +3523,7 @@ body.theme-midnight .login-container {
 
 @media (min-width: 576px) {
     body.theme-midnight .index-stat-row .card-progress {
-        left: 1rem;
-        right: 1rem;
-        bottom: 0.85rem;
-        width: auto;
-        height: 6px;
-        border-radius: 999px;
         background-color: rgba(255, 255, 255, 0.07);
-    }
-
-    body.theme-midnight .index-stat-row .card-progress .progress-bar {
-        border-radius: 999px;
     }
 }
 
@@ -3554,9 +3533,6 @@ body.theme-midnight .used-space-bar {
 
 @media (max-width: 575.98px) {
     body.theme-midnight .index-stat-icon {
-        flex-basis: 2rem;
-        width: 2rem;
-        height: 2rem;
         font-size: 1rem;
     }
 }
