@@ -442,8 +442,8 @@
   }
 
   // 展开/折叠
-  function show_filterrule_detail(id){
-      $(`#div_group${id}`).slideToggle()
+  function show_filterrule_detail(id) {
+    toggle_card_collapse(document.getElementById(`div_group${id}`));
   }
 
 </script>
@@ -560,8 +560,8 @@
 
     return `
       <div class="card align-self-start">
-        <div class="card-header">
-          <h3 class="card-title"><strong>${ruleGroup.name}</strong></h3>
+        <div class="card-body d-flex align-items-center">
+          <h3 class="card-title mb-0"><strong>${ruleGroup.name}</strong></h3>
           <div class="card-actions btn-actions">
             <a href="javascript:void(0)" onclick="show_filterrule_detail('${ruleGroup.id}')" class="btn-action ms-1" title="折叠">
               <i class="ti ti-menu-2 fs-2"></i>
@@ -583,9 +583,11 @@
             </a>
           </div>
         </div>
-        <div class="card-body p-2" id="div_group${ruleGroup.id}">
-          <div class="row row-cards">
-            ${rulesHtml}
+        <div class="card-body p-0 card-collapse-body" id="div_group${ruleGroup.id}">
+          <div class="p-2">
+            <div class="row row-cards">
+              ${rulesHtml}
+            </div>
           </div>
         </div>
       </div>

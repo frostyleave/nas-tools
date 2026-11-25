@@ -399,8 +399,8 @@
   // 生成单个组的HTML
   function generateGroupHtml(group) {
     const linkHtml = group.link ?
-      `<a href="${group.link}" target="_blank"><h3 class="card-title"><strong>${group.name}</strong></h3></a>` :
-      `<h3 class="card-title"><strong>${group.name}</strong></h3>`;
+      `<a href="${group.link}" target="_blank"><h3 class="card-title mb-0"><strong>${group.name}</strong></h3></a>` :
+      `<h3 class="card-title mb-0"><strong>${group.name}</strong></h3>`;
 
     const deleteButtonHtml = group.id !== "-1" ?
       `<a href="javascript:delete_custom_word_group('${group.id}')" class="btn-action ms-1" title="删除识别词组">
@@ -412,7 +412,7 @@
     return `
         <div class="col-12">
           <div class="card">
-            <div class="card-header">
+            <div class="card-body d-flex align-items-center">
               ${linkHtml}
               <div class="card-actions btn-actions">
                 <a href="javascript:void(0)" onclick="show_customwords_detail('${group.id}')" class="btn-action ms-1" title="折叠">
@@ -425,8 +425,10 @@
                 ${deleteButtonHtml}
               </div>
             </div>
-            <div id="div-group-${group.id}" class="table-responsive" style="display: none;">
-              ${wordsHtml}
+            <div id="div-group-${group.id}" class="card-body p-0 card-collapse-body is-collapsed">
+              <div class="table-responsive">
+                ${wordsHtml}
+              </div>
             </div>
           </div>
         </div>
@@ -442,7 +444,7 @@
           show_fail_modal("未找到对应的识别词组");
           return;
         }
-        $(`#div-group-${gid}`).html(generateWordsTableHtml(group));
+        $(`#div-group-${gid} .table-responsive`).html(generateWordsTableHtml(group));
         fresh_tooltip();
       } else {
         show_fail_modal("加载自定义识别词失败");
@@ -1017,7 +1019,7 @@
 
   // 展开/收起
   function show_customwords_detail(id) {
-    $(`#div-group-${id}`).slideToggle()
+    toggle_card_collapse(document.getElementById(`div-group-${id}`));
   }
 
 </script>

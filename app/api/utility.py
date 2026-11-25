@@ -376,22 +376,14 @@ async def _proxy_site_image(
     """
     校验来源域名后转发图片
 
-    只允许配置过的图片域名，并在转发前做 DNS 解析防止 SSRF。
+    只允许配置过的图片域名，未走代理时在转发前做 DNS 解析防止 SSRF。
     """
     parsed = urlparse(url)
     if parsed.scheme != "https" \
             or not parsed.hostname \
             or not host_re.match(parsed.hostname):
+        log.warn(f"【Security】图片中转拒绝了非白名单地址: {url}")
         raise HTTPException(status_code=400, detail="Invalid url")
-
-    target_url = _force_webp(url) if force_webp else url
-    if not await _is_public_remote_url(target_url):
-        raise HTTPException(status_code=400, detail="Invalid url")
-
-    # 命中缓存时直接返回，避免重复回源
-    cached = _image_cache.get(target_url)
-    if cached:
-        return _image_response(*cached)
 
     proxy = None
     if use_proxy:
@@ -400,6 +392,17 @@ async def _proxy_site_image(
         # aiohttp 只支持 http(s) 代理
         if proxy and not proxy.startswith(("http://", "https://")):
             proxy = None
+
+    target_url = _force_webp(url) if force_webp else url
+    # 走代理时域名由代理解析，本地 DNS 可能被污染或拦截，不能据此拒绝请求
+    if not proxy and not await _is_public_remote_url(target_url):
+        log.warn(f"【Security】图片中转拒绝了非公网地址: {target_url}")
+        raise HTTPException(status_code=400, detail="Invalid url")
+
+    # 命中缓存时直接返回，避免重复回源
+    cached = _image_cache.get(target_url)
+    if cached:
+        return _image_response(*cached)
 
     session = get_async_session()
     headers = {

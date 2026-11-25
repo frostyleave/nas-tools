@@ -328,6 +328,34 @@ function hasScrollbar() {
   return (document.body.scrollHeight - (window.innerHeight || document.documentElement.clientHeight)) > 2;
 }
 
+// 折叠/展开卡片的内容区
+function toggle_card_collapse(el) {
+  if (!el) return;
+
+  // 展开：先量出内容自然高度，再从 0 过渡到该高度
+  if (el.classList.contains('is-collapsed')) {
+    el.style.transition = 'none';
+    el.classList.remove('is-collapsed');
+    el.style.height = '';
+    const target = el.getBoundingClientRect().height;
+    el.style.height = '0px';
+    el.offsetHeight;
+    el.style.transition = '';
+    el.style.height = target + 'px';
+    el.addEventListener('transitionend', function done(e) {
+      if (e.target !== el || e.propertyName !== 'height') return;
+      el.removeEventListener('transitionend', done);
+      if (!el.classList.contains('is-collapsed')) el.style.height = '';
+    });
+  } else {
+    // 收起：固定当前高度后再过渡到 0
+    el.style.height = el.getBoundingClientRect().height + 'px';
+    el.offsetHeight;
+    el.classList.add('is-collapsed');
+    el.style.height = '0px';
+  }
+}
+
 // 向浏览器发送通知
 function browserNotification(title, text) {
   // 检查浏览器是否支持 Notification API

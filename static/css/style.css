@@ -28,6 +28,36 @@
 
 .card {
     --tblr-card-border-radius: 16px;
+    --tblr-card-inner-border-radius: calc(16px - var(--tblr-card-border-width));
+}
+
+.card > .table-responsive:first-child {
+    border-top-left-radius: var(--tblr-card-inner-border-radius);
+    border-top-right-radius: var(--tblr-card-inner-border-radius);
+}
+
+.card > .table-responsive:last-child,
+.card-collapse-body > .table-responsive:last-child {
+    border-bottom-left-radius: var(--tblr-card-inner-border-radius);
+    border-bottom-right-radius: var(--tblr-card-inner-border-radius);
+}
+
+.card-collapse-body {
+    overflow: hidden;
+    transition:
+        height .24s cubic-bezier(.4, 0, .2, 1),
+        border-top-width .24s cubic-bezier(.4, 0, .2, 1),
+        visibility 0s;
+}
+
+.card-collapse-body.is-collapsed {
+    height: 0;
+    border-top-width: 0;
+    visibility: hidden;
+    transition:
+        height .24s cubic-bezier(.4, 0, .2, 1),
+        border-top-width .24s cubic-bezier(.4, 0, .2, 1),
+        visibility 0s .24s;
 }
 
 .modal.fade .modal-dialog {
@@ -1312,7 +1342,6 @@ layout-navbar {
 }
 
 .components-div {
-    border-radius: 5px;
     border: var(--tblr-card-border-width) solid var(--tblr-card-border-color);
     background-color: var(--tblr-card-bg);
     background-clip: border-box;
