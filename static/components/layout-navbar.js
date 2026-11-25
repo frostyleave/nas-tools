@@ -81,11 +81,9 @@
         this.removeAttribute('hidden');
         const pageContent = document.querySelector('#page-content');
         const searchbar = document.querySelector('layout-searchbar');
-        const logoAnimation = document.querySelector('#logo_animation');
 
         if (pageContent) pageContent.removeAttribute('hidden');
         if (searchbar) searchbar.removeAttribute('hidden');
-        if (logoAnimation) logoAnimation.remove();
       }, 100);
     }
 

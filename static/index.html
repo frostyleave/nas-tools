@@ -107,7 +107,7 @@
 </head>
 
 <body class="layout-fluid">
-  <div id="login-container" class="d-none d-flex flex-column justify-content-center align-items-center vh-100">
+  <div id="login-container" class="login-container d-none d-flex flex-column justify-content-center align-items-center vh-100">
     <div class="image-desc card card-md border-0 rounded-3" id="image-desc-container" style="display: none;">
       <a class="image-link" href="#" target="_blank" id="image-link">
         <i class="ti ti-link"></i>
@@ -160,7 +160,7 @@
       <div id="loading-tips" style="display: none;">
         <loading-indicator></loading-indicator>
       </div>
-      <div id="page-content" style="display: none;">
+      <div id="page-content" class="page-content" style="display: none;">
       </div>
     </div>
   </div>
@@ -183,7 +183,7 @@
   <button id="scrollToTop" class="scroll-to-top" aria-label="Back to top">
     <i class="ti ti-arrow-big-up-lines"></i>
   </button>
-  <div class="modal fade" id="messageCenterModal" tabindex="-1" aria-labelledby="消息中心" aria-hidden="true">
+  <div class="modal message-center-modal fade" id="messageCenterModal" tabindex="-1" aria-labelledby="消息中心" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-lg" role="document">
       <div class="modal-content">
         <!-- header -->
@@ -301,7 +301,7 @@
     </div>
   </div>
   <!-- 询问框 -->
-  <div class="modal modal-blur fade" id="system-ask-modal" tabindex="-1" role="dialog" aria-hidden="true">
+  <div class="modal system-ask-modal modal-blur fade" id="system-ask-modal" tabindex="-1" role="dialog" aria-hidden="true">
     <div class="modal-dialog modal-sm modal-dialog-centered" role="document">
       <div class="modal-content">
         <div class="modal-body">

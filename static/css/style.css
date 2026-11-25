@@ -1,22 +1,33 @@
 :root {
     --tblr-primary: #696cff;
     --tblr-primary-rgb: 106, 109, 255;
-
     --tblr-body-bg: #F5F5F9;
-
-    --lit-navbar-hover: #e7e7ff;
-    --lit-navbar-active: #757BF4;
-    --lit-navbar-active-color: var(--tblr-body-bg);
-    --tblr-nav-tabs-border-color: lightgray;
-
     --tblr-navbar-border-color: var(--tblr-body-bg);
-
-    --lit-person-card-bg: #f5f5f9ad;
-    --lit-menu-color: var(--tblr-body-color);
-
+    --tblr-nav-tabs-border-color: lightgray;
     --tblr-card-border-color:initial;
 
+    --lit-menu-color: var(--tblr-body-color);
+    --lit-navbar-active: #757BF4;
+    --lit-navbar-active-color: var(--tblr-body-bg);
+    --lit-navbar-hover: #e7e7ff;
+    --lit-person-card-bg: #f5f5f9ad;
+    
     --card-transparent-bg: #e5dede1f;
+
+    --tblr-border-radius: 10px;
+    --tblr-border-radius-sm: 8px;
+    --tblr-border-radius-lg: 14px;
+    --tblr-border-radius-xl: 18px;
+    --tblr-border-radius-2xl: 22px;
+
+}
+
+.btn {
+    --tblr-btn-border-radius: 10px;
+}
+
+.card {
+    --tblr-card-border-radius: 16px;
 }
 
 .modal.fade .modal-dialog {
@@ -24,24 +35,26 @@
 }
 
 @media (max-width: 768px) {
-    #system-ask-modal {
+    .system-ask-modal {
         -webkit-backdrop-filter: none;
         backdrop-filter: none;
     }
 }
 
 .theme-dark {
+    
+    --card-transparent-bg: #1d273b61;
+
+    --tblr-btn-bg: #243049;
+    --tblr-dark-mode-border-color: rgba(255, 255, 255, 0.15);
+    --tblr-navbar-border-color:#243049;
+
     --lit-navbar-hover: #2a3551ca;
     --lit-navbar-active: #414d6dca;
     --lit-person-card-bg: var(--lit-navbar-active);
     --lit-navbar-active-color: #fff;
     --lit-menu-color: #b2b2c4;
-    --tblr-navbar-border-color:#243049;
 
-    --tblr-dark-mode-border-color: rgba(255, 255, 255, 0.15);
-    --tblr-btn-bg: #243049;
-
-    --card-transparent-bg: #1d273b61;
 }
 
 .lit-navbar-accordion-item:hover {
@@ -70,7 +83,7 @@ layout-navbar .accordion > a {
     right: 0;
     top: 0;
     height: 0;
-    border-radius: 28px;
+    border-radius: var(--tblr-border-radius-lg);
     background-color: var(--lit-navbar-active);
     opacity: 0;
     pointer-events: none;
@@ -103,7 +116,7 @@ layout-navbar .accordion > a {
 .lit-navbar-accordion-item,
 .lit-navbar-accordion-item-active {
     font-size: 1.1rem;
-    border-radius: 28px;
+    border-radius: var(--tblr-border-radius-lg);
 }
 
 html {
@@ -218,18 +231,9 @@ body.theme-dark::after {
     margin-top: calc(0px - env(safe-area-inset-top) - var(--safe-area-inset-top) - 51px) !important;
 }
 
-#navbar-menu {
+layout-navbar {
     box-shadow: none !important;
     border: 0 !important;
-}
-
-#logo_animation {
-    position: absolute;
-    top: 30%;
-    left: calc(50% - 40px);
-    width: 80px;
-    height: 80px;
-    z-index: 1033;
 }
 
 .offcanvas {
@@ -603,7 +607,7 @@ body.theme-dark::after {
         border: none;
     }
 
-    #page-content {
+    .page-content {
         padding-bottom: calc(env(safe-area-inset-bottom) + 61px);
     }
 }
@@ -654,7 +658,7 @@ body.theme-dark::after {
 
 /* 加宽插件市场弹窗，为竖向滚动条预留空间，保证竖屏滚动时也能排下 3 张卡片 */
 @media (min-width: 1200px) {
-    #modal-plugin-apps .modal-dialog {
+    .plugin-apps-modal .modal-dialog {
         max-width: 1170px;
     }
 }
@@ -1394,16 +1398,16 @@ body.theme-dark::after {
 }
 
 /* 订阅列表：卡片与各网格行等高，状态工具栏统一贴底对齐 */
-#rss-list {
+.rss-card-grid {
     grid-auto-rows: 1fr;
 }
 
-#rss-list > .card > .card-body.media-box {
+.rss-card-grid > .card > .card-body.media-box {
     display: flex;
     flex-direction: column;
 }
 
-#rss-list > .card > .card-body.media-box > .media-content {
+.rss-card-grid > .card > .card-body.media-box > .media-content {
     flex: 1 1 auto;
 }
 
@@ -1637,7 +1641,7 @@ a:hover {
     transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-#messageCenterModal .modal-body {
+.message-center-modal .modal-body {
   height: 60vh;
   overflow-y: auto;
 }
@@ -1708,7 +1712,7 @@ a:hover {
     backdrop-filter: blur(15px);
     -webkit-backdrop-filter: blur(15px);
     border: 1px solid rgba(255, 255, 255, 0.2);
-    border-radius: 8px;
+    /* border-radius: 8px; */
     box-shadow: 0 4px 16px 0 rgba(var(--tblr-primary-rgb), 0.3);
 }
 
@@ -2025,13 +2029,13 @@ h1.login_title>label {
     color: #b0bac9 !important;
 }
 
-#main-info-container {
-    position: relative;          /* 给背景层做定位包含块 */
+.main-info-container {
+    position: relative;         /* 给背景层做定位包含块 */
     background-color: color-mix(in srgb, var(--tblr-body-bg) 15%, transparent); /* 扇形外露出的半透明底色 */
     min-height: 100vh;
 }
 
-div#main-info-container > * {
+.main-info-container > * {
     position: relative;  
     z-index: 1;
 }
@@ -2054,7 +2058,7 @@ div#main-info-container > * {
 }
 
 /* ========== 背景图：径向遮罩 ========== */
-#background-carousel {
+.background-carousel {
     position: absolute;
     inset: 0;
     width: 100%;
@@ -2089,14 +2093,14 @@ div#main-info-container > * {
     mask-position: 0 0;
 }
 
-#background-carousel img {
+.background-carousel img {
     width: 100%;
     height: 100%;
     object-fit: cover;
     display: block;
 }
 
-#main-card {
+.main-card {
     position: relative;
     z-index: 1;
     padding: 48px 24px;
@@ -2140,7 +2144,7 @@ div#main-info-container > * {
 /* 菜单切换：新页面内容淡入
  * 只做透明度过渡，不要改回整页 clip-path 动画：clip-path 每帧都要重绘整个页面，
  * 页面里有 fixed 背景层和 backdrop-filter 玻璃面板时，部分浏览器会出现整页/局部闪烁 */
-#page-content.page-fade-in {
+.page-content.page-fade-in {
     animation: page-fade-in 420ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
@@ -2630,14 +2634,14 @@ update-panel .update-footer {
     padding: 12px 20px;
 }
 
-update-panel #git_panel_action_btn:disabled {
+update-panel .update-action-btn:disabled {
     border-color: transparent;
     background: color-mix(in srgb, var(--tblr-primary) 12%, var(--tblr-bg-surface));
     color: var(--update-accent-text);
     opacity: 1;
 }
 
-update-panel #git_panel_action_btn .spinner-border {
+update-panel .update-action-btn .spinner-border {
     width: 14px;
     height: 14px;
     margin-right: 6px;
@@ -3037,11 +3041,6 @@ body.theme-midnight {
     --tblr-indigo-rgb: 99, 102, 241;
     --tblr-lime: #84cc16;
     --tblr-lime-rgb: 132, 204, 22;
-    --tblr-border-radius: 10px;
-    --tblr-border-radius-sm: 8px;
-    --tblr-border-radius-lg: 14px;
-    --tblr-border-radius-xl: 18px;
-    --tblr-border-radius-2xl: 22px;
 
     --lit-navbar-hover: rgba(255, 255, 255, 0.045);
     --lit-navbar-active: #7c5cfc;
@@ -3131,7 +3130,6 @@ body.theme-midnight .divider-line {
 
 body.theme-midnight .lit-navbar-accordion-item,
 body.theme-midnight .lit-navbar-accordion-item-active {
-    border-radius: 12px;
     font-size: 1rem;
 }
 
@@ -3151,7 +3149,6 @@ body.theme-midnight .lit-navbar-accordion-item:hover .nav-link-title {
 }
 
 body.theme-midnight .lit-navbar-liquid {
-    border-radius: 12px;
     background-color: #7c5cfc;
     background-image: linear-gradient(135deg, #7c5cfc 0%, #a855f7 100%);
     box-shadow: 0 12px 28px -12px rgba(124, 92, 252, 0.95);
@@ -3234,10 +3231,6 @@ body.theme-midnight .page-title {
     letter-spacing: -0.01em;
 }
 
-body.theme-midnight .btn {
-    --tblr-btn-border-radius: 10px;
-}
-
 body.theme-midnight .btn-primary {
     border-color: transparent;
     background-image: linear-gradient(135deg, #8b5cf6, #a855f7);
@@ -3269,7 +3262,6 @@ body.theme-midnight .btn-cyan {
 }
 
 body.theme-midnight .card {
-    --tblr-card-border-radius: 16px;
     --tblr-card-box-shadow: none;
     --tblr-card-cap-bg: rgba(255, 255, 255, 0.02);
     border-color: rgba(255, 255, 255, 0.06);
@@ -3505,7 +3497,7 @@ body.theme-midnight .index-stat-icon {
     align-items: center !important;
 }
 
-body.theme-midnight #login-container {
+body.theme-midnight .login-container {
     background-image:
         radial-gradient(42rem 30rem at 50% 30%, rgba(139, 92, 246, 0.16), transparent 65%),
         radial-gradient(30rem 24rem at 72% 86%, rgba(217, 70, 239, 0.08), transparent 65%);
@@ -3527,7 +3519,7 @@ body.theme-midnight #login-container {
     }
 }
 
-body.theme-midnight #used-space-bar {
+body.theme-midnight .used-space-bar {
     background-image: linear-gradient(90deg, #8b5cf6, #d946ef);
 }
 

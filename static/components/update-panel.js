@@ -72,7 +72,7 @@
           <div class="modal-footer update-footer">
             <span class="update-status" id="git_panel_status" role="status" aria-live="polite" hidden></span>
             <button type="button" class="btn btn-ghost-secondary" data-bs-dismiss="modal">关闭</button>
-            <button type="button" class="btn btn-primary" id="git_panel_action_btn">检测更新</button>
+            <button type="button" class="btn btn-primary update-action-btn" id="git_panel_action_btn">检测更新</button>
           </div>
         </div>
       </div>
