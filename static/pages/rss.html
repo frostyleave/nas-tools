@@ -190,9 +190,9 @@
           class="text-white" id="pause_btn_${type}_${id}"><i class="ti ti-player-pause fs-2"></i></a>`;
 
     return `
-      <div class="card p-0 glass-card overflow-hidden" data-rss-type="${type}">
+      <div class="card p-0 glass-card" data-rss-type="${type}">
+        <div class="ribbon ribbon-top ribbon-left ribbon-bookmark ${voteBg}">${voteText}</div>
         <div class="card-body media-box" style="background-image: url(${rssAttr.image});">
-          <div class="ribbon ribbon-top ribbon-left ribbon-bookmark ${voteBg}">${voteText}</div>
           <div class="right-top-box rss-card-actions">
             ${pauseBtn}
             <a href="javascript:remove_rss_click('${rssAttr.name}','${rssAttr.year}', '${type}','${id}', 'movie_rss')" title="取消订阅" class="text-danger"><i class="ti ti-x fs-2"></i></a>
@@ -230,8 +230,8 @@
             <a href="javascript:refresh_rss_media('${type}', '${id}', 'movie_rss')" title="刷新"
               class="text-azure" id="refresh_btn_${type}_${id}"><i class="ti ti-refresh fs-2"></i></a>
           </div>
+          ${progressBar}
         </div>
-        ${progressBar}
       </div>
     `;
   }

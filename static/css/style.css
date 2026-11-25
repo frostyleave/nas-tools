@@ -1435,6 +1435,11 @@ layout-navbar {
 .rss-card-grid > .card > .card-body.media-box {
     display: flex;
     flex-direction: column;
+    overflow: hidden;
+}
+
+.media-box > .card-progress {
+    left: 0;
 }
 
 .rss-card-grid > .card > .card-body.media-box > .media-content {
@@ -1637,7 +1642,7 @@ a:hover {
 .ribbon-bookmark.ribbon-top.ribbon-left {
     left: .75rem;
     right: auto;
-    border-radius: var(--tblr-ribbon-border-radius) 0 0 0;
+    border-radius: 6px 0 0 0;
     z-index: 10;
 }
 
