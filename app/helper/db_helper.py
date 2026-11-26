@@ -21,6 +21,7 @@ class DbHelper:
         "image/gif",
         "image/jpeg",
         "image/webp",
+        "image/bmp",
         "image/x-icon",
         "image/svg+xml",
     )
@@ -1341,38 +1342,83 @@ class DbHelper:
         )
 
     @staticmethod
-    def __favicon_data_uri(favicon: str) -> str:
+    def _favicon_mime(raw: bytes) -> str | None:
+        """
+        根据文件头识别图标类型，无法识别时返回 None
+        """
+        if raw.startswith((b"\x00\x00\x01\x00", b"\x00\x00\x02\x00")):
+            return "image/x-icon"
+        if raw.startswith(b"\x89PNG"):
+            return "image/png"
+        if raw.startswith(b"GIF8"):
+            return "image/gif"
+        if raw.startswith(b"\xff\xd8\xff"):
+            return "image/jpeg"
+        if raw.startswith(b"RIFF") and raw[8:12] == b"WEBP":
+            return "image/webp"
+        if raw.startswith(b"BM"):
+            return "image/bmp"
+        if b"<svg" in raw[:200]:
+            return "image/svg+xml"
+        return None
+
+    @classmethod
+    def __favicon_data_uri(cls, favicon: str) -> str:
         """
         根据图标内容生成 data URI（不同格式需要正确的 MIME 才能正常显示）
         """
-        mime = "image/x-icon"
         try:
-            raw = base64.b64decode(favicon)
-            if raw.startswith(b"\x89PNG"):
-                mime = "image/png"
-            elif raw.startswith(b"GIF8"):
-                mime = "image/gif"
-            elif raw.startswith(b"\xff\xd8\xff"):
-                mime = "image/jpeg"
-            elif raw.startswith(b"RIFF") and raw[8:12] == b"WEBP":
-                mime = "image/webp"
-            elif b"<svg" in raw[:200]:
-                mime = "image/svg+xml"
+            mime = cls._favicon_mime(base64.b64decode(favicon)) or "image/x-icon"
         except Exception:
-            pass
+            mime = "image/x-icon"
         return f"data:{mime};base64,{favicon}"
+
+    @classmethod
+    def favicon_media_type(cls, raw: bytes) -> str | None:
+        """
+        返回字节内容对应的可展示图片类型，无法识别时返回 None
+        """
+        mime = cls._favicon_mime(raw)
+        return mime if mime in cls.SITE_FAVICON_MEDIA_TYPES else None
+
+    @staticmethod
+    def _decode_favicon(favicon: str | None) -> bytes | None:
+        """
+        解码图标 data URI 的内容，非内联图标或解码失败时返回 None
+        """
+        if not favicon or not favicon.startswith("data:image/"):
+            return None
+        _, _, payload = favicon.partition(",")
+        try:
+            return base64.b64decode(payload)
+        except Exception:
+            return None
 
     @classmethod
     def site_favicon_media_type(cls, favicon: str | None) -> str | None:
         """
-        返回可内联展示的图标 MIME 类型，无法识别时返回 None
+        返回图标数据的实际图片类型，无法识别时返回 None
 
+        以内容为准判断类型，历史数据里写错的 MIME 不会影响展示；
         SVG 由 /data/site_favicon 加 CSP 沙箱后返回，脚本在文档模式下不会执行
         """
-        if not favicon or not favicon.startswith("data:image/"):
+        raw = cls._decode_favicon(favicon)
+        return cls.favicon_media_type(raw) if raw is not None else None
+
+    @classmethod
+    def normalize_site_favicon(cls, favicon: str | None) -> str | None:
+        """
+        按实际内容重写图标 data URI 的 MIME，无法展示时返回 None
+
+        供直接内联图标的场景（如站点统计导出）使用，避免历史写错的 MIME 导致不显示
+        """
+        raw = cls._decode_favicon(favicon)
+        if raw is None:
             return None
-        mime = favicon[5:].split(";")[0].strip().lower()
-        return mime if mime in cls.SITE_FAVICON_MEDIA_TYPES else None
+        mime = cls.favicon_media_type(raw)
+        if not mime:
+            return None
+        return f"data:{mime};base64,{base64.b64encode(raw).decode()}"
 
     @classmethod
     def is_valid_site_favicon(cls, favicon: str | None) -> bool:
@@ -1428,11 +1474,15 @@ class DbHelper:
 
     def get_site_favicon_urls(self) -> set:
         """
-        只查询有有效图标的站点地址，避免读取图标内容
+        只返回图标可正常展示的站点地址
+
+        按图标内容判断能否展示，失效或损坏的历史图标不返回，统计任务会重新抓取
         """
-        rows = self._db.query(SITEFAVICON.URL).filter(
-            SITEFAVICON.FAVICON.like("data:image/%")).all()
-        return {row[0] for row in rows if row[0]}
+        rows = self._db.query(SITEFAVICON.URL, SITEFAVICON.FAVICON).all()
+        return {
+            url for url, favicon in rows
+            if url and self.site_favicon_media_type(favicon)
+        }
 
     def get_site_favicon(self, url):
         """

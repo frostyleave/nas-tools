@@ -114,7 +114,7 @@ class SitesDataStatisticsCenter:
         """
         更新单个site 数据信息
         :param site_info: 站点配置
-        :param cached_favicon_urls: 已有图标的站点地址，地址命中时跳过图标抓取
+        :param cached_favicon_urls: 已有可展示图标的站点地址，地址命中时跳过图标抓取
         :return: (解析结果, 失败原因)；成功时失败原因为 None
         """
         site_url = site_info.strict_url
@@ -321,7 +321,8 @@ class SitesDataStatisticsCenter:
                     log.info(f"【Sites】{msg}")
                 return {"total": 0, "sites": [], "msg": msg}
 
-            # 已有有效图标的站点不再重复抓取（懒更新），站点改地址后按新地址重新抓取
+            # 已有可展示图标的站点不再重复抓取（懒更新）；
+            # 失效、损坏的历史图标不在集合内，本次会重新抓取并覆盖
             cached_favicon_urls = self.dbhelper.get_site_favicon_urls()
 
             # 并发刷新：协程并发，限制最大并发数
@@ -429,11 +430,14 @@ class SitesDataStatisticsCenter:
             # 只使用站点图标表里已收录的图标，未收录的不做兜底
             # 历史遗留的远程图标地址无法在导出时内联，同样按未收录处理
             # 按图标抓取地址关联：站点改地址后旧地址的图标不再展示
-            favicons = {
-                favicon.URL: favicon.FAVICON
-                for favicon in self.dbhelper.get_site_favicons()
-                if favicon.URL and self.dbhelper.is_valid_site_favicon(favicon.FAVICON)
-            }
+            favicons = {}
+            for favicon in self.dbhelper.get_site_favicons():
+                if not favicon.URL:
+                    continue
+                # 按实际内容重写 MIME，历史数据写错的类型也能正常展示
+                data_uri = self.dbhelper.normalize_site_favicon(favicon.FAVICON)
+                if data_uri:
+                    favicons[favicon.URL] = data_uri
             for item in statistics:
                 item["favicon"] = favicons.get(item.get("url")) or ""
         return statistics

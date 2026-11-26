@@ -444,14 +444,16 @@ def site_favicon(url: str = ""):
     按站点地址返回图标图片，供站点列表按需加载
     """
     favicon = DbHelper().get_site_favicon(url)
-    media_type = DbHelper.site_favicon_media_type(favicon)
-    if not media_type:
+    if not favicon:
         raise HTTPException(status_code=404, detail="favicon not found")
     _, _, payload = favicon.partition(",")
     try:
         content = base64.b64decode(payload)
     except Exception:
         raise HTTPException(status_code=404, detail="favicon not found") from None
+    media_type = DbHelper.favicon_media_type(content)
+    if not media_type:
+        raise HTTPException(status_code=404, detail="favicon not found")
     headers = {
         "Cache-Control": "private, max-age=86400",
         "X-Content-Type-Options": "nosniff",
