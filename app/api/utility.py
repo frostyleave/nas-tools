@@ -1,5 +1,6 @@
 import asyncio
 import hashlib
+import html
 import ipaddress
 import os
 import re
@@ -76,12 +77,15 @@ def _build_dir_items(dirs: list[str], show_files: bool) -> list[str]:
     for path in dirs:
         name = os.path.basename(path) or path
         rel_path = path.replace("\\", "/")
-        rel_name = name.replace("\\", "/")
+        # 文件名可能来自下载内容，拼入 HTML 前必须转义
+        rel_name = html.escape(name.replace("\\", "/"))
         if os.path.isdir(path):
-            items.append(f'<li class="directory collapsed"><a rel="{rel_path}/">{rel_name}</a></li>')
+            items.append('<li class="directory collapsed"><a rel="{}">{}</a></li>'.format(
+                html.escape(f"{rel_path}/", quote=True), rel_name))
         elif show_files:
-            ext = os.path.splitext(name)[1][1:]
-            items.append(f'<li class="file ext_{ext}"><a rel="{rel_path}">{rel_name}</a></li>')
+            ext = html.escape(os.path.splitext(name)[1][1:], quote=True)
+            items.append('<li class="file ext_{}"><a rel="{}">{}</a></li>'.format(
+                ext, html.escape(rel_path, quote=True), rel_name))
     return items
 
 
@@ -120,7 +124,7 @@ async def dirlist(request: Request) -> Response:
 
     content = f'<ul class="jqueryFileTree" style="display: none;">{"".join(items)}</ul>'
     if error:
-        content += f"加载路径失败: {error}"
+        content += f"加载路径失败: {html.escape(error)}"
     return Response(content=content, media_type="text/html")
 
 

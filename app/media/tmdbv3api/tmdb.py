@@ -130,7 +130,7 @@ class TMDb:
             data=data,
             proxies=self._proxies,
             timeout=(10, 20),
-            verify=True
+            # verify=True
         )
         resp.raise_for_status()
         return resp

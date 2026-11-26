@@ -29,7 +29,7 @@ from app.modules.media_status import MediaStatusChecker
 from app.utils import JsonUtils
 from app.utils.time_utils import TimeUtils
 from app.utils.types import SearchType
-from log import active_sse_queues, log_buffer
+from log import SSE_CLOSE_SENTINEL, active_sse_queues, log_buffer
 
 # 流式/实时路由
 streaming_router = APIRouter()
@@ -216,16 +216,25 @@ async def stream_logging(request: Request, source: str = ""):
                     log_data = await asyncio.wait_for(my_queue.get(), timeout=1)
                 except TimeoutError:
                     continue
+                # 积压过多已被移出广播列表, 收到结束标记后关闭连接
+                if log_data is SSE_CLOSE_SENTINEL:
+                    break
+                closed = False
                 batch = [log_data] if match(log_data) else []
                 while len(batch) < LOG_BATCH_SIZE:
                     try:
                         log_data = my_queue.get_nowait()
                     except asyncio.QueueEmpty:
                         break
+                    if log_data is SSE_CLOSE_SENTINEL:
+                        closed = True
+                        break
                     if match(log_data):
                         batch.append(log_data)
                 if batch:
                     yield _sse_event(batch)
+                if closed:
+                    break
                 # 仅让出事件循环, 不做限速
                 await asyncio.sleep(0)
 

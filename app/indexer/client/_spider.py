@@ -499,7 +499,7 @@ class TorrentSpider:
             return '0'
         
     def _getprogress(self, torrent) -> str:
-        # torrent progress
+        # 种子进度
         if "progress" not in self.fields_conf:
             return ''
 

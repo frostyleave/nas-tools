@@ -84,6 +84,21 @@ class MainDb:
             except Exception as rollback_err:
                 log.debug(f'回滚 CONFIG_USERS 升级失败：{rollback_err!s}')
 
+    def has_existing_data(self):
+        """
+        判断数据库中是否已有业务数据，用于区分全新安装与老库升级
+        """
+        for table in ("CONFIG_USERS", "INDEXER_SITES", "RSS_MOVIES", "RSS_TVS"):
+            try:
+                count = self.session.execute(
+                    text(f'SELECT COUNT(*) FROM "{table}"')).scalar()
+            except Exception:
+                self.session.rollback()
+                continue
+            if count:
+                return True
+        return False
+
     def init_data(self):
         """
         读取config目录下的sql文件，并初始化到数据库，只处理一次

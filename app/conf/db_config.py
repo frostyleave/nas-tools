@@ -243,12 +243,27 @@ class DbConfig:
                 if key in node:
                     values[key] = _to_plain(node[key])
                 elif key == "init_files":
-                    values[key] = self._default_init_files()
+                    values[key] = self._pending_init_files()
                 elif key in defaults:
                     values[key] = copy.deepcopy(defaults[key])
             if values:
                 seeded[section] = values
         return seeded
+
+    def _pending_init_files(self):
+        """
+        初始已执行 SQL 文件列表
+
+        全新库返回空列表，让 MainDb.init_data() 执行全部种子 SQL；
+        库中已有业务数据（升级场景）时视为历史 SQL 均已执行，避免重复插入。
+        """
+        try:
+            from app.db.main_db import MainDb
+            if MainDb().has_existing_data():
+                return self._default_init_files()
+        except Exception as err:
+            log.warn(f"【Config】检查数据库数据失败，按全新库处理：{err!s}")
+        return []
 
     @staticmethod
     def _default_init_files():

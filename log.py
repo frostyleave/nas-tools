@@ -54,6 +54,8 @@ LOG_BUFFER_SIZE = 100 # 内存中最多保留 100 条日志
 # 新的日志缓冲区和广播系统
 log_buffer: deque[dict[str, Any]] = deque(maxlen=LOG_BUFFER_SIZE)   # 全局日志缓冲区 (固定大小, 自动丢弃旧日志)
 active_sse_queues: list[asyncio.Queue[dict[str, Any]]] = []     # 活跃的 SSE 客户端队列列表 (扇出目标)
+# 慢客户端被移出广播列表时投递的结束标记, SSE 生成器收到后主动关闭连接
+SSE_CLOSE_SENTINEL: dict[str, Any] = {"_close": True}
 
 # 全局递增的日志序号, 供 SSE 客户端对“历史重放 + 实时广播”去重和排序
 _log_seq = itertools.count(1)
@@ -143,10 +145,17 @@ def broadcast_logs(records: list[dict[str, Any]]):
             try:
                 q.put_nowait(log_data)
             except asyncio.QueueFull:
-                # 客户端积压过多，说明已跟不上，直接移除该队列
+                # 客户端积压过多，说明已跟不上：移出广播列表并投递结束标记，
+                # 避免生成器一直空闲等待、连接长期挂着
                 try:
                     active_sse_queues.remove(q)
                 except ValueError:
+                    pass
+                try:
+                    while not q.empty():
+                        q.get_nowait()
+                    q.put_nowait(SSE_CLOSE_SENTINEL)
+                except Exception:
                     pass
                 break
             except Exception:

@@ -810,7 +810,21 @@ class BrushTaskV2:
                     max_pubdate = min_max_pubdates[1] if len(min_max_pubdates) > 1 else None
 
                     localtz = ZoneInfo(Config().get_timezone())
-                    file_pubdate = pubdate.astimezone(localtz)
+                    # 索引器返回的发布时间是字符串，统一解析为本地时间
+                    if isinstance(pubdate, str):
+                        try:
+                            file_pubdate = datetime.strptime(
+                                StringUtils.parse_time_string(pubdate),
+                                '%Y-%m-%d %H:%M:%S').replace(tzinfo=localtz)
+                        except ValueError:
+                            file_pubdate = None
+                    elif pubdate.tzinfo is None:
+                        file_pubdate = pubdate.replace(tzinfo=localtz)
+                    else:
+                        file_pubdate = pubdate.astimezone(localtz)
+                    if not file_pubdate:
+                        log.debug(f'【Brush】{title} 无法解析发布时间: {pubdate}')
+                        return False
 
                     localnowtime = datetime.now().astimezone(localtz)
                     pudate_hour = int(localnowtime.timestamp() - file_pubdate.timestamp()) / 3600

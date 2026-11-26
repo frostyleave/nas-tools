@@ -210,8 +210,6 @@ class AsyncRequestUtils:
             "cookies": cookies or None,
             "params": params,
             "proxy": self._pick_proxy(url),
-            # None 表示使用默认的证书校验
-            "ssl": None,
             "allow_redirects": allow_redirects,
             "timeout": timeout,
         }

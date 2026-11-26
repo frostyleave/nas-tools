@@ -166,9 +166,8 @@ class Subscribe:
         # 默认设置中的站点可能为旧版本的逗号分隔字符串，统一规整
         rss_sites = normalize_sites(rss_sites)
         search_sites = normalize_sites(search_sites)
-        # 自动订阅（插件、消息、同步等）且没有默认设置时沿用原逻辑，按全部站点处理
-        if channel == RssType.Auto and not default_rss_setting \
-                and not rss_sites and not search_sites:
+        # 自动订阅（插件、消息、同步等）未指定站点时按全部站点处理
+        if channel == RssType.Auto and not rss_sites and not search_sites:
             rss_sites = self.sites.get_site_names(rss=True)
             search_sites = self.indexer.get_user_indexer_names()
             log.info("【Subscribe】自动订阅未配置站点，使用全部站点（RSS %s 个，搜索 %s 个）",

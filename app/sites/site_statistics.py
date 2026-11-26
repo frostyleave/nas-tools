@@ -160,9 +160,12 @@ class SitesDataStatisticsCenter:
             return None, f"解析异常: {e!s}"
 
     def __notify_unread_msg(self, site_name, site_user_info, unread_msg_notify):
+        # 记录本次未读数，供下次刷新时判断是否出现新消息
+        last_unread = self._sites_data.get(site_name, {}).get('message_unread')
+        self._sites_data.setdefault(site_name, {})['message_unread'] = site_user_info.message_unread
         if site_user_info.message_unread <= 0:
             return
-        if self._sites_data.get(site_name, {}).get('message_unread') == site_user_info.message_unread:
+        if last_unread == site_user_info.message_unread:
             return
         if not unread_msg_notify:
             return
