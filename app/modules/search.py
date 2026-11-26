@@ -558,6 +558,19 @@ class SearchProxy:
                     bool(frame),
                     frame_value)
 
+        # 批量载入订阅集合，避免逐项查库
+        need_status_items = [item for item in search_results.values() if item.get("tmdbid")]
+        if need_status_items:
+            status_results = MediaStatusChecker().get_media_exists_info_batch([
+                (item.get("type_key", ""),
+                 item.get("title", ""),
+                 item.get("year", ""),
+                 item.get("tmdbid"))
+                for item in need_status_items])
+            for item, (fav, rssid, _) in zip(need_status_items, status_results):
+                item["fav"] = fav
+                item["rssid"] = rssid
+
         for item in search_results.values():
             # 排序筛选器: 季倒序
             item["filter"]["season"].sort(reverse=True)
@@ -573,15 +586,3 @@ class SearchProxy:
                 for se_key, groups in sorted(
                     item["torrent_dict"].items(), key=se_sort, reverse=True)
             ]
-            
-            # 补充媒体存在标志
-            tmdbid = item.get("tmdbid")
-            if not tmdbid:
-                continue
-            fav, rssid, _ = MediaStatusChecker().get_media_exists_info(
-                mtype=item.get("type_key", ""),
-                title=item.get("title", ""),
-                year=item.get("year", ""),
-                mediaid=tmdbid)
-            item["fav"] = fav
-            item["rssid"] = rssid

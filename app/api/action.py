@@ -711,7 +711,7 @@ class WebAction:
         开始下载
         """
         tid = data.get("id")
-        if id:
+        if tid:
             Downloader().start_torrents(ids=tid)
         return {"retcode": 0, "id": tid}
 
@@ -720,7 +720,7 @@ class WebAction:
         停止下载
         """
         tid = data.get("id")
-        if id:
+        if tid:
             Downloader().stop_torrents(ids=tid)
         return {"retcode": 0, "id": tid}
 
@@ -729,7 +729,7 @@ class WebAction:
         删除下载
         """
         tid = data.get("id")
-        if id:
+        if tid:
             Downloader().delete_torrents(ids=tid, delete_file=True)
         return {"retcode": 0, "id": tid}
 
@@ -2029,15 +2029,14 @@ class WebAction:
             return {"code": 1, "msg": '没有查到'}
 
         # 补充存在与订阅状态
-        fav = data.get("fav", 1)
-        if fav:
-            for res in res_list:
-                fav, rssid, item_url = MediaStatusChecker().get_media_exists_info(mtype=res.get("type"),
-                                                                title=res.get("title"),
-                                                                year=res.get("year"),
-                                                                mediaid=res.get("id"))
+        if data.get("fav", 1):
+            results = MediaStatusChecker().get_media_exists_info_batch([
+                (res.get("type"), res.get("title"), res.get("year"), res.get("id"))
+                for res in res_list
+            ])
+            for res, (fav_value, rssid, item_url) in zip(res_list, results):
                 res.update({
-                    'fav': fav,
+                    'fav': fav_value,
                     'rssid': rssid,
                     'item_url': item_url
                 })
@@ -2052,11 +2051,11 @@ class WebAction:
         if not media_list:
             return {"code": 0, "Items": []} 
 
-        for item in media_list:
-            fav, rssid, item_url = MediaStatusChecker().get_media_exists_info(mtype=item.get("type"),
-                                                              title=item.get("title"),
-                                                              year=item.get("year"),
-                                                              mediaid=item.get("tmdbid"))
+        results = MediaStatusChecker().get_media_exists_info_batch([
+            (item.get("type"), item.get("title"), item.get("year"), item.get("tmdbid"))
+            for item in media_list
+        ])
+        for item, (fav, rssid, item_url) in zip(media_list, results):
             item.update({
                 'fav': fav,
                 'rssid': rssid,

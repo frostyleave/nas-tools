@@ -104,10 +104,18 @@ class Scraper:
             yield in_path
             return
 
+        exclude_dirs = [os.path.abspath(path) for path in exclude_path.split(",") if path] \
+            if exclude_path else []
         for root, dirs, files in os.walk(in_path):
-            if exclude_path and any(os.path.abspath(root).startswith(os.path.abspath(path))
-                                    for path in exclude_path.split(",")):
-                continue
+            if exclude_dirs:
+                abs_root = os.path.abspath(root)
+                if any(abs_root == path or abs_root.startswith(path + os.sep)
+                       for path in exclude_dirs):
+                    dirs[:] = []
+                    continue
+                # 原地裁剪，避免继续进入被排除的子树
+                dirs[:] = [d for d in dirs
+                           if os.path.abspath(os.path.join(root, d)) not in exclude_dirs]
 
             for file in files:
                 cur_path = os.path.join(root, file)

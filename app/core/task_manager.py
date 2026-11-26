@@ -181,11 +181,12 @@ def _task_processor_loop():
                     message_text = message.get("message")
                     task_result = message.get("result")
 
-                    # 绝对进度（progress > 0）优先，否则按 progress_add 累加
-                    if progress and progress > 0:
-                        current_data['progress'] = progress
+                    # 绝对进度（含 0）优先，否则按 progress_add 累加；进度限制在 0-100
+                    if progress is not None:
+                        current_data['progress'] = max(0, min(100, progress))
                     elif progress_add:
-                        current_data['progress'] = current_data['progress'] + progress_add
+                        current_data['progress'] = max(
+                            0, min(100, current_data['progress'] + progress_add))
 
                     if message_text:
                         current_data['message'] = message_text

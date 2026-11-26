@@ -85,7 +85,7 @@ class TransferManager:
                 downloader_name = downloader_conf.name
                 filter_tag = PT_TAG if downloader_conf.only_nastool else None
                 match_path = downloader_conf.match_path
-                rmt_mode = ModuleConf.RMT_MODES.get(downloader_conf.rmt_mode)
+                rmt_mode = ModuleConf.RMT_MODES.get(downloader_conf.rmt_mode) or RmtMode.COPY
 
                 trans_tasks = download_client.get_transfer_task(tag=filter_tag, match_path=match_path)
                 if not trans_tasks:

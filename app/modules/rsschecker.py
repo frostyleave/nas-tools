@@ -151,13 +151,10 @@ class RssChecker:
         获取单个RSS任务详细信息
         """
         if taskid:
-            if str(taskid).isdigit():
-                taskid = int(taskid)
-                for task in self._rss_tasks:
-                    if task.get("id") == taskid:
-                        return task
-            else:
-                return {}
+            for task in self._rss_tasks:
+                if str(task.get("id")) == str(taskid):
+                    return task
+            return {}
         return self._rss_tasks
 
     def check_task_rss(self, taskid):
@@ -438,7 +435,7 @@ class RssChecker:
                         for key, attr in rss_parser_format.get("item", {}).items():
                             if attr.get("path"):
                                 if attr.get("namespaces"):
-                                    value = item.xpath("//ns:{}".format(attr.get("path")),
+                                    value = item.xpath(".//ns:{}".format(attr.get("path")),
                                                        namespaces={"ns": attr.get("namespaces")})
                                 else:
                                     value = item.xpath(attr.get("path"))
@@ -458,23 +455,28 @@ class RssChecker:
                 if result_json is None:
                     log.error("【RssChecker】任务 %s RSS地址 %s 获取的订阅报文不是合法的Json格式: ", task_name, rss_url)
                     continue
-                item_list = jsonpath.jsonpath(result_json, rss_parser_format.get("list"))[0]
-                if not isinstance(item_list, list):
-                    log.error("【RssChecker】任务 %s RSS地址 %s 获取的订阅报文list后不是列表", task_name, rss_url)
+                try:
+                    matched = jsonpath.jsonpath(result_json, rss_parser_format.get("list"))
+                    item_list = matched[0] if matched else []
+                    if not isinstance(item_list, list):
+                        log.error("【RssChecker】任务 %s RSS地址 %s 获取的订阅报文list后不是列表", task_name, rss_url)
+                        continue
+                    for item in item_list:
+                        rss_item = {}
+                        for key, attr in rss_parser_format.get("item", {}).items():
+                            if attr.get("path"):
+                                value = jsonpath.jsonpath(item, attr.get("path"))
+                            elif attr.get("value"):
+                                value = attr.get("value")
+                            else:
+                                continue
+                            if value:
+                                rss_item.update({key: value[0]})
+                        rss_item.update({"address_index": i+1})
+                        rss_result.append(rss_item)
+                except Exception:
+                    log.exception("【RssChecker】任务 %s RSS地址 %s 获取的订阅报文无法解析：", task_name, rss_url)
                     continue
-                for item in item_list:
-                    rss_item = {}
-                    for key, attr in rss_parser_format.get("item", {}).items():
-                        if attr.get("path"):
-                            value = jsonpath.jsonpath(item, attr.get("path"))
-                        elif attr.get("value"):
-                            value = attr.get("value")
-                        else:
-                            continue
-                        if value:
-                            rss_item.update({key: value[0]})
-                    rss_item.update({"address_index": i+1})
-                    rss_result.append(rss_item)
         return rss_result
 
     def get_userrss_parser(self, pid=None):

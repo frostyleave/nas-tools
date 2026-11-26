@@ -319,10 +319,7 @@ class SitesDataStatisticsCenter:
                 return {"total": 0, "sites": [], "msg": msg}
 
             # 已有有效图标的站点不再重复抓取（懒更新），站点改地址后按新地址重新抓取
-            cached_favicon_urls = {
-                favicon.URL for favicon in self.dbhelper.get_site_favicons()
-                if favicon.URL and self.dbhelper.is_valid_site_favicon(favicon.FAVICON)
-            }
+            cached_favicon_urls = self.dbhelper.get_site_favicon_urls()
 
             # 并发刷新：协程并发，限制最大并发数
             semaphore = asyncio.Semaphore(self._MAX_CONCURRENCY)

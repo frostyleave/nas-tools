@@ -1,7 +1,5 @@
 import os
 import pickle
-import random
-import time
 from typing import ClassVar
 
 from cachetools import TTLCache, cached
@@ -159,8 +157,7 @@ class SiteConf:
                     ret_attr["peer_count"] = int(peer_count_digit_str) if len(peer_count_digit_str) > 0 else 0
         except Exception as err:
             log.exception('【Sites】检验种子属性出错: ')
-        # 随机休眼后再返回
-        time.sleep(round(random.uniform(1, 5), 1))
+        # 访问频率由调用方的站点限速器控制，此处不再串行等待
         return ret_attr
 
     @staticmethod

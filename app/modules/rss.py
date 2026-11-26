@@ -594,8 +594,8 @@ class Rss:
         """
         self.dbhelper.delete_rss_history(rssid=rssid)
 
-    def get_rss_history(self, rtype=None, rid=None):
+    def get_rss_history(self, rtype=None, rid=None, limit=None):
         """
         获取订阅历史
         """
-        return self.dbhelper.get_rss_history(rtype=rtype, rid=rid)
+        return self.dbhelper.get_rss_history(rtype=rtype, rid=rid, limit=limit)

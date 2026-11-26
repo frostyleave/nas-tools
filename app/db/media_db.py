@@ -3,7 +3,7 @@ import os
 import threading
 
 from cachetools import TTLCache, cached
-from sqlalchemy import create_engine, text
+from sqlalchemy import create_engine, event, text
 from sqlalchemy.orm import scoped_session, sessionmaker
 from sqlalchemy.pool import QueuePool
 
@@ -22,6 +22,20 @@ _Engine = create_engine(
     pool_recycle=60 * 10,
     max_overflow=0
 )
+
+
+@event.listens_for(_Engine, "connect")
+def _set_sqlite_pragma(dbapi_connection, connection_record):
+    """
+    开启 WAL 提升并发读写能力，并设置写锁等待时间
+    """
+    cursor = dbapi_connection.cursor()
+    cursor.execute("PRAGMA journal_mode=WAL")
+    cursor.execute("PRAGMA synchronous=NORMAL")
+    cursor.execute("PRAGMA busy_timeout=30000")
+    cursor.close()
+
+
 _Session = scoped_session(sessionmaker(bind=_Engine,
                                        autoflush=True,
                                        autocommit=False))
@@ -60,6 +74,23 @@ class MediaDb:
         except Exception as e:
             log.error(f"检查 MEDIASYNC_ITEMS.DOUBANID 列失败：{e!s}")
 
+    @staticmethod
+    def _item_obj(server_type, iteminfo, seasoninfo):
+        return MEDIASYNCITEMS(
+            SERVER=server_type,
+            LIBRARY=iteminfo.get("library"),
+            ITEM_ID=iteminfo.get("id"),
+            ITEM_TYPE=iteminfo.get("type"),
+            TITLE=iteminfo.get("title"),
+            ORGIN_TITLE=iteminfo.get("originalTitle"),
+            YEAR=iteminfo.get("year"),
+            TMDBID=iteminfo.get("tmdbid"),
+            IMDBID=iteminfo.get("imdbid"),
+            DOUBANID=iteminfo.get("doubanid"),
+            PATH=iteminfo.get("path"),
+            JSON=json.dumps(seasoninfo)
+        )
+
     def insert(self, server_type, iteminfo, seasoninfo):
         if not server_type or not iteminfo:
             return False
@@ -67,24 +98,45 @@ class MediaDb:
             self.session.query(MEDIASYNCITEMS).filter(MEDIASYNCITEMS.SERVER == server_type,
                                                       MEDIASYNCITEMS.ITEM_ID == iteminfo.get("id")).delete()
             self.session.flush()
-            self.session.add(MEDIASYNCITEMS(
-                SERVER=server_type,
-                LIBRARY=iteminfo.get("library"),
-                ITEM_ID=iteminfo.get("id"),
-                ITEM_TYPE=iteminfo.get("type"),
-                TITLE=iteminfo.get("title"),
-                ORGIN_TITLE=iteminfo.get("originalTitle"),
-                YEAR=iteminfo.get("year"),
-                TMDBID=iteminfo.get("tmdbid"),
-                IMDBID=iteminfo.get("imdbid"),
-                DOUBANID=iteminfo.get("doubanid"),
-                PATH=iteminfo.get("path"),
-                JSON=json.dumps(seasoninfo)
-            ))
+            self.session.add(self._item_obj(server_type, iteminfo, seasoninfo))
             self.session.commit()
+            self._query.cache_clear()
             return True
         except Exception as e:
             log.exception("[Db]insert MEDIASYNC_ITEMS error:")
+            self.session.rollback()
+        return False
+
+    def sync_items(self, server_type, items, total_count, movie_count, tv_count):
+        """
+        一次性写入媒体库同步结果：清空、插入条目与统计共用一个事务
+
+        :param server_type: 媒体服务器类型
+        :param items: [(iteminfo, seasoninfo), ...] 列表
+        """
+        if not server_type:
+            return False
+        try:
+            self.session.query(MEDIASYNCITEMS).filter(
+                MEDIASYNCITEMS.SERVER == server_type).delete()
+            self.session.add_all([
+                self._item_obj(server_type, iteminfo, seasoninfo)
+                for iteminfo, seasoninfo in items if iteminfo
+            ])
+            self.session.query(MEDIASYNCSTATISTIC).filter(
+                MEDIASYNCSTATISTIC.SERVER == server_type).delete()
+            self.session.add(MEDIASYNCSTATISTIC(
+                SERVER=server_type,
+                TOTAL_COUNT=total_count,
+                MOVIE_COUNT=movie_count,
+                TV_COUNT=tv_count,
+                UPDATE_TIME=TimeUtils.now_str()
+            ))
+            self.session.commit()
+            self._query.cache_clear()
+            return True
+        except Exception as e:
+            log.exception("[Db]sync MEDIASYNC_ITEMS error:")
             self.session.rollback()
         return False
 
@@ -98,6 +150,7 @@ class MediaDb:
             else:
                 self.session.query(MEDIASYNCITEMS).delete()
             self.session.commit()
+            self._query.cache_clear()
             return True
         except Exception as e:
             log.exception("[Db]empty MEDIASYNC_ITEMS error:")
@@ -124,37 +177,51 @@ class MediaDb:
             self.session.rollback()
         return False
 
-    @cached(cache=TTLCache(maxsize=128, ttl=60))
     def query(self, server_type, title, year, tmdbid, doubanid=None):
+        """
+        查询媒体库条目，缓存纯字典数据，避免跨线程持有 ORM 实例
+        """
+        return self._query(server_type, title, year, tmdbid, doubanid)
+
+    @cached(cache=TTLCache(maxsize=256, ttl=60))
+    def _query(self, server_type, title, year, tmdbid, doubanid=None):
         if not server_type:
             return None
 
+        item = None
         if tmdbid:
-            item = self.session.query(MEDIASYNCITEMS).filter(MEDIASYNCITEMS.SERVER == server_type,
-                                                             MEDIASYNCITEMS.TMDBID == tmdbid).first()
-            if item:
-                return item
+            item = self.session.query(MEDIASYNCITEMS).filter(
+                MEDIASYNCITEMS.SERVER == server_type,
+                MEDIASYNCITEMS.TMDBID == tmdbid).first()
 
-        if doubanid:
-            item = self.session.query(MEDIASYNCITEMS).filter(MEDIASYNCITEMS.SERVER == server_type,
-                                                             MEDIASYNCITEMS.DOUBANID == doubanid).first()
-            if item:
-                return item
+        if not item and doubanid:
+            item = self.session.query(MEDIASYNCITEMS).filter(
+                MEDIASYNCITEMS.SERVER == server_type,
+                MEDIASYNCITEMS.DOUBANID == doubanid).first()
 
-        if not title:
+        if not item:
+            if not title:
+                return None
+            if year:
+                item = self.session.query(MEDIASYNCITEMS).filter(
+                    MEDIASYNCITEMS.SERVER == server_type,
+                    MEDIASYNCITEMS.TITLE == title,
+                    MEDIASYNCITEMS.YEAR == year).first()
+            else:
+                item = self.session.query(MEDIASYNCITEMS).filter(
+                    MEDIASYNCITEMS.SERVER == server_type,
+                    MEDIASYNCITEMS.TITLE == title).first()
+            if item and tmdbid and (not item.TMDBID or item.TMDBID != str(tmdbid)):
+                return None
+            if item and doubanid and item.DOUBANID and item.DOUBANID != str(doubanid):
+                return None
+
+        if not item:
             return None
-        if year:
-            item = self.session.query(MEDIASYNCITEMS).filter(MEDIASYNCITEMS.SERVER == server_type,
-                                                             MEDIASYNCITEMS.TITLE == title,
-                                                             MEDIASYNCITEMS.YEAR == year).first()
-        else:
-            item = self.session.query(MEDIASYNCITEMS).filter(MEDIASYNCITEMS.SERVER == server_type,
-                                                             MEDIASYNCITEMS.TITLE == title).first()
-        if item and tmdbid and (not item.TMDBID or item.TMDBID != str(tmdbid)):
-            return None
-        if item and doubanid and item.DOUBANID and item.DOUBANID != str(doubanid):
-            return None
-        return item
+        return {
+            "ITEM_ID": item.ITEM_ID,
+            "JSON": item.JSON
+        }
 
     def get_statistics(self, server_type):
         if not server_type:

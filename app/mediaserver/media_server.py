@@ -340,8 +340,8 @@ class MediaServer:
             total_count = 0
             movie_count = 0
             tv_count = 0
-            # 清空登记薄
-            self.mediadb.empty(server_type=self._server_type)
+            # 先收集全部条目，最后一次性写入，避免逐条提交
+            sync_items = []
             for library in self.get_libraries():
                 if str(library.get("id")) not in librarys:
                     continue
@@ -363,13 +363,11 @@ class MediaServer:
                         __update_progress(progress=round(100 * total_count / total_media_count, 1),
                                           message="正在同步 {}，已完成：{} / {} ...".format(
                                               library.get("name"), total_count, total_media_count))
-                    # 插入数据
-                    self.mediadb.insert(server_type=self._server_type,
-                                        iteminfo=item,
-                                        seasoninfo=seasoninfo)
+                    sync_items.append((item, seasoninfo))
 
-            # 更新总体同步情况
-            self.mediadb.statistics(server_type=self._server_type,
+            # 清空、写入条目与统计共用一个事务
+            self.mediadb.sync_items(server_type=self._server_type,
+                                    items=sync_items,
                                     total_count=total_count,
                                     movie_count=movie_count,
                                     tv_count=tv_count)
@@ -409,13 +407,13 @@ class MediaServer:
             season = 1
         if season is not None and season != "":
             # 匹配剧集是否存在
-            seasoninfos = JsonUtils.loads(media.JSON or "[]", default=[])
+            seasoninfos = JsonUtils.loads(media.get("JSON") or "[]", default=[])
             for seasoninfo in seasoninfos:
                 if seasoninfo.get("season_num") == int(season) and (not episode or seasoninfo.get("episode_num") == int(episode)):
-                    return media.ITEM_ID
+                    return media.get("ITEM_ID")
             return None
         else:
-            return media.ITEM_ID
+            return media.get("ITEM_ID")
 
     def get_mediasync_status(self):
         """

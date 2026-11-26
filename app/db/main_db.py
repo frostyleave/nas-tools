@@ -1,7 +1,7 @@
 import os
 import threading
 
-from sqlalchemy import create_engine, text
+from sqlalchemy import create_engine, event, text
 from sqlalchemy.orm import scoped_session, sessionmaker
 from sqlalchemy.pool import QueuePool
 
@@ -20,6 +20,18 @@ _Engine = create_engine(
     pool_recycle=60 * 10,
     max_overflow=0
 )
+
+
+@event.listens_for(_Engine, "connect")
+def _set_sqlite_pragma(dbapi_connection, connection_record):
+    """
+    开启 WAL 提升并发读写能力，并设置写锁等待时间
+    """
+    cursor = dbapi_connection.cursor()
+    cursor.execute("PRAGMA journal_mode=WAL")
+    cursor.execute("PRAGMA synchronous=NORMAL")
+    cursor.execute("PRAGMA busy_timeout=30000")
+    cursor.close()
 _Session = scoped_session(sessionmaker(bind=_Engine,
                                        autoflush=True,
                                        autocommit=False,
@@ -82,16 +94,23 @@ class MainDb:
         sql_files = PathUtils.get_dir_level1_files(in_path=config_dir, exts=".sql")
         config_flag = False
         for sql_file in sql_files:
-            if os.path.basename(sql_file) not in init_files:
+            filename = os.path.basename(sql_file)
+            if filename not in init_files:
                 config_flag = True
+                success = True
                 with open(sql_file, "r", encoding="utf-8") as f:
                     sql_list = f.read().split(';\n')
                     for sql in sql_list:
+                        if not sql.strip():
+                            continue
                         try:
                             self.execute_sql_script(sql)
                         except Exception as err:
-                            print('SQL执行异常: ' + str(err))
-                init_files.append(os.path.basename(sql_file))
+                            success = False
+                            log.error(f'SQL文件 {filename} 执行异常：{err!s}')
+                # 执行失败时不记录，下次启动会重试
+                if success:
+                    init_files.append(filename)
         if config_flag:
             config['app']['init_files'] = init_files
             Config().save_config(config)
@@ -146,6 +165,12 @@ class MainDb:
         """
         self.session.rollback()
 
+    def remove_session(self):
+        """
+        移除当前线程的 Session，避免异常后残留 pending-rollback 状态
+        """
+        _Session.remove()
+
 
 class DbPersist:
     """
@@ -165,5 +190,8 @@ class DbPersist:
                 log.critical('[DB]数据库持久化出错: ', exc_info=True)
                 self.db.rollback()
                 return False
+            finally:
+                # 每次持久化后释放当前线程的 Session，下次调用重新获取
+                self.db.remove_session()
 
         return persist

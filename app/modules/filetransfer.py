@@ -144,7 +144,7 @@ class FileTransfer:
                 if len(tv_formats) > 2:
                     self._tv_season_rmt_format = tv_formats[-2]
                     self._tv_file_rmt_format = tv_formats[-1]
-        self._default_rmt_mode = ModuleConf.RMT_MODES.get(Config().get_config('pt').get('rmt_mode', 'copy'),
+        self._default_rmt_mode = ModuleConf.RMT_MODES.get(Config().get_config('media').get('default_rmt_mode'),
                                                           RmtMode.COPY)
 
     @staticmethod
@@ -526,16 +526,16 @@ class FileTransfer:
             log.error(f"【Rmt】文件转移失败，目录或文件不存在：{in_path}")
             return __finish_transfer(False, "目录或文件不存在")
 
+        # 默认转移方式
+        if not rmt_mode:
+            rmt_mode = self._default_rmt_mode
+
         # 更新进度
         __update_progress(progress=0, message=f"开始处理：{in_path} ...")
         log.info(f"【Rmt】开始处理：{in_path}，转移方式：{rmt_mode.value}")
 
         # 集定位参数
         episode = (None, False) if not episode else episode
-
-        # 默认转移方式
-        if not rmt_mode:
-            rmt_mode = self._default_rmt_mode
 
         # 检查下载记录，是否有已识别的信息
         if not tmdb_info:
@@ -1469,7 +1469,8 @@ class FileTransfer:
                             meta_info.type = MediaType.TV
                         # 删除文件
                         dest_path = self.get_dest_path_by_info(dest=dest, meta_info=meta_info)
-                        if dest_path and dest_path.find(meta_info.title) != -1:
+                        # 仅删除媒体库根目录内的路径，避免标题为空或过短时误删
+                        if dest_path and meta_info.title and self.is_target_dir_path(dest_path):
                             rm_parent_dir = False
                             if not meta_info.get_season_list():
                                 # 电影，删除整个目录

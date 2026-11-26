@@ -1,5 +1,6 @@
 import os
 import threading
+import time
 from typing import ClassVar
 
 from watchdog.events import FileSystemEventHandler
@@ -40,6 +41,9 @@ class FileMonitorHandler(FileSystemEventHandler):
     def on_moved(self, event):
         self.sync.file_change_handler(event, "移动", event.dest_path)
 
+    def on_deleted(self, event):
+        self.sync.forget_file(event.src_path)
+
     """
     def on_modified(self, event):
         self.sync.file_change_handler(event, "修改", event.src_path)
@@ -55,7 +59,10 @@ class Sync:
     _monitor_sync_path_ids: list
     _observer: list
     _sync_paths: ClassVar[list] = []
-    _synced_files: ClassVar[list] = []
+    # 已处理文件缓存：路径 -> 记录时间
+    _synced_files: ClassVar[dict] = {}
+    # 已处理文件记录的保留时长（秒）
+    _SYNCED_FILES_TTL: ClassVar[int] = 3600
     _need_sync_paths: ClassVar[dict] = {}
 
     def __init__(self):
@@ -191,6 +198,14 @@ class Sync:
                     and config.get("enabled"):
                 self.dbhelper.check_config_sync_paths(sid=sid, enabled=0)
 
+    def forget_file(self, path):
+        """
+        文件被删除时清除处理记录，允许同名文件重新处理
+        :param path: 文件路径
+        """
+        with lock:
+            self._synced_files.pop(path, None)
+
     def file_change_handler(self, event, text, event_path):
         """
         处理文件变化
@@ -208,8 +223,13 @@ class Sync:
                 need_handler_flag = False
                 try:
                     lock.acquire()
+                    now = time.time()
+                    # 清理过期记录，避免缓存无限增长
+                    for path in [p for p, ts in self._synced_files.items()
+                                 if now - ts > self._SYNCED_FILES_TTL]:
+                        self._synced_files.pop(path, None)
                     if event_path not in self._synced_files:
-                        self._synced_files.append(event_path)
+                        self._synced_files[event_path] = now
                         need_handler_flag = True
                 finally:
                     lock.release()

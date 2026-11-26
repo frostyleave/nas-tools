@@ -1,12 +1,14 @@
 import asyncio
+import base64
 import copy
 import os
 import threading
 from typing import Annotated
+from urllib.parse import quote
 
-from fastapi import APIRouter, Body, Depends
+from fastapi import APIRouter, Body, Depends, HTTPException
 from fastapi.encoders import jsonable_encoder
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, Response
 
 import log
 from app.conf.moduleconf import ModuleConf
@@ -259,7 +261,7 @@ def rss():
 @data_router.post("/rss_history")
 def rss_history():
 
-    rss_history = [rec.as_dict() for rec in Rss().get_rss_history()]
+    rss_history = [rec.as_dict() for rec in Rss().get_rss_history(limit=1000)]
 
     return response(data={"Items": rss_history})
 
@@ -399,17 +401,14 @@ def sites_page():
     # 按 URL 关联，统计表里的站名可能未随站点改名而更新
     statistic_dict = {obj.URL: obj for obj in site_user_statistics} if site_user_statistics else {}
 
-    # 站点图标：只使用与当前站点地址一致的图标，站点改地址后旧地址的图标不再关联
-    site_favicons = {
-        favicon.URL: favicon.FAVICON
-        for favicon in DbHelper().get_site_favicons()
-        if favicon.URL and DbHelper.is_valid_site_favicon(favicon.FAVICON)
-    }
+    # 站点图标：列表只返回按需加载的地址，不内联 base64 图标数据
+    favicon_urls = DbHelper().get_site_favicon_urls()
 
     enriched = []
     for it in cfg_sites:
         new_item = _site_view(it)
-        new_item['favicon'] = site_favicons.get(it.strict_url, '') if it.strict_url else ''
+        new_item['favicon'] = f"/data/site_favicon?url={quote(it.strict_url, safe='')}" \
+            if it.strict_url and it.strict_url in favicon_urls else ''
         enriched.append(new_item)
         # 填充统计数据
         statistic_info = statistic_dict.get(it.strict_url)
@@ -437,6 +436,25 @@ def sites_page():
             "sourceTypes": SOURCE_TYPES,
         }
     )
+
+
+@data_router.get("/site_favicon")
+def site_favicon(url: str = ""):
+    """
+    按站点地址返回图标图片，供站点列表按需加载
+    """
+    favicon = DbHelper().get_site_favicon(url)
+    if not DbHelper.is_valid_site_favicon(favicon):
+        raise HTTPException(status_code=404, detail="favicon not found")
+    header, _, payload = favicon.partition(",")
+    try:
+        content = base64.b64decode(payload)
+    except Exception:
+        raise HTTPException(status_code=404, detail="favicon not found") from None
+    media_type = header[5:].split(";")[0] or "image/png"
+    return Response(content=content,
+                    media_type=media_type,
+                    headers={"Cache-Control": "public, max-age=86400"})
 
 
 # 媒体库页面

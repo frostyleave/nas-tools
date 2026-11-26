@@ -1,6 +1,8 @@
-from typing import ClassVar
 import json
+import threading
+from typing import ClassVar
 
+import log
 from app.helper import DictHelper
 from app.utils import JsonUtils
 from app.utils.commons import singleton
@@ -11,6 +13,8 @@ from app.utils.types import SystemConfigKey
 class SystemConfig:
     # 系统设置
     systemconfig: ClassVar[dict] = {}
+    # 保护缓存与写库的一致性
+    _lock: ClassVar[threading.Lock] = threading.Lock()
 
     def __init__(self):
         self.dicthelper = DictHelper()
@@ -18,15 +22,19 @@ class SystemConfig:
 
     def init_config(self):
         """
-        缓存系统设置
+        缓存系统设置（整体重建，已删除的键不会残留）
         """
+        config = {}
         for item in self.dicthelper.list("SystemConfig"):
             if not item:
                 continue
             if self.__is_obj(item.VALUE):
-                self.systemconfig[item.KEY] = JsonUtils.loads(item.VALUE, default=item.VALUE)
+                config[item.KEY] = JsonUtils.loads(item.VALUE, default=item.VALUE)
             else:
-                self.systemconfig[item.KEY] = item.VALUE
+                config[item.KEY] = item.VALUE
+        with self._lock:
+            self.systemconfig.clear()
+            self.systemconfig.update(config)
 
     @staticmethod
     def __is_obj(obj):
@@ -37,19 +45,19 @@ class SystemConfig:
 
     def set(self, key: [SystemConfigKey, str], value):
         """
-        设置系统设置
+        设置系统设置：先写库，成功后再更新内存
         """
         if isinstance(key, SystemConfigKey):
             key = key.value
-        # 更新内存
-        self.systemconfig[key] = value
-        # 写入数据库
+        db_value = value
         if self.__is_obj(value):
-            if value is not None:
-                value = json.dumps(value)
-            else:
-                value = ''
-        self.dicthelper.set("SystemConfig", key, value)
+            db_value = json.dumps(value) if value is not None else ''
+        with self._lock:
+            if self.dicthelper.set("SystemConfig", key, db_value) is False:
+                log.error(f"【Config】保存系统设置 {key} 失败")
+                return False
+            self.systemconfig[key] = value
+        return True
 
     def get(self, key: [SystemConfigKey, str] = None):
         """

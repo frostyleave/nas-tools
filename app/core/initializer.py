@@ -230,6 +230,7 @@ def _get_config_handlers():
             "media.movie_name_format",
             "media.tv_name_format",
             "media.nfo_poster",
+            "media.default_rmt_mode",
         }, lambda *_: FileTransfer().init_config()),
         ("MediaServer", {"media.media_server", "emby", "jellyfin", "plex"},
          lambda *_: MediaServer().init_config()),

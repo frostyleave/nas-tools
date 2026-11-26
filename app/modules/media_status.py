@@ -10,17 +10,21 @@ from app.utils.commons import singleton
 from app.utils.constants import Constants
 from app.utils.types import MediaType
 
+# Bangumi 匹配共用的线程池，避免每次请求重复创建
+BANGUMI_EXECUTOR = ThreadPoolExecutor(max_workers=8, thread_name_prefix="bangumi-match")
+
 
 @singleton
 class MediaStatusChecker:
 
-    def get_media_exists_info(self, mtype, title, year, mediaid):
+    def get_media_exists_info(self, mtype, title, year, mediaid, index=None):
         """
         获取媒体存在标记：是否存在、是否订阅
         :param: mtype 媒体类型
         :param: title 媒体标题
         :param: year 媒体年份
         :param: mediaid TMDBID/DB:豆瓣ID/BG:Bangumi的ID
+        :param: index 订阅索引（批量判断时传入，避免逐项查库）
         :return: 1-已订阅/2-已下载/0-不存在未订阅, RSSID, 如果已下载,还会有对应的媒体库的播放地址链接
         """
         tmdbid = None
@@ -35,7 +39,8 @@ class MediaStatusChecker:
             rssid = Subscribe().get_subscribe_id(mtype=MediaType.MOVIE,
                                                  title=title,
                                                  year=year,
-                                                 tmdbid=tmdbid)
+                                                 tmdbid=tmdbid,
+                                                 index=index)
         else:
             if not tmdbid:
                 meta_info = MetaInfo(title=title, no_extra=True)
@@ -49,7 +54,8 @@ class MediaStatusChecker:
                                                  title=title,
                                                  year=year,
                                                  season=season,
-                                                 tmdbid=tmdbid)
+                                                 tmdbid=tmdbid,
+                                                 index=index)
         item_url = None
         if rssid:
             # 已订阅
@@ -70,6 +76,22 @@ class MediaStatusChecker:
                 fav = "0"
         return fav, rssid, item_url
 
+    def get_media_exists_info_batch(self, items):
+        """
+        批量获取媒体存在标记，订阅数据只载入一次
+        :param items: [(mtype, title, year, mediaid), ...]
+        :return: 与输入等长的 [(fav, rssid, item_url), ...]
+        """
+        if not items:
+            return []
+        index = Subscribe().get_subscribe_index()
+        return [self.get_media_exists_info(mtype=mtype,
+                                           title=title,
+                                           year=year,
+                                           mediaid=mediaid,
+                                           index=index)
+                for mtype, title, year, mediaid in items]
+
     def iter_bangumi_tmdb_info(self, media_list):
         """
         第一阶段：逐个产出 Bangumi 条目的 TMDB 匹配结果与 R18 标记
@@ -89,9 +111,8 @@ class MediaStatusChecker:
                 return None, r18
             return tmdb_info.get("id"), r18 or bool(tmdb_info.get("adult"))
 
-        executor = ThreadPoolExecutor(max_workers=8)
+        futures = {BANGUMI_EXECUTOR.submit(__match, item): item for item in media_list}
         try:
-            futures = {executor.submit(__match, item): item for item in media_list}
             for future in as_completed(futures):
                 item = futures[future]
                 try:
@@ -106,20 +127,27 @@ class MediaStatusChecker:
                 }
         finally:
             # 客户端提前断开时取消尚未完成的任务
-            executor.shutdown(wait=False, cancel_futures=True)
+            for future in futures:
+                future.cancel()
 
     def iter_media_exists_info(self, media_list):
         """
         第二阶段：逐个产出订阅/在库状态
         :param media_list: [{id, tmdbid, type, title, year}]
         """
-        for item in media_list or []:
+        media_list = media_list or []
+        if not media_list:
+            return
+        # 订阅数据只载入一次
+        index = Subscribe().get_subscribe_index()
+        for item in media_list:
             # 匹配到 TMDB 时按 TMDB ID 判断；BG:/DB: 或无 ID 时按名称判断
             fav, rssid, item_url = self.get_media_exists_info(
                 mtype=item.get("type"),
                 title=item.get("title"),
                 year=item.get("year"),
-                mediaid=item.get("tmdbid") or item.get("mediaid"))
+                mediaid=item.get("tmdbid") or item.get("mediaid"),
+                index=index)
             yield {
                 "id": item.get("id"),
                 "fav": fav,

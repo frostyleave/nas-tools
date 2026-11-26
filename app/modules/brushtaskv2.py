@@ -129,6 +129,8 @@ class BrushTaskV2:
         brushtasks = self.dbhelper.get_brushtasks()
         if not brushtasks:
             return
+        # 一次查询所有任务的总体积
+        totalsizes = self.dbhelper.get_brushtask_totalsizes()
         # 加载任务到内存
         for task in brushtasks:
             site_info = self.sites.get_site(siteid=task.SITE)
@@ -138,7 +140,7 @@ class BrushTaskV2:
             site_url = site_info.strict_url
 
             downloader_info = self.downloader.get_downloader_conf(task.DOWNLOADER)
-            total_size = round(int(self.dbhelper.get_brushtask_totalsize(task.ID)) / (1024 ** 3), 1)
+            total_size = round(totalsizes.get(str(task.ID), 0) / (1024 ** 3), 1)
             self._brush_tasks[str(task.ID)] = {
                 "id": task.ID,
                 "name": task.NAME,
@@ -169,9 +171,8 @@ class BrushTaskV2:
 
     def get_brushtask_info(self, taskid=None):
         """
-        读取刷流任务列表
+        读取刷流任务列表（任务变更时会由 init_config 重新加载）
         """
-        self.load_brushtasks()
         if taskid:
             return self._brush_tasks.get(str(taskid)) or {}
         else:
@@ -828,6 +829,8 @@ class BrushTaskV2:
 
         except Exception as err:
             log.exception('【Brush】检查种子是否符合刷流过滤条件出错: ')
+            # 规则异常时拒绝该种子，避免放过本应过滤的资源
+            return False
 
         return True
 

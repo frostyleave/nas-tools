@@ -5,6 +5,7 @@ import os.path
 from enum import Enum
 
 from sqlalchemy import cast, func
+from sqlalchemy.dialects.sqlite import insert as sqlite_insert
 
 from app.db.main_db import DbPersist, MainDb
 from app.db.models import *
@@ -235,11 +236,15 @@ class DbHelper:
         """
         self._db.query(TRANSFERHISTORY).filter(TRANSFERHISTORY.ID == int(logid)).delete()
 
-    def get_transfer_unknown_paths(self):
+    def get_transfer_unknown_paths(self, limit=None):
         """
         查询未识别的记录列表
+        :param limit: 最多返回的记录数
         """
-        return self._db.query(TRANSFERUNKNOWN).filter(TRANSFERUNKNOWN.STATE == 'N').all()
+        query = self._db.query(TRANSFERUNKNOWN).filter(TRANSFERUNKNOWN.STATE == 'N')
+        if limit:
+            query = query.limit(int(limit))
+        return query.all()
 
     def get_transfer_unknown_paths_by_page(self, search, page, rownum):
         """
@@ -1265,66 +1270,46 @@ class DbHelper:
         if not site_user_infos:
             return
         update_at = TimeUtils.now_str()
-        for site_user_info in site_user_infos:
-            site = site_user_info.site_name
-            username = site_user_info.username
-            user_level = site_user_info.user_level
-            join_at = site_user_info.join_at
-            upload = site_user_info.upload
-            download = site_user_info.download
-            ratio = site_user_info.ratio
-            seeding = site_user_info.seeding
-            seeding_size = site_user_info.seeding_size
-            leeching = site_user_info.leeching
-            bonus = site_user_info.bonus
-            url = site_user_info.site_url
-            msg_unread = site_user_info.message_unread
-            if not self.is_exists_site_user_statistics(url):
-                self._db.insert(SITEUSERINFOSTATS(
-                    SITE=site,
-                    USERNAME=username,
-                    USER_LEVEL=user_level,
-                    JOIN_AT=join_at,
-                    UPDATE_AT=update_at,
-                    UPLOAD=upload,
-                    DOWNLOAD=download,
-                    RATIO=ratio,
-                    SEEDING=seeding,
-                    LEECHING=leeching,
-                    SEEDING_SIZE=seeding_size,
-                    BONUS=bonus,
-                    URL=url,
-                    MSG_UNREAD=msg_unread
-                ))
-            else:
-                # 按 URL 命中旧记录时同步站名：站点改名（或新增站点复用了历史 URL）后，
-                # 统计表里的站名不会一直停留在旧值
-                update_dic = {'SITE': site}
-
-                if username:
-                    update_dic['USERNAME'] = username
-                if user_level:
-                    update_dic['USER_LEVEL'] = user_level
-                if join_at is not None:
-                    update_dic['JOIN_AT'] = join_at
-
-                # 能进入本方法的都是解析成功的站点，数值字段（含 0）必须整体覆盖，
-                # 否则某个值归零后会一直保留上一次的非零值（如下载中的种子数、分享率）
-                for key, value in (
-                        ('UPLOAD', upload),
-                        ('DOWNLOAD', download),
-                        ('RATIO', ratio),
-                        ('SEEDING', seeding),
-                        ('LEECHING', leeching),
-                        ('SEEDING_SIZE', seeding_size),
-                        ('BONUS', bonus),
-                        ('MSG_UNREAD', msg_unread),
-                ):
-                    update_dic[key] = 0 if value is None else value
-
-                update_dic['UPDATE_AT'] = update_at
-                
-                self._db.query(SITEUSERINFOSTATS).filter(SITEUSERINFOSTATS.URL == url).update(update_dic)
+        values = [{
+            "SITE": site_user_info.site_name,
+            "USERNAME": site_user_info.username,
+            "USER_LEVEL": site_user_info.user_level,
+            "JOIN_AT": site_user_info.join_at,
+            "UPDATE_AT": update_at,
+            "UPLOAD": site_user_info.upload,
+            "DOWNLOAD": site_user_info.download,
+            "RATIO": site_user_info.ratio,
+            "SEEDING": site_user_info.seeding,
+            "LEECHING": site_user_info.leeching,
+            "SEEDING_SIZE": site_user_info.seeding_size,
+            "BONUS": site_user_info.bonus,
+            "URL": site_user_info.site_url,
+            "MSG_UNREAD": site_user_info.message_unread,
+        } for site_user_info in site_user_infos]
+        stmt = sqlite_insert(SITEUSERINFOSTATS).values(values)
+        self._db.session.execute(stmt.on_conflict_do_update(
+            index_elements=[SITEUSERINFOSTATS.URL],
+            set_={
+                # 按 URL 命中旧记录时同步站名，避免站点改名后一直停留在旧值
+                "SITE": stmt.excluded.SITE,
+                "UPDATE_AT": stmt.excluded.UPDATE_AT,
+                # 解析不到的用户名/等级/注册时间保留原值
+                "USERNAME": func.coalesce(func.nullif(stmt.excluded.USERNAME, ""),
+                                          SITEUSERINFOSTATS.USERNAME),
+                "USER_LEVEL": func.coalesce(func.nullif(stmt.excluded.USER_LEVEL, ""),
+                                            SITEUSERINFOSTATS.USER_LEVEL),
+                "JOIN_AT": func.coalesce(stmt.excluded.JOIN_AT, SITEUSERINFOSTATS.JOIN_AT),
+                # 数值字段（含 0）整体覆盖，否则归零后会保留上一次的值
+                "UPLOAD": func.coalesce(stmt.excluded.UPLOAD, 0),
+                "DOWNLOAD": func.coalesce(stmt.excluded.DOWNLOAD, 0),
+                "RATIO": func.coalesce(stmt.excluded.RATIO, 0),
+                "SEEDING": func.coalesce(stmt.excluded.SEEDING, 0),
+                "LEECHING": func.coalesce(stmt.excluded.LEECHING, 0),
+                "SEEDING_SIZE": func.coalesce(stmt.excluded.SEEDING_SIZE, 0),
+                "BONUS": func.coalesce(stmt.excluded.BONUS, 0),
+                "MSG_UNREAD": func.coalesce(stmt.excluded.MSG_UNREAD, 0),
+            }
+        ))
 
     def is_exists_site_user_statistics(self, url):
         """
@@ -1419,6 +1404,23 @@ class DbHelper:
             return self._db.query(SITEFAVICON).filter(SITEFAVICON.URL == url).all()
         else:
             return self._db.query(SITEFAVICON).all()
+
+    def get_site_favicon_urls(self) -> set:
+        """
+        只查询有有效图标的站点地址，避免读取图标内容
+        """
+        rows = self._db.query(SITEFAVICON.URL).filter(
+            SITEFAVICON.FAVICON.like("data:image/%")).all()
+        return {row[0] for row in rows if row[0]}
+
+    def get_site_favicon(self, url):
+        """
+        查询单个站点的图标内容
+        """
+        if not url:
+            return ""
+        ret = self._db.query(SITEFAVICON.FAVICON).filter(SITEFAVICON.URL == url).first()
+        return ret[0] if ret else ""
 
     @DbPersist(_db)
     def update_site_seed_info_site_name(self, url, name):
@@ -1564,10 +1566,12 @@ class DbHelper:
         """
         if not url:
             return []
-        return self._db.query(SITESTATISTICSHISTORY).filter(
+        # 取最近 days 条，再按时间正序返回
+        records = self._db.query(SITESTATISTICSHISTORY).filter(
             SITESTATISTICSHISTORY.URL == url).order_by(
-            SITESTATISTICSHISTORY.DATE.asc()
+            SITESTATISTICSHISTORY.DATE.desc()
         ).limit(days).all()
+        return list(reversed(records))
 
     def get_site_seeding_info(self, url):
         """
@@ -1826,6 +1830,17 @@ class DbHelper:
         return self._db.query(SITEBRUSHTASK) \
             .join(CONFIGSITE, SITEBRUSHTASK.SITE == CONFIGSITE.ID) \
             .order_by(CONFIGSITE.PRI.asc()).all()
+
+    def get_brushtask_totalsizes(self) -> dict:
+        """
+        一次查询所有刷流任务的总体积
+        """
+        rets = self._db.query(
+            SITEBRUSHTORRENTS.TASK_ID,
+            func.sum(cast(SITEBRUSHTORRENTS.TORRENT_SIZE, Integer))
+        ).filter(SITEBRUSHTORRENTS.DOWNLOAD_ID != '0') \
+            .group_by(SITEBRUSHTORRENTS.TASK_ID).all()
+        return {str(task_id): int(size or 0) for task_id, size in rets}
 
     def get_brushtask_totalsize(self, brush_id):
         """
@@ -2231,16 +2246,21 @@ class DbHelper:
         return self._db.query(USERRSSTASKHISTORY).filter(USERRSSTASKHISTORY.TASK_ID == task_id) \
             .order_by(USERRSSTASKHISTORY.DATE.desc()).all()
 
-    def get_rss_history(self, rtype=None, rid=None):
+    def get_rss_history(self, rtype=None, rid=None, limit=None):
         """
         查询RSS历史
+        :param limit: 最多返回的记录数
         """
         if rid:
             return self._db.query(RSSHISTORY).filter(RSSHISTORY.ID == int(rid)).all()
-        elif rtype:
-            return self._db.query(RSSHISTORY).filter(RSSHISTORY.TYPE == rtype) \
-                .order_by(RSSHISTORY.FINISH_TIME.desc()).all()
-        return self._db.query(RSSHISTORY).order_by(RSSHISTORY.FINISH_TIME.desc()).all()
+        if rtype:
+            query = self._db.query(RSSHISTORY).filter(RSSHISTORY.TYPE == rtype)
+        else:
+            query = self._db.query(RSSHISTORY)
+        query = query.order_by(RSSHISTORY.FINISH_TIME.desc())
+        if limit:
+            query = query.limit(int(limit))
+        return query.all()
 
     def is_exists_rss_history(self, rssid):
         """
@@ -2318,6 +2338,7 @@ class DbHelper:
         """
         if not wid:
             self._db.query(CUSTOMWORDS).delete()
+            return
         self._db.query(CUSTOMWORDS).filter(CUSTOMWORDS.ID == int(wid)).delete()
 
     @DbPersist(_db)

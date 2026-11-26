@@ -16,6 +16,9 @@ from app.utils.types import SearchType
 # 索引器默认分类
 INDEXER_CATEGORY = ['MOVIE', 'TV', 'ANIME']
 
+# 搜索共用的线程池，避免每次搜索重复创建和销毁
+SEARCH_EXECUTOR = ThreadPoolExecutor(max_workers=20, thread_name_prefix="indexer-search")
+
 @singleton
 class Indexer:
 
@@ -205,50 +208,48 @@ def exec_search_by_threads(client_instance: BuiltinIndexer,
     if not search_indexers:
         return []
 
-    # 配置的线程数可能为 0，ThreadPoolExecutor 不接受 0
-    thread_count = max(1, min(len(search_indexers), 20))
     en_name_loaded = False
     en_name = None
+    executor = SEARCH_EXECUTOR
 
-    with ThreadPoolExecutor(max_workers=thread_count) as executor:
-        # 提交所有线程任务
-        for indexer in search_indexers:
-            order_seq = 100 - int(indexer.pri)
-            # 原始标题检索
-            if search_keywords and (not indexer.public or 'kw' == indexer.search_param):
-                task = executor.submit(client_instance.search, order_seq, indexer, search_keywords, copy.deepcopy(filter_args), match_media, in_from, task_id)
+    # 提交所有线程任务
+    for indexer in search_indexers:
+        order_seq = 100 - int(indexer.pri)
+        # 原始标题检索
+        if search_keywords and (not indexer.public or 'kw' == indexer.search_param):
+            task = executor.submit(client_instance.search, order_seq, indexer, search_keywords, copy.deepcopy(filter_args), match_media, in_from, task_id)
+            all_tasks.append(task)
+
+        # 公共站点的其他参数, 都需要 match_media 不为空
+        if not match_media or not indexer.public:
+            continue
+
+        # 豆瓣id检索
+        if 'douban' == indexer.search_param and match_media.douban_id:
+            # 剧集信息, 查询特定季的豆瓣id
+            task = executor.submit(client_instance.search, order_seq, indexer, match_media.douban_id, copy.deepcopy(filter_args), match_media, in_from, task_id)
+            all_tasks.append(task)
+
+        # imdb id 检索
+        if 'imdb' == indexer.search_param and match_media.imdb_id:
+            task = executor.submit(client_instance.search, order_seq, indexer, match_media.imdb_id, copy.deepcopy(filter_args), match_media, in_from, task_id)
+            all_tasks.append(task)
+
+        # 英文名检索（所有索引器共用一次解析结果）
+        if 'en' == indexer.search_param or indexer.en_expand:
+            if not en_name_loaded:
+                en_name = get_media_en_name(match_media)
+                en_name_loaded = True
+            if en_name:
+                task = executor.submit(client_instance.search, order_seq, indexer, en_name, copy.deepcopy(filter_args), match_media, in_from, task_id)
                 all_tasks.append(task)
 
-            # 公共站点的其他参数, 都需要 match_media 不为空
-            if not match_media or not indexer.public:
-                continue
+    for future in as_completed(all_tasks):
+        try:
+            result = future.result()
+            if result:
+                process_results.extend(result) # 聚合当前进程内所有线程的结果
+        except Exception as e:
+            log.error("【Indexer】搜索结果处理失败 %s", str(e))
 
-            # 豆瓣id检索
-            if 'douban' == indexer.search_param and match_media.douban_id:
-                # 剧集信息, 查询特定季的豆瓣id
-                task = executor.submit(client_instance.search, order_seq, indexer, match_media.douban_id, copy.deepcopy(filter_args), match_media, in_from, task_id)
-                all_tasks.append(task)
-
-            # imdb id 检索
-            if 'imdb' == indexer.search_param and match_media.imdb_id:
-                task = executor.submit(client_instance.search, order_seq, indexer, match_media.imdb_id, copy.deepcopy(filter_args), match_media, in_from, task_id)
-                all_tasks.append(task)
-                
-            # 英文名检索（所有索引器共用一次解析结果）
-            if 'en' == indexer.search_param or indexer.en_expand:
-                if not en_name_loaded:
-                    en_name = get_media_en_name(match_media)
-                    en_name_loaded = True
-                if en_name:
-                    task = executor.submit(client_instance.search, order_seq, indexer, en_name, copy.deepcopy(filter_args), match_media, in_from, task_id)
-                    all_tasks.append(task)
-        
-        for future in as_completed(all_tasks):
-            try:
-                result = future.result()
-                if result:
-                    process_results.extend(result) # 聚合当前进程内所有线程的结果
-            except Exception as e:
-                log.error("【Indexer】搜索结果处理失败 %s", str(e))
-                
     return process_results

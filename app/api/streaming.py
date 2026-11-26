@@ -36,6 +36,8 @@ streaming_router = APIRouter()
 
 # 单条 SSE 事件最多携带的日志条数
 LOG_BATCH_SIZE = 200
+# 单个 SSE 客户端最多积压的日志条数，超出说明客户端已跟不上
+LOG_QUEUE_MAXSIZE = 2000
 
 # SSE 通用响应头:
 # - identity: 避免被 GZipMiddleware 压缩后产生缓冲
@@ -175,8 +177,8 @@ async def stream_logging(request: Request, source: str = ""):
     批量推送/渲染可避免逐条积压, 出现“任务已完成但日志还在滚动”的现象。
     """
 
-    # 创建此客户端专用的队列
-    my_queue: asyncio.Queue[dict[str, Any]] = asyncio.Queue()
+    # 创建此客户端专用的队列，设置上限防止慢客户端无限占用内存
+    my_queue: asyncio.Queue[dict[str, Any]] = asyncio.Queue(maxsize=LOG_QUEUE_MAXSIZE)
 
     def match(log_data: dict[str, Any]) -> bool:
         return bool(log_data) and (not source or log_data.get("source") == source)

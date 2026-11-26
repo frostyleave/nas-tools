@@ -186,6 +186,8 @@ class Subscribe:
             if mediaid:
                 # 根据ID查询
                 media_info = MediaService().get_mediainfo_from_id(mediaid=mediaid, mtype=mtype)
+                if not media_info:
+                    return 1, "无法TMDB查询到媒体信息", None
                 if season is None:
                     season = media_info.begin_season
             else:
@@ -231,7 +233,8 @@ class Subscribe:
             else:
                 total = media_info.total_episodes
             if current_ep:
-                lack = total - current_ep - 1
+                # 缺失集为 [current_ep, total]，共 total - current_ep + 1 集
+                lack = total - current_ep + 1
             else:
                 lack = total
             if rssid:
@@ -1062,20 +1065,93 @@ class Subscribe:
         else:
             return self.dbhelper.delete_rss_tv(title=title, season=season, rssid=rssid, tmdbid=tmdbid)
 
+    def get_subscribe_index(self):
+        """
+        一次性载入订阅索引，供批量判断是否存在订阅，避免逐项查库
+        """
+        movies = self.dbhelper.get_rss_movies() or []
+        tvs = self.dbhelper.get_rss_tvs() or []
+        index = {
+            # 名称 -> [(ID, TMDBID, YEAR)]
+            "movies": {},
+            # 名称 -> [(ID, TMDBID, YEAR, SEASON)]
+            "tvs": {},
+            "movie_by_tmdb": {},
+            "tv_by_tmdb": {},
+            "tv_by_tmdb_season": {},
+        }
+        for movie in movies:
+            year = str(movie.YEAR) if movie.YEAR else None
+            index["movies"].setdefault(movie.NAME, []).append(
+                (movie.ID, movie.TMDBID, year))
+            if movie.TMDBID:
+                index["movie_by_tmdb"].setdefault(str(movie.TMDBID), movie.ID)
+        for tv in tvs:
+            year = str(tv.YEAR) if tv.YEAR else None
+            season = str(tv.SEASON) if tv.SEASON else None
+            index["tvs"].setdefault(tv.NAME, []).append(
+                (tv.ID, tv.TMDBID, year, season))
+            if tv.TMDBID:
+                index["tv_by_tmdb"].setdefault(str(tv.TMDBID), tv.ID)
+                if season:
+                    index["tv_by_tmdb_season"].setdefault(
+                        (str(tv.TMDBID), season), tv.ID)
+        return index
+
+    @staticmethod
+    def __match_subscribe_id(exact, candidates, tmdbid):
+        """
+        按 TMDBID 精确命中优先，其次按名称候选中 TMDBID 为空或一致的记录
+        """
+        if exact:
+            return exact
+        if not candidates:
+            return ""
+        if tmdbid:
+            for rid, rid_tmdbid in candidates:
+                if not rid_tmdbid or rid_tmdbid == str(tmdbid):
+                    return rid
+            return ""
+        return candidates[0][0]
+
     def get_subscribe_id(self, mtype,
-                         title, year=None, season=None, tmdbid=None):
+                         title, year=None, season=None, tmdbid=None, index=None):
         """
         获取订阅ID
+        :param index: 由 get_subscribe_index 生成的索引，传入时不再查库
         """
-        if mtype == MediaType.MOVIE:
-            return self.dbhelper.get_rss_movie_id(title=title,
-                                                  year=year,
-                                                  tmdbid=tmdbid)
-        else:
+        if index is None:
+            if mtype == MediaType.MOVIE:
+                return self.dbhelper.get_rss_movie_id(title=title,
+                                                      year=year,
+                                                      tmdbid=tmdbid)
             return self.dbhelper.get_rss_tv_id(title=title,
                                                year=year,
                                                season=season,
                                                tmdbid=tmdbid)
+        if not title:
+            return ""
+        if mtype == MediaType.MOVIE:
+            exact = index["movie_by_tmdb"].get(str(tmdbid)) if tmdbid else None
+            rows = index["movies"].get(title, [])
+            if year:
+                rows = [row for row in rows if row[2] == str(year)]
+            candidates = [(row[0], row[1]) for row in rows]
+            return self.__match_subscribe_id(exact, candidates, tmdbid)
+        if tmdbid:
+            if season:
+                exact = index["tv_by_tmdb_season"].get((str(tmdbid), str(season)))
+            else:
+                exact = index["tv_by_tmdb"].get(str(tmdbid))
+        else:
+            exact = None
+        rows = index["tvs"].get(title, [])
+        if season:
+            rows = [row for row in rows if row[3] == str(season)]
+        if year:
+            rows = [row for row in rows if row[2] == str(year)]
+        candidates = [(row[0], row[1]) for row in rows]
+        return self.__match_subscribe_id(exact, candidates, tmdbid)
 
     def truncate_rss_episodes(self):
         """

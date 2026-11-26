@@ -143,8 +143,11 @@ def broadcast_logs(records: list[dict[str, Any]]):
             try:
                 q.put_nowait(log_data)
             except asyncio.QueueFull:
-                # 客户端的队列满了 (例如客户端处理缓慢或断开)
-                # 我们可以选择在这里移除该队列, 但目前先忽略
+                # 客户端积压过多，说明已跟不上，直接移除该队列
+                try:
+                    active_sse_queues.remove(q)
+                except ValueError:
+                    pass
                 break
             except Exception:
                 # 其他异常, 例如队列已关闭

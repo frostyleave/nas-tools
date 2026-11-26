@@ -200,12 +200,12 @@ class TorrentRemover:
         else:
             enabled = int(enabled)
         samedata = data.get("samedata")
-        if not str(enabled).isdigit() or int(samedata) not in [0, 1]:
+        if not str(samedata).isdigit() or int(samedata) not in [0, 1]:
             return False, "处理辅种参数不合法"
         else:
             samedata = int(samedata)
         onlynastool = data.get("onlynastool")
-        if not str(enabled).isdigit() or int(onlynastool) not in [0, 1]:
+        if not str(onlynastool).isdigit() or int(onlynastool) not in [0, 1]:
             return False, "仅处理NASTOOL添加种子参数不合法"
         else:
             onlynastool = int(onlynastool)
@@ -236,7 +236,10 @@ class TorrentRemover:
         savepath_key = data.get("savepath_key")
         tracker_key = data.get("tracker_key")
         downloader_id = data.get("downloader")
-        downloader_type = self.downloader.get_downloader_conf(str(downloader_id)).get("type")
+        downloader_conf = self.downloader.get_downloader_conf(str(downloader_id))
+        if not downloader_conf:
+            return False, "下载器参数不合法"
+        downloader_type = downloader_conf.get("type")
         qb_state = []
         qb_category = []
         tr_state = []

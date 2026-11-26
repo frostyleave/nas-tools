@@ -1,3 +1,5 @@
+import copy
+
 from app.helper import DbHelper
 from app.utils.commons import singleton
 from app.utils.password_hash import check_password_hash
@@ -93,6 +95,9 @@ class User:
         return False
 
 
+_MISSING = object()
+
+
 @singleton
 class UserManager:
 
@@ -100,6 +105,17 @@ class UserManager:
 
     def __init__(self):
         self.dbhelper = DbHelper()
+        # 用户名 -> User，鉴权时直接命中内存，用户变更时失效
+        self._user_cache: dict[str, User] = {}
+
+    def _invalidate_user(self, user_name=None):
+        """
+        用户数据变更后清理缓存
+        """
+        if user_name:
+            self._user_cache.pop(user_name, None)
+        else:
+            self._user_cache.clear()
 
     @staticmethod
     def _to_user(user) -> User:
@@ -122,6 +138,7 @@ class UserManager:
                 print(f"新增用户失败：用户 {name} 已存在")
                 return 0
             self.dbhelper.insert_user(name, password, pris, level)
+            self._invalidate_user(name)
             return 1
         except Exception as e:
             print(f"新增用户出现严重错误！请检查：{e!s}")
@@ -137,6 +154,7 @@ class UserManager:
                 print("删除用户失败：不能删除最后一个系统管理员")
                 return 0
             self.dbhelper.delete_user(name)
+            self._invalidate_user(name)
             return 1
         except Exception as e:
             print(f"删除用户出现严重错误！请检查：{e!s}")
@@ -162,6 +180,8 @@ class UserManager:
             if not self.dbhelper.rename_user(old_name, new_name):
                 print(f"修改用户名失败：用户 {old_name} 不存在")
                 return 0
+            self._invalidate_user(old_name)
+            self._invalidate_user(new_name)
             return 1
         except Exception as e:
             print(f"修改用户名出现严重错误！请检查：{e!s}")
@@ -172,6 +192,7 @@ class UserManager:
         if not user_name or not password_hash:
             return 0
         self.dbhelper.update_user_password(user_name, password_hash)
+        self._invalidate_user(user_name)
         return 1
 
     # 更新系统管理员密码（供配置页修改密码时同步）
@@ -192,5 +213,10 @@ class UserManager:
     def get_user_by_name(self, user_name) -> User | None:
         if not user_name:
             return None
-        user = self.dbhelper.get_user_by_name(user_name)
-        return self._to_user(user) if user else None
+        user = self._user_cache.get(user_name, _MISSING)
+        if user is _MISSING:
+            db_user = self.dbhelper.get_user_by_name(user_name)
+            user = self._to_user(db_user) if db_user else None
+            self._user_cache[user_name] = user
+        # 返回副本，避免调用方修改缓存中的实例
+        return copy.copy(user) if user else None
