@@ -32,9 +32,9 @@ class SystemConfig:
                 config[item.KEY] = JsonUtils.loads(item.VALUE, default=item.VALUE)
             else:
                 config[item.KEY] = item.VALUE
+        # 整体替换引用，避免读者在清空与填充之间读到空配置
         with self._lock:
-            self.systemconfig.clear()
-            self.systemconfig.update(config)
+            self.systemconfig = config
 
     @staticmethod
     def __is_obj(obj):

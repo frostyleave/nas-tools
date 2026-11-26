@@ -340,37 +340,46 @@ class MediaServer:
             total_count = 0
             movie_count = 0
             tv_count = 0
-            # 先收集全部条目，最后一次性写入，避免逐条提交
-            sync_items = []
-            for library in self.get_libraries():
-                if str(library.get("id")) not in librarys:
-                    continue
-                # 获取媒体库所有项目
-                __update_progress(message="正在获取 {} 数据...".format(library.get("name")))
-                for item in self.get_items(library.get("id")):
-                    if not item:
+
+            def iter_sync_items():
+                """
+                逐条读取媒体库条目，交给 sync_items 边读边写
+                """
+                nonlocal total_count, movie_count, tv_count
+                for library in self.get_libraries():
+                    if str(library.get("id")) not in librarys:
                         continue
-                    seasoninfo = []
-                    total_count += 1
-                    if item.get("type") in ['Movie', 'movie']:
-                        movie_count += 1
-                    elif item.get("type") in ['Series', 'show']:
-                        tv_count += 1
-                        # 查询剧集信息
-                        seasoninfo = self.get_tv_episodes(item.get("id"))
-                    # 更新进度
-                    if total_media_count:
-                        __update_progress(progress=round(100 * total_count / total_media_count, 1),
-                                          message="正在同步 {}，已完成：{} / {} ...".format(
-                                              library.get("name"), total_count, total_media_count))
-                    sync_items.append((item, seasoninfo))
+                    # 获取媒体库所有项目
+                    __update_progress(message="正在获取 {} 数据...".format(library.get("name")))
+                    for item in self.get_items(library.get("id")):
+                        if not item:
+                            continue
+                        seasoninfo = []
+                        total_count += 1
+                        if item.get("type") in ['Movie', 'movie']:
+                            movie_count += 1
+                        elif item.get("type") in ['Series', 'show']:
+                            tv_count += 1
+                            # 查询剧集信息
+                            seasoninfo = self.get_tv_episodes(item.get("id"))
+                        # 更新进度
+                        if total_media_count:
+                            __update_progress(progress=round(100 * total_count / total_media_count, 1),
+                                              message="正在同步 {}，已完成：{} / {} ...".format(
+                                                  library.get("name"), total_count, total_media_count))
+                        yield item, seasoninfo
+
+            def get_sync_stats():
+                return {
+                    "total": total_count,
+                    "movie": movie_count,
+                    "tv": tv_count,
+                }
 
             # 清空、写入条目与统计共用一个事务
             self.mediadb.sync_items(server_type=self._server_type,
-                                    items=sync_items,
-                                    total_count=total_count,
-                                    movie_count=movie_count,
-                                    tv_count=tv_count)
+                                    items=iter_sync_items(),
+                                    stats_cb=get_sync_stats)
             __update_progress(progress=100,
                               message=f"媒体库数据同步完成，同步数量：{total_count}")
             log.info(f"【MediaServer】媒体库数据同步完成，同步数量：{total_count}")

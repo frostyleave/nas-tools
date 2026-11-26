@@ -193,11 +193,15 @@ async def stream_logging(request: Request, source: str = ""):
             for log_data in list(log_buffer):
                 if match(log_data):
                     pending[log_data.get("seq")] = log_data
+            closed = False
             while True:
                 try:
                     log_data = my_queue.get_nowait()
                 except asyncio.QueueEmpty:
                     break
+                if log_data is SSE_CLOSE_SENTINEL:
+                    closed = True
+                    continue
                 if match(log_data):
                     pending[log_data.get("seq")] = log_data
 
@@ -206,6 +210,9 @@ async def stream_logging(request: Request, source: str = ""):
                 yield _sse_event(history[i:i + LOG_BATCH_SIZE])
                 # 释放控制权, 防止历史日志过多导致堵塞
                 await asyncio.sleep(0)
+            if closed:
+                # 队列已积压过多被移出广播列表，历史推送完成后关闭连接
+                return
 
             while True:
                 # 进程关闭时主动结束，避免服务端优雅关闭一直等这个连接

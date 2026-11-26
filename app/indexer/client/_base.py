@@ -395,5 +395,5 @@ class _IIndexClient(metaclass=ABCMeta):
         进度更新
         """
         if task_id:
-            TaskStore().update_task(task_id, progress=0, progress_add=self.step_fator, message=text)
+            TaskStore().update_task(task_id, progress=None, progress_add=self.step_fator, message=text)
             return

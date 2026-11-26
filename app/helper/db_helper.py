@@ -15,6 +15,15 @@ from app.utils.types import MediaType, RmtMode
 
 class DbHelper:
     _db = MainDb()
+    # 站点图标允许返回的图片类型，SVG 由接口额外加 CSP 沙箱后返回
+    SITE_FAVICON_MEDIA_TYPES = (
+        "image/png",
+        "image/gif",
+        "image/jpeg",
+        "image/webp",
+        "image/x-icon",
+        "image/svg+xml",
+    )
 
     @DbPersist(_db)
     def insert_search_results(self, media_items: list, title=None, ident_flag=True):
@@ -1334,7 +1343,7 @@ class DbHelper:
     @staticmethod
     def __favicon_data_uri(favicon: str) -> str:
         """
-        根据图标内容生成 data URI（SVG/PNG 等需要正确的 MIME 才能正常显示）
+        根据图标内容生成 data URI（不同格式需要正确的 MIME 才能正常显示）
         """
         mime = "image/x-icon"
         try:
@@ -1353,14 +1362,26 @@ class DbHelper:
             pass
         return f"data:{mime};base64,{favicon}"
 
-    @staticmethod
-    def is_valid_site_favicon(favicon: str | None) -> bool:
+    @classmethod
+    def site_favicon_media_type(cls, favicon: str | None) -> str | None:
+        """
+        返回可内联展示的图标 MIME 类型，无法识别时返回 None
+
+        SVG 由 /data/site_favicon 加 CSP 沙箱后返回，脚本在文档模式下不会执行
+        """
+        if not favicon or not favicon.startswith("data:image/"):
+            return None
+        mime = favicon[5:].split(";")[0].strip().lower()
+        return mime if mime in cls.SITE_FAVICON_MEDIA_TYPES else None
+
+    @classmethod
+    def is_valid_site_favicon(cls, favicon: str | None) -> bool:
         """
         是否为可直接展示/导出的站点图标
 
         历史遗留的远程地址无法在导出时内联，按无效处理
         """
-        return bool(favicon) and favicon.startswith("data:image/")
+        return cls.site_favicon_media_type(favicon) is not None
 
     @DbPersist(_db)
     def update_site_favicon(self, site_user_infos: list):

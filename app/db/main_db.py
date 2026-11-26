@@ -84,21 +84,6 @@ class MainDb:
             except Exception as rollback_err:
                 log.debug(f'回滚 CONFIG_USERS 升级失败：{rollback_err!s}')
 
-    def has_existing_data(self):
-        """
-        判断数据库中是否已有业务数据，用于区分全新安装与老库升级
-        """
-        for table in ("CONFIG_USERS", "INDEXER_SITES", "RSS_MOVIES", "RSS_TVS"):
-            try:
-                count = self.session.execute(
-                    text(f'SELECT COUNT(*) FROM "{table}"')).scalar()
-            except Exception:
-                self.session.rollback()
-                continue
-            if count:
-                return True
-        return False
-
     def init_data(self):
         """
         读取config目录下的sql文件，并初始化到数据库，只处理一次
@@ -112,20 +97,20 @@ class MainDb:
             filename = os.path.basename(sql_file)
             if filename not in init_files:
                 config_flag = True
-                success = True
                 with open(sql_file, "r", encoding="utf-8") as f:
-                    sql_list = f.read().split(';\n')
-                    for sql in sql_list:
-                        if not sql.strip():
-                            continue
-                        try:
-                            self.execute_sql_script(sql)
-                        except Exception as err:
-                            success = False
-                            log.error(f'SQL文件 {filename} 执行异常：{err!s}')
-                # 执行失败时不记录，下次启动会重试
-                if success:
-                    init_files.append(filename)
+                    # 统一换行符后再切分，兼容 Windows 检出的 CRLF 文件
+                    sql_content = f.read().replace("\r\n", "\n").replace("\r", "\n")
+                # 逐条执行，空行切出的空语句直接跳过
+                for sql in sql_content.split(";\n"):
+                    sql = sql.strip()
+                    if not sql:
+                        continue
+                    try:
+                        self.execute_sql_script(sql)
+                    except Exception as err:
+                        log.error(f'SQL文件 {filename} 执行异常：{err!s}')
+                # SQL 只处理一次，执行失败也不再重试
+                init_files.append(filename)
         if config_flag:
             config['app']['init_files'] = init_files
             Config().save_config(config)

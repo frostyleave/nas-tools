@@ -444,17 +444,24 @@ def site_favicon(url: str = ""):
     按站点地址返回图标图片，供站点列表按需加载
     """
     favicon = DbHelper().get_site_favicon(url)
-    if not DbHelper.is_valid_site_favicon(favicon):
+    media_type = DbHelper.site_favicon_media_type(favicon)
+    if not media_type:
         raise HTTPException(status_code=404, detail="favicon not found")
-    header, _, payload = favicon.partition(",")
+    _, _, payload = favicon.partition(",")
     try:
         content = base64.b64decode(payload)
     except Exception:
         raise HTTPException(status_code=404, detail="favicon not found") from None
-    media_type = header[5:].split(";")[0] or "image/png"
-    return Response(content=content,
-                    media_type=media_type,
-                    headers={"Cache-Control": "public, max-age=86400"})
+    headers = {
+        "Cache-Control": "private, max-age=86400",
+        "X-Content-Type-Options": "nosniff",
+    }
+    if media_type == "image/svg+xml":
+        # SVG 可携带脚本，直接打开时用 CSP 沙箱禁止执行和外部加载
+        headers["Content-Security-Policy"] = (
+            "sandbox; default-src 'none'; style-src 'unsafe-inline'; img-src data:"
+        )
+    return Response(content=content, media_type=media_type, headers=headers)
 
 
 # 媒体库页面

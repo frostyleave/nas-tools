@@ -99,9 +99,13 @@
 
   }
 
+  // 当前页面订阅数据，用于局部刷新卡片
+  var rss_page_data = null;
+
   // 生成RSS订阅页面内容
   function generateRssPage(data) {
-    
+
+    rss_page_data = data;
     const container = $("#rss-list");
     container.empty();
 
@@ -184,18 +188,18 @@
 
     // 暂停/恢复订阅按钮
     const pauseBtn = rssAttr.state === 'P'
-      ? `<a href="javascript:toggle_rss_pause('${type}','${id}','R')" title="恢复订阅"
+      ? `<a href="javascript:set_rss_state('${type}','${id}','R')" title="恢复订阅"
           class="text-white" id="pause_btn_${type}_${id}"><i class="ti ti-player-play fs-2"></i></a>`
-      : `<a href="javascript:toggle_rss_pause('${type}','${id}','P')" title="暂停订阅"
+      : `<a href="javascript:set_rss_state('${type}','${id}','P')" title="暂停订阅"
           class="text-white" id="pause_btn_${type}_${id}"><i class="ti ti-player-pause fs-2"></i></a>`;
 
     return `
-      <div class="card p-0 glass-card" data-rss-type="${type}">
+      <div class="card p-0 glass-card" id="rss_card_${type}_${id}" data-rss-type="${type}">
         <div class="ribbon ribbon-top ribbon-left ribbon-bookmark ${voteBg}">${voteText}</div>
         <div class="card-body media-box" style="background-image: url(${rssAttr.image});">
           <div class="right-top-box rss-card-actions">
             ${pauseBtn}
-            <a href="javascript:remove_rss_click('${rssAttr.name}','${rssAttr.year}', '${type}','${id}', 'movie_rss')" title="取消订阅" class="text-danger"><i class="ti ti-x fs-2"></i></a>
+            <a href="javascript:remove_rss_click('${rssAttr.name}','${rssAttr.year}', '${type}','${id}', 'rss')" title="取消订阅" class="text-danger"><i class="ti ti-x fs-2"></i></a>
           </div>
           <div class="row align-items-stretch media-content card-text rss-card-clickable"
             title="点击编辑订阅" onclick="show_edit_rss_media_modal('${id}', '${typeName}')">
@@ -347,19 +351,27 @@
     });
   }
 
-  // 暂停/恢复订阅
-  function toggle_rss_pause(type, rssid, state) {
+  // 暂停/恢复订阅，仅刷新当前订阅卡片
+  function set_rss_state(type, rssid, state) {
     const is_pause = state === 'P';
     const tip = is_pause
       ? '是否暂停该订阅？暂停后不再主动搜索站点，但仍会处理RSS识别到的资源。'
       : '是否恢复该订阅的搜索？';
     show_ask_modal(tip, function () {
       axios_post_do("set_rss_state", { type: type, rssid: rssid, state: state }, function (ret) {
-        if (ret.code === 0) {
-          loadPageData();
-        } else {
+        if (ret.code !== 0) {
           show_fail_modal(ret.msg || "操作失败");
+          return;
         }
+        const group = rss_page_data && (type === 'MOV' ? rss_page_data.Movies : rss_page_data.Tvs);
+        const $card = $("#rss_card_" + type + "_" + rssid);
+        if (!ret.data || !group || !$card.length) {
+          loadPageData();
+          return;
+        }
+        group[rssid] = ret.data;
+        $card.replaceWith(generateRssItemHtml(ret.data, rssid, rss_page_data, type));
+        apply_rss_filter();
       });
     });
   }

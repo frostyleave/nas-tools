@@ -42,6 +42,8 @@ _Session = scoped_session(sessionmaker(bind=_Engine,
 
 
 class MediaDb:
+    # 批量写入媒体库条目时每批的条数，避免整库数据同时驻留内存
+    SYNC_BATCH_SIZE = 1000
 
     @property
     def session(self):
@@ -75,21 +77,25 @@ class MediaDb:
             log.error(f"检查 MEDIASYNC_ITEMS.DOUBANID 列失败：{e!s}")
 
     @staticmethod
-    def _item_obj(server_type, iteminfo, seasoninfo):
-        return MEDIASYNCITEMS(
-            SERVER=server_type,
-            LIBRARY=iteminfo.get("library"),
-            ITEM_ID=iteminfo.get("id"),
-            ITEM_TYPE=iteminfo.get("type"),
-            TITLE=iteminfo.get("title"),
-            ORGIN_TITLE=iteminfo.get("originalTitle"),
-            YEAR=iteminfo.get("year"),
-            TMDBID=iteminfo.get("tmdbid"),
-            IMDBID=iteminfo.get("imdbid"),
-            DOUBANID=iteminfo.get("doubanid"),
-            PATH=iteminfo.get("path"),
-            JSON=json.dumps(seasoninfo)
-        )
+    def _item_mapping(server_type, iteminfo, seasoninfo) -> dict:
+        return {
+            "SERVER": server_type,
+            "LIBRARY": iteminfo.get("library"),
+            "ITEM_ID": iteminfo.get("id"),
+            "ITEM_TYPE": iteminfo.get("type"),
+            "TITLE": iteminfo.get("title"),
+            "ORGIN_TITLE": iteminfo.get("originalTitle"),
+            "YEAR": iteminfo.get("year"),
+            "TMDBID": iteminfo.get("tmdbid"),
+            "IMDBID": iteminfo.get("imdbid"),
+            "DOUBANID": iteminfo.get("doubanid"),
+            "PATH": iteminfo.get("path"),
+            "JSON": json.dumps(seasoninfo),
+        }
+
+    @classmethod
+    def _item_obj(cls, server_type, iteminfo, seasoninfo):
+        return MEDIASYNCITEMS(**cls._item_mapping(server_type, iteminfo, seasoninfo))
 
     def insert(self, server_type, iteminfo, seasoninfo):
         if not server_type or not iteminfo:
@@ -107,38 +113,50 @@ class MediaDb:
             self.session.rollback()
         return False
 
-    def sync_items(self, server_type, items, total_count, movie_count, tv_count):
+    def sync_items(self, server_type, items, stats_cb=None):
         """
-        一次性写入媒体库同步结果：清空、插入条目与统计共用一个事务
+        逐条写入媒体库同步结果：清空、插入条目与统计共用一个事务
+
+        条目边读边写并逐批释放，避免整库数据同时驻留内存；
+        事务提交前其他连接读到的仍是上一次的同步结果。
 
         :param server_type: 媒体服务器类型
-        :param items: [(iteminfo, seasoninfo), ...] 列表
+        :param items: 迭代器，逐条产出 (iteminfo, seasoninfo)
+        :param stats_cb: 迭代结束后调用，返回 {"total":, "movie":, "tv":} 统计数
         """
         if not server_type:
             return False
         try:
             self.session.query(MEDIASYNCITEMS).filter(
                 MEDIASYNCITEMS.SERVER == server_type).delete()
-            self.session.add_all([
-                self._item_obj(server_type, iteminfo, seasoninfo)
-                for iteminfo, seasoninfo in items if iteminfo
-            ])
+            batch = []
+            for iteminfo, seasoninfo in items:
+                if not iteminfo:
+                    continue
+                batch.append(self._item_mapping(server_type, iteminfo, seasoninfo))
+                if len(batch) >= self.SYNC_BATCH_SIZE:
+                    self.session.bulk_insert_mappings(MEDIASYNCITEMS, batch)
+                    self.session.flush()
+                    batch.clear()
+            if batch:
+                self.session.bulk_insert_mappings(MEDIASYNCITEMS, batch)
             self.session.query(MEDIASYNCSTATISTIC).filter(
                 MEDIASYNCSTATISTIC.SERVER == server_type).delete()
+            stats = stats_cb() if stats_cb else {}
             self.session.add(MEDIASYNCSTATISTIC(
                 SERVER=server_type,
-                TOTAL_COUNT=total_count,
-                MOVIE_COUNT=movie_count,
-                TV_COUNT=tv_count,
+                TOTAL_COUNT=stats.get("total", 0),
+                MOVIE_COUNT=stats.get("movie", 0),
+                TV_COUNT=stats.get("tv", 0),
                 UPDATE_TIME=TimeUtils.now_str()
             ))
             self.session.commit()
             self._query.cache_clear()
             return True
-        except Exception as e:
+        except Exception:
             log.exception("[Db]sync MEDIASYNC_ITEMS error:")
             self.session.rollback()
-        return False
+            raise
 
     def empty(self, server_type=None, library=None):
         try:

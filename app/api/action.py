@@ -1515,7 +1515,7 @@ class WebAction:
 
     def __set_rss_state(self, data):
         """
-        暂停/恢复订阅
+        暂停/恢复订阅，返回更新后的订阅卡片数据
         """
         rssid = data.get("rssid")
         state = data.get("state")
@@ -1525,9 +1525,16 @@ class WebAction:
         Subscribe().update_rss_state(rtype=mtype, rssid=rssid, state=state)
         if state == "P":
             log.info(f"【Subscribe】暂停订阅：{mtype.value} {rssid}")
-            return {"code": 0, "msg": "订阅已暂停"}
-        log.info(f"【Subscribe】恢复订阅：{mtype.value} {rssid}")
-        return {"code": 0, "msg": "订阅已恢复"}
+            msg = "订阅已暂停"
+        else:
+            log.info(f"【Subscribe】恢复订阅：{mtype.value} {rssid}")
+            msg = "订阅已恢复"
+        # 返回单条订阅数据，供前端局部刷新订阅卡片
+        if mtype == MediaType.MOVIE:
+            rss_info = Subscribe().get_subscribe_movies(rid=rssid)
+        else:
+            rss_info = Subscribe().get_subscribe_tvs(rid=rssid)
+        return {"code": 0, "msg": msg, "data": rss_info.get(str(rssid))}
 
     def __delete_tmdb_cache(self, data):
         """
