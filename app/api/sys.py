@@ -14,6 +14,7 @@ from app.core.security_center import SecurityCenter
 from app.core.services import ServiceManager
 from app.core.system_update import check_system_update, get_git_info, run_system_update
 from app.core.task_manager import TaskStore
+from app.downloader import Downloader
 from app.helper import FileHelper
 from app.middleware.security import CurrentUser, auth_check, get_current_user
 from app.models.user import LEVEL_OPERATOR, LEVEL_SYSADMIN, LEVEL_USER, UserManager
@@ -25,6 +26,38 @@ from config import Config
 
 # 系统管理路由
 sys_router = APIRouter(dependencies=[Depends(get_current_user)])
+
+
+def _get_file_roots():
+    """
+    返回允许操作的文件根目录：媒体库路径与下载器目录
+    """
+    roots = []
+    media = Config().get_config('media') or {}
+    for key in ("movie_path", "tv_path", "anime_path", "unknown_path", "media_default_path"):
+        value = media.get(key)
+        if not value:
+            continue
+        if isinstance(value, str):
+            value = [value]
+        for item in value:
+            if item:
+                roots.append(os.path.realpath(str(item)))
+    try:
+        roots.extend(os.path.realpath(str(item))
+                     for item in Downloader().get_download_visit_dirs() if item)
+    except Exception as err:
+        log.error(f"获取下载器目录失败：{err!s}")
+    return roots
+
+
+def _is_file_root_allowed(path):
+    """
+    判断文件路径是否位于允许的根目录内
+    """
+    if not path:
+        return False
+    return any(PathUtils.is_within_dir(path, root) for root in _get_file_roots())
 
 
 @sys_router.post("/sys/git_info")
@@ -321,6 +354,9 @@ def rename_file(data: Annotated[dict, Body(...)]):
     path = data.get("path")
     name = data.get("name")
     if path and name:
+        if not _is_file_root_allowed(path):
+            log.warn(f"【Security】非法的文件路径: {path}")
+            return {"code": -1, "msg": "文件路径不在媒体目录范围内"}
         # 目标名只允许文件名，不允许携带目录
         name = PathUtils.safe_filename(name)
         if not name:
@@ -341,6 +377,10 @@ def delete_files(data: Annotated[dict, Body(...)]):
     """
     files = data.get("files")
     if files:
+        invalid = [file for file in files if not _is_file_root_allowed(file)]
+        if invalid:
+            log.warn(f"【Security】非法的文件路径: {invalid}")
+            return {"code": -1, "msg": "存在不在媒体目录范围内的文件"}
         for file in files:
             del_flag, del_msg = FileHelper.delete_media_file(
                 filedir=os.path.dirname(file),

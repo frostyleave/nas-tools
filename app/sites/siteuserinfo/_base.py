@@ -45,7 +45,7 @@ def build_async_session(site_cookie: str | None = None) -> aiohttp.ClientSession
     新建事件循环，因此不能复用启动时创建的全局会话。
     """
     kwargs = {
-        "connector": aiohttp.TCPConnector(ssl=False),
+        "connector": aiohttp.TCPConnector(),
         "timeout": aiohttp.ClientTimeout(total=60),
     }
     if site_cookie:

@@ -1,5 +1,7 @@
+import ast
 import bisect
 import hashlib
+import operator
 import random
 import re
 import string
@@ -56,6 +58,40 @@ CHINESE_TO_DIGIT = {
 
 class StringUtils:
 
+    _ARITH_OPS = {
+        ast.Add: operator.add,
+        ast.Sub: operator.sub,
+        ast.Mult: operator.mul,
+        ast.Div: operator.truediv,
+        ast.FloorDiv: operator.floordiv,
+        ast.Mod: operator.mod,
+    }
+
+    @classmethod
+    def eval_arithmetic(cls, expr):
+        """
+        计算只包含数字、+ - * / // % 与括号的算术表达式
+
+        :raises ValueError: 表达式包含其它语法或运算无法完成
+        """
+        def _eval(node):
+            if isinstance(node, ast.Expression):
+                return _eval(node.body)
+            if isinstance(node, ast.Constant) and isinstance(node.value, (int, float)) \
+                    and not isinstance(node.value, bool):
+                return node.value
+            if isinstance(node, ast.BinOp) and type(node.op) in cls._ARITH_OPS:
+                return cls._ARITH_OPS[type(node.op)](_eval(node.left), _eval(node.right))
+            if isinstance(node, ast.UnaryOp) and isinstance(node.op, (ast.UAdd, ast.USub)):
+                value = _eval(node.operand)
+                return value if isinstance(node.op, ast.UAdd) else -value
+            raise ValueError(f"不支持的表达式: {ast.dump(node)}")
+
+        try:
+            tree = ast.parse(expr, mode="eval")
+        except SyntaxError as err:
+            raise ValueError(str(err)) from err
+        return _eval(tree)
 
     @staticmethod
     def num_filesize(text):

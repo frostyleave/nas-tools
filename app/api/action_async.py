@@ -11,6 +11,7 @@ from app.core.cmd_handler import CommandHandler
 from app.downloader import Downloader
 from app.mediaserver import MediaServer
 from app.middleware.security import CurrentUser, get_current_user
+from app.models.user import LEVEL_OPERATOR, LEVEL_SYSADMIN, LEVEL_USER
 from app.sites import SitesDataStatisticsCenter, SitesManager
 from app.utils import AsyncRequestUtils
 from app.utils.commons import mask_sensitive
@@ -19,6 +20,17 @@ from config import Config
 
 # 异步命令路由
 action_async_router = APIRouter(dependencies=[Depends(get_current_user)])
+
+# 各命令允许的最低用户等级，未列出的命令按管理员处理
+ASYNC_ACTION_MIN_LEVEL = {
+    "get_activity_log": LEVEL_USER,
+    "get_downloading": LEVEL_OPERATOR,
+    "test_site": LEVEL_SYSADMIN,
+    "test_mediaserver": LEVEL_SYSADMIN,
+    "net_test": LEVEL_SYSADMIN,
+    "pt_depiler_version": LEVEL_OPERATOR,
+    "refresh_pt_statistics": LEVEL_OPERATOR,
+}
 
 
 def build_downloading_result(downloader_handler, downloader_id, torrents):
@@ -105,6 +117,10 @@ class WebAsyncAction:
         func = self._actions.get(cmd)
         if not func:
             return {"code": -1, "msg": "无效请求！"}
+        level = self._current_user.level if self._current_user else 0
+        if level < ASYNC_ACTION_MIN_LEVEL.get(cmd, LEVEL_OPERATOR):
+            log.warn(f"用户{getattr(self._current_user, 'username', '')}无权执行异步命令: {cmd}")
+            return {"code": -1, "msg": "权限不足！"}
         return await func(data)
 
     async def __get_activity_log(self, data):

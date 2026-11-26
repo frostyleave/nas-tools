@@ -6,6 +6,7 @@ import os.path
 import re
 import threading
 import time
+from pathlib import Path
 from typing import Annotated
 
 from fastapi import APIRouter, BackgroundTasks, Body, Depends
@@ -25,7 +26,13 @@ from app.media.meta import MetaInfo
 from app.mediaserver import MediaServer
 from app.message import MessageService
 from app.middleware.security import CurrentUser, get_current_user
-from app.models.user import LEVEL_OPERATOR, User, UserManager
+from app.models.user import (
+    LEVEL_OPERATOR,
+    LEVEL_SYSADMIN,
+    LEVEL_USER,
+    User,
+    UserManager,
+)
 from app.modules.brushtaskv2 import BrushTaskV2 as BrushTask
 from app.modules.filetransfer import FileTransfer
 from app.modules.filter import Filter
@@ -62,6 +69,156 @@ from config import Config
 
 # action接口路由
 action_router = APIRouter(dependencies=[Depends(get_current_user)])
+
+# 各命令允许的最低用户等级，未列出的命令按管理员处理
+ACTION_MIN_LEVEL = {
+    # 普通用户：首页、搜索、订阅、媒体详情等页面
+    "logout": LEVEL_USER,
+    "change_password": LEVEL_USER,
+    "get_transfer_statistics": LEVEL_USER,
+    "mediasync_state": LEVEL_USER,
+    "start_mediasync": LEVEL_USER,
+    "get_recommend": LEVEL_USER,
+    "media_info": LEVEL_USER,
+    "media_brief_info": LEVEL_USER,
+    "media_extra_info": LEVEL_USER,
+    "media_person": LEVEL_USER,
+    "get_season_episodes": LEVEL_USER,
+    "movie_calendar_data": LEVEL_USER,
+    "tv_calendar_data": LEVEL_USER,
+    "get_default_rss_setting": LEVEL_USER,
+    "set_rss_state": LEVEL_USER,
+    "add_rss_media": LEVEL_USER,
+    "remove_rss_media": LEVEL_USER,
+    "refresh_rss": LEVEL_USER,
+    "rss_detail": LEVEL_USER,
+    "get_tvseason_list": LEVEL_USER,
+    "get_filterrules": LEVEL_USER,
+    "get_sites": LEVEL_USER,
+    "get_indexers": LEVEL_USER,
+    "get_download_dirs": LEVEL_USER,
+    "get_download_setting": LEVEL_USER,
+    "name_test": LEVEL_USER,
+    "search_media_infos": LEVEL_USER,
+    "download": LEVEL_USER,
+    "download_link": LEVEL_USER,
+    "get_userrss_task": LEVEL_USER,
+    "update_userrss_task": LEVEL_USER,
+    "delete_userrss_task": LEVEL_USER,
+    "check_userrss_task": LEVEL_USER,
+    "run_userrss": LEVEL_USER,
+    "list_rss_articles": LEVEL_USER,
+    "list_rss_history": LEVEL_USER,
+    "rss_article_test": LEVEL_USER,
+    "rss_articles_check": LEVEL_USER,
+    "rss_articles_download": LEVEL_USER,
+    # 管理员：下载、文件、站点统计、刷流、删种等页面
+    "download_torrent": LEVEL_OPERATOR,
+    "pt_start": LEVEL_OPERATOR,
+    "pt_stop": LEVEL_OPERATOR,
+    "pt_remove": LEVEL_OPERATOR,
+    "pt_info": LEVEL_OPERATOR,
+    "get_downloaders": LEVEL_OPERATOR,
+    "update_downloader": LEVEL_OPERATOR,
+    "del_downloader": LEVEL_OPERATOR,
+    "check_downloader": LEVEL_OPERATOR,
+    "test_downloader": LEVEL_OPERATOR,
+    "update_download_setting": LEVEL_OPERATOR,
+    "delete_download_setting": LEVEL_OPERATOR,
+    "get_site": LEVEL_OPERATOR,
+    "del_unknown_path": LEVEL_OPERATOR,
+    "rename": LEVEL_OPERATOR,
+    "rename_udf": LEVEL_OPERATOR,
+    "re_identification": LEVEL_OPERATOR,
+    "delete_history": LEVEL_OPERATOR,
+    "get_sub_path": LEVEL_OPERATOR,
+    "download_subtitle": LEVEL_OPERATOR,
+    "find_hardlinks": LEVEL_OPERATOR,
+    "media_path_scrap": LEVEL_OPERATOR,
+    "get_site_activity": LEVEL_OPERATOR,
+    "get_site_history": LEVEL_OPERATOR,
+    "get_site_seeding_info": LEVEL_OPERATOR,
+    "get_site_statistic_sites": LEVEL_OPERATOR,
+    "save_site_statistic_sites": LEVEL_OPERATOR,
+    "delete_tmdb_cache": LEVEL_OPERATOR,
+    "clear_tmdb_cache": LEVEL_OPERATOR,
+    "modify_tmdb_cache": LEVEL_OPERATOR,
+    "add_brushtask": LEVEL_OPERATOR,
+    "del_brushtask": LEVEL_OPERATOR,
+    "brushtask_detail": LEVEL_OPERATOR,
+    "update_brushtask_state": LEVEL_OPERATOR,
+    "run_brushtask": LEVEL_OPERATOR,
+    "list_brushtask_torrents": LEVEL_OPERATOR,
+    "add_custom_word_group": LEVEL_OPERATOR,
+    "delete_custom_word_group": LEVEL_OPERATOR,
+    "add_or_edit_custom_word": LEVEL_OPERATOR,
+    "get_custom_word": LEVEL_OPERATOR,
+    "delete_custom_words": LEVEL_OPERATOR,
+    "check_custom_words": LEVEL_OPERATOR,
+    "export_custom_words": LEVEL_OPERATOR,
+    "analyse_import_custom_words_code": LEVEL_OPERATOR,
+    "import_custom_words": LEVEL_OPERATOR,
+    "re_rss_history": LEVEL_OPERATOR,
+    "delete_rss_history": LEVEL_OPERATOR,
+    "get_rssparser": LEVEL_OPERATOR,
+    "delete_rssparser": LEVEL_OPERATOR,
+    "update_rssparser": LEVEL_OPERATOR,
+    "update_torrent_remove_task": LEVEL_OPERATOR,
+    "get_torrent_remove_task": LEVEL_OPERATOR,
+    "delete_torrent_remove_task": LEVEL_OPERATOR,
+    "get_remove_torrents": LEVEL_OPERATOR,
+    "auto_remove_torrents": LEVEL_OPERATOR,
+    "get_plugin_apps": LEVEL_OPERATOR,
+    "get_plugin_page": LEVEL_OPERATOR,
+    # 系统管理员：站点维护、媒体库、通知、目录同步、过滤、系统服务等页面
+    "update_site": LEVEL_SYSADMIN,
+    "del_site": LEVEL_SYSADMIN,
+    "get_indexer": LEVEL_SYSADMIN,
+    "add_indexer": LEVEL_SYSADMIN,
+    "update_indexer": LEVEL_SYSADMIN,
+    "delete_indexer": LEVEL_SYSADMIN,
+    "set_user_indexer_sites": LEVEL_SYSADMIN,
+    "get_message_client": LEVEL_SYSADMIN,
+    "update_message_client": LEVEL_SYSADMIN,
+    "delete_message_client": LEVEL_SYSADMIN,
+    "check_message_client": LEVEL_SYSADMIN,
+    "test_message_client": LEVEL_SYSADMIN,
+    "send_custom_message": LEVEL_SYSADMIN,
+    "add_or_edit_sync_path": LEVEL_SYSADMIN,
+    "get_sync_path": LEVEL_SYSADMIN,
+    "delete_sync_path": LEVEL_SYSADMIN,
+    "check_sync_path": LEVEL_SYSADMIN,
+    "add_filtergroup": LEVEL_SYSADMIN,
+    "restore_filtergroup": LEVEL_SYSADMIN,
+    "set_default_filtergroup": LEVEL_SYSADMIN,
+    "del_filtergroup": LEVEL_SYSADMIN,
+    "add_filterrule": LEVEL_SYSADMIN,
+    "del_filterrule": LEVEL_SYSADMIN,
+    "filterrule_detail": LEVEL_SYSADMIN,
+    "share_filtergroup": LEVEL_SYSADMIN,
+    "import_filtergroup": LEVEL_SYSADMIN,
+    "get_category_config": LEVEL_SYSADMIN,
+    "update_category_config": LEVEL_SYSADMIN,
+    "update_directory": LEVEL_SYSADMIN,
+    "sch": LEVEL_SYSADMIN,
+    "rule_test": LEVEL_SYSADMIN,
+    "truncate_blacklist": LEVEL_SYSADMIN,
+    "truncate_rsshistory": LEVEL_SYSADMIN,
+    "get_system_processes": LEVEL_SYSADMIN,
+    "get_jobs": LEVEL_SYSADMIN,
+    "run_directory_sync": LEVEL_SYSADMIN,
+    # set_system_config 的 key 另行校验
+    "set_system_config": LEVEL_USER,
+}
+
+# set_system_config 各配置键允许的最低用户等级，未列出的按系统管理员处理
+SYS_CONFIG_MIN_LEVEL = {
+    "SyncLibrary": LEVEL_USER,
+    "DefaultRssSettingMOV": LEVEL_USER,
+    "DefaultRssSettingTV": LEVEL_USER,
+    "DefaultDownloadSetting": LEVEL_OPERATOR,
+    "DefaultDownloader": LEVEL_OPERATOR,
+}
 
 # 事件响应
 @action_router.post("/do")
@@ -335,10 +492,17 @@ class WebAction:
         func = self._actions.get(cmd)
         if not func:
             return {"code": -1, "msg": "无效请求！"}
-        elif inspect.signature(func).parameters:
+        level = self._current_user.level if self._current_user else 0
+        if level < ACTION_MIN_LEVEL.get(cmd, LEVEL_OPERATOR):
+            log.warn(f"用户{getattr(self._current_user, 'username', '')}无权执行命令: {cmd}")
+            return {"code": -1, "msg": "权限不足！"}
+        if cmd == "set_system_config":
+            key = (data or {}).get("key")
+            if level < SYS_CONFIG_MIN_LEVEL.get(key, LEVEL_SYSADMIN):
+                return {"code": -1, "msg": "权限不足！"}
+        if inspect.signature(func).parameters:
             return func(data)
-        else:
-            return func()
+        return func()
 
     def set_config_directory(self, cfg, oper, cfg_key, cfg_value, update_value=None):
         """
@@ -489,8 +653,15 @@ class WebAction:
         for file_item in files:
             if not file_item:
                 continue
-            file_name = file_item.get("upload", {}).get("filename")
-            file_path = os.path.join(Config().get_temp_path(), file_name)
+            raw_name = (file_item.get("upload") or {}).get("filename") or ""
+            file_name = PathUtils.safe_filename(raw_name)
+            if not file_name:
+                return {"code": -1, "msg": "非法的种子文件名"}
+            temp_path = Path(Config().get_temp_path()).resolve()
+            file_path = (temp_path / file_name).resolve()
+            if not PathUtils.is_within_dir(file_path, temp_path) or file_path.parent != temp_path:
+                return {"code": -1, "msg": "非法的种子文件名"}
+            file_path = str(file_path)
             media_info = MediaService().get_media_info(title=file_name)
             if media_info:
                 media_info.site = "WEB"
@@ -894,9 +1065,10 @@ class WebAction:
         site_free = False
         site_2xfree = False
         site_hr = False
+        ret = None
         if tid:
             ret = SitesManager().get_site(siteid=tid)
-            if ret.rssurl:
+            if ret and ret.rssurl:
                 site_attr = SiteConf().get_grap_conf(ret.rssurl)
                 if site_attr.get("FREE"):
                     site_free = True
@@ -904,8 +1076,22 @@ class WebAction:
                     site_2xfree = True
                 if site_attr.get("HR"):
                     site_hr = True
-        else:
-            ret = []
+        if ret:
+            if not self._current_user or self._current_user.level < LEVEL_SYSADMIN:
+                # 普通管理员只需要站点基础信息，凭据仅下发给系统管理员
+                ret = {
+                    "id": ret.id,
+                    "name": ret.name,
+                    "rule": ret.rule,
+                    "download_setting": ret.download_setting,
+                    "proxy": ret.proxy,
+                    "parse": ret.parse_detail,
+                    "unread_msg_notify": ret.unread_msg_notify,
+                }
+            else:
+                # 前端使用 parse 字段，模型里对应 parse_detail
+                ret = ret.model_dump()
+                ret["parse"] = ret.get("parse_detail")
         return {"code": 0, "site": ret, "site_free": site_free, "site_2xfree": site_2xfree, "site_hr": site_hr}
 
     def __get_sites(self, data):
@@ -915,13 +1101,7 @@ class WebAction:
         rss = bool(data.get("rss"))
         brush = bool(data.get("brush"))
         statistic = bool(data.get("statistic"))
-        basic = bool(data.get("basic"))
-        if basic:
-            sites = SitesManager().get_site_dict(rss=rss,
-                                                 brush=brush,
-                                                 statistic=statistic)
-        else:
-            sites = SitesManager().get_sites(rss=rss,
+        sites = SitesManager().get_site_dict(rss=rss,
                                              brush=brush,
                                              statistic=statistic)
         return {"code": 0, "sites": sites}
@@ -2379,7 +2559,7 @@ class WebAction:
                     return {"code": 1, "msg": "偏移集数格式有误"}
                 # 试算校验，确保表达式能正常运算
                 try:
-                    int(eval(offset.replace("EP", "1")))
+                    int(StringUtils.eval_arithmetic(offset.replace("EP", "1")))
                 except Exception:
                     return {"code": 1, "msg": "偏移集数格式有误"}
             if wid:
@@ -3772,9 +3952,14 @@ class WebAction:
         category_name = data.get("category_name")
         if not category_name:
             return {"code": 1, "msg": "请输入二级分类策略名称"}
-        if category_name == "config":
+        if category_name == "config" or any(ch in category_name for ch in (".", "/", "\\", "\x00")):
             return {"code": 1, "msg": "非法二级分类策略名称"}
-        category_path = os.path.join(Config().get_config_path(), f"{category_name}.yaml")
+        config_path = Config().get_config_path()
+        category_path = os.path.join(config_path, f"{category_name}.yaml")
+        # 只允许读取配置目录下的直接子文件
+        if not PathUtils.is_within_dir(category_path, config_path) \
+                or os.path.realpath(os.path.dirname(category_path)) != os.path.realpath(config_path):
+            return {"code": 1, "msg": "非法二级分类策略名称"}
         if not os.path.exists(category_path):
             return {"code": 1, "msg": "请保存生成配置文件"}
         # 读取category配置文件数据

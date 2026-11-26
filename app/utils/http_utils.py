@@ -85,7 +85,7 @@ class RequestUtils:
         kwargs.setdefault("cookies", self._cookies)
         kwargs.setdefault("proxies", self._proxies)
         kwargs.setdefault("timeout", self._timeout)
-        kwargs.setdefault("verify", False)
+        kwargs.setdefault("verify", True)
         kwargs.setdefault("stream", False)
         try:
             return req_method(method, url, **kwargs)

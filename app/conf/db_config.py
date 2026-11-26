@@ -106,8 +106,8 @@ DB_CONFIG_DEFAULTS = {
     },
     "security": {
         "media_server_webhook_allow_ip": {"ipv4": "0.0.0.0/0", "ipv6": "::/0"},
-        "telegram_webhook_allow_ip": {"ipv4": "127.0.0.1", "ipv6": "::/0"},
-        "synology_webhook_allow_ip": {"ipv4": "127.0.0.1", "ipv6": "::/0"},
+        "telegram_webhook_allow_ip": {"ipv4": "127.0.0.1", "ipv6": "::1"},
+        "synology_webhook_allow_ip": {"ipv4": "127.0.0.1", "ipv6": "::1"},
         "check_apikey": True,
     },
     "laboratory": {

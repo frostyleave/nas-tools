@@ -1,3 +1,4 @@
+import ipaddress
 from datetime import timedelta
 from typing import Annotated
 
@@ -98,16 +99,38 @@ def logout():
     return response
 
 
+def _is_local_address(ip: str) -> bool:
+    """
+    判断地址是否为本机或内网地址（Docker 反向代理、内网服务的直连对端）
+    """
+    try:
+        ipaddr = ipaddress.ip_address(ip)
+    except ValueError:
+        return False
+    if isinstance(ipaddr, ipaddress.IPv6Address) and ipaddr.ipv4_mapped:
+        ipaddr = ipaddr.ipv4_mapped
+    return ipaddr.is_loopback or ipaddr.is_private or ipaddr.is_link_local
+
+
 def get_real_ip(request: Request) -> str:
     """
-    获取请求中的真实ip
+    获取请求的真实ip：直连对端是本机或内网反向代理时才采信转发头
     """
-    x_forwarded_for = request.headers.get("x-forwarded-for")
-    if x_forwarded_for:
-        return x_forwarded_for.split(",")[0].strip()
-    x_real_ip = request.headers.get("x-real-ip")
+    if not request.client:
+        return "unknown"
+    peer = request.client.host
+    if not _is_local_address(peer):
+        return peer
+    # 从右往左跳过本机/内网代理，取第一个外部地址
+    x_forwarded_for = request.headers.get("x-forwarded-for") or ""
+    chain = [item.strip() for item in x_forwarded_for.split(",") if item.strip()]
+    for ip in reversed(chain):
+        if not _is_local_address(ip):
+            return ip
+    if chain:
+        # 整条链路都是内网地址时无法区分代理与直连客户端，以直连对端为准
+        return peer
+    x_real_ip = (request.headers.get("x-real-ip") or "").strip()
     if x_real_ip:
-        return x_real_ip.strip()
-    if request.client:
-        return request.client.host
-    return "unknown"
+        return x_real_ip
+    return peer

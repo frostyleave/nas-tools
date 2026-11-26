@@ -202,18 +202,41 @@ def backup() -> Response:
 # ------------------------
 # 通用图片中转 /img
 # ------------------------
+def _get_mediaserver_hosts() -> set[str]:
+    """
+    已配置的媒体服务器主机名，/img 只允许中转这些主机的图片
+    """
+    hosts = set()
+    for node in ("emby", "jellyfin", "plex"):
+        conf = Config().get_config(node) or {}
+        for key in ("host", "play_host"):
+            value = str(conf.get(key) or "").strip()
+            if not value:
+                continue
+            if "://" not in value:
+                value = "http://" + value
+            try:
+                host = urlparse(value).hostname
+            except ValueError:
+                host = None
+            if host:
+                hosts.add(host.lower())
+    return hosts
+
+
 def _is_allowed_image_url(url: str) -> bool:
     """
     校验 /img 的中转目标
 
-    /img 的主要用途是中转 Jellyfin / Emby / Plex 的海报，目标通常是内网或回环地址，
-    因此不能按 IP 段拦截；这里只限制 http/https，避免 file:// 等本地协议被读取。
+    /img 只用于中转媒体服务器的内网海报，目标主机必须是已配置的 Emby/Jellyfin/Plex。
     """
     try:
         parsed = urlparse(url)
     except ValueError:
         return False
-    return parsed.scheme in ("http", "https") and bool(parsed.hostname)
+    if parsed.scheme not in ("http", "https") or not parsed.hostname:
+        return False
+    return parsed.hostname.lower() in _get_mediaserver_hosts()
 
 
 async def _fetch_image(url: str) -> tuple[bytes | None, int]:

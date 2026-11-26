@@ -5,6 +5,7 @@ from fastapi import APIRouter, BackgroundTasks, Request, Response
 from starlette.concurrency import run_in_threadpool
 
 import log
+from app.api.auth import get_real_ip
 from app.conf.moduleconf import ModuleConf
 from app.core.cmd_handler import CommandHandler
 from app.core.security_center import SecurityCenter
@@ -166,9 +167,9 @@ async def wechat_post(request: Request, background_tasks: BackgroundTasks):
 @open_router.post("/sendwechat")
 @auth_required
 async def sendwechat(request: Request, background_tasks: BackgroundTasks, appid: str | None = None):
-    
-    if not SecurityCenter().check_mediaserver_ip(request.client.host):
-        log.warn(f"非法IP地址的媒体服务器消息通知: {request.client.host}")
+    real_ip = get_real_ip(request)
+    if not SecurityCenter().check_mediaserver_ip(real_ip):
+        log.warn(f"非法IP地址的媒体服务器消息通知: {real_ip}")
         return Response(content="不允许的IP地址请求", status_code=403)
 
     interactive_clients = MessageService().get_interactive_client(SearchType.WX)
@@ -203,8 +204,9 @@ async def sendwechat(request: Request, background_tasks: BackgroundTasks, appid:
 @open_router.post("/plex")
 @auth_required
 async def plex_webhook(request: Request):
-    if not SecurityCenter().check_mediaserver_ip(request.client.host):
-        log.warn(f"非法IP地址的媒体服务器消息通知: {request.client.host}")
+    real_ip = get_real_ip(request)
+    if not SecurityCenter().check_mediaserver_ip(real_ip):
+        log.warn(f"非法IP地址的媒体服务器消息通知: {real_ip}")
         return Response(content="不允许的IP地址请求", status_code=403)
 
     form = await request.form()
@@ -226,8 +228,9 @@ async def plex_webhook(request: Request):
 @open_router.post("/jellyfin")
 @auth_required
 async def jellyfin_webhook(request: Request):
-    if not SecurityCenter().check_mediaserver_ip(request.client.host):
-        log.warn(f"非法IP地址的媒体服务器消息通知: {request.client.host}")
+    real_ip = get_real_ip(request)
+    if not SecurityCenter().check_mediaserver_ip(real_ip):
+        log.warn(f"非法IP地址的媒体服务器消息通知: {real_ip}")
         return Response(content="不允许的IP地址请求", status_code=403)
 
     request_json = await request.json()
@@ -243,8 +246,9 @@ async def jellyfin_webhook(request: Request):
 @open_router.api_route("/emby", methods=["GET", "POST"])
 @auth_required
 async def emby_webhook(request: Request):
-    if not SecurityCenter().check_mediaserver_ip(request.client.host):
-        log.warn(f"非法IP地址的媒体服务器消息通知: {request.client.host}")
+    real_ip = get_real_ip(request)
+    if not SecurityCenter().check_mediaserver_ip(real_ip):
+        log.warn(f"非法IP地址的媒体服务器消息通知: {real_ip}")
         return Response(content="不允许的IP地址请求", status_code=403)
 
     if request.method == "POST":
@@ -274,8 +278,9 @@ async def telegram(request: Request, background_tasks: BackgroundTasks):
     interactive_client = interactive_clients[0]
 
     msg_json = await request.json()
-    if not SecurityCenter().check_telegram_ip(request.client.host):
-        log.error("收到来自 %s 的非法Telegram消息: %s", request.client.host, msg_json)
+    real_ip = get_real_ip(request)
+    if not SecurityCenter().check_telegram_ip(real_ip):
+        log.error("收到来自 %s 的非法Telegram消息: %s", real_ip, msg_json)
         return Response(content="不允许的IP地址请求", status_code=403)
 
     if msg_json:
@@ -320,14 +325,15 @@ async def synology(request: Request, background_tasks: BackgroundTasks):
     interactive_client = interactive_clients[0]
 
     form = await request.form()
-    if not SecurityCenter().check_synology_ip(request.client.host):
-        log.error("收到来自 %s 的非法Synology Chat消息: %s", request.client.host, form)
+    real_ip = get_real_ip(request)
+    if not SecurityCenter().check_synology_ip(real_ip):
+        log.error("收到来自 %s 的非法Synology Chat消息: %s", real_ip, form)
         return Response(content="不允许的IP地址请求", status_code=403)
 
     if form:
         token = form.get("token")
         if not interactive_client.get("client").check_token(token):
-            log.error("收到来自 %s 的非法Synology Chat消息: token校验不通过！", request.client.host)
+            log.error("收到来自 %s 的非法Synology Chat消息: token校验不通过！", real_ip)
             return Response(content="token校验不通过", status_code=403)
 
         text = form.get("text")
@@ -348,8 +354,10 @@ async def synology(request: Request, background_tasks: BackgroundTasks):
 @open_router.post("/slack")
 @auth_required
 async def slack(request: Request, background_tasks: BackgroundTasks):
-    if not SecurityCenter().check_slack_ip(request.client.host):
-        log.warn(f"非法IP地址的Slack消息通知: {request.client.host}")
+    # Slack 白名单固定为本机，使用不可伪造的直连地址判断
+    peer_ip = request.client.host if request.client else "unknown"
+    if not SecurityCenter().check_slack_ip(peer_ip):
+        log.warn(f"非法IP地址的Slack消息通知: {peer_ip}")
         return Response(content="不允许的IP地址请求", status_code=403)
 
     interactive_clients = MessageService().get_interactive_client(SearchType.SLACK)

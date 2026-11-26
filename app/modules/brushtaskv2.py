@@ -1,3 +1,4 @@
+import ast
 import re
 import sys
 import time
@@ -26,6 +27,21 @@ from config import Config
 
 # 刷流删除的检查时间间隔
 BRUSH_REMOVE_TORRENTS_INTERVAL = 300
+
+
+def _parse_rule(text: str | None) -> dict:
+    """
+    解析数据库中的刷流规则（以 Python 字典字面量存储）
+    """
+    if not text:
+        return {}
+    try:
+        value = ast.literal_eval(text)
+    except (ValueError, SyntaxError):
+        log.warn(f"【Brush】刷流规则格式有误：{text}")
+        return {}
+    return value if isinstance(value, dict) else {}
+
 
 @singleton
 class BrushTaskV2:
@@ -137,8 +153,8 @@ class BrushTaskV2:
                 "transfer": task.TRANSFER == "Y",
                 "sendmessage": task.SENDMESSAGE == "Y",
                 "free": task.FREELEECH,
-                "rss_rule": eval(task.RSS_RULE),
-                "remove_rule": eval(task.REMOVE_RULE),
+                "rss_rule": _parse_rule(task.RSS_RULE),
+                "remove_rule": _parse_rule(task.REMOVE_RULE),
                 "seed_size": task.SEED_SIZE,
                 "total_size": total_size,
                 "rss_url": task.RSSURL if task.RSSURL else site_info.rssurl,

@@ -47,6 +47,10 @@ def create_access_token(data: dict, expires_delta: timedelta | None = None) -> s
 def decode_access_token(token: str) -> str | None:
     try:
         payload = jwt.decode(token, get_secret(), algorithms=[ALGORITHM])
+        # refresh token 不能当作访问令牌使用
+        token_type = payload.get("type")
+        if token_type and token_type != "access":
+            return None
         username: str = payload.get("sub")
         if username is None:
             return None

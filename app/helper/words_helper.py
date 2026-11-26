@@ -126,7 +126,7 @@ class WordsHelper:
             for episode_num_str in episode_nums_str:
                 episode_num_int = StringUtils.cn_to_number(episode_num_str)
                 offset_caculate = offset.replace("EP", str(episode_num_int))
-                episode_num_offset_int = int(eval(offset_caculate))
+                episode_num_offset_int = int(StringUtils.eval_arithmetic(offset_caculate))
                 # 向前偏移
                 if episode_num_int > episode_num_offset_int:
                     offset_order_flag = True

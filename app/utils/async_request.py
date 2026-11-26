@@ -47,7 +47,7 @@ def decode_bytes(content: bytes, encoding: str | None = None) -> str:
 
 def _create_session() -> aiohttp.ClientSession:
     return aiohttp.ClientSession(
-        connector=aiohttp.TCPConnector(limit=100, ssl=False, ttl_dns_cache=300),
+        connector=aiohttp.TCPConnector(limit=100, ttl_dns_cache=300),
         # total=None 让大文件可以边下边传，连接与读取阶段分别限时
         timeout=aiohttp.ClientTimeout(total=None, sock_connect=10, sock_read=20),
     )
@@ -210,7 +210,8 @@ class AsyncRequestUtils:
             "cookies": cookies or None,
             "params": params,
             "proxy": self._pick_proxy(url),
-            "ssl": False,
+            # None 表示使用默认的证书校验
+            "ssl": None,
             "allow_redirects": allow_redirects,
             "timeout": timeout,
         }

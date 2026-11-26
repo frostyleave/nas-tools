@@ -221,24 +221,24 @@ class SecurityCenter:
         try:
             ipaddr = ipaddress.ip_address(ip)
             if ipaddr.version == 4:
-                if not allow_ips.get('ipv4'):
-                    return True
-                allow_ipv4s = allow_ips.get('ipv4').split(",")
-                for allow_ipv4 in allow_ipv4s:
+                allow_ipv4s = allow_ips.get('ipv4')
+                if not allow_ipv4s:
+                    return False
+                for allow_ipv4 in allow_ipv4s.split(","):
                     if ipaddr in ipaddress.ip_network(allow_ipv4):
                         return True
             elif ipaddr.ipv4_mapped:
-                if not allow_ips.get('ipv4'):
-                    return True
-                allow_ipv4s = allow_ips.get('ipv4').split(",")
-                for allow_ipv4 in allow_ipv4s:
+                allow_ipv4s = allow_ips.get('ipv4')
+                if not allow_ipv4s:
+                    return False
+                for allow_ipv4 in allow_ipv4s.split(","):
                     if ipaddr.ipv4_mapped in ipaddress.ip_network(allow_ipv4):
                         return True
             else:
-                if not allow_ips.get('ipv6'):
-                    return True
-                allow_ipv6s = allow_ips.get('ipv6').split(",")
-                for allow_ipv6 in allow_ipv6s:
+                allow_ipv6s = allow_ips.get('ipv6')
+                if not allow_ipv6s:
+                    return False
+                for allow_ipv6 in allow_ipv6s.split(","):
                     if ipaddr in ipaddress.ip_network(allow_ipv6):
                         return True
         except Exception:
