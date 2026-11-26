@@ -28,6 +28,73 @@ function releaseLoadingOverlay(config) {
     }
 }
 
+// 属性转义，用于把错误信息拼进 <system-error> 的属性
+function escape_error_attr(value) {
+    return String(value === undefined || value === null ? '' : value)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
+// 提取错误提示文本
+function request_error_text(error) {
+    const data = error && error.response ? error.response.data : null;
+    if (typeof data === 'string' && data.trim()) {
+        return data;
+    }
+    if (data && typeof data === 'object') {
+        if (data.msg) {
+            return data.msg;
+        }
+        if (typeof data.detail === 'string' && data.detail) {
+            return data.detail;
+        }
+    }
+    return error && error.response ? `请求失败（${error.response.status}）` : '网络请求失败，请稍后重试';
+}
+
+/**
+ * 统一错误处理
+ * 仅页面级数据请求（/data、非静默、服务端错误）替换整页错误页，
+ * 其余请求交给调用方回调或弹出提示，避免轮询/自动保存的瞬时错误清空当前页面。
+ */
+function handle_request_error(config, error, handler, errorHandler) {
+    if (!error || !error.response) {
+        console.error('Request failed:', error);
+        if (errorHandler) errorHandler(error);
+        return;
+    }
+
+    const data = error.response.data;
+    // 业务错误（/do 返回的结构体）仍交给 handler 处理，保持页面内的失败提示
+    if (handler && data && typeof data === 'object' && typeof data.code !== 'undefined') {
+        handler(data);
+        return;
+    }
+
+    if (errorHandler) {
+        errorHandler(error);
+        return;
+    }
+
+    if (config && !config.silent && error.response.status >= 500
+        && String(config.url || '').startsWith('/data/')) {
+        $("#page-content").html(
+            `<system-error title="${escape_error_attr(error.response.status)}" text="${escape_error_attr(request_error_text(error))}"></system-error>`
+        );
+        return;
+    }
+
+    // 静默请求（轮询等）只记录，不打扰用户
+    if (config && config.silent) {
+        console.error('Request failed:', error);
+        return;
+    }
+    show_fail_modal(request_error_text(error));
+}
+
 /**
  * 请求拦截器 - 统一显示加载动画
  * config.silent 为 true 时不显示（如登录、轮询等自带进度的场景）
@@ -82,8 +149,9 @@ apiClient.interceptors.response.use(
  * @param {object} params - 参数
  * @param {function} handler - 成功回调
  * @param {boolean} show_progress - 是否显示全局加载动画，默认true
+ * @param {function} [errorHandler] - 请求失败回调（不传时由统一错误处理提示）
  */
-function axios_post_do(cmd, params, handler, show_progress = true) {
+function axios_post_do(cmd, params, handler, show_progress = true, errorHandler) {
 
     const data = {
         cmd: cmd,
@@ -108,13 +176,7 @@ function axios_post_do(cmd, params, handler, show_progress = true) {
             }
         })
         .catch(error => {
-            // 处理错误
-            if (error.response) {
-                $("#page-content").html(`<system-error title="${error.response.status}" text="${error.response.data || '请求出错'}"></system-error>`);
-                handler(error.response.data);
-            } else {
-                console.error('axios_post_do failed:', error);
-            }
+            handle_request_error(config, error, handler, errorHandler);
         });
 
     return request;
@@ -127,8 +189,9 @@ function axios_post_do(cmd, params, handler, show_progress = true) {
  * @param {object} params - 参数
  * @param {function} handler - 成功回调
  * @param {boolean} show_progress - 是否显示全局加载动画，默认true
+ * @param {function} [errorHandler] - 请求失败回调（不传时由统一错误处理提示）
  */
-function axios_post(req_url, params, handler, show_progress = true) {
+function axios_post(req_url, params, handler, show_progress = true, errorHandler) {
 
     const config = {
         method: 'POST',
@@ -148,12 +211,7 @@ function axios_post(req_url, params, handler, show_progress = true) {
             }
         })
         .catch(error => {
-            // 处理错误
-            if (error.response) {
-                $("#page-content").html(`<system-error title="${error.response.status}" text="${error.response.data || '请求出错'}"></system-error>`);
-            } else {
-                console.error('Request failed:', error);
-            }
+            handle_request_error(config, error, handler, errorHandler);
         });
 
     return request;
@@ -166,13 +224,14 @@ function axios_post(req_url, params, handler, show_progress = true) {
  * @param {object} params - 参数
  * @param {function} handler - 成功回调
  * @param {boolean} show_progress - 是否显示全局加载动画，默认true
+ * @param {function} [errorHandler] - 请求失败回调（不传时由统一错误处理提示）
  */
-function axios_post_do_async(cmd, params, handler, show_progress = true) {
+function axios_post_do_async(cmd, params, handler, show_progress = true, errorHandler) {
 
     return axios_post("/do_async", {
         cmd: cmd,
         data: params
-    }, handler, show_progress);
+    }, handler, show_progress, errorHandler);
 }
 
 

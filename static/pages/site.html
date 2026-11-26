@@ -967,8 +967,8 @@
   // 页面加载完成后，使用axios_post请求/data/site接口获取数据并填充页面
   $(document).ready(function () {
 
-    // 监听站点启用-停用
-    $(document).on('change', 'input[name="indexer_sites"]', function () {
+    // 监听站点启用-停用（命名空间 + off，避免重复进入页面时叠加处理器）
+    $(document).off('change.site_indexer').on('change.site_indexer', 'input[name="indexer_sites"]', function () {
 
       var $checkbox = $(this);
       var previousChecked = !this.checked;

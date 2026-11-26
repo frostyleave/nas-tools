@@ -28,6 +28,28 @@ let PageLoadedTime = new Date();
 // 基础索引配置ID（站点匹配不到索引器时兜底，禁止修改）
 const BASE_INDEXER_ID = "_nexus_";
 
+// HTML 文本转义：用于把外部数据拼进 innerHTML
+function escape_html(value) {
+  return String(value === undefined || value === null ? '' : value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+// 内联事件参数转义：用于双引号属性内、再包一层单引号 JS 字符串的场景
+function escape_js_arg(value) {
+  return String(value === undefined || value === null ? '' : value)
+    .replace(/\\/g, '\\\\')
+    .replace(/'/g, "\\'")
+    .replace(/\r?\n/g, ' ')
+    .replace(/&/g, '&amp;')
+    .replace(/"/g, '&quot;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+}
+
 
 /**
  * 公共函数区
@@ -160,9 +182,10 @@ function render_logging(logData) {
 function build_logging_row(logData) {
   let tdstyle = "padding-top: 0.5rem; padding-bottom: 0.5rem";
 
-  let text = logData.text || "";
-  const source = logData.source;
-  const time = logData.time;
+  // 日志内容来自外部，先转义再拼接，避免其中的标签/引号注入页面
+  let text = escape_html(logData.text || "");
+  const source = escape_html(logData.source);
+  const time = escape_html(logData.time);
   const level = logData.level;
 
   let tcolor = '';
@@ -186,7 +209,9 @@ function build_logging_row(logData) {
   }
   if (text.includes("http") || text.includes("magnet")) {
     tstyle = `${tstyle} word-break: break-all;`
-    text = text.replace(/：((?:http|magnet).+?)(?:\s|$)/g, "：<a href='$1' target='_blank'>$1</a>")
+    // 仅识别 http(s) 与 magnet 链接，转义后的内容拼进属性不会有闭合风险
+    text = text.replace(/：((?:https?:\/\/|magnet:\?)[^\s<]+)/g,
+      (match, url) => `：<a href="${url}" target="_blank" rel="noopener noreferrer">${url}</a>`)
   }
 
   return `<tr>
@@ -290,8 +315,8 @@ function connectMessage() {
     get_message('');
   };
   MessageWS.onerror = function (event) {
-    MessageWS.close();
-    MessageWS = undefined;
+    // 交由 ReconnectingWebSocket 自动重连，实例必须保留
+    console.warn('消息服务连接异常，等待自动重连');
   }
 
 }
@@ -330,9 +355,9 @@ function render_message(ret) {
   }
   // 下一次处理
   if (lst_time) {
-    setTimeout(`get_message('${lst_time}')`, 3000);
+    setTimeout(function () { get_message(lst_time); }, 3000);
   } else if (msgs) {
-    setTimeout(`get_message('')`, 3000);
+    setTimeout(function () { get_message(''); }, 3000);
   }
 }
 
@@ -1452,6 +1477,15 @@ function openFileBrowser(el, root, filter, on_folders, on_files, close_on_select
   // Add a new span and load fileTree
   p.after("<div id='fileTree" + r + "' class='fileTree card shadow-sm' style='z-index: 99999;'></div>");
   const ft = $('#fileTree' + r);
+  // 关闭时同时解绑全局监听，避免每打开一次就残留一个 document 处理器
+  const closeNs = 'mouseup.fileTree' + r;
+  const closeTree = function () {
+    $(document).off(closeNs);
+    p.off('keydown.fileTree');
+    ft.slideUp('fast', function () {
+      ft.remove();
+    });
+  };
   ft.fileTree({
     script: 'dirlist',
     root: root,
@@ -1463,9 +1497,7 @@ function openFileBrowser(el, root, filter, on_folders, on_files, close_on_select
         p.val(file);
         p.trigger('change');
         if (close_on_select) {
-          ft.slideUp('fast', function () {
-            ft.remove();
-          });
+          closeTree();
         }
       }
     },
@@ -1474,27 +1506,21 @@ function openFileBrowser(el, root, filter, on_folders, on_files, close_on_select
         p.val(folder);
         p.trigger('change');
         if (close_on_select) {
-          $(ft).slideUp('fast', function () {
-            $(ft).remove();
-          });
+          closeTree();
         }
       }
     });
   // Format fileTree according to parent position, height and width
   ft.css({ 'left': p.position().left, 'top': (p.position().top + p.outerHeight()), 'width': (p.parent().width()) });
   // close if click elsewhere
-  $(document).mouseup(function (e) {
+  $(document).on(closeNs, function (e) {
     if (!ft.is(e.target) && ft.has(e.target).length === 0) {
-      ft.slideUp('fast', function () {
-        $(ft).remove();
-      });
+      closeTree();
     }
   });
   // close if parent changed
-  p.bind("keydown", function () {
-    ft.slideUp('fast', function () {
-      $(ft).remove();
-    });
+  p.off('keydown.fileTree').on('keydown.fileTree', function () {
+    closeTree();
   });
   // Open fileTree
   ft.slideDown('fast');

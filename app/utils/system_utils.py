@@ -376,7 +376,7 @@ class SystemUtils:
                 if proc.status() != psutil.STATUS_ZOMBIE:
                     runtime = datetime.datetime.now() - datetime.datetime.fromtimestamp(
                         int(getattr(proc, 'create_time', 0)()))
-                    runtime_str = seconds_to_str(runtime.seconds)
+                    runtime_str = seconds_to_str(int(runtime.total_seconds()))
                     mem_info = getattr(proc, 'memory_info', None)()
                     if mem_info is not None:
                         mem_mb = round(mem_info.rss / (1024 * 1024), 1)

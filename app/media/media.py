@@ -848,12 +848,15 @@ class MediaService:
             file_media_info = self.__search_tmdb_web(file_media_name=name, mtype=mtype)
             
         if not file_media_info and self._search_keyword:
-            # 关键字猜测
-            cache_name = cacheman["tmdb_supply"].get(name)
-            is_movie = False
-            if not cache_name:
+            # 关键字猜测：缓存记录名称与是否电影
+            cached_supply = cacheman["tmdb_supply"].get(name)
+            if cached_supply:
+                cache_name, is_movie = cached_supply
+            else:
                 cache_name, is_movie = self.__search_engine(name)
-                cacheman["tmdb_supply"][name] = cache_name
+                # 仅缓存有结果的关键字
+                if cache_name:
+                    cacheman["tmdb_supply"][name] = (cache_name, is_movie)
             if cache_name:
                 log.info(f"【Meta】开始辅助查询：{cache_name} ...")
                 if is_movie:
@@ -1174,11 +1177,15 @@ class MediaService:
                             file_media_info = self.__search_tmdb(file_media_name=meta_info.get_name(),
                                                                  search_type=meta_info.type)
                         if not file_media_info and self._search_keyword:
-                            cache_name = cacheman["tmdb_supply"].get(meta_info.get_name())
-                            is_movie = False
-                            if not cache_name:
+                            # 关键字猜测：缓存记录名称与是否电影
+                            cached_supply = cacheman["tmdb_supply"].get(meta_info.get_name())
+                            if cached_supply:
+                                cache_name, is_movie = cached_supply
+                            else:
                                 cache_name, is_movie = self.__search_engine(meta_info.get_name())
-                                cacheman["tmdb_supply"][meta_info.get_name()] = cache_name
+                                # 仅缓存有结果的关键字
+                                if cache_name:
+                                    cacheman["tmdb_supply"][meta_info.get_name()] = (cache_name, is_movie)
                             if cache_name:
                                 log.info(f"【Meta】开始辅助查询：{cache_name} ...")
                                 if is_movie:

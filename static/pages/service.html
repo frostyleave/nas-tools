@@ -808,6 +808,11 @@
         $(`#nettest_item_res_time_${url_name}`).html(`<span class="text-red">${ret.time}</span>`);
       }
       callBack(true)
+    }, true, function () {
+      // 请求失败也要标记结果并回调，保证测试按钮能恢复
+      $(`#nettest_item_res_${url_name}`).html('<span class="badge bg-red me-1 mb-1">否</span>');
+      $(`#nettest_item_res_time_${url_name}`).html('<span class="text-red">-</span>');
+      callBack(true);
     });
   }
 

@@ -8,7 +8,8 @@ class ImageUtils:
     @staticmethod
     def calculate_theme_color(image_path):
         # 打开图片并转换为RGB模式
-        img = Image.open(image_path).convert('RGB')
+        with Image.open(image_path) as origin:
+            img = origin.convert('RGB')
         # 缩小图片尺寸以加快计算速度
         img = img.resize((100, 100), resample=Image.BILINEAR)
         # 获取所有像素颜色值

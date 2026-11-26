@@ -1207,7 +1207,7 @@ def download_history(data: Annotated[dict, Body(...)]):
         "TotalCount": total_count,
         "TotalPage": total_page,
         "CurrentPage": current_page,
-        "PageNum": page_size,
+        "PageNum": current_page,
         "Type": search_type,
         "Tmdbid": search_tmdbid,
         "Site": search_site,

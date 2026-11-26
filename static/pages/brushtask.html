@@ -519,7 +519,7 @@
 
     if (sites && sites.length > 0) {
       sites.forEach(function(site) {
-        siteSelect.append(`<option value="${site.id}">${site.name}</option>`);
+        siteSelect.append(`<option value="${escape_html(site.id)}">${escape_html(site.name)}</option>`);
       });
     }
   }
@@ -531,7 +531,7 @@
 
     if (downloaders) {
       Object.values(downloaders).forEach(function(downloader) {
-        downloaderSelect.append(`<option value="${downloader.id}">${downloader.name}</option>`);
+        downloaderSelect.append(`<option value="${escape_html(downloader.id)}">${escape_html(downloader.name)}</option>`);
       });
     }
   }
@@ -546,31 +546,31 @@
         ${stateBadge}
         <div class="card-header border-0">
           <div>
-            <input class="form-check-input m-0 align-middle" name="burshtask" value="${task.id}" type="checkbox">
+            <input class="form-check-input m-0 align-middle" name="burshtask" value="${escape_html(task.id)}" type="checkbox">
           </div>
-          <a href="javascript:void(0)" onclick="show_brushtask_detail('${task.id}')" style="text-decoration-line: none; color: unset"
+          <a href="javascript:void(0)" onclick="show_brushtask_detail('${escape_js_arg(task.id)}')" style="text-decoration-line: none; color: unset"
              title="展开/折叠" data-bs-toggle="tooltip">
             <div class="ms-1">
-              <h3 class="card-title">${task.name}</h3>
+              <h3 class="card-title">${escape_html(task.name)}</h3>
             </div>
           </a>
-          <div class="text-muted ms-2" id="detail_size_${task.id}">
+          <div class="text-muted ms-2" id="detail_size_${escape_html(task.id)}">
             ↑${task.upload_size}  ↓${task.download_size}
           </div>
           <div class="card-actions btn-actions">
-            <a href="javascript:show_brushtask_detail('${task.id}')" class="btn-action" title="展开/折叠">
+            <a href="javascript:show_brushtask_detail('${escape_js_arg(task.id)}')" class="btn-action" title="展开/折叠">
               <i class="ti ti-menu-2 fs-2"></i>
             </a>
-            <a href="javascript:run_brushtask_now('${task.id}', '${task.name}')" class="btn-action" title="立即运行任务">
+            <a href="javascript:run_brushtask_now('${escape_js_arg(task.id)}', '${escape_js_arg(task.name)}')" class="btn-action" title="立即运行任务">
               <i class="ti ti-bolt fs-2"></i>
             </a>
-            <a href="javascript:show_brushtask_torrents_modal('${task.id}')" class="btn-action" title="查看种子明细">
+            <a href="javascript:show_brushtask_torrents_modal('${escape_js_arg(task.id)}')" class="btn-action" title="查看种子明细">
               <i class="ti ti-eye fs-2"></i>
             </a>
-            <a href="javascript:edit_brushtask_modal('${task.id}')" class="btn-action" title="编辑任务">
+            <a href="javascript:edit_brushtask_modal('${escape_js_arg(task.id)}')" class="btn-action" title="编辑任务">
               <i class="ti ti-edit fs-2"></i>
             </a>
-            <a href="javascript:del_brushtask_modal('${task.id}', '${task.name}')" class="btn-action" title="删除任务">
+            <a href="javascript:del_brushtask_modal('${escape_js_arg(task.id)}', '${escape_js_arg(task.name)}')" class="btn-action" title="删除任务">
               <i class="ti ti-x fs-2"></i>
             </a>
           </div>
@@ -594,14 +594,14 @@
 
   // 生成任务详情HTML
   function generateTaskDetailHtml(task, displayStyle) {
-    const freeText = task.free ? `<span class="badge bg-green">${task.free}</span>` : '<span class="badge bg-orange">全部</span>';
+    const freeText = task.free ? `<span class="badge bg-green">${escape_html(task.free)}</span>` : '<span class="badge bg-orange">全部</span>';
     const rssRuleText = task.rss_rule ? brushRuleString(task.rss_rule) : '无限制';
     const removeRuleText = task.remove_rule ? brushRuleString(task.remove_rule) : '未启用';
     const seedSizeText = task.seed_size ? `${task.total_size} GB / ${task.seed_size} GB` : '无限制';
     const intervalText = /^\d+$/.test(task.interval) ? `${task.interval} 分钟` : task.interval;
     const sendMessageStatus = task.sendmessage ? '<span class="status status-green">开</span>' : '<span class="status status-red">关</span>';
     const transferStatus = task.transfer ? '<span class="status status-green">开</span>' : '<span class="status status-red">关</span>';
-    const labelText = task.label ? `<span class="badge">${task.label}</span>` : '';
+    const labelText = task.label ? `<span class="badge">${escape_html(task.label)}</span>` : '';
     const stateText = getStateText(task.state);
 
     return `
@@ -611,7 +611,7 @@
             <div class="datagrid-title">站点</div>
             <div class="datagrid-content">
               <div class="d-flex align-items-center">
-                <h3 class="mb-0">${task.site}</h3>
+                <h3 class="mb-0">${escape_html(task.site)}</h3>
               </div>
             </div>
           </div>
@@ -637,7 +637,7 @@
           </div>
           <div class="datagrid-item">
             <div class="datagrid-title">下载器</div>
-            <div class="datagrid-content">${task.downloader_name || ""}</div>
+            <div class="datagrid-content">${escape_html(task.downloader_name || "")}</div>
           </div>
           <div class="datagrid-item">
             <div class="datagrid-title">消息推送</div>
@@ -673,7 +673,7 @@
           </div>
           <div class="datagrid-item">
             <div class="datagrid-title">保存目录</div>
-            <div class="datagrid-content">${task.savepath || ''}</div>
+            <div class="datagrid-content">${escape_html(task.savepath || '')}</div>
           </div>
         </div>
       </div>

@@ -34,9 +34,13 @@ const PollingManager = {
 
     const run = () => {
       if (!active) return;
-      fn().finally(() => {
-        if (active) timer = setTimeout(run, interval);
-      });
+      // 轮询函数返回的 Promise 可能被 reject，这里统一吞掉，避免未处理异常
+      Promise.resolve()
+        .then(fn)
+        .catch((err) => console.error('轮询执行失败:', err))
+        .finally(() => {
+          if (active) timer = setTimeout(run, interval);
+        });
     };
 
     const stop = () => {
@@ -378,8 +382,20 @@ function loadPage(htmlPath, queryString, navPath) {
     }
   }
 
+  // 中断上一页尚未完成的加载，避免旧页面内容覆盖新页面
+  if (NavPageXhr) {
+    NavPageXhr.abort();
+    NavPageXhr = null;
+  }
+
   // 直接加载HTML文件
-  $("#page-content").load(htmlPath, function(_, status, xhr) {
+  NavPageXhr = $("#page-content").load(htmlPath, function(_, status, xhr) {
+
+    // 被中断的旧请求不处理，也不隐藏新页面的加载状态
+    if (status == "abort") {
+      return;
+    }
+    NavPageXhr = null;
 
     // 隐藏等待动画并关闭加载标记（菜单切换时顺带播放页面淡入）
     hidePageLoading(switchSeq);

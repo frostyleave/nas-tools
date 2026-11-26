@@ -421,15 +421,15 @@
       <div class="card">
         <div class="card-header">
           <div>
-            <input class="form-check-input m-0 align-middle" name="userrss_task" value="${task.id}" type="checkbox">
+            <input class="form-check-input m-0 align-middle" name="userrss_task" value="${escape_html(task.id)}" type="checkbox">
           </div>
           <div>${stateBadge}</div>
-          <a href="javascript:void(0)" onclick="show_userrss_detail(${task.id})" style="text-decoration-line: none; color: unset"
+          <a href="javascript:void(0)" onclick="show_userrss_detail('${escape_js_arg(task.id)}')" style="text-decoration-line: none; color: unset"
              title="展开/折叠" data-bs-toggle="tooltip">
-            <div class="ms-3"><h3 class="card-title">${task.name}</h3></div>
+            <div class="ms-3"><h3 class="card-title">${escape_html(task.name)}</h3></div>
           </a>
           <div class="ms-2 me-auto d-none d-sm-block">
-            <a href="javascript:run_userrss_now('${task.id}')" class="btn-icon" title="立即运行任务"
+            <a href="javascript:run_userrss_now('${escape_js_arg(task.id)}')" class="btn-icon" title="立即运行任务"
               data-bs-toggle="tooltip">
               <i class="ti ti-bolt fs-2"></i>
             </a>
@@ -439,33 +439,33 @@
             <i class="ti ti-dots fs-2"></i>
           </a>
           <div class="dropdown-menu dropdown-menu-end">
-            <button class="dropdown-item text-info" onclick="run_userrss_now('${task.id}')">
+            <button class="dropdown-item text-info" onclick="run_userrss_now('${escape_js_arg(task.id)}')">
               立即运行
             </button>
-            <button class="dropdown-item" onclick="show_rss_articles_modal('${task.id}')">
+            <button class="dropdown-item" onclick="show_rss_articles_modal('${escape_js_arg(task.id)}')">
               预览报文
             </button>
-            <button class="dropdown-item" onclick="edit_userrss_modal('${task.id}')">
+            <button class="dropdown-item" onclick="edit_userrss_modal('${escape_js_arg(task.id)}')">
               编辑任务
             </button>
-            <button class="dropdown-item text-danger" onclick="del_userrss_modal('${task.id}', '${task.name}')">
+            <button class="dropdown-item text-danger" onclick="del_userrss_modal('${escape_js_arg(task.id)}', '${escape_js_arg(task.name)}')">
               删除任务
             </button>
           </div>
           <div class="card-actions btn-actions ms-1 d-none d-sm-block">
-            <a href="javascript:void(0)" onclick="show_userrss_detail(${task.id})" class="btn-action"
+            <a href="javascript:void(0)" onclick="show_userrss_detail('${escape_js_arg(task.id)}')" class="btn-action"
                title="展开/折叠">
               <i class="ti ti-menu-2 fs-2"></i>
             </a>
-            <a href="javascript:show_rss_articles_modal('${task.id}')" class="btn-action"
+            <a href="javascript:show_rss_articles_modal('${escape_js_arg(task.id)}')" class="btn-action"
                title="预览报文">
               <i class="ti ti-eye fs-2"></i>
             </a>
-            <a href="javascript:edit_userrss_modal('${task.id}')" class="btn-action"
+            <a href="javascript:edit_userrss_modal('${escape_js_arg(task.id)}')" class="btn-action"
                title="编辑任务">
               <i class="ti ti-edit fs-2"></i>
             </a>
-            <a href="javascript:del_userrss_modal('${task.id}', '${task.name}')" class="btn-action"
+            <a href="javascript:del_userrss_modal('${escape_js_arg(task.id)}', '${escape_js_arg(task.name)}')" class="btn-action"
                title="删除任务">
               <i class="ti ti-x fs-2"></i>
             </a>
@@ -786,7 +786,9 @@
       $("#userrss_name").removeClass("is-invalid");
     }
     let reg = /(^\s+)|(\s+$)|\s+/g;
-    if (isNaN(userrss_common.interval) && userrss_common.interval.match(reg).length == 4){
+    const interval_value = userrss_common.interval == null ? "" : String(userrss_common.interval);
+    const interval_spaces = interval_value.match(reg);
+    if (isNaN(interval_value) && interval_spaces && interval_spaces.length == 4) {
       $("#userrss_interval").removeClass("is-invalid");
     }
     else if (!userrss_common.interval || isNaN(userrss_common.interval)) {

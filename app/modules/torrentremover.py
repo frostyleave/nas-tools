@@ -136,7 +136,7 @@ class TorrentRemover:
                     for torrent in torrents:
                         name = torrent.get("name")
                         site = torrent.get("site")
-                        size = round(torrent.get("size")/1021/1024/1024, 3)
+                        size = round(torrent.get("size")/1024/1024/1024, 3)
                         text_item = f"{name} 来自站点：{site} 大小：{size} GB"
                         log.info(f"【TorrentRemover】暂停种子：{text_item}")
                         text = f"{text}\n{text_item}"
@@ -148,7 +148,7 @@ class TorrentRemover:
                     for torrent in torrents:
                         name = torrent.get("name")
                         site = torrent.get("site")
-                        size = round(torrent.get("size") / 1021 / 1024 / 1024, 3)
+                        size = round(torrent.get("size") / 1024 / 1024 / 1024, 3)
                         text_item = f"{name} 来自站点：{site} 大小：{size} GB"
                         log.info(f"【TorrentRemover】删除种子：{text_item}")
                         text = f"{text}\n{text_item}"
@@ -161,7 +161,7 @@ class TorrentRemover:
                     for torrent in torrents:
                         name = torrent.get("name")
                         site = torrent.get("site")
-                        size = round(torrent.get("size") / 1021 / 1024 / 1024, 3)
+                        size = round(torrent.get("size") / 1024 / 1024 / 1024, 3)
                         text_item = f"{name} 来自站点：{site} 大小：{size} GB"
                         log.info(f"【TorrentRemover】删除种子及文件：{text_item}")
                         text = f"{text}\n{text_item}"

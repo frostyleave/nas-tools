@@ -568,7 +568,13 @@
     $('#site-activity').modal("show");
   }
 
-  window.onresize = function () {
+  // 窗口尺寸变化时重排图表（切换页面后自动解绑）
+  $(window).off('resize.statistics_page').on('resize.statistics_page', function () {
+    // 已切到其它页面时自动解绑，避免继续操作已移除的图表
+    if (!document.getElementById('statistics-container')) {
+      $(window).off('resize.statistics_page');
+      return;
+    }
     if (chart_history) {
       chart_history.resize();
     }
@@ -576,7 +582,7 @@
       chart_site_activity.resize();
     }
     update_site_statistics_layout();
-  };
+  });
 
   // 站点卡片按列独立排布：展开一张卡片只会挤开同列的下一张
   // 列数不写死断点，按实际可用宽度和卡片最小宽度计算
@@ -869,7 +875,10 @@
     const has_data = item.has_data !== false;
     const no_data = '<span class="text-secondary">—</span>';
     const ratio = has_data ? statistics_ratio_text(item.ratio) : no_data;
-    const site_arg = JSON.stringify(String(item.site || ''));
+    // 站点名作为 JS 字符串嵌入单引号属性；先转义 & 和单引号，避免破坏属性
+    const site_arg = JSON.stringify(String(item.site || ''))
+      .replace(/&/g, '&amp;')
+      .replace(/'/g, '&#39;');
     const detail_id = 'st-detail-' + index;
     const is_open = expanded_sites.has(String(item.site || ''));
     const message_icon = item.msg_unread > 0

@@ -17,7 +17,7 @@ class Constants:
 
     # 种子名/文件名要素分隔字符（空格：单空格不分割，仅分割连续空格）
     SPLIT_CHARS_NO_BLANK = r"\.|\s{2,}|\(|\)|\[|]|-|\+|/|;|&|\||#|_"
-    SPLIT_CHARS_NO_BLANK_ESCAPED = re.escape(SPLIT_CHARS)
+    SPLIT_CHARS_NO_BLANK_ESCAPED = re.escape(SPLIT_CHARS_NO_BLANK)
 
     # TMDB域名地址
     TMDB_API_DOMAINS: ClassVar[list[str]] = [

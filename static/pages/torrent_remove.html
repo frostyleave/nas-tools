@@ -261,7 +261,7 @@
 
     if (downloaders) {
       Object.entries(downloaders).forEach(([id, downloader]) => {
-        downloaderSelect.append(`<option value="${id}">${downloader.name}</option>`);
+        downloaderSelect.append(`<option value="${escape_html(id)}">${escape_html(downloader.name)}</option>`);
       });
     }
   }
@@ -275,14 +275,14 @@
       <div class="card">
         <div class="card-header">
           <div>${stateBadge}</div>
-          <a href="javascript:void(0)" onclick="show_torrentremove_detail(${task.id})" style="text-decoration-line: none; color: unset"
+          <a href="javascript:void(0)" onclick="show_torrentremove_detail('${escape_js_arg(task.id)}')" style="text-decoration-line: none; color: unset"
              title="展开/折叠" data-bs-toggle="tooltip">
             <div class="ms-3">
-                <h3 class="card-title">${task.name}</h3>
+                <h3 class="card-title">${escape_html(task.name)}</h3>
             </div>
           </a>
           <div class="ms-2 d-none d-sm-block">
-            <a href="javascript:void(0)" onclick="run_torrent_remove_now('${task.id}')" class="btn-icon" title="立即运行任务"
+            <a href="javascript:void(0)" onclick="run_torrent_remove_now('${escape_js_arg(task.id)}')" class="btn-icon" title="立即运行任务"
               data-bs-toggle="tooltip">
               <i class="ti ti-bolt fs-2"></i>
             </a>
@@ -291,33 +291,33 @@
             <i class="ti ti-dots fs-2"></i>
           </a>
           <div class="dropdown-menu dropdown-menu-end">
-            <button class="dropdown-item text-info" onclick="run_torrent_remove_now('${task.id}')">
+            <button class="dropdown-item text-info" onclick="run_torrent_remove_now('${escape_js_arg(task.id)}')">
               立即运行
             </button>
-            <button class="dropdown-item" onclick="show_remove_torrents_modal('${task.id}')">
+            <button class="dropdown-item" onclick="show_remove_torrents_modal('${escape_js_arg(task.id)}')">
               预览删种
             </button>
-            <button class="dropdown-item" onclick="show_edit_torrent_remove_task_modal('${task.id}')">
+            <button class="dropdown-item" onclick="show_edit_torrent_remove_task_modal('${escape_js_arg(task.id)}')">
               编辑设置
             </button>
-            <button class="dropdown-item text-danger" onclick="delete_torrent_remove_task('${task.id}', '${task.name}')">
+            <button class="dropdown-item text-danger" onclick="delete_torrent_remove_task('${escape_js_arg(task.id)}', '${escape_js_arg(task.name)}')">
               删除设置
             </button>
           </div>
           <div class="card-actions btn-actions d-none d-sm-block">
-            <a href="javascript:void(0)" onclick="show_torrentremove_detail(${task.id})" class="btn-action"
+            <a href="javascript:void(0)" onclick="show_torrentremove_detail('${escape_js_arg(task.id)}')" class="btn-action"
                title="展开/折叠" data-bs-toggle="tooltip">
               <i class="ti ti-menu-2 fs-2"></i>
             </a>
-            <a href="javascript:show_remove_torrents_modal('${task.id}')" class="btn-action"
+            <a href="javascript:show_remove_torrents_modal('${escape_js_arg(task.id)}')" class="btn-action"
                title="预览删种" data-bs-toggle="tooltip">
               <i class="ti ti-eye fs-2"></i>
             </a>
-            <a href="javascript:show_edit_torrent_remove_task_modal('${task.id}')" class="btn-action"
+            <a href="javascript:show_edit_torrent_remove_task_modal('${escape_js_arg(task.id)}')" class="btn-action"
                title="编辑设置" data-bs-toggle="tooltip">
               <i class="ti ti-edit fs-2"></i>
             </a>
-            <a href="javascript:delete_torrent_remove_task('${task.id}', '${task.name}')" class="btn-action"
+            <a href="javascript:delete_torrent_remove_task('${escape_js_arg(task.id)}', '${escape_js_arg(task.name)}')" class="btn-action"
                title="删除设置" data-bs-toggle="tooltip">
               <i class="ti ti-x fs-2"></i>
             </a>
@@ -341,9 +341,9 @@
     const sizeText = task.config.size && task.config.size.length > 0 ?
       `${task.config.size[0]}-${task.config.size[task.config.size.length - 1]} GB` : '';
     const savepathKeyText = task.config.savepath_key ?
-      `<span class="badge bg-orange text-wrap text-break text-start">${task.config.savepath_key}</span>` : '';
+      `<span class="badge bg-orange text-wrap text-break text-start">${escape_html(task.config.savepath_key)}</span>` : '';
     const trackerKeyText = task.config.tracker_key ?
-      `<span class="badge bg-orange text-wrap text-break text-start">${task.config.tracker_key}</span>` : '';
+      `<span class="badge bg-orange text-wrap text-break text-start">${escape_html(task.config.tracker_key)}</span>` : '';
 
     let downloaderSpecificHtml = '';
     if (task.downloader_type === "qbittorrent") {
@@ -357,7 +357,7 @@
       '<span class="badge bg-red">已停用</span>';
 
     const tagsHtml = task.config.tags && task.config.tags.length > 0 ?
-      task.config.tags.map(tag => `<span class="badge mb-1">${tag}</span>`).join('') : '';
+      task.config.tags.map(tag => `<span class="badge mb-1">${escape_html(tag)}</span>`).join('') : '';
 
     return `
       <div class="card-body" id="detail_${task.id}" style="display: ${displayStyle};">
@@ -365,7 +365,7 @@
           <div class="datagrid-item">
             <div class="datagrid-title">下载器</div>
             <div class="datagrid-content">
-              <span class="badge mb-1 bg-blue">${task.downloader_name}</span>
+              <span class="badge mb-1 bg-blue">${escape_html(task.downloader_name)}</span>
             </div>
           </div>
           <div class="datagrid-item">
