@@ -63,13 +63,13 @@ def _build_colapt(site_info: UserSiteConf, session_factory, require_credentials:
 def _build_speedapp(site_info: UserSiteConf, session_factory, require_credentials: bool):
     # 个人 API Token 优先取 API Key 字段，其次取 Authorization 字段
     apikey = site_info.apikey or site_info.token
-    if not site_info.cookie and not apikey and require_credentials:
-        log.warn(f"【Sites】站点 {site_info.name} 未配置Cookie或API Token，无法解析")
+    if not apikey and require_credentials:
+        log.warn(f"【Sites】站点 {site_info.name} 未配置API Token，无法解析")
         return None
     return SpeedAppUserInfo(
-        site_info.name, site_info.strict_url, site_info.cookie, '',
+        site_info.name, site_info.strict_url, '', '',
         apikey=apikey,
-        session=_new_session(session_factory, site_info.cookie),
+        session=_new_session(session_factory),
         ua=site_info.ua,
         proxy=site_info.proxy,
     )

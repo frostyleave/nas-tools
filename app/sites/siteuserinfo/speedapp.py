@@ -3,7 +3,6 @@ import asyncio
 import log as logger
 from app.indexer.client._speedapp import (
     SpeedAppApiClient,
-    SpeedAppTokenProvider,
     class_name,
     integer,
     local_time,
@@ -19,8 +18,7 @@ class SpeedAppUserInfo(_ISiteUserInfo):
     """
     SpeedApp 用户信息解析
 
-    站点网页是单页应用，统计信息从 /api/me 获取；认证优先使用个人 API Token，
-    未配置时用 Cookie 换取访问令牌。
+    站点网页是单页应用，统计信息从 /api/me 获取，认证使用个人 API Token。
     """
 
     schema = SiteSchema.SpeedApp
@@ -34,16 +32,8 @@ class SpeedAppUserInfo(_ISiteUserInfo):
         self._apikey = str(apikey or "").strip()
         base_url = speedapp_base_url(self.site_url)
         proxies = Config().get_proxies() if proxy else None
-        provider = SpeedAppTokenProvider(
-            base_url,
-            cookie=self._site_cookie,
-            apikey=self._apikey,
-            ua=self._ua,
-            proxy=proxies,
-            timeout=20
-        )
         self._api = SpeedAppApiClient(
-            provider,
+            self._apikey,
             base_url,
             ua=self._ua,
             proxy=proxies,
@@ -56,10 +46,10 @@ class SpeedAppUserInfo(_ISiteUserInfo):
         return False
 
     def _parse_logged_in(self, html_text):
-        if self._site_cookie or self._apikey:
+        if self._apikey:
             return True
-        self.err_msg = "未配置 SpeedApp Cookie 或个人 API Token"
-        logger.warn(f"【Sites】{self.site_name} 未配置 Cookie 或个人 API Token，跳过后续操作")
+        self.err_msg = "未配置 SpeedApp API Token"
+        logger.warn(f"【Sites】{self.site_name} 未配置 API Token，跳过后续操作")
         return False
 
     def _parse_site_page(self, html_text):
@@ -78,10 +68,10 @@ class SpeedAppUserInfo(_ISiteUserInfo):
 
     async def test_connection(self) -> tuple[bool, str]:
         """
-        使用账号接口验证 Cookie 或个人 API Token
+        使用账号接口验证个人 API Token
         """
-        if not self._site_cookie and not self._apikey:
-            return False, "未配置 SpeedApp Cookie 或个人 API Token"
+        if not self._apikey:
+            return False, "未配置 SpeedApp API Token"
 
         payload, error = await self.visit_base_info()
         if error:
