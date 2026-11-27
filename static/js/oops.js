@@ -51,20 +51,18 @@ class EmptyContent extends HTMLElement {
 // 定义 <system-error> 自定义元素
 class SystemError extends HTMLElement {
   connectedCallback() {
-    const title = this.getAttribute('title') || '系统错误';
-    const text = this.getAttribute('text') || '发生了一个系统错误';
+    const text = this.getAttribute('text') || '发生了一个错误';
     
     this.innerHTML = `
       <div class="page-body">
         <div class="container-xl d-flex flex-column justify-content-center">
           <div class="empty">
-            <div>
-              <img src="./static/img/error.svg" class="w-25" alt="System error">
-            </div>
-            <p class="empty-title fs-1">${title}</p>
-            <p class="empty-subtitle text-muted fs-3">
+            <p class="empty-subtitle fs-3">
               ${text}
             </p>
+            <div>
+              <img src="./static/img/error.svg" class="w-75" alt="System error">
+            </div>
           </div>
         </div>
       </div>

@@ -191,7 +191,7 @@
           <div class="d-flex flex-column h-100 lit-navbar-hide-scrollbar">
             <div class="flex-shrink-0">
               <h1 class="text-center my-3">
-                <img src="../static/favicon.ico"
+                <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32' width='32' height='32'%3E%3Crect width='32' height='32' rx='3' fill='%23236cc4'/%3E%3Cpath fill='%23fff' d='M0 4.8h6.2V32H0zM21.2 4.8H27V32h-5.8zM8.3 6.85 27 31.3V32h-5.8L8.3 15.45z'/%3E%3C/svg%3E"
                      style="vertical-align: bottom;border: 1px solid var(--tblr-navbar-toggler-border-color);border-radius: 10px;">
                 <label style="font-size: xx-large;color: var(--tblr-body-color);">nastool</label>
               </h1>

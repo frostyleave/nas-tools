@@ -1,7 +1,6 @@
 import asyncio
-import os
 
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import FastAPI, Request
 from fastapi.encoders import jsonable_encoder
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
@@ -62,19 +61,6 @@ async def page_not_found(request: Request, exc):
 @app.exception_handler(500)
 async def page_server_error(request: Request, exc):
     return render_html("static/500.html", status_code=500)
-
-# favicon.ico
-@app.get("/favicon.ico")
-async def favicon():
-    """
-    网站图标
-    """
-    favicon_path = os.path.join("static", "favicon.ico")
-    if os.path.exists(favicon_path):
-        return FileResponse(favicon_path)
-    else:
-        raise HTTPException(status_code=404, detail="Favicon not found")
-
 
 # 禁止搜索引擎
 @app.get("/robots.txt")

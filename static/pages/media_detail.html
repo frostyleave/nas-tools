@@ -213,7 +213,7 @@
           if (unfinished) {
             progressHtml = `<span id="progress-tag" class="mb-1 me-1 d-inline-flex fw-bold"><i class="ti ti-flame2 fs-2 text-google"></i>${latestEp}/${latestSeason.episode_count}</span>`;
           } else {
-            progressHtml = `<span id="progress-tag" class="mb-1 me-1 d-inline-flex fw-bold"><i class="ti ti-circle-check fs-2 text-google"></i>已完结</span>`;
+            progressHtml = `<span id="progress-tag" class="mb-1 me-1 d-inline-flex fw-bold"><i class="ti ti-circle-check fs-2 text-google"></i>${latestSeason.episode_count}集</span>`;
           }
           $('#tags-container').append(progressHtml);
         }
