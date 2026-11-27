@@ -211,9 +211,9 @@
         if (!document.getElementById('progress-tag') && latestSeason.episode_count && latestEp) {
           var progressHtml = '';
           if (unfinished) {
-            progressHtml = `<span id="progress-tag" class="mb-1 me-1 d-inline-flex fw-bold"><i class="ti ti-flame2 fs-2 text-google"></i>${latestEp}/${latestSeason.episode_count}</span>`;
+            progressHtml = `<span id="progress-tag" class="mb-1 ms-1 d-inline-flex fw-bold"><i class="ti ti-flame2 fs-2 text-google"></i>${latestEp}/${latestSeason.episode_count}</span>`;
           } else {
-            progressHtml = `<span id="progress-tag" class="mb-1 me-1 d-inline-flex fw-bold"><i class="ti ti-circle-check fs-2 text-google"></i>${latestSeason.episode_count}集</span>`;
+            progressHtml = `<span id="progress-tag" class="mb-1 ms-1 d-inline-flex fw-bold"><i class="ti ti-circle-check fs-2 text-yellow"></i>${latestEp}/${latestSeason.episode_count}</span>`;
           }
           $('#tags-container').append(progressHtml);
         }
@@ -284,8 +284,8 @@
         });
 
         innerHtml += `
-          <div class="mx-1 rounded-3 overflow-hidden liquid-glass-panel" style="max-width: 43rem;">
-            <ul class="nav nav-tabs mb-0" role="tablist">${tabsHtml}</ul>
+          <div class="mx-1 rounded-3 overflow-hidden liquid-glass-panel" style="max-width: 50rem;">
+            <ul class="nav nav-tabs px-3 mb-0" role="tablist">${tabsHtml}</ul>
             <div class="tab-content">${panesHtml}</div>
           </div>`;
 
