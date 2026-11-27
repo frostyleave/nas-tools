@@ -29,6 +29,7 @@ class MetaVideo(MetaBase):
     _part_re = r"(^PART[0-9ABI]{0,2}$|^CD[0-9]{0,2}$|^DVD[0-9]{0,2}$|^DISK[0-9]{0,2}$|^DISC[0-9]{0,2}$)"
     _roman_numerals = r"^(?=[MDCLXVI])M*(C[MD]|D?C{0,3})(X[CL]|L?X{0,3})(I[XV]|V?I{0,3})$"
     _source_re = r"^BLURAY$|^HDTV$|^UHDTV$|^HDDVD$|^WEBRIP$|^DVDRIP$|^BDRIP$|^BLU$|^WEB$|^BD$|^HDRip$"
+    _source_tc_re = r"^CAM$|^CAMRIP$|^HDCAM$|^TS$|^HDTS$|^TELESYNC$|^TC$|^TELECINE$"
     _effect_re = r"^REMUX$|^UHD$|^SDR$|^HDR\d*$|^DOLBY$|^DOVI$|^DV$|^3D$|^REPACK$"
     _resources_type_re = rf"{_source_re}|{_effect_re}"
     _name_no_begin_re = r"^\[.+?]"
@@ -521,7 +522,17 @@ class MetaVideo(MetaBase):
                 self._source = source_res.group(1)
                 self._last_token = self._source.upper()
             return
-        elif token.upper() == "DL" \
+        # CAM/TS/TC 等摄录版本在年份或分辨率之后才认定，避免把片名中的同名单词当成版本
+        if self.year or self.resource_pix:
+            tc_res = re.search(rf"({self._source_tc_re})", token, re.IGNORECASE)
+            if tc_res:
+                self._last_token_type = "source"
+                self._continue_flag = False
+                if not self._source:
+                    self._source = '枪版'
+                    self._last_token = self._source
+                return
+        if token.upper() == "DL" \
                 and self._last_token_type == "source" \
                 and self._last_token == "WEB":
             self._source = "WEB-DL"

@@ -47,6 +47,11 @@ _CLASS_NAMES = {
 }
 
 _RESOLUTION_RE = re.compile(r"(?<![0-9])(2160p|1080p|720p|576p|480p|4k|8k)(?![0-9])", re.IGNORECASE)
+# 摄录版本在片名中的写法，与名称识别的判定保持一致
+_CAPTURE_TOKEN_RE = re.compile(r"(?<![A-Za-z0-9])(?:telesync|telecine|camrip|hdcam|hdts|cam|ts|tc)(?![A-Za-z0-9])",
+                               re.IGNORECASE)
+_CAPTURE_LABELS = {"CAM", "TS"}
+_YEAR_RE = re.compile(r"(?<![0-9])(?:19|20)\d{2}(?![0-9])")
 _SOURCE_PATTERNS = (
     ("Remux", re.compile(r"\bremux\b", re.IGNORECASE)),
     ("BluRay", re.compile(r"\bblu-?ray\b", re.IGNORECASE)),
@@ -223,6 +228,26 @@ def version_labels(name: str, release_details, tags=None) -> list:
             labels.append(label)
 
     return labels
+
+
+def title_with_capture(name: str, labels) -> str:
+    """
+    站点把摄录版本放在标签里，片名缺少对应信息时补到分辨率之后，供名称识别
+
+    摄录词需出现在年份或分辨率之后才认定，避免把片名中的同名单词当成版本
+    """
+    capture = next((label for label in labels or [] if label in _CAPTURE_LABELS), "")
+    if not capture:
+        return name
+    anchors = [match for match in (_YEAR_RE.search(name), _RESOLUTION_RE.search(name)) if match]
+    if not anchors:
+        return name
+    anchor = min(anchors, key=lambda match: match.end())
+    if _CAPTURE_TOKEN_RE.search(name, anchor.end()):
+        return name
+    resolution = _RESOLUTION_RE.search(name, anchor.end())
+    insert_at = resolution.end() if resolution else anchor.end()
+    return f"{name[:insert_at]} {capture}{name[insert_at:]}"
 
 
 def promotion_factors(item: dict, global_free: bool = False, global_double: bool = False) -> tuple[float, float]:
@@ -558,8 +583,9 @@ class SpeedAppSpider:
         category = item.get("category")
         download_factor, upload_factor = promotion_factors(item, global_free, global_double)
 
+        version = version_labels(title, item.get("releaseDetails"), item.get("tags"))
         labels = promotion_labels(item, global_free, global_double)
-        labels.extend(version_labels(title, item.get("releaseDetails"), item.get("tags")))
+        labels.extend(version)
 
         description = item.get("shortDescription") or ""
         genres = item.get("genres")
@@ -573,7 +599,7 @@ class SpeedAppSpider:
 
         return {
             "indexer": self._indexerid,
-            "title": title.strip(),
+            "title": title_with_capture(title.strip(), version),
             "description": description,
             "enclosure": f"{self._base_url}/api/torrents/{torrent_id}/download",
             "pubdate": local_time(item.get("refreshedAt") or item.get("updatedAt") or item.get("createdAt")),
