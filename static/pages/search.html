@@ -481,6 +481,7 @@
 
       var loopIndex = 0;
       $.each(seDict, function (group_key, group) {
+        const restype_text = group.group_info.is_tc_cam ? '枪版' : (group.group_info.restype || '其他');
         html += `
           <div class="accordion-item" id="search_results_accordion_item_${group_key}_${item.key}_${seId}">
             <h2 class="accordion-header">
@@ -490,7 +491,7 @@
                               data-bs-toggle="collapse"
                               data-bs-target="#search_results_group_${group_key}_${item.key}_${seId}"
                               aria-expanded="true">
-                              <span class="text-red">${group.group_info.restype || '其他'}</span>
+                              <span class="text-red">${restype_text}</span>
                                 &nbsp;/&nbsp;
                               <span class="text-orange">${group.group_info.respix || "未知分辨率"}</span>
                                 ${group.group_info.resource_frame ? `&nbsp;/&nbsp;<span class="text-green">${group.group_info.resource_frame}</span>` : ''}

@@ -771,6 +771,19 @@ function search_mediainfo_media(tmdbid, title, typestr) {
   media_search(tmdbid, title, typestr);
 }
 
+// 洗版与枪版尝鲜互斥
+function sync_rss_edition_mutex() {
+  const over_edition = $("#over_edition").prop("checked");
+  const tc_cam = $("#tc_cam").prop("checked");
+  if (over_edition) {
+    $("#tc_cam").prop("checked", false);
+  } else if (tc_cam) {
+    $("#over_edition").prop("checked", false);
+  }
+  $("#tc_cam").prop("disabled", over_edition);
+  $("#over_edition").prop("disabled", tc_cam && !over_edition);
+}
+
 // 新增订阅
 function add_rss_manual() {
 
@@ -782,6 +795,7 @@ function add_rss_manual() {
   const season = $("#rss_season").val();
   const mediaid = $("#rss_tmdbid").val();
   const over_edition = $("#over_edition").prop("checked");
+  const tc_cam = $("#tc_cam").prop("checked");
   const filter_restype = $("#rss_restype").val();
   const filter_pix = $("#rss_pix").val();
   const filter_team = $("#rss_team").val();
@@ -852,6 +866,7 @@ function add_rss_manual() {
       "season": season,
       "mediaid": mediaid,
       "over_edition": over_edition,
+      "tc_cam": tc_cam,
       "total_ep": total_ep,
       "current_ep": current_ep,
       "rssid": rssid,
@@ -972,9 +987,12 @@ function show_add_rss_media_modal(mtype, tmdbid, rss_name, rss_year, rss_season=
   $("#rss_keyword").val("");
   $("#rss_tmdbid").val(tmdbid || '');
   $("#over_edition").prop("checked", false);
+  $("#tc_cam").prop("checked", false);
+  $("#rss_tc_cam_div").toggle(mtype === "MOV");
   $("#rss_season").val("");
   $("#rss_total_ep").val("");
   $("#rss_current_ep").val("");
+  sync_rss_edition_mutex();
 
   if (mtype === "TV") {
     $("#rss_type").val("TV");
@@ -1006,6 +1024,7 @@ function show_add_rss_media_modal(mtype, tmdbid, rss_name, rss_year, rss_season=
       $("#rss_exclude").val(rss_setting.exclude || '');
       $("#rss_download_setting").val(rss_setting.download_setting || '');
       $("#over_edition").prop("checked", String(rss_setting.over_edition) === "1");
+      sync_rss_edition_mutex();
       refresh_savepath_select('rss_save_path', false, rss_setting.download_setting || '');
       check_manual_input_path("rss_save_path", "rss_save_path_manual", "");
       // 空列表表示不启用该渠道，按实际选中的站点回显
@@ -1024,6 +1043,8 @@ function show_add_rss_media_modal(mtype, tmdbid, rss_name, rss_year, rss_season=
       $("#rss_save_path_manual").val('');
       $("#rss_download_setting").val('');
       $("#over_edition").prop("checked", false);
+      $("#tc_cam").prop("checked", false);
+      sync_rss_edition_mutex();
       select_SelectALL(false, "rss_sites");
       select_SelectALL(false, "search_sites");
     }
@@ -1053,6 +1074,7 @@ function show_edit_rss_media_modal(rssid, type) {
   $("#rss_type").val(type);
   const is_tv = type === "TV" || type === "电视剧";
   $("#rss_modal_title").text("编辑订阅-" + (is_tv ? "电视剧" : "电影"));
+  $("#rss_tc_cam_div").toggle(!is_tv);
 
   // 刷新下拉框，站点列表渲染完成后才能回显选中的站点
   const sites_ready = refresh_rss_download_setting_dirs();
@@ -1092,6 +1114,8 @@ function show_edit_rss_media_modal(rssid, type) {
       } else {
         $("#over_edition").prop("checked", false);
       }
+      $("#tc_cam").prop("checked", !!ret.detail.tc_cam);
+      sync_rss_edition_mutex();
       $("#rss_restype").val(ret.detail.filter_restype);
       $("#rss_pix").val(ret.detail.filter_pix);
       $("#rss_team").val(ret.detail.filter_team);

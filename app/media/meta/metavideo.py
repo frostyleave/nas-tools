@@ -529,12 +529,11 @@ class MetaVideo(MetaBase):
                 self._last_token_type = "source"
                 self._continue_flag = False
                 if not self._source:
-                    self._source = '枪版'
+                    self._source = 'TC-CAM'
                     self._last_token = self._source
                 return
-        if token.upper() == "DL" \
-                and self._last_token_type == "source" \
-                and self._last_token == "WEB":
+
+        if self.__is_web_dl(token):
             self._source = "WEB-DL"
             self._continue_flag = False
             return
@@ -544,10 +543,7 @@ class MetaVideo(MetaBase):
             self._source = "BluRay"
             self._continue_flag = False
             return
-        elif token.upper() == "WEBDL":
-            self._source = "WEB-DL"
-            self._continue_flag = False
-            return
+        
         effect_res = re.search(rf"({self._effect_re})", token, re.IGNORECASE)
         if effect_res:
             self._last_token_type = "effect"
@@ -556,6 +552,16 @@ class MetaVideo(MetaBase):
             if effect not in self._effect:
                 self._effect.append(effect)
             self._last_token = effect.upper()
+
+    def __is_web_dl(self, token) -> bool:
+        if not token:
+            return False
+        token_upper = token.upper()
+        if token_upper == "WEBDL":
+            return True
+        return token_upper == "DL" \
+                and self._last_token_type == "source" \
+                and self._last_token == "WEB"
 
     def __init_video_encode(self, token):
         if not self.get_name():

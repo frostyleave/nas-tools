@@ -394,6 +394,17 @@ class MetaBase:
                 return f"{episode}"
         return ""
 
+    # TC-CAM 摄录版本标识
+    tc_cam_source = "TC-CAM"
+
+    # 是否为 TC-CAM 摄录版本
+    def is_tc_cam(self):
+        return self.is_tc_cam_source(self.resource_type)
+
+    @classmethod
+    def is_tc_cam_source(cls, resource_type):
+        return str(resource_type or "").startswith(cls.tc_cam_source)
+
     # 返回资源类型字符串，含分辨率
     def get_resource_type_string(self):
         ret_string = ""
@@ -836,6 +847,9 @@ class MetaBase:
         ep_list = self.get_episode_list()
         if ep_list:
             sort_str += str(ep_list[-1]).rjust(4, '0') + str(len(ep_list)).rjust(4, '0')
+
+        # 枪版资源优先级最低，与搜索结果页的分组排序保持一致
+        sort_str += '0' if self.is_tc_cam() else '1'
 
         sort_str += str(self.res_order).rjust(3, '0')
         

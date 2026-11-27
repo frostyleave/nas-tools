@@ -248,6 +248,10 @@
       badges.push('<span class="badge me-1 mb-1" title="已开启洗版">洗版</span>');
     }
 
+    if (attr.tc_cam) {
+      badges.push('<span class="badge me-1 mb-1" title="已开启枪版尝鲜">枪版尝鲜</span>');
+    }
+
     if (attr.download_setting && attr.download_setting !== -1 && data.DownloadSettings[attr.download_setting.toString()]) {
       badges.push(`<span class="badge me-1 mb-1" title="下载设置">${data.DownloadSettings[attr.download_setting.toString()].name}</span>`);
     }

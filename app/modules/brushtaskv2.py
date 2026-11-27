@@ -22,6 +22,7 @@ from app.modules.filter import Filter
 from app.sites import SiteConf, SitesManager
 from app.utils import StringUtils, TimeUtils
 from app.utils.commons import singleton
+from app.utils.scheduler_utils import DEFAULT_JOB_DEFAULTS
 from app.utils.types import BrushDeleteType
 from config import Config
 
@@ -81,7 +82,9 @@ class BrushTaskV2:
             return
         
         # 启动任务
-        self._scheduler = BackgroundScheduler(timezone=Config().get_timezone(), executors={"default": ThreadPoolExecutor(5)})
+        self._scheduler = BackgroundScheduler(timezone=Config().get_timezone(),
+                                              executors={"default": ThreadPoolExecutor(5)},
+                                              job_defaults=DEFAULT_JOB_DEFAULTS)
         scheduler_jobs = []
         for task in self._brush_tasks.values():
             # 任务状态：Y-正常, S-停止下载新种, N-完全停止

@@ -76,6 +76,7 @@ class Subscribe:
                           rss_sites=None,
                           search_sites=None,
                           over_edition=False,
+                          tc_cam=False,
                           filter_restype=None,
                           filter_pix=None,
                           filter_team=None,
@@ -102,6 +103,7 @@ class Subscribe:
         :param rss_sites: 订阅站点列表，为空表示不监控RSS（订阅站点、搜索站点不能同时为空）
         :param search_sites: 搜索站点列表，为空表示不搜索站点（订阅站点、搜索站点不能同时为空）
         :param over_edition: 是否选版
+        :param tc_cam: 是否枪版尝鲜（允许 TC/CAM 等摄录版本，与洗版互斥）
         :param filter_restype: 质量过滤
         :param filter_pix: 分辨率过滤
         :param filter_team: 制作组/字幕组过滤
@@ -124,6 +126,8 @@ class Subscribe:
         rss_sites = normalize_sites(rss_sites)
         search_sites = normalize_sites(search_sites)
         over_edition = 1 if over_edition else 0
+        # 枪版尝鲜与洗版互斥，洗版优先
+        tc_cam = 1 if str(tc_cam).lower() in ("1", "true") and not over_edition else 0
         filter_rule = int(filter_rule) if str(filter_rule).isdigit() else None
         total_ep = int(total_ep) if str(total_ep).isdigit() else None
         current_ep = int(current_ep) if str(current_ep).isdigit() else None
@@ -166,6 +170,9 @@ class Subscribe:
         # 默认设置中的站点可能为旧版本的逗号分隔字符串，统一规整
         rss_sites = normalize_sites(rss_sites)
         search_sites = normalize_sites(search_sites)
+        # 应用默认设置后再次保证枪版尝鲜与洗版互斥
+        if over_edition:
+            tc_cam = 0
         # 自动订阅（插件、消息、同步等）未指定站点时按全部站点处理
         if channel == RssType.Auto and not rss_sites and not search_sites:
             rss_sites = self.sites.get_site_names(rss=True)
@@ -267,6 +274,7 @@ class Subscribe:
                                                   rss_sites=rss_sites,
                                                   search_sites=search_sites,
                                                   over_edition=over_edition,
+                                                  tc_cam=tc_cam,
                                                   filter_restype=filter_restype,
                                                   filter_pix=filter_pix,
                                                   filter_team=filter_team,
@@ -287,6 +295,7 @@ class Subscribe:
                 "rss_sites": rss_sites,
                 "search_sites": search_sites,
                 "over_edition": over_edition,
+                "tc_cam": tc_cam,
                 "filter_restype": filter_restype,
                 "filter_pix": filter_pix,
                 "filter_team": filter_team,
@@ -380,6 +389,7 @@ class Subscribe:
             rss_sites = JsonUtils.loads(rss_movie.RSS_SITES, default=[])
             search_sites = JsonUtils.loads(rss_movie.SEARCH_SITES, default=[])
             over_edition = rss_movie.OVER_EDITION == 1
+            tc_cam = rss_movie.TC_CAM == 1
             filter_restype = rss_movie.FILTER_RESTYPE
             filter_pix = rss_movie.FILTER_PIX
             filter_team = rss_movie.FILTER_TEAM
@@ -417,6 +427,7 @@ class Subscribe:
                 "rss_sites": rss_sites,
                 "search_sites": search_sites,
                 "over_edition": over_edition,
+                "tc_cam": tc_cam,
                 "filter_restype": filter_restype,
                 "filter_pix": filter_pix,
                 "filter_team": filter_team,
@@ -550,7 +561,8 @@ class Subscribe:
             "rule": rss_info.get("filter_rule"),
             "include": rss_info.get("filter_include"),
             "exclude": rss_info.get("filter_exclude"),
-            "site": rss_info.get("search_sites") or None
+            "site": rss_info.get("search_sites") or None,
+            "tc_cam": rss_info.get("tc_cam")
         }
         filters = {key: value for key, value in filters.items()
                    if value not in (None, "", [])}
@@ -769,7 +781,8 @@ class Subscribe:
                     "rule": rss_info.get('filter_rule'),
                     "include": rss_info.get('filter_include'),
                     "exclude": rss_info.get('filter_exclude'),
-                    "site": rss_info.get("search_sites")
+                    "site": rss_info.get("search_sites"),
+                    "tc_cam": rss_info.get("tc_cam")
                 }
                 search_result, _, _, _ = self.searcher.search_one_torrent(
                     media_info=media_info,

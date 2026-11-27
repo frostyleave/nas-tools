@@ -328,9 +328,10 @@ LOGGING_CONFIG = {
             "handlers": ["console_access"],
             "propagate": False,
         },
+        # 放行 APScheduler 的告警（错过执行、任务异常、调度器错误），运行明细不输出
         "apscheduler": {
-            "handlers": ["null_handler"],
-            "propagate": False,
+            "level": "WARNING",
+            "propagate": True,
         },
         "alembic": {
             "handlers": ["null_handler"],

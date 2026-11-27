@@ -156,6 +156,12 @@ class _IIndexClient(metaclass=ABCMeta):
                 index_rule_fail += 1
                 continue
 
+            # 未开启枪版尝鲜的订阅排除 TC-CAM 摄录版本
+            if not filter_args.get("tc_cam", True) and item_meta.is_tc_cam():
+                log.info("【%s】[%s] %s 未开启枪版尝鲜，过滤 TC-CAM 资源", self.client_name, indexer.name, torrent_name)
+                index_rule_fail += 1
+                continue
+
             # 检查订阅过滤规则匹配
             match_flag, res_order, match_msg = filter.check_torrent_filter(meta_info=item_meta,
                                                                            filter_args=filter_args,

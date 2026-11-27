@@ -4,7 +4,7 @@ import log
 from app.core.task_manager import TaskStore
 from app.downloader.downloader import Downloader
 from app.media import DouBan, MediaService
-from app.media.meta import MetaInfo
+from app.media.meta import MetaBase, MetaInfo
 from app.message import MessageService
 from app.modules.searcher import Searcher
 from app.utils import JsonUtils
@@ -342,6 +342,7 @@ class SearchProxy:
                 "respix": respix,
                 "resource_frame": resource_frame,
                 "restype": restype,
+                "is_tc_cam": MetaBase.is_tc_cam_source(restype),
             }
             # 种子唯一标识 （大小，质量(来源、效果)，制作组组成）
             unique_key = re.sub(r"[-.\s@|]", "",
@@ -549,12 +550,14 @@ class SearchProxy:
             return int(m.group(1)) if m else -1
 
         def group_sort(k):
-            # 分组排序：先按分辨率倒序，同分辨率下有帧率的排前面且帧率倒序
+            # 分组排序：枪版固定排最后，其余按分辨率倒序，同分辨率下有帧率的排前面且帧率倒序
             group_info = k[1].get("group_info") or {}
+            is_tc_cam = bool(group_info.get("is_tc_cam"))
             frame = re.search(r"(\d+(?:\.\d+)?)",
                               group_info.get("resource_frame") or "")
             frame_value = float(frame.group(1)) if frame else 0
-            return (pix_sort_value(group_info.get("respix")),
+            return (not is_tc_cam,
+                    pix_sort_value(group_info.get("respix")),
                     bool(frame),
                     frame_value)
 

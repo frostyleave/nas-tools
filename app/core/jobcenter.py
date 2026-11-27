@@ -19,6 +19,7 @@ from apscheduler.schedulers.base import STATE_STOPPED
 import log
 from app.utils.commons import singleton
 from app.utils.scheduler_desc_utils import SchedulerDescUtils
+from app.utils.scheduler_utils import DEFAULT_JOB_DEFAULTS
 from config import Config
 
 
@@ -28,11 +29,15 @@ class JobCenter:
     _timezone = Config().get_timezone()
 
     # 系统任务管理器
-    _sys_scheduler : BackgroundScheduler = BackgroundScheduler(timezone=_timezone, executors={"default": ThreadPoolExecutor(5)})
+    _sys_scheduler : BackgroundScheduler = BackgroundScheduler(timezone=_timezone,
+                                                               executors={"default": ThreadPoolExecutor(5)},
+                                                               job_defaults=DEFAULT_JOB_DEFAULTS)
     _sys_scheduler.name = '系统任务管理器'
 
     # 插件任务管理器
-    _plg_scheduler : BackgroundScheduler = BackgroundScheduler(timezone=_timezone, executors={"default": ThreadPoolExecutor(5)})
+    _plg_scheduler : BackgroundScheduler = BackgroundScheduler(timezone=_timezone,
+                                                               executors={"default": ThreadPoolExecutor(5)},
+                                                               job_defaults=DEFAULT_JOB_DEFAULTS)
     _plg_scheduler.name = '插件任务管理器'
 
     _scheduler_list : ClassVar[list] = (_sys_scheduler, _plg_scheduler)
@@ -227,10 +232,15 @@ class JobCenter:
                 log.debug("--- [Job 成功] --- 任务 %s (id=%s) 已执行完毕", job_name, str(job.id))
                 
         elif event.code == EVENT_JOB_ERROR:
-            # 失败
-            log.exception("[Job]%s 失败, 错误信息: %s", job_name, event.exception)
+            # 只记单行摘要，完整 traceback 由 APScheduler 自己的 ERROR 记录输出
             next_run = job.next_run_time
-            if next_run:
-                log.warn("--- [Job 失败] --- 任务: %s (id=%s) 执行失败, 下次执行时间 %s", job_name, str(job.id), job.next_run_time.strftime('%Y-%m-%d %H:%M:%S %Z'))
-            else:
-                log.warn("--- [Job 失败] --- 任务: %s (id=%s) 执行失败", job_name, str(job.id))
+            next_text = next_run.strftime('%Y-%m-%d %H:%M:%S %Z') if next_run else "无"
+            log.error("[Job]%s (id=%s) 执行失败: %s, 下次执行时间 %s",
+                      job_name, str(job.id), event.exception, next_text)
+
+        elif event.code == EVENT_JOB_MISSED:
+            # 错过计划执行时间：默认参数下不会出现，仅任务单独指定了有限宽限时才可能触发
+            missed_at = getattr(event, "scheduled_run_time", None)
+            missed_text = missed_at.strftime('%Y-%m-%d %H:%M:%S %Z') if missed_at else "未知时间"
+            log.warn("--- [Job 错过] --- 任务: %s (id=%s) 错过计划执行时间 %s，本次已跳过",
+                     job_name, str(job.id), missed_text)

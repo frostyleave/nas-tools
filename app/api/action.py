@@ -1282,6 +1282,7 @@ class WebAction:
         rss_sites = data.get("rss_sites")
         search_sites = data.get("search_sites")
         over_edition = data.get("over_edition")
+        tc_cam = data.get("tc_cam")
         filter_restype = data.get("filter_restype")
         filter_pix = data.get("filter_pix")
         filter_team = data.get("filter_team")
@@ -1319,6 +1320,7 @@ class WebAction:
                                                                      rss_sites=rss_sites,
                                                                      search_sites=search_sites,
                                                                      over_edition=over_edition,
+                                                                     tc_cam=tc_cam,
                                                                      filter_restype=filter_restype,
                                                                      filter_pix=filter_pix,
                                                                      filter_team=filter_team,
@@ -1342,6 +1344,7 @@ class WebAction:
                                                                  rss_sites=rss_sites,
                                                                  search_sites=search_sites,
                                                                  over_edition=over_edition,
+                                                                 tc_cam=tc_cam,
                                                                  filter_restype=filter_restype,
                                                                  filter_pix=filter_pix,
                                                                  filter_team=filter_team,

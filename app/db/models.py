@@ -267,6 +267,7 @@ class RSSMOVIES(Base):
     RSS_SITES = Column(Text)
     SEARCH_SITES = Column(Text)
     OVER_EDITION = Column(Integer)
+    TC_CAM = Column(Integer)
     FILTER_ORDER = Column(Integer)
     FILTER_RESTYPE = Column(Text)
     FILTER_PIX = Column(Text)

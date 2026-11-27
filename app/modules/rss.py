@@ -270,17 +270,25 @@ class Rss:
         if not media_info.tmdb_info:
             return True, rss_no_exists
 
+        # 未开启枪版尝鲜的订阅排除 TC-CAM 摄录版本
+        if media_info.type == MediaType.MOVIE \
+                and media_info.is_tc_cam() \
+                and not match_info.get("tc_cam"):
+            log.info("【Rss】%s 未开启枪版尝鲜，过滤 TC-CAM 资源：%s",
+                     media_info.get_title_string(), media_info.org_string)
+            return True, rss_no_exists
+
         # 洗版模式
         if match_info.get("over_edition"):
             # 洗版时季集不完整的资源不要
             if media_info.type != MediaType.MOVIE and media_info.get_episode_list():
-                log.info("【Rss】%s %s 正在洗版，过滤掉季集不完整的资源：%s", media_info.get_title_string(), media_info.get_season_string(), media_info.org_title)
+                log.info("【Rss】%s %s 正在洗版，过滤掉季集不完整的资源：%s", media_info.get_title_string(), media_info.get_season_string(), media_info.org_string)
                 return True, rss_no_exists
             if not self.subscribe.check_subscribe_over_edition(
                     rtype=media_info.type,
                     rssid=match_info.get("id"),
                     res_order=match_info.get("res_order")):
-                log.info("【Rss】%s %s 正在洗版，跳过低优先级或同优先级资源：%s", media_info.get_title_string(), media_info.get_season_string(), media_info.org_title)
+                log.info("【Rss】%s %s 正在洗版，跳过低优先级或同优先级资源：%s", media_info.get_title_string(), media_info.get_season_string(), media_info.org_string)
                 return True, rss_no_exists
             # 不存在
             return False, rss_no_exists

@@ -10,6 +10,16 @@ from apscheduler.util import undefined
 import log
 from app.utils.time_utils import TimeUtils
 
+# 定时任务默认执行参数（APScheduler 自身默认只给 1 秒宽限，稍晚唤醒就会整次丢弃）：
+# - misfire_grace_time：None 表示不因迟到而跳过，恢复后一定会补跑一次
+# - coalesce：一次唤醒里有多次过期，只补跑最后一次
+# - max_instances：同一任务不并发执行
+DEFAULT_JOB_DEFAULTS = {
+    "misfire_grace_time": None,
+    "coalesce": True,
+    "max_instances": 1,
+}
+
 
 class SchedulerUtils:
 
@@ -56,8 +66,18 @@ class SchedulerUtils:
                 end_hour = int(end_time_range_array[0])
                 end_minute = int(end_time_range_array[1])
 
+                # 结束时间允许写到 24:00，按当天最后一分钟处理
+                end_time_count = min(end_hour * 60 + end_minute, 23 * 60 + 59)
+                # 当天已经排过就不再排，避免补跑和当天正常触发各排一次
+                scheduled_day = None
+
                 def start_random_job():
-                    task_time_count = random.randint(start_hour * 60 + start_minute, end_hour * 60 + end_minute)
+                    nonlocal scheduled_day
+                    today = TimeUtils.now().strftime('%Y-%m-%d')
+                    if scheduled_day == today:
+                        return
+                    scheduled_day = today
+                    task_time_count = random.randint(start_hour * 60 + start_minute, end_time_count)
                     SchedulerUtils.start_range_job(scheduler=scheduler,
                                                    func=func,
                                                    func_desc=func_desc,
@@ -113,12 +133,12 @@ class SchedulerUtils:
         year = now.year
         month = now.month
         day = now.day
-        # 随机数从1秒开始, 不在整点签到
+        # 随机数从1秒开始, 不在整点执行
         second = random.randint(1, 59)
-        log.info(f"{func_desc}到时间 即将在{year!s}-{month!s}-{day!s},{hour!s}:{minute!s}:{second!s}签到")
-        if hour < 0 or hour > 24:
+        log.info(f"{func_desc}到时间 即将在{year!s}-{month!s}-{day!s},{hour!s}:{minute!s}:{second!s}执行")
+        if hour < 0 or hour >= 24:
             hour = -1
-        if minute < 0 or minute > 60:
+        if minute < 0 or minute >= 60:
             minute = -1
         if hour < 0 or minute < 0:
             log.warn(f"{func_desc}时间 配置格式错误：不启动任务")

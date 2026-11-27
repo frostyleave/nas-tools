@@ -19,6 +19,7 @@ from app.modules.searcher import Searcher
 from app.modules.subscribe import Subscribe
 from app.utils import JsonUtils, RequestUtils, StringUtils, TimeUtils
 from app.utils.commons import singleton
+from app.utils.scheduler_utils import DEFAULT_JOB_DEFAULTS
 from app.utils.types import MediaType, RssType, SearchType
 from config import Config
 
@@ -130,7 +131,9 @@ class RssChecker:
         if not self._rss_tasks:
             return
         
-        self._scheduler = BackgroundScheduler(timezone=Config().get_timezone(), executors={"default": ThreadPoolExecutor(5)})
+        self._scheduler = BackgroundScheduler(timezone=Config().get_timezone(),
+                                              executors={"default": ThreadPoolExecutor(5)},
+                                              job_defaults=DEFAULT_JOB_DEFAULTS)
 
         for task in self._rss_tasks:
             if not task.get("state") or not task.get("interval"):
