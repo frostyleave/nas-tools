@@ -1,6 +1,6 @@
 import datetime
 
-from cachetools import TTLCache, cached
+from cachebox import TTLCache, cached
 
 import log
 from app.media import MediaService
@@ -26,7 +26,7 @@ def get_login_wallpaper(time_now=None):
         return get_bing_wallpaper(today)
 
 
-@cached(cache=TTLCache(maxsize=512, ttl=3600))
+@cached(cache=TTLCache(maxsize=512, global_ttl=3600), postprocess=None)
 def __get_themoviedb_wallpaper(cache_tag):
     """
     获取TheMovieDb的随机背景图
@@ -35,7 +35,7 @@ def __get_themoviedb_wallpaper(cache_tag):
     return MediaService().get_random_discover_backdrop()
 
 
-@cached(cache=TTLCache(maxsize=512, ttl=3600))
+@cached(cache=TTLCache(maxsize=512, global_ttl=3600), postprocess=None)
 def get_bing_wallpaper(today):
     """
     获取Bing每日壁纸

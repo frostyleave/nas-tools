@@ -2,7 +2,7 @@ from typing import ClassVar
 from urllib.parse import quote, urlsplit, urlunsplit
 
 import requests
-from cachetools import TTLCache, cached
+from cachebox import TTLCache, cached
 
 from app.utils import RequestUtils
 from app.utils.time_utils import TimeUtils
@@ -29,7 +29,7 @@ class Bangumi:
         pass
 
     @classmethod
-    @cached(cache=TTLCache(maxsize=128, ttl=3600))
+    @cached(cache=TTLCache(maxsize=128, global_ttl=3600), postprocess=None)
     def __invoke(cls, url, **kwargs):
         req_url = cls._base_url + url
         params = {}
@@ -51,7 +51,7 @@ class Bangumi:
         return self.__invoke(self._urls["detail"] % bid, _ts=TimeUtils.now_str('%Y%m%d'))
 
     @classmethod
-    @cached(cache=TTLCache(maxsize=2048, ttl=24 * 3600))
+    @cached(cache=TTLCache(maxsize=2048, global_ttl=24 * 3600), postprocess=None)
     def is_r18(cls, bid):
         """
         判断 Bangumi 条目是否为 R18

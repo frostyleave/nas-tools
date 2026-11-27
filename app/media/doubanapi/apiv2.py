@@ -7,7 +7,7 @@ from typing import ClassVar
 from urllib import parse
 
 import requests
-from cachetools import TTLCache, cached
+from cachebox import TTLCache, cached
 
 import log
 from app.utils import JsonUtils, RequestUtils
@@ -181,7 +181,7 @@ class DoubanApi:
             ).digest()
         ).decode()
 
-    @cached(cache=TTLCache(maxsize=256, ttl=7200))
+    @cached(cache=TTLCache(maxsize=256, global_ttl=7200), postprocess=None)
     def __invoke(self, url: str, **kwargs) -> dict:
         """
         GET请求
@@ -222,7 +222,7 @@ class DoubanApi:
 
         return JsonUtils.loads(resp_txt, default={})
 
-    @cached(cache=TTLCache(maxsize=256, ttl=7200))
+    @cached(cache=TTLCache(maxsize=256, global_ttl=7200), postprocess=None)
     def __post(self, url: str, **kwargs) -> dict:
         """
         POST请求
@@ -250,8 +250,8 @@ class DoubanApi:
         ).post_res(url=req_url, data=params)
 
         if resp is not None and resp.status_code == 400 and "rate_limit" in resp.text:
-            return resp.json()
-        return resp.json() if resp else {}
+            return JsonUtils.loads(resp.text, default={})
+        return JsonUtils.loads(resp.text, default={}) if resp else {}
 
     def imdbid(self, imdbid: str, ts=TimeUtils.now_str('%Y%m%d')):
         """

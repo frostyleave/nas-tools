@@ -2,7 +2,7 @@ import os
 import pickle
 from typing import ClassVar
 
-from cachetools import TTLCache, cached
+from cachebox import TTLCache, cached
 from lxml import etree
 
 import log
@@ -161,7 +161,7 @@ class SiteConf:
         return ret_attr
 
     @staticmethod
-    @cached(cache=TTLCache(maxsize=512, ttl=300))
+    @cached(cache=TTLCache(maxsize=512, global_ttl=300), postprocess=None)
     def __get_site_page_html(url, cookie, ua, proxy=False):
         res = RequestUtils(
             cookies=cookie,

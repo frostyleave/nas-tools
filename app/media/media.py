@@ -4,7 +4,7 @@ import random
 import re
 import traceback
 
-from cachetools import TTLCache, cached
+from cachebox import TTLCache, cached
 from lxml import etree
 
 import log
@@ -453,7 +453,7 @@ class MediaService:
             log.info(f"【Meta】{file_media_name} 在TMDB中未找到媒体信息!")
         return info
 
-    @cached(cache=TTLCache(maxsize=512, ttl=3600))
+    @cached(cache=TTLCache(maxsize=512, global_ttl=3600), postprocess=None)
     def __search_tmdb_web(self, file_media_name, mtype: MediaType):
         """
         搜索TMDB网站，直接抓取结果，结果只有一条时才返回

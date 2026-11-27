@@ -3,7 +3,7 @@ import re
 import shutil
 from urllib.parse import quote
 
-from cachetools import TTLCache, cached
+from cachebox import TTLCache, cached
 from charset_normalizer import from_bytes
 from pyquery import PyQuery
 
@@ -233,7 +233,7 @@ class OpenSubtitles(_IPluginModule):
             return ret.text
 
     @classmethod
-    @cached(cache=TTLCache(maxsize=512, ttl=3600))
+    @cached(cache=TTLCache(maxsize=512, global_ttl=3600), postprocess=None)
     def __parse_opensubtitles_results(cls, url):
         """
         搜索并解析结果

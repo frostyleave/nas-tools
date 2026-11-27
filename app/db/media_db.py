@@ -2,7 +2,7 @@ import json
 import os
 import threading
 
-from cachetools import TTLCache, cached
+from cachebox import TTLCache, cached
 from sqlalchemy import create_engine, event, text
 from sqlalchemy.orm import scoped_session, sessionmaker
 from sqlalchemy.pool import QueuePool
@@ -201,7 +201,7 @@ class MediaDb:
         """
         return self._query(server_type, title, year, tmdbid, doubanid)
 
-    @cached(cache=TTLCache(maxsize=256, ttl=60))
+    @cached(cache=TTLCache(maxsize=256, global_ttl=60), postprocess=None)
     def _query(self, server_type, title, year, tmdbid, doubanid=None):
         if not server_type:
             return None

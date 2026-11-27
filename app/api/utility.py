@@ -11,7 +11,7 @@ from typing import Annotated
 from urllib.parse import unquote, urljoin, urlparse, urlunparse
 
 import aiohttp
-from cachetools import TTLCache
+from cachebox import TTLCache
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response
 from fastapi.responses import FileResponse
 from starlette.concurrency import run_in_threadpool
@@ -54,8 +54,8 @@ IMAGE_CACHE_MAX_BYTES = 64 * 1024 * 1024
 IMAGE_CACHE_TTL = 24 * 3600
 _image_cache = TTLCache(
     maxsize=IMAGE_CACHE_MAX_BYTES,
-    ttl=IMAGE_CACHE_TTL,
-    getsizeof=lambda item: len(item[0]))
+    global_ttl=IMAGE_CACHE_TTL,
+    getsizeof=lambda key, value: len(value[0]))
 
 
 # ------------------------

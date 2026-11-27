@@ -1,10 +1,11 @@
+from functools import lru_cache
 from typing import ClassVar
 
-import jsonpath
 from apscheduler.executors.pool import ThreadPoolExecutor
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.schedulers.base import STATE_STOPPED
 from apscheduler.triggers.cron import CronTrigger
+from jsonpath_ng.ext import parse as _parse_jsonpath
 from lxml import etree
 
 import log
@@ -20,6 +21,17 @@ from app.utils import JsonUtils, RequestUtils, StringUtils, TimeUtils
 from app.utils.commons import singleton
 from app.utils.types import MediaType, RssType, SearchType
 from config import Config
+
+
+@lru_cache(maxsize=256)
+def _compile_jsonpath(path: str):
+    """编译 JSONPath 表达式，同一表达式重复取用时复用解析结果"""
+    return _parse_jsonpath(path)
+
+
+def _jsonpath_find(data, path: str) -> list:
+    """按 JSONPath 取值，返回所有匹配节点"""
+    return [match.value for match in _compile_jsonpath(path).find(data)]
 
 
 @singleton
@@ -440,7 +452,7 @@ class RssChecker:
                                 else:
                                     value = item.xpath(attr.get("path"))
                             elif attr.get("value"):
-                                value = attr.get("value")
+                                value = [attr.get("value")]
                             else:
                                 continue
                             if value:
@@ -456,7 +468,7 @@ class RssChecker:
                     log.error("【RssChecker】任务 %s RSS地址 %s 获取的订阅报文不是合法的Json格式: ", task_name, rss_url)
                     continue
                 try:
-                    matched = jsonpath.jsonpath(result_json, rss_parser_format.get("list"))
+                    matched = _jsonpath_find(result_json, rss_parser_format.get("list"))
                     item_list = matched[0] if matched else []
                     if not isinstance(item_list, list):
                         log.error("【RssChecker】任务 %s RSS地址 %s 获取的订阅报文list后不是列表", task_name, rss_url)
@@ -465,9 +477,9 @@ class RssChecker:
                         rss_item = {}
                         for key, attr in rss_parser_format.get("item", {}).items():
                             if attr.get("path"):
-                                value = jsonpath.jsonpath(item, attr.get("path"))
+                                value = _jsonpath_find(item, attr.get("path"))
                             elif attr.get("value"):
-                                value = attr.get("value")
+                                value = [attr.get("value")]
                             else:
                                 continue
                             if value:

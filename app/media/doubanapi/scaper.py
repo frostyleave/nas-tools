@@ -2,7 +2,7 @@ from typing import ClassVar
 import datetime
 
 import requests
-from cachetools import TTLCache, cached
+from cachebox import TTLCache, cached
 from lxml import etree
 
 import log
@@ -69,8 +69,8 @@ class DoubanScaper:
             "list": "//div[@id='showing-soon']/div",
             "item": {
                 "id": "./@data-subject",
-                "title": "./div[@class='intro']/h3/a/text()]",
-                "cover": "./a[class='thumb']/img/@src",
+                "title": "./div[@class='intro']/h3/a/text()",
+                "cover": "./a[@class='thumb']/img/@src",
                 "url": "./div[@class='intro']/h3/a/@href"
             }
         },
@@ -252,7 +252,7 @@ class DoubanScaper:
         return obj
 
     @classmethod
-    @cached(cache=TTLCache(maxsize=512, ttl=3600))
+    @cached(cache=TTLCache(maxsize=512, global_ttl=3600), postprocess=None)
     def detail(cls, cookie, doubanid):
         """
         查询详情
@@ -260,7 +260,7 @@ class DoubanScaper:
         return cls.__get_obj("detail", cls.__invoke_web("detail", cookie, doubanid))
 
     @classmethod
-    @cached(cache=TTLCache(maxsize=512, ttl=3600))
+    @cached(cache=TTLCache(maxsize=512, global_ttl=3600), postprocess=None)
     def user(cls, cookie, userid):
         """
         查询用户信息

@@ -9,6 +9,7 @@ from app.models.model import UserSiteConf
 from app.sites.siteuserinfo._base import _ISiteUserInfo
 from app.sites.siteuserinfo.colapt import ColaPTUserInfo
 from app.sites.siteuserinfo.mTorrent import MTorrentUserInfo
+from app.sites.siteuserinfo.speedapp import SpeedAppUserInfo
 from app.sites.siteuserinfo.tnode import TNodeSiteUserInfo
 from app.sites.siteuserinfo.yemapt import YemaUserInfo
 from app.utils.types import Spider
@@ -59,11 +60,27 @@ def _build_colapt(site_info: UserSiteConf, session_factory, require_credentials:
     )
 
 
+def _build_speedapp(site_info: UserSiteConf, session_factory, require_credentials: bool):
+    # 个人 API Token 优先取 API Key 字段，其次取 Authorization 字段
+    apikey = site_info.apikey or site_info.token
+    if not site_info.cookie and not apikey and require_credentials:
+        log.warn(f"【Sites】站点 {site_info.name} 未配置Cookie或API Token，无法解析")
+        return None
+    return SpeedAppUserInfo(
+        site_info.name, site_info.strict_url, site_info.cookie, '',
+        apikey=apikey,
+        session=_new_session(session_factory, site_info.cookie),
+        ua=site_info.ua,
+        proxy=site_info.proxy,
+    )
+
+
 # 解析器类型 → 构造逻辑
 _BUILDERS = {
     Spider.MTorrentSpider.value: _build_mtorrent,
     Spider.YemaSpider.value: _build_yema,
     Spider.ColaPTSpider.value: _build_colapt,
+    Spider.SpeedAppSpider.value: _build_speedapp,
 }
 
 

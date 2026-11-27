@@ -4,7 +4,7 @@ import threading
 from datetime import datetime
 from urllib.parse import quote
 
-from cachetools import TTLCache
+from cachebox import TTLCache
 from lxml import etree
 
 import log
@@ -46,7 +46,7 @@ class Plex(_IMediaClient):
         self._async_ready_locks: dict = {}
         self._config_generation = 0
         # 媒体库图片列表缓存，同步与异步接口共用
-        self._image_cache = TTLCache(maxsize=512, ttl=3600)
+        self._image_cache = TTLCache(maxsize=512, global_ttl=3600)
         if config:
             self._client_config = config
         else:

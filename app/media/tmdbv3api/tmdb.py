@@ -1,9 +1,8 @@
 import logging
 import threading
 import time
-from operator import attrgetter
 
-from cachetools import TTLCache, cachedmethod
+from cachebox import TTLCache, cached
 from requests import Response, Session
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
@@ -51,7 +50,7 @@ class TMDb:
 
         self._session = session if session is not None else _get_shared_session()
 
-        self._cache = TTLCache(maxsize=cache_size, ttl=cache_ttl)
+        self._cache = TTLCache(maxsize=cache_size, global_ttl=cache_ttl)
         self._remaining = 40
         self._reset = None
         
@@ -135,13 +134,13 @@ class TMDb:
         resp.raise_for_status()
         return resp
     
-    @cachedmethod(cache=attrgetter('_cache'),
-                  key=lambda self, method, url, data: (
-                      method.upper(),
-                      url,
-                      frozenset(data.items()) if data else None
-                    )
-                )
+    @cached(cache=lambda self: self._cache,
+            key_maker=lambda method, url, data=None: (
+                method.upper(),
+                url,
+                frozenset(data.items()) if data else None
+            ),
+            postprocess=None)
     def _cache_request(self, method: str, url: str, data: dict | None = None) -> Response:
         """
         缓存请求

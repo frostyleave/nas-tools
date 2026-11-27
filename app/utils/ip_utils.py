@@ -2,16 +2,16 @@ import ipaddress
 import socket
 from urllib.parse import urlparse
 
-from cachetools import TTLCache, cached
+from cachebox import TTLCache, cached
 
 import log
 from app.utils.http_utils import RequestUtils
 
 # 域名解析结果缓存，避免媒体库列表逐条判断时重复做 DNS 查询
-_INTERNAL_DOMAIN_CACHE = TTLCache(maxsize=256, ttl=300)
+_INTERNAL_DOMAIN_CACHE = TTLCache(maxsize=256, global_ttl=300)
 
 
-@cached(cache=_INTERNAL_DOMAIN_CACHE)
+@cached(cache=_INTERNAL_DOMAIN_CACHE, postprocess=None)
 def _is_internal_domain(domain: str) -> bool:
     try:
         infos = socket.getaddrinfo(domain, None)

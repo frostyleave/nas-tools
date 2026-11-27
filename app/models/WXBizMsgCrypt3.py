@@ -13,7 +13,7 @@ import struct
 import time
 import xml.etree.ElementTree as ET
 
-from Crypto.Cipher import AES
+from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 
 # Description:定义错误码含义
 #########################################################################
@@ -29,12 +29,6 @@ WXBizMsgCrypt_IllegalBuffer = -40008
 WXBizMsgCrypt_EncodeBase64_Error = -40009
 WXBizMsgCrypt_DecodeBase64_Error = -40010
 WXBizMsgCrypt_GenReturnXml_Error = -40011
-
-"""
-关于Crypto.Cipher模块，ImportError: No module named 'Crypto'解决方案
-请到官方网站 https://www.dlitz.net/software/pycrypto/ 下载pycrypto。
-下载后，按照README中的“Installation”小节的提示进行pycrypto安装。
-"""
 
 
 class FormatException(Exception):
@@ -149,11 +143,11 @@ class Prpcrypt:
     """提供接收和推送给企业微信消息的加解密接口"""
 
     def __init__(self, key):
-
-        # self.key = base64.b64decode(key+"=")
         self.key = key
-        # 设置加解密模式为AES的CBC模式
-        self.mode = AES.MODE_CBC
+
+    def _create_cipher(self) -> Cipher:
+        """AES-CBC 加解密上下文，IV 取密钥前 16 字节"""
+        return Cipher(algorithms.AES(self.key), modes.CBC(self.key[:16]))
 
     def encrypt(self, text, receiveid):
         """对明文进行加密
@@ -169,9 +163,9 @@ class Prpcrypt:
         pkcs7 = PKCS7Encoder()
         text = pkcs7.encode(text)
         # 加密
-        cryptor = AES.new(self.key, self.mode, self.key[:16])
         try:
-            ciphertext = cryptor.encrypt(text)
+            encryptor = self._create_cipher().encryptor()
+            ciphertext = encryptor.update(text) + encryptor.finalize()
             # 使用BASE64对加密后的字符串进行编码
             return WXBizMsgCrypt_OK, base64.b64encode(ciphertext)
         except Exception as e:
@@ -186,9 +180,9 @@ class Prpcrypt:
         @return: 删除填充补位后的明文
         """
         try:
-            cryptor = AES.new(self.key, self.mode, self.key[:16])
+            decryptor = self._create_cipher().decryptor()
             # 使用BASE64对密文进行解码，然后AES-CBC解密
-            plain_text = cryptor.decrypt(base64.b64decode(text))
+            plain_text = decryptor.update(base64.b64decode(text)) + decryptor.finalize()
         except Exception as e:
             logger = logging.getLogger()
             logger.error(e)

@@ -2,7 +2,7 @@ from typing import ClassVar
 import re
 
 import requests
-from cachetools import TTLCache, cached
+from cachebox import TTLCache, cached
 
 from app.utils import JsonUtils, RequestUtils
 from app.utils.commons import singleton
@@ -103,7 +103,7 @@ class DoubanWebApi:
     def __init__(self):
         self._session = requests.Session()
 
-    @cached(cache=TTLCache(maxsize=256, ttl=7200))
+    @cached(cache=TTLCache(maxsize=256, global_ttl=7200), postprocess=None)
     def __invoke(self, url: str, base_url=_base_url, **kwargs) -> dict:
         """
         GET请求

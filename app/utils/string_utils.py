@@ -8,7 +8,6 @@ import string
 from datetime import datetime, timedelta
 
 import cn2an
-import dateparser
 from dateutil.parser import isoparse
 from dateutil.parser import parse as parse_date
 
@@ -450,9 +449,12 @@ class StringUtils:
         if not datetime_str:
             return datetime_str
 
+        # 数字（如注册时间戳）转成字符串后统一解析
+        if isinstance(datetime_str, (int, float)):
+            datetime_str = str(datetime_str)
         try:
-            return dateparser.parse(datetime_str).strftime('%Y-%m-%d %H:%M:%S')
-        except Exception as e:
+            return StringUtils.parse_time_string(datetime_str)
+        except Exception:
             log.exception('unify_datetime_str error:')
             return datetime_str
 
@@ -480,11 +482,16 @@ class StringUtils:
 
     @staticmethod
     def parse_relative_time(now, time_str):
+        # 处理 today / yesterday
+        word = time_str.strip().lower()
+        if word in ("today", "yesterday"):
+            return now - timedelta(days=1) if word == "yesterday" else now
+
         # 处理 "约X小时" 和 "约X分钟"
         match = re.match(r'约([零一二三四五六七八九\d]+)(小时|分钟)', time_str)
         if match:
             amount = StringUtils.convert_chinese_to_digit(match.group(1))
-            if not amount:
+            if amount is None:
                 raise ValueError("Unsupported time format")
             if '小时' in match.group(2):
                 return now - timedelta(hours=amount)
@@ -495,7 +502,7 @@ class StringUtils:
         match = re.match(r'([零一二三四五六七八九\d]+)天', time_str)
         if match:
             days = StringUtils.convert_chinese_to_digit(match.group(1))
-            if not days:
+            if days is None:
                 raise ValueError("Unsupported time format")
             return now - timedelta(days=days)
 
@@ -506,33 +513,35 @@ class StringUtils:
             time_part = match.group(2)
             return datetime.strptime(f"{date_part.strftime('%Y-%m-%d')} {time_part}", '%Y-%m-%d %H:%M')
 
-        # 处理类似 "1 month, 2 days ago" 的相对时间
-        match = re.match(r'(\d+)\s(month|day|week|year)[s]?,?\s?(\d+)?\s?(month|day|week|year)?\s?ago', time_str)
+        # 处理 "1 month, 2 days ago" / "a month ago" 这类英文相对时间，单位与数量最多两段
+        match = re.match(
+            r'(\d+|an?)\s+(month|day|week|year|hour|minute)s?'
+            r'(?:\s*,?\s*(\d+)\s+(month|day|week|year|hour|minute)s?)?'
+            r'\s+ago',
+            time_str,
+            re.IGNORECASE
+        )
         if match:
-            amount1 = int(match.group(1))
-            unit1 = match.group(2)
-            amount2 = int(match.group(3)) if match.group(3) else 0
-            unit2 = match.group(4) if match.group(4) else ""
+            first = match.group(1)
+            amount1 = int(first) if first.isdigit() else 1
+            parts = ((match.group(2).lower(), amount1),)
+            if match.group(3):
+                parts += ((match.group(4).lower(), int(match.group(3))),)
 
             time_delta = timedelta()
-
-            if unit1 == "day":
-                time_delta += timedelta(days=amount1)
-            elif unit1 == "week":
-                time_delta += timedelta(weeks=amount1)
-            elif unit1 == "month":
-                time_delta += timedelta(days=30*amount1)
-            elif unit1 == "year":
-                time_delta += timedelta(days=365*amount1)
-
-            if unit2 == "day":
-                time_delta += timedelta(days=amount2)
-            elif unit2 == "week":
-                time_delta += timedelta(weeks=amount2)
-            elif unit2 == "month":
-                time_delta += timedelta(days=30*amount2)
-            elif unit2 == "year":
-                time_delta += timedelta(days=365*amount2)
+            for unit, amount in parts:
+                if unit == "day":
+                    time_delta += timedelta(days=amount)
+                elif unit == "week":
+                    time_delta += timedelta(weeks=amount)
+                elif unit == "month":
+                    time_delta += timedelta(days=30 * amount)
+                elif unit == "year":
+                    time_delta += timedelta(days=365 * amount)
+                elif unit == "hour":
+                    time_delta += timedelta(hours=amount)
+                elif unit == "minute":
+                    time_delta += timedelta(minutes=amount)
 
             return now - time_delta
 
@@ -544,12 +553,41 @@ class StringUtils:
         if not time_str:
             return ''
 
+        if not isinstance(time_str, str):
+            time_str = str(time_str)
+
         now = TimeUtils.now()
+        stripped = time_str.strip()
 
         # 优先处理相对时间格式
-        relative_time = StringUtils.parse_relative_time(now, time_str)
+        try:
+            relative_time = StringUtils.parse_relative_time(now, stripped)
+        except ValueError:
+            relative_time = None
         if relative_time:
             return relative_time.strftime('%Y-%m-%d %H:%M:%S')
+
+        # 中文日期：2023年5月12日[ HH:MM[:SS]]
+        cn_match = re.fullmatch(
+            r'(\d{4})年(\d{1,2})月(\d{1,2})日(?:\s+(\d{1,2}):(\d{2})(?::(\d{2}))?)?',
+            stripped
+        )
+        if cn_match:
+            values = [int(value) if value else 0 for value in cn_match.groups()]
+            try:
+                return datetime(*values).strftime('%Y-%m-%d %H:%M:%S')
+            except ValueError:
+                pass
+
+        # 纯数字按 Unix 时间戳处理（秒/毫秒），部分站点注册时间返回时间戳
+        if re.fullmatch(r'\d{10}(?:\.\d+)?|\d{13}', stripped):
+            try:
+                timestamp = float(stripped)
+                if len(stripped.split('.', 1)[0]) == 13:
+                    timestamp = timestamp / 1000
+                return TimeUtils.timestamp_to_datetime(timestamp).strftime('%Y-%m-%d %H:%M:%S')
+            except (ValueError, OSError, OverflowError):
+                pass
 
         try:
             # 使用 dateutil 解析绝对时间格式

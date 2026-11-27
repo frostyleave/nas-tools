@@ -101,6 +101,7 @@ class SiteSchema(Enum):
     MTorrent = "MTorrent"
     YemaPT = "YemaPT"
     ColaPT = "ColaPT"
+    SpeedApp = "SpeedApp"
 
 
 # 解析器类型
@@ -112,6 +113,7 @@ class Spider(Enum):
     MTorrentSpider = "MTorrentSpider"
     YemaSpider = "YemaSpider"
     ColaPTSpider = "ColaPTSpider"
+    SpeedAppSpider = "SpeedAppSpider"
 
 
 # 可监听事件

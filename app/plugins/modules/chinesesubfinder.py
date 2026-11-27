@@ -1,6 +1,6 @@
 import os.path
 
-from cachetools import TTLCache, cached
+from cachebox import TTLCache, cached
 
 from app.plugins import EventHandler
 from app.plugins.modules._base import _IPluginModule
@@ -201,7 +201,7 @@ class ChineseSubFinder(_IPluginModule):
                            item_type=0 if item_type == MediaType.MOVIE.value else 1,
                            item_bluray=item_bluray)
 
-    @cached(cache=TTLCache(maxsize=512, ttl=3600))
+    @cached(cache=TTLCache(maxsize=512, global_ttl=3600), postprocess=None)
     def __request_csf(self, req_url, file_path, item_type, item_bluray):
         # 一个名称只建一个任务
         self.info(f"通知ChineseSubFinder下载字幕: {file_path}")

@@ -5,6 +5,7 @@ from app.conf import SystemConfig
 from app.indexer.client import (
     ColaPTSpider,
     MTorrentSpider,
+    SpeedAppSpider,
     TheRarbg,
     TNodeSpider,
     TorrentLeech,
@@ -185,6 +186,9 @@ class BuiltinIndexer(_IIndexClient):
 
             if indexer.parser == Spider.ColaPTSpider.value:
                 return ColaPTSpider(indexer).search(keyword=search_word, mtype=mtype)
+
+            if indexer.parser == Spider.SpeedAppSpider.value:
+                return SpeedAppSpider(indexer).search(keyword=search_word, mtype=mtype)
 
             if indexer.parser == Spider.TheRarbg.value:
                 return TheRarbg(indexer).search(keyword=search_word)

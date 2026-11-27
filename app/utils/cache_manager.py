@@ -1,4 +1,4 @@
-from cachetools import LRUCache
+from cachebox import LRUCache
 
 # TMDB 搜索结果缓存：按名称缓存搜索结果，LRU 淘汰
 cacheman = {
